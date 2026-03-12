@@ -1,0 +1,536 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/flux-2-lora-gallery/multiple-angles",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/flux-2-lora-gallery/multiple-angles queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/flux-2-lora-gallery/multiple-angles",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/tiger/uGB7v3AfMfHnqXp04NAzY_c730bfb4d81848338df88c8b6db41927.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/flux-2-lora-gallery/multiple-angles",
+      "documentationUrl": "https://fal.ai/models/fal-ai/flux-2-lora-gallery/multiple-angles/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Flux2LoraGalleryMultipleAnglesInput": {
+        "description": "Input model for Multiple Angles endpoint - Camera control with precise adjustments using <sks> trigger word. Prompt is built automatically from slider values.",
+        "type": "object",
+        "properties": {
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular"
+            ],
+            "description": "Acceleration level for image generation.",
+            "type": "string",
+            "title": "Acceleration",
+            "default": "regular"
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the generated image. If not provided, the size of the input image will be used.",
+            "title": "Image Size"
+          },
+          "horizontal_angle": {
+            "description": "Horizontal rotation angle around the object in degrees. 0°=front view, 90°=right side, 180°=back view, 270°=left side, 360°=front view again.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Horizontal Angle (Azimuth °)",
+            "maximum": 360,
+            "default": 0
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "The CFG (Classifier Free Guidance) scale.",
+            "type": "number",
+            "maximum": 20,
+            "title": "Guidance Scale",
+            "default": 2.5
+          },
+          "enable_safety_checker": {
+            "description": "Whether to enable the safety checker.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "image_urls": {
+            "examples": [
+              [
+                "https://v3.fal.media/files/monkey/i3saq4bAPXSIl08nZtq9P_ec535747aefc4e31943136a6d8587075.png"
+              ]
+            ],
+            "description": "The URL of the image to adjust camera angle for.",
+            "type": "array",
+            "title": "Image URLs",
+            "items": {
+              "type": "string"
+            }
+          },
+          "zoom": {
+            "description": "Camera zoom/distance. 0=wide shot (far away), 5=medium shot (normal), 10=close-up (very close).",
+            "type": "number",
+            "minimum": 0,
+            "title": "Zoom (Distance)",
+            "maximum": 10,
+            "default": 5
+          },
+          "vertical_angle": {
+            "description": "Vertical camera angle in degrees. 0°=eye-level shot, 30°=elevated shot, 60°=high-angle shot (looking down from above).",
+            "type": "number",
+            "minimum": 0,
+            "title": "Vertical Angle (Elevation °)",
+            "maximum": 60,
+            "default": 0
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "Number of images to generate.",
+            "type": "integer",
+            "maximum": 4,
+            "title": "Num Images",
+            "default": 1
+          },
+          "lora_scale": {
+            "minimum": 0,
+            "description": "The strength of the multiple angles effect.",
+            "type": "number",
+            "maximum": 2,
+            "title": "Lora Scale",
+            "default": 1
+          },
+          "output_format": {
+            "enum": [
+              "png",
+              "jpeg",
+              "webp"
+            ],
+            "description": "The format of the output image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "png"
+          },
+          "sync_mode": {
+            "description": "If True, the media will be returned as a data URI.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "The number of inference steps to perform.",
+            "type": "integer",
+            "maximum": 50,
+            "title": "Num Inference Steps",
+            "default": 40
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducibility.",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_urls",
+          "horizontal_angle",
+          "vertical_angle",
+          "zoom",
+          "image_size",
+          "guidance_scale",
+          "num_inference_steps",
+          "acceleration",
+          "seed",
+          "sync_mode",
+          "enable_safety_checker",
+          "output_format",
+          "num_images",
+          "lora_scale"
+        ],
+        "title": "MultipleAnglesInput",
+        "required": [
+          "image_urls"
+        ]
+      },
+      "Flux2LoraGalleryMultipleAnglesOutput": {
+        "title": "MultipleAnglesOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The prompt used for generation",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3b.fal.media/files/b/0a848d46/EYFbhE4axwlNB3OSKfdre.png"
+                }
+              ]
+            ],
+            "description": "The generated images with multiple camera angles",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "description": "The seed used for generation",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "seed",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "description": "The height of the generated image.",
+            "type": "integer",
+            "maximum": 14142,
+            "title": "Height",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "description": "The width of the generated image.",
+            "type": "integer",
+            "maximum": 14142,
+            "title": "Width",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/flux-2-lora-gallery/multiple-angles/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/multiple-angles/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/multiple-angles": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Flux2LoraGalleryMultipleAnglesInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/multiple-angles/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flux2LoraGalleryMultipleAnglesOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

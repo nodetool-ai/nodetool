@@ -1,0 +1,365 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kandinsky5/text-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kandinsky5/text-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kandinsky5/text-to-video",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/panda/F-LagExgsZASG2uyIcj6X_093dccc7417c47e593e245767017f251.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kandinsky5/text-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kandinsky5/text-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Kandinsky5TextToVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "resolution",
+          "aspect_ratio",
+          "duration",
+          "num_inference_steps"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A dog in red hat"
+            ],
+            "description": "The text prompt to guide video generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "3:2",
+              "1:1",
+              "2:3"
+            ],
+            "description": "Aspect ratio of the generated video. One of (3:2, 1:1, 2:3).",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "3:2"
+          },
+          "resolution": {
+            "description": "Resolution of the generated video in W:H format. Will be calculated based on the aspect ratio(768x512, 512x512, 512x768).",
+            "type": "string",
+            "title": "Resolution",
+            "const": "768x512",
+            "default": "768x512"
+          },
+          "duration": {
+            "enum": [
+              "5s",
+              "10s"
+            ],
+            "description": "The length of the video to generate (5s or 10s)",
+            "type": "string",
+            "examples": [
+              "5s",
+              "10s"
+            ],
+            "title": "Duration",
+            "default": "5s"
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "The number of inference steps.",
+            "type": "integer",
+            "maximum": 50,
+            "title": "Num Inference Steps",
+            "default": 30
+          }
+        },
+        "title": "KandinskyT2VRequest",
+        "required": [
+          "prompt"
+        ]
+      },
+      "Kandinsky5TextToVideoOutput": {
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 5797172,
+                "file_name": "output.mp4",
+                "content_type": "application/octet-stream",
+                "url": "https://v3b.fal.media/files/b/tiger/5d-CATfsfPrBaXAK38hy6_output.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "KandinskyT2VResponse"
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kandinsky5/text-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kandinsky5/text-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kandinsky5/text-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Kandinsky5TextToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kandinsky5/text-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Kandinsky5TextToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

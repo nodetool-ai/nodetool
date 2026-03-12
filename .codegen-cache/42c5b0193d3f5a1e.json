@@ -1,0 +1,403 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/chatterbox/text-to-speech/multilingual",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/chatterbox/text-to-speech/multilingual queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/chatterbox/text-to-speech/multilingual",
+      "category": "text-to-speech",
+      "thumbnailUrl": "https://fal.media/files/rabbit/FzzCnGuQNXLOEYuQq8CE8_7afb3290e0de46d5a7e4d13495938e3f.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/chatterbox/text-to-speech/multilingual",
+      "documentationUrl": "https://fal.ai/models/fal-ai/chatterbox/text-to-speech/multilingual/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ChatterboxTextToSpeechMultilingualInput": {
+        "title": "ChatterboxMultilingualRequest",
+        "type": "object",
+        "properties": {
+          "text": {
+            "examples": [
+              "Last month, we reached a new milestone with two billion views on our YouTube channel.",
+              "Le mois dernier, nous avons atteint un nouveau jalon avec deux milliards de vues sur notre chaîne YouTube."
+            ],
+            "maxLength": 300,
+            "type": "string",
+            "description": "The text to be converted to speech (maximum 300 characters). Supports 23 languages including English, French, German, Spanish, Italian, Portuguese, Hindi, Arabic, Chinese, Japanese, Korean, and more.",
+            "title": "Text"
+          },
+          "custom_audio_language": {
+            "enum": [
+              "english",
+              "arabic",
+              "danish",
+              "german",
+              "greek",
+              "spanish",
+              "finnish",
+              "french",
+              "hebrew",
+              "hindi",
+              "italian",
+              "japanese",
+              "korean",
+              "malay",
+              "dutch",
+              "norwegian",
+              "polish",
+              "portuguese",
+              "russian",
+              "swedish",
+              "swahili",
+              "turkish",
+              "chinese"
+            ],
+            "description": "If using a custom audio URL, specify the language of the audio here. Ignored if voice is not a custom url.",
+            "type": "string",
+            "title": "Custom Audio Language"
+          },
+          "exaggeration": {
+            "minimum": 0.25,
+            "maximum": 2,
+            "type": "number",
+            "description": "Controls speech expressiveness and emotional intensity (0.25-2.0). 0.5 is neutral, higher values increase expressiveness. Extreme values may be unstable.",
+            "title": "Exaggeration",
+            "default": 0.5
+          },
+          "voice": {
+            "examples": [
+              "english",
+              "arabic",
+              "danish",
+              "german",
+              "greek",
+              "spanish",
+              "finnish",
+              "french",
+              "hebrew",
+              "hindi",
+              "italian",
+              "japanese",
+              "korean",
+              "malay",
+              "dutch",
+              "norwegian",
+              "polish",
+              "portuguese",
+              "russian",
+              "swedish",
+              "swahili",
+              "turkish",
+              "chinese"
+            ],
+            "description": "Language code for synthesis. In case using custom please provide audio url and select custom_audio_language. ",
+            "type": "string",
+            "title": "Voice",
+            "default": "english"
+          },
+          "temperature": {
+            "minimum": 0.05,
+            "maximum": 5,
+            "type": "number",
+            "description": "Controls randomness and variation in generation (0.05-5.0). Higher values create more varied speech patterns.",
+            "title": "Temperature",
+            "default": 0.8
+          },
+          "seed": {
+            "description": "Random seed for reproducible results. Set to 0 for random generation, or provide a specific number for consistent outputs.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "cfg_scale": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "description": "Configuration/pace weight controlling generation guidance (0.0-1.0). Use 0.0 for language transfer to mitigate accent inheritance.",
+            "title": "CFG Scale",
+            "default": 0.5
+          }
+        },
+        "x-fal-order-properties": [
+          "text",
+          "voice",
+          "custom_audio_language",
+          "exaggeration",
+          "temperature",
+          "cfg_scale",
+          "seed"
+        ],
+        "required": [
+          "text"
+        ]
+      },
+      "ChatterboxTextToSpeechMultilingualOutput": {
+        "title": "ChatterboxMultilingualOutput",
+        "type": "object",
+        "properties": {
+          "audio": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/example/multilingual_speech_output.wav"
+              }
+            ],
+            "description": "The generated multilingual speech audio file",
+            "title": "Audio",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "audio"
+        ],
+        "required": [
+          "audio"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/chatterbox/text-to-speech/multilingual/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chatterbox/text-to-speech/multilingual/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chatterbox/text-to-speech/multilingual": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatterboxTextToSpeechMultilingualInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chatterbox/text-to-speech/multilingual/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatterboxTextToSpeechMultilingualOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

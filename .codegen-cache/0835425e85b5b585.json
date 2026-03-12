@@ -1,0 +1,346 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kling/v1-5/kolors-virtual-try-on",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kling/v1-5/kolors-virtual-try-on queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kling/v1-5/kolors-virtual-try-on",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/kling-tryon.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kling/v1-5/kolors-virtual-try-on",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kling/v1-5/kolors-virtual-try-on/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "KlingV15KolorsVirtualTryOnInput": {
+        "x-fal-order-properties": [
+          "human_image_url",
+          "garment_image_url",
+          "sync_mode"
+        ],
+        "type": "object",
+        "properties": {
+          "garment_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/leffa/tshirt_image.jpg"
+            ],
+            "description": "Url to the garment image.",
+            "type": "string",
+            "title": "Garment Image Url"
+          },
+          "sync_mode": {
+            "description": "If true, the function will return the image in the response.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "human_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/leffa/person_image.jpg"
+            ],
+            "description": "Url for the human image.",
+            "type": "string",
+            "title": "Human Image Url"
+          }
+        },
+        "title": "TryOnRequest",
+        "required": [
+          "human_image_url",
+          "garment_image_url"
+        ]
+      },
+      "KlingV15KolorsVirtualTryOnOutput": {
+        "x-fal-order-properties": [
+          "image"
+        ],
+        "type": "object",
+        "properties": {
+          "image": {
+            "examples": [
+              {
+                "file_size": 595094,
+                "height": 1024,
+                "file_name": "result.png",
+                "content_type": "image/png",
+                "url": "https://v3.fal.media/files/panda/Hoy3zhimzVKi3F2uoGBnh_result.png",
+                "width": 768
+              }
+            ],
+            "description": "The output image.",
+            "title": "Image",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          }
+        },
+        "title": "TryOnOutput",
+        "required": [
+          "image"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels.",
+            "type": "integer",
+            "title": "Height"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels.",
+            "type": "integer",
+            "title": "Width"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kling/v1-5/kolors-virtual-try-on/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling/v1-5/kolors-virtual-try-on/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling/v1-5/kolors-virtual-try-on": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KlingV15KolorsVirtualTryOnInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling/v1-5/kolors-virtual-try-on/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KlingV15KolorsVirtualTryOnOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

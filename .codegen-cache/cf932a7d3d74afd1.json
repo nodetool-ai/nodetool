@@ -1,0 +1,546 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/qwen-3-tts/voice-design/1.7b",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/qwen-3-tts/voice-design/1.7b queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "category": "text-to-speech",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8bf564/hAR_lGabCTI37uWDVwiAp_64495f3b4ba447e7912cfd327b2cd0f1.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/qwen-3-tts/voice-design/1.7b",
+      "documentationUrl": "https://fal.ai/models/fal-ai/qwen-3-tts/voice-design/1.7b/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Qwen3TtsVoiceDesign17bInput": {
+        "x-fal-order-properties": [
+          "text",
+          "language",
+          "prompt",
+          "top_k",
+          "top_p",
+          "temperature",
+          "repetition_penalty",
+          "subtalker_dosample",
+          "subtalker_top_k",
+          "subtalker_top_p",
+          "subtalker_temperature",
+          "max_new_tokens"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Speak in an incredulous tone, but with a hint of panic beginning to creep into your voice."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Optional prompt to guide the style of the generated speech."
+          },
+          "subtalker_top_k": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtalker Top K",
+            "description": "Top-k for sub-talker sampling.",
+            "default": 50
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P",
+            "description": "Top-p sampling parameter.",
+            "default": 1
+          },
+          "language": {
+            "examples": [
+              "English"
+            ],
+            "title": "Language",
+            "type": "string",
+            "enum": [
+              "Auto",
+              "English",
+              "Chinese",
+              "Spanish",
+              "French",
+              "German",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Portuguese",
+              "Russian"
+            ],
+            "description": "The language of the voice to be designed.",
+            "default": "Auto"
+          },
+          "max_new_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "maximum": 8192,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max New Tokens",
+            "description": "Maximum number of new codec tokens to generate.",
+            "default": 200
+          },
+          "repetition_penalty": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetition Penalty",
+            "description": "Penalty to reduce repeated tokens/codes.",
+            "default": 1.05
+          },
+          "text": {
+            "examples": [
+              "It's in the top drawer... wait, it's empty? No way, that's impossible! I'm sure I put it there!"
+            ],
+            "title": "Text",
+            "type": "string",
+            "description": "The text to be converted to speech."
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K",
+            "description": "Top-k sampling parameter.",
+            "default": 50
+          },
+          "subtalker_dosample": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtalker Dosample",
+            "description": "Sampling switch for the sub-talker.",
+            "default": true
+          },
+          "subtalker_temperature": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtalker Temperature",
+            "description": "Temperature for sub-talker sampling.",
+            "default": 0.9
+          },
+          "subtalker_top_p": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtalker Top P",
+            "description": "Top-p for sub-talker sampling.",
+            "default": 1
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "description": "Sampling temperature; higher => more random.",
+            "default": 0.9
+          }
+        },
+        "title": "Qwen3DesignVoiceInput",
+        "required": [
+          "text",
+          "prompt"
+        ]
+      },
+      "Qwen3TtsVoiceDesign17bOutput": {
+        "x-fal-order-properties": [
+          "audio"
+        ],
+        "type": "object",
+        "properties": {
+          "audio": {
+            "examples": [
+              {
+                "duration": 7.736875,
+                "file_name": "rHFLVApz9Rdenm20UvnGf_FtjmMLBV.mp3",
+                "sample_rate": 24000,
+                "content_type": "audio/mpeg",
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/qwen3-tts/design_out.mp3",
+                "channels": 1
+              }
+            ],
+            "description": "The generated speech audio file.",
+            "$ref": "#/components/schemas/AudioFile"
+          }
+        },
+        "title": "Qwen3DesignVoiceOutput",
+        "required": [
+          "audio"
+        ]
+      },
+      "AudioFile": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "channels",
+          "sample_rate",
+          "bitrate"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration",
+            "description": "The duration of the audio"
+          },
+          "bitrate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bitrate",
+            "description": "The bitrate of the audio (e.g., '192k' or 192000)"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Rate",
+            "description": "The sample rate of the audio"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels",
+            "description": "The number of channels in the audio"
+          }
+        },
+        "title": "AudioFile",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/qwen-3-tts/voice-design/1.7b/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-tts/voice-design/1.7b/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-tts/voice-design/1.7b": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Qwen3TtsVoiceDesign17bInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-tts/voice-design/1.7b/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Qwen3TtsVoiceDesign17bOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

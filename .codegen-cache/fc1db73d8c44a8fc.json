@@ -1,0 +1,429 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/lcm-sd15-i2i",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/lcm-sd15-i2i queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/lcm-sd15-i2i",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal-cdn.batuhan-941.workers.dev/files/kangaroo/4HI4amBAnKjvUi0SYLVwb.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/lcm-sd15-i2i",
+      "documentationUrl": "https://fal.ai/models/fal-ai/lcm-sd15-i2i/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LcmSd15I2iInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "mask_url",
+          "strength",
+          "negative_prompt",
+          "seed",
+          "guidance_scale",
+          "num_inference_steps",
+          "sync_mode",
+          "num_images",
+          "enable_safety_checks",
+          "request_id"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "masterpiece, colorful, photo of a beach in hawaii, sun"
+            ],
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "\n            The number of images to generate. The function will return a list of images\n            with the same prompt and negative prompt but different seeds.\n        ",
+            "type": "integer",
+            "maximum": 8,
+            "title": "Num Images",
+            "default": 1
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "type": "number",
+            "maximum": 16,
+            "title": "Guidance scale (CFG)",
+            "default": 1
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/lcm/beach.png"
+            ],
+            "description": "The image to use as a base.",
+            "type": "string",
+            "title": "Image Url"
+          },
+          "strength": {
+            "minimum": 0,
+            "description": "The strength of the image.",
+            "type": "number",
+            "maximum": 1,
+            "title": "Strength",
+            "default": 0.8
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "enable_safety_checks": {
+            "description": "\n            If set to true, the resulting image will be checked whether it includes any\n            potentially unsafe content. If it does, it will be replaced with a black\n            image.\n        ",
+            "type": "boolean",
+            "title": "Enable Safety Checks",
+            "default": true
+          },
+          "request_id": {
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "\n            The number of inference steps to use for generating the image. The more steps\n            the better the image will be but it will also take longer to generate.\n        ",
+            "type": "integer",
+            "maximum": 12,
+            "title": "Num Inference Steps",
+            "default": 4
+          },
+          "mask_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mask Url",
+            "description": "Mask URL for compatibility with generic LCM processing."
+          },
+          "negative_prompt": {
+            "examples": [
+              "cartoon, illustration, animation. face. male, female",
+              "ugly, deformed"
+            ],
+            "description": "\n            The negative prompt to use.Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        ",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "LCMI2IInput",
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "LcmSd15I2iOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "num_inference_steps",
+          "request_id",
+          "nsfw_content_detected"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "description": "The generated image files info.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "request_id": {
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "num_inference_steps": {
+            "description": "\n            Number of inference steps used to generate the image. It will be the same value of the one passed in the\n            input or the default one in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "default": 4
+          },
+          "seed": {
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "nsfw_content_detected": {
+            "description": "\n            A list of booleans indicating whether the generated image contains any\n            potentially unsafe content. If the safety check is disabled, this field\n            will have a false for each generated image.\n        ",
+            "type": "array",
+            "title": "Nsfw Content Detected",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "title": "LCMOutput",
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "nsfw_content_detected"
+        ]
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "title": "Image",
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/lcm-sd15-i2i/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm-sd15-i2i/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm-sd15-i2i": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LcmSd15I2iInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm-sd15-i2i/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LcmSd15I2iOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

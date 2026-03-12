@@ -1,0 +1,519 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/qwen-image-edit-lora",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/qwen-image-edit-lora queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/qwen-image-edit-lora",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/koala/TLOrc_UR0t-P9eEqdlnKO_7873734a28ad4a5085fdb207645a902f.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/qwen-image-edit-lora",
+      "documentationUrl": "https://fal.ai/models/fal-ai/qwen-image-edit-lora/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "QwenImageEditLoraInput": {
+        "title": "BaseQwenEditImageLoRAInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Change bag to apple macbook"
+            ],
+            "description": "The prompt to generate the image with",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "The number of images to generate.",
+            "type": "integer",
+            "title": "Num Images",
+            "maximum": 4,
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The size of the generated image."
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular",
+              "high"
+            ],
+            "description": "Acceleration level for image generation. Options: 'none', 'regular'. Higher acceleration increases speed. 'regular' balances speed and quality.",
+            "type": "string",
+            "examples": [
+              "regular"
+            ],
+            "title": "Acceleration",
+            "default": "none"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "png"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/koala/oei_-iPIYFnhdB8SxojND_qwen-edit-res.png"
+            ],
+            "description": "The URL of the image to edit.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "loras": {
+            "description": "\n            The LoRAs to use for the image generation. You can use up to 3 LoRAs\n            and they will be merged together to generate the final image.\n        ",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "examples": [],
+            "title": "Loras",
+            "default": []
+          },
+          "enable_safety_checker": {
+            "description": "If set to true, the safety checker will be enabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        "
+          },
+          "num_inference_steps": {
+            "minimum": 2,
+            "description": "The number of inference steps to perform.",
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "maximum": 50,
+            "default": 30
+          },
+          "negative_prompt": {
+            "examples": [
+              "blurry, ugly"
+            ],
+            "description": "The negative prompt for the generation",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": " "
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "type": "number",
+            "title": "Guidance scale",
+            "maximum": 20,
+            "default": 4
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_size",
+          "num_inference_steps",
+          "seed",
+          "guidance_scale",
+          "sync_mode",
+          "num_images",
+          "enable_safety_checker",
+          "output_format",
+          "image_url",
+          "negative_prompt",
+          "acceleration",
+          "loras"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "QwenImageEditLoraOutput": {
+        "title": "QwenImageOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the image."
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 768,
+                  "content_type": "image/jpeg",
+                  "url": "https://v3.fal.media/files/elephant/P-YCIAg6wtFn1hsF34fzL_qwen-edit.png",
+                  "width": 1024
+                }
+              ]
+            ],
+            "description": "The generated image files info.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "timings": {
+            "title": "Timings",
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "has_nsfw_concepts": {
+            "title": "Has Nsfw Concepts",
+            "type": "array",
+            "description": "Whether the generated images contain NSFW concepts.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "LoraWeight": {
+        "title": "LoraWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the LoRA weights."
+          },
+          "scale": {
+            "minimum": 0,
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "type": "number",
+            "title": "Scale",
+            "maximum": 4,
+            "default": 1
+          }
+        },
+        "x-fal-order-properties": [
+          "path",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/qwen-image-edit-lora/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-image-edit-lora/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-image-edit-lora": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QwenImageEditLoraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-image-edit-lora/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QwenImageEditLoraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

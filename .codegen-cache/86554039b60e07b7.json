@@ -1,0 +1,337 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/swin2sr",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/swin2sr queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/swin2sr",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/swin2sr.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/swin2sr",
+      "documentationUrl": "https://fal.ai/models/fal-ai/swin2sr/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Swin2srInput": {
+        "title": "SwinSrInput",
+        "type": "object",
+        "properties": {
+          "task": {
+            "enum": [
+              "classical_sr",
+              "compressed_sr",
+              "real_sr"
+            ],
+            "title": "Task",
+            "type": "string",
+            "description": "Task to perform",
+            "default": "classical_sr"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "seed to be used for generation"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/gallery/seoul.jpg"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of image to be used for image enhancement"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "seed",
+          "task"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "Swin2srOutput": {
+        "title": "SwinSrOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "title": "Image",
+            "description": "The generated image file info.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "image"
+        ],
+        "required": [
+          "image"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "type": "integer",
+            "description": "The height of the image in pixels."
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "type": "integer",
+            "description": "The width of the image in pixels."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/swin2sr/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/swin2sr/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/swin2sr": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Swin2srInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/swin2sr/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Swin2srOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

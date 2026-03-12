@@ -1,0 +1,415 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/object-removal/bbox",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/object-removal/bbox queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/object-removal/bbox",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Training-4.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/object-removal/bbox",
+      "documentationUrl": "https://fal.ai/models/fal-ai/object-removal/bbox/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ObjectRemovalBboxInput": {
+        "title": "BboxInput",
+        "type": "object",
+        "properties": {
+          "model": {
+            "enum": [
+              "low_quality",
+              "medium_quality",
+              "high_quality",
+              "best_quality"
+            ],
+            "title": "Model",
+            "type": "string",
+            "default": "best_quality"
+          },
+          "mask_expansion": {
+            "minimum": 0,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Mask Expansion",
+            "description": "Amount of pixels to expand the mask by. Range: 0-50",
+            "default": 15
+          },
+          "box_prompts": {
+            "examples": [
+              [
+                {
+                  "y_min": 0.0115,
+                  "x_max": 0.6574,
+                  "x_min": 0.3595,
+                  "y_max": 0.8175
+                }
+              ]
+            ],
+            "title": "Box Prompts",
+            "type": "array",
+            "description": "List of bounding box coordinates to erase (only one box prompt is supported)",
+            "items": {
+              "$ref": "#/components/schemas/BBoxPromptBase"
+            },
+            "default": []
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/zebra/o0DORfJawy-T9P_-NsvLY.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "The URL of the image to remove objects from."
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "box_prompts",
+          "model",
+          "mask_expansion"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "ObjectRemovalBboxOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "file_size": 730703,
+                  "height": 768,
+                  "file_name": "85a2309b2c954c85a75120e664adbe17.png",
+                  "content_type": "image/png",
+                  "url": "https://v3.fal.media/files/lion/arYSoJeqWjhbcA8o4budv_85a2309b2c954c85a75120e664adbe17.png",
+                  "width": 1024
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "description": "The generated images with objects removed.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "required": [
+          "images"
+        ]
+      },
+      "BBoxPromptBase": {
+        "title": "BBoxPromptBase",
+        "type": "object",
+        "properties": {
+          "y_min": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Y Min",
+            "description": "Y Min Coordinate of the box (0-1)",
+            "default": 0
+          },
+          "x_max": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "X Max",
+            "description": "X Max Coordinate of the prompt (0-1)",
+            "default": 0
+          },
+          "x_min": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "X Min",
+            "description": "X Min Coordinate of the box (0-1)",
+            "default": 0
+          },
+          "y_max": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Y Max",
+            "description": "Y Max Coordinate of the prompt (0-1)",
+            "default": 0
+          }
+        },
+        "x-fal-order-properties": [
+          "x_min",
+          "y_min",
+          "x_max",
+          "y_max"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "type": "integer",
+            "description": "The height of the image in pixels."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "type": "integer",
+            "description": "The width of the image in pixels."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/object-removal/bbox/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/object-removal/bbox/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/object-removal/bbox": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjectRemovalBboxInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/object-removal/bbox/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectRemovalBboxOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

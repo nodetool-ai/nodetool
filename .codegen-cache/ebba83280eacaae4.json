@@ -1,0 +1,408 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/veo3.1/fast/extend-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/veo3.1/fast/extend-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/veo3.1/fast/extend-video",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8674fa/XbhmACHhbyXpu2YHjob0-_cf9e946ef4df427cbf3111197d7a092a.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/veo3.1/fast/extend-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/veo3.1/fast/extend-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Veo31FastExtendVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "aspect_ratio",
+          "duration",
+          "negative_prompt",
+          "resolution",
+          "generate_audio",
+          "seed",
+          "auto_fix",
+          "safety_tolerance",
+          "video_url"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Continue the scene naturally, maintaining the same style and motion."
+            ],
+            "description": "The text prompt describing how the video should be extended",
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Prompt"
+          },
+          "duration": {
+            "description": "The duration of the generated video.",
+            "type": "string",
+            "title": "Duration",
+            "const": "7s",
+            "default": "7s"
+          },
+          "auto_fix": {
+            "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
+            "type": "boolean",
+            "title": "Auto Fix",
+            "default": false
+          },
+          "generate_audio": {
+            "description": "Whether to generate audio for the video.",
+            "type": "boolean",
+            "title": "Generate Audio",
+            "default": true
+          },
+          "video_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/0a8670fe/pY8UGl4_C452wOm9XUBYO_9ae04df8771c4f3f979fa5cabeca6ada.mp4"
+            ],
+            "description": "URL of the video to extend. The video should be 720p or 1080p resolution in 16:9 or 9:16 aspect ratio.",
+            "type": "string",
+            "title": "Video URL"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16"
+            ],
+            "description": "The aspect ratio of the generated video.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "auto"
+          },
+          "resolution": {
+            "description": "The resolution of the generated video.",
+            "type": "string",
+            "title": "Resolution",
+            "const": "720p",
+            "default": "720p"
+          },
+          "safety_tolerance": {
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ],
+            "description": "The safety tolerance level for content moderation. 1 is the most strict (blocks most content), 6 is the least strict.",
+            "type": "string",
+            "title": "Safety Tolerance",
+            "default": "4"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed for the random number generator.",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A negative prompt to guide the video generation.",
+            "title": "Negative Prompt"
+          }
+        },
+        "title": "Veo31VideoToVideoInput",
+        "required": [
+          "prompt",
+          "video_url"
+        ]
+      },
+      "Veo31FastExtendVideoOutput": {
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3b.fal.media/files/b/0a86711b/B_Z96VS4X9Dfd4M5ArB4H_c666e63f729f4a8fa1145c6727cef97d.mp4"
+              }
+            ],
+            "description": "The extended video.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "Veo31VideoToVideoOutput",
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/veo3.1/fast/extend-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/veo3.1/fast/extend-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/veo3.1/fast/extend-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Veo31FastExtendVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/veo3.1/fast/extend-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veo31FastExtendVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

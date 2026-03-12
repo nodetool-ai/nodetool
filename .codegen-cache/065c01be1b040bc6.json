@@ -1,0 +1,902 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/meshy/v6-preview/text-to-3d",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/meshy/v6-preview/text-to-3d queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/meshy/v6-preview/text-to-3d",
+      "category": "text-to-3d",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/rabbit/R9WXOPkhbiHFjL8iXBLDG_79f59228974346e59950364b95325d80.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/meshy/v6-preview/text-to-3d",
+      "documentationUrl": "https://fal.ai/models/fal-ai/meshy/v6-preview/text-to-3d/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MeshyV6PreviewTextTo3dInput": {
+        "title": "TextTo3DInput",
+        "type": "object",
+        "properties": {
+          "enable_pbr": {
+            "title": "Enable Pbr",
+            "type": "boolean",
+            "description": "Generate PBR Maps (metallic, roughness, normal) in addition to base color. Should be false for sculpture style.",
+            "default": false
+          },
+          "prompt": {
+            "examples": [
+              "A rustic, antique wooden treasure chest with a curved, domed lid, constructed from weathered, dark brown planks exhibiting prominent wood grain and subtle distress. It's heavily reinforced with broad, dark grey, oxidized metal bands secured by numerous circular rivets. Ornate, dark iron decorative elements featuring swirling foliate patterns and dragon motifs adorn the corners and lid. A prominent, circular, intricately carved metal lock plate with a central keyhole dominates the front, flanked by two large, dark metallic pull rings."
+            ],
+            "maxLength": 600,
+            "type": "string",
+            "title": "Prompt",
+            "description": "Describe what kind of object the 3D model is. Maximum 600 characters."
+          },
+          "art_style": {
+            "enum": [
+              "realistic",
+              "sculpture"
+            ],
+            "title": "Art Style",
+            "type": "string",
+            "description": "Desired art style of the object. Note: enable_pbr should be false for sculpture style.",
+            "default": "realistic"
+          },
+          "target_polycount": {
+            "minimum": 100,
+            "title": "Target Polycount",
+            "type": "integer",
+            "maximum": 300000,
+            "description": "Target number of polygons in the generated model",
+            "default": 30000
+          },
+          "enable_rigging": {
+            "title": "Enable Rigging",
+            "type": "boolean",
+            "description": "Automatically rig the generated model as a humanoid character. Includes basic walking and running animations. Best results with humanoid characters that have clearly defined limbs.",
+            "default": false
+          },
+          "animation_action_id": {
+            "examples": [
+              1001
+            ],
+            "title": "Animation Action Id",
+            "type": "integer",
+            "description": "Animation preset ID from Meshy's library (500+ presets). Only used when enable_animation is true. See https://docs.meshy.ai/en/api/animation-library for available action IDs.",
+            "default": 1001
+          },
+          "is_a_t_pose": {
+            "title": "Is A T Pose",
+            "type": "boolean",
+            "description": "Deprecated: use pose_mode instead. When true, generates a T-pose model.",
+            "deprecated": true,
+            "default": false
+          },
+          "mode": {
+            "enum": [
+              "preview",
+              "full"
+            ],
+            "title": "Mode",
+            "type": "string",
+            "description": "Generation mode. 'preview' returns untextured geometry only, 'full' returns textured model (preview + refine).",
+            "default": "full"
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, input data will be checked for safety before processing.",
+            "default": true
+          },
+          "symmetry_mode": {
+            "enum": [
+              "off",
+              "auto",
+              "on"
+            ],
+            "title": "Symmetry Mode",
+            "type": "string",
+            "description": "Controls symmetry behavior during model generation.",
+            "default": "auto"
+          },
+          "should_remesh": {
+            "title": "Should Remesh",
+            "type": "boolean",
+            "description": "Whether to enable the remesh phase. When false, returns unprocessed triangular mesh.",
+            "default": true
+          },
+          "topology": {
+            "enum": [
+              "quad",
+              "triangle"
+            ],
+            "title": "Topology",
+            "type": "string",
+            "description": "Specify the topology of the generated model. Quad for smooth surfaces, Triangle for detailed geometry.",
+            "default": "triangle"
+          },
+          "pose_mode": {
+            "enum": [
+              "a-pose",
+              "t-pose",
+              ""
+            ],
+            "title": "Pose Mode",
+            "type": "string",
+            "description": "Pose mode for the generated model. 'a-pose' generates an A-pose, 't-pose' generates a T-pose, empty string for no specific pose.",
+            "default": ""
+          },
+          "texture_image_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "_fal_ui_field": "image",
+                "ui": {
+                  "field": "image"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texture Image Url",
+            "max_pixels": 178956970,
+            "description": "2D image to guide the texturing process (only used in 'full' mode)",
+            "max_file_size": 20971520
+          },
+          "enable_animation": {
+            "title": "Enable Animation",
+            "type": "boolean",
+            "description": "Apply an animation preset to the rigged model. Requires enable_rigging to be true.",
+            "default": false
+          },
+          "enable_prompt_expansion": {
+            "title": "Enable Prompt Expansion",
+            "type": "boolean",
+            "description": "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning.",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Seed for reproducible results. Same prompt and seed usually generate the same result."
+          },
+          "texture_prompt": {
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texture Prompt",
+            "description": "Additional text prompt to guide the texturing process (only used in 'full' mode)"
+          },
+          "rigging_height_meters": {
+            "title": "Rigging Height Meters",
+            "type": "number",
+            "description": "Approximate height of the character in meters. Only used when enable_rigging is true.",
+            "exclusiveMinimum": 0,
+            "default": 1.7
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "mode",
+          "art_style",
+          "seed",
+          "topology",
+          "target_polycount",
+          "should_remesh",
+          "symmetry_mode",
+          "enable_pbr",
+          "is_a_t_pose",
+          "pose_mode",
+          "enable_prompt_expansion",
+          "texture_prompt",
+          "texture_image_url",
+          "enable_rigging",
+          "rigging_height_meters",
+          "enable_animation",
+          "animation_action_id",
+          "enable_safety_checker"
+        ],
+        "description": "Input for Text to 3D conversion",
+        "required": [
+          "prompt"
+        ]
+      },
+      "MeshyV6PreviewTextTo3dOutput": {
+        "title": "TextTo3DOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A rustic, antique wooden treasure chest with a curved, domed lid, constructed from weathered, dark brown planks exhibiting prominent wood grain and subtle distress. It's heavily reinforced with broad, dark grey, oxidized metal bands secured by numerous circular rivets. Ornate, dark iron decorative elements featuring swirling foliate patterns and dragon motifs adorn the corners and lid. A prominent, circular, intricately carved metal lock plate with a central keyhole dominates the front, flanked by two large, dark metallic pull rings."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt used for generation"
+          },
+          "rigged_character_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rigged character in GLB format. Only present when enable_rigging is true."
+          },
+          "actual_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Prompt",
+            "description": "The actual prompt used if prompt expansion was enabled"
+          },
+          "thumbnail": {
+            "examples": [
+              {
+                "file_size": 173792,
+                "file_name": "preview.png",
+                "content_type": "image/png",
+                "url": "https://v3b.fal.media/files/b/koala/6LJISu4ilkZXcdOETwl_d_preview.png"
+              }
+            ],
+            "description": "Preview thumbnail of the generated model",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_glb": {
+            "examples": [
+              {
+                "file_size": 9314028,
+                "file_name": "model.glb",
+                "content_type": "model/gltf-binary",
+                "url": "https://v3b.fal.media/files/b/penguin/DId89qXLu6BXu09RFAwAV_model.glb"
+              }
+            ],
+            "description": "Generated 3D object in GLB format.",
+            "$ref": "#/components/schemas/File"
+          },
+          "texture_urls": {
+            "examples": [
+              [
+                {
+                  "base_color": {
+                    "file_size": 4254502,
+                    "file_name": "texture_0.png",
+                    "content_type": "image/png",
+                    "url": "https://v3b.fal.media/files/b/panda/DoPKAuZY0tTjnr6C9ee-Q_texture_0.png"
+                  }
+                }
+              ]
+            ],
+            "title": "Texture Urls",
+            "type": "array",
+            "description": "Array of texture file objects",
+            "items": {
+              "$ref": "#/components/schemas/TextureFiles"
+            }
+          },
+          "animation_fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Animated 3D model in FBX format. Only present when enable_animation is true."
+          },
+          "animation_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Animated 3D model in GLB format. Only present when enable_animation is true."
+          },
+          "basic_animations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BasicAnimations"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Basic walking and running animations. Only present when enable_rigging is true."
+          },
+          "seed": {
+            "examples": [
+              4002110719
+            ],
+            "title": "Seed",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed used for generation"
+          },
+          "rig_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rig Task Id",
+            "description": "Rigging task ID. Only present when enable_rigging is true."
+          },
+          "rigged_character_fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rigged character in FBX format. Only present when enable_rigging is true."
+          },
+          "model_urls": {
+            "examples": [
+              {
+                "fbx": {
+                  "file_size": 5444380,
+                  "file_name": "model.fbx",
+                  "content_type": "application/octet-stream",
+                  "url": "https://v3b.fal.media/files/b/kangaroo/7nUUw5dHN9a0DKlOpAKbP_model.fbx"
+                },
+                "usdz": {
+                  "file_size": 9834246,
+                  "file_name": "model.usdz",
+                  "content_type": "model/vnd.usdz+zip",
+                  "url": "https://v3b.fal.media/files/b/panda/XcC-mIJywUvH7coyrzENU_model.usdz"
+                },
+                "obj": {
+                  "file_size": 2755145,
+                  "file_name": "model.obj",
+                  "content_type": "text/plain",
+                  "url": "https://v3b.fal.media/files/b/monkey/cCNMHqUbKSNtDN1iGmiYm_model.obj"
+                },
+                "glb": {
+                  "file_size": 9314028,
+                  "file_name": "model.glb",
+                  "content_type": "model/gltf-binary",
+                  "url": "https://v3b.fal.media/files/b/penguin/DId89qXLu6BXu09RFAwAV_model.glb"
+                }
+              }
+            ],
+            "description": "URLs for different 3D model formats",
+            "$ref": "#/components/schemas/ModelUrls"
+          }
+        },
+        "x-fal-order-properties": [
+          "animation_glb",
+          "animation_fbx",
+          "model_glb",
+          "thumbnail",
+          "model_urls",
+          "texture_urls",
+          "seed",
+          "prompt",
+          "actual_prompt",
+          "rigged_character_glb",
+          "rigged_character_fbx",
+          "basic_animations",
+          "rig_task_id"
+        ],
+        "description": "Output for Text to 3D generation",
+        "required": [
+          "model_glb",
+          "model_urls",
+          "prompt"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      },
+      "TextureFiles": {
+        "title": "TextureFiles",
+        "type": "object",
+        "properties": {
+          "normal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Normal texture (PBR)"
+          },
+          "base_color": {
+            "description": "Base color texture",
+            "$ref": "#/components/schemas/File"
+          },
+          "roughness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Roughness texture (PBR)"
+          },
+          "metallic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metallic texture (PBR)"
+          }
+        },
+        "x-fal-order-properties": [
+          "base_color",
+          "metallic",
+          "normal",
+          "roughness"
+        ],
+        "description": "Texture files downloaded and uploaded to CDN",
+        "required": [
+          "base_color"
+        ]
+      },
+      "BasicAnimations": {
+        "title": "BasicAnimations",
+        "type": "object",
+        "properties": {
+          "running_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Running animation in GLB format"
+          },
+          "walking_fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Walking animation in FBX format"
+          },
+          "walking_armature_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Walking armature only in GLB format"
+          },
+          "running_armature_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Running armature only in GLB format"
+          },
+          "running_fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Running animation in FBX format"
+          },
+          "walking_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Walking animation in GLB format"
+          }
+        },
+        "x-fal-order-properties": [
+          "walking_glb",
+          "walking_fbx",
+          "walking_armature_glb",
+          "running_glb",
+          "running_fbx",
+          "running_armature_glb"
+        ],
+        "description": "Basic animation files included with the rigging result"
+      },
+      "ModelUrls": {
+        "title": "ModelUrls",
+        "type": "object",
+        "properties": {
+          "glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "GLB format 3D model"
+          },
+          "fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "FBX format 3D model"
+          },
+          "usdz": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "USDZ format 3D model"
+          },
+          "stl": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "STL format 3D model"
+          },
+          "blend": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Blender format 3D model"
+          },
+          "obj": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OBJ format 3D model"
+          }
+        },
+        "x-fal-order-properties": [
+          "glb",
+          "fbx",
+          "obj",
+          "usdz",
+          "blend",
+          "stl"
+        ],
+        "description": "3D model files in various formats"
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/meshy/v6-preview/text-to-3d/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v6-preview/text-to-3d/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v6-preview/text-to-3d": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeshyV6PreviewTextTo3dInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v6-preview/text-to-3d/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeshyV6PreviewTextTo3dOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

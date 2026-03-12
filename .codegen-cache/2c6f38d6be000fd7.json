@@ -1,0 +1,465 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ltx-video-v095/multiconditioning",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ltx-video-v095/multiconditioning queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ltx-video-v095/multiconditioning",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/ltx-0.9.5.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ltx-video-v095/multiconditioning",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ltx-video-v095/multiconditioning/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LtxVideoV095MulticonditioningInput": {
+        "title": "MultiConditioningVideoInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "\n            A vibrant, abstract composition featuring a person with outstretched arms, rendered in a kaleidoscope of colors against a deep, dark background. The figure is composed of intricate, swirling patterns reminiscent of a mosaic, with hues of orange, yellow, blue, and green that evoke the style of artists such as Wassily Kandinsky or Bridget Riley. \n\nThe camera zooms into the face striking portrait of a man, reimagined through the lens of old-school video-game graphics. The subject's face is rendered in a kaleidoscope of colors, with bold blues and reds set against a vibrant yellow backdrop. His dark hair is pulled back, framing his profile in a dramatic pose\n        "
+            ],
+            "description": "Text prompt to guide generation",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "Resolution of the generated video (480p or 720p).",
+            "type": "string",
+            "title": "Resolution",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "9:16",
+              "16:9"
+            ],
+            "description": "Aspect ratio of the generated video (16:9 or 9:16).",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "expand_prompt": {
+            "description": "Whether to expand the prompt using the model's own capabilities.",
+            "type": "boolean",
+            "title": "Expand Prompt",
+            "default": true
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "start_frame_num": 0,
+                  "image_url": "https://storage.googleapis.com/falserverless/model_tests/ltx/NswO1P8sCLzrh1WefqQFK_9a6bdbfa54b944c9a770338159a113fd.jpg"
+                },
+                {
+                  "start_frame_num": 120,
+                  "image_url": "https://storage.googleapis.com/falserverless/model_tests/ltx/YAPOGvmS2tM_Krdp7q6-d_267c97e017c34f679844a4477dfcec38.jpg"
+                }
+              ]
+            ],
+            "description": "URL of images to use as conditioning",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/ImageConditioningInput"
+            },
+            "default": []
+          },
+          "videos": {
+            "description": "Videos to use as conditioning",
+            "type": "array",
+            "title": "Videos",
+            "items": {
+              "$ref": "#/components/schemas/VideoConditioningInput"
+            },
+            "default": []
+          },
+          "num_inference_steps": {
+            "minimum": 2,
+            "description": "Number of inference steps",
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "maximum": 50,
+            "default": 40
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for generation",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "description": "Negative prompt for generation",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "worst quality, inconsistent motion, blurry, jittery, distorted"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "resolution",
+          "aspect_ratio",
+          "seed",
+          "num_inference_steps",
+          "expand_prompt",
+          "images",
+          "videos"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "LtxVideoV095MulticonditioningOutput": {
+        "title": "MulticonditioningVideoOutput",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "description": "The seed used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/gallery/ltx-multicondition.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "ImageConditioningInput": {
+        "title": "ImageConditioningInput",
+        "type": "object",
+        "properties": {
+          "start_frame_num": {
+            "minimum": 0,
+            "description": "Frame number of the image from which the conditioning starts. Must be a multiple of 8.",
+            "type": "integer",
+            "title": "Start Frame Num",
+            "multipleOf": 8,
+            "maximum": 120
+          },
+          "image_url": {
+            "description": "URL of image to use as conditioning",
+            "type": "string",
+            "title": "Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "start_frame_num"
+        ],
+        "required": [
+          "image_url",
+          "start_frame_num"
+        ]
+      },
+      "VideoConditioningInput": {
+        "title": "VideoConditioningInput",
+        "type": "object",
+        "properties": {
+          "video_url": {
+            "description": "URL of video to be extended",
+            "type": "string",
+            "title": "Video Url"
+          },
+          "start_frame_num": {
+            "minimum": 0,
+            "description": "Frame number of the video from which the conditioning starts. Must be a multiple of 8.",
+            "type": "integer",
+            "title": "Start Frame Num",
+            "multipleOf": 8,
+            "maximum": 120
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "start_frame_num"
+        ],
+        "required": [
+          "video_url",
+          "start_frame_num"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ltx-video-v095/multiconditioning/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-v095/multiconditioning/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-v095/multiconditioning": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LtxVideoV095MulticonditioningInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-v095/multiconditioning/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LtxVideoV095MulticonditioningOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

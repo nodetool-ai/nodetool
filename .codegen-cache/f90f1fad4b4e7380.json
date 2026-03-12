@@ -1,0 +1,447 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/image-editing/photo-restoration",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/image-editing/photo-restoration queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/image-editing/photo-restoration",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-5.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/image-editing/photo-restoration",
+      "documentationUrl": "https://fal.ai/models/fal-ai/image-editing/photo-restoration/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ImageEditingPhotoRestorationInput": {
+        "x-fal-order-properties": [
+          "image_url",
+          "guidance_scale",
+          "num_inference_steps",
+          "safety_tolerance",
+          "output_format",
+          "aspect_ratio",
+          "seed",
+          "sync_mode"
+        ],
+        "type": "object",
+        "properties": {
+          "aspect_ratio": {
+            "anyOf": [
+              {
+                "enum": [
+                  "21:9",
+                  "16:9",
+                  "4:3",
+                  "3:2",
+                  "1:1",
+                  "2:3",
+                  "3:4",
+                  "9:16",
+                  "9:21"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The aspect ratio of the generated image.",
+            "title": "Aspect Ratio"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "jpeg"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/zebra/ProUb4C1PYWpyGe7BXd0n_d575ba7693584c0ddf733f77dcdb8963.jpg"
+            ],
+            "description": "URL of the old or damaged photo to restore.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "safety_tolerance": {
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ],
+            "description": "The safety tolerance level for the generated image. 1 being the most strict and 6 being the most permissive.",
+            "type": "string",
+            "title": "Safety Tolerance",
+            "default": "2"
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+            "default": 3.5
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "Number of inference steps for sampling.",
+            "default": 30
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The same seed and the same prompt given to the same version of the model will output the same image every time.",
+            "title": "Seed"
+          }
+        },
+        "title": "PhotoRestorationInput",
+        "description": "Input model for photo restoration endpoint.",
+        "required": [
+          "image_url"
+        ]
+      },
+      "ImageEditingPhotoRestorationOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://fal.media/files/lion/5xRd_PfrtfoXe03-VlPZb_d684600d4ece4b778dfea35dd536bee9.jpg"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          }
+        },
+        "title": "PhotoRestorationOutput",
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/image-editing/photo-restoration/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-editing/photo-restoration/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-editing/photo-restoration": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageEditingPhotoRestorationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-editing/photo-restoration/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageEditingPhotoRestorationOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

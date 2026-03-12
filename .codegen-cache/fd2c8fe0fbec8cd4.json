@@ -1,0 +1,426 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/fast-animatediff/turbo/text-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/fast-animatediff/turbo/text-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/fast-animatediff/turbo/text-to-video",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/fast-animatediff-t2v-turbo.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/fast-animatediff/turbo/text-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/fast-animatediff/turbo/text-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FastAnimatediffTurboTextToVideoInput": {
+        "title": "AnimateDiffT2VTurboInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "masterpiece, best quality, 1girl, solo, cherry blossoms, hanami, pink flower, white flower, spring season, wisteria, petals, flower, plum blossoms, outdoors, falling petals, white hair, black eyes",
+              "panda playing a guitar, on a boat, in the ocean, high quality, high quality, ultra HD, realistic"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for generating the video. Be as descriptive as possible for best results."
+          },
+          "fps": {
+            "minimum": 1,
+            "maximum": 16,
+            "type": "integer",
+            "description": "Number of frames per second to extract from the video.",
+            "title": "Fps",
+            "default": 8
+          },
+          "video_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Video Size",
+            "description": "The size of the video to generate.",
+            "default": "square"
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+            "title": "Guidance Scale",
+            "default": 2
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "description": "The number of inference steps to perform. 4-12 is recommended for turbo mode.",
+            "title": "Num Inference Steps",
+            "default": 8
+          },
+          "num_frames": {
+            "minimum": 1,
+            "maximum": 32,
+            "type": "integer",
+            "description": "The number of frames to generate for the video.",
+            "title": "Num Frames",
+            "default": 16
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "default": "(bad quality, worst quality:1.2), ugly faces, bad anime"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "num_frames",
+          "num_inference_steps",
+          "guidance_scale",
+          "seed",
+          "fps",
+          "video_size"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "FastAnimatediffTurboTextToVideoOutput": {
+        "title": "AnimateDiffT2VOutput",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed used for generating the video."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://fal-cdn.batuhan-941.workers.dev/files/kangaroo/DSrFBOk9XXIplm_kukI4n.mp4"
+              }
+            ],
+            "description": "Generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The height of the generated image.",
+            "title": "Height",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The width of the generated image.",
+            "title": "Width",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/fast-animatediff/turbo/text-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-animatediff/turbo/text-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-animatediff/turbo/text-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FastAnimatediffTurboTextToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-animatediff/turbo/text-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastAnimatediffTurboTextToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

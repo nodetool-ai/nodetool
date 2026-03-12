@@ -1,0 +1,422 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/magi/extend-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/magi/extend-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/magi/extend-video",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-4.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/magi/extend-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/magi/extend-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MagiExtendVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "video_url",
+          "num_frames",
+          "start_frame",
+          "seed",
+          "resolution",
+          "num_inference_steps",
+          "enable_safety_checker",
+          "aspect_ratio"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              ""
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt to guide video generation."
+          },
+          "video_url": {
+            "examples": [
+              "https://v3.fal.media/files/zebra/w4T087gvzG5LMGipMpPCO_pour-2s.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "URL of the input video to represent the beginning of the video. If the input video does not match the chosen aspect ratio, it is resized and center cropped."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit.",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image.",
+            "default": "auto"
+          },
+          "start_frame": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Frame",
+            "description": "The frame to begin the generation from, with the remaining frames will be treated as the prefix video. The final video will contain the frames up until this number unchanged, followed by the generated frames. The default start frame is 32 frames before the end of the video, which gives optimal results."
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "num_inference_steps": {
+            "enum": [
+              4,
+              8,
+              16,
+              32,
+              64
+            ],
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 16
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "minimum": 96,
+                "maximum": 192,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit.",
+            "default": 96
+          }
+        },
+        "title": "MagiVideoExtensionRequest",
+        "required": [
+          "prompt",
+          "video_url"
+        ]
+      },
+      "MagiExtendVideoOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/zebra/yVrs367uHeCqrBGY-VICa_3b064421-fe96-4ccb-a3ea-4f37b54e682e.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "MagiVideoExtensionResponse",
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/magi/extend-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/extend-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/extend-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagiExtendVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/extend-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagiExtendVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

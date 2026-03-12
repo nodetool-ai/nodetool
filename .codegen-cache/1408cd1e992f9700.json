@@ -1,0 +1,379 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kling-video/v1/tts",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kling-video/v1/tts queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kling-video/v1/tts",
+      "category": "text-to-speech",
+      "thumbnailUrl": "https://v3.fal.media/files/zebra/kuLfhOkVceXDTcdBxGQAf_2011e640a3aa4acab55d01d69f3a6e16.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kling-video/v1/tts",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kling-video/v1/tts/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "KlingVideoV1TtsInput": {
+        "x-fal-order-properties": [
+          "text",
+          "voice_id",
+          "voice_speed"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "examples": [
+              "Hello world! Kling TTS is available on FAL!"
+            ],
+            "maxLength": 500,
+            "type": "string",
+            "title": "Text",
+            "description": "The text to be converted to speech"
+          },
+          "voice_id": {
+            "enum": [
+              "genshin_vindi2",
+              "zhinen_xuesheng",
+              "AOT",
+              "ai_shatang",
+              "genshin_klee2",
+              "genshin_kirara",
+              "ai_kaiya",
+              "oversea_male1",
+              "ai_chenjiahao_712",
+              "girlfriend_4_speech02",
+              "chat1_female_new-3",
+              "chat_0407_5-1",
+              "cartoon-boy-07",
+              "uk_boy1",
+              "cartoon-girl-01",
+              "PeppaPig_platform",
+              "ai_huangzhong_712",
+              "ai_huangyaoshi_712",
+              "ai_laoguowang_712",
+              "chengshu_jiejie",
+              "you_pingjing",
+              "calm_story1",
+              "uk_man2",
+              "laopopo_speech02",
+              "heainainai_speech02",
+              "reader_en_m-v1",
+              "commercial_lady_en_f-v1",
+              "tiyuxi_xuedi",
+              "tiexin_nanyou",
+              "girlfriend_1_speech02",
+              "girlfriend_2_speech02",
+              "zhuxi_speech02",
+              "uk_oldman3",
+              "dongbeilaotie_speech02",
+              "chongqingxiaohuo_speech02",
+              "chuanmeizi_speech02",
+              "chaoshandashu_speech02",
+              "ai_taiwan_man2_speech02",
+              "xianzhanggui_speech02",
+              "tianjinjiejie_speech02",
+              "diyinnansang_DB_CN_M_04-v2",
+              "yizhipiannan-v1",
+              "guanxiaofang-v2",
+              "tianmeixuemei-v1",
+              "daopianyansang-v1",
+              "mengwa-v1"
+            ],
+            "description": "The voice ID to use for speech synthesis",
+            "type": "string",
+            "title": "Voice Id",
+            "default": "genshin_vindi2"
+          },
+          "voice_speed": {
+            "minimum": 0.8,
+            "maximum": 2,
+            "type": "number",
+            "title": "Voice Speed",
+            "description": "Rate of speech",
+            "default": 1
+          }
+        },
+        "title": "TTSInput",
+        "required": [
+          "text"
+        ]
+      },
+      "KlingVideoV1TtsOutput": {
+        "x-fal-order-properties": [
+          "audio"
+        ],
+        "type": "object",
+        "properties": {
+          "audio": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/monkey/O-ekVTtYqeDblD1oSf2uv_output.mp3"
+              }
+            ],
+            "description": "The generated audio",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "TTSOutput",
+        "required": [
+          "audio"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kling-video/v1/tts/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1/tts/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1/tts": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KlingVideoV1TtsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1/tts/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KlingVideoV1TtsOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

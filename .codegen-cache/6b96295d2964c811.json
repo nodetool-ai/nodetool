@@ -1,0 +1,402 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/transpixar",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/transpixar queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/transpixar",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/transpixar.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/transpixar",
+      "documentationUrl": "https://fal.ai/models/fal-ai/transpixar/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "TranspixarInput": {
+        "title": "BaseInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A cloud of dust erupting and dispersing like an explosion."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate the video from."
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related video to show you.\n        ",
+            "default": 7
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 24
+          },
+          "export_fps": {
+            "minimum": 4,
+            "maximum": 32,
+            "type": "integer",
+            "title": "Export Fps",
+            "description": "The target FPS of the video",
+            "default": 8
+          },
+          "negative_prompt": {
+            "examples": [
+              "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "The negative prompt to generate video from",
+            "default": ""
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "num_inference_steps",
+          "seed",
+          "guidance_scale",
+          "export_fps"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "TranspixarOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the video."
+          },
+          "videos": {
+            "examples": [
+              [
+                {
+                  "file_size": 146468,
+                  "file_name": "rgb.mp4",
+                  "content_type": "application/octet-stream",
+                  "url": "https://v3.fal.media/files/kangaroo/G6gkFsuyU5L7sJ55nZUPU_rgb.mp4"
+                },
+                {
+                  "file_size": 106894,
+                  "file_name": "alpha.mp4",
+                  "content_type": "application/octet-stream",
+                  "url": "https://v3.fal.media/files/lion/g7PBZfQEH9SoPXYgeyl5P_alpha.mp4"
+                }
+              ]
+            ],
+            "title": "Videos",
+            "type": "array",
+            "description": "The URL to the generated video",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated video. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "videos",
+          "timings",
+          "seed",
+          "prompt"
+        ],
+        "required": [
+          "videos",
+          "timings",
+          "seed",
+          "prompt"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/transpixar/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/transpixar/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/transpixar": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranspixarInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/transpixar/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranspixarOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

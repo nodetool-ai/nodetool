@@ -152,7 +152,6 @@ export class NodeGenerator {
       `  removeNulls,`,
       `  isRefSet,`,
       `  assetToFalUrl,`,
-      `  imageToDataUrl,`,
       `} from "../fal-base.js";`,
       ``,
       `// Re-export alias`,
@@ -349,20 +348,7 @@ export class NodeGenerator {
           `    const ${varName}List = inputs.${field.name} as Record<string, unknown>[] | undefined;`,
         );
         lines.push(`    if (${varName}List?.length) {`);
-        if (kind === "image") {
-          lines.push(
-            `      const ${varName}Urls: string[] = [];`,
-          );
-          lines.push(`      for (const ref of ${varName}List) {`);
-          lines.push(
-            `        if (isRefSet(ref)) { const u = await imageToDataUrl(ref); if (u) ${varName}Urls.push(u); }`,
-          );
-          lines.push(`      }`);
-          lines.push(
-            `      if (${varName}Urls.length) args[${JSON.stringify(apiName)}] = ${varName}Urls;`,
-          );
-        } else {
-          lines.push(
+        lines.push(
             `      const ${varName}Urls: string[] = [];`,
           );
           lines.push(`      for (const ref of ${varName}List) {`);
@@ -373,7 +359,6 @@ export class NodeGenerator {
           lines.push(
             `      if (${varName}Urls.length) args[${JSON.stringify(apiName)}] = ${varName}Urls;`,
           );
-        }
         lines.push(`    }`);
       } else if (field.nestedAssetKey) {
         // Nested asset with extra sub-fields
@@ -385,15 +370,9 @@ export class NodeGenerator {
           `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
-        if (kind === "image") {
-          lines.push(
-            `      const ${varName}Url = await imageToDataUrl(${varName}Ref!);`,
-          );
-        } else {
-          lines.push(
+        lines.push(
             `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`,
           );
-        }
         lines.push(`      if (${varName}Url) {`);
         const nestedObj: string[] = [
           `          ${JSON.stringify(field.nestedAssetKey)}: ${varName}Url,`,
@@ -417,15 +396,9 @@ export class NodeGenerator {
           `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
-        if (kind === "image") {
-          lines.push(
-            `      const ${varName}Url = await imageToDataUrl(${varName}Ref!);`,
-          );
-        } else {
-          lines.push(
+        lines.push(
             `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`,
           );
-        }
         lines.push(
           `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`,
         );

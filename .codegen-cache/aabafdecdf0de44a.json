@@ -1,0 +1,389 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan3d-v21",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan3d-v21 queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan3d-v21",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Upscale-5.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan3d-v21",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan3d-v21/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Hunyuan3dV21Input": {
+        "x-fal-order-properties": [
+          "input_image_url",
+          "seed",
+          "num_inference_steps",
+          "guidance_scale",
+          "octree_resolution",
+          "textured_mesh"
+        ],
+        "type": "object",
+        "properties": {
+          "input_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/robot.png"
+            ],
+            "title": "Input Image Url",
+            "type": "string",
+            "description": "URL of image to use while generating the 3D model."
+          },
+          "octree_resolution": {
+            "minimum": 1,
+            "title": "Octree Resolution",
+            "type": "integer",
+            "description": "Octree resolution for the model.",
+            "maximum": 1024,
+            "default": 256
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "title": "Guidance Scale",
+            "type": "number",
+            "description": "Guidance scale for the model.",
+            "maximum": 20,
+            "default": 7.5
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "Number of inference steps to perform.",
+            "maximum": 50,
+            "default": 50
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        "
+          },
+          "textured_mesh": {
+            "title": "Textured Mesh",
+            "type": "boolean",
+            "description": "If set true, textured mesh will be generated and the price charged would be 3 times that of white mesh.",
+            "default": false
+          }
+        },
+        "title": "Hunyuan3DInput",
+        "required": [
+          "input_image_url"
+        ]
+      },
+      "Hunyuan3dV21Output": {
+        "x-fal-order-properties": [
+          "model_glb",
+          "model_glb_pbr",
+          "model_mesh",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "model_glb_pbr": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Generated 3D object with PBR materials."
+          },
+          "model_mesh": {
+            "description": "Generated 3D object assets zip.",
+            "$ref": "#/components/schemas/File"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed value used for generation."
+          },
+          "model_glb": {
+            "examples": [
+              {
+                "file_size": 1348528,
+                "file_name": "textured_mesh.glb",
+                "content_type": "application/octet-stream",
+                "url": "https://v3.fal.media/files/rabbit/WpMHqYy5chA5lsTNoilj__hun3d_v21.glb"
+              }
+            ],
+            "description": "Generated 3D object.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "ObjectOutput",
+        "required": [
+          "model_glb",
+          "model_mesh",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan3d-v21/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d-v21/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d-v21": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Hunyuan3dV21Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d-v21/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hunyuan3dV21Output"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

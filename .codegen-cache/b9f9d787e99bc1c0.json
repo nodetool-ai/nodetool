@@ -1,0 +1,438 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/imagen4/preview/ultra",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/imagen4/preview/ultra queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/imagen4/preview/ultra",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Sound-2.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/imagen4/preview/ultra",
+      "documentationUrl": "https://fal.ai/models/fal-ai/imagen4/preview/ultra/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Imagen4PreviewUltraInput": {
+        "title": "Imagen4TextToImageUltraInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "This four-panel comic strip uses a charming, deliberately pixelated art style reminiscent of classic 8-bit video games, featuring simple shapes and a limited, bright color palette dominated by greens, blues, browns, and the dinosaur's iconic grey/black. The setting is a stylized pixel beach. Panel one shows the familiar Google Chrome T-Rex dinosaur, complete with its characteristic pixelated form, wearing tiny pixel sunglasses and lounging on a pixelated beach towel under a blocky yellow sun. Pixelated palm trees sway gently in the background against a blue pixel sky. A caption box with pixelated font reads, \"Even error messages need a vacation.\" Panel two is a close-up of the T-Rex attempting to build a pixel sandcastle. It awkwardly pats a mound of brown pixels with its tiny pixel arms, looking focused. Small pixelated shells dot the sand around it. Panel three depicts the T-Rex joyfully hopping over a series of pixelated cacti planted near the beach, mimicking its game obstacle avoidance. Small \"Boing! Boing!\" sound effect text appears in a blocky font above each jump. A pixelated crab watches from the side, waving its pixel claw. The final panel shows the T-Rex floating peacefully on its back in the blocky blue pixel water, sunglasses still on, with a contented expression. A small thought bubble above it contains pixelated \"Zzz...\" indicating relaxation."
+            ],
+            "maxLength": 5000,
+            "type": "string",
+            "description": "The text prompt to generate an image from.",
+            "title": "Prompt",
+            "minLength": 3
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "description": "The number of images to generate.",
+            "title": "Number of Images",
+            "default": 1
+          },
+          "resolution": {
+            "enum": [
+              "1K",
+              "2K"
+            ],
+            "description": "The resolution of the generated image.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "1K"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4"
+            ],
+            "description": "The aspect ratio of the generated image.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "1:1"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "png"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "safety_tolerance": {
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ],
+            "description": "The safety tolerance level for content moderation. 1 is the most strict (blocks most content), 6 is the least strict.",
+            "type": "string",
+            "title": "Safety Tolerance",
+            "default": "4"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed for the random number generator.",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "num_images",
+          "seed",
+          "aspect_ratio",
+          "output_format",
+          "safety_tolerance",
+          "sync_mode",
+          "resolution"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "Imagen4PreviewUltraOutput": {
+        "title": "Imagen4TextToImageUltraOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "file_name": "uzopSU5Me5PUENW-IXMXD_output.png",
+                  "content_type": "image/png",
+                  "url": "https://v3.fal.media/files/panda/uzopSU5Me5PUENW-IXMXD_output.png"
+                }
+              ]
+            ],
+            "description": "The generated images.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/ImageFile"
+            }
+          },
+          "description": {
+            "description": "The description of the generated images.",
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "description"
+        ],
+        "required": [
+          "images",
+          "description"
+        ]
+      },
+      "ImageFile": {
+        "title": "ImageFile",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image",
+            "title": "Height"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image",
+            "title": "Width"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/imagen4/preview/ultra/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen4/preview/ultra/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen4/preview/ultra": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Imagen4PreviewUltraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen4/preview/ultra/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Imagen4PreviewUltraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

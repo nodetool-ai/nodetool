@@ -1,0 +1,445 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/chrono-edit",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/chrono-edit queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/chrono-edit",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/kangaroo/uV-q_E3zuBgfebtaTzlhM_d462e607525e4f8d9412b9e254c530e6.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/chrono-edit",
+      "documentationUrl": "https://fal.ai/models/fal-ai/chrono-edit/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ChronoEditInput": {
+        "description": "Input model for ChronoEdit standard editing operations",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Add a surfer to the wave in the illustration."
+            ],
+            "description": "The prompt to edit the image.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "The resolution of the output image.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "480p"
+          },
+          "enable_safety_checker": {
+            "description": "Whether to enable the safety checker.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "description": "The format of the output image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "jpeg"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/zebra/yRvp9rTyDeDGHnbmtcsgK_original-wave.jpg"
+            ],
+            "description": "The image to edit.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "turbo_mode": {
+            "description": "Enable turbo mode to use for faster inference.",
+            "type": "boolean",
+            "title": "Turbo Mode",
+            "default": true
+          },
+          "num_temporal_reasoning_steps": {
+            "minimum": 2,
+            "maximum": 12,
+            "type": "integer",
+            "title": "Number of Temporal Reasoning Steps",
+            "description": "The number of temporal reasoning steps to perform.",
+            "default": 8
+          },
+          "sync_mode": {
+            "description": "Whether to return the image in sync mode.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 10,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "The guidance scale for the inference.",
+            "default": 1
+          },
+          "num_inference_steps": {
+            "minimum": 2,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Number of Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 8
+          },
+          "enable_temporal_reasoning": {
+            "description": "Whether to enable temporal reasoning.",
+            "type": "boolean",
+            "title": "Enable Temporal Reasoning",
+            "default": false
+          },
+          "enable_prompt_expansion": {
+            "examples": [
+              true
+            ],
+            "description": "Whether to enable prompt expansion.",
+            "type": "boolean",
+            "title": "Enable Prompt Expansion",
+            "default": true
+          },
+          "seed": {
+            "description": "The seed for the inference.",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "ChronoEditInput",
+        "x-fal-order-properties": [
+          "image_url",
+          "prompt",
+          "num_inference_steps",
+          "guidance_scale",
+          "enable_prompt_expansion",
+          "enable_temporal_reasoning",
+          "num_temporal_reasoning_steps",
+          "resolution",
+          "enable_safety_checker",
+          "seed",
+          "output_format",
+          "sync_mode",
+          "turbo_mode"
+        ],
+        "required": [
+          "image_url",
+          "prompt"
+        ]
+      },
+      "ChronoEditOutput": {
+        "description": "Unified output model for all ChronoEdit operations",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "The user wants to add a surfer to the wave in the illustration while preserving the original ukiyo-e woodblock art style. The surfer should be depicted mid-action, crouched low on a modern-style surfboard, carving through the crest of the wave with one arm extended for balance and the other gripping the board. Their wavy hair and athletic physique should match the dynamic motion. The background must remain unchanged, including the iconic Mount Fuji and the traditional Japanese text, to maintain the artwork's historical aesthetic and composition."
+            ],
+            "description": "The prompt used for the inference.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 768,
+                  "file_name": "2_gRhwfsnmNKYtZ_dveyV.jpg",
+                  "content_type": "image/jpeg",
+                  "url": "https://v3b.fal.media/files/b/koala/2_gRhwfsnmNKYtZ_dveyV.jpg",
+                  "width": 1152
+                }
+              ]
+            ],
+            "description": "The edited image.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/ImageFile"
+            }
+          },
+          "seed": {
+            "description": "The seed for the inference.",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "ChronoEditOutput",
+        "x-fal-order-properties": [
+          "images",
+          "prompt",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "prompt",
+          "seed"
+        ]
+      },
+      "ImageFile": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "height": {
+            "description": "The height of the image",
+            "type": "integer",
+            "title": "Height"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "description": "The width of the image",
+            "type": "integer",
+            "title": "Width"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "title": "ImageFile",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/chrono-edit/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chrono-edit/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chrono-edit": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChronoEditInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/chrono-edit/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChronoEditOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

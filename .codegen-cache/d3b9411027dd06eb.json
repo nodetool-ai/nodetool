@@ -1,0 +1,445 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/stable-diffusion-v3-medium",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/stable-diffusion-v3-medium queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/stable-diffusion-v3-medium",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/landing/sd3-sample-03.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/stable-diffusion-v3-medium",
+      "documentationUrl": "https://fal.ai/models/fal-ai/stable-diffusion-v3-medium/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "StableDiffusionV3MediumInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "prompt_expansion",
+          "image_size",
+          "num_inference_steps",
+          "seed",
+          "guidance_scale",
+          "sync_mode",
+          "num_images",
+          "enable_safety_checker"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt_expansion": {
+            "title": "Enhance Prompt",
+            "type": "boolean",
+            "description": "If set to true, prompt will be upsampled with more details.",
+            "default": false
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "title": "Num Images",
+            "description": "The number of images to generate.",
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The size of the generated image.",
+            "default": "square_hd"
+          },
+          "prompt": {
+            "examples": [
+              "Digital art, portrait of an anthropomorphic roaring Tiger warrior with full armor, close up in the middle of a battle, behind him there is a banner with the text \"Open Source\""
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate an image from."
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 5
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        "
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "The negative prompt to generate an image from.",
+            "default": ""
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 28
+          }
+        },
+        "title": "TextToImageInput",
+        "required": [
+          "prompt"
+        ]
+      },
+      "StableDiffusionV3MediumOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt",
+          "num_images"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the image."
+          },
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "The generated image files info.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "num_images": {
+            "title": "Number of Images",
+            "type": "integer",
+            "description": "The number of images generated."
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "has_nsfw_concepts": {
+            "title": "Has Nsfw Concepts",
+            "type": "array",
+            "description": "Whether the generated images contain NSFW concepts.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "title": "SD3Output",
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt",
+          "num_images"
+        ]
+      },
+      "ImageSize": {
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "title": "ImageSize"
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "title": "Image",
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/stable-diffusion-v3-medium/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/stable-diffusion-v3-medium/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/stable-diffusion-v3-medium": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StableDiffusionV3MediumInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/stable-diffusion-v3-medium/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StableDiffusionV3MediumOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

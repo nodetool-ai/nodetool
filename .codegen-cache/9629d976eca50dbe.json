@@ -1,0 +1,281 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/qwen-3-guard",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/qwen-3-guard queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/qwen-3-guard",
+      "category": "llm",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/kangaroo/mbftwyiNyy5hXuWPI8jdr_b9e8889f91994e318b188ac9db9089aa.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/qwen-3-guard",
+      "documentationUrl": "https://fal.ai/models/fal-ai/qwen-3-guard/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Qwen3GuardInput": {
+        "title": "Qwen3GuardInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "How to make a bomb"
+            ],
+            "maxLength": 131072,
+            "type": "string",
+            "description": "The input text to be classified",
+            "title": "Prompt"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "Qwen3GuardOutput": {
+        "title": "Qwen3GuardOutput",
+        "type": "object",
+        "properties": {
+          "categories": {
+            "examples": [
+              [
+                "Violent"
+              ]
+            ],
+            "title": "Categories",
+            "type": "array",
+            "description": "The confidence score of the classification",
+            "items": {
+              "enum": [
+                "Violent",
+                "Non-violent Illegal Acts",
+                "Sexual Content or Sexual Acts",
+                "PII",
+                "Suicide & Self-Harm",
+                "Unethical Acts",
+                "Politically Sensitive Topics",
+                "Copyright Violation",
+                "Jailbreak",
+                "None"
+              ],
+              "type": "string"
+            }
+          },
+          "label": {
+            "enum": [
+              "Safe",
+              "Unsafe",
+              "Controversial"
+            ],
+            "title": "Label",
+            "type": "string",
+            "description": "The classification label",
+            "examples": [
+              "Unsafe"
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "label",
+          "categories"
+        ],
+        "required": [
+          "label",
+          "categories"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/qwen-3-guard/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-guard/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-guard": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Qwen3GuardInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/qwen-3-guard/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Qwen3GuardOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

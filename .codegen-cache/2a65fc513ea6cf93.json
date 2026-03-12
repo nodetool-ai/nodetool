@@ -1,0 +1,408 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/magi/image-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/magi/image-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/magi/image-to-video",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-2.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/magi/image-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/magi/image-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MagiImageToVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "num_frames",
+          "seed",
+          "resolution",
+          "num_inference_steps",
+          "enable_safety_checker",
+          "aspect_ratio"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A crisp, wintery mountain landscape unfolds as a snowboarder, equipped with a selfie pole, gracefully navigates a snow-covered slope, the camera perspective offering an exhilarating attached-third-person view of the descent;  the vibrant, snowy scenery sweeps past, punctuated by moments of controlled spins and effortless glides, creating a dynamic visual rhythm that complements the exhilarating pace of the ride;  as the snowboarder carves through pristine powder, the camera captures fleeting moments of breathtaking views—towering pines dusted with snow, sunlit peaks piercing a cerulean sky—a symphony of nature’s grandeur displayed for the viewer to share;  a sense of freedom and exhilaration permeates the scene, punctuated by the subtle whoosh of wind and the satisfying crunch of snow, culminating in a breathtaking panorama as the snowboarder reaches the bottom, leaving the viewer with a lingering sense of wonder and the desire to experience the thrill firsthand."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt to guide video generation."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit.",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image.",
+            "default": "auto"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/kangaroo/sGqTf5scZcC5VNfOLbxwE_maxresdefault-2740110268.jpg"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of the input image to represent the first frame of the video. If the input image does not match the chosen aspect ratio, it is resized and center cropped."
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "num_inference_steps": {
+            "enum": [
+              4,
+              8,
+              16,
+              32,
+              64
+            ],
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 16
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "minimum": 96,
+                "maximum": 192,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit.",
+            "default": 96
+          }
+        },
+        "title": "MagiImageToVideoRequest",
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "MagiImageToVideoOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/penguin/sSJdxpy9oEBqZpGIh3SPq_3381fe86-9bab-4ce4-9c3a-5db66984618a.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "MagiImageToVideoResponse",
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/magi/image-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/image-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/image-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagiImageToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi/image-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagiImageToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

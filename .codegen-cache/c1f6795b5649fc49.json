@@ -1,0 +1,373 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/pixverse/lipsync",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/pixverse/lipsync queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/pixverse/lipsync",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://fal.media/files/rabbit/dSjrqmujPFztMyFSqTtny_c6457768d98c4537aa1516df53388e79.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/pixverse/lipsync",
+      "documentationUrl": "https://fal.ai/models/fal-ai/pixverse/lipsync/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "PixverseLipsyncInput": {
+        "title": "LipsyncRequest",
+        "type": "object",
+        "properties": {
+          "text": {
+            "examples": [
+              "Hello, this is a test message."
+            ],
+            "title": "Text",
+            "description": "Text content for TTS when audio_url is not provided",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "video_url": {
+            "examples": [
+              "https://v3.fal.media/files/penguin/T-ONORYMYLoEOB9lXryA2_IKEy3yAyi1evJGBAkXGZx_output.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "URL of the input video"
+          },
+          "voice_id": {
+            "enum": [
+              "Emily",
+              "James",
+              "Isabella",
+              "Liam",
+              "Chloe",
+              "Adrian",
+              "Harper",
+              "Ava",
+              "Sophia",
+              "Julia",
+              "Mason",
+              "Jack",
+              "Oliver",
+              "Ethan",
+              "Auto"
+            ],
+            "description": "Voice to use for TTS when audio_url is not provided",
+            "type": "string",
+            "title": "Voice Id",
+            "default": "Auto"
+          },
+          "audio_url": {
+            "examples": [
+              "https://v3.fal.media/files/monkey/k4iyN8bJZWwJXMKH-pO9r_speech.mp3"
+            ],
+            "title": "Audio Url",
+            "description": "URL of the input audio. If not provided, TTS will be used.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "audio_url",
+          "voice_id",
+          "text"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "PixverseLipsyncOutput": {
+        "title": "LipsyncOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 1732359,
+                "file_name": "output.mp4",
+                "content_type": "video/mp4",
+                "url": "https://v3.fal.media/files/penguin/hsR_KXBJjuF3IIVYIIDA2_output.mp4"
+              }
+            ],
+            "description": "The generated video",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/pixverse/lipsync/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/lipsync/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/lipsync": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PixverseLipsyncInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/lipsync/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PixverseLipsyncOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/imageutils/nsfw",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/imageutils/nsfw queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/imageutils/nsfw",
+      "category": "vision",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/nsfw-filter.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/imageutils/nsfw",
+      "documentationUrl": "https://fal.ai/models/fal-ai/imageutils/nsfw/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ImageutilsNsfwInput": {
+        "title": "NSFWImageDetectionInput",
+        "type": "object",
+        "properties": {
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/remove_background/elephant.jpg"
+            ],
+            "description": "Input image url.",
+            "type": "string",
+            "title": "Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "ImageutilsNsfwOutput": {
+        "title": "NSFWImageDetectionOutput",
+        "type": "object",
+        "properties": {
+          "nsfw_probability": {
+            "description": "The probability of the image being NSFW.",
+            "type": "number",
+            "title": "Nsfw Probability"
+          }
+        },
+        "x-fal-order-properties": [
+          "nsfw_probability"
+        ],
+        "required": [
+          "nsfw_probability"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/imageutils/nsfw/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/nsfw/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/nsfw": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageutilsNsfwInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/nsfw/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageutilsNsfwOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

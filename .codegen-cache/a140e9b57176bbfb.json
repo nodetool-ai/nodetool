@@ -1,0 +1,666 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ltx-video-13b-dev/extend",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ltx-video-13b-dev/extend queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ltx-video-13b-dev/extend",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Training-2.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ltx-video-13b-dev/extend",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ltx-video-13b-dev/extend/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LtxVideo13bDevExtendInput": {
+        "title": "ExtendVideoInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Woman walking on a street in Tokyo"
+            ],
+            "description": "Text prompt to guide generation",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "first_pass_num_inference_steps": {
+            "description": "Number of inference steps during the first pass.",
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 50,
+            "title": "Number of Inference Steps",
+            "examples": [
+              30
+            ],
+            "default": 30
+          },
+          "reverse_video": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to reverse the video.",
+            "type": "boolean",
+            "title": "Reverse Video",
+            "default": false
+          },
+          "frame_rate": {
+            "description": "The frame rate of the video.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60,
+            "title": "Frame Rate",
+            "examples": [
+              24
+            ],
+            "default": 24
+          },
+          "second_pass_skip_initial_steps": {
+            "minimum": 0,
+            "maximum": 49,
+            "type": "integer",
+            "description": "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes.",
+            "title": "Second Pass Skip Initial Steps",
+            "default": 17
+          },
+          "temporal_adain_factor": {
+            "description": "The factor for adaptive instance normalization (AdaIN) applied to generated video chunks after the first. This can help deal with a gradual increase in saturation/contrast in the generated video by normalizing the color distribution across the video. A high value will ensure the color distribution is more consistent across the video, while a low value will allow for more variation in color distribution.",
+            "type": "number",
+            "examples": [
+              0.5
+            ],
+            "maximum": 1,
+            "title": "Temporal AdaIN Factor",
+            "minimum": 0,
+            "multipleOf": 0.05,
+            "default": 0.5
+          },
+          "expand_prompt": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to expand the prompt using a language model.",
+            "type": "boolean",
+            "title": "Expand Prompt",
+            "default": false
+          },
+          "loras": {
+            "description": "LoRA weights to use for generation",
+            "type": "array",
+            "title": "Loras",
+            "items": {
+              "$ref": "#/components/schemas/LoRAWeight"
+            },
+            "default": []
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "description": "Whether to enable the safety checker.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "num_frames": {
+            "description": "The number of frames in the video.",
+            "type": "integer",
+            "minimum": 9,
+            "maximum": 1441,
+            "title": "Number of Frames",
+            "examples": [
+              121
+            ],
+            "default": 121
+          },
+          "second_pass_num_inference_steps": {
+            "description": "Number of inference steps during the second pass.",
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 50,
+            "title": "Second Pass Number of Inference Steps",
+            "examples": [
+              30
+            ],
+            "default": 30
+          },
+          "negative_prompt": {
+            "description": "Negative prompt for generation",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "worst quality, inconsistent motion, blurry, jittery, distorted"
+          },
+          "video": {
+            "examples": [
+              {
+                "video_url": "https://storage.googleapis.com/falserverless/web-examples/wan/t2v.mp4",
+                "reverse_video": false,
+                "start_frame_num": 0,
+                "limit_num_frames": false,
+                "resample_fps": false,
+                "strength": 1,
+                "target_fps": 24,
+                "max_num_frames": 1441,
+                "conditioning_type": "rgb",
+                "preprocess": false
+              }
+            ],
+            "description": "Video to be extended.",
+            "$ref": "#/components/schemas/ExtendVideoConditioningInput"
+          },
+          "enable_detail_pass": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to use a detail pass. If True, the model will perform a second pass to refine the video and enhance details. This incurs a 2.0x cost multiplier on the base price.",
+            "type": "boolean",
+            "title": "Enable Detail Pass",
+            "default": false
+          },
+          "aspect_ratio": {
+            "enum": [
+              "9:16",
+              "1:1",
+              "16:9",
+              "auto"
+            ],
+            "description": "The aspect ratio of the video.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "examples": [
+              "auto"
+            ],
+            "default": "auto"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "Resolution of the generated video.",
+            "type": "string",
+            "title": "Resolution",
+            "examples": [
+              "720p"
+            ],
+            "default": "720p"
+          },
+          "tone_map_compression_ratio": {
+            "description": "The compression ratio for tone mapping. This is used to compress the dynamic range of the video to improve visual quality. A value of 0.0 means no compression, while a value of 1.0 means maximum compression.",
+            "type": "number",
+            "examples": [
+              0
+            ],
+            "maximum": 1,
+            "title": "Tone Map Compression Ratio",
+            "minimum": 0,
+            "multipleOf": 0.05,
+            "default": 0
+          },
+          "constant_rate_factor": {
+            "description": "The constant rate factor (CRF) to compress input media with. Compressed input media more closely matches the model's training data, which can improve motion quality.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 51,
+            "title": "Constant Rate Factor",
+            "examples": [
+              29
+            ],
+            "default": 29
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for generation",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "loras",
+          "resolution",
+          "aspect_ratio",
+          "seed",
+          "num_frames",
+          "first_pass_num_inference_steps",
+          "second_pass_num_inference_steps",
+          "second_pass_skip_initial_steps",
+          "frame_rate",
+          "expand_prompt",
+          "reverse_video",
+          "enable_safety_checker",
+          "enable_detail_pass",
+          "temporal_adain_factor",
+          "tone_map_compression_ratio",
+          "constant_rate_factor",
+          "video"
+        ],
+        "required": [
+          "prompt",
+          "video"
+        ]
+      },
+      "LtxVideo13bDevExtendOutput": {
+        "title": "ExtendVideoOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Woman walking on a street in Tokyo"
+            ],
+            "description": "The prompt used for generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "seed": {
+            "description": "The seed used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/ltx-v095_extend.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "prompt",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "prompt",
+          "seed"
+        ]
+      },
+      "LoRAWeight": {
+        "title": "LoRAWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "description": "URL or path to the LoRA weights.",
+            "type": "string",
+            "title": "Path"
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 4,
+            "type": "number",
+            "description": "Scale of the LoRA weight. This is a multiplier applied to the LoRA weight when loading it.",
+            "title": "Scale",
+            "default": 1
+          },
+          "weight_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Name of the LoRA weight. Only used if `path` is a HuggingFace repository, and is only required when the repository contains multiple LoRA weights.",
+            "title": "Weight Name"
+          }
+        },
+        "x-fal-order-properties": [
+          "path",
+          "weight_name",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "ExtendVideoConditioningInput": {
+        "title": "ExtendVideoConditioningInput",
+        "type": "object",
+        "properties": {
+          "video_url": {
+            "description": "URL of video to use as conditioning",
+            "type": "string",
+            "title": "Video URL"
+          },
+          "reverse_video": {
+            "description": "Whether to reverse the video. This is useful for tasks where the video conditioning should be applied in reverse order.",
+            "type": "boolean",
+            "title": "Reverse Video",
+            "default": false
+          },
+          "start_frame_num": {
+            "description": "Frame number of the video from which the conditioning starts. Must be a multiple of 8.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440,
+            "title": "Start Frame Number",
+            "multipleOf": 8,
+            "default": 0
+          },
+          "limit_num_frames": {
+            "description": "Whether to limit the number of frames used from the video. If True, the `max_num_frames` parameter will be used to limit the number of frames.",
+            "type": "boolean",
+            "title": "Limit Number of Frames",
+            "default": false
+          },
+          "resample_fps": {
+            "description": "Whether to resample the video to a specific FPS. If True, the `target_fps` parameter will be used to resample the video.",
+            "type": "boolean",
+            "title": "Resample FPS",
+            "default": false
+          },
+          "strength": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "description": "Strength of the conditioning. 0.0 means no conditioning, 1.0 means full conditioning.",
+            "title": "Strength",
+            "default": 1
+          },
+          "target_fps": {
+            "description": "Target FPS to resample the video to. Only relevant if `resample_fps` is True.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60,
+            "title": "Target FPS",
+            "examples": [
+              24
+            ],
+            "default": 24
+          },
+          "max_num_frames": {
+            "description": "Maximum number of frames to use from the video. If None, all frames will be used.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1441,
+            "title": "Maximum Number of Frames",
+            "examples": [
+              1441
+            ],
+            "default": 1441
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "start_frame_num",
+          "strength",
+          "limit_num_frames",
+          "max_num_frames",
+          "resample_fps",
+          "target_fps",
+          "reverse_video"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ltx-video-13b-dev/extend/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-13b-dev/extend/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-13b-dev/extend": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LtxVideo13bDevExtendInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-13b-dev/extend/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LtxVideo13bDevExtendOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

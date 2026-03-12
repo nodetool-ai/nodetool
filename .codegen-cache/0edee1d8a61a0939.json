@@ -1,0 +1,583 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/minimax/speech-02-turbo",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/minimax/speech-02-turbo queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/minimax/speech-02-turbo",
+      "category": "text-to-speech",
+      "thumbnailUrl": "https://fal.media/files/lion/9GDtsluojQ0BAg28nSQLh_f7fea66a2ac94526b14e6ef21ab65414.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/minimax/speech-02-turbo",
+      "documentationUrl": "https://fal.ai/models/fal-ai/minimax/speech-02-turbo/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MinimaxSpeech02TurboInput": {
+        "title": "TextToSpeechTurboRequest",
+        "type": "object",
+        "properties": {
+          "text": {
+            "examples": [
+              "Hello world! This is a test of the text-to-speech system."
+            ],
+            "maxLength": 5000,
+            "type": "string",
+            "title": "Text",
+            "minLength": 1,
+            "description": "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)"
+          },
+          "voice_setting": {
+            "description": "Voice configuration settings",
+            "$ref": "#/components/schemas/VoiceSetting",
+            "default": {
+              "speed": 1,
+              "vol": 1,
+              "voice_id": "Wise_Woman",
+              "pitch": 0,
+              "english_normalization": false
+            }
+          },
+          "language_boost": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Chinese",
+                  "Chinese,Yue",
+                  "English",
+                  "Arabic",
+                  "Russian",
+                  "Spanish",
+                  "French",
+                  "Portuguese",
+                  "German",
+                  "Turkish",
+                  "Dutch",
+                  "Ukrainian",
+                  "Vietnamese",
+                  "Indonesian",
+                  "Japanese",
+                  "Italian",
+                  "Korean",
+                  "Thai",
+                  "Polish",
+                  "Romanian",
+                  "Greek",
+                  "Czech",
+                  "Finnish",
+                  "Hindi",
+                  "Bulgarian",
+                  "Danish",
+                  "Hebrew",
+                  "Malay",
+                  "Slovak",
+                  "Swedish",
+                  "Croatian",
+                  "Hungarian",
+                  "Norwegian",
+                  "Slovenian",
+                  "Catalan",
+                  "Nynorsk",
+                  "Afrikaans",
+                  "auto"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language Boost",
+            "description": "Enhance recognition of specified languages and dialects"
+          },
+          "output_format": {
+            "enum": [
+              "url",
+              "hex"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "Format of the output content (non-streaming only)",
+            "default": "hex"
+          },
+          "pronunciation_dict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PronunciationDict"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Custom pronunciation dictionary for text replacement"
+          },
+          "audio_setting": {
+            "description": "Audio configuration settings",
+            "$ref": "#/components/schemas/AudioSetting"
+          }
+        },
+        "x-fal-order-properties": [
+          "text",
+          "voice_setting",
+          "audio_setting",
+          "language_boost",
+          "output_format",
+          "pronunciation_dict"
+        ],
+        "required": [
+          "text"
+        ]
+      },
+      "MinimaxSpeech02TurboOutput": {
+        "title": "TextToSpeechOutput",
+        "type": "object",
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer",
+            "description": "Duration of the audio in milliseconds"
+          },
+          "audio": {
+            "examples": [
+              {
+                "url": "https://fal.media/files/kangaroo/kojPUCNZ9iUGFGMR-xb7h_speech.mp3"
+              }
+            ],
+            "description": "The generated audio file",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "audio",
+          "duration_ms"
+        ],
+        "required": [
+          "audio",
+          "duration_ms"
+        ]
+      },
+      "VoiceSetting": {
+        "title": "VoiceSetting",
+        "type": "object",
+        "properties": {
+          "speed": {
+            "minimum": 0.5,
+            "title": "Speed",
+            "type": "number",
+            "description": "Speech speed (0.5-2.0)",
+            "maximum": 2,
+            "default": 1
+          },
+          "vol": {
+            "minimum": 0.01,
+            "title": "Vol",
+            "type": "number",
+            "description": "Volume (0-10)",
+            "maximum": 10,
+            "default": 1
+          },
+          "voice_id": {
+            "description": "Predefined voice ID to use for synthesis",
+            "type": "string",
+            "examples": [
+              "Wise_Woman",
+              "Friendly_Person",
+              "Inspirational_girl",
+              "Deep_Voice_Man",
+              "Calm_Woman",
+              "Casual_Guy",
+              "Lively_Girl",
+              "Patient_Man",
+              "Young_Knight",
+              "Determined_Man",
+              "Lovely_Girl",
+              "Decent_Boy",
+              "Imposing_Manner",
+              "Elegant_Man",
+              "Abbess",
+              "Sweet_Girl_2",
+              "Exuberant_Girl"
+            ],
+            "title": "Voice Id",
+            "minLength": 1,
+            "default": "Wise_Woman"
+          },
+          "pitch": {
+            "minimum": -12,
+            "title": "Pitch",
+            "type": "integer",
+            "description": "Voice pitch (-12 to 12)",
+            "maximum": 12,
+            "default": 0
+          },
+          "english_normalization": {
+            "title": "English Normalization",
+            "type": "boolean",
+            "description": "Enables English text normalization to improve number reading performance, with a slight increase in latency",
+            "default": false
+          },
+          "emotion": {
+            "anyOf": [
+              {
+                "enum": [
+                  "happy",
+                  "sad",
+                  "angry",
+                  "fearful",
+                  "disgusted",
+                  "surprised",
+                  "neutral"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emotion",
+            "description": "Emotion of the generated speech"
+          }
+        },
+        "x-fal-order-properties": [
+          "voice_id",
+          "speed",
+          "vol",
+          "pitch",
+          "emotion",
+          "english_normalization"
+        ]
+      },
+      "PronunciationDict": {
+        "title": "PronunciationDict",
+        "type": "object",
+        "properties": {
+          "tone_list": {
+            "title": "Tone List",
+            "type": "array",
+            "description": "List of pronunciation replacements in format ['text/(pronunciation)', ...]. For Chinese, tones are 1-5. Example: ['燕少飞/(yan4)(shao3)(fei1)']",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "tone_list"
+        ]
+      },
+      "AudioSetting": {
+        "title": "AudioSetting",
+        "type": "object",
+        "properties": {
+          "format": {
+            "enum": [
+              "mp3",
+              "pcm",
+              "flac"
+            ],
+            "title": "Format",
+            "type": "string",
+            "description": "Audio format",
+            "default": "mp3"
+          },
+          "sample_rate": {
+            "enum": [
+              8000,
+              16000,
+              22050,
+              24000,
+              32000,
+              44100
+            ],
+            "title": "Sample Rate",
+            "type": "integer",
+            "description": "Sample rate of generated audio",
+            "default": 32000
+          },
+          "channel": {
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Channel",
+            "type": "integer",
+            "description": "Number of audio channels (1=mono, 2=stereo)",
+            "default": 1
+          },
+          "bitrate": {
+            "enum": [
+              32000,
+              64000,
+              128000,
+              256000
+            ],
+            "title": "Bitrate",
+            "type": "integer",
+            "description": "Bitrate of generated audio",
+            "default": 128000
+          }
+        },
+        "x-fal-order-properties": [
+          "sample_rate",
+          "bitrate",
+          "format",
+          "channel"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/minimax/speech-02-turbo/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/minimax/speech-02-turbo/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/minimax/speech-02-turbo": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MinimaxSpeech02TurboInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/minimax/speech-02-turbo/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinimaxSpeech02TurboOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

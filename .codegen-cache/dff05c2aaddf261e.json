@@ -1,0 +1,359 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-video-foley",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-video-foley queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-video-foley",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://fal.media/files/elephant/3ZFQ2t2qtiioCi2l04ALY_33a1818a6de949c0801ab825dfae6245.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-video-foley",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-video-foley/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanVideoFoleyInput": {
+        "x-fal-order-properties": [
+          "video_url",
+          "text_prompt",
+          "negative_prompt",
+          "guidance_scale",
+          "num_inference_steps",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "video_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/1_video.mp4"
+            ],
+            "description": "The URL of the video to generate audio for.",
+            "type": "string",
+            "title": "Video Url"
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "description": "Guidance scale for audio generation.",
+            "type": "number",
+            "title": "Guidance Scale",
+            "maximum": 10,
+            "default": 4.5
+          },
+          "num_inference_steps": {
+            "minimum": 10,
+            "description": "Number of inference steps for generation.",
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "maximum": 100,
+            "default": 50
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducible generation.",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "description": "Negative prompt to avoid certain audio characteristics.",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "noisy, harsh"
+          },
+          "text_prompt": {
+            "examples": [
+              "A person walks on frozen ice",
+              "The crackling of fire and whooshing of flames",
+              "Gentle footsteps on wooden floor"
+            ],
+            "description": "Text description of the desired audio (optional).",
+            "type": "string",
+            "title": "Text Prompt"
+          }
+        },
+        "title": "HunyuanFoleyRequest",
+        "required": [
+          "video_url",
+          "text_prompt"
+        ]
+      },
+      "HunyuanVideoFoleyOutput": {
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "video": {
+            "description": "List of generated video files with audio.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "HunyuanFoleyResponse",
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-video-foley/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-foley/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-foley": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanVideoFoleyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-foley/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanVideoFoleyOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

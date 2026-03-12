@@ -27,12 +27,14 @@ export class SchemaParser {
 
     const enums: EnumDef[] = [];
 
-    const inputFields = this._parseProperties(
+    let inputFields = this._parseProperties(
       (inputSchema["properties"] as AnyRecord | undefined) ?? {},
       (inputSchema["required"] as string[] | undefined) ?? [],
       "input",
       enums,
     );
+    inputFields = this.normalizeAssetUrlFields(inputFields);
+    inputFields = this.normalizeImageUrlsFields(inputFields);
 
     const outputFields = this._parseProperties(
       (outputSchema["properties"] as AnyRecord | undefined) ?? {},
@@ -502,17 +504,7 @@ export class SchemaParser {
     if ("default" in prop) {
       const defaultVal = prop["default"];
       if (typeof defaultVal === "string") {
-        if (enumName) {
-          return `${enumName}.${this.toEnumValue(defaultVal)}`;
-        } else if (
-          propType !== "str" &&
-          propType !== "image" &&
-          propType !== "video" &&
-          propType !== "audio"
-        ) {
-          // Likely an enum; use enum value format
-          return `${propType}.${this.toEnumValue(defaultVal)}`;
-        }
+        // Return raw string value — FAL API expects plain enum values like "none", not "Acceleration.NONE"
         return defaultVal;
       } else if (typeof defaultVal === "boolean") {
         return defaultVal;
@@ -711,11 +703,15 @@ export class SchemaParser {
       const lower = f.name.toLowerCase();
       if (lower.endsWith("_url")) {
         if (lower.includes("image")) {
-          return { ...f, tsType: "image", propType: "image" };
+          // Rename image_url → image (store original as apiParamName)
+          const shortName = f.name.replace(/_url$/i, "");
+          return { ...f, name: shortName, apiParamName: f.name, tsType: "image", propType: "image" };
         } else if (lower.includes("video")) {
-          return { ...f, tsType: "video", propType: "video" };
+          const shortName = f.name.replace(/_url$/i, "");
+          return { ...f, name: shortName, apiParamName: f.name, tsType: "video", propType: "video" };
         } else if (lower.includes("audio")) {
-          return { ...f, tsType: "audio", propType: "audio" };
+          const shortName = f.name.replace(/_url$/i, "");
+          return { ...f, name: shortName, apiParamName: f.name, tsType: "audio", propType: "audio" };
         }
       }
       return f;
@@ -729,7 +725,8 @@ export class SchemaParser {
     return fields.map((f) => {
       const lower = f.name.toLowerCase();
       if (lower.endsWith("_urls") && lower.includes("image")) {
-        return { ...f, tsType: "image[]", propType: "list[image]" };
+        const shortName = f.name.replace(/_urls$/i, "s");
+        return { ...f, name: shortName, apiParamName: f.name, tsType: "image[]", propType: "list[image]" };
       }
       return f;
     });

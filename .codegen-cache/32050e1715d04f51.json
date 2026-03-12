@@ -1,0 +1,333 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/imageutils/rembg",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/imageutils/rembg queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/imageutils/rembg",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/panda/m5RPLAJZ_HnPQVRqCtiTi_cbfbb775bff3463bba8116be399e120d.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/imageutils/rembg",
+      "documentationUrl": "https://fal.ai/models/fal-ai/imageutils/rembg/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ImageutilsRembgInput": {
+        "title": "RemoveBackgroundInput",
+        "type": "object",
+        "properties": {
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/remove_background/elephant.jpg"
+            ],
+            "description": "Input image url.",
+            "type": "string",
+            "title": "Image Url"
+          },
+          "crop_to_bbox": {
+            "description": "\n            If set to true, the resulting image be cropped to a bounding box around the subject\n        ",
+            "type": "boolean",
+            "title": "Crop To Bbox",
+            "default": false
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "sync_mode",
+          "crop_to_bbox"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "ImageutilsRembgOutput": {
+        "title": "RemoveBackgroundOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "description": "Background removed image.",
+            "title": "Image",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "image"
+        ],
+        "required": [
+          "image"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "height": {
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels.",
+            "type": "integer",
+            "title": "Height"
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels.",
+            "type": "integer",
+            "title": "Width"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/imageutils/rembg/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/rembg/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/rembg": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageutilsRembgInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imageutils/rembg/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageutilsRembgOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

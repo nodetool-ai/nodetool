@@ -1,0 +1,450 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/pixverse/v5.5/transition",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/pixverse/v5.5/transition queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/pixverse/v5.5/transition",
+      "category": "image-to-video",
+      "thumbnailUrl": "blob:https://fal.ai/a3342541-0a6a-4117-a70f-4b43a6483e07",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/pixverse/v5.5/transition",
+      "documentationUrl": "https://fal.ai/models/fal-ai/pixverse/v5.5/transition/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "PixverseV55TransitionInput": {
+        "title": "TransitionRequestV5_5",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Scene slowly transition into cat swimming under water"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt for the transition"
+          },
+          "resolution": {
+            "enum": [
+              "360p",
+              "540p",
+              "720p",
+              "1080p"
+            ],
+            "description": "The resolution of the generated video",
+            "type": "string",
+            "title": "Resolution",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "description": "The aspect ratio of the generated video",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "enum": [
+                  "anime",
+                  "3d_animation",
+                  "clay",
+                  "comic",
+                  "cyberpunk"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style",
+            "description": "The style of the generated video"
+          },
+          "thinking_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "enabled",
+                  "disabled",
+                  "auto"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thinking Type",
+            "description": "Prompt optimization mode: 'enabled' to optimize, 'disabled' to turn off, 'auto' for model decision"
+          },
+          "duration": {
+            "enum": [
+              "5",
+              "8",
+              "10"
+            ],
+            "description": "The duration of the generated video in seconds. Longer durations cost more. 1080p videos are limited to 5 or 8 seconds",
+            "type": "string",
+            "title": "Duration",
+            "default": "5"
+          },
+          "first_image_url": {
+            "examples": [
+              "https://v3.fal.media/files/zebra/owQh2DAzk8UU7J02nr5RY_Co2P4boLv6meIZ5t9gKvL_8685da151df343ab8bf82165c928e2a5.jpg"
+            ],
+            "title": "First Image Url",
+            "type": "string",
+            "description": "URL of the image to use as the first frame"
+          },
+          "generate_audio_switch": {
+            "title": "Generate Audio Switch",
+            "type": "boolean",
+            "description": "Enable audio generation (BGM, SFX, dialogue)",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        "
+          },
+          "end_image_url": {
+            "examples": [
+              "https://v3.fal.media/files/kangaroo/RgedFs_WSnq5BgER7qDx1_ONrbTJ1YAGXz-9JnSsBoB_bdc8750387734bfe940319f469f7b0b2.jpg"
+            ],
+            "title": "End Image Url",
+            "description": "URL of the image to use as the last frame",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "negative_prompt": {
+            "examples": [
+              "blurry, low quality, low resolution, pixelated, noisy, grainy, out of focus, poorly lit, poorly exposed, poorly composed, poorly framed, poorly cropped, poorly color corrected, poorly color graded"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt to be used for the generation",
+            "default": ""
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "aspect_ratio",
+          "resolution",
+          "duration",
+          "negative_prompt",
+          "style",
+          "seed",
+          "generate_audio_switch",
+          "thinking_type",
+          "first_image_url",
+          "end_image_url"
+        ],
+        "required": [
+          "prompt",
+          "first_image_url"
+        ]
+      },
+      "PixverseV55TransitionOutput": {
+        "title": "TransitionOutputV5_5",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 3890360,
+                "file_name": "output.mp4",
+                "content_type": "video/mp4",
+                "url": "https://storage.googleapis.com/falserverless/model_tests/video_models/output-2.mp4"
+              }
+            ],
+            "description": "The generated video",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/pixverse/v5.5/transition/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v5.5/transition/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v5.5/transition": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PixverseV55TransitionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v5.5/transition/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PixverseV55TransitionOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

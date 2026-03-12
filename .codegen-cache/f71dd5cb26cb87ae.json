@@ -1,0 +1,485 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for sonauto/v2/text-to-music",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the sonauto/v2/text-to-music queue.",
+    "x-fal-metadata": {
+      "endpointId": "sonauto/v2/text-to-music",
+      "category": "text-to-audio",
+      "thumbnailUrl": "https://fal.media/files/kangaroo/NHeRyBn8fcNS_W3YvNyKZ_4c6ea3f0fd0444c9b9c27b6245a83b38.jpg",
+      "playgroundUrl": "https://fal.ai/models/sonauto/v2/text-to-music",
+      "documentationUrl": "https://fal.ai/models/sonauto/v2/text-to-music/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "V2TextToMusicInput": {
+        "title": "GenerateInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt",
+            "description": "A description of the track you want to generate. This prompt will be used to automatically generate the tags and lyrics unless you manually set them. For example, if you set prompt and tags, then the prompt will be used to generate only the lyrics.",
+            "examples": [
+              "A pop song about turtles flying"
+            ]
+          },
+          "lyrics_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lyrics Prompt",
+            "description": "The lyrics sung in the generated song. An empty string will generate an instrumental track."
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "Tags/styles of the music to generate. You can view a list of all available tags at https://sonauto.ai/tag-explorer."
+          },
+          "prompt_strength": {
+            "minimum": 1.4,
+            "maximum": 3.1,
+            "type": "number",
+            "title": "Prompt Strength",
+            "description": "Controls how strongly your prompt influences the output. Greater values adhere more to the prompt but sound less natural. (This is CFG.)",
+            "default": 2
+          },
+          "output_bit_rate": {
+            "anyOf": [
+              {
+                "enum": [
+                  128,
+                  192,
+                  256,
+                  320
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Bit Rate",
+            "description": "The bit rate to use for mp3 and m4a formats. Not available for other formats."
+          },
+          "num_songs": {
+            "minimum": 1,
+            "maximum": 2,
+            "type": "integer",
+            "title": "Num Songs",
+            "description": "Generating 2 songs costs 1.5x the price of generating 1 song. Also, note that using the same seed may not result in identical songs if the number of songs generated is changed.",
+            "default": 1
+          },
+          "output_format": {
+            "enum": [
+              "flac",
+              "mp3",
+              "wav",
+              "ogg",
+              "m4a"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "default": "wav"
+          },
+          "bpm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string",
+                "const": "auto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bpm",
+            "description": "The beats per minute of the song. This can be set to an integer or the literal string \"auto\" to pick a suitable bpm based on the tags. Set bpm to null to not condition the model on bpm information.",
+            "default": "auto"
+          },
+          "balance_strength": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Balance Strength",
+            "description": "Greater means more natural vocals. Lower means sharper instrumentals. We recommend 0.7.",
+            "default": 0.7
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": -9223372036854776000,
+                "maximum": 9223372036854776000,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "The seed to use for generation. Will pick a random seed if not provided. Repeating a request with identical parameters (must use lyrics and tags, not prompt) and the same seed will generate the same song."
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "tags",
+          "lyrics_prompt",
+          "seed",
+          "prompt_strength",
+          "balance_strength",
+          "num_songs",
+          "output_format",
+          "output_bit_rate",
+          "bpm"
+        ]
+      },
+      "V2TextToMusicOutput": {
+        "title": "GenerateOutput",
+        "type": "object",
+        "properties": {
+          "tags": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "The style tags used for generation."
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation. This can be used to generate an identical song by passing the same parameters with this seed in a future request."
+          },
+          "lyrics": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lyrics",
+            "description": "The lyrics used for generation."
+          },
+          "audio": {
+            "examples": [
+              {
+                "file_size": 16777294,
+                "file_name": "sonauto.wav",
+                "content_type": "audio/wav",
+                "url": "https://cdn.sonauto.ai/generations2_altformats/audio_c5e63f7c-fc79-4322-808d-c09911af4713.wav"
+              }
+            ],
+            "title": "Audio",
+            "type": "array",
+            "description": "The generated audio files.",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "seed",
+          "tags",
+          "lyrics",
+          "audio"
+        ],
+        "required": [
+          "seed",
+          "audio"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/sonauto/v2/text-to-music/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sonauto/v2/text-to-music/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sonauto/v2/text-to-music": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2TextToMusicInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sonauto/v2/text-to-music/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2TextToMusicOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

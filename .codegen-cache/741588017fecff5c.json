@@ -1,0 +1,464 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kolors/image-to-image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kolors/image-to-image queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kolors/image-to-image",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v2.fal.media/files/bdcf6a7a3f4146c39555e0c195715e65_73e054513f15488f93248ae10d67ece5.png",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kolors/image-to-image",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kolors/image-to-image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "KolorsImageToImageInput": {
+        "title": "KolorsImg2ImgInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "high quality image of a capybara wearing sunglasses. In the background of the image there are trees, poles, grass and other objects. At the bottom of the object there is the road., 8k, highly detailed."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate an image from."
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 8,
+            "type": "integer",
+            "title": "Num Images",
+            "description": "The number of images to generate.",
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The size of the generated image."
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "The format of the generated image.",
+            "default": "png"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/image_models/bunny_source.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of image to use for image to image"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "\n            If set to true, the function will wait for the image to be generated and\n            uploaded before returning the response. This will increase the latency of\n            the function but it allows you to get the image directly in the response\n            without going through the CDN.\n        ",
+            "default": false
+          },
+          "scheduler": {
+            "enum": [
+              "EulerDiscreteScheduler",
+              "EulerAncestralDiscreteScheduler",
+              "DPMSolverMultistepScheduler",
+              "DPMSolverMultistepScheduler_SDE_karras",
+              "UniPCMultistepScheduler",
+              "DEISMultistepScheduler"
+            ],
+            "title": "Scheduler",
+            "type": "string",
+            "description": "The scheduler to use for the model.",
+            "default": "EulerDiscreteScheduler"
+          },
+          "strength": {
+            "minimum": 0.01,
+            "maximum": 1,
+            "type": "number",
+            "title": "Strength",
+            "description": "The strength to use for image-to-image. 1.0 is completely remakes the image while 0.0 preserves the original.",
+            "default": 0.85
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show\n            you.\n        ",
+            "default": 5
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 150,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 50
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed"
+          },
+          "negative_prompt": {
+            "examples": [
+              "ugly, deformed, blurry"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small\n            details (e.g. moustache, blurry, low resolution).\n        ",
+            "default": ""
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "Enable safety checker.",
+            "default": true
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "guidance_scale",
+          "num_inference_steps",
+          "seed",
+          "sync_mode",
+          "enable_safety_checker",
+          "num_images",
+          "image_size",
+          "scheduler",
+          "output_format",
+          "image_url",
+          "strength"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "KolorsImageToImageOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the image."
+          },
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "The generated image files info.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "has_nsfw_concepts": {
+            "title": "Has Nsfw Concepts",
+            "type": "array",
+            "description": "Whether the generated images contain NSFW concepts.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kolors/image-to-image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kolors/image-to-image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kolors/image-to-image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KolorsImageToImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kolors/image-to-image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KolorsImageToImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,469 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/glm-image/image-to-image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/glm-image/image-to-image queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/glm-image/image-to-image",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8a4d0f/umwWSuRRBSyt9U_bdGB9i_2de7b25b3997468f8166d372a12dff93.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/glm-image/image-to-image",
+      "documentationUrl": "https://fal.ai/models/fal-ai/glm-image/image-to-image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "GlmImageImageToImageInput": {
+        "title": "GlmImageToImageInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Make the dress red."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Text prompt for image generation."
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "description": "Number of images to generate.",
+            "title": "Num Images",
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9",
+                  "portrait_3_2",
+                  "landscape_3_2",
+                  "portrait_hd",
+                  "landscape_hd"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "Output image size.",
+            "default": "square_hd"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. The same seed with the same prompt will produce the same image."
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "Output image format.",
+            "default": "jpeg"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If True, the image will be returned as a base64 data URI instead of a URL.",
+            "default": false
+          },
+          "enable_prompt_expansion": {
+            "title": "Enable Prompt Expansion",
+            "type": "boolean",
+            "description": "If True, the prompt will be enhanced using an LLM for more detailed and higher quality results.",
+            "default": false
+          },
+          "num_inference_steps": {
+            "minimum": 10,
+            "maximum": 100,
+            "type": "integer",
+            "description": "Number of diffusion denoising steps. More steps generally produce higher quality images.",
+            "title": "Num Inference Steps",
+            "default": 30
+          },
+          "image_urls": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/catwalk.png"
+            ],
+            "title": "Image Urls",
+            "type": "array",
+            "description": "URL(s) of the condition image(s) for image-to-image generation. Supports up to 4 URLs for multi-image references.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "Enable NSFW safety checking on the generated images.",
+            "default": true
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number",
+            "description": "Classifier-free guidance scale. Higher values make the model follow the prompt more closely.",
+            "title": "Guidance Scale",
+            "default": 1.5
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_size",
+          "num_inference_steps",
+          "guidance_scale",
+          "seed",
+          "num_images",
+          "enable_safety_checker",
+          "output_format",
+          "sync_mode",
+          "enable_prompt_expansion",
+          "image_urls"
+        ],
+        "required": [
+          "prompt",
+          "image_urls"
+        ]
+      },
+      "GlmImageImageToImageOutput": {
+        "title": "GlmImageToImageOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the image."
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 1536,
+                  "content_type": "image/png",
+                  "url": "https://storage.googleapis.com/falserverless/example_outputs/catwalk_red.png",
+                  "width": 1024
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "description": "List of URLs to the generated images.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "timings": {
+            "title": "Timings",
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "has_nsfw_concepts": {
+            "title": "Has Nsfw Concepts",
+            "type": "array",
+            "description": "Whether the generated images contain NSFW concepts.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The height of the generated image.",
+            "title": "Height",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The width of the generated image.",
+            "title": "Width",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/glm-image/image-to-image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/glm-image/image-to-image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/glm-image/image-to-image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlmImageImageToImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/glm-image/image-to-image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlmImageImageToImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

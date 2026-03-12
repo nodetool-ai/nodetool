@@ -1,0 +1,360 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/moondream/batched",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/moondream/batched queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/moondream/batched",
+      "category": "vision",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/moondream.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/moondream/batched",
+      "documentationUrl": "https://fal.ai/models/fal-ai/moondream/batched/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MoondreamBatchedInput": {
+        "title": "BatchedMoondreamInput",
+        "type": "object",
+        "properties": {
+          "model_id": {
+            "enum": [
+              "vikhyatk/moondream2",
+              "fal-ai/moondream2-docci"
+            ],
+            "title": "Model ID",
+            "type": "string",
+            "description": "Model ID to use for inference",
+            "default": "vikhyatk/moondream2"
+          },
+          "repetition_penalty": {
+            "minimum": 1,
+            "maximum": 2,
+            "type": "number",
+            "title": "Repetition Penalty",
+            "description": "Repetition penalty for sampling",
+            "default": 1
+          },
+          "inputs": {
+            "examples": [
+              [
+                {
+                  "prompt": "What is the girl doing?",
+                  "image_url": "https://github.com/vikhyat/moondream/raw/main/assets/demo-1.jpg"
+                }
+              ]
+            ],
+            "title": "Input prompt & image pairs",
+            "type": "array",
+            "description": "List of input prompts and image URLs",
+            "items": {
+              "$ref": "#/components/schemas/MoondreamInputParam"
+            }
+          },
+          "max_tokens": {
+            "minimum": 32,
+            "maximum": 1024,
+            "type": "integer",
+            "title": "Max Tokens",
+            "description": "Maximum number of new tokens to generate",
+            "default": 64
+          },
+          "temperature": {
+            "maximum": 1,
+            "type": "number",
+            "title": "Temperature",
+            "description": "Temperature for sampling",
+            "exclusiveMinimum": 0,
+            "default": 0.2
+          },
+          "top_p": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Top P",
+            "description": "Top P for sampling",
+            "default": 1
+          }
+        },
+        "x-fal-order-properties": [
+          "model_id",
+          "inputs",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "repetition_penalty"
+        ],
+        "required": [
+          "inputs"
+        ]
+      },
+      "MoondreamBatchedOutput": {
+        "title": "BatchedMoondreamOutput",
+        "type": "object",
+        "properties": {
+          "filenames": {
+            "title": "Filenames",
+            "type": "array",
+            "description": "Filenames of the images processed",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "outputs": {
+            "title": "Outputs",
+            "type": "array",
+            "description": "List of generated outputs",
+            "items": {
+              "type": "string"
+            }
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean",
+            "description": "Whether the output is partial",
+            "default": false
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings",
+            "description": "Timings for different parts of the process"
+          }
+        },
+        "x-fal-order-properties": [
+          "outputs",
+          "partial",
+          "timings",
+          "filenames"
+        ],
+        "required": [
+          "outputs",
+          "timings"
+        ]
+      },
+      "MoondreamInputParam": {
+        "title": "MoondreamInputParam",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Do you know who drew this painting?"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Prompt to be used for the image",
+            "default": "Describe this image."
+          },
+          "image_url": {
+            "examples": [
+              "https://llava-vl.github.io/static/images/monalisa.jpg"
+            ],
+            "title": "Image URL",
+            "type": "string",
+            "description": "URL of the image to be processed"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "prompt"
+        ],
+        "required": [
+          "image_url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/moondream/batched/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream/batched/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream/batched": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoondreamBatchedInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream/batched/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoondreamBatchedOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

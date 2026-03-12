@@ -1,0 +1,491 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/wan-t2v-lora",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/wan-t2v-lora queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/wan-t2v-lora",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/wan-i2v-lora.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/wan-t2v-lora",
+      "documentationUrl": "https://fal.ai/models/fal-ai/wan-t2v-lora/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "WanT2vLoraInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "num_frames",
+          "frames_per_second",
+          "seed",
+          "resolution",
+          "aspect_ratio",
+          "num_inference_steps",
+          "enable_safety_checker",
+          "enable_prompt_expansion",
+          "turbo_mode",
+          "loras",
+          "reverse_video"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt to guide video generation."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "580p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "Resolution of the generated video (480p, 580p, or 720p).",
+            "default": "480p"
+          },
+          "reverse_video": {
+            "title": "Reverse Video",
+            "type": "boolean",
+            "description": "If true, the video will be reversed.",
+            "default": false
+          },
+          "aspect_ratio": {
+            "enum": [
+              "9:16",
+              "16:9"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio of the generated video (16:9 or 9:16).",
+            "default": "16:9"
+          },
+          "enable_prompt_expansion": {
+            "examples": [
+              false
+            ],
+            "title": "Enable Prompt Expansion",
+            "type": "boolean",
+            "description": "Whether to enable prompt expansion.",
+            "default": false
+          },
+          "turbo_mode": {
+            "title": "Turbo Mode",
+            "type": "boolean",
+            "description": "If true, the video will be generated faster with no noticeable degradation in the visual quality.",
+            "default": true
+          },
+          "frames_per_second": {
+            "anyOf": [
+              {
+                "minimum": 5,
+                "maximum": 24,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frames Per Second",
+            "description": "Frames per second of the generated video. Must be between 5 to 24.",
+            "default": 16
+          },
+          "loras": {
+            "title": "Loras",
+            "type": "array",
+            "description": "LoRA weights to be used in the inference.",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "default": []
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": false
+          },
+          "num_inference_steps": {
+            "minimum": 2,
+            "maximum": 40,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 30
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "negative_prompt": {
+            "examples": [
+              "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt for video generation.",
+            "default": "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards"
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "minimum": 81,
+                "maximum": 100,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "Number of frames to generate. Must be between 81 to 100 (inclusive).",
+            "default": 81
+          }
+        },
+        "title": "WanLoRARequest",
+        "required": [
+          "prompt"
+        ]
+      },
+      "WanT2vLoraOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/web-examples/wan/t2v.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "WanT2VResponse",
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "LoraWeight": {
+        "x-fal-order-properties": [
+          "path",
+          "weight_name",
+          "scale"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the LoRA weights."
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 4,
+            "type": "number",
+            "title": "Scale",
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "default": 1
+          },
+          "weight_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Name",
+            "description": "Name of the LoRA weight. Used only if `path` is a Hugging Face repository, and required only if you have more than 1 safetensors file in the repo."
+          }
+        },
+        "title": "LoraWeight",
+        "required": [
+          "path"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/wan-t2v-lora/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-t2v-lora/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-t2v-lora": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WanT2vLoraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-t2v-lora/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanT2vLoraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

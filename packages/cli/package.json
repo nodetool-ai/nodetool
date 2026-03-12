@@ -17,7 +17,11 @@
   },
   "dependencies": {
     "@nodetool/agents": "*",
+    "@nodetool/base-nodes": "*",
+    "@nodetool/fal-nodes": "*",
+    "@nodetool/kernel": "*",
     "@nodetool/models": "*",
+    "@nodetool/node-sdk": "*",
     "@nodetool/chat": "*",
     "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",

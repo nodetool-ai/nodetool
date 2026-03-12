@@ -1,0 +1,383 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/post-processing/blur",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/post-processing/blur queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/post-processing/blur",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/panda/bjwlW3KSsaWKc_0aK5zu1_1bd1f105d15a43618789039ab333c21a.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/post-processing/blur",
+      "documentationUrl": "https://fal.ai/models/fal-ai/post-processing/blur/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "PostProcessingBlurInput": {
+        "x-fal-order-properties": [
+          "image_url",
+          "blur_type",
+          "blur_radius",
+          "blur_sigma"
+        ],
+        "type": "object",
+        "properties": {
+          "blur_sigma": {
+            "minimum": 0.1,
+            "maximum": 10,
+            "type": "number",
+            "title": "Blur Sigma",
+            "description": "Sigma for Gaussian blur",
+            "default": 1
+          },
+          "blur_radius": {
+            "minimum": 0,
+            "maximum": 31,
+            "type": "integer",
+            "title": "Blur Radius",
+            "description": "Blur radius",
+            "default": 3
+          },
+          "blur_type": {
+            "enum": [
+              "gaussian",
+              "kuwahara"
+            ],
+            "title": "Blur Type",
+            "type": "string",
+            "description": "Type of blur to apply",
+            "default": "gaussian"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/web-examples/post-process/postpro-input.jpg"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of image to process",
+            "_fal_ui_field": "image"
+          }
+        },
+        "title": "BlurInput",
+        "required": [
+          "image_url"
+        ]
+      },
+      "PostProcessingBlurOutput": {
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3.fal.media/files/panda/n0gz4pyZJ_qSY5uIjSq6U_24a8903e697f4e1b902825b729ce7d5d.png"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "description": "The processed images with blur effect",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "title": "BlurOutput",
+        "required": [
+          "images"
+        ]
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/post-processing/blur/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/post-processing/blur/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/post-processing/blur": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostProcessingBlurInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/post-processing/blur/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostProcessingBlurOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

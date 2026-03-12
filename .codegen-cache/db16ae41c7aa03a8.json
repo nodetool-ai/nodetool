@@ -1,0 +1,306 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/florence-2-large/region-to-description",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/florence-2-large/region-to-description queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/florence-2-large/region-to-description",
+      "category": "vision",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/florence-2-large.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/florence-2-large/region-to-description",
+      "documentationUrl": "https://fal.ai/models/fal-ai/florence-2-large/region-to-description/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Florence2LargeRegionToDescriptionInput": {
+        "x-fal-order-properties": [
+          "image_url",
+          "region"
+        ],
+        "type": "object",
+        "properties": {
+          "region": {
+            "examples": [
+              {
+                "x1": 100,
+                "x2": 200,
+                "y1": 100,
+                "y2": 200
+              }
+            ],
+            "description": "The user input coordinates",
+            "$ref": "#/components/schemas/Region"
+          },
+          "image_url": {
+            "examples": [
+              "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg",
+              "http://ecx.images-amazon.com/images/I/51UUzBDAMsL.jpg"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "The URL of the image to be processed."
+          }
+        },
+        "title": "ImageWithUserCoordinatesInput",
+        "required": [
+          "image_url",
+          "region"
+        ]
+      },
+      "Florence2LargeRegionToDescriptionOutput": {
+        "x-fal-order-properties": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "title": "Results",
+            "type": "string",
+            "description": "Results from the model"
+          }
+        },
+        "title": "TextOutput",
+        "required": [
+          "results"
+        ]
+      },
+      "Region": {
+        "x-fal-order-properties": [
+          "x1",
+          "y1",
+          "x2",
+          "y2"
+        ],
+        "type": "object",
+        "properties": {
+          "x1": {
+            "minimum": 0,
+            "maximum": 999,
+            "type": "integer",
+            "description": "X-coordinate of the top-left corner",
+            "title": "X1"
+          },
+          "x2": {
+            "minimum": 0,
+            "maximum": 999,
+            "type": "integer",
+            "description": "X-coordinate of the bottom-right corner",
+            "title": "X2"
+          },
+          "y1": {
+            "minimum": 0,
+            "maximum": 999,
+            "type": "integer",
+            "description": "Y-coordinate of the top-left corner",
+            "title": "Y1"
+          },
+          "y2": {
+            "minimum": 0,
+            "maximum": 999,
+            "type": "integer",
+            "description": "Y-coordinate of the bottom-right corner",
+            "title": "Y2"
+          }
+        },
+        "title": "Region",
+        "required": [
+          "x1",
+          "y1",
+          "x2",
+          "y2"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/florence-2-large/region-to-description/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/florence-2-large/region-to-description/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/florence-2-large/region-to-description": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Florence2LargeRegionToDescriptionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/florence-2-large/region-to-description/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Florence2LargeRegionToDescriptionOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

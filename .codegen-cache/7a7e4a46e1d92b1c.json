@@ -1,0 +1,476 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/creative-upscaler",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/creative-upscaler queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/creative-upscaler",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/creative-upscaler.webp?v=3",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/creative-upscaler",
+      "documentationUrl": "https://fal.ai/models/fal-ai/creative-upscaler/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "CreativeUpscalerInput": {
+        "title": "CreativeUpscalerInput",
+        "type": "object",
+        "properties": {
+          "shape_preservation": {
+            "minimum": 0,
+            "description": "How much to preserve the shape of the original image",
+            "type": "number",
+            "title": "Shape Preservation",
+            "maximum": 3,
+            "default": 0.25
+          },
+          "prompt": {
+            "examples": [],
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results. If no prompt is provide BLIP2 will be used to generate a prompt.",
+            "type": "string",
+            "title": "Prompt",
+            "nullable": true
+          },
+          "additional_embedding_url": {
+            "description": "The URL to the additional embeddings to use for the upscaling. Default is None",
+            "type": "string",
+            "title": "Additional Embedding Url"
+          },
+          "enable_safety_checks": {
+            "description": "\n            If set to true, the resulting image will be checked whether it includes any\n            potentially unsafe content. If it does, it will be replaced with a black\n            image.\n        ",
+            "type": "boolean",
+            "title": "Enable Safety Checks",
+            "default": true
+          },
+          "additional_lora_url": {
+            "description": "The URL to the additional LORA model to use for the upscaling. Default is None",
+            "type": "string",
+            "title": "Additional Lora Url"
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "maximum": 16,
+            "default": 7.5
+          },
+          "scale": {
+            "description": "The scale of the output image. The higher the scale, the bigger the output image will be.",
+            "type": "number",
+            "minimum": 1,
+            "title": "Scale",
+            "maximum": 5,
+            "default": 2
+          },
+          "negative_prompt": {
+            "examples": [
+              "blurry, low resolution, bad, ugly, low quality, pixelated, interpolated, compression artifacts, noisey, grainy"
+            ],
+            "description": "\n            The negative prompt to use.Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "blurry, low resolution, bad, ugly, low quality, pixelated, interpolated, compression artifacts, noisey, grainy"
+          },
+          "skip_ccsr": {
+            "description": "\n            If set to true, the image will not be processed by the CCSR model before\n            being processed by the creativity model.\n        ",
+            "type": "boolean",
+            "title": "Skip Ccsr",
+            "default": false
+          },
+          "additional_lora_scale": {
+            "description": "The scale of the additional LORA model to use for the upscaling. Default is 1.0",
+            "type": "number",
+            "title": "Additional Lora Scale",
+            "default": 1
+          },
+          "detail": {
+            "minimum": 0,
+            "description": "How much detail to add",
+            "type": "number",
+            "title": "Detail",
+            "maximum": 5,
+            "default": 1
+          },
+          "base_model_url": {
+            "description": "The URL to the base model to use for the upscaling",
+            "type": "string",
+            "title": "Base Model Url"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/upscale/owl.png",
+              "https://storage.googleapis.com/falserverless/gallery/blue-bird.jpeg"
+            ],
+            "description": "The image to upscale.",
+            "type": "string",
+            "title": "Image Url"
+          },
+          "creativity": {
+            "minimum": 0,
+            "description": "How much the output can deviate from the original",
+            "type": "number",
+            "title": "Creativity",
+            "maximum": 1,
+            "default": 0.5
+          },
+          "override_size_limits": {
+            "description": "\n            Allow for large uploads that could take a very long time.\n        ",
+            "type": "boolean",
+            "title": "Override Size Limits",
+            "default": false
+          },
+          "prompt_suffix": {
+            "description": "The suffix to add to the prompt. This is useful to add a common ending to all prompts such as 'high quality' etc or embedding tokens.",
+            "type": "string",
+            "title": "Prompt Suffix",
+            "default": " high quality, highly detailed, high resolution, sharp"
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "\n            The number of inference steps to use for generating the image. The more steps\n            the better the image will be but it will also take longer to generate.\n        ",
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "maximum": 200,
+            "default": 20
+          },
+          "model_type": {
+            "examples": [
+              "SD_1_5",
+              "SDXL"
+            ],
+            "description": "The type of model to use for the upscaling. Default is SD_1_5",
+            "type": "string",
+            "title": "Model Type",
+            "enum": [
+              "SD_1_5",
+              "SDXL"
+            ],
+            "default": "SD_1_5"
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "model_type",
+          "image_url",
+          "prompt",
+          "scale",
+          "creativity",
+          "detail",
+          "shape_preservation",
+          "prompt_suffix",
+          "negative_prompt",
+          "seed",
+          "guidance_scale",
+          "num_inference_steps",
+          "enable_safety_checks",
+          "skip_ccsr",
+          "override_size_limits",
+          "base_model_url",
+          "additional_lora_url",
+          "additional_lora_scale",
+          "additional_embedding_url"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "CreativeUpscalerOutput": {
+        "title": "CreativeUpscalerOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "description": "The generated image file info.",
+            "title": "Image",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          },
+          "seed": {
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "image",
+          "seed"
+        ],
+        "required": [
+          "image",
+          "seed"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "height": {
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels.",
+            "type": "integer",
+            "title": "Height"
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels.",
+            "type": "integer",
+            "title": "Width"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/creative-upscaler/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/creative-upscaler/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/creative-upscaler": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreativeUpscalerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/creative-upscaler/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreativeUpscalerOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,747 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ltx-2-19b/audio-to-video/lora",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ltx-2-19b/audio-to-video/lora queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ltx-2-19b/audio-to-video/lora",
+      "category": "audio-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8c1636/onmCWQl-29GfB5lZT9WDP_c65a4309ad1e4023b6450e6daadf12e5.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ltx-2-19b/audio-to-video/lora",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ltx-2-19b/audio-to-video/lora/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Ltx219bAudioToVideoLoraInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "audio_url",
+          "image_url",
+          "end_image_url",
+          "match_audio_length",
+          "num_frames",
+          "video_size",
+          "use_multiscale",
+          "fps",
+          "guidance_scale",
+          "num_inference_steps",
+          "acceleration",
+          "camera_lora",
+          "camera_lora_scale",
+          "negative_prompt",
+          "seed",
+          "enable_prompt_expansion",
+          "enable_safety_checker",
+          "video_output_type",
+          "video_quality",
+          "video_write_mode",
+          "sync_mode",
+          "loras",
+          "image_strength",
+          "end_image_strength",
+          "audio_strength",
+          "preprocess_audio"
+        ],
+        "type": "object",
+        "properties": {
+          "use_multiscale": {
+            "title": "Use Multi-Scale",
+            "type": "boolean",
+            "description": "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details.",
+            "default": true
+          },
+          "audio_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/ltx-2-a2v-input-audio.mp3"
+            ],
+            "title": "Audio URL",
+            "type": "string",
+            "description": "The URL of the audio to generate the video from."
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular",
+              "high",
+              "full"
+            ],
+            "title": "Acceleration",
+            "type": "string",
+            "description": "The acceleration level to use.",
+            "examples": [
+              "regular"
+            ],
+            "default": "regular"
+          },
+          "match_audio_length": {
+            "title": "Match Audio Length",
+            "type": "boolean",
+            "description": "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames.",
+            "default": true
+          },
+          "prompt": {
+            "examples": [
+              "A woman speaks to the camera"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate the video from."
+          },
+          "fps": {
+            "minimum": 1,
+            "maximum": 60,
+            "type": "number",
+            "title": "FPS",
+            "description": "The frames per second of the generated video.",
+            "default": 25
+          },
+          "loras": {
+            "title": "LoRAs",
+            "type": "array",
+            "description": "The LoRAs to use for the generation.",
+            "items": {
+              "$ref": "#/components/schemas/LoRAInput"
+            }
+          },
+          "video_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "auto",
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Video Size",
+            "description": "The size of the generated video. Use 'auto' to match the input image dimensions if provided.",
+            "default": "landscape_4_3"
+          },
+          "camera_lora": {
+            "enum": [
+              "dolly_in",
+              "dolly_out",
+              "dolly_left",
+              "dolly_right",
+              "jib_up",
+              "jib_down",
+              "static",
+              "none"
+            ],
+            "title": "Camera LoRA",
+            "type": "string",
+            "description": "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera.",
+            "examples": [
+              "none"
+            ],
+            "default": "none"
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "Whether to enable the safety checker.",
+            "default": true
+          },
+          "camera_lora_scale": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Camera LoRA Scale",
+            "description": "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera.",
+            "default": 1
+          },
+          "end_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Image URL",
+            "description": "The URL of the image to use as the end of the video."
+          },
+          "preprocess_audio": {
+            "title": "Preprocess Audio",
+            "type": "boolean",
+            "description": "Whether to preprocess the audio before using it as conditioning.",
+            "default": true
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "The negative prompt to generate the video from.",
+            "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts."
+          },
+          "video_write_mode": {
+            "enum": [
+              "fast",
+              "balanced",
+              "small"
+            ],
+            "title": "Video Write Mode",
+            "type": "string",
+            "description": "The write mode of the generated video.",
+            "default": "balanced"
+          },
+          "video_output_type": {
+            "enum": [
+              "X264 (.mp4)",
+              "VP9 (.webm)",
+              "PRORES4444 (.mov)",
+              "GIF (.gif)"
+            ],
+            "title": "Video Output Type",
+            "type": "string",
+            "description": "The output type of the generated video.",
+            "default": "X264 (.mp4)"
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "The guidance scale to use.",
+            "default": 3
+          },
+          "image_strength": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Image Strength",
+            "description": "The strength of the image to use for the video generation.",
+            "default": 1
+          },
+          "num_frames": {
+            "description": "The number of frames to generate.",
+            "type": "integer",
+            "minimum": 9,
+            "maximum": 481,
+            "title": "Number of Frames",
+            "default": 121
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image URL",
+            "description": "Optional URL of an image to use as the first frame of the video.",
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/ltx-2-a2v-input-image.png"
+            ]
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "video_quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "maximum"
+            ],
+            "title": "Video Quality",
+            "type": "string",
+            "description": "The quality of the generated video.",
+            "default": "high"
+          },
+          "enable_prompt_expansion": {
+            "title": "Enable Prompt Expansion",
+            "type": "boolean",
+            "description": "Whether to enable prompt expansion.",
+            "default": true
+          },
+          "audio_strength": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Audio Strength",
+            "description": "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification.",
+            "default": 1
+          },
+          "end_image_strength": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "End Image Strength",
+            "description": "The strength of the end image to use for the video generation.",
+            "default": 1
+          },
+          "num_inference_steps": {
+            "minimum": 8,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Number of Inference Steps",
+            "description": "The number of inference steps to use.",
+            "default": 40
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "The seed for the random number generator."
+          }
+        },
+        "title": "LTX2LoRAAudioToVideoInput",
+        "required": [
+          "loras",
+          "prompt",
+          "audio_url"
+        ]
+      },
+      "Ltx219bAudioToVideoLoraOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "seed",
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A woman speaks to the camera"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for the generation."
+          },
+          "seed": {
+            "examples": [
+              175932751
+            ],
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for the random number generator."
+          },
+          "video": {
+            "examples": [
+              {
+                "file_name": "ltx-2-a2v-output.mp4",
+                "content_type": "video/mp4",
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/ltx-2-a2v-output.mp4"
+              }
+            ],
+            "description": "The generated video.",
+            "$ref": "#/components/schemas/VideoFile"
+          }
+        },
+        "title": "LTX2AudioToVideoOutput",
+        "required": [
+          "video",
+          "seed",
+          "prompt"
+        ]
+      },
+      "LoRAInput": {
+        "x-fal-order-properties": [
+          "path",
+          "weight_name",
+          "scale"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string",
+            "description": "URL, HuggingFace repo ID (owner/repo) to lora weights."
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 4,
+            "type": "number",
+            "title": "Scale",
+            "description": "Scale factor for LoRA application (0.0 to 4.0).",
+            "default": 1
+          },
+          "weight_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Name",
+            "description": "Name of the LoRA weight. Only used if `path` is a HuggingFace repository, and is only required when the repository contains multiple LoRA weights."
+          }
+        },
+        "title": "LoRAInput",
+        "description": "LoRA weight configuration.",
+        "required": [
+          "path"
+        ]
+      },
+      "ImageSize": {
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "title": "ImageSize"
+      },
+      "VideoFile": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height",
+          "fps",
+          "duration",
+          "num_frames"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration",
+            "description": "The duration of the video"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the video"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fps",
+            "description": "The FPS of the video"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the video"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "The number of frames in the video"
+          }
+        },
+        "title": "VideoFile",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ltx-2-19b/audio-to-video/lora/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-2-19b/audio-to-video/lora/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-2-19b/audio-to-video/lora": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ltx219bAudioToVideoLoraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-2-19b/audio-to-video/lora/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ltx219bAudioToVideoLoraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

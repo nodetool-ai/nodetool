@@ -1,0 +1,406 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ai-avatar/single-text",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ai-avatar/single-text queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ai-avatar/single-text",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://fal.media/files/penguin/ETFEnZEbEj9nc6e1XdFG8_6f87551d505640c89d59f8018dd0ffb0.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ai-avatar/single-text",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ai-avatar/single-text/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "AiAvatarSingleTextInput": {
+        "title": "AvatarSingleTextRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "An elderly man with a white beard and headphones records audio with a microphone. He appears engaged and expressive, suggesting a podcast or voiceover."
+            ],
+            "description": "The text prompt to guide video generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "Resolution of the video to generate. Must be either 480p or 720p.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "480p"
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular",
+              "high"
+            ],
+            "description": "The acceleration level to use for generation.",
+            "type": "string",
+            "title": "Acceleration",
+            "default": "regular"
+          },
+          "text_input": {
+            "examples": [
+              "Spend more time with people who make you feel alive, and less with things that drain your soul."
+            ],
+            "description": "The text input to guide video generation.",
+            "type": "string",
+            "title": "Text Input"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/panda/HuM21CXMf0q7OO2zbvwhV_c4533aada79a495b90e50e32dc9b83a8.png"
+            ],
+            "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "voice": {
+            "examples": [
+              "Bill"
+            ],
+            "description": "The voice to use for speech generation",
+            "type": "string",
+            "enum": [
+              "Aria",
+              "Roger",
+              "Sarah",
+              "Laura",
+              "Charlie",
+              "George",
+              "Callum",
+              "River",
+              "Liam",
+              "Charlotte",
+              "Alice",
+              "Matilda",
+              "Will",
+              "Jessica",
+              "Eric",
+              "Chris",
+              "Brian",
+              "Daniel",
+              "Lily",
+              "Bill"
+            ],
+            "title": "Voice"
+          },
+          "seed": {
+            "description": "Random seed for reproducibility. If None, a random seed is chosen.",
+            "type": "integer",
+            "title": "Seed",
+            "default": 42
+          },
+          "num_frames": {
+            "minimum": 41,
+            "maximum": 241,
+            "type": "integer",
+            "description": "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units.",
+            "title": "Number of Frames",
+            "default": 136
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "text_input",
+          "voice",
+          "prompt",
+          "num_frames",
+          "resolution",
+          "seed",
+          "acceleration"
+        ],
+        "required": [
+          "image_url",
+          "text_input",
+          "voice",
+          "prompt"
+        ]
+      },
+      "AiAvatarSingleTextOutput": {
+        "title": "AvatarSingleTextResponse",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "description": "The seed used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "file_size": 797478,
+                "file_name": "6c9dd31e1d9a4482877747a52a661a0a.mp4",
+                "content_type": "application/octet-stream",
+                "url": "https://v3.fal.media/files/elephant/-huMN0zTaXmBr2CqzCMps_6c9dd31e1d9a4482877747a52a661a0a.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "title": "Video",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ai-avatar/single-text/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ai-avatar/single-text/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ai-avatar/single-text": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAvatarSingleTextInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ai-avatar/single-text/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAvatarSingleTextOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

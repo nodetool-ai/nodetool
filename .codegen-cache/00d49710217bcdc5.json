@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/inpaint",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/inpaint queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/inpaint",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/inpaint.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/inpaint",
+      "documentationUrl": "https://fal.ai/models/fal-ai/inpaint/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "InpaintInput": {
+        "title": "InpaintInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "a photo of a cat"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results."
+          },
+          "image_url": {
+            "examples": [
+              "https://raw.githubusercontent.com/CompVis/latent-diffusion/main/data/inpainting_examples/overture-creations-5sI6fQgYIuo.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "Input image for img2img or inpaint mode"
+          },
+          "model_name": {
+            "examples": [
+              "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+              "stabilityai/stable-diffusion-xl-base-1.0",
+              "runwayml/stable-diffusion-v1-5",
+              "SG161222/Realistic_Vision_V2.0"
+            ],
+            "title": "Model Name",
+            "type": "string",
+            "description": "URL or HuggingFace ID of the base model to generate the image."
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 7.5
+          },
+          "num_inference_steps": {
+            "minimum": 0,
+            "maximum": 150,
+            "type": "integer",
+            "title": "Number of inference steps",
+            "description": "\n            Increasing the amount of steps tells Stable Diffusion that it should take more steps\n            to generate your final result which can increase the amount of detail in your image.\n        ",
+            "default": 30
+          },
+          "mask_url": {
+            "examples": [
+              "https://raw.githubusercontent.com/CompVis/latent-diffusion/main/data/inpainting_examples/overture-creations-5sI6fQgYIuo_mask.png"
+            ],
+            "title": "Mask Url",
+            "type": "string",
+            "description": "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted."
+          },
+          "negative_prompt": {
+            "examples": [
+              "cartoon, painting, illustration, (worst quality, low quality, normal quality:2)",
+              "nsfw, cartoon, (epicnegative:0.9)"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "default": ""
+          },
+          "seed": {
+            "examples": [
+              1234
+            ],
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "model_name",
+          "prompt",
+          "negative_prompt",
+          "image_url",
+          "mask_url",
+          "num_inference_steps",
+          "guidance_scale",
+          "seed"
+        ],
+        "required": [
+          "model_name",
+          "prompt",
+          "image_url",
+          "mask_url"
+        ]
+      },
+      "InpaintOutput": {
+        "title": "InpaintOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "title": "Image",
+            "description": "The generated image files info.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "image",
+          "seed"
+        ],
+        "required": [
+          "image",
+          "seed"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "type": "integer",
+            "description": "The height of the image in pixels."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "type": "integer",
+            "description": "The width of the image in pixels."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "description": "Represents an image file.",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/inpaint/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/inpaint/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/inpaint": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InpaintInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/inpaint/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InpaintOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

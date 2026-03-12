@@ -1,0 +1,407 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/trellis/multi",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/trellis/multi queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/trellis/multi",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Training.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/trellis/multi",
+      "documentationUrl": "https://fal.ai/models/fal-ai/trellis/multi/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "TrellisMultiInput": {
+        "title": "MultiImageInputModel",
+        "type": "object",
+        "properties": {
+          "multiimage_algo": {
+            "enum": [
+              "stochastic",
+              "multidiffusion"
+            ],
+            "description": "Algorithm for multi-image generation",
+            "type": "string",
+            "title": "Multiimage Algo",
+            "default": "stochastic"
+          },
+          "ss_guidance_strength": {
+            "minimum": 0,
+            "maximum": 10,
+            "type": "number",
+            "description": "Guidance strength for sparse structure generation",
+            "title": "Ss Guidance Strength",
+            "default": 7.5
+          },
+          "mesh_simplify": {
+            "minimum": 0.9,
+            "maximum": 0.98,
+            "type": "number",
+            "description": "Mesh simplification factor",
+            "title": "Mesh Simplify",
+            "default": 0.95
+          },
+          "slat_sampling_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "description": "Sampling steps for structured latent generation",
+            "title": "Slat Sampling Steps",
+            "default": 12
+          },
+          "slat_guidance_strength": {
+            "minimum": 0,
+            "maximum": 10,
+            "type": "number",
+            "description": "Guidance strength for structured latent generation",
+            "title": "Slat Guidance Strength",
+            "default": 3
+          },
+          "ss_sampling_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "description": "Sampling steps for sparse structure generation",
+            "title": "Ss Sampling Steps",
+            "default": 12
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducibility",
+            "title": "Seed"
+          },
+          "image_urls": {
+            "examples": [
+              [
+                "https://storage.googleapis.com/falserverless/model_tests/video_models/front.png",
+                "https://storage.googleapis.com/falserverless/model_tests/video_models/back.png",
+                "https://storage.googleapis.com/falserverless/model_tests/video_models/left.png"
+              ]
+            ],
+            "description": "List of URLs of input images to convert to 3D",
+            "type": "array",
+            "title": "Image Urls",
+            "items": {
+              "type": "string"
+            }
+          },
+          "texture_size": {
+            "enum": [
+              512,
+              1024,
+              2048
+            ],
+            "description": "Texture resolution",
+            "type": "integer",
+            "title": "Texture Size",
+            "default": 1024
+          }
+        },
+        "x-fal-order-properties": [
+          "image_urls",
+          "seed",
+          "ss_guidance_strength",
+          "ss_sampling_steps",
+          "slat_guidance_strength",
+          "slat_sampling_steps",
+          "mesh_simplify",
+          "texture_size",
+          "multiimage_algo"
+        ],
+        "required": [
+          "image_urls"
+        ]
+      },
+      "TrellisMultiOutput": {
+        "title": "ObjectOutput",
+        "type": "object",
+        "properties": {
+          "model_mesh": {
+            "description": "Generated 3D mesh file",
+            "$ref": "#/components/schemas/File"
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "description": "Processing timings",
+            "title": "Timings"
+          }
+        },
+        "x-fal-order-properties": [
+          "model_mesh",
+          "timings"
+        ],
+        "required": [
+          "model_mesh",
+          "timings"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/trellis/multi/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/trellis/multi/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/trellis/multi": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrellisMultiInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/trellis/multi/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrellisMultiOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

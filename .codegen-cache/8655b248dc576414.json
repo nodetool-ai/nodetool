@@ -1,0 +1,471 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/bria/product-shot",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/bria/product-shot queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/bria/product-shot",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/bria.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/bria/product-shot",
+      "documentationUrl": "https://fal.ai/models/fal-ai/bria/product-shot/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "BriaProductShotInput": {
+        "title": "ProductShotInput",
+        "type": "object",
+        "properties": {
+          "ref_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/bria/bria_product_bg.jpg"
+            ],
+            "title": "Ref Image Url",
+            "type": "string",
+            "description": "The URL of the reference image to be used for generating the new scene or background for the product shot. Use \"\" to leave empty.Either ref_image_url or scene_description has to be provided but not both. If both ref_image_url and ref_image_file are provided, ref_image_url will be used. Accepted formats are jpeg, jpg, png, webp.",
+            "default": ""
+          },
+          "manual_placement_selection": {
+            "enum": [
+              "upper_left",
+              "upper_right",
+              "bottom_left",
+              "bottom_right",
+              "right_center",
+              "left_center",
+              "upper_center",
+              "bottom_center",
+              "center_vertical",
+              "center_horizontal"
+            ],
+            "title": "Manual Placement Selection",
+            "type": "string",
+            "description": "If you've selected placement_type=manual_placement, you should use this parameter to specify which placements/positions you would like to use from the list. You can select more than one placement in one request.",
+            "default": "bottom_center"
+          },
+          "num_results": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "description": "The number of lifestyle product shots you would like to generate. You will get num_results x 10 results when placement_type=automatic and according to the number of required placements x num_results if placement_type=manual_placement.",
+            "title": "Num Results",
+            "default": 1
+          },
+          "padding_values": {
+            "title": "Padding Values",
+            "type": "array",
+            "description": "The desired padding in pixels around the product, when using placement_type=manual_padding. The order of the values is [left, right, top, bottom]. For optimal results, the total number of pixels, including padding, should be around 1,000,000. It is recommended to first use the product cutout API, get the cutout and understand the size of the result, and then define the required padding and use the cutout as an input for this API.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/bria/bria_product_fg.jpg"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "The URL of the product shot to be placed in a lifestyle shot. If both image_url and image_file are provided, image_url will be used. Accepted formats are jpeg, jpg, png, webp. Maximum file size 12MB."
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "placement_type": {
+            "enum": [
+              "original",
+              "automatic",
+              "manual_placement",
+              "manual_padding"
+            ],
+            "title": "Placement Type",
+            "type": "string",
+            "description": "This parameter allows you to control the positioning of the product in the image. Choosing 'original' will preserve the original position of the product in the image. Choosing 'automatic' will generate results with the 10 recommended positions for the product. Choosing 'manual_placement' will allow you to select predefined positions (using the parameter 'manual_placement_selection'). Selecting 'manual_padding' will allow you to control the position and size of the image by defining the desired padding in pixels around the product.",
+            "default": "manual_placement"
+          },
+          "original_quality": {
+            "title": "Original Quality",
+            "type": "boolean",
+            "description": "This flag is only relevant when placement_type=original. If true, the output image retains the original input image's size; otherwise, the image is scaled to 1 megapixel (1MP) while preserving its aspect ratio.",
+            "default": false
+          },
+          "optimize_description": {
+            "title": "Optimize Description",
+            "type": "boolean",
+            "description": "Whether to optimize the scene description",
+            "default": true
+          },
+          "fast": {
+            "title": "Fast",
+            "type": "boolean",
+            "description": "Whether to use the fast model",
+            "default": true
+          },
+          "scene_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scene Description",
+            "description": "Text description of the new scene or background for the provided product shot. Bria currently supports prompts in English only, excluding special characters.",
+            "examples": [
+              "on a rock, next to the ocean, dark theme"
+            ]
+          },
+          "shot_size": {
+            "title": "Shot Size",
+            "type": "array",
+            "description": "The desired size of the final product shot. For optimal results, the total number of pixels should be around 1,000,000. This parameter is only relevant when placement_type=automatic or placement_type=manual_placement.",
+            "items": {
+              "type": "integer"
+            },
+            "default": [
+              1000,
+              1000
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "scene_description",
+          "ref_image_url",
+          "optimize_description",
+          "num_results",
+          "fast",
+          "placement_type",
+          "original_quality",
+          "shot_size",
+          "manual_placement_selection",
+          "padding_values",
+          "sync_mode"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "BriaProductShotOutput": {
+        "title": "ProductShotOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "content_type": "image/png",
+                  "url": "https://storage.googleapis.com/falserverless/bria/bria_product_res.png"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "description": "The generated images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "required": [
+          "images"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/bria/product-shot/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/product-shot/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/product-shot": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriaProductShotInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/product-shot/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriaProductShotOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

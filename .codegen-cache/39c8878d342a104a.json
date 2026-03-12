@@ -1,0 +1,352 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/thinksound/audio",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/thinksound/audio queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/thinksound/audio",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Sound-3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/thinksound/audio",
+      "documentationUrl": "https://fal.ai/models/fal-ai/thinksound/audio/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ThinksoundAudioInput": {
+        "x-fal-order-properties": [
+          "video_url",
+          "prompt",
+          "seed",
+          "num_inference_steps",
+          "cfg_scale"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "A prompt to guide the audio generation. If not provided, it will be extracted from the video.",
+            "default": ""
+          },
+          "video_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/thinksound-input.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "The URL of the video to generate the audio for."
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed for the random number generator"
+          },
+          "num_inference_steps": {
+            "description": "The number of inference steps for audio generation.",
+            "type": "integer",
+            "minimum": 2,
+            "title": "Number of Inference Steps",
+            "maximum": 100,
+            "examples": [
+              24
+            ],
+            "default": 24
+          },
+          "cfg_scale": {
+            "description": "The classifier-free guidance scale for audio generation.",
+            "type": "number",
+            "minimum": 1,
+            "title": "CFG Scale",
+            "maximum": 20,
+            "examples": [
+              5
+            ],
+            "default": 5
+          }
+        },
+        "title": "Input",
+        "required": [
+          "video_url"
+        ]
+      },
+      "ThinksoundAudioOutput": {
+        "x-fal-order-properties": [
+          "audio",
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "An acoustic guitar being played indoors."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used to generate the audio."
+          },
+          "audio": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/thinksound-audio.wav"
+              }
+            ],
+            "title": "Audio",
+            "description": "The generated audio file.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "title": "AudioOutput",
+        "required": [
+          "audio",
+          "prompt"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/thinksound/audio/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/thinksound/audio/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/thinksound/audio": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThinksoundAudioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/thinksound/audio/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThinksoundAudioOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

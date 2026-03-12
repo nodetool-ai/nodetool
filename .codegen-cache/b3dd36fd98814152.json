@@ -1,0 +1,428 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/bria/reimagine",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/bria/reimagine queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/bria/reimagine",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/rabbit/wXG4NtIA2sZUz7-CiooUJ_bb5f4b6f122149849d744baaad6896f8.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/bria/reimagine",
+      "documentationUrl": "https://fal.ai/models/fal-ai/bria/reimagine/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "BriaReimagineInput": {
+        "title": "ReimagineInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A 2d illustration of a dog in a vibrant park"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt you would like to use to generate images."
+          },
+          "num_results": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "description": "How many images you would like to generate. When using any Guidance Method, Value is set to 1.",
+            "title": "Num Results",
+            "default": 1
+          },
+          "structure_ref_influence": {
+            "examples": [
+              0.15
+            ],
+            "title": "Structure Ref Influence",
+            "type": "number",
+            "description": "The influence of the structure reference on the generated image.",
+            "default": 0.75
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "fast": {
+            "title": "Fast",
+            "type": "boolean",
+            "description": "Whether to use the fast model",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 2147483647,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        "
+          },
+          "num_inference_steps": {
+            "minimum": 20,
+            "maximum": 50,
+            "type": "integer",
+            "description": "The number of iterations the model goes through to refine the generated image. This parameter is optional.",
+            "title": "Num Inference Steps",
+            "default": 30
+          },
+          "structure_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/bria/bria_reimagine_input.png"
+            ],
+            "title": "Structure Image Url",
+            "type": "string",
+            "description": "The URL of the structure reference image. Use \"\" to leave empty. Accepted formats are jpeg, jpg, png, webp.",
+            "default": ""
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "structure_image_url",
+          "structure_ref_influence",
+          "num_results",
+          "seed",
+          "fast",
+          "num_inference_steps",
+          "sync_mode"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "BriaReimagineOutput": {
+        "title": "ReimagineOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "content_type": "image/png",
+                  "url": "https://storage.googleapis.com/falserverless/bria/bria_reimagine_output.png"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "description": "The generated images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed value used for generation."
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/bria/reimagine/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/reimagine/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/reimagine": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriaReimagineInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/bria/reimagine/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriaReimagineOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

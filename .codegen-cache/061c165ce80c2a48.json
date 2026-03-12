@@ -1,0 +1,1002 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/fooocus/image-prompt",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/fooocus/image-prompt queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/fooocus/image-prompt",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/fooocus/fal_ai_fooocus_cyberpunk-city.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/fooocus/image-prompt",
+      "documentationUrl": "https://fal.ai/models/fal-ai/fooocus/image-prompt/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FooocusImagePromptInput": {
+        "title": "FooocusImagePromptInput",
+        "type": "object",
+        "properties": {
+          "styles": {
+            "description": "\n            The style to use.\n        ",
+            "type": "array",
+            "title": "Styles",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "Fooocus V2",
+                "Fooocus Enhance",
+                "Fooocus Sharp",
+                "Fooocus Semi Realistic",
+                "Fooocus Masterpiece",
+                "Fooocus Photograph",
+                "Fooocus Negative",
+                "Fooocus Cinematic",
+                "SAI 3D Model",
+                "SAI Analog Film",
+                "SAI Anime",
+                "SAI Cinematic",
+                "SAI Comic Book",
+                "SAI Craft Clay",
+                "SAI Digital Art",
+                "SAI Enhance",
+                "SAI Fantasy Art",
+                "SAI Isometric",
+                "SAI Line Art",
+                "SAI Lowpoly",
+                "SAI Neonpunk",
+                "SAI Origami",
+                "SAI Photographic",
+                "SAI Pixel Art",
+                "SAI Texture",
+                "MRE Cinematic Dynamic",
+                "MRE Spontaneous Picture",
+                "MRE Artistic Vision",
+                "MRE Dark Dream",
+                "MRE Gloomy Art",
+                "MRE Bad Dream",
+                "MRE Underground",
+                "MRE Surreal Painting",
+                "MRE Dynamic Illustration",
+                "MRE Undead Art",
+                "MRE Elemental Art",
+                "MRE Space Art",
+                "MRE Ancient Illustration",
+                "MRE Brave Art",
+                "MRE Heroic Fantasy",
+                "MRE Dark Cyberpunk",
+                "MRE Lyrical Geometry",
+                "MRE Sumi E Symbolic",
+                "MRE Sumi E Detailed",
+                "MRE Manga",
+                "MRE Anime",
+                "MRE Comic",
+                "Ads Advertising",
+                "Ads Automotive",
+                "Ads Corporate",
+                "Ads Fashion Editorial",
+                "Ads Food Photography",
+                "Ads Gourmet Food Photography",
+                "Ads Luxury",
+                "Ads Real Estate",
+                "Ads Retail",
+                "Artstyle Abstract",
+                "Artstyle Abstract Expressionism",
+                "Artstyle Art Deco",
+                "Artstyle Art Nouveau",
+                "Artstyle Constructivist",
+                "Artstyle Cubist",
+                "Artstyle Expressionist",
+                "Artstyle Graffiti",
+                "Artstyle Hyperrealism",
+                "Artstyle Impressionist",
+                "Artstyle Pointillism",
+                "Artstyle Pop Art",
+                "Artstyle Psychedelic",
+                "Artstyle Renaissance",
+                "Artstyle Steampunk",
+                "Artstyle Surrealist",
+                "Artstyle Typography",
+                "Artstyle Watercolor",
+                "Futuristic Biomechanical",
+                "Futuristic Biomechanical Cyberpunk",
+                "Futuristic Cybernetic",
+                "Futuristic Cybernetic Robot",
+                "Futuristic Cyberpunk Cityscape",
+                "Futuristic Futuristic",
+                "Futuristic Retro Cyberpunk",
+                "Futuristic Retro Futurism",
+                "Futuristic Sci Fi",
+                "Futuristic Vaporwave",
+                "Game Bubble Bobble",
+                "Game Cyberpunk Game",
+                "Game Fighting Game",
+                "Game Gta",
+                "Game Mario",
+                "Game Minecraft",
+                "Game Pokemon",
+                "Game Retro Arcade",
+                "Game Retro Game",
+                "Game Rpg Fantasy Game",
+                "Game Strategy Game",
+                "Game Streetfighter",
+                "Game Zelda",
+                "Misc Architectural",
+                "Misc Disco",
+                "Misc Dreamscape",
+                "Misc Dystopian",
+                "Misc Fairy Tale",
+                "Misc Gothic",
+                "Misc Grunge",
+                "Misc Horror",
+                "Misc Kawaii",
+                "Misc Lovecraftian",
+                "Misc Macabre",
+                "Misc Manga",
+                "Misc Metropolis",
+                "Misc Minimalist",
+                "Misc Monochrome",
+                "Misc Nautical",
+                "Misc Space",
+                "Misc Stained Glass",
+                "Misc Techwear Fashion",
+                "Misc Tribal",
+                "Misc Zentangle",
+                "Papercraft Collage",
+                "Papercraft Flat Papercut",
+                "Papercraft Kirigami",
+                "Papercraft Paper Mache",
+                "Papercraft Paper Quilling",
+                "Papercraft Papercut Collage",
+                "Papercraft Papercut Shadow Box",
+                "Papercraft Stacked Papercut",
+                "Papercraft Thick Layered Papercut",
+                "Photo Alien",
+                "Photo Film Noir",
+                "Photo Glamour",
+                "Photo Hdr",
+                "Photo Iphone Photographic",
+                "Photo Long Exposure",
+                "Photo Neon Noir",
+                "Photo Silhouette",
+                "Photo Tilt Shift",
+                "Cinematic Diva",
+                "Abstract Expressionism",
+                "Academia",
+                "Action Figure",
+                "Adorable 3D Character",
+                "Adorable Kawaii",
+                "Art Deco",
+                "Art Nouveau",
+                "Astral Aura",
+                "Avant Garde",
+                "Baroque",
+                "Bauhaus Style Poster",
+                "Blueprint Schematic Drawing",
+                "Caricature",
+                "Cel Shaded Art",
+                "Character Design Sheet",
+                "Classicism Art",
+                "Color Field Painting",
+                "Colored Pencil Art",
+                "Conceptual Art",
+                "Constructivism",
+                "Cubism",
+                "Dadaism",
+                "Dark Fantasy",
+                "Dark Moody Atmosphere",
+                "Dmt Art Style",
+                "Doodle Art",
+                "Double Exposure",
+                "Dripping Paint Splatter Art",
+                "Expressionism",
+                "Faded Polaroid Photo",
+                "Fauvism",
+                "Flat 2d Art",
+                "Fortnite Art Style",
+                "Futurism",
+                "Glitchcore",
+                "Glo Fi",
+                "Googie Art Style",
+                "Graffiti Art",
+                "Harlem Renaissance Art",
+                "High Fashion",
+                "Idyllic",
+                "Impressionism",
+                "Infographic Drawing",
+                "Ink Dripping Drawing",
+                "Japanese Ink Drawing",
+                "Knolling Photography",
+                "Light Cheery Atmosphere",
+                "Logo Design",
+                "Luxurious Elegance",
+                "Macro Photography",
+                "Mandola Art",
+                "Marker Drawing",
+                "Medievalism",
+                "Minimalism",
+                "Neo Baroque",
+                "Neo Byzantine",
+                "Neo Futurism",
+                "Neo Impressionism",
+                "Neo Rococo",
+                "Neoclassicism",
+                "Op Art",
+                "Ornate And Intricate",
+                "Pencil Sketch Drawing",
+                "Pop Art 2",
+                "Rococo",
+                "Silhouette Art",
+                "Simple Vector Art",
+                "Sketchup",
+                "Steampunk 2",
+                "Surrealism",
+                "Suprematism",
+                "Terragen",
+                "Tranquil Relaxing Atmosphere",
+                "Sticker Designs",
+                "Vibrant Rim Light",
+                "Volumetric Lighting",
+                "Watercolor 2",
+                "Whimsical And Playful",
+                "Mk Chromolithography",
+                "Mk Cross Processing Print",
+                "Mk Dufaycolor Photograph",
+                "Mk Herbarium",
+                "Mk Punk Collage",
+                "Mk Mosaic",
+                "Mk Van Gogh",
+                "Mk Coloring Book",
+                "Mk Singer Sargent",
+                "Mk Pollock",
+                "Mk Basquiat",
+                "Mk Andy Warhol",
+                "Mk Halftone Print",
+                "Mk Gond Painting",
+                "Mk Albumen Print",
+                "Mk Aquatint Print",
+                "Mk Anthotype Print",
+                "Mk Inuit Carving",
+                "Mk Bromoil Print",
+                "Mk Calotype Print",
+                "Mk Color Sketchnote",
+                "Mk Cibulak Porcelain",
+                "Mk Alcohol Ink Art",
+                "Mk One Line Art",
+                "Mk Blacklight Paint",
+                "Mk Carnival Glass",
+                "Mk Cyanotype Print",
+                "Mk Cross Stitching",
+                "Mk Encaustic Paint",
+                "Mk Embroidery",
+                "Mk Gyotaku",
+                "Mk Luminogram",
+                "Mk Lite Brite Art",
+                "Mk Mokume Gane",
+                "Pebble Art",
+                "Mk Palekh",
+                "Mk Suminagashi",
+                "Mk Scrimshaw",
+                "Mk Shibori",
+                "Mk Vitreous Enamel",
+                "Mk Ukiyo E",
+                "Mk Vintage Airline Poster",
+                "Mk Vintage Travel Poster",
+                "Mk Bauhaus Style",
+                "Mk Afrofuturism",
+                "Mk Atompunk",
+                "Mk Constructivism",
+                "Mk Chicano Art",
+                "Mk De Stijl",
+                "Mk Dayak Art",
+                "Mk Fayum Portrait",
+                "Mk Illuminated Manuscript",
+                "Mk Kalighat Painting",
+                "Mk Madhubani Painting",
+                "Mk Pictorialism",
+                "Mk Pichwai Painting",
+                "Mk Patachitra Painting",
+                "Mk Samoan Art Inspired",
+                "Mk Tlingit Art",
+                "Mk Adnate Style",
+                "Mk Ron English Style",
+                "Mk Shepard Fairey Style"
+              ],
+              "type": "string"
+            },
+            "default": [
+              "Fooocus V2",
+              "Fooocus Sharp",
+              "Fooocus Enhance"
+            ]
+          },
+          "uov_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The image to upscale or vary.",
+            "title": "UOV Image URL"
+          },
+          "prompt": {
+            "examples": [
+              "pikachu"
+            ],
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results.",
+            "type": "string",
+            "title": "Prompt",
+            "default": ""
+          },
+          "image_prompt_3": {
+            "$ref": "#/components/schemas/ImagePrompt"
+          },
+          "performance": {
+            "enum": [
+              "Speed",
+              "Quality",
+              "Extreme Speed",
+              "Lightning"
+            ],
+            "description": "\n            You can choose Speed or Quality\n        ",
+            "type": "string",
+            "title": "Performance",
+            "default": "Extreme Speed"
+          },
+          "loras": {
+            "description": "\n            The LoRAs to use for the image generation. You can use up to 5 LoRAs\n            and they will be merged together to generate the final image.\n        ",
+            "type": "array",
+            "title": "Loras",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "default": [
+              {
+                "path": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_offset_example-lora_1.0.safetensors",
+                "scale": 0.1
+              }
+            ]
+          },
+          "image_prompt_4": {
+            "$ref": "#/components/schemas/ImagePrompt"
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 30,
+            "type": "number",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "title": "Guidance Scale",
+            "default": 4
+          },
+          "sharpness": {
+            "minimum": 0,
+            "maximum": 30,
+            "type": "number",
+            "description": "\n            The sharpness of the generated image. Use it to control how sharp the generated\n            image should be. Higher value means image and texture are sharper.\n        ",
+            "title": "Sharpness",
+            "default": 2
+          },
+          "mixing_image_prompt_and_inpaint": {
+            "description": "Mixing Image Prompt and Inpaint",
+            "type": "boolean",
+            "title": "Mixing Image Prompt and Inpaint",
+            "default": false
+          },
+          "outpaint_selections": {
+            "description": "The directions to outpaint.",
+            "type": "array",
+            "title": "Outpaint Direction",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "Left",
+                "Right",
+                "Top",
+                "Bottom"
+              ],
+              "type": "string"
+            },
+            "default": []
+          },
+          "inpaint_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The image to use as a reference for inpainting.",
+            "title": "Inpaint Image URL"
+          },
+          "output_format": {
+            "enum": [
+              "png",
+              "jpeg",
+              "webp"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "jpeg"
+          },
+          "refiner_model": {
+            "enum": [
+              "None",
+              "realisticVisionV60B1_v51VAE.safetensors"
+            ],
+            "description": "Refiner (SDXL or SD 1.5)",
+            "type": "string",
+            "title": "Refiner Model",
+            "default": "None"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "image_prompt_2": {
+            "$ref": "#/components/schemas/ImagePrompt"
+          },
+          "uov_method": {
+            "enum": [
+              "Disabled",
+              "Vary (Subtle)",
+              "Vary (Strong)",
+              "Upscale (1.5x)",
+              "Upscale (2x)",
+              "Upscale (Fast 2x)"
+            ],
+            "description": "The method to use for upscaling or varying.",
+            "type": "string",
+            "title": "UOV Method",
+            "default": "Disabled"
+          },
+          "inpaint_mode": {
+            "enum": [
+              "Inpaint or Outpaint (default)",
+              "Improve Detail (face, hand, eyes, etc.)",
+              "Modify Content (add objects, change background, etc.)"
+            ],
+            "description": "The mode to use for inpainting.",
+            "type": "string",
+            "title": "Inpaint Mode",
+            "default": "Inpaint or Outpaint (default)"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        ",
+            "examples": [
+              176400
+            ],
+            "title": "Seed",
+            "nullable": true
+          },
+          "refiner_switch": {
+            "description": "\n            Use 0.4 for SD1.5 realistic models; 0.667 for SD1.5 anime models\n            0.8 for XL-refiners; or any value for switching two SDXL models.\n        ",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "title": "Refiner Switch At",
+            "multipleOf": 0.0001,
+            "default": 0.8
+          },
+          "mixing_image_prompt_and_vary_upscale": {
+            "description": "Mixing Image Prompt and Vary/Upscale",
+            "type": "boolean",
+            "title": "Mixing Image Prompt and Vary/Upscale",
+            "default": false
+          },
+          "mask_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The image to use as a mask for the generated image.",
+            "title": "Mask Image URL"
+          },
+          "image_prompt_1": {
+            "examples": [
+              {
+                "weight": 1,
+                "stop_at": 1,
+                "type": "PyraCanny",
+                "image_url": "https://storage.googleapis.com/falserverless/model_tests/fooocus/Pikachu.webp"
+              }
+            ],
+            "$ref": "#/components/schemas/ImagePrompt"
+          },
+          "enable_safety_checker": {
+            "description": "If set to false, the safety checker will be disabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "negative_prompt": {
+            "examples": [
+              "(worst quality, low quality, normal quality, lowres, low details, oversaturated, undersaturated, overexposed, underexposed, grayscale, bw, bad photo, bad photography, bad art:1.4), (watermark, signature, text font, username, error, logo, words, letters, digits, autograph, trademark, name:1.2), (blur, blurry, grainy), morbid, ugly, asymmetrical, mutated malformed, mutilated, poorly lit, bad shadow, draft, cropped, out of frame, cut off, censored, jpeg artifacts, out of focus, glitch, duplicate, (airbrushed, cartoon, anime, semi-realistic, cgi, render, blender, digital art, manga, amateur:1.3), (3D ,3D Game, 3D Game Scene, 3D Character:1.1), (bad hands, bad anatomy, bad body, bad face, bad teeth, bad arms, bad legs, deformities:1.3)"
+            ],
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          },
+          "aspect_ratio": {
+            "description": "\n            The size of the generated image. You can choose between some presets or\n            custom height and width that **must be multiples of 8**.\n        ",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "1024x1024"
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "description": "\n            Number of images to generate in one request\n        ",
+            "title": "Num Images",
+            "default": 1
+          },
+          "inpaint_additional_prompt": {
+            "description": "Describe what you want to inpaint.",
+            "type": "string",
+            "title": "Inpaint Additional Prompt",
+            "default": ""
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "styles",
+          "performance",
+          "guidance_scale",
+          "sharpness",
+          "aspect_ratio",
+          "num_images",
+          "loras",
+          "refiner_model",
+          "refiner_switch",
+          "output_format",
+          "sync_mode",
+          "seed",
+          "image_prompt_1",
+          "image_prompt_2",
+          "image_prompt_3",
+          "image_prompt_4",
+          "inpaint_image_url",
+          "mask_image_url",
+          "inpaint_mode",
+          "inpaint_additional_prompt",
+          "outpaint_selections",
+          "mixing_image_prompt_and_inpaint",
+          "uov_image_url",
+          "uov_method",
+          "mixing_image_prompt_and_vary_upscale",
+          "enable_safety_checker"
+        ],
+        "required": [
+          "image_prompt_1"
+        ]
+      },
+      "FooocusImagePromptOutput": {
+        "title": "FooocusOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "description": "The generated image file info.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "description": "The time taken for the generation process.",
+            "title": "Timings"
+          },
+          "has_nsfw_concepts": {
+            "description": "Whether the generated images contain NSFW concepts.",
+            "type": "array",
+            "title": "Has Nsfw Concepts",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "has_nsfw_concepts"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "has_nsfw_concepts"
+        ]
+      },
+      "ImagePrompt": {
+        "title": "ImagePrompt",
+        "type": "object",
+        "properties": {
+          "weight": {
+            "minimum": 0,
+            "maximum": 2,
+            "type": "number",
+            "title": "Weight",
+            "default": 1
+          },
+          "stop_at": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Stop At",
+            "default": 0.5
+          },
+          "type": {
+            "enum": [
+              "ImagePrompt",
+              "PyraCanny",
+              "CPDS",
+              "FaceSwap"
+            ],
+            "title": "Type",
+            "type": "string",
+            "default": "ImagePrompt"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "type",
+          "image_url",
+          "stop_at",
+          "weight"
+        ]
+      },
+      "LoraWeight": {
+        "title": "LoraWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "examples": [
+              "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_offset_example-lora_1.0.safetensors"
+            ],
+            "description": "URL or the path to the LoRA weights.",
+            "type": "string",
+            "title": "Path"
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "title": "Scale",
+            "default": 0.1
+          }
+        },
+        "x-fal-order-properties": [
+          "path",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/fooocus/image-prompt/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fooocus/image-prompt/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fooocus/image-prompt": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FooocusImagePromptInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fooocus/image-prompt/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FooocusImagePromptOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,490 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/illusion-diffusion",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/illusion-diffusion queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/illusion-diffusion",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/illusion-diffusion.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/illusion-diffusion",
+      "documentationUrl": "https://fal.ai/models/fal-ai/illusion-diffusion/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "IllusionDiffusionInput": {
+        "title": "IllusionDiffusionInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "(masterpiece:1.4), (best quality), (detailed), Medieval village scene with busy streets and castle in the distance"
+            ],
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "\n            The size of the generated image. You can choose between some presets or\n            custom height and width that **must be multiples of 8**.\n        ",
+            "title": "Image Size",
+            "default": "square_hd"
+          },
+          "controlnet_conditioning_scale": {
+            "description": "The scale of the ControlNet.",
+            "type": "number",
+            "title": "Controlnet Conditioning Scale",
+            "default": 1
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/illusion-examples/pattern.png",
+              "https://storage.googleapis.com/falserverless/illusion-examples/checkers.png",
+              "https://storage.googleapis.com/falserverless/illusion-examples/checkers_mid.jpg",
+              "https://storage.googleapis.com/falserverless/illusion-examples/ultra_checkers.png",
+              "https://storage.googleapis.com/falserverless/illusion-examples/funky.jpeg",
+              "https://storage.googleapis.com/falserverless/illusion-examples/cubes.jpeg",
+              "https://storage.googleapis.com/falserverless/illusion-examples/turkey-flag.png",
+              "https://storage.googleapis.com/falserverless/illusion-examples/india-flag.png",
+              "https://storage.googleapis.com/falserverless/illusion-examples/usa-flag.png"
+            ],
+            "description": "Input image url.",
+            "type": "string",
+            "title": "Image Url"
+          },
+          "scheduler": {
+            "enum": [
+              "DPM++ Karras SDE",
+              "Euler"
+            ],
+            "description": "Scheduler / sampler to use for the image denoising process.",
+            "type": "string",
+            "title": "Scheduler",
+            "default": "Euler"
+          },
+          "control_guidance_start": {
+            "minimum": 0,
+            "title": "Control Guidance Start",
+            "type": "number",
+            "maximum": 1,
+            "default": 0
+          },
+          "guidance_scale": {
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "type": "number",
+            "title": "Guidance Scale",
+            "maximum": 50,
+            "exclusiveMinimum": 0,
+            "default": 7.5
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "title": "Seed"
+          },
+          "control_guidance_end": {
+            "minimum": 0,
+            "title": "Control Guidance End",
+            "type": "number",
+            "maximum": 1,
+            "default": 1
+          },
+          "negative_prompt": {
+            "examples": [
+              "(worst quality, poor details:1.4), lowres, (artist name, signature, watermark:1.4), bad-artist-anime, bad_prompt_version2, bad-hands-5, ng_deepnegative_v1_75t"
+            ],
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          },
+          "num_inference_steps": {
+            "minimum": 0,
+            "description": "\n            Increasing the amount of steps tells Stable Diffusion that it should take more steps\n            to generate your final result which can increase the amount of detail in your image.\n        ",
+            "type": "integer",
+            "maximum": 80,
+            "title": "Number of inference steps",
+            "default": 40
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "prompt",
+          "negative_prompt",
+          "guidance_scale",
+          "controlnet_conditioning_scale",
+          "control_guidance_start",
+          "control_guidance_end",
+          "seed",
+          "scheduler",
+          "num_inference_steps",
+          "image_size"
+        ],
+        "required": [
+          "image_url",
+          "prompt"
+        ]
+      },
+      "IllusionDiffusionOutput": {
+        "title": "IllusionDiffusionOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "description": "The generated image file info.",
+            "$ref": "#/components/schemas/Image"
+          },
+          "seed": {
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "image",
+          "seed"
+        ],
+        "required": [
+          "image",
+          "seed"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "description": "The height of the generated image.",
+            "type": "integer",
+            "title": "Height",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "description": "The width of the generated image.",
+            "type": "integer",
+            "title": "Width",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/illusion-diffusion/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/illusion-diffusion/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/illusion-diffusion": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IllusionDiffusionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/illusion-diffusion/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IllusionDiffusionOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

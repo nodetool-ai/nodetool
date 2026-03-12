@@ -1,0 +1,391 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan3d/v2/multi-view/turbo",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan3d/v2/multi-view/turbo queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan3d/v2/multi-view/turbo",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/model_tests/video_models/Hunyuan3D.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan3d/v2/multi-view/turbo",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan3d/v2/multi-view/turbo/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Hunyuan3dV2MultiViewTurboInput": {
+        "x-fal-order-properties": [
+          "front_image_url",
+          "back_image_url",
+          "left_image_url",
+          "seed",
+          "num_inference_steps",
+          "guidance_scale",
+          "octree_resolution",
+          "textured_mesh"
+        ],
+        "type": "object",
+        "properties": {
+          "left_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/left.png"
+            ],
+            "description": "URL of image to use while generating the 3D model.",
+            "type": "string",
+            "title": "Left Image Url"
+          },
+          "octree_resolution": {
+            "minimum": 1,
+            "description": "Octree resolution for the model.",
+            "type": "integer",
+            "maximum": 1024,
+            "title": "Octree Resolution",
+            "default": 256
+          },
+          "back_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/back.png"
+            ],
+            "description": "URL of image to use while generating the 3D model.",
+            "type": "string",
+            "title": "Back Image Url"
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "Guidance scale for the model.",
+            "type": "number",
+            "maximum": 20,
+            "title": "Guidance Scale",
+            "default": 7.5
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "Number of inference steps to perform.",
+            "type": "integer",
+            "maximum": 50,
+            "title": "Num Inference Steps",
+            "default": 50
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+            "title": "Seed"
+          },
+          "textured_mesh": {
+            "description": "If set true, textured mesh will be generated and the price charged would be 3 times that of white mesh.",
+            "type": "boolean",
+            "title": "Textured Mesh",
+            "default": false
+          },
+          "front_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/front.png"
+            ],
+            "description": "URL of image to use while generating the 3D model.",
+            "type": "string",
+            "title": "Front Image Url"
+          }
+        },
+        "title": "Hunyuan3DInputMultiView",
+        "required": [
+          "front_image_url",
+          "back_image_url",
+          "left_image_url"
+        ]
+      },
+      "Hunyuan3dV2MultiViewTurboOutput": {
+        "x-fal-order-properties": [
+          "model_mesh",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "model_mesh": {
+            "examples": [
+              {
+                "file_size": 720696,
+                "file_name": "white_mesh.glb",
+                "content_type": "application/octet-stream",
+                "url": "https://storage.googleapis.com/falserverless/model_tests/video_models/mesh.glb"
+              }
+            ],
+            "description": "Generated 3D object file.",
+            "$ref": "#/components/schemas/File"
+          },
+          "seed": {
+            "description": "Seed value used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "MultiViewObjectOutput",
+        "required": [
+          "model_mesh",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan3d/v2/multi-view/turbo/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d/v2/multi-view/turbo/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d/v2/multi-view/turbo": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Hunyuan3dV2MultiViewTurboInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan3d/v2/multi-view/turbo/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hunyuan3dV2MultiViewTurboOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

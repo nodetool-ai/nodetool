@@ -1,0 +1,368 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/triposr",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/triposr queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/triposr",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/triposr.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/triposr",
+      "documentationUrl": "https://fal.ai/models/fal-ai/triposr/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "TriposrInput": {
+        "title": "TripoSRInput",
+        "type": "object",
+        "properties": {
+          "mc_resolution": {
+            "minimum": 32,
+            "maximum": 1024,
+            "type": "integer",
+            "title": "Mc Resolution",
+            "description": "Resolution of the marching cubes. Above 512 is not recommended.",
+            "default": 256
+          },
+          "do_remove_background": {
+            "title": "Do Remove Background",
+            "type": "boolean",
+            "description": "Whether to remove the background from the input image.",
+            "default": true
+          },
+          "foreground_ratio": {
+            "minimum": 0.5,
+            "maximum": 1,
+            "type": "number",
+            "title": "Foreground Ratio",
+            "description": "Ratio of the foreground image to the original image.",
+            "default": 0.9
+          },
+          "output_format": {
+            "enum": [
+              "glb",
+              "obj"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "Output format for the 3D model.",
+            "default": "glb"
+          },
+          "image_url": {
+            "examples": [
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/hamburger.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/poly_fox.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/robot.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/teapot.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/tiger_girl.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/horse.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/flamingo.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/unicorn.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/chair.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/iso_house.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/marble.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/police_woman.png",
+              "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/ea034e12a428fa848684a3f9f267b2042d298ca6/examples/captured_p.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "Path for the image file to be processed."
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "output_format",
+          "do_remove_background",
+          "foreground_ratio",
+          "mc_resolution"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "TriposrOutput": {
+        "title": "ObjectOutput",
+        "type": "object",
+        "properties": {
+          "remeshing_dir": {
+            "title": "Remeshing Dir",
+            "description": "Directory containing textures for the remeshed model.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          },
+          "model_mesh": {
+            "title": "Model Mesh",
+            "description": "Generated 3D object file.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings",
+            "description": "Inference timings."
+          }
+        },
+        "x-fal-order-properties": [
+          "model_mesh",
+          "timings",
+          "remeshing_dir"
+        ],
+        "required": [
+          "model_mesh",
+          "timings"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/triposr/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/triposr/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/triposr": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriposrInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/triposr/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriposrOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

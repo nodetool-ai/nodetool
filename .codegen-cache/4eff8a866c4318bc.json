@@ -1,0 +1,438 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/sam-3/3d-align",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/sam-3/3d-align queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/sam-3/3d-align",
+      "category": "3d-to-3d",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a84bb71/k2b6czMQphI5lV6zjLj8z_ea2a892775d745b08a01ba6ecfa6ca43.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/sam-3/3d-align",
+      "documentationUrl": "https://fal.ai/models/fal-ai/sam-3/3d-align/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Sam33dAlignInput": {
+        "title": "SAM3DAlignmentInput",
+        "type": "object",
+        "properties": {
+          "body_mask_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL of the human mask image. If not provided, uses full image.",
+            "title": "Body Mask Url"
+          },
+          "body_mesh_url": {
+            "description": "URL of the SAM-3D Body mesh file (.ply or .glb) to align",
+            "type": "string",
+            "title": "Body Mesh Url"
+          },
+          "object_mesh_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional URL of SAM-3D Object mesh (.glb) to create combined scene",
+            "title": "Object Mesh Url"
+          },
+          "focal_length": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Focal length from SAM-3D Body metadata. If not provided, estimated from MoGe.",
+            "title": "Focal Length"
+          },
+          "image_url": {
+            "description": "URL of the original image used for MoGe depth estimation",
+            "type": "string",
+            "title": "Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "body_mesh_url",
+          "body_mask_url",
+          "object_mesh_url",
+          "focal_length"
+        ],
+        "required": [
+          "image_url",
+          "body_mesh_url"
+        ]
+      },
+      "Sam33dAlignOutput": {
+        "title": "SAM3DAlignmentOutput",
+        "type": "object",
+        "properties": {
+          "scene_glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Combined scene with body + object meshes in GLB format (only when object_mesh_url provided)"
+          },
+          "body_mesh_ply": {
+            "description": "Aligned body mesh in PLY format",
+            "$ref": "#/components/schemas/File"
+          },
+          "metadata": {
+            "description": "Alignment info (scale, translation, etc.)",
+            "$ref": "#/components/schemas/SAM3DBodyAlignmentInfo"
+          },
+          "visualization": {
+            "description": "Visualization of aligned mesh overlaid on input image",
+            "$ref": "#/components/schemas/File"
+          },
+          "model_glb": {
+            "description": "Aligned body mesh in GLB format (for 3D preview)",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "body_mesh_ply",
+          "model_glb",
+          "visualization",
+          "metadata",
+          "scene_glb"
+        ],
+        "required": [
+          "body_mesh_ply",
+          "model_glb",
+          "visualization",
+          "metadata"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      },
+      "SAM3DBodyAlignmentInfo": {
+        "title": "SAM3DBodyAlignmentInfo",
+        "type": "object",
+        "properties": {
+          "cropped_vertices_count": {
+            "description": "Number of cropped vertices",
+            "type": "integer",
+            "title": "Cropped Vertices Count"
+          },
+          "translation": {
+            "description": "Translation [tx, ty, tz]",
+            "type": "array",
+            "title": "Translation",
+            "items": {
+              "type": "number"
+            }
+          },
+          "person_id": {
+            "description": "Index of the person",
+            "type": "integer",
+            "title": "Person Id"
+          },
+          "target_points_count": {
+            "description": "Number of target points for alignment",
+            "type": "integer",
+            "title": "Target Points Count"
+          },
+          "scale_factor": {
+            "description": "Scale factor applied for alignment",
+            "type": "number",
+            "title": "Scale Factor"
+          },
+          "focal_length": {
+            "description": "Focal length used",
+            "type": "number",
+            "title": "Focal Length"
+          }
+        },
+        "x-fal-order-properties": [
+          "person_id",
+          "scale_factor",
+          "translation",
+          "focal_length",
+          "target_points_count",
+          "cropped_vertices_count"
+        ],
+        "description": "Per-person alignment metadata.",
+        "required": [
+          "person_id",
+          "scale_factor",
+          "translation",
+          "focal_length",
+          "target_points_count",
+          "cropped_vertices_count"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/sam-3/3d-align/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/3d-align/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/3d-align": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Sam33dAlignInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/3d-align/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sam33dAlignOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

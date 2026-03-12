@@ -1,0 +1,451 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/wan/v2.2-a14b/text-to-video/turbo",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/wan/v2.2-a14b/text-to-video/turbo queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/wan/v2.2-a14b/text-to-video/turbo",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-4.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/text-to-video/turbo",
+      "documentationUrl": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/text-to-video/turbo/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "WanV22A14bTextToVideoTurboInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "seed",
+          "resolution",
+          "aspect_ratio",
+          "enable_safety_checker",
+          "enable_output_safety_checker",
+          "enable_prompt_expansion",
+          "acceleration",
+          "video_quality",
+          "video_write_mode"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A medium shot establishes a modern, minimalist office setting: clean lines, muted grey walls, and polished wood surfaces. The focus shifts to a close-up on a woman in sharp, navy blue business attire. Her crisp white blouse contrasts with the deep blue of her tailored suit jacket. The subtle texture of the fabric is visible—a fine weave with a slight sheen. Her expression is serious, yet engaging, as she speaks to someone unseen just beyond the frame. Close-up on her eyes, showing the intensity of her gaze and the fine lines around them that hint at experience and focus. Her lips are slightly parted, as if mid-sentence. The light catches the subtle highlights in her auburn hair, meticulously styled. Note the slight catch of light on the silver band of her watch. High resolution 4k"
+            ],
+            "description": "The text prompt to guide video generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "580p",
+              "720p"
+            ],
+            "description": "Resolution of the generated video (480p, 580p, or 720p).",
+            "type": "string",
+            "examples": [
+              "720p"
+            ],
+            "title": "Resolution",
+            "default": "720p"
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular"
+            ],
+            "description": "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'.",
+            "type": "string",
+            "examples": [
+              "regular"
+            ],
+            "title": "Acceleration",
+            "default": "regular"
+          },
+          "video_write_mode": {
+            "enum": [
+              "fast",
+              "balanced",
+              "small"
+            ],
+            "description": "The write mode of the output video. Faster write mode means faster results but larger file size, balanced write mode is a good compromise between speed and quality, and small write mode is the slowest but produces the smallest file size.",
+            "type": "string",
+            "examples": [
+              "balanced"
+            ],
+            "title": "Video Write Mode",
+            "default": "balanced"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "description": "Aspect ratio of the generated video (16:9 or 9:16).",
+            "type": "string",
+            "examples": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "enable_output_safety_checker": {
+            "examples": [
+              false
+            ],
+            "description": "If set to true, output video will be checked for safety after generation.",
+            "type": "boolean",
+            "title": "Enable Output Safety Checker",
+            "default": false
+          },
+          "video_quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "maximum"
+            ],
+            "description": "The quality of the output video. Higher quality means better visual quality but larger file size.",
+            "type": "string",
+            "examples": [
+              "high"
+            ],
+            "title": "Video Quality",
+            "default": "high"
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "description": "If set to true, input data will be checked for safety before processing.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "enable_prompt_expansion": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning.",
+            "type": "boolean",
+            "title": "Enable Prompt Expansion",
+            "default": false
+          }
+        },
+        "title": "WanTurboT2VRequest",
+        "required": [
+          "prompt"
+        ]
+      },
+      "WanV22A14bTextToVideoTurboOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "prompt",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A medium shot establishes a modern, minimalist office setting: clean lines, muted grey walls, and polished wood surfaces. The focus shifts to a close-up on a woman in sharp, navy blue business attire. Her crisp white blouse contrasts with the deep blue of her tailored suit jacket. The subtle texture of the fabric is visible—a fine weave with a slight sheen. Her expression is serious, yet engaging, as she speaks to someone unseen just beyond the frame. Close-up on her eyes, showing the intensity of her gaze and the fine lines around them that hint at experience and focus. Her lips are slightly parted, as if mid-sentence. The light catches the subtle highlights in her auburn hair, meticulously styled. Note the slight catch of light on the silver band of her watch. High resolution 4k"
+            ],
+            "description": "The text prompt used for video generation.",
+            "type": "string",
+            "title": "Prompt",
+            "default": ""
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/gallery/wan-t2v-turbo.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "WanTurboT2VResponse",
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/wan/v2.2-a14b/text-to-video/turbo/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-a14b/text-to-video/turbo/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-a14b/text-to-video/turbo": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WanV22A14bTextToVideoTurboInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-a14b/text-to-video/turbo/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanV22A14bTextToVideoTurboOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

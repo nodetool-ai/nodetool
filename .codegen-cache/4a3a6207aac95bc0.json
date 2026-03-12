@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/vibevoice/0.5b",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/vibevoice/0.5b queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/vibevoice/0.5b",
+      "category": "text-to-speech",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a87578a/YHiVLig00ZQrC_arc0biD_1f8eb20e928e4bc2b29499c7cb0eae5b.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/vibevoice/0.5b",
+      "documentationUrl": "https://fal.ai/models/fal-ai/vibevoice/0.5b/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Vibevoice05bInput": {
+        "x-fal-order-properties": [
+          "script",
+          "speaker",
+          "seed",
+          "cfg_scale"
+        ],
+        "type": "object",
+        "properties": {
+          "script": {
+            "examples": [
+              "VibeVoice is now available on Fal!"
+            ],
+            "title": "Script",
+            "type": "string",
+            "maxLength": 90000,
+            "description": "The script to convert to speech."
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducible generation."
+          },
+          "speaker": {
+            "enum": [
+              "Frank",
+              "Wayne",
+              "Carter",
+              "Emma",
+              "Grace",
+              "Mike"
+            ],
+            "title": "Speaker",
+            "type": "string",
+            "description": "Voice to use for speaking.",
+            "examples": [
+              "Frank"
+            ]
+          },
+          "cfg_scale": {
+            "minimum": 1,
+            "title": "CFG Scale",
+            "type": "number",
+            "maximum": 2,
+            "description": "CFG (Classifier-Free Guidance) scale for generation. Higher values increase adherence to text.",
+            "default": 1.3
+          }
+        },
+        "description": "Input schema for VibeVoice-0.5b TTS generation",
+        "title": "VibeVoice0_5bInput",
+        "required": [
+          "script",
+          "speaker"
+        ]
+      },
+      "Vibevoice05bOutput": {
+        "x-fal-order-properties": [
+          "audio",
+          "duration",
+          "sample_rate",
+          "generation_time",
+          "rtf"
+        ],
+        "type": "object",
+        "properties": {
+          "duration": {
+            "examples": [
+              9.46
+            ],
+            "title": "Duration",
+            "type": "number",
+            "description": "Duration of the generated audio in seconds"
+          },
+          "rtf": {
+            "examples": [
+              0.53
+            ],
+            "title": "Rtf",
+            "type": "number",
+            "description": "Real-time factor (generation_time / audio_duration). Lower is better."
+          },
+          "sample_rate": {
+            "examples": [
+              24000
+            ],
+            "title": "Sample Rate",
+            "type": "integer",
+            "description": "Sample rate of the generated audio"
+          },
+          "audio": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/vibevoice/0_5b.mp3"
+              }
+            ],
+            "description": "The generated audio file containing the speech",
+            "$ref": "#/components/schemas/File"
+          },
+          "generation_time": {
+            "examples": [
+              5.6
+            ],
+            "title": "Generation Time",
+            "type": "number",
+            "description": "Time taken to generate the audio in seconds"
+          }
+        },
+        "description": "Output schema for VibeVoice-0.5b TTS generation",
+        "title": "VibeVoice_0_5BOutput",
+        "required": [
+          "audio",
+          "duration",
+          "sample_rate",
+          "generation_time",
+          "rtf"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/vibevoice/0.5b/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/vibevoice/0.5b/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/vibevoice/0.5b": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Vibevoice05bInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/vibevoice/0.5b/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Vibevoice05bOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

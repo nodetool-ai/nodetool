@@ -1,0 +1,614 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/meshy/v5/retexture",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/meshy/v5/retexture queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/meshy/v5/retexture",
+      "category": "3d-to-3d",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/panda/mF5SI-u0DJ_bNr5J8nhsS_0d2ff4c4ea6a4733a169f8b530b576ec.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/meshy/v5/retexture",
+      "documentationUrl": "https://fal.ai/models/fal-ai/meshy/v5/retexture/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MeshyV5RetextureInput": {
+        "title": "RetextureInput",
+        "type": "object",
+        "properties": {
+          "enable_pbr": {
+            "title": "Enable Pbr",
+            "type": "boolean",
+            "description": "Generate PBR Maps (metallic, roughness, normal) in addition to base color.",
+            "default": false
+          },
+          "text_style_prompt": {
+            "examples": [
+              "red and black chest"
+            ],
+            "title": "Text Style Prompt",
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Describe your desired texture style using text. Maximum 600 characters. Required if image_style_url is not provided."
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, input data will be checked for safety before processing.",
+            "default": true
+          },
+          "enable_original_uv": {
+            "title": "Enable Original Uv",
+            "type": "boolean",
+            "description": "Use the original UV mapping of the model instead of generating new UVs. If the model has no original UV, output quality may be reduced.",
+            "default": true
+          },
+          "model_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/penguin/DId89qXLu6BXu09RFAwAV_model.glb"
+            ],
+            "title": "Model Url",
+            "type": "string",
+            "description": "URL or base64 data URI of a 3D model to texture. Supports .glb, .gltf, .obj, .fbx, .stl formats. Can be a publicly accessible URL or data URI with MIME type application/octet-stream."
+          },
+          "image_style_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "_fal_ui_field": "image",
+                "ui": {
+                  "field": "image"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Style Url",
+            "max_pixels": 178956970,
+            "description": "2D image to guide the texturing process. Supports .jpg, .jpeg, and .png formats. Required if text_style_prompt is not provided. If both are provided, image_style_url takes precedence.",
+            "max_file_size": 20971520
+          }
+        },
+        "x-fal-order-properties": [
+          "model_url",
+          "text_style_prompt",
+          "image_style_url",
+          "enable_original_uv",
+          "enable_pbr",
+          "enable_safety_checker"
+        ],
+        "description": "Input for 3D Model Retexturing",
+        "required": [
+          "model_url"
+        ]
+      },
+      "MeshyV5RetextureOutput": {
+        "title": "RetextureOutput",
+        "type": "object",
+        "properties": {
+          "model_glb": {
+            "examples": [
+              {
+                "file_size": 4097640,
+                "file_name": "model.glb",
+                "content_type": "model/gltf-binary",
+                "url": "https://v3b.fal.media/files/b/tiger/pU0TtsRTxXM6VnKEYTHSV_model.glb"
+              }
+            ],
+            "description": "Retextured 3D object in GLB format.",
+            "$ref": "#/components/schemas/File"
+          },
+          "text_style_prompt": {
+            "examples": [
+              "red and black chest"
+            ],
+            "title": "Text Style Prompt",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The text prompt used for texturing (if provided)"
+          },
+          "model_urls": {
+            "examples": [
+              {
+                "fbx": {
+                  "file_size": 4713692,
+                  "file_name": "model.fbx",
+                  "content_type": "application/octet-stream",
+                  "url": "https://v3b.fal.media/files/b/rabbit/agzKf8N8zeVnteg72NiF4_model.fbx"
+                },
+                "usdz": {
+                  "file_size": 3886518,
+                  "file_name": "model.usdz",
+                  "content_type": "model/vnd.usdz+zip",
+                  "url": "https://v3b.fal.media/files/b/panda/4ItUhLHiH4foEw30qcWZv_model.usdz"
+                },
+                "obj": {
+                  "file_size": 2964508,
+                  "file_name": "model.obj",
+                  "content_type": "text/plain",
+                  "url": "https://v3b.fal.media/files/b/zebra/M5aK_b6vKH7KeGCZoSLq7_model.obj"
+                },
+                "glb": {
+                  "file_size": 4097640,
+                  "file_name": "model.glb",
+                  "content_type": "model/gltf-binary",
+                  "url": "https://v3b.fal.media/files/b/tiger/pU0TtsRTxXM6VnKEYTHSV_model.glb"
+                }
+              }
+            ],
+            "description": "URLs for different 3D model formats",
+            "$ref": "#/components/schemas/ModelUrls"
+          },
+          "thumbnail": {
+            "examples": [
+              {
+                "file_size": 124859,
+                "file_name": "preview.png",
+                "content_type": "image/png",
+                "url": "https://v3b.fal.media/files/b/lion/jFrzgIJMbaPQi_4HCEa8u_preview.png"
+              }
+            ],
+            "description": "Preview thumbnail of the retextured model",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image_style_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Style Url",
+            "description": "The image URL used for texturing (if provided)"
+          },
+          "texture_urls": {
+            "examples": [
+              [
+                {
+                  "base_color": {
+                    "file_size": 3455709,
+                    "file_name": "texture_0.png",
+                    "content_type": "image/png",
+                    "url": "https://v3b.fal.media/files/b/zebra/opBcVy7AK-GOlCTUz-_GZ_texture_0.png"
+                  }
+                }
+              ]
+            ],
+            "title": "Texture Urls",
+            "type": "array",
+            "description": "Array of texture file objects",
+            "items": {
+              "$ref": "#/components/schemas/TextureFiles"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "model_glb",
+          "thumbnail",
+          "model_urls",
+          "texture_urls",
+          "text_style_prompt",
+          "image_style_url"
+        ],
+        "description": "Output for 3D Model Retexturing",
+        "required": [
+          "model_glb",
+          "model_urls"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      },
+      "ModelUrls": {
+        "title": "ModelUrls",
+        "type": "object",
+        "properties": {
+          "glb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "GLB format 3D model"
+          },
+          "fbx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "FBX format 3D model"
+          },
+          "usdz": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "USDZ format 3D model"
+          },
+          "stl": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "STL format 3D model"
+          },
+          "blend": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Blender format 3D model"
+          },
+          "obj": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OBJ format 3D model"
+          }
+        },
+        "x-fal-order-properties": [
+          "glb",
+          "fbx",
+          "obj",
+          "usdz",
+          "blend",
+          "stl"
+        ],
+        "description": "3D model files in various formats"
+      },
+      "TextureFiles": {
+        "title": "TextureFiles",
+        "type": "object",
+        "properties": {
+          "normal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Normal texture (PBR)"
+          },
+          "base_color": {
+            "description": "Base color texture",
+            "$ref": "#/components/schemas/File"
+          },
+          "roughness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Roughness texture (PBR)"
+          },
+          "metallic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metallic texture (PBR)"
+          }
+        },
+        "x-fal-order-properties": [
+          "base_color",
+          "metallic",
+          "normal",
+          "roughness"
+        ],
+        "description": "Texture files downloaded and uploaded to CDN",
+        "required": [
+          "base_color"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/meshy/v5/retexture/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v5/retexture/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v5/retexture": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeshyV5RetextureInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/meshy/v5/retexture/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeshyV5RetextureOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

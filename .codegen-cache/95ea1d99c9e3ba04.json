@@ -1,0 +1,629 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ideogram/character",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ideogram/character queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ideogram/character",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/koala/spkoglxAAeU3iFhwZyWSW_b17f175d3e314853bc4c9bae2809cabd.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ideogram/character",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ideogram/character/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "IdeogramCharacterInput": {
+        "title": "BaseCharacterInputV3",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Place the woman leisurely enjoying a cup of espresso while relaxing at a sunlit café table in Siena, Italy. The café setting showcases vintage wooden furniture with peeling white paint, aged brick flooring, and sun-bleached stone walls decorated with trailing ivy and vibrant potted geraniums that capture Siena's medieval character. Golden late-morning light streams through overhead, creating soft shadows that highlight the weathered architectural details. The composition appears slightly off-center, conveying the unguarded tranquility and personal intimacy of a peaceful moment savoring the Tuscan morning ambiance."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to fill the masked part of the image."
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The resolution of the generated image",
+            "default": "square_hd"
+          },
+          "style": {
+            "enum": [
+              "AUTO",
+              "REALISTIC",
+              "FICTION"
+            ],
+            "title": "Style",
+            "type": "string",
+            "description": "The style type to generate with. Cannot be used with style_codes.",
+            "default": "AUTO"
+          },
+          "expand_prompt": {
+            "title": "Expand Prompt",
+            "type": "boolean",
+            "description": "Determine if MagicPrompt should be used in generating the request or not.",
+            "default": true
+          },
+          "rendering_speed": {
+            "enum": [
+              "TURBO",
+              "BALANCED",
+              "QUALITY"
+            ],
+            "title": "Rendering Speed",
+            "type": "string",
+            "description": "The rendering speed to use.",
+            "default": "BALANCED"
+          },
+          "reference_mask_urls": {
+            "title": "Reference Mask Urls",
+            "type": "array",
+            "description": "A set of masks to apply to the character references. Currently only 1 mask is supported, rest will be ignored. (maximum total size 10MB across all character references). The masks should be in JPEG, PNG or WebP format",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reference_image_urls": {
+            "examples": [
+              [
+                "https://v3.fal.media/files/kangaroo/0rinwnj_Kn9Fsu2dK-aKm_image.png"
+              ]
+            ],
+            "title": "Reference Image Urls",
+            "type": "array",
+            "description": "A set of images to use as character references. Currently only 1 image is supported, rest will be ignored. (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format",
+            "items": {
+              "type": "string"
+            }
+          },
+          "image_urls": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Urls",
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format"
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt.",
+            "default": ""
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 8,
+            "type": "integer",
+            "title": "Num Images",
+            "description": "Number of images to generate.",
+            "default": 1
+          },
+          "style_codes": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Codes",
+            "description": "A list of 8 character hexadecimal codes representing the style of the image. Cannot be used in conjunction with style_reference_images or style"
+          },
+          "color_palette": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ColorPalette"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A color palette for generation, must EITHER be specified via one of the presets (name) or explicitly via hexadecimal representations of the color with optional weights (members)"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Seed for the random number generator"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_urls",
+          "rendering_speed",
+          "color_palette",
+          "style_codes",
+          "style",
+          "expand_prompt",
+          "num_images",
+          "seed",
+          "sync_mode",
+          "prompt",
+          "image_size",
+          "negative_prompt",
+          "reference_image_urls",
+          "reference_mask_urls"
+        ],
+        "required": [
+          "prompt",
+          "reference_image_urls"
+        ]
+      },
+      "IdeogramCharacterOutput": {
+        "title": "CharacterOutputV3",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3.fal.media/files/monkey/NC_1eo9ecE9fARcxviJ2R_image.png"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          },
+          "seed": {
+            "examples": [
+              123456
+            ],
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed used for the random number generator"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "ColorPalette": {
+        "title": "ColorPalette",
+        "type": "object",
+        "properties": {
+          "members": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ColorPaletteMember"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Members",
+            "description": "A list of color palette members that define the color palette"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EMBER",
+                  "FRESH",
+                  "JUNGLE",
+                  "MAGIC",
+                  "MELON",
+                  "MOSAIC",
+                  "PASTEL",
+                  "ULTRAMARINE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "A color palette preset value"
+          }
+        },
+        "x-fal-order-properties": [
+          "members",
+          "name"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      },
+      "ColorPaletteMember": {
+        "title": "ColorPaletteMember",
+        "type": "object",
+        "properties": {
+          "color_weight": {
+            "anyOf": [
+              {
+                "minimum": 0.05,
+                "maximum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Weight",
+            "description": "The weight of the color in the color palette",
+            "default": 0.5
+          },
+          "rgb": {
+            "description": "RGB color value for the palette member",
+            "$ref": "#/components/schemas/RGBColor"
+          }
+        },
+        "x-fal-order-properties": [
+          "rgb",
+          "color_weight"
+        ],
+        "required": [
+          "rgb"
+        ]
+      },
+      "RGBColor": {
+        "title": "RGBColor",
+        "type": "object",
+        "properties": {
+          "r": {
+            "minimum": 0,
+            "maximum": 255,
+            "type": "integer",
+            "title": "R",
+            "description": "Red color value",
+            "default": 0
+          },
+          "b": {
+            "minimum": 0,
+            "maximum": 255,
+            "type": "integer",
+            "title": "B",
+            "description": "Blue color value",
+            "default": 0
+          },
+          "g": {
+            "minimum": 0,
+            "maximum": 255,
+            "type": "integer",
+            "title": "G",
+            "description": "Green color value",
+            "default": 0
+          }
+        },
+        "x-fal-order-properties": [
+          "r",
+          "g",
+          "b"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ideogram/character/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ideogram/character/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ideogram/character": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdeogramCharacterInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ideogram/character/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdeogramCharacterOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

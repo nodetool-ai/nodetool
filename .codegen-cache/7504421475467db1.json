@@ -1,0 +1,400 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/wan-22-image-trainer",
+    "version": "1.0.0",
+    "description": "Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles with unprecedented detail.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/wan-22-image-trainer",
+      "category": "training",
+      "thumbnailUrl": "https://fal.media/files/koala/1VUig6knsJ9-DAf8eRzBQ_5a0e3e33bbbf4d869ec368fa31f8700e.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/wan-22-image-trainer",
+      "documentationUrl": "https://fal.ai/models/fal-ai/wan-22-image-trainer/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Wan22ImageTrainerInput": {
+        "x-fal-order-properties": [
+          "training_data_url",
+          "trigger_phrase",
+          "include_synthetic_captions",
+          "use_face_detection",
+          "use_face_cropping",
+          "use_masks",
+          "steps",
+          "learning_rate",
+          "is_style"
+        ],
+        "type": "object",
+        "properties": {
+          "trigger_phrase": {
+            "title": "Trigger Phrase",
+            "type": "string",
+            "description": "Trigger phrase for the model."
+          },
+          "use_masks": {
+            "examples": [
+              true
+            ],
+            "title": "Use Masks",
+            "type": "boolean",
+            "description": "Whether to use masks for the training data.",
+            "default": true
+          },
+          "learning_rate": {
+            "description": "Learning rate for training.",
+            "type": "number",
+            "minimum": 0.000001,
+            "maximum": 0.1,
+            "examples": [
+              0.0007
+            ],
+            "title": "Learning Rate",
+            "multipleOf": 0.000001,
+            "default": 0.0007
+          },
+          "use_face_cropping": {
+            "examples": [
+              false
+            ],
+            "title": "Use Face Cropping",
+            "type": "boolean",
+            "description": "Whether to use face cropping for the training data. When enabled, images will be cropped to the face before resizing.",
+            "default": false
+          },
+          "training_data_url": {
+            "title": "Training Data URL",
+            "type": "string",
+            "description": "URL to the training data."
+          },
+          "steps": {
+            "description": "Number of training steps.",
+            "type": "integer",
+            "examples": [
+              1000
+            ],
+            "maximum": 6000,
+            "title": "Number of Steps",
+            "minimum": 10,
+            "default": 1000
+          },
+          "include_synthetic_captions": {
+            "title": "Include Synthetic Captions",
+            "type": "boolean",
+            "description": "Whether to include synthetic captions.",
+            "default": false
+          },
+          "is_style": {
+            "examples": [
+              false
+            ],
+            "title": "Is Style",
+            "type": "boolean",
+            "description": "Whether the training data is style data. If true, face specific options like masking and face detection will be disabled.",
+            "default": false
+          },
+          "use_face_detection": {
+            "examples": [
+              true
+            ],
+            "title": "Use Face Detection",
+            "type": "boolean",
+            "description": "Whether to use face detection for the training data. When enabled, images will use the center of the face as the center of the image when resizing.",
+            "default": true
+          }
+        },
+        "title": "BasicInput",
+        "required": [
+          "training_data_url",
+          "trigger_phrase"
+        ]
+      },
+      "Wan22ImageTrainerOutput": {
+        "x-fal-order-properties": [
+          "diffusers_lora_file",
+          "high_noise_lora",
+          "config_file"
+        ],
+        "type": "object",
+        "properties": {
+          "high_noise_lora": {
+            "title": "High Noise LoRA",
+            "description": "High noise LoRA file.",
+            "$ref": "#/components/schemas/File"
+          },
+          "config_file": {
+            "title": "Config File",
+            "description": "Config file helping inference endpoints after training.",
+            "$ref": "#/components/schemas/File"
+          },
+          "diffusers_lora_file": {
+            "title": "Low Noise LoRA",
+            "description": "Low noise LoRA file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "WanTrainerResponse",
+        "required": [
+          "diffusers_lora_file",
+          "high_noise_lora",
+          "config_file"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/wan-22-image-trainer/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-22-image-trainer/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-22-image-trainer": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Wan22ImageTrainerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan-22-image-trainer/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wan22ImageTrainerOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

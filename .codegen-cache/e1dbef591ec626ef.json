@@ -1,0 +1,393 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for mirelo-ai/sfx-v1/video-to-audio",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the mirelo-ai/sfx-v1/video-to-audio queue.",
+    "x-fal-metadata": {
+      "endpointId": "mirelo-ai/sfx-v1/video-to-audio",
+      "category": "video-to-audio",
+      "thumbnailUrl": "https://fal.media/files/rabbit/tU7ZHxRInmbvp8xAHwl1b_0cce21ee98f14735941825a2ed8df979.jpg",
+      "playgroundUrl": "https://fal.ai/models/mirelo-ai/sfx-v1/video-to-audio",
+      "documentationUrl": "https://fal.ai/models/mirelo-ai/sfx-v1/video-to-audio/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "SfxV1VideoToAudioInput": {
+        "x-fal-order-properties": [
+          "video_url",
+          "text_prompt",
+          "num_samples",
+          "seed",
+          "duration"
+        ],
+        "type": "object",
+        "properties": {
+          "num_samples": {
+            "anyOf": [
+              {
+                "minimum": 2,
+                "maximum": 8,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Samples",
+            "description": "The number of samples to generate from the model",
+            "default": 2
+          },
+          "video_url": {
+            "format": "uri",
+            "description": "A video url that can accessed from the API to process and add sound effects",
+            "type": "string",
+            "examples": [
+              "https://di3otfzjg1gxa.cloudfront.net/input_example.mp4"
+            ],
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Video Url"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "maximum": 10,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration",
+            "description": "The duration of the generated audio in seconds",
+            "default": 10
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed to use for the generation. If not provided, a random seed will be used",
+            "title": "Seed",
+            "default": 2105
+          },
+          "text_prompt": {
+            "examples": [
+              ""
+            ],
+            "title": "Text Prompt",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additional description to guide the model"
+          }
+        },
+        "title": "Input",
+        "required": [
+          "video_url"
+        ]
+      },
+      "SfxV1VideoToAudioOutput": {
+        "title": "AudioOutput",
+        "type": "object",
+        "properties": {
+          "audio": {
+            "examples": [
+              [
+                {
+                  "file_name": "generated_audio_1.wav",
+                  "content_type": "audio/wav",
+                  "url": "https://v3.fal.media/files/panda/d5WcvFtu93KpmlVvPg1oh_generated_audio.wav"
+                },
+                {
+                  "file_name": "generated_audio_2.wav",
+                  "content_type": "audio/wav",
+                  "url": "https://v3.fal.media/files/penguin/f51pS8iF5ZMVRni-O2F3S_generated_audio.wav"
+                }
+              ]
+            ],
+            "description": "The generated sound effects audio",
+            "type": "array",
+            "title": "Audio",
+            "items": {
+              "$ref": "#/components/schemas/Audio"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "audio"
+        ],
+        "required": [
+          "audio"
+        ]
+      },
+      "Audio": {
+        "title": "Audio",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/mirelo-ai/sfx-v1/video-to-audio/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mirelo-ai/sfx-v1/video-to-audio/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mirelo-ai/sfx-v1/video-to-audio": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SfxV1VideoToAudioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mirelo-ai/sfx-v1/video-to-audio/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SfxV1VideoToAudioOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

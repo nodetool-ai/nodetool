@@ -1,0 +1,279 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for bria/bria_video_eraser/erase/keypoints",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the bria/bria_video_eraser/erase/keypoints queue.",
+    "x-fal-metadata": {
+      "endpointId": "bria/bria_video_eraser/erase/keypoints",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a875807/hufu-WhXnSbIHPs2JUqFE_f40049919fd148f293c7e9aeb04c71ce.jpg",
+      "playgroundUrl": "https://fal.ai/models/bria/bria_video_eraser/erase/keypoints",
+      "documentationUrl": "https://fal.ai/models/bria/bria_video_eraser/erase/keypoints/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Bria_video_eraserEraseKeypointsInput": {
+        "title": "EraseByKeyPointsInputModel",
+        "type": "object",
+        "properties": {
+          "preserve_audio": {
+            "title": "Preserve Audio",
+            "type": "boolean",
+            "description": "If true, audio will be preserved in the output video.",
+            "default": true
+          },
+          "video_url": {
+            "examples": [
+              "https://bria-test-images.s3.us-east-1.amazonaws.com/videos/eraser_mask/woman_right_side.mov"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "Input video to erase object from. duration must be less than 5s."
+          },
+          "output_container_and_codec": {
+            "enum": [
+              "mp4_h265",
+              "mp4_h264",
+              "webm_vp9",
+              "gif",
+              "mov_h264",
+              "mov_h265",
+              "mov_proresks",
+              "mkv_h264",
+              "mkv_h265",
+              "mkv_vp9",
+              "mkv_mpeg4"
+            ],
+            "title": "Output Container And Codec",
+            "type": "string",
+            "description": "Output container and codec. Options: mp4_h265, mp4_h264, webm_vp9, gif, mov_h264, mov_h265, mov_proresks, mkv_h264, mkv_h265, mkv_vp9, mkv_mpeg4.",
+            "default": "mp4_h264"
+          },
+          "keypoints": {
+            "examples": [
+              [
+                "{'x': 765, 'y': 344, 'type': 'positive'}",
+                "{'x': 200, 'y': 200, 'type': 'negative'}"
+              ]
+            ],
+            "title": "Keypoints",
+            "type": "array",
+            "description": "Input keypoints [x,y] to erase or keep from the video. Format like so: {'x':100, 'y':100, 'type':'positive/negative'}",
+            "items": {
+              "type": "string"
+            }
+          },
+          "auto_trim": {
+            "title": "Auto Trim",
+            "type": "boolean",
+            "description": "auto trim the video, to working duration ( 5s )",
+            "default": true
+          }
+        },
+        "x-fal-order-properties": [
+          "output_container_and_codec",
+          "auto_trim",
+          "preserve_audio",
+          "keypoints",
+          "video_url"
+        ],
+        "required": [
+          "keypoints",
+          "video_url"
+        ]
+      },
+      "Bria_video_eraserEraseKeypointsOutput": {}
+    }
+  },
+  "paths": {
+    "/bria/bria_video_eraser/erase/keypoints/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/bria_video_eraser/erase/keypoints/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/bria_video_eraser/erase/keypoints": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Bria_video_eraserEraseKeypointsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/bria_video_eraser/erase/keypoints/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bria_video_eraserEraseKeypointsOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

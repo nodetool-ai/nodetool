@@ -1,0 +1,350 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for veed/avatars/text-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the veed/avatars/text-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "veed/avatars/text-to-video",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/veed_logo.webp",
+      "playgroundUrl": "https://fal.ai/models/veed/avatars/text-to-video",
+      "documentationUrl": "https://fal.ai/models/veed/avatars/text-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "AvatarsTextToVideoInput": {
+        "title": "Text2VideoInput",
+        "type": "object",
+        "properties": {
+          "text": {
+            "examples": [
+              "\nEver wondered how to get that flawless glow? \nIntroducing our new skincare line, designed for real life. \nStep one: Cleanse with our gentle, nourishing formula. \nStep two: Apply our hydrating serum for that dewy look. \nStep three: Lock it in with our lightweight moisturizer. \nFeel the difference with every application. \nSee the glow? That's the magic of our skincare. \nUse code 'GLOW20' for an exclusive discount. \nJoin the skincare revolution today!\n"
+            ],
+            "title": "Text",
+            "type": "string"
+          },
+          "avatar_id": {
+            "enum": [
+              "emily_vertical_primary",
+              "emily_vertical_secondary",
+              "marcus_vertical_primary",
+              "marcus_vertical_secondary",
+              "mira_vertical_primary",
+              "mira_vertical_secondary",
+              "jasmine_vertical_primary",
+              "jasmine_vertical_secondary",
+              "jasmine_vertical_walking",
+              "aisha_vertical_walking",
+              "elena_vertical_primary",
+              "elena_vertical_secondary",
+              "any_male_vertical_primary",
+              "any_female_vertical_primary",
+              "any_male_vertical_secondary",
+              "any_female_vertical_secondary",
+              "any_female_vertical_walking",
+              "emily_primary",
+              "emily_side",
+              "marcus_primary",
+              "marcus_side",
+              "aisha_walking",
+              "elena_primary",
+              "elena_side",
+              "any_male_primary",
+              "any_female_primary",
+              "any_male_side",
+              "any_female_side"
+            ],
+            "description": "The avatar to use for the video",
+            "type": "string",
+            "title": "Avatar Id"
+          }
+        },
+        "x-fal-order-properties": [
+          "avatar_id",
+          "text"
+        ],
+        "required": [
+          "avatar_id",
+          "text"
+        ]
+      },
+      "AvatarsTextToVideoOutput": {
+        "title": "AvatarsAppOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "content_type": "video/mp4",
+                "url": "https://v3.fal.media/files/panda/kt9d4vZ8Mfw_WzYnvr2Q0_tmp0ir4znsr.mp4"
+              }
+            ],
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/veed/avatars/text-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veed/avatars/text-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veed/avatars/text-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvatarsTextToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veed/avatars/text-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarsTextToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

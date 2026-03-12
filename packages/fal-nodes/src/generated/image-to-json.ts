@@ -1,0 +1,54 @@
+import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool/node-sdk";
+import {
+  getFalApiKey,
+  falSubmit,
+  removeNulls,
+  isRefSet,
+  assetToFalUrl,
+} from "../fal-base.js";
+
+// Re-export alias
+const FalNode = BaseNode;
+
+export class BagelUnderstand extends FalNode {
+  static readonly nodeType = "fal.image_to_json.BagelUnderstand";
+  static readonly title = "Bagel Understand";
+  static readonly description = `Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both text and images.
+vision, analysis, json, image-understanding`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+
+  @prop({ type: "str", default: "", description: "The prompt to query the image with." })
+  declare prompt: any;
+
+  @prop({ type: "int", default: -1, description: "The seed to use for the generation." })
+  declare seed: any;
+
+  @prop({ type: "image", default: "", description: "The image for the query." })
+  declare image: any;
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(inputs);
+    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+    const seed = Number(inputs.seed ?? this.seed ?? -1);
+
+    const args: Record<string, unknown> = {
+      "prompt": prompt,
+      "seed": seed,
+    };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      if (imageUrl) args["image_url"] = imageUrl;
+    }
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/bagel/understand", args);
+    return { output: res };
+  }
+}
+
+export const FAL_IMAGE_TO_JSON_NODES: readonly NodeClass[] = [
+  BagelUnderstand,
+] as const;

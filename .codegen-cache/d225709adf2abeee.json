@@ -1,0 +1,610 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ffmpeg-api/metadata",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ffmpeg-api/metadata queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ffmpeg-api/metadata",
+      "category": "json",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/ffmpeg-api-metadata.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/metadata",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/metadata/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FfmpegApiMetadataInput": {
+        "title": "MetadataInput",
+        "type": "object",
+        "properties": {
+          "extract_frames": {
+            "description": "Whether to extract the start and end frames for videos. Note that when true the request will be slower.",
+            "type": "boolean",
+            "title": "Extract Frames",
+            "default": false
+          },
+          "media_url": {
+            "description": "URL of the media file (video or audio) to analyze",
+            "type": "string",
+            "title": "Media Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "media_url",
+          "extract_frames"
+        ],
+        "required": [
+          "media_url"
+        ]
+      },
+      "FfmpegApiMetadataOutput": {
+        "title": "MetadataOutput",
+        "type": "object",
+        "properties": {
+          "media": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Video"
+              },
+              {
+                "$ref": "#/components/schemas/Audio"
+              }
+            ],
+            "description": "Metadata for the analyzed media file (either Video or Audio)",
+            "title": "Media"
+          }
+        },
+        "x-fal-order-properties": [
+          "media"
+        ],
+        "required": [
+          "media"
+        ]
+      },
+      "Video": {
+        "title": "Video",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "description": "Size of the file in bytes",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "timebase": {
+            "description": "Time base used for frame timestamps",
+            "type": "string",
+            "title": "Timebase"
+          },
+          "start_frame_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL of the extracted first frame",
+            "title": "Start Frame Url"
+          },
+          "duration": {
+            "description": "Duration of the media in seconds",
+            "type": "number",
+            "title": "Duration"
+          },
+          "url": {
+            "description": "URL where the media file can be accessed",
+            "type": "string",
+            "title": "Url"
+          },
+          "media_type": {
+            "description": "Type of media (always 'video')",
+            "type": "string",
+            "title": "Media Type",
+            "const": "video",
+            "default": "video"
+          },
+          "codec": {
+            "description": "Codec used to encode the media",
+            "type": "string",
+            "title": "Codec"
+          },
+          "fps": {
+            "description": "Frames per second",
+            "type": "integer",
+            "title": "Fps"
+          },
+          "end_frame_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL of the extracted last frame",
+            "title": "End Frame Url"
+          },
+          "content_type": {
+            "description": "MIME type of the media file",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "container": {
+            "description": "Container format of the media file (e.g., 'mp4', 'mov')",
+            "type": "string",
+            "title": "Container"
+          },
+          "bitrate": {
+            "description": "Overall bitrate of the media in bits per second",
+            "type": "integer",
+            "title": "Bitrate"
+          },
+          "format": {
+            "description": "Detailed video format information",
+            "$ref": "#/components/schemas/VideoFormat"
+          },
+          "resolution": {
+            "description": "Video resolution information",
+            "$ref": "#/components/schemas/Resolution"
+          },
+          "frame_count": {
+            "description": "Total number of frames in the video",
+            "type": "integer",
+            "title": "Frame Count"
+          },
+          "file_name": {
+            "description": "Original filename of the media",
+            "type": "string",
+            "title": "File Name"
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioTrack"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Audio track information if video has audio"
+          }
+        },
+        "x-fal-order-properties": [
+          "media_type",
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "bitrate",
+          "codec",
+          "container",
+          "fps",
+          "frame_count",
+          "timebase",
+          "resolution",
+          "format",
+          "audio",
+          "start_frame_url",
+          "end_frame_url"
+        ],
+        "required": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "bitrate",
+          "codec",
+          "container",
+          "fps",
+          "frame_count",
+          "timebase",
+          "resolution",
+          "format"
+        ]
+      },
+      "Audio": {
+        "title": "Audio",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "description": "Size of the file in bytes",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "duration": {
+            "description": "Duration of the media in seconds",
+            "type": "number",
+            "title": "Duration"
+          },
+          "bitrate": {
+            "description": "Overall bitrate of the media in bits per second",
+            "type": "integer",
+            "title": "Bitrate"
+          },
+          "url": {
+            "description": "URL where the media file can be accessed",
+            "type": "string",
+            "title": "Url"
+          },
+          "media_type": {
+            "description": "Type of media (always 'audio')",
+            "type": "string",
+            "title": "Media Type",
+            "const": "audio",
+            "default": "audio"
+          },
+          "codec": {
+            "description": "Codec used to encode the media",
+            "type": "string",
+            "title": "Codec"
+          },
+          "file_name": {
+            "description": "Original filename of the media",
+            "type": "string",
+            "title": "File Name"
+          },
+          "sample_rate": {
+            "description": "Audio sample rate in Hz",
+            "type": "integer",
+            "title": "Sample Rate"
+          },
+          "content_type": {
+            "description": "MIME type of the media file",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "container": {
+            "description": "Container format of the media file (e.g., 'mp4', 'mov')",
+            "type": "string",
+            "title": "Container"
+          },
+          "channels": {
+            "description": "Number of audio channels",
+            "type": "integer",
+            "title": "Channels"
+          }
+        },
+        "x-fal-order-properties": [
+          "media_type",
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "bitrate",
+          "codec",
+          "container",
+          "channels",
+          "sample_rate"
+        ],
+        "required": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "bitrate",
+          "codec",
+          "container",
+          "channels",
+          "sample_rate"
+        ]
+      },
+      "VideoFormat": {
+        "title": "VideoFormat",
+        "type": "object",
+        "properties": {
+          "container": {
+            "description": "Container format of the video",
+            "type": "string",
+            "title": "Container"
+          },
+          "level": {
+            "description": "Codec level (e.g., 4.1)",
+            "type": "number",
+            "title": "Level"
+          },
+          "pixel_format": {
+            "description": "Pixel format used (e.g., 'yuv420p')",
+            "type": "string",
+            "title": "Pixel Format"
+          },
+          "video_codec": {
+            "description": "Video codec used (e.g., 'h264')",
+            "type": "string",
+            "title": "Video Codec"
+          },
+          "profile": {
+            "description": "Codec profile (e.g., 'main', 'high')",
+            "type": "string",
+            "title": "Profile"
+          },
+          "bitrate": {
+            "description": "Video bitrate in bits per second",
+            "type": "integer",
+            "title": "Bitrate"
+          }
+        },
+        "x-fal-order-properties": [
+          "container",
+          "video_codec",
+          "profile",
+          "level",
+          "pixel_format",
+          "bitrate"
+        ],
+        "required": [
+          "container",
+          "video_codec",
+          "profile",
+          "level",
+          "pixel_format",
+          "bitrate"
+        ]
+      },
+      "Resolution": {
+        "title": "Resolution",
+        "type": "object",
+        "properties": {
+          "height": {
+            "description": "Height of the video in pixels",
+            "type": "integer",
+            "title": "Height"
+          },
+          "aspect_ratio": {
+            "description": "Display aspect ratio (e.g., '16:9')",
+            "type": "string",
+            "title": "Aspect Ratio"
+          },
+          "width": {
+            "description": "Width of the video in pixels",
+            "type": "integer",
+            "title": "Width"
+          }
+        },
+        "x-fal-order-properties": [
+          "aspect_ratio",
+          "width",
+          "height"
+        ],
+        "required": [
+          "aspect_ratio",
+          "width",
+          "height"
+        ]
+      },
+      "AudioTrack": {
+        "title": "AudioTrack",
+        "type": "object",
+        "properties": {
+          "codec": {
+            "description": "Audio codec used (e.g., 'aac', 'mp3')",
+            "type": "string",
+            "title": "Codec"
+          },
+          "bitrate": {
+            "description": "Audio bitrate in bits per second",
+            "type": "integer",
+            "title": "Bitrate"
+          },
+          "sample_rate": {
+            "description": "Audio sample rate in Hz",
+            "type": "integer",
+            "title": "Sample Rate"
+          },
+          "channels": {
+            "description": "Number of audio channels",
+            "type": "integer",
+            "title": "Channels"
+          }
+        },
+        "x-fal-order-properties": [
+          "codec",
+          "channels",
+          "sample_rate",
+          "bitrate"
+        ],
+        "required": [
+          "codec",
+          "channels",
+          "sample_rate",
+          "bitrate"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ffmpeg-api/metadata/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/metadata/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/metadata": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfmpegApiMetadataInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/metadata/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FfmpegApiMetadataOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

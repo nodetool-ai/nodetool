@@ -1,0 +1,351 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/decart/lucy-5b/image-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/decart/lucy-5b/image-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/decart/lucy-5b/image-to-video",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://fal.media/files/kangaroo/srM1hEjGsuYwd4UhvzpE7_c5bddd630600497e918bb16e99e21653.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/decart/lucy-5b/image-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/decart/lucy-5b/image-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "DecartLucy5bImageToVideoInput": {
+        "title": "ProcessRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A cat is walking slowly in the garden"
+            ],
+            "description": "Text description of the desired video content",
+            "type": "string",
+            "title": "Prompt",
+            "maxLength": 1500
+          },
+          "aspect_ratio": {
+            "enum": [
+              "9:16",
+              "16:9"
+            ],
+            "description": "Aspect ratio of the generated video.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "resolution": {
+            "description": "Resolution of the generated video",
+            "type": "string",
+            "title": "Resolution",
+            "const": "720p",
+            "default": "720p"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": true
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/monkey/OlpQEYh7oNeJ3qKsdiaym_ia5ECOgFbfcniMDu01_18_da73e078e0924472b51d92f3e3fba98c.png"
+            ],
+            "description": "URL of the image to use as the first frame",
+            "type": "string",
+            "title": "Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "resolution",
+          "aspect_ratio",
+          "sync_mode"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "DecartLucy5bImageToVideoOutput": {
+        "title": "ProcessOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/kangaroo/rIFaCsyWvBxYBKw3cPbOU_indir.mp4"
+              }
+            ],
+            "description": "The generated MP4 video with H.264 encoding",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/decart/lucy-5b/image-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/decart/lucy-5b/image-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/decart/lucy-5b/image-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecartLucy5bImageToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/decart/lucy-5b/image-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecartLucy5bImageToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

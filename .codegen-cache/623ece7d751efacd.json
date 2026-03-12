@@ -1,0 +1,491 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/wan/v2.2-14b/speech-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/wan/v2.2-14b/speech-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/wan/v2.2-14b/speech-to-video",
+      "category": "audio-to-video",
+      "thumbnailUrl": "https://fal.media/files/monkey/RBd4Rg392hzKwxahCIuRb_503c4ef0d3a141c09e4060aa0e3ab5e1.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/wan/v2.2-14b/speech-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/wan/v2.2-14b/speech-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "WanV2214bSpeechToVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "num_frames",
+          "frames_per_second",
+          "seed",
+          "resolution",
+          "num_inference_steps",
+          "enable_safety_checker",
+          "enable_output_safety_checker",
+          "guidance_scale",
+          "shift",
+          "video_quality",
+          "video_write_mode",
+          "image_url",
+          "audio_url"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Summer beach vacation style, a white cat wearing sunglasses sits on a surfboard."
+            ],
+            "description": "The text prompt used for video generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "shift": {
+            "description": "Shift value for the video. Must be between 1.0 and 10.0.",
+            "type": "number",
+            "examples": [
+              5
+            ],
+            "title": "Shift",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 5
+          },
+          "frames_per_second": {
+            "anyOf": [
+              {
+                "minimum": 4,
+                "maximum": 60,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Frames per second of the generated video. Must be between 4 to 60. When using interpolation and `adjust_fps_for_interpolation` is set to true (default true,) the final FPS will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If `adjust_fps_for_interpolation` is set to false, this value will be used as-is.",
+            "examples": [
+              16
+            ],
+            "title": "Frames per Second",
+            "default": 16
+          },
+          "guidance_scale": {
+            "description": "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality.",
+            "type": "number",
+            "examples": [
+              3.5
+            ],
+            "title": "Guidance Scale",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3.5
+          },
+          "num_frames": {
+            "description": "Number of frames to generate. Must be between 40 to 120, (must be multiple of 4).",
+            "type": "integer",
+            "minimum": 40,
+            "maximum": 120,
+            "examples": [
+              80
+            ],
+            "title": "Number of Frames",
+            "multipleOf": 4,
+            "default": 80
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "description": "If set to true, input data will be checked for safety before processing.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": false
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt for video generation.",
+            "default": ""
+          },
+          "video_write_mode": {
+            "enum": [
+              "fast",
+              "balanced",
+              "small"
+            ],
+            "description": "The write mode of the output video. Faster write mode means faster results but larger file size, balanced write mode is a good compromise between speed and quality, and small write mode is the slowest but produces the smallest file size.",
+            "type": "string",
+            "examples": [
+              "balanced"
+            ],
+            "title": "Video Write Mode",
+            "default": "balanced"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "580p",
+              "720p"
+            ],
+            "description": "Resolution of the generated video (480p, 580p, or 720p).",
+            "type": "string",
+            "examples": [
+              "480p"
+            ],
+            "title": "Resolution",
+            "default": "480p"
+          },
+          "enable_output_safety_checker": {
+            "examples": [
+              false
+            ],
+            "description": "If set to true, output video will be checked for safety after generation.",
+            "type": "boolean",
+            "title": "Enable Output Safety Checker",
+            "default": false
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/wan_s2v_cat.png"
+            ],
+            "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "video_quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "maximum"
+            ],
+            "description": "The quality of the output video. Higher quality means better visual quality but larger file size.",
+            "type": "string",
+            "examples": [
+              "high"
+            ],
+            "title": "Video Quality",
+            "default": "high"
+          },
+          "audio_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/wan_s2v_talk.wav"
+            ],
+            "description": "The URL of the audio file.",
+            "type": "string",
+            "title": "Audio URL"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "num_inference_steps": {
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "type": "integer",
+            "examples": [
+              27
+            ],
+            "title": "Number of Inference Steps",
+            "minimum": 2,
+            "maximum": 40,
+            "default": 27
+          }
+        },
+        "title": "WanS2VRequest",
+        "required": [
+          "prompt",
+          "image_url",
+          "audio_url"
+        ]
+      },
+      "WanV2214bSpeechToVideoOutput": {
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 4685303,
+                "file_name": "2c7ab2540af44eceaf5ffde4e8d094ed.mp4",
+                "content_type": "application/octet-stream",
+                "url": "https://v3.fal.media/files/panda/f7tXRCjvwEcVlmxHuw8kO_2c7ab2540af44eceaf5ffde4e8d094ed.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "WanS2VResponse",
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/wan/v2.2-14b/speech-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-14b/speech-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-14b/speech-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WanV2214bSpeechToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/wan/v2.2-14b/speech-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanV2214bSpeechToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,576 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ffmpeg-api/loudnorm",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ffmpeg-api/loudnorm queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ffmpeg-api/loudnorm",
+      "category": "json",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/ffmpeg-api-waveform.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/loudnorm",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/loudnorm/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FfmpegApiLoudnormInput": {
+        "title": "LoudnormInput",
+        "type": "object",
+        "properties": {
+          "measured_lra": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 99,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured loudness range of input file in LU. Required for linear mode.",
+            "title": "Measured Lra"
+          },
+          "print_summary": {
+            "description": "Return loudness measurement summary with the normalized audio",
+            "type": "boolean",
+            "title": "Print Summary",
+            "default": false
+          },
+          "offset": {
+            "minimum": -99,
+            "description": "Offset gain in dB applied before the true-peak limiter",
+            "type": "number",
+            "title": "Offset",
+            "maximum": 99,
+            "default": 0
+          },
+          "measured_i": {
+            "anyOf": [
+              {
+                "minimum": -99,
+                "maximum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured integrated loudness of input file in LUFS. Required for linear mode.",
+            "title": "Measured I"
+          },
+          "measured_tp": {
+            "anyOf": [
+              {
+                "minimum": -99,
+                "maximum": 99,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured true peak of input file in dBTP. Required for linear mode.",
+            "title": "Measured Tp"
+          },
+          "linear": {
+            "description": "Use linear normalization mode (single-pass). If false, uses dynamic mode (two-pass for better quality).",
+            "type": "boolean",
+            "title": "Linear",
+            "default": false
+          },
+          "measured_thresh": {
+            "anyOf": [
+              {
+                "minimum": -99,
+                "maximum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured threshold of input file in LUFS. Required for linear mode.",
+            "title": "Measured Thresh"
+          },
+          "dual_mono": {
+            "description": "Treat mono input files as dual-mono for correct EBU R128 measurement on stereo systems",
+            "type": "boolean",
+            "title": "Dual Mono",
+            "default": false
+          },
+          "true_peak": {
+            "minimum": -9,
+            "description": "Maximum true peak in dBTP.",
+            "type": "number",
+            "title": "True Peak",
+            "maximum": 0,
+            "default": -0.1
+          },
+          "audio_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/ffmpeg-audio.wav"
+            ],
+            "description": "URL of the audio file to normalize",
+            "type": "string",
+            "title": "Audio Url"
+          },
+          "integrated_loudness": {
+            "minimum": -70,
+            "description": "Integrated loudness target in LUFS.",
+            "type": "number",
+            "title": "Integrated Loudness",
+            "maximum": -5,
+            "default": -18
+          },
+          "loudness_range": {
+            "minimum": 1,
+            "description": "Loudness range target in LU",
+            "type": "number",
+            "title": "Loudness Range",
+            "maximum": 20,
+            "default": 7
+          }
+        },
+        "x-fal-order-properties": [
+          "audio_url",
+          "integrated_loudness",
+          "true_peak",
+          "loudness_range",
+          "offset",
+          "linear",
+          "dual_mono",
+          "print_summary",
+          "measured_i",
+          "measured_lra",
+          "measured_tp",
+          "measured_thresh"
+        ],
+        "required": [
+          "audio_url"
+        ]
+      },
+      "FfmpegApiLoudnormOutput": {
+        "title": "LoudnormOutput",
+        "type": "object",
+        "properties": {
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LoudnormSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Structured loudness measurement summary (if requested)"
+          },
+          "audio": {
+            "description": "Normalized audio file",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "audio",
+          "summary"
+        ],
+        "required": [
+          "audio"
+        ]
+      },
+      "LoudnormSummary": {
+        "title": "LoudnormSummary",
+        "type": "object",
+        "properties": {
+          "normalization_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Type of normalization applied (Dynamic/Linear)",
+            "title": "Normalization Type"
+          },
+          "output_lra": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output loudness range in LU",
+            "title": "Output Lra"
+          },
+          "input_lra": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Input loudness range in LU",
+            "title": "Input Lra"
+          },
+          "output_integrated": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output integrated loudness in LUFS",
+            "title": "Output Integrated"
+          },
+          "output_true_peak": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output true peak in dBTP",
+            "title": "Output True Peak"
+          },
+          "target_offset": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Target offset in LU",
+            "title": "Target Offset"
+          },
+          "input_integrated": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Input integrated loudness in LUFS",
+            "title": "Input Integrated"
+          },
+          "input_true_peak": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Input true peak in dBTP",
+            "title": "Input True Peak"
+          },
+          "output_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output threshold in LUFS",
+            "title": "Output Threshold"
+          },
+          "input_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Input threshold in LUFS",
+            "title": "Input Threshold"
+          }
+        },
+        "x-fal-order-properties": [
+          "input_integrated",
+          "input_true_peak",
+          "input_lra",
+          "input_threshold",
+          "output_integrated",
+          "output_true_peak",
+          "output_lra",
+          "output_threshold",
+          "normalization_type",
+          "target_offset"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ffmpeg-api/loudnorm/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/loudnorm/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/loudnorm": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfmpegApiLoudnormInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/loudnorm/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FfmpegApiLoudnormOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

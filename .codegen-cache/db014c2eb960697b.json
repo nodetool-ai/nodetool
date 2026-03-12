@@ -1,0 +1,373 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-avatar",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-avatar queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-avatar",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-avatar",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-avatar/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanAvatarInput": {
+        "title": "Input",
+        "type": "object",
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string",
+            "description": "Text prompt describing the scene.",
+            "default": "A cat is singing."
+          },
+          "image_url": {
+            "examples": [
+              "https://fal.media/files/tiger/Y8EgvVqxORBCqWC1OlX3D_3c4c8bbe7f3941a2aea93e278ba14803.jpg",
+              "https://v3.fal.media/files/zebra/HWILyw2UYI50Sp_4mDxqr_src2.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "The URL of the reference image."
+          },
+          "turbo_mode": {
+            "title": "Turbo Mode",
+            "type": "boolean",
+            "description": "If true, the video will be generated faster with no noticeable degradation in the visual quality.",
+            "default": true
+          },
+          "audio_url": {
+            "examples": [
+              "https://v3.fal.media/files/koala/80RpP2FOhXZUV3NRKUWZu_2.WAV"
+            ],
+            "title": "Audio Url",
+            "type": "string",
+            "description": "The URL of the audio file."
+          },
+          "num_frames": {
+            "minimum": 129,
+            "maximum": 401,
+            "type": "integer",
+            "title": "Num Frames",
+            "description": "Number of video frames to generate at 25 FPS. If greater than the input audio length, it will capped to the length of the input audio.",
+            "default": 129
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for generation."
+          },
+          "num_inference_steps": {
+            "minimum": 30,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 30
+          }
+        },
+        "x-fal-order-properties": [
+          "audio_url",
+          "image_url",
+          "text",
+          "num_frames",
+          "num_inference_steps",
+          "turbo_mode",
+          "seed"
+        ],
+        "required": [
+          "audio_url",
+          "image_url"
+        ]
+      },
+      "HunyuanAvatarOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 1646349,
+                "file_name": "output_with_audio.mp4",
+                "content_type": "video/mp4",
+                "url": "https://v3.fal.media/files/monkey/3ODbdqHHQL3SvgRXEJXQ-_hunava_8333d613-d4e3-42ff-be36-1e97775621ba_audio.mp4"
+              }
+            ],
+            "description": "The generated video with the avatar animation.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-avatar/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-avatar/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-avatar": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanAvatarInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-avatar/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanAvatarOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}
