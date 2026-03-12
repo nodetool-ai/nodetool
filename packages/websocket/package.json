@@ -20,6 +20,7 @@
     "@nodetool/agents": "*",
     "@nodetool/auth": "*",
     "@nodetool/base-nodes": "*",
+    "@nodetool/fal-nodes": "*",
     "@nodetool/config": "*",
     "@nodetool/kernel": "*",
     "@nodetool/models": "*",

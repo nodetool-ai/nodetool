@@ -14,6 +14,7 @@ import { createLogger } from "@nodetool/config";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerFalNodes } from "@nodetool/fal-nodes";
 import {
   AnthropicProvider,
   GeminiProvider,
@@ -175,6 +176,7 @@ log.info("Metadata roots", { roots: metadataRoots });
 const registry = new NodeRegistry();
 registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
 registerBaseNodes(registry);
+registerFalNodes(registry);
 const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
 // ---------------------------------------------------------------------------
