@@ -27,21 +27,29 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       const keysToRemove = new Set(
         Array.from(nodeIds).map((id) => hashKey(workflowId, id))
       );
-      set((state) => ({
-        errors: Object.fromEntries(
-          Object.entries(state.errors).filter(
-            ([key]) => !keysToRemove.has(key)
-          )
-        )
-      }));
+      set((state) => {
+        // ⚡ Bolt: Optimize large record filtering by replacing Object.entries().filter()
+        // with a for...in loop to avoid creating expensive intermediate arrays.
+        const newErrors: Record<string, NodeError> = {};
+        for (const key in state.errors) {
+          if (Object.prototype.hasOwnProperty.call(state.errors, key) && !keysToRemove.has(key)) {
+            newErrors[key] = state.errors[key];
+          }
+        }
+        return { errors: newErrors };
+      });
     } else {
-      set((state) => ({
-        errors: Object.fromEntries(
-          Object.entries(state.errors).filter(
-            ([key]) => !key.startsWith(workflowId)
-          )
-        )
-      }));
+      set((state) => {
+        // ⚡ Bolt: Optimize large record filtering by replacing Object.entries().filter()
+        // with a for...in loop to avoid creating expensive intermediate arrays.
+        const newErrors: Record<string, NodeError> = {};
+        for (const key in state.errors) {
+          if (Object.prototype.hasOwnProperty.call(state.errors, key) && !key.startsWith(workflowId)) {
+            newErrors[key] = state.errors[key];
+          }
+        }
+        return { errors: newErrors };
+      });
     }
   },
   /**

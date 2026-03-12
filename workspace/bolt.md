@@ -11,3 +11,7 @@
 ## 2024-03-07 - Zustand Selector Optimization returning object literals
 **Learning:** Even if `useMemo` caches the closure of a Zustand selector properly, if the selector returns an object literal like `{ isConnected, stringInputConfig }`, Zustand's default strict equality (`===`) will cause an infinite re-render loop if the object identity changes on every call, leading to canvas freezing (like `.react-flow` timing out in Playwright).
 **Action:** When returning objects from custom Zustand selectors, cache the entire returned object literal inside the selector closure (e.g. `let lastResult = ...`) and only return a new object reference if the underlying primitive values actually changed. Alternatively, pass `shallow` as the equality function.
+
+## 2024-03-08 - Optimizing Large Record Filtering in Zustand Stores
+**Learning:** In Zustand stores, `Object.fromEntries(Object.entries(record).filter(...))` creates multiple expensive intermediate arrays which consume memory and processing time. For large objects (like `sessions` in `VibeCodingStore`, `timings` in `ExecutionTimeStore`, or `errors` in `ErrorStore`), this is highly inefficient.
+**Action:** Avoid `Object.entries(record).filter(...)` for filtering objects. Instead, use a `for...in` loop to iterate over the keys, manually creating a new object and only assigning the properties that pass the filter condition. This provides O(N) performance without intermediate array allocations.
