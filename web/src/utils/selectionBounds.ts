@@ -75,7 +75,7 @@ const isNodeFullyEnclosed = (node: Node, rect: SelectionRect): boolean => {
 export const getNodesWithinSelection = (
   instance: ReactFlowInstance<Node, Edge>,
   rect: SelectionRect | null,
-  predicate?: (node: Node) => boolean
+  predicate?: (_node: Node) => boolean
 ): Node[] => {
   if (!instance || !rect) {
     return [];
