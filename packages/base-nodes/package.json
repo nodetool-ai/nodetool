@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "@nodetool/code-runners": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*",
     "@supabase/supabase-js": "^2.98.0",
