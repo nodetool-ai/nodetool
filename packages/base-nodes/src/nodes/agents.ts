@@ -15,7 +15,7 @@ import type { Chunk } from "@nodetool/protocol";
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
-type ToolLike = {
+export type ToolLike = {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
@@ -168,7 +168,7 @@ function normalizeProviderStreamItem(item: ProviderStreamItem): ProviderStreamIt
   } as Chunk;
 }
 
-async function* streamProviderMessages(
+export async function* streamProviderMessages(
   provider: BaseProvider,
   args: Parameters<BaseProvider["generateMessages"]>[0]
 ): AsyncGenerator<ProviderStreamItem> {
@@ -467,11 +467,11 @@ async function saveThreadMessage(
   });
 }
 
-function isChunkItem(item: ProviderStreamItem): item is Chunk {
+export function isChunkItem(item: ProviderStreamItem): item is Chunk {
   return !!item && typeof item === "object" && "type" in item && (item as Chunk).type === "chunk";
 }
 
-function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
+export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
   return !!item && typeof item === "object" && "id" in item && "name" in item && !("type" in item);
 }
 
@@ -483,7 +483,7 @@ function normalizeTools(value: unknown): ToolLike[] {
   );
 }
 
-function toProviderTools(tools: ToolLike[]): Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }> {
+export function toProviderTools(tools: ToolLike[]): Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }> {
   return tools.map((tool) =>
     typeof tool.toProviderTool === "function"
       ? tool.toProviderTool()
@@ -495,7 +495,7 @@ function toProviderTools(tools: ToolLike[]): Array<{ name: string; description?:
   );
 }
 
-function serializeToolResult(value: unknown): unknown {
+export function serializeToolResult(value: unknown): unknown {
   if (value == null) return value;
   if (Array.isArray(value)) return value.map(serializeToolResult);
   if (typeof value !== "object") return value;
