@@ -320,8 +320,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ limit }) => {
       try {
-        const { ChromaClient } = await import("chromadb");
-        const client = new ChromaClient();
+        const { getChromaClient } = await import("@nodetool/vectorstore");
+        const client = await getChromaClient();
         const collections = await client.listCollections();
         const result = collections.slice(0, limit);
         return {
@@ -344,8 +344,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name }) => {
       try {
-        const { ChromaClient } = await import("chromadb");
-        const client = new ChromaClient();
+        const { getChromaClient } = await import("@nodetool/vectorstore");
+        const client = await getChromaClient();
         const collection = await client.getCollection({ name });
         const count = await collection.count();
         return {
@@ -370,8 +370,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name, query_texts, n_results }) => {
       try {
-        const { ChromaClient } = await import("chromadb");
-        const client = new ChromaClient();
+        const { getChromaClient } = await import("@nodetool/vectorstore");
+        const client = await getChromaClient();
         const collection = await client.getCollection({ name });
         const results = await collection.query({ queryTexts: query_texts, nResults: n_results });
         return {
