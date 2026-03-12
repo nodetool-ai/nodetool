@@ -11,9 +11,12 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import type { ToolLike } from "./agents.js";
+import { runAgentLoop } from "./agents.js";
 import { exec } from "node:child_process";
-import { access } from "node:fs/promises";
+import { access, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,18 +26,6 @@ type MessageContentPart =
   | { type: "text"; text: string }
   | { type: "image"; image: { data: string; mimeType: string } }
   | { type: "audio"; audio: { data: string; mimeType: string } };
-
-type ProviderMessage = {
-  role: "system" | "user" | "assistant" | "tool";
-  content?: string | MessageContentPart[] | null;
-};
-type ProviderLike = {
-  generateMessage(args: {
-    messages: ProviderMessage[];
-    model: string;
-    maxTokens?: number;
-  }): Promise<{ content?: string | null }>;
-};
 
 type AssetRef = {
   type: string;
@@ -46,21 +37,6 @@ type AssetRef = {
 // ---------------------------------------------------------------------------
 // Secret / key resolution helpers
 // ---------------------------------------------------------------------------
-
-function secretsMap(inputs: Record<string, unknown>): Record<string, string> {
-  const raw = inputs._secrets;
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    return raw as Record<string, string>;
-  }
-  return {};
-}
-
-const PROVIDER_KEY_MAP: Record<string, string> = {
-  openai: "OPENAI_API_KEY",
-  anthropic: "ANTHROPIC_API_KEY",
-  gemini: "GEMINI_API_KEY",
-  mistral: "MISTRAL_API_KEY",
-};
 
 // ---------------------------------------------------------------------------
 // Asset extraction helpers
@@ -272,231 +248,6 @@ export function makeSetOutputTool(
   };
 }
 
-function resolveApiKey(
-  inputs: Record<string, unknown>,
-  provider: string
-): string | null {
-  const envName = PROVIDER_KEY_MAP[provider];
-  if (!envName) return null;
-  const secrets = secretsMap(inputs);
-  return secrets[envName] || process.env[envName] || null;
-}
-
-// ---------------------------------------------------------------------------
-// Direct HTTP chat completion (fallback when no provider resolver)
-// ---------------------------------------------------------------------------
-
-/** Convert internal content parts to OpenAI API format. */
-function toOpenAIContent(content: string | MessageContentPart[]): unknown {
-  if (typeof content === "string") return content;
-  return content.map((p) => {
-    if (p.type === "text") return { type: "text", text: p.text };
-    if (p.type === "image") {
-      return {
-        type: "image_url",
-        image_url: { url: `data:${p.image.mimeType};base64,${p.image.data}` },
-      };
-    }
-    if (p.type === "audio") {
-      return {
-        type: "input_audio",
-        input_audio: { data: p.audio.data, format: "wav" },
-      };
-    }
-    return { type: "text", text: "[unsupported content]" };
-  });
-}
-
-/** Convert internal content parts to Anthropic API format. */
-function toAnthropicContent(content: string | MessageContentPart[]): unknown {
-  if (typeof content === "string") return content;
-  return content.map((p) => {
-    if (p.type === "text") return { type: "text", text: p.text };
-    if (p.type === "image") {
-      return {
-        type: "image",
-        source: { type: "base64", media_type: p.image.mimeType, data: p.image.data },
-      };
-    }
-    // Audio not directly supported by Anthropic messages API
-    return { type: "text", text: "[audio input attached]" };
-  });
-}
-
-async function callChatCompletionDirect(
-  apiKey: string,
-  provider: string,
-  modelId: string,
-  systemPrompt: string,
-  userPrompt: string,
-  assetParts: MessageContentPart[] = []
-): Promise<string> {
-  const userContent = assetParts.length > 0
-    ? [{ type: "text" as const, text: userPrompt }, ...assetParts]
-    : userPrompt;
-
-  if (provider === "openai") {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: toOpenAIContent(userContent) },
-        ],
-        max_tokens: 4096,
-      }),
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(
-        `OpenAI API error ${response.status}: ${text.slice(0, 500)}`
-      );
-    }
-    const json = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    return json.choices?.[0]?.message?.content ?? "";
-  }
-
-  if (provider === "anthropic") {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: modelId,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: toAnthropicContent(userContent) }],
-      }),
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(
-        `Anthropic API error ${response.status}: ${text.slice(0, 500)}`
-      );
-    }
-    const json = (await response.json()) as {
-      content?: { type?: string; text?: string }[];
-    };
-    return (
-      json.content
-        ?.filter((b) => b.type === "text")
-        .map((b) => b.text ?? "")
-        .join("") ?? ""
-    );
-  }
-
-  if (provider === "ollama") {
-    const ollamaUrl =
-      process.env.OLLAMA_API_URL || "http://127.0.0.1:11434";
-    const response = await fetch(`${ollamaUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: typeof userContent === "string" ? userContent : userContent.filter(p => p.type === "text").map(p => (p as { text: string }).text).join("\n"),
-            ...(assetParts.some(p => p.type === "image") ? {
-              images: assetParts.filter(p => p.type === "image").map(p => (p as { type: "image"; image: { data: string } }).image.data),
-            } : {}),
-          },
-        ],
-        stream: false,
-      }),
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(
-        `Ollama API error ${response.status}: ${text.slice(0, 500)}`
-      );
-    }
-    const json = (await response.json()) as {
-      message?: { content?: string };
-    };
-    return json.message?.content ?? "";
-  }
-
-  throw new Error(
-    `Unsupported provider "${provider}". Supported: openai, anthropic, ollama.`
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Unified chat completion dispatcher
-// ---------------------------------------------------------------------------
-
-async function callChatCompletion(
-  inputs: Record<string, unknown>,
-  context: ProcessingContext | undefined,
-  provider: string,
-  modelId: string,
-  systemPrompt: string,
-  userPrompt: string,
-  assetParts: MessageContentPart[] = []
-): Promise<string> {
-  // Build user message content — text + any asset parts
-  const userContent: string | MessageContentPart[] =
-    assetParts.length > 0
-      ? [{ type: "text" as const, text: userPrompt }, ...assetParts]
-      : userPrompt;
-
-  // Path 1: use runtime provider if available
-  if (context && typeof context.getProvider === "function") {
-    let providerImpl: ProviderLike | null = null;
-    try {
-      providerImpl = (await context.getProvider(provider)) as ProviderLike;
-    } catch {
-      // Provider resolution failed — fall through to direct HTTP
-    }
-    if (providerImpl) {
-      const messages: ProviderMessage[] = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ];
-      const result = await providerImpl.generateMessage({
-        model: modelId,
-        messages,
-        maxTokens: 4096,
-      });
-      const text =
-        typeof result.content === "string"
-          ? result.content
-          : JSON.stringify(result.content ?? "");
-      return text;
-    }
-  }
-
-  // Path 2: direct HTTP call
-  const apiKey = resolveApiKey(inputs, provider);
-  if (provider !== "ollama" && !apiKey) {
-    const envName = PROVIDER_KEY_MAP[provider] ?? `${provider.toUpperCase()}_API_KEY`;
-    throw new Error(
-      `No API key found for provider "${provider}". ` +
-        `Set ${envName} in environment or secrets.`
-    );
-  }
-  return callChatCompletionDirect(
-    apiKey ?? "",
-    provider,
-    modelId,
-    systemPrompt,
-    userPrompt,
-    assetParts
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Base skill node
 // ---------------------------------------------------------------------------
@@ -509,6 +260,53 @@ class SkillNode extends BaseNode {
   static readonly _systemPrompt: string =
     "You are a helpful assistant. Complete the task described by the user.";
 
+  /** Override in subclasses to declare output sinks. Keys are output handle names, values are tool names. */
+  static readonly _outputSinkConfig: Record<string, string> = {};
+
+  /** Transient storage for output paths set during agent loop. */
+  private _outputSinks: Record<string, string[]> = {};
+
+  /** Build tools for the agent loop. Includes execute_bash + any output sink tools. */
+  getTools(workspaceDir: string): ToolLike[] {
+    const tools: ToolLike[] = [
+      makeExecuteBashTool(workspaceDir, ((this as any).timeout_seconds ?? 120) * 1000),
+    ];
+    const config = (this.constructor as typeof SkillNode)._outputSinkConfig;
+    this._outputSinks = {};
+    for (const [outputName, toolName] of Object.entries(config)) {
+      const sink: string[] = [];
+      this._outputSinks[outputName] = sink;
+      tools.push(makeSetOutputTool(
+        toolName,
+        `Set the ${outputName} output file path.`,
+        sink,
+        workspaceDir,
+      ));
+    }
+    return tools;
+  }
+
+  /** Read output sinks and load files as asset refs. */
+  protected async readOutputSinks(workspaceDir: string): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {};
+    for (const [outputName, sink] of Object.entries(this._outputSinks)) {
+      if (sink.length === 0) continue;
+      const absPath = path.resolve(workspaceDir, sink[0]);
+      try {
+        const bytes = await readFile(absPath);
+        const base64 = Buffer.from(bytes).toString("base64");
+        result[outputName] = {
+          type: outputName,
+          data: base64,
+          uri: pathToFileURL(absPath).toString(),
+        };
+      } catch {
+        // File doesn't exist or can't be read — skip
+      }
+    }
+    return result;
+  }
+
   async process(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
@@ -516,52 +314,54 @@ class SkillNode extends BaseNode {
     const prompt = String(inputs.prompt ?? this.prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
-    const model = (inputs.model ?? this.model ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const provider = String(model.provider || "").toLowerCase();
+    const model = (inputs.model ?? this.model ?? {}) as Record<string, unknown>;
+    const providerId = String(model.provider || "").toLowerCase();
     const modelId = String(model.id || "");
-    if (!provider || !modelId) {
+    if (!providerId || !modelId) {
       throw new Error("Select a model for this skill.");
     }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context with provider access is required");
+    }
 
-    // Collect asset inputs and convert to multimodal content parts
-    // Check both edge inputs and static node properties (this)
+    // Determine workspace directory
+    const workspaceDir = (context as any).workspaceDir
+      ?? path.join(tmpdir(), `nodetool-skill-${Date.now()}`);
+    await mkdir(workspaceDir, { recursive: true });
+
+    // Collect multimodal asset inputs
     const self = this as unknown as Record<string, unknown>;
     const assets = collectAssets(inputs, self);
     const assetParts = await buildAssetContentParts(assets, context, "image");
 
+    // Build tools
+    const tools = this.getTools(workspaceDir);
+
+    // Convert skills-local MessageContentPart[] to runtime MessageContent[] format
+    const contentParts = assetParts.map((part) => {
+      if (part.type === "image") {
+        return { type: "image" as const, image: { data: part.image.data, mimeType: part.image.mimeType } };
+      }
+      if (part.type === "audio") {
+        return { type: "audio" as const, audio: { data: part.audio.data, mimeType: part.audio.mimeType } };
+      }
+      return { type: "text" as const, text: (part as any).text ?? "" };
+    });
+
     const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
-    const text = await callChatCompletion(
-      inputs,
+    const { text } = await runAgentLoop({
       context,
-      provider,
+      providerId,
       modelId,
       systemPrompt,
       prompt,
-      assetParts
-    );
+      tools,
+      contentParts: contentParts.length > 0 ? contentParts : undefined,
+      maxTokens: 4096,
+      maxIterations: 10,
+    });
 
-    // Build result with all declared output handles.
-    // Pass through input assets for output handles the LLM can't produce directly.
-    const result: Record<string, unknown> = { text };
-    const outputTypes = (this.constructor as typeof SkillNode).metadataOutputTypes ?? {};
-    for (const [key, outputType] of Object.entries(outputTypes)) {
-      if (key === "text") continue; // already set
-      if (outputType === "image" || outputType === "audio" || outputType === "video" || outputType === "document") {
-        // Pass through the input asset as the output (best we can do without agent tools)
-        const assetVal = inputs[key] ?? self[key];
-        if (assetVal && typeof assetVal === "object" && !Array.isArray(assetVal)) {
-          const ref = assetVal as Record<string, unknown>;
-          // Only pass through if asset has actual data or non-empty URI
-          if (ref.data || (typeof ref.uri === "string" && ref.uri.length > 0)) {
-            result[key] = assetVal;
-          }
-        }
-      }
-    }
-    return result;
+    return { text, ...(await this.readOutputSinks(workspaceDir)) };
   }
 }
 
@@ -736,6 +536,7 @@ export class DocumentSkillNode extends SkillNode {
     text: "str",
     document: "document"
   };
+  static readonly _outputSinkConfig = { document: "set_output_document" };
   static readonly _systemPrompt =
     "You are a document skill. Use attached document/text inputs and return concise results.";
   @prop({ type: "language_model", default: {
@@ -773,6 +574,7 @@ export class DocxSkillNode extends SkillNode {
     document: "document",
     text: "str"
   };
+  static readonly _outputSinkConfig = { document: "set_output_document" };
   static readonly _systemPrompt =
     "You are a DOCX creation specialist. This skill is creation-only.\n\n" +
     "Scope:\n" +
@@ -882,6 +684,7 @@ export class FfmpegSkillNode extends SkillNode {
     audio: "audio",
     text: "str"
   };
+  static readonly _outputSinkConfig = { audio: "set_output_audio", video: "set_output_video" };
   static readonly _systemPrompt =
     "You are an FFmpeg specialist skill for audio/video processing. " +
     "Use attached media inputs when provided and return concise results.\n\n" +
@@ -1040,6 +843,7 @@ export class HtmlSkillNode extends SkillNode {
     html: "html",
     text: "str"
   };
+  static readonly _outputSinkConfig = { html: "set_output_html" };
   static readonly _systemPrompt =
     "You are an HTML creation specialist.\n\n" +
     "Scope:\n" +
@@ -1136,6 +940,7 @@ export class ImageSkillNode extends SkillNode {
     image: "image",
     text: "str"
   };
+  static readonly _outputSinkConfig = { image: "set_output_image" };
   static readonly _systemPrompt =
     "You are an image skill. Use attached inputs and return concise results. " +
     "Use execute_bash when shell-based processing is needed. " +
@@ -1185,6 +990,7 @@ export class MediaSkillNode extends SkillNode {
     audio: "audio",
     text: "str"
   };
+  static readonly _outputSinkConfig = { audio: "set_output_audio", video: "set_output_video" };
   static readonly _systemPrompt =
     "You are a media skill for audio/video tasks. " +
     "Use attached media inputs when provided and return concise results. " +
@@ -1246,6 +1052,7 @@ export class PdfLibSkillNode extends SkillNode {
     document: "document",
     text: "str"
   };
+  static readonly _outputSinkConfig = { document: "set_output_document" };
   static readonly _systemPrompt =
     "You are a PDF processing specialist. Focus on robust, reproducible PDF workflows.\n\n" +
     "Primary scope:\n" +
@@ -1338,6 +1145,7 @@ export class PptxSkillNode extends SkillNode {
     document: "document",
     text: "str"
   };
+  static readonly _outputSinkConfig = { document: "set_output_document" };
   static readonly _systemPrompt =
     "You are a PptxGenJS specialist for creating and editing .pptx presentations.\n\n" +
     "Execution policy:\n" +
@@ -1487,6 +1295,7 @@ export class YtDlpDownloaderSkillNode extends SkillNode {
     video: "video",
     text: "str"
   };
+  static readonly _outputSinkConfig = { video: "set_output_video" };
   static readonly _systemPrompt =
     "You are yt-dlp-downloader.\n" +
     "Goal: download web videos with yt-dlp and publish the resulting video file path.\n\n" +

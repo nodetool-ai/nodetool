@@ -3,6 +3,7 @@ import { makeExecuteBashTool, makeSetOutputTool } from "../src/nodes/skills.js";
 import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import type { ProcessingContext } from "@nodetool/runtime";
 import {
   ShellAgentSkillNode,
   BrowserSkillNode,
@@ -209,5 +210,71 @@ describe("makeSetOutputTool", () => {
     expect(tool.name).toBe("set_output_image");
     expect(tool.inputSchema).toBeDefined();
     expect(tool.inputSchema!.required).toContain("path");
+  });
+});
+
+describe("SkillNode agent loop integration", () => {
+  it("ShellAgentSkill calls runAgentLoop and returns text", async () => {
+    const node = new ShellAgentSkillNode();
+    const workspaceDir = await mkdtemp(path.join(tmpdir(), "skill-int-"));
+
+    const context = {
+      getProvider: vi.fn().mockResolvedValue({
+        provider: "mock",
+        generateMessages: async function* () {
+          yield { type: "chunk" as const, content: "Done.", done: true };
+        },
+        async *generateMessagesTraced(...args: any[]) {
+          yield* (this as any).generateMessages(...args);
+        },
+      }),
+      workspaceDir,
+    } as any;
+
+    const result = await node.process(
+      { prompt: "Say hello", model: { provider: "mock", id: "test-model" } },
+      context
+    );
+
+    expect(result.text).toBe("Done.");
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("ImageSkill runs agent loop and produces image output", async () => {
+    const workspaceDir = await mkdtemp(path.join(tmpdir(), "skill-img-"));
+
+    let callIndex = 0;
+    const context = {
+      getProvider: vi.fn().mockResolvedValue({
+        provider: "mock",
+        generateMessages: async function* () {
+          callIndex++;
+          if (callIndex === 1) {
+            yield { id: "tc_1", name: "execute_bash", args: { command: `printf "fake-png" > "${workspaceDir}/output.png"` } };
+          } else if (callIndex === 2) {
+            yield { id: "tc_2", name: "set_output_image", args: { path: "output.png" } };
+          } else {
+            yield { type: "chunk" as const, content: "Created image.", done: true };
+          }
+        },
+        async *generateMessagesTraced(...args: any[]) {
+          yield* (this as any).generateMessages(...args);
+        },
+      }),
+      workspaceDir,
+    } as any;
+
+    const node = new ImageSkillNode();
+    const result = await node.process(
+      { prompt: "Create an image", model: { provider: "mock", id: "test-model" } },
+      context
+    );
+
+    expect(result.text).toBe("Created image.");
+    expect(result.image).toBeDefined();
+    expect((result.image as any).type).toBe("image");
+    expect((result.image as any).data).toBeTruthy();
+
+    await rm(workspaceDir, { recursive: true, force: true });
   });
 });
