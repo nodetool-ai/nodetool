@@ -1,4 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { makeExecuteBashTool, makeSetOutputTool } from "../src/nodes/skills.js";
+import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   ShellAgentSkillNode,
   BrowserSkillNode,
@@ -123,5 +127,87 @@ describe("Skill-specific defaults", () => {
   it("HtmlSkillNode has max_output_chars 180000", () => {
     const node = new HtmlSkillNode();
     expect(node.serialize().max_output_chars).toBe(180000);
+  });
+});
+
+describe("makeExecuteBashTool", () => {
+  let workspaceDir: string;
+
+  beforeEach(async () => {
+    workspaceDir = await realpath(await mkdtemp(path.join(tmpdir(), "skill-test-")));
+  });
+
+  afterEach(async () => {
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("executes command and returns stdout", async () => {
+    const tool = makeExecuteBashTool(workspaceDir);
+    const result = await tool.process!({} as any, { command: "echo hello" });
+    expect(result).toMatchObject({ success: true, stdout: "hello\n" });
+  });
+
+  it("returns error for failing command", async () => {
+    const tool = makeExecuteBashTool(workspaceDir);
+    const result = await tool.process!({} as any, { command: "exit 1" });
+    expect(result).toMatchObject({ success: false });
+  });
+
+  it("runs in workspace directory", async () => {
+    const tool = makeExecuteBashTool(workspaceDir);
+    const result = (await tool.process!({} as any, { command: "pwd" })) as any;
+    expect(result.stdout.trim()).toBe(workspaceDir);
+  });
+
+  it("has correct tool metadata", () => {
+    const tool = makeExecuteBashTool(workspaceDir);
+    expect(tool.name).toBe("execute_bash");
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema!.required).toContain("command");
+  });
+});
+
+describe("makeSetOutputTool", () => {
+  let workspaceDir: string;
+
+  beforeEach(async () => {
+    workspaceDir = await realpath(await mkdtemp(path.join(tmpdir(), "skill-test-")));
+  });
+
+  afterEach(async () => {
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("records path in output sink", async () => {
+    const sink: string[] = [];
+    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    await writeFile(path.join(workspaceDir, "out.png"), Buffer.from("fake-png"));
+    const result = await tool.process!({} as any, { path: "out.png" });
+    expect(result).toMatchObject({ success: true });
+    expect(sink).toEqual(["out.png"]);
+  });
+
+  it("rejects path outside workspace", async () => {
+    const sink: string[] = [];
+    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    const result = await tool.process!({} as any, { path: "../../etc/passwd" });
+    expect(result).toMatchObject({ success: false });
+    expect(sink).toHaveLength(0);
+  });
+
+  it("rejects non-existent file", async () => {
+    const sink: string[] = [];
+    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    const result = await tool.process!({} as any, { path: "nonexistent.png" });
+    expect(result).toMatchObject({ success: false });
+    expect(sink).toHaveLength(0);
+  });
+
+  it("has correct tool metadata", () => {
+    const sink: string[] = [];
+    const tool = makeSetOutputTool("set_output_image", "Set output image", sink, workspaceDir);
+    expect(tool.name).toBe("set_output_image");
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema!.required).toContain("path");
   });
 });

@@ -10,6 +10,10 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
+import type { ToolLike } from "./agents.js";
+import { exec } from "node:child_process";
+import { access } from "node:fs/promises";
+import path from "node:path";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -200,6 +204,72 @@ async function buildAssetContentParts(
     // Video and document are described in text rather than sent as content
   }
   return parts;
+}
+
+// ---------------------------------------------------------------------------
+// Tool factories for skill agent loop
+// ---------------------------------------------------------------------------
+
+export function makeExecuteBashTool(workspaceDir: string, timeoutMs = 120_000): ToolLike {
+  return {
+    name: "execute_bash",
+    description: "Execute a bash command in the workspace directory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: { type: "string", description: "Bash command to execute" },
+      },
+      required: ["command"],
+    },
+    process: async (_context, params) => {
+      const command = String(params.command ?? "");
+      if (!command) return { success: false, error: "No command provided" };
+      return new Promise((resolve) => {
+        exec(command, { cwd: workspaceDir, timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+          resolve({
+            success: !error,
+            stdout: stdout ?? "",
+            stderr: stderr ?? "",
+            ...(error ? { error: error.message } : {}),
+          });
+        });
+      });
+    },
+  };
+}
+
+export function makeSetOutputTool(
+  toolName: string,
+  description: string,
+  outputSink: string[],
+  workspaceDir: string
+): ToolLike {
+  return {
+    name: toolName,
+    description,
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Workspace-relative path to the output file." },
+      },
+      required: ["path"],
+    },
+    process: async (_context, params) => {
+      const relPath = String(params.path ?? "");
+      if (!relPath) return { success: false, error: "No path provided" };
+      const absPath = path.resolve(workspaceDir, relPath);
+      if (!absPath.startsWith(path.resolve(workspaceDir))) {
+        return { success: false, error: "Path is outside workspace directory" };
+      }
+      try {
+        await access(absPath);
+      } catch {
+        return { success: false, error: `File not found: ${relPath}` };
+      }
+      outputSink.push(relPath);
+      return { success: true, path: relPath };
+    },
+  };
 }
 
 function resolveApiKey(
