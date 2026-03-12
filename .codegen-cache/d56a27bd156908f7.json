@@ -1,0 +1,546 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ace-step/audio-to-audio",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ace-step/audio-to-audio queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ace-step/audio-to-audio",
+      "category": "audio-to-audio",
+      "thumbnailUrl": "https://fal.media/files/zebra/S5IFY0O4oGvrMRRKtdEVQ_1f8a744311ee4074bf2da4d84ae4491a.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ace-step/audio-to-audio",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ace-step/audio-to-audio/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "AceStepAudioToAudioInput": {
+        "title": "ACEStepAudioToAudioRequest",
+        "type": "object",
+        "properties": {
+          "number_of_steps": {
+            "description": "Number of steps to generate the audio.",
+            "type": "integer",
+            "minimum": 3,
+            "title": "Number Of Steps",
+            "maximum": 60,
+            "examples": [
+              27
+            ],
+            "default": 27
+          },
+          "tags": {
+            "examples": [
+              "lofi, hiphop, drum and bass, trap, chill"
+            ],
+            "description": "Comma-separated list of genre tags to control the style of the generated audio.",
+            "type": "string",
+            "title": "Tags"
+          },
+          "minimum_guidance_scale": {
+            "description": "Minimum guidance scale for the generation after the decay.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Minimum Guidance Scale",
+            "maximum": 200,
+            "examples": [
+              3
+            ],
+            "default": 3
+          },
+          "lyrics": {
+            "description": "Lyrics to be sung in the audio. If not provided or if [inst] or [instrumental] is the content of this field, no lyrics will be sung. Use control structures like [verse], [chorus] and [bridge] to control the structure of the song.",
+            "type": "string",
+            "title": "Lyrics",
+            "default": ""
+          },
+          "tag_guidance_scale": {
+            "description": "Tag guidance scale for the generation.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Tag Guidance Scale",
+            "maximum": 10,
+            "examples": [
+              5
+            ],
+            "default": 5
+          },
+          "original_lyrics": {
+            "examples": [
+              ""
+            ],
+            "description": "Original lyrics of the audio file.",
+            "type": "string",
+            "title": "Original Lyrics",
+            "default": ""
+          },
+          "scheduler": {
+            "enum": [
+              "euler",
+              "heun"
+            ],
+            "description": "Scheduler to use for the generation process.",
+            "type": "string",
+            "title": "Scheduler",
+            "examples": [
+              "euler"
+            ],
+            "default": "euler"
+          },
+          "guidance_scale": {
+            "description": "Guidance scale for the generation.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Guidance Scale",
+            "maximum": 200,
+            "examples": [
+              15
+            ],
+            "default": 15
+          },
+          "guidance_type": {
+            "enum": [
+              "cfg",
+              "apg",
+              "cfg_star"
+            ],
+            "description": "Type of CFG to use for the generation process.",
+            "type": "string",
+            "title": "Guidance Type",
+            "examples": [
+              "apg"
+            ],
+            "default": "apg"
+          },
+          "lyric_guidance_scale": {
+            "description": "Lyric guidance scale for the generation.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Lyric Guidance Scale",
+            "maximum": 10,
+            "examples": [
+              1.5
+            ],
+            "default": 1.5
+          },
+          "edit_mode": {
+            "enum": [
+              "lyrics",
+              "remix"
+            ],
+            "description": "Whether to edit the lyrics only or remix the audio.",
+            "type": "string",
+            "examples": [
+              "remix"
+            ],
+            "title": "Edit Mode",
+            "default": "remix"
+          },
+          "guidance_interval": {
+            "description": "Guidance interval for the generation. 0.5 means only apply guidance in the middle steps (0.25 * infer_steps to 0.75 * infer_steps)",
+            "type": "number",
+            "minimum": 0,
+            "title": "Guidance Interval",
+            "maximum": 1,
+            "examples": [
+              0.5
+            ],
+            "default": 0.5
+          },
+          "guidance_interval_decay": {
+            "description": "Guidance interval decay for the generation. Guidance scale will decay from guidance_scale to min_guidance_scale in the interval. 0.0 means no decay.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Guidance Interval Decay",
+            "maximum": 1,
+            "examples": [
+              0
+            ],
+            "default": 0
+          },
+          "audio_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/ace-step-audio-to-audio.wav"
+            ],
+            "description": "URL of the audio file to be outpainted.",
+            "type": "string",
+            "title": "Audio Url"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducibility. If not provided, a random seed will be used.",
+            "title": "Seed"
+          },
+          "granularity_scale": {
+            "description": "Granularity scale for the generation process. Higher values can reduce artifacts.",
+            "type": "integer",
+            "minimum": -100,
+            "title": "Granularity Scale",
+            "maximum": 100,
+            "examples": [
+              10
+            ],
+            "default": 10
+          },
+          "original_tags": {
+            "examples": [
+              "lofi, hiphop, drum and bass, trap, chill"
+            ],
+            "description": "Original tags of the audio file.",
+            "type": "string",
+            "title": "Original Tags"
+          },
+          "original_seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original seed of the audio file.",
+            "title": "Original Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "audio_url",
+          "edit_mode",
+          "original_tags",
+          "original_lyrics",
+          "tags",
+          "lyrics",
+          "number_of_steps",
+          "seed",
+          "scheduler",
+          "guidance_type",
+          "granularity_scale",
+          "guidance_interval",
+          "guidance_interval_decay",
+          "guidance_scale",
+          "minimum_guidance_scale",
+          "tag_guidance_scale",
+          "lyric_guidance_scale",
+          "original_seed"
+        ],
+        "required": [
+          "tags",
+          "audio_url",
+          "original_tags"
+        ]
+      },
+      "AceStepAudioToAudioOutput": {
+        "title": "ACEStepAudioToAudioResponse",
+        "type": "object",
+        "properties": {
+          "tags": {
+            "examples": [
+              "lofi, hiphop, drum and bass, trap, chill"
+            ],
+            "description": "The genre tags used in the generation process.",
+            "type": "string",
+            "title": "Tags"
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "description": "The random seed used for the generation process.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "lyrics": {
+            "examples": [
+              "[inst]"
+            ],
+            "description": "The lyrics used in the generation process.",
+            "type": "string",
+            "title": "Lyrics"
+          },
+          "audio": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/ace-step-audio-to-audio.wav"
+              }
+            ],
+            "description": "The generated audio file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "audio",
+          "seed",
+          "tags",
+          "lyrics"
+        ],
+        "required": [
+          "audio",
+          "seed",
+          "tags",
+          "lyrics"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ace-step/audio-to-audio/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ace-step/audio-to-audio/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ace-step/audio-to-audio": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AceStepAudioToAudioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ace-step/audio-to-audio/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AceStepAudioToAudioOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

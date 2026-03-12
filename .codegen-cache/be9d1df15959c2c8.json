@@ -1,0 +1,534 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/fast-sdxl",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/fast-sdxl queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/fast-sdxl",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/fast-sdxl.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/fast-sdxl",
+      "documentationUrl": "https://fal.ai/models/fal-ai/fast-sdxl/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FastSdxlInput": {
+        "title": "TextToImageInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "photo of a rhino dressed suit and tie sitting at a table in a bar with a bar stools, award winning photography, Elke vogelsang",
+              "Photo of a classic red mustang car parked in las vegas strip at night"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results."
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The size of the generated image.",
+            "default": "square_hd"
+          },
+          "embeddings": {
+            "title": "Embeddings",
+            "type": "array",
+            "description": "The list of embeddings to use.",
+            "items": {
+              "$ref": "#/components/schemas/Embedding"
+            },
+            "default": []
+          },
+          "expand_prompt": {
+            "title": "Expand Prompt",
+            "type": "boolean",
+            "description": "If set to true, the prompt will be expanded with additional prompts.",
+            "default": false
+          },
+          "loras": {
+            "title": "Loras",
+            "type": "array",
+            "description": "The list of LoRA weights to use.",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "default": []
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "title": "Guidance scale (CFG)",
+            "type": "number",
+            "maximum": 20,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 7.5
+          },
+          "negative_prompt": {
+            "examples": [
+              "cartoon, illustration, animation. face. male, female",
+              "ugly, deformed"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "default": ""
+          },
+          "format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "title": "Format",
+            "type": "string",
+            "description": "The format of the generated image.",
+            "default": "jpeg"
+          },
+          "num_images": {
+            "minimum": 1,
+            "title": "Num Images",
+            "type": "integer",
+            "maximum": 8,
+            "description": "The number of images to generate.",
+            "default": 1
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "safety_checker_version": {
+            "enum": [
+              "v1",
+              "v2"
+            ],
+            "title": "Safety Checker Version",
+            "type": "string",
+            "description": "The version of the safety checker to use. v1 is the default CompVis safety checker. v2 uses a custom ViT model.",
+            "default": "v1"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string",
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "default": ""
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        ",
+            "default": null
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "maximum": 50,
+            "description": "The number of inference steps to perform.",
+            "default": 25
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "FastSdxlOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the image."
+          },
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "The generated image files info.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          },
+          "has_nsfw_concepts": {
+            "title": "Has Nsfw Concepts",
+            "type": "array",
+            "description": "Whether the generated images contain NSFW concepts.",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "timings": {
+            "title": "Timings",
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        }
+      },
+      "Embedding": {
+        "title": "Embedding",
+        "type": "object",
+        "properties": {
+          "tokens": {
+            "title": "Tokens",
+            "type": "array",
+            "description": "The list of tokens to use for the embedding.",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "<s0>",
+              "<s1>"
+            ]
+          },
+          "path": {
+            "examples": [
+              "https://civitai.com/api/download/models/135931",
+              "https://filebin.net/3chfqasxpqu21y8n/my-custom-lora-v1.safetensors"
+            ],
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the embedding weights."
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "LoraWeight": {
+        "title": "LoraWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "examples": [
+              "https://civitai.com/api/download/models/135931",
+              "https://filebin.net/3chfqasxpqu21y8n/my-custom-lora-v1.safetensors"
+            ],
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the LoRA weights. Or HF model name."
+          },
+          "scale": {
+            "minimum": 0,
+            "title": "Scale",
+            "type": "number",
+            "maximum": 1,
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "default": 1
+          },
+          "force": {
+            "title": "Force",
+            "type": "boolean",
+            "description": "If set to true, the embedding will be forced to be used.",
+            "default": false
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/fast-sdxl/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-sdxl/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-sdxl": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FastSdxlInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-sdxl/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastSdxlOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,384 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/omnipart",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/omnipart queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/omnipart",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/panda/bGISRmmkq0DLUpmIwgssZ_96fa520c425143ae9fba44ba00ad0c26.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/omnipart",
+      "documentationUrl": "https://fal.ai/models/fal-ai/omnipart/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "OmnipartInput": {
+        "title": "OmnipartInput",
+        "type": "object",
+        "properties": {
+          "input_image_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/koala/SrtReV-jnY4YUPscIgJhx_robot.png"
+            ],
+            "title": "Input Image Url",
+            "type": "string",
+            "description": "URL of image to use while generating the 3D model."
+          },
+          "parts": {
+            "title": "Parts",
+            "type": "string",
+            "description": "Specify which segments to merge (e.g., '0,1;3,4' merges segments 0&1 together and 3&4 together)",
+            "default": ""
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+            "default": 765464
+          },
+          "minimum_segment_size": {
+            "description": "Minimum segment size (pixels) for the model.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "title": "Minimum Segment Size",
+            "default": 2000
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "Guidance scale for the model.",
+            "default": 7.5
+          }
+        },
+        "x-fal-order-properties": [
+          "input_image_url",
+          "minimum_segment_size",
+          "seed",
+          "guidance_scale",
+          "parts"
+        ],
+        "required": [
+          "input_image_url"
+        ]
+      },
+      "OmnipartOutput": {
+        "title": "MultiViewObjectOutput",
+        "type": "object",
+        "properties": {
+          "full_model_mesh": {
+            "examples": [
+              {
+                "file_size": 22524044,
+                "file_name": "mesh_textured.glb",
+                "content_type": "application/octet-stream",
+                "url": "https://v3b.fal.media/files/b/elephant/xkEwNvSv9JePj2xxulYlw_mesh_textured.glb"
+              }
+            ],
+            "description": "Generated 3D object file.",
+            "$ref": "#/components/schemas/File"
+          },
+          "output_zip": {
+            "examples": [
+              {
+                "file_size": 76129988,
+                "file_name": "output.tar.gz",
+                "content_type": "application/octet-stream",
+                "url": "https://v3b.fal.media/files/b/penguin/MCEWcf7qRRrUla71hf1Rc_output.tar.gz"
+              }
+            ],
+            "description": "All outputs file.",
+            "$ref": "#/components/schemas/File"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed value used for generation."
+          },
+          "model_mesh": {
+            "examples": [
+              {
+                "file_size": 22860804,
+                "file_name": "exploded_parts.glb",
+                "content_type": "application/octet-stream",
+                "url": "https://v3b.fal.media/files/b/zebra/RWYVShZ2JINskyiH9rjcJ_exploded_parts.glb"
+              }
+            ],
+            "description": "Generated 3D object file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "model_mesh",
+          "full_model_mesh",
+          "output_zip",
+          "seed"
+        ],
+        "required": [
+          "model_mesh",
+          "full_model_mesh",
+          "output_zip",
+          "seed"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/omnipart/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/omnipart/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/omnipart": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OmnipartInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/omnipart/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OmnipartOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

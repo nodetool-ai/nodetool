@@ -1,0 +1,548 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kling-image/o3/image-to-image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kling-image/o3/image-to-image queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kling-image/o3/image-to-image",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8d24a0/FX4gbFjRsBJPDJ2WkPMFa_9f3aa39f5fd84be395b5ce3dee7e4dd1.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kling-image/o3/image-to-image",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kling-image/o3/image-to-image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "KlingImageO3ImageToImageInput": {
+        "title": "O3ImageToImageRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Transform into photorealistic 3D render, add proper lighting and shadows, realistic materials and textures, maintain exact proportions and design from sketch, product visualization quality"
+            ],
+            "description": "Text prompt for image generation. Reference images using @Image1, @Image2, etc. (or @Image if only one image). Max 2500 characters.",
+            "type": "string",
+            "title": "Prompt",
+            "maxLength": 2500
+          },
+          "resolution": {
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "description": "Image generation resolution. 1K: standard, 2K: high-res, 4K: ultra high-res.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "1K"
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "Number of images to generate (1-9). Only used when result_type is 'single'.",
+            "type": "integer",
+            "maximum": 9,
+            "title": "Num Images",
+            "default": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "21:9",
+              "auto"
+            ],
+            "description": "Aspect ratio of generated images. 'auto' intelligently determines based on input content.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "auto"
+          },
+          "series_amount": {
+            "anyOf": [
+              {
+                "minimum": 2,
+                "maximum": 9,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Number of images in series (2-9). Only used when result_type is 'series'.",
+            "title": "Series Amount"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "png"
+          },
+          "result_type": {
+            "enum": [
+              "single",
+              "series"
+            ],
+            "description": "Result type. 'single' for one image, 'series' for a series of related images.",
+            "type": "string",
+            "title": "Result Type",
+            "default": "single"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "elements": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ElementInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional: Elements (characters/objects) for face control. Reference in prompt as @Element1, @Element2, etc.",
+            "title": "Elements"
+          },
+          "image_urls": {
+            "examples": [
+              [
+                "https://v3b.fal.media/files/b/0a8d06d1/FTrwBsV9WI5twqMPkqvRh_19db9852c5ed4a109d81c52d27c9e433.png"
+              ]
+            ],
+            "description": "List of reference images. Reference images in prompt using @Image1, @Image2, etc. (1-indexed). Max 10 images.",
+            "type": "array",
+            "title": "Image Urls",
+            "items": {
+              "x-fal": {
+                "max_aspect_ratio": 2.5,
+                "timeout": 20,
+                "min_aspect_ratio": 0.4,
+                "min_height": 300,
+                "min_width": 300,
+                "max_file_size": 10485760
+              },
+              "type": "string",
+              "_fal_ui_field": "image",
+              "limit_description": "Max file size: 10.0MB, Min width: 300px, Min height: 300px, Min aspect ratio: 0.40, Max aspect ratio: 2.50, Timeout: 20.0s"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_urls",
+          "elements",
+          "resolution",
+          "result_type",
+          "num_images",
+          "series_amount",
+          "aspect_ratio",
+          "output_format",
+          "sync_mode"
+        ],
+        "description": "Request model for Kling O3 Image-to-Image Generation.",
+        "required": [
+          "prompt",
+          "image_urls"
+        ]
+      },
+      "KlingImageO3ImageToImageOutput": {
+        "title": "I2IO3ImageOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "file_size": 793847,
+                  "file_name": "19db9852c5ed4a109d81c52d27c9e433.png",
+                  "content_type": "image/png",
+                  "url": "https://v3b.fal.media/files/b/0a8d06d1/FTrwBsV9WI5twqMPkqvRh_19db9852c5ed4a109d81c52d27c9e433.png"
+                }
+              ]
+            ],
+            "description": "Generated images",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "description": "Output model for Kling O3 Image Generation.",
+        "required": [
+          "images"
+        ]
+      },
+      "ElementInput": {
+        "title": "ElementInput",
+        "type": "object",
+        "properties": {
+          "reference_image_urls": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "x-fal": {
+                    "max_aspect_ratio": 2.5,
+                    "timeout": 20,
+                    "min_aspect_ratio": 0.4,
+                    "min_height": 300,
+                    "min_width": 300,
+                    "max_file_size": 10485760
+                  },
+                  "type": "string",
+                  "_fal_ui_field": "image",
+                  "ui": {
+                    "field": "image"
+                  },
+                  "limit_description": "Max file size: 10.0MB, Min width: 300px, Min height: 300px, Min aspect ratio: 0.40, Max aspect ratio: 2.50, Timeout: 20.0s"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additional reference images from different angles. 0-3 images supported. Optional.",
+            "title": "Reference Image Urls"
+          },
+          "frontal_image_url": {
+            "anyOf": [
+              {
+                "x-fal": {
+                  "max_aspect_ratio": 2.5,
+                  "timeout": 20,
+                  "min_aspect_ratio": 0.4,
+                  "min_height": 300,
+                  "min_width": 300,
+                  "max_file_size": 10485760
+                },
+                "type": "string",
+                "_fal_ui_field": "image",
+                "ui": {
+                  "field": "image"
+                },
+                "limit_description": "Max file size: 10.0MB, Min width: 300px, Min height: 300px, Min aspect ratio: 0.40, Max aspect ratio: 2.50, Timeout: 20.0s"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The frontal image of the element (main view). Optional.",
+            "title": "Frontal Image Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "frontal_image_url",
+          "reference_image_urls"
+        ],
+        "description": "Element input for image generation with face/character control.\n\nCreate an element by providing frontal_image_url (and optionally reference_image_urls).\nAll fields are optional - provide what you have available."
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kling-image/o3/image-to-image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-image/o3/image-to-image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-image/o3/image-to-image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KlingImageO3ImageToImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-image/o3/image-to-image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KlingImageO3ImageToImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

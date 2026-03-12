@@ -1,0 +1,374 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for moonvalley/marey/t2v",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the moonvalley/marey/t2v queue.",
+    "x-fal-metadata": {
+      "endpointId": "moonvalley/marey/t2v",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://fal.media/files/zebra/XqLulT-Va4wv0SoknC72P_504081bd51c84280b787bc27906b490e.jpg",
+      "playgroundUrl": "https://fal.ai/models/moonvalley/marey/t2v",
+      "documentationUrl": "https://fal.ai/models/moonvalley/marey/t2v/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MareyT2vInput": {
+        "title": "MareyInputT2V",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Detailed Description: A small, white paper boat, with one corner engulfed in bright orange flames, drifts precariously across a dark puddle on wet asphalt. As raindrops fall, they create ever-expanding ripples on the water's surface, gently rocking the fragile vessel and causing the fiery reflection below to dance and shimmer. The flickering flame slowly consumes the paper, charring the edges black as the boat becomes waterlogged, beginning to sink in a poignant slow-motion battle between fire and water. Background: The background is softly blurred, suggesting an overcast day with out-of-focus foliage, enhancing the scene's intimate and melancholic mood. Middleground: Raindrops continuously strike the puddle's surface, creating concentric ripples that gently push the boat along its short, determined voyage. Foreground: The burning paper boat floats in sharp focus, its bright, flickering flame casting a warm, dramatic glow that reflects and distorts on the dark, wet surface of the asphalt."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate a video from"
+          },
+          "duration": {
+            "enum": [
+              "5s",
+              "10s"
+            ],
+            "title": "Duration",
+            "type": "string",
+            "description": "The duration of the generated video.",
+            "default": "5s"
+          },
+          "dimensions": {
+            "enum": [
+              "1920x1080",
+              "1152x1152",
+              "1536x1152",
+              "1152x1536"
+            ],
+            "title": "Dimensions",
+            "type": "string",
+            "description": "The dimensions of the generated video in width x height format.",
+            "default": "1920x1080"
+          },
+          "guidance_scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guidance Scale",
+            "description": "Controls how strongly the generation is guided by the prompt (0-20). Higher values follow the prompt more closely."
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Seed for random number generation. Use -1 for random seed each run.",
+            "default": -1
+          },
+          "negative_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Prompt",
+            "description": "Negative prompt used to guide the model away from undesirable features.",
+            "default": "<synthetic> <scene cut> low-poly, flat shader, bad rigging, stiff animation, uncanny eyes, low-quality textures, looping glitch, cheap effect, overbloom, bloom spam, default lighting, game asset, stiff face, ugly specular, AI artifacts"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "dimensions",
+          "duration",
+          "negative_prompt",
+          "seed",
+          "guidance_scale"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "MareyT2vOutput": {
+        "title": "MareyOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "description": "The generated video.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/moonvalley/marey/t2v/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/t2v/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/t2v": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MareyT2vInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/t2v/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MareyT2vOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

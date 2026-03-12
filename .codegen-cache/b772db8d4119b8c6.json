@@ -1,0 +1,395 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/longcat-single-avatar/audio-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/longcat-single-avatar/audio-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/longcat-single-avatar/audio-to-video",
+      "category": "audio-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8866d6/omvktK-AVCuPF0QU33P4A_8b2b938566bf4a85830f5b90b84180cf.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/longcat-single-avatar/audio-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/longcat-single-avatar/audio-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LongcatSingleAvatarAudioToVideoInput": {
+        "description": "Request model for audio-to-video generation.",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A person is talking naturally with natural expressions and movements."
+            ],
+            "description": "The prompt to guide the video generation.",
+            "type": "string",
+            "title": "Prompt",
+            "default": "A person is talking naturally with natural expressions and movements."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "Resolution of the generated video (480p or 720p). Billing is per video-second (16 frames): 480p is 1 unit per second and 720p is 4 units per second.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "480p"
+          },
+          "enable_safety_checker": {
+            "description": "Whether to enable safety checker.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "audio_guidance_scale": {
+            "minimum": 1,
+            "description": "The audio guidance scale. Higher values may lead to exaggerated mouth movements.",
+            "type": "number",
+            "title": "Audio Guidance Scale",
+            "maximum": 10,
+            "default": 4
+          },
+          "num_segments": {
+            "minimum": 1,
+            "description": "Number of video segments to generate. Each segment adds ~5 seconds of video. First segment is ~5.8s, additional segments are 5s each.",
+            "type": "integer",
+            "title": "Number of Segments",
+            "maximum": 10,
+            "default": 1
+          },
+          "audio_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/0a87a827/QDAEdCQOPXxYWPUl2fyTY_4421psm.mp3"
+            ],
+            "description": "The URL of the audio file to drive the avatar.",
+            "type": "string",
+            "title": "Audio URL"
+          },
+          "num_inference_steps": {
+            "minimum": 10,
+            "description": "The number of inference steps to use.",
+            "type": "integer",
+            "title": "Number of Inference Steps",
+            "maximum": 100,
+            "default": 30
+          },
+          "seed": {
+            "description": "The seed for the random number generator.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "description": "The negative prompt to avoid in the video generation.",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
+          },
+          "text_guidance_scale": {
+            "minimum": 1,
+            "description": "The text guidance scale for classifier-free guidance.",
+            "type": "number",
+            "title": "Text Guidance Scale",
+            "maximum": 10,
+            "default": 4
+          }
+        },
+        "title": "AudioToVideoRequest",
+        "x-fal-order-properties": [
+          "audio_url",
+          "prompt",
+          "negative_prompt",
+          "num_inference_steps",
+          "text_guidance_scale",
+          "audio_guidance_scale",
+          "resolution",
+          "num_segments",
+          "seed",
+          "enable_safety_checker"
+        ],
+        "required": [
+          "audio_url"
+        ]
+      },
+      "LongcatSingleAvatarAudioToVideoOutput": {
+        "description": "Response model for audio-to-video generation (no reference image).",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "examples": [
+              424911732
+            ],
+            "description": "The seed used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "content_type": "video/mp4",
+                "url": "https://v3b.fal.media/files/b/0a879d5d/UfaJ-sridj9C6IjSNWLYk_output_27368fcd87a34a0fb2929ed926cd71f0.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "title": "Video",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "title": "AudioToVideoResponse",
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "type": "integer",
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "type": "string",
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "file_data": {
+            "format": "binary",
+            "description": "File data",
+            "type": "string",
+            "title": "File Data"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/longcat-single-avatar/audio-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/longcat-single-avatar/audio-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/longcat-single-avatar/audio-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LongcatSingleAvatarAudioToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/longcat-single-avatar/audio-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LongcatSingleAvatarAudioToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

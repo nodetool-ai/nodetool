@@ -1,0 +1,519 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/sam-3/video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/sam-3/video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/sam-3/video",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/panda/sg8Fv6dzqdXAAgbAvxTta_814b4d079f5942d1b6cfb0f90ece9f36.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/sam-3/video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/sam-3/video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Sam3VideoInput": {
+        "title": "SAM3VideoInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "person",
+              "person, cloth"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Text prompt for segmentation. Use commas to track multiple objects (e.g., 'person, cloth').",
+            "default": ""
+          },
+          "video_url": {
+            "description": "The URL of the video to be segmented.",
+            "type": "string",
+            "title": "Video Url"
+          },
+          "detection_threshold": {
+            "minimum": 0.1,
+            "maximum": 1,
+            "type": "number",
+            "description": "Detection confidence threshold (0.0-1.0). Lower = more detections but less precise. ",
+            "title": "Detection Threshold",
+            "default": 0.5
+          },
+          "box_prompts": {
+            "description": "List of box prompt coordinates (x_min, y_min, x_max, y_max).",
+            "type": "array",
+            "title": "Box Prompts",
+            "items": {
+              "$ref": "#/components/schemas/BoxPromptBase"
+            },
+            "default": []
+          },
+          "point_prompts": {
+            "description": "List of point prompts",
+            "type": "array",
+            "title": "Point Prompts",
+            "items": {
+              "$ref": "#/components/schemas/PointPromptBase"
+            },
+            "default": []
+          },
+          "apply_mask": {
+            "description": "Apply the mask on the video.",
+            "type": "boolean",
+            "title": "Apply Mask",
+            "default": true
+          },
+          "text_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "[DEPRECATED] Use 'prompt' instead. Kept for backward compatibility.",
+            "title": "Text Prompt",
+            "deprecated": true
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "prompt",
+          "text_prompt",
+          "point_prompts",
+          "box_prompts",
+          "apply_mask",
+          "detection_threshold"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "Sam3VideoOutput": {
+        "title": "SAM3VideoOutput",
+        "type": "object",
+        "properties": {
+          "boundingbox_frames_zip": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Zip file containing per-frame bounding box overlays."
+          },
+          "video": {
+            "examples": [
+              "https://fal.media/files/monkey/5BLHmbX3qxu5cD5gQzTqw_output.mp4"
+            ],
+            "description": "The segmented video.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "boundingbox_frames_zip"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "BoxPromptBase": {
+        "title": "BoxPromptBase",
+        "type": "object",
+        "properties": {
+          "y_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Y Min Coordinate of the box",
+            "title": "Y Min"
+          },
+          "object_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional object identifier. Boxes sharing an object id refine the same object.",
+            "title": "Object Id"
+          },
+          "x_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "X Max Coordinate of the box",
+            "title": "X Max"
+          },
+          "x_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "X Min Coordinate of the box",
+            "title": "X Min"
+          },
+          "y_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Y Max Coordinate of the box",
+            "title": "Y Max"
+          }
+        },
+        "x-fal-order-properties": [
+          "x_min",
+          "y_min",
+          "x_max",
+          "y_max",
+          "object_id"
+        ]
+      },
+      "PointPromptBase": {
+        "title": "PointPromptBase",
+        "type": "object",
+        "properties": {
+          "y": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Y Coordinate of the prompt",
+            "title": "Y"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "X Coordinate of the prompt",
+            "title": "X"
+          },
+          "object_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional object identifier. Prompts sharing an object id refine the same object.",
+            "title": "Object Id"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "enum": [
+                  0,
+                  1
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1 for foreground, 0 for background",
+            "title": "Label"
+          }
+        },
+        "x-fal-order-properties": [
+          "x",
+          "y",
+          "label",
+          "object_id"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/sam-3/video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Sam3VideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/sam-3/video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sam3VideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

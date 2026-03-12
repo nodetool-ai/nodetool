@@ -24,8 +24,14 @@ import {
   SQLiteAdapterFactory,
   setGlobalAdapterResolver,
   Secret,
+  Workflow,
 } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
+import { WorkflowRunner } from "@nodetool/kernel";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerFalNodes } from "@nodetool/fal-nodes";
+import { ProcessingContext } from "@nodetool/runtime";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -218,17 +224,91 @@ workflows
   });
 
 workflows
-  .command("run <workflow_id>")
-  .description("Run a workflow")
-  .option("--api-url <url>", "API base URL", process.env["NODETOOL_API_URL"] ?? "http://localhost:7777")
+  .command("run <workflow_id_or_file>")
+  .description("Run a workflow by ID (from DB) or JSON file path")
   .option("--params <json>", "JSON params string")
   .option("--json", "Output as JSON")
-  .action(async (workflowId, opts) => {
+  .action(async (idOrFile: string, opts: { params?: string; json?: boolean }) => {
     try {
+      await setupDb();
+      let graph: { nodes: any[]; edges: any[] };
+      let workflowId: string | null = null;
       const params = opts.params ? JSON.parse(opts.params) as Record<string, unknown> : {};
-      const data = await apiPost(opts.apiUrl, `/api/workflows/${workflowId}/run`, { params });
-      if (opts.json) { asJson(data); return; }
-      console.log(JSON.stringify(data, null, 2));
+
+      // Determine if argument is a file path or workflow ID
+      if (idOrFile.endsWith(".json") || idOrFile.includes("/") || idOrFile.includes("\\")) {
+        const { readFileSync } = await import("node:fs");
+        const raw = JSON.parse(readFileSync(idOrFile, "utf8"));
+        graph = raw.graph ?? raw;
+        workflowId = raw.workflow_id ?? raw.id ?? null;
+        if (raw.params) Object.assign(params, raw.params);
+      } else {
+        // Load from database
+        const wf = await Workflow.get(idOrFile);
+        if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+        graph = (wf as any).graph;
+        workflowId = idOrFile;
+      }
+
+      if (!graph?.nodes || !graph?.edges) {
+        throw new Error("Invalid workflow: missing nodes or edges");
+      }
+
+      // Normalize graph: convert node.data → node.properties (kernel format)
+      graph.nodes = graph.nodes.map((n: Record<string, unknown>) => {
+        if (n.properties === undefined && n.data !== undefined) {
+          const { data, ...rest } = n;
+          return { ...rest, properties: data };
+        }
+        return n;
+      });
+
+      // Set up node registry
+      const registry = new NodeRegistry();
+      registerBaseNodes(registry);
+      registerFalNodes(registry);
+
+      // Create processing context with secret resolver
+      const jobId = `job-${Date.now()}`;
+      const context = new ProcessingContext({
+        jobId,
+        workflowId,
+        userId: "1",
+        secretResolver: getSecret,
+      });
+
+      // Run workflow
+      const runner = new WorkflowRunner(jobId, {
+        resolveExecutor: (node: { id: string; type: string }) => {
+          if (!registry.has(node.type)) throw new Error(`Unknown node type: ${node.type}`);
+          return registry.resolve(node);
+        },
+        executionContext: context,
+      });
+
+      console.error(`Running workflow${workflowId ? ` ${workflowId}` : ""}...`);
+
+      const result = await runner.run(
+        { job_id: jobId, workflow_id: workflowId ?? undefined, params },
+        graph,
+      );
+
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(`Status: ${result.status}`);
+        if (result.error) console.error(`Error: ${result.error}`);
+        for (const [nodeId, outputs] of Object.entries(result.outputs ?? {})) {
+          if (Array.isArray(outputs) && outputs.length > 0) {
+            console.log(`\nNode ${nodeId}:`);
+            for (const out of outputs) {
+              console.log(`  ${JSON.stringify(out).slice(0, 200)}`);
+            }
+          }
+        }
+      }
+
+      process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) { console.error(String(e)); process.exit(1); }
   });
 

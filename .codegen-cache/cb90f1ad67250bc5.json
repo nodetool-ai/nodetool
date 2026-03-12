@@ -1,0 +1,604 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ltx-video-lora/multiconditioning",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ltx-video-lora/multiconditioning queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ltx-video-lora/multiconditioning",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Training.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ltx-video-lora/multiconditioning",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ltx-video-lora/multiconditioning/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LtxVideoLoraMulticonditioningInput": {
+        "description": "Request model for text-to-video generation with multiple conditions.",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A vibrant, abstract composition featuring a person with outstretched arms, rendered in a kaleidoscope of colors against a deep, dark background. The figure is composed of intricate, swirling patterns reminiscent of a mosaic, with hues of orange, yellow, blue, and green that evoke the style of artists such as Wassily Kandinsky or Bridget Riley. The camera zooms into the face striking portrait of a man, reimagined through the lens of old-school video-game graphics. The subject's face is rendered in a kaleidoscope of colors, with bold blues and reds set against a vibrant yellow backdrop. His dark hair is pulled back, framing his profile in a dramatic pose"
+            ],
+            "description": "The prompt to generate the video from.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "number_of_steps": {
+            "description": "The number of inference steps to use.",
+            "type": "integer",
+            "examples": [
+              30
+            ],
+            "maximum": 50,
+            "title": "Number Of Steps",
+            "minimum": 1,
+            "default": 30
+          },
+          "frame_rate": {
+            "description": "The frame rate of the video.",
+            "type": "integer",
+            "examples": [
+              25
+            ],
+            "maximum": 60,
+            "title": "Frame Rate",
+            "minimum": 1,
+            "default": 25
+          },
+          "reverse_video": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to reverse the video.",
+            "type": "boolean",
+            "title": "Reverse Video",
+            "default": false
+          },
+          "expand_prompt": {
+            "examples": [
+              false
+            ],
+            "description": "Whether to expand the prompt using the LLM.",
+            "type": "boolean",
+            "title": "Expand Prompt",
+            "default": false
+          },
+          "number_of_frames": {
+            "description": "The number of frames in the video.",
+            "type": "integer",
+            "examples": [
+              89
+            ],
+            "maximum": 161,
+            "title": "Number Of Frames",
+            "minimum": 9,
+            "default": 89
+          },
+          "loras": {
+            "description": "The LoRA weights to use for generation.",
+            "type": "array",
+            "title": "Loras",
+            "items": {
+              "$ref": "#/components/schemas/LoRAWeight"
+            },
+            "default": []
+          },
+          "images": {
+            "description": "The image conditions to use for generation.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageCondition"
+            },
+            "examples": [
+              [
+                {
+                  "strength": 1,
+                  "start_frame_number": 0,
+                  "image_url": "https://storage.googleapis.com/falserverless/model_tests/ltx/NswO1P8sCLzrh1WefqQFK_9a6bdbfa54b944c9a770338159a113fd.jpg"
+                },
+                {
+                  "strength": 1,
+                  "start_frame_number": 80,
+                  "image_url": "https://storage.googleapis.com/falserverless/model_tests/ltx/YAPOGvmS2tM_Krdp7q6-d_267c97e017c34f679844a4477dfcec38.jpg"
+                }
+              ]
+            ],
+            "title": "Images",
+            "default": []
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "description": "Whether to enable the safety checker.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "negative_prompt": {
+            "description": "The negative prompt to use.",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "blurry, low quality, low resolution, inconsistent motion, jittery, distorted"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "1:1",
+              "9:16",
+              "auto"
+            ],
+            "description": "The aspect ratio of the video.",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "examples": [
+              "auto"
+            ],
+            "default": "auto"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "description": "The resolution of the video.",
+            "type": "string",
+            "title": "Resolution",
+            "examples": [
+              "720p"
+            ],
+            "default": "720p"
+          },
+          "videos": {
+            "description": "The video conditions to use for generation.",
+            "type": "array",
+            "title": "Videos",
+            "items": {
+              "$ref": "#/components/schemas/VideoCondition"
+            },
+            "default": []
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed to use for generation.",
+            "title": "Seed"
+          }
+        },
+        "title": "MulticonditioningVideoInput",
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "loras",
+          "resolution",
+          "aspect_ratio",
+          "number_of_frames",
+          "number_of_steps",
+          "frame_rate",
+          "seed",
+          "expand_prompt",
+          "reverse_video",
+          "enable_safety_checker",
+          "images",
+          "videos"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "LtxVideoLoraMulticonditioningOutput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "seed",
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A vibrant, abstract composition featuring a person with outstretched arms, rendered in a kaleidoscope of colors against a deep, dark background. The figure is composed of intricate, swirling patterns reminiscent of a mosaic, with hues of orange, yellow, blue, and green that evoke the style of artists such as Wassily Kandinsky or Bridget Riley. The camera zooms into the face striking portrait of a man, reimagined through the lens of old-school video-game graphics. The subject's face is rendered in a kaleidoscope of colors, with bold blues and reds set against a vibrant yellow backdrop. His dark hair is pulled back, framing his profile in a dramatic pose"
+            ],
+            "description": "The prompt used for generation.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "seed": {
+            "description": "The seed used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/gallery/ltx-multicondition.mp4"
+              }
+            ],
+            "description": "The generated video.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "MulticonditioningVideoOutput",
+        "required": [
+          "prompt",
+          "seed",
+          "video"
+        ]
+      },
+      "LoRAWeight": {
+        "description": "LoRA weight to use for generation.",
+        "type": "object",
+        "properties": {
+          "path": {
+            "description": "URL or path to the LoRA weights.",
+            "type": "string",
+            "title": "Path"
+          },
+          "scale": {
+            "minimum": 0,
+            "description": "Scale of the LoRA weight. This is a multiplier applied to the LoRA weight when loading it.",
+            "type": "number",
+            "maximum": 4,
+            "title": "Scale",
+            "default": 1
+          },
+          "weight_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Name of the LoRA weight. Only used if `path` is a HuggingFace repository, and is only required when the repository contains multiple LoRA weights.",
+            "title": "Weight Name"
+          }
+        },
+        "title": "LoRAWeight",
+        "x-fal-order-properties": [
+          "path",
+          "weight_name",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "ImageCondition": {
+        "description": "Image condition to use for generation.",
+        "type": "object",
+        "properties": {
+          "strength": {
+            "minimum": 0,
+            "description": "The strength of the condition.",
+            "type": "number",
+            "maximum": 1,
+            "title": "Strength",
+            "default": 1
+          },
+          "start_frame_number": {
+            "minimum": 0,
+            "description": "The frame number to start the condition on.",
+            "type": "integer",
+            "maximum": 160,
+            "title": "Start Frame Number",
+            "default": 0
+          },
+          "image_url": {
+            "description": "The URL of the image to use as input.",
+            "type": "string",
+            "title": "Image Url"
+          }
+        },
+        "title": "ImageCondition",
+        "x-fal-order-properties": [
+          "image_url",
+          "start_frame_number",
+          "strength"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "VideoCondition": {
+        "description": "Video condition to use for generation.",
+        "type": "object",
+        "properties": {
+          "strength": {
+            "minimum": 0,
+            "description": "The strength of the condition.",
+            "type": "number",
+            "maximum": 1,
+            "title": "Strength",
+            "default": 1
+          },
+          "video_url": {
+            "description": "The URL of the video to use as input.",
+            "type": "string",
+            "title": "Video Url"
+          },
+          "start_frame_number": {
+            "minimum": 0,
+            "description": "The frame number to start the condition on.",
+            "type": "integer",
+            "maximum": 160,
+            "title": "Start Frame Number",
+            "default": 0
+          }
+        },
+        "title": "VideoCondition",
+        "x-fal-order-properties": [
+          "video_url",
+          "start_frame_number",
+          "strength"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ltx-video-lora/multiconditioning/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-lora/multiconditioning/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-lora/multiconditioning": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LtxVideoLoraMulticonditioningInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-lora/multiconditioning/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LtxVideoLoraMulticonditioningOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

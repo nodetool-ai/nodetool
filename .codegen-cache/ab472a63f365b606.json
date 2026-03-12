@@ -1,0 +1,374 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for moonvalley/marey/motion-transfer",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the moonvalley/marey/motion-transfer queue.",
+    "x-fal-metadata": {
+      "endpointId": "moonvalley/marey/motion-transfer",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://fal.media/files/koala/109Ropx2Ejswcp0dNuahi_5a78312f31ce4aa4b33f7be5953c2d95.jpg",
+      "playgroundUrl": "https://fal.ai/models/moonvalley/marey/motion-transfer",
+      "documentationUrl": "https://fal.ai/models/moonvalley/marey/motion-transfer/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MareyMotionTransferInput": {
+        "title": "MareyInputMotionTransfer",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Detailed Description: A fast, smooth dolly shot glides forward at water level through a monumental, minimalist colonnade. The imposing, symmetrical rows of brutalist marble columns rush past on either side, their strong vertical lines creating a sense of powerful, constant motion. The dark, glassy water of a central pool perfectly reflects the towering structures, with gentle ripples disturbing the mirror image as the camera advances. The scene is cinematic and moody, with the light-colored stone contrasting against the dark water and the pale sky visible at the far end of the architectural tunnel. shot on 35mm, film, organic, analog, motion blur\n\nBackground: A pale, overcast sky and a distant treeline are framed by the opening at the end of the colonnade, growing larger as the camera moves forward.\n\nMiddleground: The two rows of massive, geometric columns recede into the distance, their uniform shapes creating a hypnotic, rhythmic pattern that rushes past the lens.\n\nForeground: The camera skims just above the surface of the dark, rippling water, which reflects the blurred motion of the columns passing on the left and right."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate a video from"
+          },
+          "video_url": {
+            "examples": [
+              "https://d1kaxrqq3vfrw5.cloudfront.net/fal-launch-assets/guide-assets/fal-motion-transfer-input-5s.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "The URL of the video to use as the control video."
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Seed for random number generation. Use -1 for random seed each run.",
+            "default": -1
+          },
+          "reference_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Image Url",
+            "description": "Optional reference image URL to use for pose control or as a starting frame"
+          },
+          "negative_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Prompt",
+            "description": "Negative prompt used to guide the model away from undesirable features.",
+            "default": "<synthetic> <scene cut> low-poly, flat shader, bad rigging, stiff animation, uncanny eyes, low-quality textures, looping glitch, cheap effect, overbloom, bloom spam, default lighting, game asset, stiff face, ugly specular, AI artifacts"
+          },
+          "first_frame_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Frame Image Url",
+            "description": "Optional first frame image URL to use as the first frame of the generated video",
+            "default": "https://video-editor-files-prod.s3.us-east-2.amazonaws.com/users/1e4d46df-0702-4491-95ce-763592f33f34/uploaded-images/9b9dce1c-abd0-46c0-bac9-9454f8893b06/original"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "video_url",
+          "first_frame_image_url",
+          "reference_image_url",
+          "negative_prompt",
+          "seed"
+        ],
+        "required": [
+          "prompt",
+          "video_url"
+        ]
+      },
+      "MareyMotionTransferOutput": {
+        "title": "MareyOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "description": "The generated video.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/moonvalley/marey/motion-transfer/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/motion-transfer/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/motion-transfer": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MareyMotionTransferInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moonvalley/marey/motion-transfer/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MareyMotionTransferOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

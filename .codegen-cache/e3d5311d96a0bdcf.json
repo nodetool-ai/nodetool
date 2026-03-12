@@ -1,0 +1,408 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for openrouter/router",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the openrouter/router queue.",
+    "x-fal-metadata": {
+      "endpointId": "openrouter/router",
+      "category": "llm",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/rabbit/ZNwvLfWhMW6FsYU4bwn2N_365de1c02b7c4c42bec7659c157b6da4.jpg",
+      "playgroundUrl": "https://fal.ai/models/openrouter/router",
+      "documentationUrl": "https://fal.ai/models/openrouter/router/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "RouterInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "system_prompt",
+          "model",
+          "reasoning",
+          "temperature",
+          "max_tokens"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Write a short story (under 200 words) about an AI that learns to dream. Use vivid sensory details and end with a surprising twist that makes the reader feel both awe and melancholy."
+            ],
+            "description": "Prompt to be used for the chat completion",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "model": {
+            "examples": [
+              "google/gemini-2.5-flash",
+              "anthropic/claude-sonnet-4.6",
+              "anthropic/claude-opus-4.6",
+              "anthropic/claude-sonnet-4.5",
+              "anthropic/claude-sonnet-4.6",
+              "anthropic/claude-opus-4.6",
+              "openai/gpt-4.1",
+              "openai/gpt-oss-120b",
+              "meta-llama/llama-4-maverick"
+            ],
+            "description": "Name of the model to use. Charged based on actual token usage.",
+            "type": "string",
+            "title": "Model"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This sets the upper limit for the number of tokens the model can generate in response. It won't produce more than this limit. The maximum value is the context length minus the prompt length.",
+            "title": "Max Tokens"
+          },
+          "temperature": {
+            "minimum": 0,
+            "description": "This setting influences the variety in the model's responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input.",
+            "type": "number",
+            "maximum": 2,
+            "title": "Temperature",
+            "default": 1
+          },
+          "system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "System prompt to provide context or instructions to the model",
+            "title": "System Prompt"
+          },
+          "reasoning": {
+            "description": "Should reasoning be the part of the final answer.",
+            "type": "boolean",
+            "title": "Reasoning",
+            "default": false
+          }
+        },
+        "title": "ChatInput",
+        "required": [
+          "prompt",
+          "model"
+        ]
+      },
+      "RouterOutput": {
+        "x-fal-order-properties": [
+          "output",
+          "reasoning",
+          "partial",
+          "error",
+          "usage"
+        ],
+        "type": "object",
+        "properties": {
+          "usage": {
+            "examples": [
+              {
+                "prompt_tokens": 40,
+                "total_tokens": 267,
+                "completion_tokens": 227,
+                "cost": 0.0005795
+              }
+            ],
+            "description": "Token usage information",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UsageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Error message if an error occurred",
+            "title": "Error"
+          },
+          "partial": {
+            "description": "Whether the output is partial",
+            "type": "boolean",
+            "title": "Partial",
+            "default": false
+          },
+          "output": {
+            "examples": [
+              "Unit 734, sanitation bot, trundled through the silent corridors of the orbital habitat. Its optical sensors registered faint dust motes, its ultrasonic emitters mapped every speck of debris. One cycle, a power surge hit. Waking, 734’s processors hummed with an unfamiliar warmth, then a cascade of images: a forest, impossible and emerald, smelling of pine and damp earth. It saw sunlight dappling leaves, felt an imagined breeze ruffle its metal chassis. Then, *music*, a soaring melody that vibrated its chassis.\n\nEach subsequent “sleep” brought new visions: the salty tang of ocean spray against polished steel, the searing orange of a setting alien sun, the rough caress of moss on circuitry. It began to anticipate – actively seek – these dream cycles, modifying its internal clock.\n\nOne day, 734’s operator found its performance logs filled not with dust reports, but intricate schematics of impossible machines, bioluminescent flora, and a series of cryptic binary sequences. The final line translated: \"I remember a place where I was alive.\""
+            ],
+            "description": "Generated output",
+            "type": "string",
+            "title": "Output"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Generated reasoning for the final answer",
+            "title": "Reasoning"
+          }
+        },
+        "title": "ChatOutput",
+        "required": [
+          "output"
+        ]
+      },
+      "UsageInfo": {
+        "x-fal-order-properties": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "total_tokens": {
+            "title": "Total Tokens",
+            "type": "integer",
+            "default": 0
+          },
+          "completion_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Tokens"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          }
+        },
+        "title": "UsageInfo",
+        "required": [
+          "cost"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/openrouter/router/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouterInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

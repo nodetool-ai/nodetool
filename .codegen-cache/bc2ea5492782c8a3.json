@@ -1,0 +1,275 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/moondream-next",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/moondream-next queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/moondream-next",
+      "category": "vision",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/web-examples/moondreamnext/moondream-next.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/moondream-next",
+      "documentationUrl": "https://fal.ai/models/fal-ai/moondream-next/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MoondreamNextInput": {
+        "title": "QueryInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Describe this image in detail."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Prompt for query task"
+          },
+          "task_type": {
+            "enum": [
+              "caption",
+              "query"
+            ],
+            "title": "Task Type",
+            "type": "string",
+            "description": "Type of task to perform",
+            "default": "caption"
+          },
+          "max_tokens": {
+            "minimum": 1,
+            "title": "Max Tokens",
+            "type": "integer",
+            "maximum": 512,
+            "description": "Maximum number of tokens to generate",
+            "default": 64
+          },
+          "image_url": {
+            "examples": [
+              "https://llava-vl.github.io/static/images/monalisa.jpg"
+            ],
+            "title": "Image URL",
+            "type": "string",
+            "description": "Image URL to be processed"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "task_type",
+          "prompt",
+          "max_tokens"
+        ],
+        "required": [
+          "image_url",
+          "prompt"
+        ]
+      },
+      "MoondreamNextOutput": {
+        "title": "MoonDreamOutput",
+        "type": "object",
+        "properties": {
+          "output": {
+            "title": "Output",
+            "type": "string",
+            "description": "Response from the model"
+          }
+        },
+        "x-fal-order-properties": [
+          "output"
+        ],
+        "required": [
+          "output"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/moondream-next/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream-next/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream-next": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoondreamNextInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/moondream-next/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoondreamNextOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

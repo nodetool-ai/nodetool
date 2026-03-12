@@ -1,0 +1,442 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/nova-sr",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/nova-sr queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/nova-sr",
+      "category": "audio-to-audio",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8a417c/1iYq7okizdeiXmosEqCU-_e78a6396da8a410f85aed3ceb0ba4182.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/nova-sr",
+      "documentationUrl": "https://fal.ai/models/fal-ai/nova-sr/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "NovaSrInput": {
+        "x-fal-order-properties": [
+          "audio_url",
+          "sync_mode",
+          "audio_format",
+          "bitrate"
+        ],
+        "type": "object",
+        "properties": {
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "bitrate": {
+            "description": "The bitrate of the output audio.",
+            "type": "string",
+            "title": "Bitrate",
+            "default": "192k"
+          },
+          "audio_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/0a8a3f6a/t-FWZPvPXfMa7DOxaTSMw_5MXyNKGcG6x92g8CKQdwe_speech.mp3"
+            ],
+            "description": "The URL of the audio file to enhance.",
+            "type": "string",
+            "title": "Audio URL"
+          },
+          "audio_format": {
+            "enum": [
+              "mp3",
+              "aac",
+              "m4a",
+              "ogg",
+              "opus",
+              "flac",
+              "wav"
+            ],
+            "description": "The format for the output audio.",
+            "type": "string",
+            "title": "Audio Format",
+            "default": "mp3"
+          }
+        },
+        "title": "NovaSRInput",
+        "required": [
+          "audio_url"
+        ]
+      },
+      "NovaSrOutput": {
+        "x-fal-order-properties": [
+          "audio",
+          "timings"
+        ],
+        "type": "object",
+        "properties": {
+          "timings": {
+            "description": "Timings for each step in the pipeline.",
+            "$ref": "#/components/schemas/NovaSRTimings"
+          },
+          "audio": {
+            "examples": [
+              {
+                "channels": 1,
+                "duration": 12.283291666666667,
+                "url": "https://v3b.fal.media/files/b/0a8a3f1a/lTKExJu-R6ZJdnFlpzEeq_TxmNTNhl.mp3",
+                "file_name": "lTKExJu-R6ZJdnFlpzEeq_TxmNTNhl.mp3",
+                "sample_rate": 48000,
+                "content_type": "audio/mpeg",
+                "bitrate": "192k"
+              }
+            ],
+            "description": "The enhanced audio file.",
+            "$ref": "#/components/schemas/AudioFile"
+          }
+        },
+        "title": "NovaSROutput",
+        "required": [
+          "audio",
+          "timings"
+        ]
+      },
+      "NovaSRTimings": {
+        "x-fal-order-properties": [
+          "preprocess",
+          "inference",
+          "postprocess"
+        ],
+        "type": "object",
+        "properties": {
+          "postprocess": {
+            "description": "Time taken to postprocess the audio in seconds.",
+            "type": "number",
+            "title": "Postprocess"
+          },
+          "inference": {
+            "description": "Time taken to run the inference in seconds.",
+            "type": "number",
+            "title": "Inference"
+          },
+          "preprocess": {
+            "description": "Time taken to preprocess the audio in seconds.",
+            "type": "number",
+            "title": "Preprocess"
+          }
+        },
+        "title": "NovaSRTimings",
+        "required": [
+          "preprocess",
+          "inference",
+          "postprocess"
+        ]
+      },
+      "AudioFile": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "duration",
+          "channels",
+          "sample_rate",
+          "bitrate"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The duration of the audio",
+            "title": "Duration"
+          },
+          "bitrate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The bitrate of the audio (e.g., '192k' or 192000)",
+            "title": "Bitrate"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The sample rate of the audio",
+            "title": "Sample Rate"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The number of channels in the audio",
+            "title": "Channels"
+          }
+        },
+        "title": "AudioFile",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/nova-sr/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/nova-sr/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/nova-sr": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaSrInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/nova-sr/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NovaSrOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

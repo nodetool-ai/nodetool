@@ -1,0 +1,293 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ffmpeg-api/waveform",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ffmpeg-api/waveform queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ffmpeg-api/waveform",
+      "category": "json",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/ffmpeg-api-waveform.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/waveform",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ffmpeg-api/waveform/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FfmpegApiWaveformInput": {
+        "title": "WaveformInput",
+        "type": "object",
+        "properties": {
+          "points_per_second": {
+            "minimum": 1,
+            "description": "Controls how many points are sampled per second of audio. Lower values (e.g. 1-2) create a coarser waveform, higher values (e.g. 4-10) create a more detailed one.",
+            "type": "number",
+            "title": "Points Per Second",
+            "maximum": 10,
+            "default": 4
+          },
+          "smoothing_window": {
+            "minimum": 1,
+            "description": "Size of the smoothing window. Higher values create a smoother waveform. Must be an odd number.",
+            "type": "integer",
+            "title": "Smoothing Window",
+            "maximum": 21,
+            "default": 3
+          },
+          "media_url": {
+            "description": "URL of the audio file to analyze",
+            "type": "string",
+            "title": "Media Url"
+          },
+          "precision": {
+            "minimum": 1,
+            "description": "Number of decimal places for the waveform values. Higher values provide more precision but increase payload size.",
+            "type": "integer",
+            "title": "Precision",
+            "maximum": 6,
+            "default": 2
+          }
+        },
+        "x-fal-order-properties": [
+          "media_url",
+          "points_per_second",
+          "precision",
+          "smoothing_window"
+        ],
+        "required": [
+          "media_url"
+        ]
+      },
+      "FfmpegApiWaveformOutput": {
+        "title": "WaveformOutput",
+        "type": "object",
+        "properties": {
+          "waveform": {
+            "description": "Normalized waveform data as an array of values between -1 and 1. The number of points is determined by audio duration × points_per_second.",
+            "type": "array",
+            "title": "Waveform",
+            "items": {
+              "type": "number"
+            }
+          },
+          "points": {
+            "description": "Number of points in the waveform data",
+            "type": "integer",
+            "title": "Points"
+          },
+          "duration": {
+            "description": "Duration of the audio in seconds",
+            "type": "number",
+            "title": "Duration"
+          },
+          "precision": {
+            "description": "Number of decimal places used in the waveform values",
+            "type": "integer",
+            "title": "Precision"
+          }
+        },
+        "x-fal-order-properties": [
+          "waveform",
+          "duration",
+          "points",
+          "precision"
+        ],
+        "required": [
+          "waveform",
+          "duration",
+          "points",
+          "precision"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ffmpeg-api/waveform/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/waveform/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/waveform": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfmpegApiWaveformInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ffmpeg-api/waveform/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FfmpegApiWaveformOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

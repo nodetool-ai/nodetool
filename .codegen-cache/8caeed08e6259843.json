@@ -1,0 +1,504 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/lcm",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/lcm queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/lcm",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://fal-cdn.batuhan-941.workers.dev/files/penguin/FS1_8TqEc1VEk8fFSes1C.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/lcm",
+      "documentationUrl": "https://fal.ai/models/fal-ai/lcm/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LcmInput": {
+        "title": "LCMInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "a black cat with glowing eyes, cute, adorable, disney, pixar, highly detailed, 8k",
+              "an island near sea, with seagulls, moon shining over the sea, light house, boats int he background, fish flying over the sea"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results."
+          },
+          "controlnet_inpaint": {
+            "title": "Controlnet Inpaint",
+            "type": "boolean",
+            "description": "\n            If set to true, the inpainting pipeline will use controlnet inpainting.\n            Only effective for inpainting pipelines.\n        ",
+            "default": false
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "\n            The size of the generated image. You can choose between some presets or\n            custom height and width that **must be multiples of 8**.\n\n            If not provided:\n            - For text-to-image generations, the default size is 512x512.\n            - For image-to-image generations, the default size is the same as the input image.\n            - For inpainting generations, the default size is the same as the input image.\n        "
+          },
+          "enable_safety_checks": {
+            "title": "Enable Safety Checks",
+            "type": "boolean",
+            "description": "\n            If set to true, the resulting image will be checked whether it includes any\n            potentially unsafe content. If it does, it will be replaced with a black\n            image.\n        ",
+            "default": true
+          },
+          "model": {
+            "enum": [
+              "sdxl",
+              "sdv1-5"
+            ],
+            "title": "Model",
+            "type": "string",
+            "description": "The model to use for generating the image.",
+            "default": "sdv1-5"
+          },
+          "lora_url": {
+            "title": "Lora Url",
+            "type": "string",
+            "description": "\n            The url of the lora server to use for image generation.\n        "
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "title": "Guidance scale (CFG)",
+            "type": "number",
+            "maximum": 8,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 1
+          },
+          "negative_prompt": {
+            "examples": [
+              "cartoon, illustration, animation. face. male, female",
+              "ugly, deformed"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use.Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "default": ""
+          },
+          "inpaint_mask_only": {
+            "title": "Inpaint Mask Only",
+            "type": "boolean",
+            "description": "\n            If set to true, the inpainting pipeline will only inpaint the provided mask\n            area. Only effective for inpainting pipelines.\n        ",
+            "default": false
+          },
+          "num_images": {
+            "minimum": 1,
+            "title": "Num Images",
+            "type": "integer",
+            "maximum": 8,
+            "description": "\n            The number of images to generate. The function will return a list of images\n            with the same prompt and negative prompt but different seeds.\n        ",
+            "default": 1
+          },
+          "lora_scale": {
+            "title": "Lora Scale",
+            "type": "number",
+            "description": "\n            The scale of the lora server to use for image generation.\n        ",
+            "default": 1
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/lcm/inpaint_image.png",
+              "https://storage.googleapis.com/falserverless/model_tests/lcm/beach.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "\n        The base image to use for guiding the image generation on image-to-image\n        generations. If the either width or height of the image is larger than 1024\n        pixels, the image will be resized to 1024 pixels while keeping the aspect ratio.\n        "
+          },
+          "strength": {
+            "minimum": 0,
+            "title": "Strength",
+            "type": "number",
+            "maximum": 1,
+            "description": "\n        The strength of the image that is passed as `image_url`. The strength\n        determines how much the generated image will be similar to the image passed as\n        `image_url`. The higher the strength the more model gets \"creative\" and\n        generates an image that's different from the initial image. A strength of 1.0\n        means that the initial image is more or less ignored and the model will try to\n        generate an image that's as close as possible to the prompt.\n        ",
+            "default": 0.8
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "\n            If set to true, the function will wait for the image to be generated and uploaded\n            before returning the response. This will increase the latency of the function but\n            it allows you to get the image directly in the response without going through the CDN.\n        ",
+            "default": false
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string",
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "default": ""
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        "
+          },
+          "mask_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/lcm/inpaint_mask.png"
+            ],
+            "title": "Mask Url",
+            "type": "string",
+            "description": "\n        The mask to use for guiding the image generation on image\n        inpainting. The model will focus on the mask area and try to fill it with\n        the most relevant content.\n\n        The mask must be a black and white image where the white area is the area\n        that needs to be filled and the black area is the area that should be\n        ignored.\n\n        The mask must have the same dimensions as the image passed as `image_url`.\n        "
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "maximum": 12,
+            "description": "\n            The number of inference steps to use for generating the image. The more steps\n            the better the image will be but it will also take longer to generate.\n        ",
+            "default": 4
+          }
+        },
+        "x-fal-order-properties": [
+          "model",
+          "prompt",
+          "image_url",
+          "mask_url",
+          "strength",
+          "negative_prompt",
+          "seed",
+          "guidance_scale",
+          "num_inference_steps",
+          "image_size",
+          "sync_mode",
+          "num_images",
+          "enable_safety_checks",
+          "request_id",
+          "inpaint_mask_only",
+          "controlnet_inpaint",
+          "lora_url",
+          "lora_scale"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "LcmOutput": {
+        "title": "LCMOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "The generated image files info.",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string",
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "default": ""
+          },
+          "timings": {
+            "title": "Timings",
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          },
+          "num_inference_steps": {
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "\n            Number of inference steps used to generate the image. It will be the same value of the one passed in the\n            input or the default one in case none was passed.\n        ",
+            "default": 4
+          },
+          "nsfw_content_detected": {
+            "title": "Nsfw Content Detected",
+            "type": "array",
+            "description": "\n            A list of booleans indicating whether the generated image contains any\n            potentially unsafe content. If the safety check is disabled, this field\n            will all will be false.\n        ",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "num_inference_steps",
+          "request_id",
+          "nsfw_content_detected"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "nsfw_content_detected"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer",
+            "maximum": 14142,
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/lcm/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LcmInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/lcm/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LcmOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

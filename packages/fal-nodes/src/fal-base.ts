@@ -1,7 +1,9 @@
 /**
- * Shared FAL AI API utilities for submit → poll → download lifecycle.
- * Uses native fetch (Node 18+).
+ * Shared FAL AI API utilities.
+ * Uses @fal-ai/client SDK for queue submit/poll and file uploads.
  */
+
+import { createFalClient, type FalClient } from "@fal-ai/client";
 
 // ---------------------------------------------------------------------------
 // API Key extraction
@@ -17,85 +19,39 @@ export function getFalApiKey(inputs: Record<string, unknown>): string {
 }
 
 // ---------------------------------------------------------------------------
-// Submit job to FAL queue API, poll until complete, return result
+// Client cache — one client per API key
+// ---------------------------------------------------------------------------
+
+const clientCache = new Map<string, FalClient>();
+
+function getClient(apiKey: string): FalClient {
+  let client = clientCache.get(apiKey);
+  if (!client) {
+    client = createFalClient({ credentials: apiKey });
+    clientCache.set(apiKey, client);
+  }
+  return client;
+}
+
+// ---------------------------------------------------------------------------
+// Submit job to FAL queue, poll until complete, return result
 // ---------------------------------------------------------------------------
 
 export async function falSubmit(
   apiKey: string,
   endpoint: string,
   args: Record<string, unknown>,
-  pollInterval = 500,
-  maxAttempts = 300
 ): Promise<Record<string, unknown>> {
-  // POST to queue
-  const submitRes = await fetch(
-    `https://queue.fal.run/${endpoint}/requests`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(args),
-    }
-  );
-  if (!submitRes.ok) {
-    const errBody = await submitRes.text();
-    throw new Error(`FAL submit failed: ${submitRes.status} ${errBody}`);
-  }
-  const submitData = (await submitRes.json()) as Record<string, unknown>;
-  const requestId = submitData.request_id as string;
-  if (!requestId)
-    throw new Error(`No request_id in FAL submit response: ${JSON.stringify(submitData)}`);
-
-  // Poll until COMPLETED or FAILED
-  let interval = pollInterval;
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, interval));
-    interval = Math.min(interval * 1.5, 2000);
-
-    const statusRes = await fetch(
-      `https://queue.fal.run/${endpoint}/requests/${requestId}/status?logs=true`,
-      {
-        headers: { Authorization: `Key ${apiKey}` },
-      }
-    );
-    if (!statusRes.ok) {
-      const errBody = await statusRes.text();
-      throw new Error(`FAL status check failed: ${statusRes.status} ${errBody}`);
-    }
-    const statusData = (await statusRes.json()) as Record<string, unknown>;
-    const status = statusData.status as string;
-
-    if (status === "COMPLETED") break;
-    if (status === "FAILED") {
-      const errMsg =
-        (statusData.error as string) ||
-        JSON.stringify(statusData);
-      throw new Error(`FAL job failed: ${errMsg}`);
-    }
-    // QUEUED or IN_PROGRESS — keep polling
-    if (i === maxAttempts - 1) {
-      throw new Error(`FAL job timed out after ${maxAttempts} attempts`);
-    }
-  }
-
-  // Fetch result
-  const resultRes = await fetch(
-    `https://queue.fal.run/${endpoint}/requests/${requestId}`,
-    {
-      headers: { Authorization: `Key ${apiKey}` },
-    }
-  );
-  if (!resultRes.ok) {
-    const errBody = await resultRes.text();
-    throw new Error(`FAL result fetch failed: ${resultRes.status} ${errBody}`);
-  }
-  return (await resultRes.json()) as Record<string, unknown>;
+  const client = getClient(apiKey);
+  const result = await client.subscribe(endpoint, {
+    input: args,
+    logs: true,
+  });
+  return (result.data ?? result) as Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
-// Two-step upload to FAL CDN
+// Upload to FAL CDN via SDK
 // ---------------------------------------------------------------------------
 
 export async function falUpload(
@@ -103,45 +59,9 @@ export async function falUpload(
   data: Uint8Array,
   contentType: string
 ): Promise<string> {
-  // Step 1: get upload token
-  const tokenRes = await fetch(
-    "https://rest.alpha.fal.ai/storage/auth/token?storage_type=fal-cdn-v3",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    }
-  );
-  if (!tokenRes.ok) {
-    const errBody = await tokenRes.text();
-    throw new Error(`FAL upload token failed: ${tokenRes.status} ${errBody}`);
-  }
-  const tokenData = (await tokenRes.json()) as Record<string, unknown>;
-  const token = tokenData.token as string;
-  if (!token)
-    throw new Error(`No token in FAL upload response: ${JSON.stringify(tokenData)}`);
-
-  // Step 2: upload bytes
-  const uploadRes = await fetch("https://v3.fal.media/files/upload", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": contentType,
-    },
-    body: Buffer.from(data),
-  });
-  if (!uploadRes.ok) {
-    const errBody = await uploadRes.text();
-    throw new Error(`FAL file upload failed: ${uploadRes.status} ${errBody}`);
-  }
-  const uploadData = (await uploadRes.json()) as Record<string, unknown>;
-  const accessUrl = uploadData.access_url as string;
-  if (!accessUrl)
-    throw new Error(`No access_url in FAL upload response: ${JSON.stringify(uploadData)}`);
-  return accessUrl;
+  const client = getClient(apiKey);
+  const blob = new Blob([data.slice().buffer as ArrayBuffer], { type: contentType });
+  return client.storage.upload(blob);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,17 +73,22 @@ export async function assetToFalUrl(
   ref: Record<string, unknown>
 ): Promise<string | null> {
   const uri = ref.uri as string | undefined;
-  if (uri?.startsWith("https://") && !uri.includes("localhost")) return uri;
+  // Only pass through URLs that FAL can definitely access (their own CDN)
+  if (uri?.includes("fal.media") || uri?.includes("fal.run")) return uri;
   const data = ref.data as string | undefined;
   if (data) {
     const bytes = Uint8Array.from(Buffer.from(data, "base64"));
     const contentType = inferContentType(ref.type as string);
     return falUpload(apiKey, bytes, contentType);
   }
-  // For non-HTTPS URIs (http://, file://, etc.), try to fetch and upload
+  // For non-HTTPS URIs (http://, file://, relative paths, etc.), try to fetch and upload
   if (uri) {
     try {
-      const res = await fetch(uri);
+      // Resolve relative paths (e.g. /api/storage/...) against local server
+      const fetchUrl = uri.startsWith("/")
+        ? `http://localhost:${process.env.PORT ?? 7777}${uri}`
+        : uri;
+      const res = await fetch(fetchUrl);
       if (res.ok) {
         const bytes = new Uint8Array(await res.arrayBuffer());
         const contentType = res.headers.get("content-type") ?? inferContentType(ref.type as string);
@@ -177,7 +102,7 @@ export async function assetToFalUrl(
 }
 
 // ---------------------------------------------------------------------------
-// Convert image ref to data:image/png;base64,... URL
+// Convert image ref to data:image/...;base64,... URL
 // ---------------------------------------------------------------------------
 
 export async function imageToDataUrl(
@@ -196,7 +121,7 @@ export async function imageToDataUrl(
   return null;
 }
 
-/** Infer MIME type from an asset ref's uri extension or type field. */
+/** Infer MIME type from an asset ref's uri extension. */
 function inferMimeFromRef(ref: Record<string, unknown>): string | null {
   const uri = ref.uri as string | undefined;
   if (uri) {
@@ -236,7 +161,7 @@ export function isRefSet(ref: unknown): boolean {
 
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null) {
+    if (obj[k] == null || obj[k] === "") {
       delete obj[k];
     } else if (
       typeof obj[k] === "object" &&

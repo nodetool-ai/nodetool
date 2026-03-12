@@ -226,6 +226,7 @@ async function main() {
   let WorkflowRunner;
   let NodeRegistry;
   let registerBaseNodes;
+  let registerFalNodes;
   let ProcessingContext;
   let OpenAIProvider;
   let AnthropicProvider;
@@ -236,6 +237,7 @@ async function main() {
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
     const baseNodesPath = path.resolve(tsRoot, "packages/base-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
+    const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
@@ -247,6 +249,11 @@ async function main() {
       OllamaProvider,
       LlamaProvider,
     } = await import(pathToFileURL(runtimePath).href));
+    try {
+      ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
+    } catch {
+      // FAL nodes package not built — skip
+    }
   } catch (err) {
     throw new Error(
       `Failed to load TS packages. Run 'npm run build' in ${tsRoot} first.\n${String(err)}`
@@ -256,6 +263,7 @@ async function main() {
   const jobId = `job-${Date.now()}`;
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
+  if (registerFalNodes) registerFalNodes(registry);
 
   const context = new ProcessingContext({
     jobId,

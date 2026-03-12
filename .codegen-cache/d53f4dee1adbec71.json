@@ -1,0 +1,480 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/steady-dancer",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/steady-dancer queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/steady-dancer",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a85ecb6/lnUB6S-XSaiMknSior-jV_246c1d7641484d49ac0f744fe1cdfe63.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/steady-dancer",
+      "documentationUrl": "https://fal.ai/models/fal-ai/steady-dancer/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "SteadyDancerInput": {
+        "title": "SteadyDancerRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "Text prompt describing the desired animation.",
+            "default": "A person dancing with smooth and natural movements."
+          },
+          "video_url": {
+            "title": "Video Url",
+            "type": "string",
+            "description": "URL of the driving pose video. The motion from this video will be transferred to the reference image.",
+            "default": "https://v3b.fal.media/files/b/0a84de68/jXDWywjhagRfR-GuZjoRs_video.mp4"
+          },
+          "acceleration": {
+            "enum": [
+              "light",
+              "moderate",
+              "aggressive"
+            ],
+            "title": "Acceleration",
+            "type": "string",
+            "description": "Acceleration levels.",
+            "default": "aggressive"
+          },
+          "pose_guidance_scale": {
+            "minimum": 0.5,
+            "maximum": 3,
+            "type": "number",
+            "title": "Pose Guidance Scale",
+            "description": "Pose guidance scale for pose control strength.",
+            "default": 1
+          },
+          "shift": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number",
+            "title": "Shift",
+            "description": "Shift parameter for video generation.",
+            "default": 5
+          },
+          "pose_guidance_end": {
+            "minimum": 0.2,
+            "maximum": 1,
+            "type": "number",
+            "title": "Pose Guidance End",
+            "description": "End ratio for pose guidance. Controls when pose guidance ends.",
+            "default": 0.4
+          },
+          "frames_per_second": {
+            "minimum": 5,
+            "maximum": 24,
+            "type": "integer",
+            "title": "Frames Per Second",
+            "description": "Frames per second of the generated video. Must be between 5 to 24. If not specified, uses the FPS from the input video."
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 6,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "Classifier-free guidance scale for prompt adherence.",
+            "default": 1
+          },
+          "num_frames": {
+            "minimum": 5,
+            "maximum": 241,
+            "type": "integer",
+            "title": "Num Frames",
+            "description": "Number of frames to generate. If not specified, uses the frame count from the input video (capped at 241). Will be adjusted to nearest valid value (must satisfy 4k+1 pattern)."
+          },
+          "use_turbo": {
+            "examples": [
+              true
+            ],
+            "title": "Use Turbo",
+            "type": "boolean",
+            "description": "If true, applies quality enhancement for faster generation with improved quality. When enabled, parameters are automatically optimized (num_inference_steps=6, guidance_scale=1.0) and uses the LightX2V distillation LoRA.",
+            "default": false
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt for video generation.",
+            "default": "blurred, distorted face, bad anatomy, extra limbs, poorly drawn hands, poorly drawn feet, disfigured, out of frame, duplicate, watermark, signature, text"
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": false
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio of the generated video. If 'auto', will be determined from the reference image.",
+            "default": "auto"
+          },
+          "pose_guidance_start": {
+            "minimum": 0,
+            "maximum": 0.5,
+            "type": "number",
+            "title": "Pose Guidance Start",
+            "description": "Start ratio for pose guidance. Controls when pose guidance begins.",
+            "default": 0.1
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "576p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "Resolution of the generated video. 576p is default, 720p for higher quality. 480p is lower quality.",
+            "default": "576p"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of the reference image to animate. This is the person/character whose appearance will be preserved.",
+            "default": "https://v3b.fal.media/files/b/0a85edaa/GDUCMPrdvOMcI5JpEcU7f.png"
+          },
+          "preserve_audio": {
+            "title": "Preserve Audio",
+            "type": "boolean",
+            "description": "If enabled, copies audio from the input driving video to the output video.",
+            "default": true
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "num_inference_steps": {
+            "minimum": 4,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 6
+          }
+        },
+        "description": "Request model for SteadyDancer human animation.",
+        "x-fal-order-properties": [
+          "image_url",
+          "video_url",
+          "prompt",
+          "negative_prompt",
+          "frames_per_second",
+          "seed",
+          "resolution",
+          "num_inference_steps",
+          "guidance_scale",
+          "pose_guidance_scale",
+          "shift",
+          "pose_guidance_start",
+          "pose_guidance_end",
+          "acceleration",
+          "enable_safety_checker",
+          "aspect_ratio",
+          "num_frames",
+          "preserve_audio",
+          "use_turbo"
+        ]
+      },
+      "SteadyDancerOutput": {
+        "title": "SteadyDancerResponse",
+        "type": "object",
+        "properties": {
+          "num_frames": {
+            "title": "Num Frames",
+            "type": "integer",
+            "description": "The actual number of frames generated (aligned to 4k+1 pattern)."
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "file_size": 7772111,
+                "file_name": "ll5ps0ZyBgxBkuWz-fHcT_output_with_audio.mp4",
+                "content_type": "application/octet-stream",
+                "url": "https://v3b.fal.media/files/b/0a87871b/ll5ps0ZyBgxBkuWz-fHcT_output_with_audio.mp4"
+              }
+            ],
+            "title": "Video",
+            "description": "The generated dance animation video.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed",
+          "num_frames"
+        ],
+        "description": "Response model for SteadyDancer.",
+        "required": [
+          "video",
+          "seed",
+          "num_frames"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/steady-dancer/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/steady-dancer/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/steady-dancer": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SteadyDancerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/steady-dancer/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteadyDancerOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}
