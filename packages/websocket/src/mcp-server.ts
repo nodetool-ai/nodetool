@@ -310,7 +310,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
   );
 
-  // ── Collection tools (ChromaDB) ─────────────────────────────────
+  // ── Collection tools (sqlite-vec) ───────────────────────────────
 
   server.tool(
     "list_collections",
@@ -320,16 +320,19 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ limit }) => {
       try {
-        const { getChromaClient } = await import("@nodetool/vectorstore");
-        const client = await getChromaClient();
-        const collections = await client.listCollections();
-        const result = collections.slice(0, limit);
+        const { getVecStore } = await import("@nodetool/vectorstore");
+        const store = await getVecStore();
+        const collections = await store.listCollections();
+        const result = collections.slice(0, limit).map((c) => ({
+          name: c.name,
+          metadata: c.metadata,
+        }));
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ collections: result }) }],
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "ChromaDB not available" }) }],
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
           isError: true,
         };
       }
@@ -344,16 +347,16 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name }) => {
       try {
-        const { getChromaClient } = await import("@nodetool/vectorstore");
-        const client = await getChromaClient();
-        const collection = await client.getCollection({ name });
+        const { getVecStore } = await import("@nodetool/vectorstore");
+        const store = await getVecStore();
+        const collection = await store.getCollection({ name });
         const count = await collection.count();
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ name, count }) }],
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "ChromaDB not available" }) }],
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
           isError: true,
         };
       }
@@ -370,16 +373,16 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name, query_texts, n_results }) => {
       try {
-        const { getChromaClient } = await import("@nodetool/vectorstore");
-        const client = await getChromaClient();
-        const collection = await client.getCollection({ name });
+        const { getVecStore } = await import("@nodetool/vectorstore");
+        const store = await getVecStore();
+        const collection = await store.getCollection({ name });
         const results = await collection.query({ queryTexts: query_texts, nResults: n_results });
         return {
           content: [{ type: "text" as const, text: JSON.stringify(results) }],
         };
       } catch {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "ChromaDB not available" }) }],
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Vector store not available" }) }],
           isError: true,
         };
       }

@@ -771,21 +771,21 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Query ChromaDB collections and return concatenated context string.
+   * Query vector store collections and return concatenated context string.
    * Mirrors Python's RegularChatProcessor._query_collections().
    */
   private async queryCollections(collections: string[], queryText: string, nResults = 5): Promise<string> {
     if (!collections.length || !queryText) return "";
 
     try {
-      const { getChromaClient } = await import("@nodetool/vectorstore");
-      const client = await getChromaClient();
+      const { getVecStore } = await import("@nodetool/vectorstore");
+      const store = await getVecStore();
 
       const allResults: string[] = [];
 
       for (const collectionName of collections) {
         try {
-          const collection = await client.getCollection({ name: collectionName });
+          const collection = await store.getCollection({ name: collectionName });
           const results = await collection.query({
             queryTexts: [queryText],
             nResults,
@@ -808,7 +808,7 @@ export class UnifiedWebSocketRunner {
 
       return allResults.join("\n");
     } catch (err) {
-      log.warn("ChromaDB client init failed", { error: err instanceof Error ? err.message : String(err) });
+      log.warn("Vector store init failed", { error: err instanceof Error ? err.message : String(err) });
       return "";
     }
   }
