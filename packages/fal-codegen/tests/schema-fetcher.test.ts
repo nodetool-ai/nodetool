@@ -110,6 +110,7 @@ describe("SchemaFetcher", () => {
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(fetchMock).toHaveBeenCalledWith(
         `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=${ENDPOINT}`,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
       expect(writeFileMock).toHaveBeenCalledOnce();
     });

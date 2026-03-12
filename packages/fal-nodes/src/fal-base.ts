@@ -160,6 +160,19 @@ export async function assetToFalUrl(
     const contentType = inferContentType(ref.type as string);
     return falUpload(apiKey, bytes, contentType);
   }
+  // For non-HTTPS URIs (http://, file://, etc.), try to fetch and upload
+  if (uri) {
+    try {
+      const res = await fetch(uri);
+      if (res.ok) {
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const contentType = res.headers.get("content-type") ?? inferContentType(ref.type as string);
+        return falUpload(apiKey, bytes, contentType);
+      }
+    } catch {
+      // URI not fetchable — fall through
+    }
+  }
   return null;
 }
 
@@ -171,12 +184,29 @@ export async function imageToDataUrl(
   ref: Record<string, unknown>
 ): Promise<string | null> {
   const data = ref.data as string | undefined;
-  if (data) return `data:image/png;base64,${data}`;
+  const mime = inferMimeFromRef(ref) ?? "image/png";
+  if (data) return `data:${mime};base64,${data}`;
   const uri = ref.uri as string | undefined;
   if (uri?.startsWith("https://")) {
     const res = await fetch(uri);
+    const contentType = res.headers?.get?.("content-type") ?? mime;
     const buf = Buffer.from(await res.arrayBuffer());
-    return `data:image/png;base64,${buf.toString("base64")}`;
+    return `data:${contentType};base64,${buf.toString("base64")}`;
+  }
+  return null;
+}
+
+/** Infer MIME type from an asset ref's uri extension or type field. */
+function inferMimeFromRef(ref: Record<string, unknown>): string | null {
+  const uri = ref.uri as string | undefined;
+  if (uri) {
+    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase();
+    const map: Record<string, string> = {
+      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+      gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+      bmp: "image/bmp",
+    };
+    if (ext && map[ext]) return map[ext];
   }
   return null;
 }
@@ -206,16 +236,13 @@ export function isRefSet(ref: unknown): boolean {
 
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null) delete obj[k];
-    if (
+    if (obj[k] == null) {
+      delete obj[k];
+    } else if (
       typeof obj[k] === "object" &&
-      obj[k] !== null &&
       !Array.isArray(obj[k])
     ) {
-      const nested = obj[k] as Record<string, unknown>;
-      for (const nk of Object.keys(nested)) {
-        if (nested[nk] == null) delete nested[nk];
-      }
+      removeNulls(obj[k] as Record<string, unknown>);
     }
   }
 }

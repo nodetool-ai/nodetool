@@ -157,6 +157,8 @@ function formatValidationError(errorStr: string): string {
 
 export class FalProvider {
   private readonly apiKey: string;
+  totalRequests = 0;
+  totalImages = 0;
 
   constructor(apiKeyOrInputs: string | Record<string, unknown>) {
     if (typeof apiKeyOrInputs === "string") {
@@ -190,7 +192,9 @@ export class FalProvider {
     if (params.safetyCheck != null) args.enable_safety_checker = params.safetyCheck;
 
     try {
+      this.totalRequests++;
       const result = await falSubmit(this.apiKey, params.model, args);
+      this.totalImages++;
       const imageUrl = extractImageUrl(result);
       return downloadBytes(imageUrl);
     } catch (e) {
@@ -228,7 +232,9 @@ export class FalProvider {
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
 
     try {
+      this.totalRequests++;
       const result = await falSubmit(this.apiKey, params.model, args);
+      this.totalImages++;
       const imageUrl = extractImageUrl(result);
       return downloadBytes(imageUrl);
     } catch (e) {
@@ -257,6 +263,7 @@ export class FalProvider {
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
 
     try {
+      this.totalRequests++;
       const result = await falSubmit(this.apiKey, params.model, args);
       const audioField = result.audio as Record<string, unknown> | undefined;
       if (!audioField?.url) {
