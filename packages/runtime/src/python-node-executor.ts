@@ -4,13 +4,16 @@ import type { PythonBridge } from "./python-bridge.js";
 import { randomUUID } from "node:crypto";
 
 /** Media ref types that need blob conversion. */
-const MEDIA_REF_TYPES = new Set(["ImageRef", "AudioRef", "VideoRef"]);
+const MEDIA_REF_TYPES = new Set([
+  "ImageRef", "AudioRef", "VideoRef", "Model3DRef",
+]);
 
 /** File extensions by ref type. */
 const EXTENSION_MAP: Record<string, string> = {
   ImageRef: ".png",
   AudioRef: ".wav",
   VideoRef: ".mp4",
+  Model3DRef: ".glb",
 };
 
 /** MIME types by ref type. */
@@ -18,6 +21,7 @@ const MIME_MAP: Record<string, string> = {
   ImageRef: "image/png",
   AudioRef: "audio/wav",
   VideoRef: "video/mp4",
+  Model3DRef: "model/gltf-binary",
 };
 
 function isMediaRef(value: unknown): value is { uri: string; type?: string } {
