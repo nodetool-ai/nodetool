@@ -206,6 +206,14 @@ export async function handleCollectionRequest(
       return errorResponse(404, "Collection not found");
     }
     const msg = err instanceof Error ? err.message : String(err);
+    // When ChromaDB is unavailable, return empty results for GET requests
+    // instead of a 503 error so the UI doesn't break
+    if (request.method === "GET" && msg.includes("connect")) {
+      if (pathname === "/api/collections") {
+        return jsonResponse({ collections: [], count: 0 });
+      }
+      return errorResponse(404, "Collection not found (ChromaDB unavailable)");
+    }
     return errorResponse(503, `ChromaDB service unavailable: ${msg}`);
   }
 }
