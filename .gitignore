@@ -64,6 +64,7 @@ key.pem
 .aider*
 
 # Dev
+.codegen-cache/
 .codegpt
 __plans__
 .claude/settings.local.json

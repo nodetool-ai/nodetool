@@ -1,0 +1,23 @@
+{
+  "name": "@nodetool/fal-codegen",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code generator for FAL AI nodes",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "generate": "tsx src/generate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nodetool/node-sdk": "*",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}
