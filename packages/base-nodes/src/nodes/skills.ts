@@ -125,6 +125,27 @@ async function getAssetBytes(
         return await readFile(filePath);
       } catch { /* fall through */ }
     }
+    // Handle /api/storage/ paths — resolve to local asset files on disk
+    if (asset.uri.startsWith("/api/storage/")) {
+      try {
+        const { homedir } = await import("node:os");
+        const isTemp = asset.uri.startsWith("/api/storage/temp/");
+        const key = isTemp
+          ? asset.uri.slice("/api/storage/temp/".length)
+          : asset.uri.slice("/api/storage/".length);
+        const rootDir = isTemp
+          ? (process.env.TEMP_STORAGE_PATH ?? path.join(tmpdir(), "nodetool", "temp"))
+          : (process.env.ASSET_FOLDER ?? process.env.STORAGE_PATH ?? path.join(homedir(), ".local", "share", "nodetool", "assets"));
+        return await readFile(path.join(rootDir, key));
+      } catch { /* fall through */ }
+    }
+    // Fetch from https:// URLs
+    if (asset.uri.startsWith("https://")) {
+      try {
+        const res = await fetch(asset.uri);
+        if (res.ok) return new Uint8Array(await res.arrayBuffer());
+      } catch { /* fall through */ }
+    }
   }
   // Load from storage via URI (if storage adapter available)
   if (asset.uri && context?.storage) {
