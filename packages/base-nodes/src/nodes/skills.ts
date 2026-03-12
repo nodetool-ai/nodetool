@@ -1,10 +1,9 @@
 /**
  * Agent-backed skill nodes for prompt-driven task execution.
  *
- * Each skill node sends a system prompt + user prompt to an LLM provider
- * and returns the text response.  When a ProcessingContext with a registered
- * provider is available the node delegates to it; otherwise it falls back to
- * direct HTTP calls against OpenAI, Anthropic, or Ollama.
+ * Each skill node runs an agent loop: the LLM can call tools (execute_bash,
+ * set_output_image, etc.), see results, and iterate until it produces output.
+ * Uses runAgentLoop() from agents.ts for the loop mechanics.
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
@@ -234,7 +233,7 @@ export function makeSetOutputTool(
       const relPath = String(params.path ?? "");
       if (!relPath) return { success: false, error: "No path provided" };
       const absPath = path.resolve(workspaceDir, relPath);
-      if (!absPath.startsWith(path.resolve(workspaceDir))) {
+      if (!absPath.startsWith(path.resolve(workspaceDir) + path.sep) && absPath !== path.resolve(workspaceDir)) {
         return { success: false, error: "Path is outside workspace directory" };
       }
       try {
