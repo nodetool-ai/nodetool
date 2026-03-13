@@ -210,7 +210,7 @@ const whatsNewData = [
         category: "AI and Machine Learning",
         items: [
           "Added more AI models and expanded model support",
-          "Enhanced Chroma support for better vector search capabilities",
+          "Enhanced vector search capabilities with sqlite-vec",
           "Improved Llama.cpp support",
           "Fixed Comfy loaders and workflows",
           "Implemented cost calculation for OpenAI and Replicate",

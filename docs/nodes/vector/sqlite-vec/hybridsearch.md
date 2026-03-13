@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Hybrid Search"
-node_type: "vector.chroma.HybridSearch"
+node_type: "vector.HybridSearch"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.HybridSearch`
+**Type:** `vector.HybridSearch`
 
 **Namespace:** `vector.chroma`
 

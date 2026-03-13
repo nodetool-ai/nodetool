@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Remove Overlap"
-node_type: "vector.chroma.RemoveOverlap"
+node_type: "vector.RemoveOverlap"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.RemoveOverlap`
+**Type:** `vector.RemoveOverlap`
 
 **Namespace:** `vector.chroma`
 

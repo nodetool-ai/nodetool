@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Peek"
-node_type: "vector.chroma.Peek"
+node_type: "vector.Peek"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.Peek`
+**Type:** `vector.Peek`
 
 **Namespace:** `vector.chroma`
 

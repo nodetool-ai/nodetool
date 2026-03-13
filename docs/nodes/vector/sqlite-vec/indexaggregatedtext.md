@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Index Aggregated Text"
-node_type: "vector.chroma.IndexAggregatedText"
+node_type: "vector.IndexAggregatedText"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.IndexAggregatedText`
+**Type:** `vector.IndexAggregatedText`
 
 **Namespace:** `vector.chroma`
 

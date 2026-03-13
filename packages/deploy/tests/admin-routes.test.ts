@@ -94,7 +94,7 @@ function createMockDeps(overrides?: Partial<AdminDeps>): AdminDeps {
       save: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
     }),
-    chroma: {
+    vecStore: {
       createCollection: vi
         .fn()
         .mockResolvedValue(mockCollection("new-col")),
@@ -359,7 +359,7 @@ describe("handleCreateCollection", () => {
     });
     expect(result.name).toBe("new-col");
     expect(result.count).toBe(0);
-    expect(deps.chroma.createCollection).toHaveBeenCalledWith({
+    expect(deps.vecStore.createCollection).toHaveBeenCalledWith({
       name: "my-col",
       metadata: { embedding_model: "all-MiniLM-L6-v2" },
     });
@@ -377,8 +377,8 @@ describe("handleListCollections", () => {
   it("returns collections with counts and workflow names", async () => {
     const col = mockCollection("col1", { workflow: "wf1" }, 5);
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         listCollections: vi.fn().mockResolvedValue([col]),
       },
     });
@@ -391,8 +391,8 @@ describe("handleListCollections", () => {
   it("handles collection without workflow metadata", async () => {
     const col = mockCollection("col1", null, 3);
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         listCollections: vi.fn().mockResolvedValue([col]),
       },
     });
@@ -405,8 +405,8 @@ describe("handleGetCollection", () => {
   it("returns collection with count", async () => {
     const col = mockCollection("test-col", { key: "val" }, 10);
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         getCollection: vi.fn().mockResolvedValue(col),
       },
     });
@@ -421,8 +421,8 @@ describe("handleUpdateCollection", () => {
   it("modifies collection and returns updated data", async () => {
     const col = mockCollection("old-name", { existing: "meta" }, 5);
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         getCollection: vi.fn().mockResolvedValue(col),
       },
     });
@@ -440,8 +440,8 @@ describe("handleUpdateCollection", () => {
   it("keeps name when not provided in request", async () => {
     const col = mockCollection("keep-name", null, 0);
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         getCollection: vi.fn().mockResolvedValue(col),
       },
     });
@@ -466,8 +466,8 @@ describe("handleAddToCollection", () => {
   it("adds documents to collection", async () => {
     const col = mockCollection("col1");
     const deps = createMockDeps({
-      chroma: {
-        ...createMockDeps().chroma,
+      vecStore: {
+        ...createMockDeps().vecStore,
         getCollection: vi.fn().mockResolvedValue(col),
       },
     });

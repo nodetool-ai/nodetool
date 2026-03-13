@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Count"
-node_type: "vector.chroma.Count"
+node_type: "vector.Count"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.Count`
+**Type:** `vector.Count`
 
 **Namespace:** `vector.chroma`
 

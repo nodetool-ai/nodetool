@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Index Text Chunk"
-node_type: "vector.chroma.IndexTextChunk"
+node_type: "vector.IndexTextChunk"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.IndexTextChunk`
+**Type:** `vector.IndexTextChunk`
 
 **Namespace:** `vector.chroma`
 

@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Query Image"
-node_type: "vector.chroma.QueryImage"
+node_type: "vector.QueryImage"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.QueryImage`
+**Type:** `vector.QueryImage`
 
 **Namespace:** `vector.chroma`
 

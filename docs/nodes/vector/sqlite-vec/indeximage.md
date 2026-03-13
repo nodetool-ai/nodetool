@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Index Image"
-node_type: "vector.chroma.IndexImage"
+node_type: "vector.IndexImage"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.IndexImage`
+**Type:** `vector.IndexImage`
 
 **Namespace:** `vector.chroma`
 

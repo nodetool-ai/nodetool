@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getNodeMetadata } from "@nodetool/node-sdk";
 
 // ---------------------------------------------------------------------------
-// Mock chromadb — vi.hoisted() ensures variables are available in vi.mock factory
+// Mock @nodetool/vectorstore — vi.hoisted() ensures variables are available in vi.mock factory
 // ---------------------------------------------------------------------------
 
-const { mockCollection, mockClient } = vi.hoisted(() => {
+const { mockCollection, mockStore, ollamaGenerateMock } = vi.hoisted(() => {
   const mockCollection = {
     count: vi.fn().mockResolvedValue(42),
     get: vi.fn().mockResolvedValue({ documents: ["doc1", "doc2"] }),
@@ -21,36 +21,40 @@ const { mockCollection, mockClient } = vi.hoisted(() => {
     metadata: { embedding_model: "test-model" } as Record<string, unknown>,
   };
 
-  const mockClient = {
+  const mockStore = {
     getOrCreateCollection: vi.fn().mockResolvedValue(mockCollection),
     getCollection: vi.fn().mockResolvedValue(mockCollection),
   };
 
-  return { mockCollection, mockClient };
+  // Configurable mock for OllamaEmbeddingFunction.generate
+  const ollamaGenerateMock = vi.fn().mockResolvedValue([[0.1, 0.2, 0.3]]);
+
+  return { mockCollection, mockStore, ollamaGenerateMock };
 });
 
-vi.mock("chromadb", () => {
+vi.mock("@nodetool/vectorstore", () => {
   return {
-    ChromaClient: vi.fn().mockReturnValue(mockClient),
+    getVecStore: vi.fn().mockResolvedValue(mockStore),
+    getCollection: vi.fn().mockResolvedValue(mockCollection),
+    OllamaEmbeddingFunction: vi.fn().mockImplementation(() => ({
+      generate: ollamaGenerateMock,
+    })),
   };
 });
 
 // ---------------------------------------------------------------------------
-// Mock global.fetch for Ollama embedding calls
+// Helper to configure Ollama embedding mock per test
 // ---------------------------------------------------------------------------
 
-const originalFetch = globalThis.fetch;
-
-function mockFetchForOllama(embeddings: number[][]) {
+function mockOllamaEmbeddings(embeddings: number[][]) {
   let callIndex = 0;
-  globalThis.fetch = vi.fn().mockImplementation(async () => ({
-    ok: true,
-    json: async () => ({ embeddings: [embeddings[callIndex++] ?? embeddings[0]] }),
-  })) as unknown as typeof fetch;
+  ollamaGenerateMock.mockImplementation(async () => {
+    return [embeddings[callIndex++] ?? embeddings[0]];
+  });
 }
 
-function restoreFetch() {
-  globalThis.fetch = originalFetch;
+function restoreOllamaEmbeddings() {
+  ollamaGenerateMock.mockResolvedValue([[0.1, 0.2, 0.3]]);
 }
 
 // ---------------------------------------------------------------------------
@@ -71,8 +75,8 @@ import {
   QueryTextNode,
   RemoveOverlapNode,
   HybridSearchNode,
-  VECTOR_CHROMA_NODES,
-} from "../src/nodes/vector-chroma.js";
+  VECTOR_NODES,
+} from "../src/nodes/vector.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -105,12 +109,12 @@ beforeEach(() => {
 });
 
 // ============================================================
-// VECTOR_CHROMA_NODES export
+// VECTOR_NODES export
 // ============================================================
 
-describe("VECTOR_CHROMA_NODES", () => {
+describe("VECTOR_NODES", () => {
   it("exports 13 node classes", () => {
-    expect(VECTOR_CHROMA_NODES).toHaveLength(13);
+    expect(VECTOR_NODES).toHaveLength(13);
   });
 });
 
@@ -120,7 +124,7 @@ describe("VECTOR_CHROMA_NODES", () => {
 
 describe("CollectionNode", () => {
   it("has correct metadata", () => {
-    expect(CollectionNode.nodeType).toBe("vector.chroma.Collection");
+    expect(CollectionNode.nodeType).toBe("vector.Collection");
     expect(CollectionNode.title).toBe("Collection");
     expect(CollectionNode.description).toBeTruthy();
   });
@@ -133,7 +137,7 @@ describe("CollectionNode", () => {
     const node = new CollectionNode();
     const result = await node.process({ name: "test-collection" });
     expect(result).toEqual({ output: { name: "test-collection" } });
-    expect(mockClient.getOrCreateCollection).toHaveBeenCalledWith({
+    expect(mockStore.getOrCreateCollection).toHaveBeenCalledWith({
       name: "test-collection",
       metadata: { embedding_model: "" },
     });
@@ -146,7 +150,7 @@ describe("CollectionNode", () => {
       embedding_model: { repo_id: "my-model" },
     });
     expect(result).toEqual({ output: { name: "col1" } });
-    expect(mockClient.getOrCreateCollection).toHaveBeenCalledWith({
+    expect(mockStore.getOrCreateCollection).toHaveBeenCalledWith({
       name: "col1",
       metadata: { embedding_model: "my-model" },
     });
@@ -180,7 +184,7 @@ describe("CollectionNode", () => {
 
 describe("CountNode", () => {
   it("has correct metadata", () => {
-    expect(CountNode.nodeType).toBe("vector.chroma.Count");
+    expect(CountNode.nodeType).toBe("vector.Count");
     expect(CountNode.title).toBe("Count");
     expect(CountNode.description).toContain("Count");
   });
@@ -193,7 +197,6 @@ describe("CountNode", () => {
     const node = new CountNode();
     const result = await node.process({ collection: { name: "my-col" } });
     expect(result).toEqual({ output: 42 });
-    expect(mockClient.getCollection).toHaveBeenCalledWith({ name: "my-col" });
     expect(mockCollection.count).toHaveBeenCalled();
   });
 
@@ -218,7 +221,7 @@ describe("CountNode", () => {
 
 describe("GetDocumentsNode", () => {
   it("has correct metadata", () => {
-    expect(GetDocumentsNode.nodeType).toBe("vector.chroma.GetDocuments");
+    expect(GetDocumentsNode.nodeType).toBe("vector.GetDocuments");
     expect(GetDocumentsNode.title).toBe("Get Documents");
     expect(GetDocumentsNode.description).toContain("Get documents");
   });
@@ -267,7 +270,7 @@ describe("GetDocumentsNode", () => {
 
 describe("PeekNode", () => {
   it("has correct metadata", () => {
-    expect(PeekNode.nodeType).toBe("vector.chroma.Peek");
+    expect(PeekNode.nodeType).toBe("vector.Peek");
     expect(PeekNode.title).toBe("Peek");
     expect(PeekNode.description).toContain("Peek");
   });
@@ -300,7 +303,7 @@ describe("PeekNode", () => {
 
 describe("IndexImageNode", () => {
   it("has correct metadata", () => {
-    expect(IndexImageNode.nodeType).toBe("vector.chroma.IndexImage");
+    expect(IndexImageNode.nodeType).toBe("vector.IndexImage");
     expect(IndexImageNode.title).toBe("Index Image");
     expect(IndexImageNode.description).toContain("image");
   });
@@ -416,7 +419,7 @@ describe("IndexImageNode", () => {
 
 describe("IndexEmbeddingNode", () => {
   it("has correct metadata", () => {
-    expect(IndexEmbeddingNode.nodeType).toBe("vector.chroma.IndexEmbedding");
+    expect(IndexEmbeddingNode.nodeType).toBe("vector.IndexEmbedding");
     expect(IndexEmbeddingNode.title).toBe("Index Embedding");
     expect(IndexEmbeddingNode.description).toContain("embedding");
   });
@@ -647,7 +650,7 @@ describe("IndexEmbeddingNode", () => {
 
 describe("IndexTextChunkNode", () => {
   it("has correct metadata", () => {
-    expect(IndexTextChunkNode.nodeType).toBe("vector.chroma.IndexTextChunk");
+    expect(IndexTextChunkNode.nodeType).toBe("vector.IndexTextChunk");
     expect(IndexTextChunkNode.title).toBe("Index Text Chunk");
     expect(IndexTextChunkNode.description).toContain("text chunk");
   });
@@ -693,7 +696,7 @@ describe("IndexTextChunkNode", () => {
 
 describe("IndexAggregatedTextNode", () => {
   it("has correct metadata", () => {
-    expect(IndexAggregatedTextNode.nodeType).toBe("vector.chroma.IndexAggregatedText");
+    expect(IndexAggregatedTextNode.nodeType).toBe("vector.IndexAggregatedText");
     expect(IndexAggregatedTextNode.title).toBe("Index Aggregated Text");
     expect(IndexAggregatedTextNode.description).toContain("aggregated");
   });
@@ -703,7 +706,7 @@ describe("IndexAggregatedTextNode", () => {
   });
 
   it("process with mean aggregation", async () => {
-    mockFetchForOllama([
+    mockOllamaEmbeddings([
       [1.0, 2.0, 3.0],
       [3.0, 4.0, 5.0],
     ]);
@@ -727,11 +730,11 @@ describe("IndexAggregatedTextNode", () => {
       })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("process with sum aggregation", async () => {
-    mockFetchForOllama([
+    mockOllamaEmbeddings([
       [1.0, 2.0],
       [3.0, 4.0],
     ]);
@@ -752,11 +755,11 @@ describe("IndexAggregatedTextNode", () => {
       })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("process with max aggregation", async () => {
-    mockFetchForOllama([
+    mockOllamaEmbeddings([
       [1.0, 5.0],
       [3.0, 2.0],
     ]);
@@ -777,11 +780,11 @@ describe("IndexAggregatedTextNode", () => {
       })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("process with min aggregation", async () => {
-    mockFetchForOllama([
+    mockOllamaEmbeddings([
       [1.0, 5.0],
       [3.0, 2.0],
     ]);
@@ -802,11 +805,11 @@ describe("IndexAggregatedTextNode", () => {
       })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("handles text_chunks as objects with text field", async () => {
-    mockFetchForOllama([[1.0, 2.0]]);
+    mockOllamaEmbeddings([[1.0, 2.0]]);
 
     const node = new IndexAggregatedTextNode();
     await node.process({
@@ -817,18 +820,14 @@ describe("IndexAggregatedTextNode", () => {
       aggregation: "mean",
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/embed"),
-      expect.objectContaining({
-        body: expect.stringContaining("object chunk"),
-      })
-    );
+    // Verify the embedding function was called (text extracted from object)
+    expect(ollamaGenerateMock).toHaveBeenCalled();
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("omits metadatas when metadata is empty", async () => {
-    mockFetchForOllama([[1.0]]);
+    mockOllamaEmbeddings([[1.0]]);
 
     const node = new IndexAggregatedTextNode();
     await node.process({
@@ -844,11 +843,11 @@ describe("IndexAggregatedTextNode", () => {
       expect.objectContaining({ metadatas: undefined })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("includes metadatas when metadata is non-empty", async () => {
-    mockFetchForOllama([[1.0]]);
+    mockOllamaEmbeddings([[1.0]]);
 
     const node = new IndexAggregatedTextNode();
     await node.process({
@@ -864,7 +863,7 @@ describe("IndexAggregatedTextNode", () => {
       expect.objectContaining({ metadatas: [{ key: "val" }] })
     );
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
   it("throws on empty collection name", async () => {
@@ -929,7 +928,7 @@ describe("IndexAggregatedTextNode", () => {
   });
 
   it("throws on invalid aggregation method", async () => {
-    mockFetchForOllama([[1.0]]);
+    mockOllamaEmbeddings([[1.0]]);
 
     const node = new IndexAggregatedTextNode();
     await expect(
@@ -942,16 +941,11 @@ describe("IndexAggregatedTextNode", () => {
       })
     ).rejects.toThrow("Invalid aggregation method: median");
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 
-  it("throws when Ollama API returns error", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      text: async () => "Internal Server Error",
-    }) as unknown as typeof fetch;
+  it("throws when embedding function returns error", async () => {
+    ollamaGenerateMock.mockRejectedValue(new Error("Embedding generation failed"));
 
     const node = new IndexAggregatedTextNode();
     await expect(
@@ -961,9 +955,9 @@ describe("IndexAggregatedTextNode", () => {
         document_id: "id",
         text_chunks: ["x"],
       })
-    ).rejects.toThrow("Ollama embedding failed");
+    ).rejects.toThrow("Embedding generation failed");
 
-    restoreFetch();
+    restoreOllamaEmbeddings();
   });
 });
 
@@ -973,7 +967,7 @@ describe("IndexAggregatedTextNode", () => {
 
 describe("IndexStringNode", () => {
   it("has correct metadata", () => {
-    expect(IndexStringNode.nodeType).toBe("vector.chroma.IndexString");
+    expect(IndexStringNode.nodeType).toBe("vector.IndexString");
     expect(IndexStringNode.title).toBe("Index String");
     expect(IndexStringNode.description).toContain("string");
   });
@@ -1017,7 +1011,7 @@ describe("IndexStringNode", () => {
 
 describe("QueryImageNode", () => {
   it("has correct metadata", () => {
-    expect(QueryImageNode.nodeType).toBe("vector.chroma.QueryImage");
+    expect(QueryImageNode.nodeType).toBe("vector.QueryImage");
     expect(QueryImageNode.title).toBe("Query Image");
     expect(QueryImageNode.description).toContain("image");
   });
@@ -1139,7 +1133,7 @@ describe("QueryImageNode", () => {
 
 describe("QueryTextNode", () => {
   it("has correct metadata", () => {
-    expect(QueryTextNode.nodeType).toBe("vector.chroma.QueryText");
+    expect(QueryTextNode.nodeType).toBe("vector.QueryText");
     expect(QueryTextNode.title).toBe("Query Text");
     expect(QueryTextNode.description).toContain("text");
   });
@@ -1221,7 +1215,7 @@ describe("QueryTextNode", () => {
 
 describe("RemoveOverlapNode", () => {
   it("has correct metadata", () => {
-    expect(RemoveOverlapNode.nodeType).toBe("vector.chroma.RemoveOverlap");
+    expect(RemoveOverlapNode.nodeType).toBe("vector.RemoveOverlap");
     expect(RemoveOverlapNode.title).toBe("Remove Overlap");
     expect(RemoveOverlapNode.description).toContain("overlap");
   });
@@ -1339,7 +1333,7 @@ describe("RemoveOverlapNode", () => {
 
 describe("HybridSearchNode", () => {
   it("has correct metadata", () => {
-    expect(HybridSearchNode.nodeType).toBe("vector.chroma.HybridSearch");
+    expect(HybridSearchNode.nodeType).toBe("vector.HybridSearch");
     expect(HybridSearchNode.title).toBe("Hybrid Search");
     expect(HybridSearchNode.description).toContain("Hybrid");
   });

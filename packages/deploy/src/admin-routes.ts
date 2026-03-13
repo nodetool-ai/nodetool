@@ -202,9 +202,9 @@ export interface CollectionHandle {
 }
 
 /**
- * Chroma-like client interface.
+ * Vector store client interface.
  */
-export interface ChromaClient {
+export interface VecStoreClient {
   createCollection(opts: {
     name: string;
     metadata: Record<string, unknown>;
@@ -272,7 +272,7 @@ export interface AdminDeps {
   hub: HFHubAdapter;
   ollama?: OllamaAdapter;
   getDbAdapter: DatabaseAdapterFactory;
-  chroma: ChromaClient;
+  vecStore: VecStoreClient;
   assetModel: AssetModel;
   assetStorage: AssetStorage;
   workflowModel: WorkflowModel;
@@ -463,7 +463,7 @@ export async function handleCreateCollection(
   req: CollectionCreateRequest
 ): Promise<CollectionResponse> {
   const metadata = { embedding_model: req.embedding_model };
-  const collection = await deps.chroma.createCollection({
+  const collection = await deps.vecStore.createCollection({
     name: req.name,
     metadata,
   });
@@ -480,7 +480,7 @@ export async function handleCreateCollection(
 export async function handleListCollections(
   deps: AdminDeps
 ): Promise<CollectionListResponse> {
-  const collections = await deps.chroma.listCollections();
+  const collections = await deps.vecStore.listCollections();
 
   const results = await Promise.all(
     collections.map(async (col) => {
@@ -510,7 +510,7 @@ export async function handleGetCollection(
   deps: AdminDeps,
   name: string
 ): Promise<CollectionResponse> {
-  const collection = await deps.chroma.getCollection({ name });
+  const collection = await deps.vecStore.getCollection({ name });
   const count = await collection.count();
   return {
     name: collection.name,
@@ -527,7 +527,7 @@ export async function handleUpdateCollection(
   name: string,
   req: CollectionModifyRequest
 ): Promise<CollectionResponse> {
-  const collection = await deps.chroma.getCollection({ name });
+  const collection = await deps.vecStore.getCollection({ name });
   const metadata = { ...(collection.metadata ?? {}), ...(req.metadata ?? {}) };
   const newName = req.name ?? collection.name;
   await collection.modify({ name: newName, metadata });
@@ -545,7 +545,7 @@ export async function handleDeleteCollection(
   deps: AdminDeps,
   name: string
 ): Promise<{ message: string }> {
-  await deps.chroma.deleteCollection({ name });
+  await deps.vecStore.deleteCollection({ name });
   return { message: `Collection ${name} deleted successfully` };
 }
 
@@ -557,7 +557,7 @@ export async function handleAddToCollection(
   name: string,
   req: AddToCollectionRequest
 ): Promise<{ message: string }> {
-  const collection = await deps.chroma.getCollection({ name });
+  const collection = await deps.vecStore.getCollection({ name });
   await collection.add({
     documents: req.documents,
     ids: req.ids,

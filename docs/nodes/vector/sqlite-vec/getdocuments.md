@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Get Documents"
-node_type: "vector.chroma.GetDocuments"
+node_type: "vector.GetDocuments"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.GetDocuments`
+**Type:** `vector.GetDocuments`
 
 **Namespace:** `vector.chroma`
 

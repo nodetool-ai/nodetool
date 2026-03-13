@@ -3,20 +3,20 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import {
-  ChromaTextSearchTool,
-  ChromaIndexTool,
-  ChromaHybridSearchTool,
-  ChromaRecursiveSplitAndIndexTool,
-  ChromaMarkdownSplitAndIndexTool,
-  ChromaBatchIndexTool,
-  type ChromaCollection,
-} from "../src/tools/chroma-tools.js";
+  VecTextSearchTool,
+  VecIndexTool,
+  VecHybridSearchTool,
+  VecRecursiveSplitAndIndexTool,
+  VecMarkdownSplitAndIndexTool,
+  VecBatchIndexTool,
+  type VecCollection,
+} from "../src/tools/vector-tools.js";
 
 const mockContext = {} as any;
 
 function makeMockCollection(
-  overrides: Partial<ChromaCollection> = {},
-): ChromaCollection {
+  overrides: Partial<VecCollection> = {},
+): VecCollection {
   return {
     query: vi.fn().mockResolvedValue({
       ids: [["id1", "id2"]],
@@ -28,13 +28,13 @@ function makeMockCollection(
 }
 
 // ---------------------------------------------------------------------------
-// ChromaTextSearchTool
+// VecTextSearchTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaTextSearchTool", () => {
+describe("VecTextSearchTool", () => {
   it("returns id-document map", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaTextSearchTool(col);
+    const tool = new VecTextSearchTool(col);
     const result = await tool.process(mockContext, {
       text: "hello",
       n_results: 2,
@@ -50,32 +50,32 @@ describe("ChromaTextSearchTool", () => {
     const col = makeMockCollection({
       query: vi.fn().mockResolvedValue({ ids: [[]], documents: [[]] }),
     });
-    const tool = new ChromaTextSearchTool(col);
+    const tool = new VecTextSearchTool(col);
     const result = await tool.process(mockContext, { text: "hello" });
     expect(result).toEqual({});
   });
 
   it("has correct tool shape", () => {
-    const tool = new ChromaTextSearchTool(makeMockCollection());
-    expect(tool.name).toBe("chroma_text_search");
+    const tool = new VecTextSearchTool(makeMockCollection());
+    expect(tool.name).toBe("vector_text_search");
     expect(tool.toProviderTool().inputSchema).toBeDefined();
   });
 
   it("userMessage truncates long text", () => {
-    const tool = new ChromaTextSearchTool(makeMockCollection());
+    const tool = new VecTextSearchTool(makeMockCollection());
     const msg = tool.userMessage({ text: "a".repeat(200) });
     expect(msg).toBe("Performing semantic search...");
   });
 });
 
 // ---------------------------------------------------------------------------
-// ChromaIndexTool
+// VecIndexTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaIndexTool", () => {
+describe("VecIndexTool", () => {
   it("indexes text and returns document id", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaIndexTool(col);
+    const tool = new VecIndexTool(col);
     const result = await tool.process(mockContext, {
       text: "some content",
       source_id: "src-1",
@@ -87,7 +87,7 @@ describe("ChromaIndexTool", () => {
   });
 
   it("returns error for empty source_id", async () => {
-    const tool = new ChromaIndexTool(makeMockCollection());
+    const tool = new VecIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "content",
       source_id: "  ",
@@ -97,7 +97,7 @@ describe("ChromaIndexTool", () => {
 
   it("passes metadata when provided", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaIndexTool(col);
+    const tool = new VecIndexTool(col);
     await tool.process(mockContext, {
       text: "content",
       source_id: "src-1",
@@ -112,7 +112,7 @@ describe("ChromaIndexTool", () => {
 
   it("passes null metadatas when metadata is empty", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaIndexTool(col);
+    const tool = new VecIndexTool(col);
     await tool.process(mockContext, {
       text: "content",
       source_id: "src-1",
@@ -126,10 +126,10 @@ describe("ChromaIndexTool", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ChromaHybridSearchTool
+// VecHybridSearchTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaHybridSearchTool", () => {
+describe("VecHybridSearchTool", () => {
   it("combines semantic and keyword results", async () => {
     const col = makeMockCollection({
       query: vi
@@ -143,7 +143,7 @@ describe("ChromaHybridSearchTool", () => {
           documents: [["doc b", "doc c"]],
         }),
     });
-    const tool = new ChromaHybridSearchTool(col);
+    const tool = new VecHybridSearchTool(col);
     const result = await tool.process(mockContext, {
       text: "hello world",
       n_results: 5,
@@ -156,14 +156,14 @@ describe("ChromaHybridSearchTool", () => {
   });
 
   it("returns error for empty text", async () => {
-    const tool = new ChromaHybridSearchTool(makeMockCollection());
+    const tool = new VecHybridSearchTool(makeMockCollection());
     const result = await tool.process(mockContext, { text: "   " });
     expect(result).toHaveProperty("error");
   });
 
   it("falls back to semantic when no keywords match min length", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaHybridSearchTool(col);
+    const tool = new VecHybridSearchTool(col);
     await tool.process(mockContext, {
       text: "ab",
       min_keyword_length: 5,
@@ -174,13 +174,13 @@ describe("ChromaHybridSearchTool", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ChromaRecursiveSplitAndIndexTool
+// VecRecursiveSplitAndIndexTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaRecursiveSplitAndIndexTool", () => {
+describe("VecRecursiveSplitAndIndexTool", () => {
   it("splits and indexes text chunks", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaRecursiveSplitAndIndexTool(col);
+    const tool = new VecRecursiveSplitAndIndexTool(col);
     const longText = "paragraph one.\n\nparagraph two.\n\nparagraph three.";
     const result = await tool.process(mockContext, {
       text: longText,
@@ -194,7 +194,7 @@ describe("ChromaRecursiveSplitAndIndexTool", () => {
   });
 
   it("returns error for empty text", async () => {
-    const tool = new ChromaRecursiveSplitAndIndexTool(makeMockCollection());
+    const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "  ",
       document_id: "doc1",
@@ -203,7 +203,7 @@ describe("ChromaRecursiveSplitAndIndexTool", () => {
   });
 
   it("returns error for empty document_id", async () => {
-    const tool = new ChromaRecursiveSplitAndIndexTool(makeMockCollection());
+    const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {
       text: "hello",
       document_id: "  ",
@@ -214,7 +214,7 @@ describe("ChromaRecursiveSplitAndIndexTool", () => {
   it("returns error when collection.add throws during indexing", async () => {
     const col = makeMockCollection();
     col.add.mockRejectedValueOnce(new Error("DB write failed"));
-    const tool = new ChromaRecursiveSplitAndIndexTool(col);
+    const tool = new VecRecursiveSplitAndIndexTool(col);
     const result = await tool.process(mockContext, {
       text: "some content",
       document_id: "doc1",
@@ -224,7 +224,7 @@ describe("ChromaRecursiveSplitAndIndexTool", () => {
 
   it("indexes single small chunk", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaRecursiveSplitAndIndexTool(col);
+    const tool = new VecRecursiveSplitAndIndexTool(col);
     const result = await tool.process(mockContext, {
       text: "small text",
       document_id: "doc1",
@@ -235,26 +235,26 @@ describe("ChromaRecursiveSplitAndIndexTool", () => {
   });
 
   it("userMessage includes source_id", () => {
-    const tool = new ChromaRecursiveSplitAndIndexTool(makeMockCollection());
+    const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const msg = tool.userMessage({ source_id: "my-doc" });
     expect(msg).toContain("my-doc");
   });
 
   it("userMessage truncates when source_id is long", () => {
-    const tool = new ChromaRecursiveSplitAndIndexTool(makeMockCollection());
+    const tool = new VecRecursiveSplitAndIndexTool(makeMockCollection());
     const msg = tool.userMessage({ source_id: "a".repeat(100) });
     expect(msg.length).toBeLessThanOrEqual(80);
   });
 });
 
 // ---------------------------------------------------------------------------
-// ChromaMarkdownSplitAndIndexTool
+// VecMarkdownSplitAndIndexTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaMarkdownSplitAndIndexTool", () => {
+describe("VecMarkdownSplitAndIndexTool", () => {
   it("splits markdown by headers and indexes", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaMarkdownSplitAndIndexTool(col);
+    const tool = new VecMarkdownSplitAndIndexTool(col);
     const md = "# Title\nSome intro text.\n## Section 1\nContent one.\n## Section 2\nContent two.";
     const result = await tool.process(mockContext, { text: md });
     expect(result).toHaveProperty("status", "success");
@@ -262,14 +262,14 @@ describe("ChromaMarkdownSplitAndIndexTool", () => {
   });
 
   it("returns error when neither file_path nor text provided", async () => {
-    const tool = new ChromaMarkdownSplitAndIndexTool(makeMockCollection());
+    const tool = new VecMarkdownSplitAndIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, {});
     expect(result).toHaveProperty("error");
   });
 
   it("indexes single section without splitting", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaMarkdownSplitAndIndexTool(col);
+    const tool = new VecMarkdownSplitAndIndexTool(col);
     const result = await tool.process(mockContext, {
       text: "# Just one section\nSmall content.",
     });
@@ -279,7 +279,7 @@ describe("ChromaMarkdownSplitAndIndexTool", () => {
 
   it("recursively splits sections exceeding chunk size", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaMarkdownSplitAndIndexTool(col);
+    const tool = new VecMarkdownSplitAndIndexTool(col);
     // Create a large section that exceeds the default chunk_size (4000 chars)
     const largeContent = "x".repeat(5000);
     const result = await tool.process(mockContext, {
@@ -292,7 +292,7 @@ describe("ChromaMarkdownSplitAndIndexTool", () => {
 
   it("indexes markdown from file_path", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaMarkdownSplitAndIndexTool(col);
+    const tool = new VecMarkdownSplitAndIndexTool(col);
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "chroma-md-test-"));
     const tmpFile = path.join(tmpDir, "doc.md");
     await fs.writeFile(tmpFile, "# Section A\nContent A.\n## Sub-B\nContent B.");
@@ -306,26 +306,26 @@ describe("ChromaMarkdownSplitAndIndexTool", () => {
   });
 
   it("userMessage includes source_id", () => {
-    const tool = new ChromaMarkdownSplitAndIndexTool(makeMockCollection());
+    const tool = new VecMarkdownSplitAndIndexTool(makeMockCollection());
     const msg = tool.userMessage({ source_id: "doc-42" });
     expect(msg).toContain("doc-42");
   });
 
   it("userMessage truncates long source_id", () => {
-    const tool = new ChromaMarkdownSplitAndIndexTool(makeMockCollection());
+    const tool = new VecMarkdownSplitAndIndexTool(makeMockCollection());
     const msg = tool.userMessage({ source_id: "a".repeat(100) });
     expect(msg.length).toBeLessThanOrEqual(80);
   });
 });
 
 // ---------------------------------------------------------------------------
-// ChromaBatchIndexTool
+// VecBatchIndexTool
 // ---------------------------------------------------------------------------
 
-describe("ChromaBatchIndexTool", () => {
+describe("VecBatchIndexTool", () => {
   it("batch indexes multiple chunks", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaBatchIndexTool(col);
+    const tool = new VecBatchIndexTool(col);
     const result = await tool.process(mockContext, {
       chunks: [
         { text: "chunk 1", source_id: "s1" },
@@ -338,14 +338,14 @@ describe("ChromaBatchIndexTool", () => {
   });
 
   it("returns error for empty chunks array", async () => {
-    const tool = new ChromaBatchIndexTool(makeMockCollection());
+    const tool = new VecBatchIndexTool(makeMockCollection());
     const result = await tool.process(mockContext, { chunks: [] });
     expect(result).toHaveProperty("error");
   });
 
   it("skips chunks without text or source_id", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaBatchIndexTool(col);
+    const tool = new VecBatchIndexTool(col);
     const result = await tool.process(mockContext, {
       chunks: [
         { text: "valid", source_id: "s1" },
@@ -359,7 +359,7 @@ describe("ChromaBatchIndexTool", () => {
 
   it("merges base_metadata with chunk metadata", async () => {
     const col = makeMockCollection();
-    const tool = new ChromaBatchIndexTool(col);
+    const tool = new VecBatchIndexTool(col);
     await tool.process(mockContext, {
       chunks: [{ text: "c", source_id: "s1", metadata: { a: 1 } }],
       base_metadata: { b: 2 },
@@ -372,7 +372,7 @@ describe("ChromaBatchIndexTool", () => {
     const col = makeMockCollection({
       add: vi.fn().mockRejectedValue(new Error("db down")),
     });
-    const tool = new ChromaBatchIndexTool(col);
+    const tool = new VecBatchIndexTool(col);
     const result = await tool.process(mockContext, {
       chunks: [{ text: "c", source_id: "s1" }],
     });
@@ -381,7 +381,7 @@ describe("ChromaBatchIndexTool", () => {
   });
 
   it("userMessage shows chunk count", () => {
-    const tool = new ChromaBatchIndexTool(makeMockCollection());
+    const tool = new VecBatchIndexTool(makeMockCollection());
     expect(tool.userMessage({ chunks: [1, 2, 3] })).toContain("3");
   });
 });

@@ -91,14 +91,14 @@ export {
   ConvertDocumentTool,
 } from "./tools/pdf-tools.js";
 export {
-  ChromaTextSearchTool,
-  ChromaIndexTool,
-  ChromaHybridSearchTool,
-  ChromaRecursiveSplitAndIndexTool,
-  ChromaMarkdownSplitAndIndexTool,
-  ChromaBatchIndexTool,
-} from "./tools/chroma-tools.js";
-export type { ChromaCollection } from "./tools/chroma-tools.js";
+  VecTextSearchTool,
+  VecIndexTool,
+  VecHybridSearchTool,
+  VecRecursiveSplitAndIndexTool,
+  VecMarkdownSplitAndIndexTool,
+  VecBatchIndexTool,
+} from "./tools/vector-tools.js";
+export type { VecCollection } from "./tools/vector-tools.js";
 export {
   registerTool,
   resolveTool,
