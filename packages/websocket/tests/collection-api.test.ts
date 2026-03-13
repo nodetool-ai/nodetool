@@ -237,24 +237,39 @@ describe("Collection API (sqlite-vec)", () => {
 
   // ── File index ───────────────────────────────────────────────────
 
-  it("POST /api/collections/:name/index returns stub response", async () => {
+  it("POST /api/collections/:name/index indexes file into collection", async () => {
+    // Create the collection first
+    const createReq = new Request("http://localhost/api/collections", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "index-col" }),
+    });
+    await handleCollectionRequest(createReq, "/api/collections", {});
+
     const file = new File(["hello world"], "test.txt", { type: "text/plain" });
     const formData = new FormData();
     formData.append("file", file);
 
-    const req = new Request("http://localhost/api/collections/test-collection/index", {
+    const req = new Request("http://localhost/api/collections/index-col/index", {
       method: "POST",
       body: formData,
     });
     const res = await handleCollectionRequest(
       req,
-      "/api/collections/test-collection/index",
+      "/api/collections/index-col/index",
       {},
     );
     expect(res!.status).toBe(200);
     const body = (await jsonBody(res!)) as Record<string, unknown>;
     expect(body.path).toBe("test.txt");
+    expect(body.chunks).toBe(1);
     expect(body.error).toBeNull();
+
+    // Verify the document was actually added to the collection
+    const getReq = new Request("http://localhost/api/collections/index-col");
+    const getRes = await handleCollectionRequest(getReq, "/api/collections/index-col", {});
+    const getBody = (await jsonBody(getRes!)) as Record<string, unknown>;
+    expect(getBody.count).toBe(1);
   });
 
   it("POST /api/collections/:name/index returns 400 without multipart", async () => {
