@@ -87,10 +87,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test("should display different model types", async ({ page }) => {
       // Verify we have different types of models in mock data
-      const diffusionModels = models.huggingface.filter(m => m.type === "diffusion");
-      const languageModels = models.huggingface.filter(m => m.type === "language");
-      
-      expect(diffusionModels.length).toBeGreaterThan(0);
+      const imageModels = (models.huggingface as any[]).filter(m => m.type === "hf.text_to_image");
+      const languageModels = (models.huggingface as any[]).filter(m => m.type === "hf.text_generation");
+
+      expect(imageModels.length).toBeGreaterThan(0);
       expect(languageModels.length).toBeGreaterThan(0);
 
       await navigateToPage(page, "/models");

@@ -65,6 +65,7 @@ interface Message {
 
 interface Models {
   huggingface: unknown[];
+  all: unknown[];
   recommended: unknown[];
   recommended_language: unknown[];
   recommended_image: unknown[];
@@ -457,12 +458,27 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     });
   });
 
-  // Mock models/all endpoint
+  // Mock models/all endpoint — this is the primary endpoint used by the Model Manager
   await page.route(`${apiUrl}/models/all`, async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([])
+      body: JSON.stringify(models.all)
+    });
+  });
+
+  // Mock HF cache status check (called for visible HF models)
+  await page.route(`${apiUrl}/models/huggingface/check_cache`, async (route: Route) => {
+    const body = await route.request().postDataJSON().catch(() => []);
+    const items = Array.isArray(body) ? body : body?.items || [];
+    const results = items.map((item: { key: string }) => ({
+      key: item.key,
+      downloaded: false
+    }));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(results)
     });
   });
 
