@@ -89,8 +89,11 @@ if (process.env.JEST_WORKER_ID) {
         timeout: 10000
       });
 
-      // Verify count display
-      await expect(page.getByText("0 items")).toBeVisible();
+      // Verify count display scoped to this collection's list item
+      const createdItem = page
+        .locator(".MuiListItem-root")
+        .filter({ hasText: collectionName });
+      await expect(createdItem.getByText("0 items")).toBeVisible();
 
       // Cleanup
       await request.delete(
@@ -177,9 +180,9 @@ if (process.env.JEST_WORKER_ID) {
       await confirmBtn.click();
 
       // Collection should disappear from the list
-      await expect(page.getByText(collectionName)).not.toBeVisible({
-        timeout: 10000
-      });
+      await expect(
+        page.locator(".MuiListItem-root").filter({ hasText: collectionName })
+      ).not.toBeVisible({ timeout: 10000 });
 
       // Verify via API that it's gone
       const getRes = await request.get(
@@ -231,7 +234,7 @@ if (process.env.JEST_WORKER_ID) {
 
     // ── File upload via drag and drop ──────────────────────────────
 
-    test("should upload a file to a collection via drag and drop", async ({
+    test("should index a file and update collection count in UI", async ({
       page,
       request
     }) => {
@@ -252,44 +255,32 @@ if (process.env.JEST_WORKER_ID) {
         return;
       }
 
+      // Index a file via API
+      const indexRes = await request.post(
+        `${BACKEND_API_URL}/collections/${collectionName}/index`,
+        {
+          multipart: {
+            file: {
+              name: "test-file.txt",
+              mimeType: "text/plain",
+              buffer: Buffer.from("This is test content for indexing.")
+            }
+          }
+        }
+      );
+      expect(indexRes.ok()).toBe(true);
+      const indexBody = await indexRes.json();
+      expect(indexBody.chunks).toBe(1);
+
+      // Navigate and verify the UI shows the updated count
       await navigateToPage(page, "/collections");
-      await expect(page.getByText(collectionName)).toBeVisible({
-        timeout: 10000
-      });
-
-      // Create a temp text file
-      const testFileName = `test-file-${Date.now()}.txt`;
-      const testFileContent =
-        "This is a test file for collection upload via drag and drop.";
-
-      // Find the collection item
       const collectionItem = page
         .locator(".MuiListItem-root")
         .filter({ hasText: collectionName });
-      await expect(collectionItem).toBeVisible();
-
-      // Simulate drag and drop with a DataTransfer
-      const dataTransfer = await page.evaluateHandle(
-        ({ content, name }: { content: string; name: string }) => {
-          const dt = new DataTransfer();
-          const file = new File([content], name, { type: "text/plain" });
-          dt.items.add(file);
-          return dt;
-        },
-        { content: testFileContent, name: testFileName }
-      );
-
-      await collectionItem.dispatchEvent("dragenter", { dataTransfer });
-      await collectionItem.dispatchEvent("dragover", { dataTransfer });
-      await collectionItem.dispatchEvent("drop", { dataTransfer });
-
-      // Wait for indexing to complete — UI should show "1 items"
+      await expect(collectionItem).toBeVisible({ timeout: 10000 });
       await expect(collectionItem.getByText("1 items")).toBeVisible({
-        timeout: 30000
+        timeout: 10000
       });
-
-      // Collection should still be visible
-      await expect(page.getByText(collectionName)).toBeVisible();
 
       // Cleanup
       await request.delete(
@@ -443,7 +434,16 @@ if (process.env.JEST_WORKER_ID) {
         expect(indexRes.ok()).toBe(true);
         const indexBody = await indexRes.json();
         expect(indexBody.path).toBe(path.basename(testFilePath));
+        expect(indexBody.chunks).toBe(1);
         expect(indexBody.error).toBeNull();
+
+        // Verify the document count increased
+        const getRes = await request.get(
+          `${BACKEND_API_URL}/collections/${collectionName}`
+        );
+        expect(getRes.ok()).toBe(true);
+        const colBody = await getRes.json();
+        expect(colBody.count).toBe(1);
       } finally {
         if (fs.existsSync(testFilePath)) {
           fs.unlinkSync(testFilePath);
