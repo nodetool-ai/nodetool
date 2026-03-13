@@ -281,6 +281,7 @@ export {
   RunShellCommandDockerNode,
   CODE_NODES,
 } from "./nodes/code.js";
+export { CodeNode } from "./nodes/code-node.js";
 export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,
@@ -789,6 +790,7 @@ import { COMPARE_NODES } from "./nodes/compare.js";
 import { DOCUMENT_NODES } from "./nodes/document.js";
 import { DATA_NODES } from "./nodes/data.js";
 import { CODE_NODES } from "./nodes/code.js";
+import { CodeNode } from "./nodes/code-node.js";
 import { AUDIO_NODES } from "./nodes/audio.js";
 import { TRIGGER_NODES } from "./nodes/triggers.js";
 import { IMAGE_NODES } from "./nodes/image.js";
@@ -859,6 +861,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...DOCUMENT_NODES,
   ...DATA_NODES,
   ...CODE_NODES,
+  CodeNode,
   ...AUDIO_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
