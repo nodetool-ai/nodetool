@@ -232,6 +232,8 @@ async function main() {
   let AnthropicProvider;
   let OllamaProvider;
   let LlamaProvider;
+  let PythonBridge;
+  let PythonNodeExecutor;
   try {
     const kernelPath = path.resolve(tsRoot, "packages/kernel/dist/index.js");
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
@@ -248,6 +250,8 @@ async function main() {
       AnthropicProvider,
       OllamaProvider,
       LlamaProvider,
+      PythonBridge,
+      PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
     try {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
@@ -264,6 +268,23 @@ async function main() {
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
   if (registerFalNodes) registerFalNodes(registry);
+
+  // Check if any node in the graph needs Python execution
+  const allNodeTypes = new Set(graph.nodes.map((n) => n.type));
+  const needsPython = [...allNodeTypes].some((t) => !registry.has(t));
+
+  let pythonBridge = null;
+  if (needsPython) {
+    process.stderr.write("Starting Python bridge for non-TS nodes...\n");
+    pythonBridge = new PythonBridge({
+      workerArgs: process.env.NODETOOL_WORKER_NAMESPACES
+        ? ["--namespaces", process.env.NODETOOL_WORKER_NAMESPACES]
+        : [],
+    });
+    await pythonBridge.connect();
+    const meta = pythonBridge.getNodeMetadata();
+    process.stderr.write(`Python bridge connected — ${meta.length} Python nodes available\n`);
+  }
 
   const context = new ProcessingContext({
     jobId,
@@ -303,10 +324,27 @@ async function main() {
 
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor: (node) => {
-      if (!registry.has(node.type)) {
-        throw new Error(`Unknown node type: ${node.type}`);
+      // Try TS registry first
+      if (registry.has(node.type)) {
+        return registry.resolve(node);
       }
-      return registry.resolve(node);
+      // Route through Python bridge
+      if (pythonBridge && pythonBridge.hasNodeType(node.type)) {
+        const meta = pythonBridge
+          .getNodeMetadata()
+          .find((n) => n.node_type === node.type);
+        const props = node.properties ?? node.data ?? {};
+        return new PythonNodeExecutor(
+          pythonBridge,
+          node.type,
+          props,
+          Object.fromEntries(
+            (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
+          ),
+          meta?.required_settings ?? [],
+        );
+      }
+      throw new Error(`Unknown node type: ${node.type}`);
     },
     executionContext: context,
   });
@@ -343,6 +381,7 @@ async function main() {
     }
   }
 
+  if (pythonBridge) pythonBridge.close();
   process.exit(result.status === "completed" ? 0 : 1);
 }
 
