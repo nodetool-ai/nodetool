@@ -109,7 +109,7 @@ function sec(envVar: string, group: string, description: string): void {
 
 // Folders / paths
 s("FONT_PATH", "Folders", "Location of font folder used by image processing nodes like RenderText. If not specified, the system will use default fonts.");
-s("CHROMA_PATH", "Folders", "Location of ChromaDB folder for vector database storage. Used to store and retrieve embeddings for semantic search and RAG applications.");
+s("VECTORSTORE_DB_PATH", "Folders", "Location of the sqlite-vec vector database file. Used to store and retrieve embeddings for semantic search and RAG applications.");
 s("USERS_FILE", "Folders", "Path to users.yaml file for multi-user bearer token authentication. Defaults to ~/.config/nodetool/users.yaml for local deployments.");
 
 // Autosave

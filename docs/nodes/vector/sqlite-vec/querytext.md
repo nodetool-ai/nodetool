@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Query Text"
-node_type: "vector.chroma.QueryText"
+node_type: "vector.QueryText"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.QueryText`
+**Type:** `vector.QueryText`
 
 **Namespace:** `vector.chroma`
 

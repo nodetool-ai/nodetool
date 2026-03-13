@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Collection"
-node_type: "vector.chroma.Collection"
+node_type: "vector.Collection"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.Collection`
+**Type:** `vector.Collection`
 
 **Namespace:** `vector.chroma`
 

@@ -457,7 +457,7 @@ settings
       "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
       "MISTRAL_API_KEY", "GROQ_API_KEY", "OLLAMA_API_URL",
       "SERPAPI_API_KEY", "HF_TOKEN",
-      "CHROMA_PATH", "CHROMA_URL",
+      "VECTORSTORE_DB_PATH",
       "ASSET_BUCKET", "S3_ENDPOINT_URL",
     ];
     const data = Object.fromEntries(

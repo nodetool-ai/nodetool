@@ -26,9 +26,9 @@ async function getOllamaEmbedding(model: string, text: string): Promise<number[]
 // ---------------------------------------------------------------------------
 
 export class CollectionNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.Collection";
+  static readonly nodeType = "vector.Collection";
             static readonly title = "Collection";
-            static readonly description = "Get or create a named vector database collection for storing embeddings.\n    vector, embedding, collection, RAG, get, create, chroma";
+            static readonly description = "Get or create a named vector database collection for storing embeddings.\n    vector, embedding, collection, RAG, get, create";
         static readonly metadataOutputTypes = {
     output: "collection"
   };
@@ -75,9 +75,9 @@ export class CollectionNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class CountNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.Count";
+  static readonly nodeType = "vector.Count";
             static readonly title = "Count";
-            static readonly description = "Count the number of documents in a collection.\n    vector, embedding, collection, RAG, chroma";
+            static readonly description = "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
         static readonly metadataOutputTypes = {
     output: "int"
   };
@@ -109,9 +109,9 @@ export class CountNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class GetDocumentsNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.GetDocuments";
+  static readonly nodeType = "vector.GetDocuments";
             static readonly title = "Get Documents";
-            static readonly description = "Get documents from a chroma collection.\n    vector, embedding, collection, RAG, retrieve, chroma";
+            static readonly description = "Get documents from a collection.\n    vector, embedding, collection, RAG, retrieve";
         static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -161,9 +161,9 @@ export class GetDocumentsNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class PeekNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.Peek";
+  static readonly nodeType = "vector.Peek";
             static readonly title = "Peek";
-            static readonly description = "Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview, chroma";
+            static readonly description = "Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview";
         static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -200,9 +200,9 @@ export class PeekNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class IndexImageNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.IndexImage";
+  static readonly nodeType = "vector.IndexImage";
             static readonly title = "Index Image";
-            static readonly description = "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch, chroma";
+            static readonly description = "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch";
   
   @prop({ type: "collection", default: {
   "type": "collection",
@@ -290,9 +290,9 @@ export class IndexImageNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class IndexEmbeddingNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.IndexEmbedding";
+  static readonly nodeType = "vector.IndexEmbedding";
             static readonly title = "Index Embedding";
-            static readonly description = "Index a single embedding vector into a Chroma collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, chroma, storage, RAG";
+            static readonly description = "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, storage, RAG";
   
   @prop({ type: "collection", default: {
   "type": "collection",
@@ -424,9 +424,9 @@ function flattenMetadata(obj: Record<string, unknown>): Record<string, string | 
 // ---------------------------------------------------------------------------
 
 export class IndexTextChunkNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.IndexTextChunk";
+  static readonly nodeType = "vector.IndexTextChunk";
             static readonly title = "Index Text Chunk";
-            static readonly description = "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk, chroma";
+            static readonly description = "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk";
   
   @prop({ type: "collection", default: {
   "type": "collection",
@@ -477,9 +477,9 @@ export class IndexTextChunkNode extends BaseNode {
 type AggregationMethod = "mean" | "max" | "min" | "sum";
 
 export class IndexAggregatedTextNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.IndexAggregatedText";
+  static readonly nodeType = "vector.IndexAggregatedText";
             static readonly title = "Index Aggregated Text";
-            static readonly description = "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama, chroma";
+            static readonly description = "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
   
   @prop({ type: "collection", default: {
   "type": "collection",
@@ -604,9 +604,9 @@ export class IndexAggregatedTextNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class IndexStringNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.IndexString";
+  static readonly nodeType = "vector.IndexString";
             static readonly title = "Index String";
-            static readonly description = "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string, chroma";
+            static readonly description = "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string";
   
   @prop({ type: "collection", default: {
   "type": "collection",
@@ -653,9 +653,9 @@ export class IndexStringNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class QueryImageNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.QueryImage";
+  static readonly nodeType = "vector.QueryImage";
             static readonly title = "Query Image";
-            static readonly description = "Query the index for similar images.\n    vector, RAG, query, image, search, similarity, chroma";
+            static readonly description = "Query the index for similar images.\n    vector, RAG, query, image, search, similarity";
         static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -734,9 +734,9 @@ export class QueryImageNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class QueryTextNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.QueryText";
+  static readonly nodeType = "vector.QueryText";
             static readonly title = "Query Text";
-            static readonly description = "Query the index for similar text.\n    vector, RAG, query, text, search, similarity, chroma";
+            static readonly description = "Query the index for similar text.\n    vector, RAG, query, text, search, similarity";
         static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -806,7 +806,7 @@ export class QueryTextNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class RemoveOverlapNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.RemoveOverlap";
+  static readonly nodeType = "vector.RemoveOverlap";
             static readonly title = "Remove Overlap";
             static readonly description = "Removes overlapping words between consecutive strings in a list. Splits text into words and matches word sequences for more accurate overlap detection.\n    vector, RAG, query, text, processing, overlap, deduplication";
         static readonly metadataOutputTypes = {
@@ -875,9 +875,9 @@ export class RemoveOverlapNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class HybridSearchNode extends BaseNode {
-  static readonly nodeType = "vector.chroma.HybridSearch";
+  static readonly nodeType = "vector.HybridSearch";
             static readonly title = "Hybrid Search";
-            static readonly description = "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity, chroma";
+            static readonly description = "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
         static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -1041,7 +1041,7 @@ export class HybridSearchNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const VECTOR_CHROMA_NODES: readonly NodeClass[] = [
+export const VECTOR_NODES: readonly NodeClass[] = [
   CollectionNode as unknown as NodeClass,
   CountNode as unknown as NodeClass,
   GetDocumentsNode as unknown as NodeClass,

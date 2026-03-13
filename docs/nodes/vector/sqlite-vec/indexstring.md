@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Index String"
-node_type: "vector.chroma.IndexString"
+node_type: "vector.IndexString"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.IndexString`
+**Type:** `vector.IndexString`
 
 **Namespace:** `vector.chroma`
 

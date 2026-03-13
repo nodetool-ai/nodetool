@@ -753,8 +753,8 @@ export {
   QueryTextNode,
   RemoveOverlapNode,
   HybridSearchNode,
-  VECTOR_CHROMA_NODES,
-} from "./nodes/vector-chroma.js";
+  VECTOR_NODES,
+} from "./nodes/vector.js";
 export {
   CreateIndexFlatL2Node,
   CreateIndexFlatIPNode,
@@ -833,7 +833,7 @@ import { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
 import { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
 import { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
-import { VECTOR_CHROMA_NODES } from "./nodes/vector-chroma.js";
+import { VECTOR_NODES } from "./nodes/vector.js";
 import { VECTOR_FAISS_NODES } from "./nodes/vector-faiss.js";
 import { GEMINI_NODES } from "./nodes/gemini.js";
 import { APIFY_NODES } from "./nodes/apify.js";
@@ -904,7 +904,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...KIE_VIDEO_NODES,
   ...KIE_AUDIO_NODES,
   ...KIE_DYNAMIC_NODES,
-  ...VECTOR_CHROMA_NODES,
+  ...VECTOR_NODES,
   ...VECTOR_FAISS_NODES,
   ...GEMINI_NODES,
   ...APIFY_NODES,
