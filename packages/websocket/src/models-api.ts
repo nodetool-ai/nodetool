@@ -328,7 +328,7 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
         await walk(root, full);
         continue;
       }
-      if (entry.isFile()) {
+      if (entry.isFile() || entry.isSymbolicLink()) {
         const rel = full.slice(root.length + 1).replaceAll("\\", "/");
         collected.add(rel);
       }
@@ -629,15 +629,29 @@ function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?:
 }
 
 async function getAllModels(): Promise<UnifiedModel[]> {
-  const providerIds = await getAvailableProviderIds();
-  const modelLists = await Promise.all(
-    providerIds.map((id) => getLanguageModelsByProvider(id)),
-  );
+  const all: UnifiedModel[] = [];
 
-  const all: UnifiedModel[] = modelLists.flatMap((models) =>
-    models.map(toUnifiedLanguageModel),
-  );
-  all.push(...RECOMMENDED_MODELS);
+  // Include local models: Ollama and llama.cpp language models
+  const localProviders: ProviderId[] = ["ollama", "llama_cpp"];
+  for (const providerId of localProviders) {
+    if (!(await isProviderAvailable(providerId))) continue;
+    try {
+      const models = await getLanguageModelsByProvider(providerId);
+      all.push(...models.map(toUnifiedLanguageModel));
+    } catch {
+      // Provider unavailable — skip
+    }
+  }
+
+  // Include HuggingFace cached/recommended models
+  if (!isProduction()) {
+    try {
+      const hfModels = await readCachedHfModels();
+      all.push(...hfModels);
+    } catch {
+      // HF models unavailable — continue without them
+    }
+  }
 
   return dedupeModels(all);
 }
