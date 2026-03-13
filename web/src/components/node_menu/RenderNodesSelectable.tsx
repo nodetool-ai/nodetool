@@ -234,6 +234,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   
   // Refs for namespace elements to enable scrolling
   const namespaceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  // Track timeout for cleanup
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Handle scroll to namespace when prop changes
   useEffect(() => {
@@ -244,9 +246,13 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         next.add(scrollToNamespace);
         return next;
       });
-      
+
       // Scroll to the namespace element after a short delay to allow expansion
-      setTimeout(() => {
+      // Clear any pending timeout before scheduling a new one
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
         const element = namespaceRefs.current.get(scrollToNamespace);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -254,6 +260,13 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         // Signal completion
         onScrollToNamespaceComplete?.();
       }, 50);
+
+      // Cleanup timeout on unmount or when dependencies change
+      return () => {
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+      };
     }
   }, [scrollToNamespace, onScrollToNamespaceComplete]);
   

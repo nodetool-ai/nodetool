@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, memo } from "react";
+import React, { useMemo, useCallback, memo, useRef } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
@@ -28,6 +28,9 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  // Track timeout to cleanup on unmount
+  const contextMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
     if (
@@ -60,7 +63,11 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
       event.preventDefault();
-      setTimeout(() => {
+      // Clear any pending timeout before scheduling a new one
+      if (contextMenuTimeoutRef.current) {
+        clearTimeout(contextMenuTimeoutRef.current);
+      }
+      contextMenuTimeoutRef.current = setTimeout(() => {
         openContextMenu(
           "output-context-menu",
           id,
@@ -74,6 +81,15 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     },
     [openContextMenu]
   );
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (contextMenuTimeoutRef.current) {
+        clearTimeout(contextMenuTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {
