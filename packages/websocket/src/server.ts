@@ -204,19 +204,7 @@ pythonBridge.on("exit", (code: number) => {
   pythonBridgeReady = false;
 });
 
-pythonBridge
-  .connect()
-  .then(() => {
-    pythonBridgeReady = true;
-    const meta = pythonBridge.getNodeMetadata();
-    log.info(`Python bridge connected — ${meta.length} Python nodes available`);
-  })
-  .catch((err) => {
-    log.warn(
-      "Python bridge failed to start (Python nodes will not be available)",
-      err instanceof Error ? err : new Error(String(err)),
-    );
-  });
+// Bridge connection is awaited at server startup (see bottom of file)
 
 // ---------------------------------------------------------------------------
 // Built-in tool registry for chat tool execution
@@ -359,7 +347,11 @@ server.on("upgrade", (request, socket, head) => {
       });
       const runner = new UnifiedWebSocketRunner({
         resolveExecutor: (node) => {
-          // Try Python bridge first for Python-only nodes (HF, MLX, etc.)
+          // Try TS registry first — if we have a class, use it
+          if (registry.has(node.type)) {
+            return registry.resolve(node);
+          }
+          // No TS class — route through Python bridge
           if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
             const meta = pythonBridge
               .getNodeMetadata()
@@ -372,6 +364,12 @@ server.on("upgrade", (request, socket, head) => {
                 (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
               ),
               meta?.required_settings ?? [],
+            );
+          }
+          // Node has metadata but no class and bridge not ready
+          if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+            throw new Error(
+              `Python node "${node.type}" cannot execute: Python worker is not connected`,
             );
           }
           return registry.resolve(node);
@@ -453,7 +451,23 @@ server.on("upgrade", (request, socket, head) => {
   socket.destroy();
 });
 
-server.listen(port, host, () => {
-  log.info(`Server listening on http://${host}:${port}`);
-  log.info(`WebSocket endpoint: ws://${host}:${port}/ws`);
-});
+// Start Python bridge, then listen
+pythonBridge
+  .connect()
+  .then(() => {
+    pythonBridgeReady = true;
+    const meta = pythonBridge.getNodeMetadata();
+    log.info(`Python bridge connected — ${meta.length} Python nodes available`);
+  })
+  .catch((err) => {
+    log.warn(
+      "Python bridge failed to start (Python nodes will not be available)",
+      err instanceof Error ? err : new Error(String(err)),
+    );
+  })
+  .finally(() => {
+    server.listen(port, host, () => {
+      log.info(`Server listening on http://${host}:${port}`);
+      log.info(`WebSocket endpoint: ws://${host}:${port}/ws`);
+    });
+  });
