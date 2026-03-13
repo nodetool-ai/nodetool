@@ -191,8 +191,8 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       expect(modelTypes.size).toBeGreaterThan(1);
-      expect(modelTypes.has("diffusion") || modelTypes.has("image")).toBe(true);
-      expect(modelTypes.has("language") || modelTypes.has("llm")).toBe(true);
+      expect(modelTypes.has("hf.text_to_image")).toBe(true);
+      expect(modelTypes.has("hf.text_generation")).toBe(true);
     });
   });
 
