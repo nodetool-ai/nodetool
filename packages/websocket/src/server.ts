@@ -356,10 +356,12 @@ server.on("upgrade", (request, socket, head) => {
             const meta = pythonBridge
               .getNodeMetadata()
               .find((n) => n.node_type === node.type);
+            const nodeRec = node as Record<string, unknown>;
+            const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<string, unknown>;
             return new PythonNodeExecutor(
               pythonBridge,
               node.type,
-              (node as Record<string, unknown>).properties as Record<string, unknown> ?? {},
+              props,
               Object.fromEntries(
                 (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
               ),
