@@ -164,10 +164,8 @@ const NodeExplorer: React.FC = () => {
         .join(" ")
         .toLowerCase();
 
-      const metadataBadgeColor = (metadata as any)?.badge_color;
       const accentColor =
         node.data?.color ||
-        metadataBadgeColor ||
         theme.vars.palette.primary.main;
 
       return {
