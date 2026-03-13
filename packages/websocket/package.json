@@ -30,7 +30,6 @@
     "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",
     "@nodetool/security": "*",
-    "chromadb": "^3.3.1",
     "msgpackr": "^1.11.2",
     "ws": "^8.18.3"
   },

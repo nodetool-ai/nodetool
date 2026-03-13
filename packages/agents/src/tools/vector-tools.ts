@@ -1,5 +1,5 @@
 /**
- * ChromaDB vector search tools.
+ * Vector database search tools.
  *
  * Port of src/nodetool/agents/tools/chroma_tools.py
  */
@@ -9,7 +9,7 @@ import { readFile } from "node:fs/promises";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { Tool } from "./base-tool.js";
 
-export interface ChromaCollection {
+export interface VecCollection {
   query(params: {
     queryTexts: string[];
     nResults: number;
@@ -31,13 +31,13 @@ function generateDocumentId(sourceId: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// ChromaTextSearchTool
+// VecTextSearchTool
 // ---------------------------------------------------------------------------
 
-export class ChromaTextSearchTool extends Tool {
-  readonly name = "chroma_text_search";
+export class VecTextSearchTool extends Tool {
+  readonly name = "vector_text_search";
   readonly description =
-    "Search all ChromaDB collections for similar text using semantic search";
+    "Search all vector database collections for similar text using semantic search";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -51,9 +51,9 @@ export class ChromaTextSearchTool extends Tool {
     required: ["text"],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }
@@ -88,12 +88,12 @@ export class ChromaTextSearchTool extends Tool {
 }
 
 // ---------------------------------------------------------------------------
-// ChromaIndexTool
+// VecIndexTool
 // ---------------------------------------------------------------------------
 
-export class ChromaIndexTool extends Tool {
-  readonly name = "chroma_index";
-  readonly description = "Index a text chunk into a ChromaDB collection";
+export class VecIndexTool extends Tool {
+  readonly name = "vector_index";
+  readonly description = "Index a text chunk into a vector database collection";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -111,9 +111,9 @@ export class ChromaIndexTool extends Tool {
     required: ["text", "source_id"],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }
@@ -151,13 +151,13 @@ export class ChromaIndexTool extends Tool {
 }
 
 // ---------------------------------------------------------------------------
-// ChromaHybridSearchTool
+// VecHybridSearchTool
 // ---------------------------------------------------------------------------
 
-export class ChromaHybridSearchTool extends Tool {
-  readonly name = "chroma_hybrid_search";
+export class VecHybridSearchTool extends Tool {
+  readonly name = "vector_hybrid_search";
   readonly description =
-    "Search all ChromaDB collections using both semantic and keyword-based search";
+    "Search all vector database collections using both semantic and keyword-based search";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -181,9 +181,9 @@ export class ChromaHybridSearchTool extends Tool {
     required: ["text"],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }
@@ -386,13 +386,13 @@ function splitTextRecursive(
 }
 
 // ---------------------------------------------------------------------------
-// ChromaRecursiveSplitAndIndexTool
+// VecRecursiveSplitAndIndexTool
 // ---------------------------------------------------------------------------
 
-export class ChromaRecursiveSplitAndIndexTool extends Tool {
-  readonly name = "chroma_recursive_split_and_index";
+export class VecRecursiveSplitAndIndexTool extends Tool {
+  readonly name = "vector_recursive_split_and_index";
   readonly description =
-    "Split text into chunks recursively and index them into a ChromaDB collection";
+    "Split text into chunks recursively and index them into a vector database collection";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -429,9 +429,9 @@ export class ChromaRecursiveSplitAndIndexTool extends Tool {
     required: ["text", "document_id"],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }
@@ -500,7 +500,7 @@ export class ChromaRecursiveSplitAndIndexTool extends Tool {
 }
 
 // ---------------------------------------------------------------------------
-// ChromaMarkdownSplitAndIndexTool
+// VecMarkdownSplitAndIndexTool
 // ---------------------------------------------------------------------------
 
 function splitMarkdownByHeaders(text: string): string[] {
@@ -521,10 +521,10 @@ function splitMarkdownByHeaders(text: string): string[] {
   return sections;
 }
 
-export class ChromaMarkdownSplitAndIndexTool extends Tool {
-  readonly name = "chroma_markdown_split_and_index";
+export class VecMarkdownSplitAndIndexTool extends Tool {
+  readonly name = "vector_markdown_split_and_index";
   readonly description =
-    "Split markdown text into chunks based on headers and index them into a ChromaDB collection";
+    "Split markdown text into chunks based on headers and index them into a vector database collection";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -550,9 +550,9 @@ export class ChromaMarkdownSplitAndIndexTool extends Tool {
     required: [],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }
@@ -621,13 +621,13 @@ export class ChromaMarkdownSplitAndIndexTool extends Tool {
 }
 
 // ---------------------------------------------------------------------------
-// ChromaBatchIndexTool
+// VecBatchIndexTool
 // ---------------------------------------------------------------------------
 
-export class ChromaBatchIndexTool extends Tool {
-  readonly name = "chroma_batch_index";
+export class VecBatchIndexTool extends Tool {
+  readonly name = "vector_batch_index";
   readonly description =
-    "Index a batch of text chunks into a ChromaDB collection";
+    "Index a batch of text chunks into a vector database collection";
   readonly inputSchema = {
     type: "object",
     properties: {
@@ -653,9 +653,9 @@ export class ChromaBatchIndexTool extends Tool {
     required: ["chunks"],
   };
 
-  private collection: ChromaCollection;
+  private collection: VecCollection;
 
-  constructor(collection: ChromaCollection) {
+  constructor(collection: VecCollection) {
     super();
     this.collection = collection;
   }

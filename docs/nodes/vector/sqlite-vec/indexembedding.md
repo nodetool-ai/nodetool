@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Index Embedding"
-node_type: "vector.chroma.IndexEmbedding"
+node_type: "vector.IndexEmbedding"
 namespace: "vector.chroma"
 ---
 
-**Type:** `vector.chroma.IndexEmbedding`
+**Type:** `vector.IndexEmbedding`
 
 **Namespace:** `vector.chroma`
 

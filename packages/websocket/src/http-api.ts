@@ -1623,7 +1623,7 @@ async function handleAssetThumbnail(
       headers: {
         "Content-Type": "image/jpeg",
         "Content-Length": String(thumbStat.size),
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "no-cache",
         "Last-Modified": thumbStat.mtime.toUTCString(),
       },
     });
@@ -1643,7 +1643,7 @@ async function handleAssetThumbnail(
         headers: {
           "Content-Type": asset.content_type,
           "Content-Length": String(fileStat.size),
-          "Cache-Control": "public, max-age=86400",
+          "Cache-Control": "no-cache",
           "Last-Modified": fileStat.mtime.toUTCString(),
         },
       });
