@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
 import os from "node:os";
@@ -2099,6 +2100,19 @@ export async function handleNodeHttpRequest(
   }
 
   const bodyBuffer = Buffer.from(await response.arrayBuffer());
+
+  // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
+  // is ~5 MB uncompressed, ~550 KB compressed).
+  const GZIP_THRESHOLD = 256 * 1024;
+  const acceptEncoding = req.headers["accept-encoding"] ?? "";
+  if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
+    const compressed = gzipSync(bodyBuffer);
+    res.setHeader("content-encoding", "gzip");
+    res.setHeader("content-length", compressed.length);
+    res.end(compressed);
+    return;
+  }
+
   res.end(bodyBuffer);
 }
 

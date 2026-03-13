@@ -23,6 +23,8 @@ import {
   MistralProvider,
   GroqProvider,
   setSecretResolver,
+  PythonBridge,
+  PythonNodeExecutor,
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
 import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
@@ -180,6 +182,43 @@ registerFalNodes(registry);
 const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
 // ---------------------------------------------------------------------------
+// Python bridge — connects to nodetool_worker for HF / MLX / other Python nodes
+// ---------------------------------------------------------------------------
+
+const pythonBridge = new PythonBridge({
+  workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
+    ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
+    : [],
+});
+
+let pythonBridgeReady = false;
+
+pythonBridge.on("stderr", (msg: string) => {
+  for (const line of msg.split("\n")) {
+    if (line.trim()) log.debug(`[python-worker] ${line}`);
+  }
+});
+
+pythonBridge.on("exit", (code: number) => {
+  log.warn(`Python worker exited with code ${code}`);
+  pythonBridgeReady = false;
+});
+
+pythonBridge
+  .connect()
+  .then(() => {
+    pythonBridgeReady = true;
+    const meta = pythonBridge.getNodeMetadata();
+    log.info(`Python bridge connected — ${meta.length} Python nodes available`);
+  })
+  .catch((err) => {
+    log.warn(
+      "Python bridge failed to start (Python nodes will not be available)",
+      err instanceof Error ? err : new Error(String(err)),
+    );
+  });
+
+// ---------------------------------------------------------------------------
 // Built-in tool registry for chat tool execution
 // ---------------------------------------------------------------------------
 
@@ -319,7 +358,24 @@ server.on("upgrade", (request, socket, head) => {
         log.error("WebSocket client error", error);
       });
       const runner = new UnifiedWebSocketRunner({
-        resolveExecutor: (node) => registry.resolve(node),
+        resolveExecutor: (node) => {
+          // Try Python bridge first for Python-only nodes (HF, MLX, etc.)
+          if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
+            const meta = pythonBridge
+              .getNodeMetadata()
+              .find((n) => n.node_type === node.type);
+            return new PythonNodeExecutor(
+              pythonBridge,
+              node.type,
+              (node as Record<string, unknown>).properties as Record<string, unknown> ?? {},
+              Object.fromEntries(
+                (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
+              ),
+              meta?.required_settings ?? [],
+            );
+          }
+          return registry.resolve(node);
+        },
         resolveNodeType: graphNodeTypeResolver,
         resolveProvider,
         resolveTools,
