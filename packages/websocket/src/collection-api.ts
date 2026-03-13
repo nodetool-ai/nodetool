@@ -4,11 +4,8 @@
  * Handles all /api/collections/* routes backed by sqlite-vec.
  */
 
-import { writeFile, mkdtemp, rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { Workflow } from "@nodetool/models";
-import { getVecStore, VecNotFoundError } from "@nodetool/vectorstore";
+import { getVecStore, VecNotFoundError, splitDocument } from "@nodetool/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
 
 type JsonObject = Record<string, unknown>;
@@ -81,18 +78,24 @@ export async function handleCollectionRequest(
         return errorResponse(400, "No file provided");
       }
 
-      // Save to temp file
-      const tmpDir = await mkdtemp(join(tmpdir(), "nt-collection-"));
-      try {
-        const tmpPath = join(tmpDir, file.name);
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await writeFile(tmpPath, buffer);
+      const collectionName = decodeURIComponent(indexMatch[1]);
+      const collection = await store.getCollection({ name: collectionName });
 
-        // TODO: Implement actual document ingestion pipeline.
-        return jsonResponse({ path: file.name, error: null });
-      } finally {
-        await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      const text = await file.text();
+      const chunks = splitDocument(text, file.name);
+
+      if (chunks.length > 0) {
+        await collection.add({
+          ids: chunks.map((_, i) => `${file.name}#${i}`),
+          documents: chunks.map((c) => c.text),
+          metadatas: chunks.map((c) => ({
+            source: c.source_id,
+            start_index: String(c.start_index),
+          })),
+        });
       }
+
+      return jsonResponse({ path: file.name, chunks: chunks.length, error: null });
     }
 
     // GET /api/collections
