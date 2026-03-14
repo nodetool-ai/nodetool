@@ -62,6 +62,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Inspector"
                     onClick={handleInspectorToggle}
                     className={
                         activeView === "inspector" && panelVisible
@@ -88,6 +89,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Operator"
                     onClick={handleAssistantToggle}
                     className={
                         activeView === "assistant" && panelVisible
@@ -110,6 +112,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Agent"
                     onClick={handleAgentToggle}
                     className={
                         activeView === "agent" && panelVisible
@@ -129,6 +132,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Workspace"
                     onClick={handleWorkspaceToggle}
                     className={
                         activeView === "workspace" && panelVisible
@@ -148,6 +152,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Version History"
                     onClick={handleVersionsToggle}
                     className={
                         activeView === "versions" && panelVisible
@@ -174,6 +179,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Workflow Settings"
                     onClick={handleWorkflowToggle}
                     className={
                         activeView === "workflow" && panelVisible
@@ -200,6 +206,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Workflow Assets"
                     onClick={handleWorkflowAssetsToggle}
                     className={
                         activeView === "workflowAssets" && panelVisible
@@ -233,6 +240,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Logs"
                     onClick={handleLogsToggle}
                     className={
                         activeView === "logs" && panelVisible ? "logs active" : "logs"
@@ -250,6 +258,7 @@ function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
+                    aria-label="Jobs"
                     onClick={handleJobsToggle}
                     className={
                         activeView === "jobs" && panelVisible ? "jobs active" : "jobs"
