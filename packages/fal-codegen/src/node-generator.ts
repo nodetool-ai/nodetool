@@ -152,6 +152,7 @@ export class NodeGenerator {
       `  removeNulls,`,
       `  isRefSet,`,
       `  assetToFalUrl,`,
+      `  imageToDataUrl,`,
       `} from "../fal-base.js";`,
       ``,
       `// Re-export alias`,
@@ -396,9 +397,15 @@ export class NodeGenerator {
           `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
-        lines.push(
+        if (kind === "image") {
+          lines.push(
+            `      const ${varName}Url = await imageToDataUrl(${varName}Ref!) ?? await assetToFalUrl(apiKey, ${varName}Ref!);`,
+          );
+        } else {
+          lines.push(
             `      const ${varName}Url = await assetToFalUrl(apiKey, ${varName}Ref!);`,
           );
+        }
         lines.push(
           `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`,
         );

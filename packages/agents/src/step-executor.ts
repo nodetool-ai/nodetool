@@ -1069,7 +1069,7 @@ export class StepExecutor {
 // Helpers to discriminate ProviderStreamItem union members
 // ---------------------------------------------------------------------------
 
-function isChunk(item: ProviderStreamItem): item is { type: "chunk"; content?: string; done?: boolean } {
+function isChunk(item: ProviderStreamItem): item is Chunk {
   return "type" in item && (item as unknown as Record<string, unknown>)["type"] === "chunk";
 }
 
