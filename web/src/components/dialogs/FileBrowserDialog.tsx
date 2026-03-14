@@ -773,6 +773,7 @@ function FileBrowserDialog({
             <IconButton
               onClick={handleUp}
               disabled={currentPath === "~" || currentPath === "/"}
+              aria-label="Go up"
             >
               <ArrowUpwardIcon fontSize="small" />
             </IconButton>

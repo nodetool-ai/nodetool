@@ -178,6 +178,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
             className="side-panel-toggle"
             onClick={handleOpenPanel}
             size="small"
+            aria-label="Open settings"
           >
             <MenuIcon fontSize="small" />
           </IconButton>
