@@ -28,7 +28,7 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import { escapeHtml } from "../../utils/highlightText";
+import { addBreaks } from "../../utils/sanitize";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
 const styles = (theme: Theme) =>
   css({
@@ -190,9 +190,6 @@ const OpenOrCreateDialog = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  function addBreaks(text: string) {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-  }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
