@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, memo, useMemo } from "react";
+import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
 import { Typography, Box, Tooltip } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import {
@@ -216,6 +216,18 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
+  // Track drag image removal timeout for cleanup
+  const dragImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup drag image timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragImageTimeoutRef.current) {
+        clearTimeout(dragImageTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Memoize static styles to prevent recreation on every render
   const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
   const spinnerStyle = useMemo(() => ({
@@ -298,7 +310,17 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 10, 10);
-      setTimeout(() => document.body.removeChild(dragImage), 0);
+
+      // Clear any existing timeout before setting a new one
+      if (dragImageTimeoutRef.current) {
+        clearTimeout(dragImageTimeoutRef.current);
+      }
+
+      // Store timeout reference for cleanup
+      dragImageTimeoutRef.current = setTimeout(() => {
+        document.body.removeChild(dragImage);
+        dragImageTimeoutRef.current = null;
+      }, 0);
 
       // Update global drag state
       setActiveDrag({
