@@ -28,6 +28,7 @@ import {
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
 import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
+import { registerPythonProviders } from "./models-api.js";
 import {
   Tool,
   GoogleSearchTool,
@@ -371,7 +372,9 @@ server.on("upgrade", (request, socket, head) => {
           // Node has metadata but no class and bridge not ready
           if (registry.getMetadata(node.type) && !registry.has(node.type)) {
             throw new Error(
-              `Python node "${node.type}" cannot execute: Python worker is not connected`,
+              `Python node "${node.type}" cannot execute: Python worker is not connected. ` +
+              `Ensure NODETOOL_PYTHON points to a Python with nodetool-core installed, ` +
+              `or activate the conda nodetool environment before starting the server.`,
             );
           }
           return registry.resolve(node);
@@ -460,6 +463,18 @@ pythonBridge
     pythonBridgeReady = true;
     const meta = pythonBridge.getNodeMetadata();
     log.info(`Python bridge connected — ${meta.length} Python nodes available`);
+
+    // Register Python-only providers (HuggingFace Local, MLX) for model discovery.
+    // Fire-and-forget — don't block server startup.
+    registerPythonProviders(pythonBridge)
+      .then((registered) => {
+        if (registered.length > 0) {
+          log.info(`Registered Python providers: ${registered.join(", ")}`);
+        }
+      })
+      .catch((err) => {
+        log.warn("Failed to register Python providers", err instanceof Error ? err : new Error(String(err)));
+      });
   })
   .catch((err) => {
     log.warn(
