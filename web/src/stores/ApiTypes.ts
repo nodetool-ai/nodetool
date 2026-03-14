@@ -279,6 +279,7 @@ export interface ResourceChangeUpdate {
 
 // Job types
 export type Job = JobResponse;
+export type RunStateInfo = components["schemas"]["RunStateInfo"];
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];
