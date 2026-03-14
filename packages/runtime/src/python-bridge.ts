@@ -36,6 +36,8 @@ export interface ExecuteResult {
   blobs: Record<string, Uint8Array>;
 }
 
+export type ExecuteInputBlobs = Record<string, Uint8Array | Uint8Array[]>;
+
 export interface ProgressEvent {
   request_id: string;
   progress: number;
@@ -417,7 +419,7 @@ export class PythonBridge extends EventEmitter {
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
-    blobs: Record<string, Uint8Array>,
+    blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();

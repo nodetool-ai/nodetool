@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { getSecret } from "@nodetool/security";
 import { pack, unpack } from "msgpackr";
 import { createLogger } from "@nodetool/config";
@@ -26,7 +28,10 @@ import type {
   ProcessingContext,
   ToolCall as ProviderToolCall,
 } from "@nodetool/runtime";
-import { ProcessingContext as RuntimeProcessingContext } from "@nodetool/runtime";
+import {
+  FileStorageAdapter,
+  ProcessingContext as RuntimeProcessingContext,
+} from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
@@ -36,6 +41,28 @@ import type {
 import { Tool } from "@nodetool/agents";
 
 const log = createLogger("nodetool.websocket.runner");
+
+function getAssetStoragePath(): string {
+  return (
+    process.env.ASSET_FOLDER ??
+    process.env.STORAGE_PATH ??
+    join(homedir(), ".local", "share", "nodetool", "assets")
+  );
+}
+
+function createRuntimeContext(opts: {
+  jobId: string;
+  workflowId?: string | null;
+  userId: string;
+  workspaceDir: string | null;
+  assetOutputMode?: "python" | "data_uri" | "temp_url" | "storage_url" | "workspace" | "raw";
+}): RuntimeProcessingContext {
+  return new RuntimeProcessingContext({
+    ...opts,
+    secretResolver: getSecret,
+    storage: new FileStorageAdapter(getAssetStoragePath()),
+  });
+}
 
 /**
  * Default system prompt for regular chat — matches Python's REGULAR_SYSTEM_PROMPT.
@@ -447,13 +474,12 @@ export class UnifiedWebSocketRunner {
     const graph = await this.getWorkflowGraph(req);
     const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
 
-    const context = new RuntimeProcessingContext({
+    const context = createRuntimeContext({
       jobId,
       workflowId,
       userId,
       workspaceDir,
       assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
-      secretResolver: getSecret,
     });
 
     const runner = new WorkflowRunner(jobId, {
@@ -951,11 +977,10 @@ export class UnifiedWebSocketRunner {
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
 
     // Create a processing context for tool execution
-    const ctx = new RuntimeProcessingContext({
+    const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
       workspaceDir: null,
-      secretResolver: getSecret,
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
@@ -1438,13 +1463,12 @@ export class UnifiedWebSocketRunner {
 
       // Create processing context
       const workspaceDir = this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
-      const context = new RuntimeProcessingContext({
+      const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
         workspaceDir,
         assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
-        secretResolver: getSecret,
       });
 
       // Create and run workflow
@@ -1705,11 +1729,10 @@ export class UnifiedWebSocketRunner {
     }
 
     // Create ProcessingContext for agent execution
-    const ctx = new RuntimeProcessingContext({
+    const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
       workspaceDir: null,
-      secretResolver: getSecret,
     });
 
     try {

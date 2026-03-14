@@ -224,9 +224,32 @@ export class FileStorageAdapter implements StorageAdapter {
   }
 
   private resolvePathFromUri(uri: string): string | null {
-    if (!uri.startsWith("file://")) return null;
-    const absolute = resolve(fileURLToPath(uri));
-    if (!isWithinRoot(this.rootDir, absolute)) {
+    let absolute: string | null = null;
+
+    if (uri.startsWith("file://")) {
+      try {
+        absolute = resolve(fileURLToPath(uri));
+      } catch {
+        return null;
+      }
+    } else if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
+      const key = uri.replace(/^\/?api\/storage\//, "");
+      absolute = this.resolvePathFromKey(key);
+    } else if (/^https?:\/\//.test(uri)) {
+      try {
+        const parsed = new URL(uri);
+        if (parsed.pathname.startsWith("/api/storage/")) {
+          const key = parsed.pathname.replace(/^\/api\/storage\//, "");
+          absolute = this.resolvePathFromKey(key);
+        }
+      } catch {
+        return null;
+      }
+    } else {
+      return null;
+    }
+
+    if (absolute === null || !isWithinRoot(this.rootDir, absolute)) {
       return null;
     }
     return absolute;
