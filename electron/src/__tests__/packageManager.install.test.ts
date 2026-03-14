@@ -20,6 +20,7 @@ jest.mock('../config', () => ({
   getProcessEnv: () => ({}),
   getUVPath: () => '/usr/bin/uv',
   getPythonPath: () => '/usr/bin/python',
+  getCondaEnvPath: () => '/test/conda',
 }));
 
 // Mock logger

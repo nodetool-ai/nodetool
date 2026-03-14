@@ -7,12 +7,14 @@ on:
     paths:
       - "web/**"
       - "electron/**"
+      - "packages/protocol/**"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
       - "electron/**"
+      - "packages/protocol/**"
 
 jobs:
   web:
@@ -34,6 +36,17 @@ jobs:
         run: |
           cd web
           npm ci
+
+      - name: Build @nodetool/protocol
+        run: |
+          cd packages/protocol
+          npm install
+          npm run build
+
+      - name: Link @nodetool/protocol into web
+        run: |
+          mkdir -p web/node_modules/@nodetool
+          ln -s "$(pwd)/packages/protocol" web/node_modules/@nodetool/protocol
 
       - name: Run TypeScript type check
         run: |
