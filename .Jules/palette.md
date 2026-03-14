@@ -20,3 +20,7 @@
 ## 2023-10-27 - Explicit tabIndex={0} on native buttons is a functional no-op
 **Learning:** Adding `tabIndex={0}` to components that wrap native HTML buttons or MUI `IconButton` elements does not actively change or improve keyboard accessibility, as they are inherently focusable and included in the tab order by default. It fails the requirement to provide an "immediate, visible impact" on UX.
 **Action:** Focus on semantic accessibility improvements, such as ensuring screen readers receive appropriate context (e.g., dynamically generating `aria-label` for stateful or count-based components like `NotificationBadge`), rather than redundant HTML attributes. When writing verification scripts for the `/layouttest` page, remember to write logic to switch to the correct tab category before trying to select elements.
+
+## 2025-03-14 - Add role="status" to EmptyState for automatic screen reader announcement
+**Learning:** In dynamically rendered empty states (e.g., search yielding no results, folder becoming empty), screen readers often fail to announce the change because focus remains elsewhere (like the search input).
+**Action:** Always add `role="status"` to components like `EmptyState` or `NoResults`. This acts as an implicit `aria-live="polite"` region, ensuring screen readers automatically announce the new state to users without forcing a disruptive focus shift.
