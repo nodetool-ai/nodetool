@@ -32,6 +32,8 @@ export interface ThemeToggleButtonProps {
   darkLabel?: string;
   /** Custom class name */
   className?: string;
+  /** Tab index for keyboard navigation */
+  tabIndex?: number;
 }
 
 export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
@@ -39,7 +41,8 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
   buttonSize = "small",
   lightLabel = "Light",
   darkLabel = "Dark",
-  className
+  className,
+  tabIndex = 0
 }) => {
   const theme = useTheme();
   const { mode, setMode } = useColorScheme();
@@ -66,6 +69,7 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
           icon={<LightModeIcon fontSize="small" />}
           checkedIcon={<DarkModeIcon fontSize="small" />}
           size={buttonSize === "large" ? "medium" : "small"}
+          tabIndex={tabIndex}
         />
       </Box>
     );
@@ -82,6 +86,7 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
           onClick={handleToggle}
           size={buttonSize}
           aria-label={tooltipText}
+          tabIndex={tabIndex}
         >
           {isDark ? <LightModeIcon fontSize={buttonSize} /> : <DarkModeIcon fontSize={buttonSize} />}
         </IconButton>
@@ -97,6 +102,7 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
           onClick={handleToggle}
           size={buttonSize}
           aria-label={tooltipText}
+          tabIndex={tabIndex}
         >
           {isDark ? <LightModeIcon fontSize={buttonSize} /> : <DarkModeIcon fontSize={buttonSize} />}
         </IconButton>
