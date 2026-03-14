@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import {
   Box,
   List,
@@ -37,6 +37,47 @@ const listStyles = css({
   overflowX: "hidden",
   maxHeight: 600
 });
+
+/**
+ * HighlightedModelName - Memoized component for highlighting search term in model name.
+ * Uses useMemo to avoid creating RegExp on every render.
+ */
+const HighlightedModelName = memo<{
+  name: string;
+  searchTerm: string;
+  primaryColor: string;
+}>(({ name, searchTerm, primaryColor }) => {
+  const highlightedName = useMemo(() => {
+    if (!searchTerm || !name) {
+      return { parts: [{ text: name, isMatch: false }] };
+    }
+
+    // Split the name by search term, creating a RegExp only when searchTerm changes
+    const parts = name.split(new RegExp(`(${searchTerm})`, "gi"));
+    return {
+      parts: parts.map((part) => ({
+        text: part,
+        isMatch: part.toLowerCase() === searchTerm.toLowerCase()
+      }))
+    };
+  }, [name, searchTerm]);
+
+  return (
+    <>
+      {highlightedName.parts.map((part, i) =>
+        part.isMatch ? (
+          <span key={i} style={{ color: primaryColor, fontWeight: 600 }}>
+            {part.text}
+          </span>
+        ) : (
+          part.text
+        )
+      )}
+    </>
+  );
+});
+
+HighlightedModelName.displayName = "HighlightedModelName";
 
 export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
@@ -109,20 +150,11 @@ function ModelList<TModel extends ModelSelectorModel>({
                         flex: "1 1 auto"
                       }}
                     >
-                      {(() => {
-                        const name = m.path || m.name;
-                        if (!searchTerm || !name) { return name; }
-                        const parts = name.split(new RegExp(`(${searchTerm})`, 'gi'));
-                        return parts.map((part, i) =>
-                          part.toLowerCase() === searchTerm.toLowerCase() ? (
-                            <span key={i} style={{ color: theme.vars.palette.primary.main, fontWeight: 600 }}>
-                              {part}
-                            </span>
-                          ) : (
-                            part
-                          )
-                        );
-                      })()}
+                      <HighlightedModelName
+                        name={m.path || m.name}
+                        searchTerm={searchTerm}
+                        primaryColor={theme.vars.palette.primary.main}
+                      />
                     </span>
                     {available && isLocalProvider(m.provider) && (
                       <Tooltip
