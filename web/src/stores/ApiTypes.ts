@@ -167,6 +167,56 @@ export interface TTSModelValue {
   selected_voice: string;
 }
 
+/**
+ * Property value for HuggingFace model selections in node properties.
+ * Used by HuggingFaceModelSelect component onChange handlers.
+ */
+export interface HuggingFaceModelValue {
+  type: "hf.text_to_image" | "hf.image_to_image";
+  repo_id: string;
+  path?: string;
+}
+
+/**
+ * Combined type for HuggingFace model values that can be either the new format (with repo_id)
+ * or the legacy format (with id, provider, name).
+ */
+export type HuggingFaceModelValueInput = HuggingFaceModelValue & {
+  id?: string;
+  provider?: string;
+  name?: string;
+};
+
+/**
+ * Property value for 3D model selections in node properties.
+ * Used by Model3DModelSelect component onChange handlers.
+ */
+export interface Model3DModelValue {
+  type: "model_3d_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
+/**
+ * Property value for inference provider model selections in node properties.
+ * Used by InferenceProviderModelSelect component onChange handlers.
+ */
+export type InferenceProviderModelValue =
+  | { type: "inference_provider_automatic_speech_recognition_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_audio_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_segmentation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_summarization_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_generation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_audio_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_speech_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_text_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_translation_model"; provider: InferenceProvider; model_id: string };
+
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];

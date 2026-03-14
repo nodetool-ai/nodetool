@@ -1,6 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { Property } from "../../stores/ApiTypes";
-import { InferenceProvider } from "../../stores/ApiTypes";
+import { Property, InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "lodash/isEqual";
@@ -19,7 +18,6 @@ interface HuggingFaceModel {
   likes?: number;
   downloads?: number;
   library_name?: string;
-  [key: string]: any;
 }
 
 const fetchModelsForProvider = async (provider: InferenceProvider, pipelineTag: string): Promise<HuggingFaceModel[]> => {
@@ -36,8 +34,8 @@ const InferenceProviderModelSelect = ({
   value
 }: {
   property: Property;
-  onChange: (inferenceProviderModel: any) => void;
-  value: any;
+  onChange: (inferenceProviderModel: InferenceProviderModelValue) => void;
+  value: { provider: InferenceProvider; model_id: string };
 }) => {
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const providerOptions = [
@@ -151,7 +149,7 @@ const InferenceProviderModelSelect = ({
     const handleChangeProvider = useCallback((selectedValue: string) => {
         setProvider(selectedValue as InferenceProvider);
         onChange({
-            type: property.type.type,
+            type: property.type.type as InferenceProviderModelValue["type"],
             provider: selectedValue as InferenceProvider,
             model_id: ""
         });
@@ -159,7 +157,7 @@ const InferenceProviderModelSelect = ({
 
     const handleChangeModel = useCallback((selectedValue: string) => {
         onChange({
-            type: property.type.type,
+            type: property.type.type as InferenceProviderModelValue["type"],
             model_id: selectedValue,
             provider: provider
         });
