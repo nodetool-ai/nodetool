@@ -1,6 +1,7 @@
 import log from "loglevel";
 import React from "react";
 import { createPortal } from "react-dom";
+import log from "loglevel";
 
 interface SpeedDisplayProps {
   speedFactor: number;
@@ -50,3 +51,4 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
 };
 
 export default SpeedDisplay;
+export { SpeedDisplay };
