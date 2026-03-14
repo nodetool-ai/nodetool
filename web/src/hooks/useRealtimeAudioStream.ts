@@ -110,8 +110,9 @@ export const useRealtimeAudioStream = (
         audioStreamRef.current = stream;
         setVersion((v) => v + 1);
 
-        const AudioContextCtor =
-          (window as any).AudioContext || (window as any).webkitAudioContext;
+        type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+        const AudioContextCtor: typeof AudioContext =
+          window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
         const audioContext: AudioContext = new AudioContextCtor({
           sampleRate: sampleRate
         });
