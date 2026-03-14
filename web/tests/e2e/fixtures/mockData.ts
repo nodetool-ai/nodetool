@@ -105,8 +105,11 @@ export function getBackendApiUrl(): string {
 }
 
 /**
- * Setup mock routes for all common API endpoints
- * This will intercept API calls and return mock data instead
+ * Setup mock routes for all common API endpoints.
+ * This will intercept API calls and return mock data instead.
+ * 
+ * Note: postDataJSON().catch(() => ({})) is used throughout to gracefully handle
+ * requests where the body is not valid JSON (e.g., multipart form data or empty bodies).
  */
 export async function setupMockApiRoutes(page: Page): Promise<void> {
   const apiUrl = getBackendApiUrl();

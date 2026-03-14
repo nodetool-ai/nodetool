@@ -22,7 +22,7 @@ if (process.env.JEST_WORKER_ID) {
         try {
           await request.delete(`${BACKEND_API_URL}/threads/${id}`);
         } catch {
-          // ignore cleanup failures
+          // Cleanup failures are expected when threads were already deleted by tests
         }
       }
     });
@@ -193,7 +193,7 @@ if (process.env.JEST_WORKER_ID) {
         try {
           await request.delete(`${BACKEND_API_URL}/threads/${id}`);
         } catch {
-          // ignore cleanup failures
+          // Cleanup failures are expected when threads were already deleted by tests
         }
       }
     });

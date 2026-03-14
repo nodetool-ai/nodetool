@@ -24,7 +24,7 @@ if (process.env.JEST_WORKER_ID) {
         try {
           await request.delete(`${BACKEND_API_URL}/assets/${id}`);
         } catch {
-          // ignore cleanup failures
+          // Cleanup failures are expected when assets were already deleted by tests
         }
       }
     });

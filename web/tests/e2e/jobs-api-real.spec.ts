@@ -44,7 +44,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should filter jobs by workflow_id", async ({ request }) => {
-        // Create a workflow first to have a valid workflow_id
+        // Create a workflow to use as filter target.
+        // Note: We cannot easily create a real job without running a full workflow
+        // execution, so this test verifies the filtering endpoint returns a valid
+        // (potentially empty) response scoped to the given workflow_id.
         const workflowRes = await request.post(
           `${BACKEND_API_URL}/workflows/`,
           {
