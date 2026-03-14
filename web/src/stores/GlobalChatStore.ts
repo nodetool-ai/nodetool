@@ -57,6 +57,7 @@ export type StepToolCall = {
   args: Record<string, unknown> | null;
   message?: string | null;
   startedAt: number;
+  status?: string | null;
 };
 
 export type AgentExecutionToolCalls = Record<
