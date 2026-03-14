@@ -159,7 +159,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
       <div css={styles(theme)} ref={nodeRef}>
         <div className="handle"></div>
-        <button className="close-button" onClick={onClose}>
+        <button className="close-button" onClick={onClose} aria-label="Close">
           ×
         </button>
         <div className="content">{content}</div>
