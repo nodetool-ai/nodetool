@@ -253,6 +253,12 @@ const PanelRight: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+
+  // Get the current workflow reactively for the WorkflowForm
+  // Note: This is only used when activeNodeStore exists and workflow panel is active
+  const currentWorkflow = activeNodeStore
+    ? activeNodeStore((state) => state.getWorkflow())
+    : null;
   const {
     openWorkflows,
     currentWorkflowId,
@@ -502,7 +508,7 @@ const PanelRight: React.FC = () => {
                     />
                   ) : null
                 ) : activeView === "workflow" ? (
-                  activeNodeStore && currentWorkflowId ? (
+                  activeNodeStore && currentWorkflowId && currentWorkflow ? (
                     <Box
                       className="workflow-panel"
                       sx={{
@@ -512,8 +518,8 @@ const PanelRight: React.FC = () => {
                       }}
                     >
                       <WorkflowForm
-                        workflow={activeNodeStore.getState().getWorkflow()}
-                        onClose={() => handlePanelToggle("workflow")}
+                        workflow={currentWorkflow}
+                        onClose={handleWorkflowToggle}
                       />
                     </Box>
                   ) : null
