@@ -83,8 +83,8 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
       const dyn = Object.entries(node?.data?.dynamic_outputs || {}).find(
         ([n]) => n === name
       );
-      if (dyn && dyn[1] && (dyn[1] as any).type) {
-        currentType = (dyn[1] as any).type as string;
+      if (dyn && dyn[1] && dyn[1].type) {
+        currentType = dyn[1].type;
       }
       setRenameType(currentType);
       setShowRenameDialog(true);
