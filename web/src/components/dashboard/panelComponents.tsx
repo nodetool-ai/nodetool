@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { IDockviewPanelProps } from "dockview";
+import { IDockviewPanelProps, DockviewApi } from "dockview";
 import ChatView from "../chat/containers/ChatView";
 import WorkflowList from "../workflows/WorkflowList";
 import RecentChats from "./RecentChats";
@@ -110,7 +110,10 @@ export const createPanelComponents = () => ({
       workflowId={props.params?.workflowId}
       onWorkflowSelect={(workflowId) => {
         // Try to find the panel via containerApi
-        const panel = (props.containerApi as any).getPanel?.(props.api.id);
+        const containerApiWithGetPanel = props.containerApi as DockviewApi & {
+          getPanel?: (id: string) => { update: (p: { params: PanelProps }) => void } | null;
+        };
+        const panel = containerApiWithGetPanel.getPanel?.(props.api.id);
         if (panel) {
             panel.update({ params: { ...props.params, workflowId } });
         } else {
