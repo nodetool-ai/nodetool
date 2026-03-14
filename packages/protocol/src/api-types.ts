@@ -142,12 +142,15 @@ export interface Datetime {
   hour?: number;
   minute?: number;
   second?: number;
+  microsecond?: number;
+  tzinfo?: string | null;
+  utc_offset?: number | null;
 }
 
 export interface CalendarEvent {
   type: "calendar_event";
   title: string;
-  start: Datetime;
+  start?: Datetime | null;
   end?: Datetime | null;
   description?: string;
   location?: string;
@@ -217,7 +220,7 @@ export interface Workflow {
   graph: WorkflowGraph;
   input_schema?: Record<string, unknown> | null;
   output_schema?: Record<string, unknown> | null;
-  settings?: Record<string, unknown> | null;
+  settings?: Record<string, string | number | boolean | null> | null;
   package_name?: string | null;
   path?: string | null;
   run_mode?: string | null;
@@ -242,14 +245,14 @@ export interface WorkflowRequest {
   tool_name?: string | null;
   package_name?: string | null;
   path?: string | null;
-  description?: string;
+  description?: string | null;
   tags?: string[] | null;
-  access?: string;
+  access: string;
   graph?: WorkflowGraph;
-  settings?: Record<string, unknown>;
-  run_mode?: string;
-  workspace_id?: string;
-  html_app?: string;
+  settings?: Record<string, string | number | boolean | null> | null;
+  run_mode?: string | null;
+  workspace_id?: string | null;
+  html_app?: string | null;
   thumbnail?: string | null;
   thumbnail_url?: string | null;
   receive_clipboard?: boolean | null;
@@ -328,13 +331,20 @@ export interface MessageDocumentContent {
   document: DocumentRef;
 }
 
+export interface MessageThoughtContent {
+  type: "thought";
+  text: string;
+  thought_signature?: string | null;
+}
+
 export type MessageContent =
   | MessageTextContent
   | MessageImageContent
   | MessageImageUrlContent
   | MessageVideoContent
   | MessageAudioContent
-  | MessageDocumentContent;
+  | MessageDocumentContent
+  | MessageThoughtContent;
 
 export interface ToolCall {
   id: string;
@@ -454,7 +464,7 @@ export interface Node {
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
-  sync_mode?: string;
+  sync_mode: string;
 }
 
 export interface Graph {
@@ -536,8 +546,8 @@ export interface InferenceProvider {
 }
 
 export interface ProviderInfo {
-  name: string;
-  models: string[];
+  provider: Provider;
+  capabilities: string[];
 }
 
 export interface LanguageModel {
@@ -645,7 +655,7 @@ export interface UnifiedModel {
 
 export interface ModelPack {
   id?: string;
-  name: string;
+  name?: string;
   title?: string;
   description?: string;
   category?: string;
@@ -803,4 +813,72 @@ export interface WorkspaceCreateRequest {
 export interface WorkspaceUpdateRequest {
   name?: string;
   description?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Workflow Version
+// ---------------------------------------------------------------------------
+
+export type WorkflowVersionSaveType = "manual" | "autosave" | "checkpoint" | "restore";
+
+export interface WorkflowVersion {
+  id: string;
+  workflow_id: string;
+  user_id?: string;
+  version: number;
+  created_at: string;
+  name: string;
+  description: string;
+  save_type: string;
+  autosave_metadata?: Record<string, unknown> | null;
+  is_pinned?: boolean;
+  graph: WorkflowGraph;
+}
+
+export interface WorkflowVersionList {
+  next: string | null;
+  versions: WorkflowVersion[];
+}
+
+export interface CreateWorkflowVersionRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface AutosaveWorkflowRequest {
+  save_type?: string;
+  description?: string;
+  force?: boolean;
+  client_id?: string | null;
+  graph?: WorkflowGraph | null;
+  max_versions?: number | null;
+}
+
+export interface AutosaveResponse {
+  version?: WorkflowVersion | null;
+  message: string;
+  skipped?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+export interface SettingWithValue {
+  package_name: string;
+  env_var: string;
+  group: string;
+  description: string;
+  enum?: string[] | null;
+  value?: unknown;
+  is_secret: boolean;
+}
+
+export interface SettingsResponse {
+  settings: SettingWithValue[];
+}
+
+export interface SettingsUpdateRequest {
+  settings: Record<string, unknown>;
+  secrets?: Record<string, unknown>;
 }
