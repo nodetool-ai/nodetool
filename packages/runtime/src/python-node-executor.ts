@@ -1,4 +1,4 @@
-import type { NodeExecutor } from "@nodetool/kernel";
+import type { NodeExecutor } from "./node-executor.js";
 import type { ProcessingContext } from "./context.js";
 import type { PythonBridge } from "./python-bridge.js";
 import { randomUUID } from "node:crypto";

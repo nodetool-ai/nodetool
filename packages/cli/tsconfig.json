@@ -11,11 +11,7 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
-    "paths": {
-      "react": ["./node_modules/@types/react"]
-    }
+    "skipLibCheck": true
   },
   "include": ["src/**/*"]
 }

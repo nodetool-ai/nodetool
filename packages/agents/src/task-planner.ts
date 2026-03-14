@@ -165,7 +165,7 @@ export class TaskPlanner {
           content += chunk.content ?? "";
           yield {
             type: "chunk",
-            content: chunk.content,
+            content: chunk.content ?? "",
             done: false,
           } satisfies Chunk;
         }

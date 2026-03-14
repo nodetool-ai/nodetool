@@ -9,7 +9,7 @@
     "nodetool": "dist/nodetool.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
@@ -37,7 +37,7 @@
     "react": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
+    "@types/react": "^19.0.0",
     "vitest": "^1.6.1",
     "typescript": "^5.4.5"
   }

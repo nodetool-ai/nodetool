@@ -18,38 +18,10 @@ import { createLogger } from "@nodetool/config";
 import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
 import { NodeInbox } from "./inbox.js";
 
-// ---------------------------------------------------------------------------
-// Node execution interface (to be implemented by actual node classes)
-// ---------------------------------------------------------------------------
-
-export interface NodeExecutor {
-  /** One-shot processing (buffered mode). */
-  process(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>>;
-
-  /**
-   * Generator processing (streaming output mode).
-   * Each yielded record is a partial output batch.
-   */
-  genProcess?(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>>;
-
-  /** Called before process/genProcess. */
-  preProcess?(): Promise<void>;
-
-  /** Called after process/genProcess completes. */
-  finalize?(): Promise<void>;
-
-  /** Called once during graph initialization. */
-  initialize?(): Promise<void>;
-}
+export type { NodeExecutor };
 
 // ---------------------------------------------------------------------------
 // Actor result
