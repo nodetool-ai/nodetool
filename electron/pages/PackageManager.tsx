@@ -228,7 +228,7 @@ const PackageManager: React.FC = () => {
     if (window.electronAPI && window.electronAPI.openExternal) {
       window.electronAPI.openExternal(url);
     } else {
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
