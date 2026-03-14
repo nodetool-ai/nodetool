@@ -122,11 +122,8 @@ interface RequestOptions {
 /**
  * Result type returned by HTTP client methods.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ClientResult<T = any> = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: T | null | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: Record<string, any> | null | undefined;
 };
 
@@ -184,7 +181,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 /**
  * Performs an HTTP request and returns { data, error } result.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function request<T = any>(
   method: string,
   path: string,
@@ -245,25 +241,21 @@ async function request<T = any>(
  * Returns { data, error } for each request.
  */
 export const client = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   GET: <T = any>(
     path: string,
     options?: RequestOptions
   ): Promise<ClientResult<T>> => request<T>("GET", path, options),
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   POST: <T = any>(
     path: string,
     options?: RequestOptions
   ): Promise<ClientResult<T>> => request<T>("POST", path, options),
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PUT: <T = any>(
     path: string,
     options?: RequestOptions
   ): Promise<ClientResult<T>> => request<T>("PUT", path, options),
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DELETE: <T = any>(
     path: string,
     options?: RequestOptions
