@@ -27,7 +27,7 @@ import type {
   ToolCall as ProviderToolCall,
 } from "@nodetool/runtime";
 import { ProcessingContext as RuntimeProcessingContext } from "@nodetool/runtime";
-import type { Chunk, NodeDescriptor, Edge } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -400,7 +400,13 @@ export class UnifiedWebSocketRunner {
       }
       return n;
     });
-    return { nodes, edges: graph.edges };
+    const edges = graph.edges.map((edge) => {
+      const rawEdgeType = edge.edge_type ?? edge.type;
+      const edge_type = rawEdgeType === "control" ? "control" : "data";
+      const { type, ...rest } = edge;
+      return { ...rest, edge_type };
+    });
+    return { nodes, edges };
   }
 
   private async hydrateGraph(
@@ -490,7 +496,17 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId ?? undefined,
         params: req.params ?? {},
       },
-      graph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] },
+        graph as unknown as {
+          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+          edges: Array<{
+            id?: string | null;
+            source: string;
+            target: string;
+            sourceHandle: string;
+            targetHandle: string;
+            edge_type: "data" | "control";
+          }>;
+        },
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
@@ -1465,7 +1481,17 @@ export class UnifiedWebSocketRunner {
       // Execute workflow and stream messages
       const executePromise = runner.run(
         { job_id: jobId, workflow_id: workflowId, params },
-        graph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] },
+        graph as unknown as {
+          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+          edges: Array<{
+            id?: string | null;
+            source: string;
+            target: string;
+            sourceHandle: string;
+            targetHandle: string;
+            edge_type: "data" | "control";
+          }>;
+        },
       );
 
       // Stream events, collect output_update results

@@ -1,4 +1,3 @@
-import type { NodeExecutor } from "./node-executor.js";
 import type { ProcessingContext } from "./context.js";
 import type { PythonBridge } from "./python-bridge.js";
 import { randomUUID } from "node:crypto";
@@ -33,7 +32,7 @@ function isMediaRef(value: unknown): value is { uri: string; type?: string } {
   );
 }
 
-export class PythonNodeExecutor implements NodeExecutor {
+export class PythonNodeExecutor {
   constructor(
     private bridge: PythonBridge,
     private nodeType: string,
