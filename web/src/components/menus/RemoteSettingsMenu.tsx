@@ -250,39 +250,6 @@ const RemoteSettings = () => {
     }
   }, [addNotification]);
 
-  /*
-  const handleGoogleOAuth = useCallback(async () => {
-    setGoogleOAuthLoading(true);
-
-    try {
-      const { data, error } = await (client as any).GET("/api/oauth/google/start");
-
-      if (error || !data?.auth_url) {
-        throw new Error("Failed to start Google OAuth flow");
-      }
-
-      const authUrl = data.auth_url;
-
-      if (isElectron && window.require) {
-        // Electron environment
-        const { shell } = window.require("electron");
-        shell.openExternal(authUrl);
-      } else {
-        // Web environment - open in new window/tab
-        window.open(authUrl, "_blank", "width=600,height=700");
-      }
-    } catch (error) {
-      console.error("Google OAuth initiation failed:", error);
-      setGoogleOAuthLoading(false);
-      addNotification({
-        content: "Failed to initiate Google login",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification]);
-  */
-
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -375,43 +342,6 @@ const RemoteSettings = () => {
                   </Button>
                 </div>
               </div>
-
-              {/* Google OAuth Section */}
-              {/* Google OAuth Section - Hidden for now
-              <div className="settings-section">
-                <Typography
-                  variant="h2"
-                  id="google-oauth"
-                >
-                  Google Authentication
-                </Typography>
-                <div className="settings-item large">
-                  <Typography className="description">
-                    Connect your Google account to access Gemini models and Google services
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleGoogleOAuth}
-                    disabled={googleOAuthLoading}
-                    startIcon={
-                      isGoogleConnected ? (
-                        <CheckCircleIcon />
-                      ) : googleOAuthLoading ? null : (
-                        <LoginIcon />
-                      )
-                    }
-                    sx={{ marginTop: "1em" }}
-                  >
-                    {isGoogleConnected
-                      ? "Connected to Google"
-                      : googleOAuthLoading
-                      ? "Connecting..."
-                      : "Connect with Google"}
-                  </Button>
-                </div>
-              </div>
-              */}
 
               {/* Render settings grouped by their group field */}
               {Array.from(displayedSettingsByGroup.entries()).map(
