@@ -322,7 +322,7 @@ const NodeInfoPanel: React.FC = memo(() => {
               <div className="node-tags">
                 {parsedDescription.tags.map((tag, index) => (
                   <span
-                    key={index}
+                    key={tag}
                     onClick={() => handleTagClick(tag)}
                   >
                     {tag}
@@ -335,7 +335,7 @@ const NodeInfoPanel: React.FC = memo(() => {
                 <h5>Use cases</h5>
                 <ul>
                   {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
-                    <li key={index}>{useCase}</li>
+                    <li key={`${useCase}-${index}`}>{useCase}</li>
                   ))}
                 </ul>
               </div>

@@ -75,7 +75,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
           return (
             <>
               {messages.map((message, i) => (
-                <React.Fragment key={i}>
+                <React.Fragment key={`${message.role}-${message.channel ?? 'default'}-${i}`}>
                   {renderTextContent(getDisplayContent(message), index + i)}
                 </React.Fragment>
               ))}

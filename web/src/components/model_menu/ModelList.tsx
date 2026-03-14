@@ -66,7 +66,7 @@ const HighlightedModelName = memo<{
     <>
       {highlightedName.parts.map((part, i) =>
         part.isMatch ? (
-          <span key={i} style={{ color: primaryColor, fontWeight: 600 }}>
+          <span key={`${part.text}-${i}`} style={{ color: primaryColor, fontWeight: 600 }}>
             {part.text}
           </span>
         ) : (

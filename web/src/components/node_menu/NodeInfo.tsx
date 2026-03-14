@@ -221,7 +221,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       return (
         <span
           onClick={handleTagClick(trimmedTag)}
-          key={index}
+          key={trimmedTag}
           className="tag"
         >
           {trimmedTag}

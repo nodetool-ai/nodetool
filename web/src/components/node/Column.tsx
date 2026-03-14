@@ -26,7 +26,7 @@ const Column: React.FC<ColumnProps> = ({
   validDataTypes,
   showDescription = false
 }: ColumnProps) => (
-  <div className="column" key={index}>
+  <div className="column">
     <div className="item-name">
       <NodeTextField
         inputRef={inputRef}

@@ -161,7 +161,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         <div css={colorMatrixStyle(theme)}>
           {colorPickerColors.map((cellColor, index) => (
             <Button
-              key={index}
+              key={`${cellColor ?? 'null'}-${index}`}
               className="pick-color-button"
               sx={{
                 borderRadius: "50%",

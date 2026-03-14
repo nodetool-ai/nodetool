@@ -48,7 +48,7 @@ const renderPropertyChange = (change: PropertyChange, index: number) => {
 
   return (
     <Box
-      key={index}
+      key={change.key}
       sx={{
         display: "flex",
         alignItems: "flex-start",

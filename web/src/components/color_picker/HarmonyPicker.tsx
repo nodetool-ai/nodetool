@@ -141,7 +141,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               const textHex = rgbToHex(textColor);
 
               return (
-                <Tooltip key={index} title={`Click to use ${harmonyColor}`}>
+                <Tooltip key={harmonyColor} title={`Click to use ${harmonyColor}`}>
                   <div
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
