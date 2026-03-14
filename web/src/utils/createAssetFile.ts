@@ -126,7 +126,7 @@ const toUint8Array = (input: any): Uint8Array => {
 const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const { buffer, byteOffset, byteLength } = view;
   const candidate = buffer as ArrayBuffer & {
-    slice?: (start: number, end: number) => ArrayBuffer;
+    slice?: (_start: number, _end: number) => ArrayBuffer;
   };
   if (typeof candidate.slice === "function") {
     return candidate.slice(byteOffset, byteOffset + byteLength);

@@ -57,9 +57,9 @@ export const downloadPreviewAssets = async ({
   }
 
   type ElectronSaveFile = (
-    data: ArrayBuffer,
-    filename: string,
-    filters?: { name: string; extensions: string[] }[]
+    _data: ArrayBuffer,
+    _filename: string,
+    _filters?: { name: string; extensions: string[] }[]
   ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
   const electronApi =
