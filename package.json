@@ -2,6 +2,7 @@
   "name": "nodetool",
   "private": true,
   "workspaces": [
+    "demo",
     "packages/protocol",
     "packages/kernel",
     "packages/runtime",

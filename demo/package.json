@@ -1,0 +1,31 @@
+{
+  "name": "@nodetool/demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "next lint",
+    "test:e2e": "playwright test --config=playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
+    "test:e2e:headed": "playwright test --config=playwright.config.ts --headed"
+  },
+  "dependencies": {
+    "@nodetool/base-nodes": "*",
+    "@nodetool/config": "*",
+    "@nodetool/kernel": "*",
+    "@nodetool/node-sdk": "*",
+    "@nodetool/runtime": "*",
+    "next": "^15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2"
+  }
+}
