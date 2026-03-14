@@ -60,7 +60,7 @@ export const useLanguageModelsByProvider = (options?: {
         const { data, error } = await client.GET("/api/models/llm/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -137,12 +137,11 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
       queryKey: ["image-models", provider.provider],
       queryFn: async () => {
         try {
-          // Convert Provider enum to string for API path parameter
-          const providerValue = String(provider.provider);
+          const providerValue = provider.provider;
           const { data, error } = await client.GET("/api/models/image/{provider}", {
             params: {
               path: {
-                provider: providerValue as any
+                provider: providerValue
               }
             }
           });
@@ -158,7 +157,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
           console.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
           // Return empty array for this provider instead of failing completely
           return {
-            provider: String(provider.provider),
+            provider: provider.provider,
             models: [] as ImageModel[]
           };
         }
@@ -180,7 +179,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
   // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
   }
 
   // Debug logging removed
@@ -216,7 +215,7 @@ export const useTTSModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/tts/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -271,7 +270,7 @@ export const useASRModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/asr/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -326,7 +325,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
         const { data, error } = await client.GET("/api/models/video/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -352,7 +351,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
   }
 
   const refetch = useMemo(
@@ -468,6 +467,6 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
     id: model.id || model.repo_id || "",
     name: model.name || model.repo_id || model.id || "",
     path: model.path || undefined,
-    supported_tasks: pipelineTask ? [pipelineTask as any] : []
+    supported_tasks: pipelineTask ? [pipelineTask] : []
   };
 };
