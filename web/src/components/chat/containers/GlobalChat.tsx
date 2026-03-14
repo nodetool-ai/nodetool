@@ -239,9 +239,12 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) { return; }
 
+    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      setTimeout(() => {
+      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
+      viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -271,6 +274,7 @@ const GlobalChat: React.FC = () => {
           "resize",
           handleViewportChange
         );
+        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
