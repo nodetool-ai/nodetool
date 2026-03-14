@@ -41,6 +41,72 @@ import type {
 import { Tool } from "@nodetool/agents";
 
 const log = createLogger("nodetool.websocket.runner");
+const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
+const MAX_ERROR_TEXT_LENGTH = 4000;
+
+function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): string {
+  const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
+    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    return `[${mime} base64 omitted, ${match.length} chars]`;
+  });
+
+  if (sanitized.length <= maxLength) {
+    return sanitized;
+  }
+
+  const truncatedChars = sanitized.length - maxLength;
+  return `${sanitized.slice(0, maxLength)}... (truncated ${truncatedChars} chars)`;
+}
+
+function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (typeof value === "string") {
+    return sanitizeLargeText(value);
+  }
+
+  if (value instanceof Error) {
+    return sanitizeLargeText(value.message);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeErrorValue(item, seen));
+  }
+
+  if (value && typeof value === "object") {
+    if (seen.has(value)) {
+      return "[circular]";
+    }
+
+    seen.add(value);
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = sanitizeErrorValue(nested, seen);
+    }
+    return result;
+  }
+
+  return value;
+}
+
+function formatSanitizedError(error: unknown): string {
+  if (typeof error === "string") {
+    return sanitizeLargeText(error);
+  }
+
+  if (error instanceof Error) {
+    return sanitizeLargeText(error.message);
+  }
+
+  const sanitized = sanitizeErrorValue(error);
+  if (typeof sanitized === "string") {
+    return sanitized;
+  }
+
+  try {
+    return sanitizeLargeText(JSON.stringify(sanitized));
+  } catch {
+    return sanitizeLargeText(String(error));
+  }
+}
 
 function getAssetStoragePath(): string {
   return (
@@ -236,7 +302,7 @@ export class UnifiedWebSocketRunner {
   private observerRegistered = false;
 
   private logError(context: string, error: unknown): void {
-    log.error(context, error instanceof Error ? error : new Error(String(error)));
+    log.error(context, formatSanitizedError(error));
   }
 
   /**
@@ -557,7 +623,7 @@ export class UnifiedWebSocketRunner {
       .catch((err) => {
         this.logError("job execution failed", err);
         active.status = "failed";
-        active.error = err instanceof Error ? err.message : String(err);
+        active.error = formatSanitizedError(err);
       })
       .finally(() => {
         active.finished = true;
@@ -572,6 +638,12 @@ export class UnifiedWebSocketRunner {
           job_id: (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
           workflow_id: (msg as unknown as Record<string, unknown>).workflow_id ?? active.workflowId,
         };
+        if (outbound.error !== undefined) {
+          outbound.error = formatSanitizedError(outbound.error);
+        }
+        if (outbound.type === "notification" && typeof outbound.content === "string") {
+          outbound.content = sanitizeLargeText(outbound.content);
+        }
         if (outbound.type === "node_update" && outbound.status === "error") {
           log.error("Node error", { jobId: active.jobId, nodeId: outbound.node_id, error: outbound.error });
         } else if (outbound.type === "job_update" && outbound.status === "failed") {
