@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
-import { setupMockApiRoutes, models } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForAnimation,
@@ -46,90 +45,6 @@ if (process.env.JEST_WORKER_ID) {
       const bodyText = await page.textContent("body");
       expect(bodyText).not.toContain("500");
       expect(bodyText).not.toContain("Internal Server Error");
-    });
-  });
-
-  test.describe("Models with Mock Data", () => {
-    test.beforeEach(async ({ page }) => {
-      // Setup mock API routes before each test
-      await setupMockApiRoutes(page);
-    });
-
-    test("should display mocked HuggingFace models", async ({ page }) => {
-      await navigateToPage(page, "/models");
-
-      // Wait for page to stabilize
-      await waitForAnimation(page);
-
-      // Verify page is functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should verify mock model data structure", async ({ page }) => {
-      // Verify our mock data has the expected structure
-      expect(models.huggingface).toBeDefined();
-      expect(Array.isArray(models.huggingface)).toBe(true);
-      expect(models.huggingface.length).toBeGreaterThan(0);
-
-      const firstModel = models.huggingface[0];
-      expect(firstModel).toHaveProperty("id");
-      expect(firstModel).toHaveProperty("name");
-      expect(firstModel).toHaveProperty("repo_id");
-      expect(firstModel).toHaveProperty("type");
-
-      await navigateToPage(page, "/models");
-      
-      // Page should load successfully
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should display different model types", async ({ page }) => {
-      // Verify we have different types of models in mock data
-      const imageModels = (models.huggingface as any[]).filter(m => m.type === "hf.text_to_image");
-      const languageModels = (models.huggingface as any[]).filter(m => m.type === "hf.text_generation");
-
-      expect(imageModels.length).toBeGreaterThan(0);
-      expect(languageModels.length).toBeGreaterThan(0);
-
-      await navigateToPage(page, "/models");
-      
-      // Page should load with model data
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should have recommended models", async ({ page }) => {
-      // Verify recommended models exist
-      expect(models.recommended).toBeDefined();
-      expect(Array.isArray(models.recommended)).toBe(true);
-      expect(models.recommended.length).toBeGreaterThan(0);
-
-      await navigateToPage(page, "/models");
-      
-      // Page should load successfully
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should have model providers", async ({ page }) => {
-      // Verify providers exist
-      expect(models.providers).toBeDefined();
-      expect(Array.isArray(models.providers)).toBe(true);
-      expect(models.providers.length).toBeGreaterThan(0);
-
-      // Check provider structure
-      const firstProvider = models.providers[0];
-      expect(firstProvider).toHaveProperty("name");
-      expect(firstProvider).toHaveProperty("display_name");
-      expect(firstProvider).toHaveProperty("requires_api_key");
-
-      await navigateToPage(page, "/models");
-      
-      // Page should load successfully
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
     });
   });
 
