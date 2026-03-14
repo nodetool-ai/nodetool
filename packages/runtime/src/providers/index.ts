@@ -22,6 +22,7 @@ import { CerebrasProvider } from "./cerebras-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
+import { PythonProvider } from "./python-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { GeminiProvider };
@@ -36,6 +37,7 @@ export { CerebrasProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
 export { HuggingFaceProvider };
+export { PythonProvider };
 export {
   FakeProvider,
   createFakeToolCall,
