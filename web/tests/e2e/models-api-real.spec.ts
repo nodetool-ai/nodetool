@@ -1,17 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { setupMockApiRoutes, models } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForPageReady,
   waitForAnimation,
 } from "./helpers/waitHelpers";
-
-interface HuggingFaceModel {
-  type: string;
-  id: string;
-  name: string;
-  repo_id: string;
-}
 
 /**
  * Browser-based e2e tests for the Models Manager UI.
@@ -50,10 +42,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("Model Manager UI Elements", () => {
-      test.beforeEach(async ({ page }) => {
-        await setupMockApiRoutes(page);
-      });
-
       test("should display search input for models", async ({ page }) => {
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
@@ -116,14 +104,9 @@ if (process.env.JEST_WORKER_ID) {
         expect(bodyText).toBeTruthy();
       });
 
-      test("should load model list with mock data", async ({ page }) => {
+      test("should load model list", async ({ page }) => {
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
-
-        // Verify our mock data has the expected structure
-        expect(models.huggingface).toBeDefined();
-        expect(Array.isArray(models.huggingface)).toBe(true);
-        expect(models.huggingface.length).toBeGreaterThan(0);
 
         // Page should be functional with model data loaded
         const bodyText = await page.textContent("body");
@@ -134,17 +117,12 @@ if (process.env.JEST_WORKER_ID) {
     test.describe("Model API Consumer Verification", () => {
       test("should call providers API when page loads", async ({ page }) => {
         let providersApiCalled = false;
-        await page.route("**/api/models/providers**", (route) => {
-          providersApiCalled = true;
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(models.providers)
-          });
-        });
 
-        // Mock other required endpoints
-        await setupMockApiRoutes(page);
+        page.on("response", (response) => {
+          if (response.url().includes("/api/models/providers")) {
+            providersApiCalled = true;
+          }
+        });
 
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
@@ -155,16 +133,12 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should call models/all API when page loads", async ({ page }) => {
         let modelsAllApiCalled = false;
-        await page.route("**/api/models/all**", (route) => {
-          modelsAllApiCalled = true;
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(models.all)
-          });
-        });
 
-        await setupMockApiRoutes(page);
+        page.on("response", (response) => {
+          if (response.url().includes("/api/models/all")) {
+            modelsAllApiCalled = true;
+          }
+        });
 
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
@@ -173,41 +147,14 @@ if (process.env.JEST_WORKER_ID) {
         expect(modelsAllApiCalled).toBe(true);
       });
 
-      test("should call HuggingFace cache check API", async ({ page }) => {
-        let cacheCheckCalled = false;
-        await page.route("**/api/models/huggingface/check_cache**", (route) => {
-          cacheCheckCalled = true;
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify([])
-          });
-        });
-
-        await setupMockApiRoutes(page);
-
-        await navigateToPage(page, "/models");
-        await waitForAnimation(page);
-
-        // HuggingFace cache check should have been called
-        // (May or may not be called depending on whether HF models are visible)
-        // Just verify page is functional
-        const bodyText = await page.textContent("body");
-        expect(bodyText).toBeTruthy();
-      });
-
       test("should call recommended models API", async ({ page }) => {
         let recommendedApiCalled = false;
-        await page.route("**/api/models/recommended**", (route) => {
-          recommendedApiCalled = true;
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(models.recommended)
-          });
-        });
 
-        await setupMockApiRoutes(page);
+        page.on("response", (response) => {
+          if (response.url().includes("/api/models/recommended")) {
+            recommendedApiCalled = true;
+          }
+        });
 
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
@@ -219,16 +166,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("Model Provider Display", () => {
-      test.beforeEach(async ({ page }) => {
-        await setupMockApiRoutes(page);
-      });
-
-      test("should have provider data available", async ({ page }) => {
-        // Verify providers exist in mock data
-        expect(models.providers).toBeDefined();
-        expect(Array.isArray(models.providers)).toBe(true);
-        expect(models.providers.length).toBeGreaterThan(0);
-
+      test("should display provider data", async ({ page }) => {
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
 
@@ -236,55 +174,9 @@ if (process.env.JEST_WORKER_ID) {
         const bodyText = await page.textContent("body");
         expect(bodyText).toBeTruthy();
       });
-
-      test("should have different model types in mock data", async ({ page }) => {
-        // Verify we have various model types
-        const imageModels = (models.huggingface as HuggingFaceModel[]).filter(
-          (m) => m.type === "hf.text_to_image"
-        );
-        const languageModels = (models.huggingface as HuggingFaceModel[]).filter(
-          (m) => m.type === "hf.text_generation"
-        );
-
-        expect(imageModels.length).toBeGreaterThan(0);
-        expect(languageModels.length).toBeGreaterThan(0);
-
-        await navigateToPage(page, "/models");
-        await waitForAnimation(page);
-
-        // Page should display model types
-        const bodyText = await page.textContent("body");
-        expect(bodyText).toBeTruthy();
-      });
-
-      test("should have recommended language models", async ({ page }) => {
-        expect(models.recommended_language).toBeDefined();
-        expect(Array.isArray(models.recommended_language)).toBe(true);
-
-        await navigateToPage(page, "/models");
-        await waitForAnimation(page);
-
-        const bodyText = await page.textContent("body");
-        expect(bodyText).toBeTruthy();
-      });
-
-      test("should have recommended image models", async ({ page }) => {
-        expect(models.recommended_image).toBeDefined();
-        expect(Array.isArray(models.recommended_image)).toBe(true);
-
-        await navigateToPage(page, "/models");
-        await waitForAnimation(page);
-
-        const bodyText = await page.textContent("body");
-        expect(bodyText).toBeTruthy();
-      });
     });
 
     test.describe("Model Search and Filter", () => {
-      test.beforeEach(async ({ page }) => {
-        await setupMockApiRoutes(page);
-      });
-
       test("should filter models by search term", async ({ page }) => {
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
@@ -340,13 +232,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle page reload on models page", async ({ page }) => {
-        await setupMockApiRoutes(page);
-
         await navigateToPage(page, "/models");
         await waitForAnimation(page);
 
         // Reload the page
-        await setupMockApiRoutes(page);
         await page.reload();
         await waitForPageReady(page);
 
