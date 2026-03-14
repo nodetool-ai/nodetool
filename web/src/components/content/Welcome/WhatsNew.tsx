@@ -238,19 +238,19 @@ const WhatsNew = () => {
   return (
     <div>
       {whatsNewData.map((release, index) => (
-        <Accordion key={index} defaultExpanded={index === 0}>
+        <Accordion key={release.version} defaultExpanded={index === 0}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6">{release.version}</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            {release.changes.map((category, catIndex) => (
-              <div key={catIndex}>
+            {release.changes.map((category) => (
+              <div key={`${release.version}-${category.category}`}>
                 <Typography variant="subtitle1" gutterBottom>
                   <strong>{category.category}</strong>
                 </Typography>
                 <ul>
                   {category.items.map((item, itemIndex) => (
-                    <li key={itemIndex}>{item}</li>
+                    <li key={`${release.version}-${category.category}-${itemIndex}`}>{item}</li>
                   ))}
                 </ul>
               </div>
