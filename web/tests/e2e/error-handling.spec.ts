@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
-import { setupMockApiRoutes } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForEditorReady,
@@ -232,8 +231,6 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("UI Error Boundaries", () => {
       test("should display fallback UI on component error", async ({ page }) => {
-        await setupMockApiRoutes(page);
-
         // Navigate to a page and verify it loads
         await navigateToPage(page, "/dashboard");
 

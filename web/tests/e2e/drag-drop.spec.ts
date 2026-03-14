@@ -1,26 +1,41 @@
 import { test, expect } from "@playwright/test";
-import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
   waitForEditorReady,
   waitForAnimation,
 } from "./helpers/waitHelpers";
 
-// Pre-defined mock workflow ID for testing
-const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
-
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Drag and Drop Operations", () => {
-    test.beforeEach(async ({ page }) => {
-      await setupMockApiRoutes(page);
+    let workflowId: string;
+
+    test.beforeAll(async ({ request }) => {
+      const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
+        data: {
+          name: `e2e-drag-drop-${Date.now()}`,
+          description: "E2E drag drop test workflow",
+          access: "private",
+        },
+      });
+      const workflow = await res.json();
+      workflowId = workflow.id;
+    });
+
+    test.afterAll(async ({ request }) => {
+      if (workflowId) {
+        await request
+          .delete(`${BACKEND_API_URL}/workflows/${workflowId}`)
+          .catch(() => {});
+      }
     });
 
     test.describe("Canvas Dragging", () => {
       test("should drag canvas with middle mouse button", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -53,7 +68,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should drag canvas with spacebar + mouse", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -83,7 +98,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Dragging", () => {
       test("should drag node to reposition", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -128,7 +143,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should snap node to grid during drag", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -161,7 +176,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should prevent node drag outside canvas bounds", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -197,7 +212,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Edge Dragging", () => {
       test("should create edge by dragging from handle", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -234,7 +249,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show edge path preview during drag", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -273,7 +288,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should validate handle compatibility during connection", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -292,7 +307,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Selection Box Dragging", () => {
       test("should create selection box by dragging on canvas", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -317,7 +332,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should select multiple nodes with selection box", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -353,7 +368,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("File Drop on Canvas", () => {
       test("should prevent dropping invalid files", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -366,7 +381,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Palette Drag", () => {
       test("should open node palette", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -384,7 +399,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle drag from node palette to canvas", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
@@ -407,7 +422,7 @@ if (process.env.JEST_WORKER_ID) {
         // Set mobile viewport
         await page.setViewportSize({ width: 375, height: 667 });
 
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");

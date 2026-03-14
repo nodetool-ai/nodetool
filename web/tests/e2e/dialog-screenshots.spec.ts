@@ -6,7 +6,6 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { setupMockApiRoutes } from "./fixtures/mockData";
 import {
   navigateToPage,
 } from "./helpers/waitHelpers";
@@ -16,11 +15,6 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
   test.skip("skipped in jest runner or CI", () => {});
 } else {
   test.describe("Dialog Screenshots", () => {
-    test.beforeEach(async ({ page }) => {
-      // Setup mock data for testing
-      await setupMockApiRoutes(page);
-    });
-
     test("capture FileBrowserDialog screenshot", async ({ page }) => {
       await navigateToPage(page, "/editor");
       
