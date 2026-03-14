@@ -19,7 +19,7 @@ import {
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore from "./ErrorStore";
+import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -479,14 +479,19 @@ export const handleUpdate = (
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
     const currentState = runnerStore.getState().state;
+    const normalizedNodeError = normalizeNodeError(update.error);
 
     // Don't update node status if workflow is cancelled
     if (currentState === "cancelled") {
       return;
     }
 
-    if (update.error) {
-      const sanitizedError = sanitizeDisplayText(update.error);
+    if (normalizedNodeError) {
+      const sanitizedError = sanitizeDisplayText(
+        typeof normalizedNodeError === "string"
+          ? normalizedNodeError
+          : String(normalizedNodeError)
+      );
       log.error("WorkflowRunner update error", sanitizedError);
       runner.addNotification({
         type: "error",
@@ -507,6 +512,7 @@ export const handleUpdate = (
         timestamp: Date.now()
       });
     } else {
+      setError(workflow.id, update.node_id, null);
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
