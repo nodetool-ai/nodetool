@@ -10,7 +10,7 @@ interface RunResult {
   error?: string;
 }
 
-type WorkflowId = "format-text" | "compare-numbers";
+type WorkflowId = "support-triage" | "content-summarizer";
 
 // ── Helper to call the API route ───────────────────────────────────────────
 
@@ -30,25 +30,61 @@ async function runWorkflow(
   return res.json() as Promise<RunResult>;
 }
 
-// ── Format-Text Demo ───────────────────────────────────────────────────────
+// ── Priority badge ─────────────────────────────────────────────────────────
 
-function FormatTextDemo() {
-  const [template, setTemplate] = useState("Hello {{ name }} from {{ city }}!");
-  const [name, setName] = useState("Alice");
-  const [city, setCity] = useState("Wonderland");
-  const [result, setResult] = useState<string | null>(null);
+const PRIORITY_STYLE: Record<string, { color: string; bg: string; border: string }> = {
+  Critical: { color: "#ef4444", bg: "#1f0a0a", border: "#ef4444" },
+  High:     { color: "#f97316", bg: "#1f1200", border: "#f97316" },
+  Medium:   { color: "#eab308", bg: "#1a1500", border: "#eab308" },
+  Low:      { color: "#22c55e", bg: "#0d2218", border: "#22c55e" },
+};
+
+const CATEGORY_ICON: Record<string, string> = {
+  Billing: "💳",
+  Technical: "🔧",
+  "Feature Request": "✨",
+  Bug: "🐛",
+  "General Inquiry": "💬",
+};
+
+// ── Support Triage Demo ────────────────────────────────────────────────────
+
+const TRIAGE_SAMPLES = [
+  {
+    label: "Billing issue",
+    text: "I was charged twice for my subscription this month. Please refund the duplicate payment ASAP — my account shows two charges of $29 on March 3rd.",
+  },
+  {
+    label: "Critical outage",
+    text: "Our entire production environment is down. The API is returning 503 errors for all requests. We are losing customers right now. This needs to be fixed immediately!",
+  },
+  {
+    label: "Feature request",
+    text: "It would be great if the dashboard had a dark mode. Many of our team members work late and the bright white screen is really uncomfortable.",
+  },
+  {
+    label: "Bug report",
+    text: "The export to CSV button doesn't work on Firefox 120. Clicking it does nothing — no download, no error message. Works fine on Chrome.",
+  },
+];
+
+function SupportTriageDemo() {
+  const [text, setText] = useState(TRIAGE_SAMPLES[0].text);
+  const [category, setCategory] = useState<string | null>(null);
+  const [priority, setPriority] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleRun = async () => {
     setLoading(true);
-    setResult(null);
+    setCategory(null);
+    setPriority(null);
     setError(null);
     try {
-      const res = await runWorkflow("format-text", { template, name, city });
+      const res = await runWorkflow("support-triage", { text });
       if (res.status === "completed") {
-        const output = res.outputs["result"]?.[0];
-        setResult(String(output ?? "(no output)"));
+        setCategory(String(res.outputs["category"]?.[0] ?? "Unknown"));
+        setPriority(String(res.outputs["priority"]?.[0] ?? "Unknown"));
       } else {
         setError(res.error ?? "Workflow failed");
       }
@@ -59,104 +95,144 @@ function FormatTextDemo() {
     }
   };
 
+  const priStyle = priority ? (PRIORITY_STYLE[priority] ?? PRIORITY_STYLE["Low"]) : null;
+
   return (
-    <section className="demo-card" data-testid="format-text-demo">
+    <section className="demo-card" data-testid="support-triage-demo">
       <div className="demo-card-header">
-        <span className="demo-icon">✏️</span>
+        <span className="demo-icon">🎫</span>
         <div>
-          <h2>Text Format Workflow</h2>
+          <h2>AI Support Ticket Triage</h2>
           <p className="demo-description">
-            Uses <code>nodetool.text.FormatText</code> to render a Jinja2-style
-            template with named variables.
+            Two parallel <code>nodetool.agents.Classifier</code> nodes running on{" "}
+            <code>gpt-4o-mini</code> — instantly routes any customer message to the
+            right team with the right priority. Worth{" "}
+            <strong className="value-highlight">$50–500 / month</strong> per support seat.
           </p>
         </div>
       </div>
 
-      <div className="field-group">
-        <label className="field-label">Template</label>
-        <input
-          className="field-input"
-          value={template}
-          onChange={(e) => setTemplate(e.target.value)}
-          data-testid="template-input"
-          placeholder="Hello {{ name }} from {{ city }}!"
-        />
+      <div className="sample-bar">
+        {TRIAGE_SAMPLES.map((s) => (
+          <button
+            key={s.label}
+            className={`sample-chip ${text === s.text ? "active" : ""}`}
+            onClick={() => setText(s.text)}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
-      <div className="field-row">
-        <div className="field-group">
-          <label className="field-label">Name</label>
-          <input
-            className="field-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            data-testid="name-input"
-            placeholder="Alice"
-          />
-        </div>
-        <div className="field-group">
-          <label className="field-label">City</label>
-          <input
-            className="field-input"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            data-testid="city-input"
-            placeholder="Wonderland"
-          />
-        </div>
+      <div className="field-group">
+        <label className="field-label">Customer message</label>
+        <textarea
+          className="field-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          data-testid="triage-text-input"
+          rows={4}
+          placeholder="Paste a support message…"
+        />
       </div>
 
       <button
         className="run-button"
         onClick={handleRun}
-        disabled={loading}
-        data-testid="run-format-text"
+        disabled={loading || !text.trim()}
+        data-testid="run-support-triage"
       >
-        {loading ? "Running…" : "▶ Run Workflow"}
+        {loading ? "Analyzing…" : "🤖 Triage with AI"}
       </button>
 
-      {result !== null && (
-        <div className="result-box success" data-testid="format-text-result">
-          <span className="result-label">Output</span>
-          <span className="result-value">{result}</span>
+      {(category !== null || priority !== null) && (
+        <div className="triage-result" data-testid="support-triage-result">
+          {category !== null && (
+            <div className="triage-badge category-badge">
+              <span className="badge-icon">{CATEGORY_ICON[category] ?? "��"}</span>
+              <div>
+                <span className="badge-label">Category</span>
+                <span className="badge-value" data-testid="triage-category">{category}</span>
+              </div>
+            </div>
+          )}
+          {priority !== null && priStyle && (
+            <div
+              className="triage-badge priority-badge"
+              style={{
+                background: priStyle.bg,
+                borderColor: priStyle.border,
+                color: priStyle.color,
+              }}
+            >
+              <span className="badge-icon">⚡</span>
+              <div>
+                <span className="badge-label" style={{ color: "#94a3b8" }}>Priority</span>
+                <span className="badge-value" data-testid="triage-priority">{priority}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
       {error !== null && (
-        <div className="result-box error" data-testid="format-text-error">
+        <div className="result-box error" data-testid="triage-error">
           <span className="result-label">Error</span>
           <span className="result-value">{error}</span>
         </div>
       )}
+
+      <div className="workflow-diagram">
+        <span className="wf-node input-node">Customer Message</span>
+        <span className="wf-arrow">→</span>
+        <div className="wf-parallel">
+          <div className="wf-branch">
+            <span className="wf-node ai-node">Classifier (Category)</span>
+            <span className="wf-arrow">→</span>
+            <span className="wf-node output-node">category</span>
+          </div>
+          <div className="wf-branch">
+            <span className="wf-node ai-node">Classifier (Priority)</span>
+            <span className="wf-arrow">→</span>
+            <span className="wf-node output-node">priority</span>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
 
-// ── Compare-Numbers Demo ───────────────────────────────────────────────────
+// ── Content Summarizer Demo ────────────────────────────────────────────────
 
-const OPERATORS = [">", "<", ">=", "<=", "==", "!="] as const;
-type Operator = (typeof OPERATORS)[number];
+const SUMMARIZER_SAMPLES = [
+  {
+    label: "Blog post",
+    text: `Artificial intelligence is transforming the way businesses operate, from automating routine tasks to generating insights from massive datasets. In 2024, enterprise AI adoption grew by 35%, with companies reporting an average 22% reduction in operational costs. The technology is no longer limited to tech giants — SMBs are now using AI tools for customer service, marketing, and financial planning. However, experts warn that AI adoption without proper governance can introduce new risks, including bias, data privacy violations, and over-reliance on automated decisions. Successful AI integration requires clear ownership, ongoing model monitoring, and a culture of data literacy across all teams.`,
+  },
+  {
+    label: "Meeting notes",
+    text: `Q2 planning meeting — March 12. Attendees: Sarah (CPO), Marco (Eng lead), Priya (Design), Leo (Marketing). Main topics: roadmap prioritization for Q2, hiring plan, and GTM for the new enterprise tier. Sarah confirmed budget for 3 new hires: 2 senior engineers and 1 product designer. Marco flagged that the mobile app rewrite is 3 weeks behind schedule due to dependency issues with the auth library. Priya presented 3 UI concepts for the new dashboard — the team voted to move forward with option 2. Leo shared that the enterprise landing page is ready for review and will go live April 1st. Next sync is scheduled for March 26.`,
+  },
+  {
+    label: "Research abstract",
+    text: `This paper presents a novel approach to real-time anomaly detection in distributed systems using transformer-based architectures. Traditional threshold-based methods fail to capture complex temporal dependencies across microservices, leading to both false positives and missed incidents. Our method, AnomalyBERT, pre-trains on 18 months of system telemetry from 12 production services and fine-tunes on labeled incident data. In evaluation on the OpenTelemetry benchmark, AnomalyBERT achieves an F1 score of 0.94, outperforming the previous state-of-the-art by 11 percentage points while reducing mean time to detection by 40%. The model is open-sourced and integrates directly with Prometheus and Grafana.`,
+  },
+];
 
-function CompareNumbersDemo() {
-  const [a, setA] = useState("10");
-  const [b, setB] = useState("5");
-  const [comparison, setComparison] = useState<Operator>(">");
-  const [result, setResult] = useState<boolean | null>(null);
+function ContentSummarizerDemo() {
+  const [text, setText] = useState(SUMMARIZER_SAMPLES[0].text);
+  const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleRun = async () => {
     setLoading(true);
-    setResult(null);
+    setSummary(null);
     setError(null);
     try {
-      const res = await runWorkflow("compare-numbers", {
-        a: Number(a),
-        b: Number(b),
-        comparison,
-      });
+      const res = await runWorkflow("content-summarizer", { text });
       if (res.status === "completed") {
-        const output = res.outputs["result"]?.[0];
-        setResult(Boolean(output));
+        setSummary(String(res.outputs["result"]?.[0] ?? "(no output)"));
       } else {
         setError(res.error ?? "Workflow failed");
       }
@@ -168,87 +244,73 @@ function CompareNumbersDemo() {
   };
 
   return (
-    <section className="demo-card" data-testid="compare-numbers-demo">
+    <section className="demo-card" data-testid="content-summarizer-demo">
       <div className="demo-card-header">
-        <span className="demo-icon">🔢</span>
+        <span className="demo-icon">📝</span>
         <div>
-          <h2>Number Compare Workflow</h2>
+          <h2>AI Content Summarizer</h2>
           <p className="demo-description">
-            Uses <code>nodetool.boolean.Compare</code> to evaluate a numeric
-            comparison and return a boolean result.
+            A <code>nodetool.agents.Summarizer</code> node powered by{" "}
+            <code>gpt-4o-mini</code> condenses any long-form content into a crisp
+            summary. The kind of feature teams embed in{" "}
+            <strong className="value-highlight">email clients, wikis, and CRMs</strong>.
           </p>
         </div>
       </div>
 
-      <div className="field-row">
-        <div className="field-group">
-          <label className="field-label">Value A</label>
-          <input
-            className="field-input"
-            type="number"
-            value={a}
-            onChange={(e) => setA(e.target.value)}
-            data-testid="compare-a-input"
-          />
-        </div>
-
-        <div className="field-group operator-group">
-          <label className="field-label">Operator</label>
-          <select
-            className="field-select"
-            value={comparison}
-            onChange={(e) => setComparison(e.target.value as Operator)}
-            data-testid="compare-op-select"
+      <div className="sample-bar">
+        {SUMMARIZER_SAMPLES.map((s) => (
+          <button
+            key={s.label}
+            className={`sample-chip ${text === s.text ? "active" : ""}`}
+            onClick={() => setText(s.text)}
           >
-            {OPERATORS.map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
-        </div>
+            {s.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="field-group">
-          <label className="field-label">Value B</label>
-          <input
-            className="field-input"
-            type="number"
-            value={b}
-            onChange={(e) => setB(e.target.value)}
-            data-testid="compare-b-input"
-          />
-        </div>
+      <div className="field-group">
+        <label className="field-label">Content to summarize</label>
+        <textarea
+          className="field-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          data-testid="summarizer-text-input"
+          rows={6}
+          placeholder="Paste any text…"
+        />
       </div>
 
       <button
         className="run-button"
         onClick={handleRun}
-        disabled={loading}
-        data-testid="run-compare-numbers"
+        disabled={loading || !text.trim()}
+        data-testid="run-content-summarizer"
       >
-        {loading ? "Running…" : "▶ Run Workflow"}
+        {loading ? "Summarizing…" : "🤖 Summarize with AI"}
       </button>
 
-      {result !== null && (
-        <div
-          className={`result-box ${result ? "success" : "neutral"}`}
-          data-testid="compare-numbers-result"
-        >
-          <span className="result-label">Result</span>
-          <span className="result-value result-bool">
-            {result ? "✅ true" : "❌ false"}
-          </span>
-          <span className="result-expression">
-            {a} {comparison} {b}
-          </span>
+      {summary !== null && (
+        <div className="result-box success" data-testid="content-summarizer-result">
+          <span className="result-label">Summary</span>
+          <span className="result-value summary-text">{summary}</span>
         </div>
       )}
       {error !== null && (
-        <div className="result-box error" data-testid="compare-numbers-error">
+        <div className="result-box error" data-testid="summarizer-error">
           <span className="result-label">Error</span>
           <span className="result-value">{error}</span>
         </div>
       )}
+
+      <div className="workflow-diagram">
+        <span className="wf-node input-node">Long Text</span>
+        <span className="wf-arrow">→</span>
+        <span className="wf-node ai-node">Summarizer (GPT-4o Mini)</span>
+        <span className="wf-arrow">→</span>
+        <span className="wf-node output-node">summary</span>
+      </div>
     </section>
   );
 }
@@ -261,24 +323,25 @@ export default function Home() {
       <header className="hero">
         <div className="hero-inner">
           <h1 className="hero-title">
-            <span className="brand">NodeTool</span> Demo
+            <span className="brand">NodeTool</span> AI Workflows
           </h1>
           <p className="hero-sub">
-            Two end-to-end workflows running directly via{" "}
-            <code>@nodetool/kernel</code> — no external server required.
+            Production-ready AI pipelines running directly in Next.js via{" "}
+            <code>@nodetool/kernel</code> — no external server, no Python runtime.
           </p>
           <div className="badge-row">
             <span className="badge">@nodetool/kernel</span>
             <span className="badge">@nodetool/base-nodes</span>
             <span className="badge">@nodetool/runtime</span>
+            <span className="badge">GPT-4o Mini</span>
             <span className="badge">Next.js 15</span>
           </div>
         </div>
       </header>
 
       <div className="demos">
-        <FormatTextDemo />
-        <CompareNumbersDemo />
+        <SupportTriageDemo />
+        <ContentSummarizerDemo />
       </div>
 
       <footer className="footer">
@@ -296,7 +359,7 @@ export default function Home() {
 
       <style>{`
         .main {
-          max-width: 900px;
+          max-width: 920px;
           margin: 0 auto;
           padding: 2rem 1.5rem 4rem;
         }
@@ -383,7 +446,7 @@ export default function Home() {
         .demo-description {
           color: #94a3b8;
           font-size: 0.9rem;
-          line-height: 1.5;
+          line-height: 1.6;
         }
         .demo-description code {
           background: #1e1e2e;
@@ -391,6 +454,36 @@ export default function Home() {
           border-radius: 4px;
           padding: 1px 5px;
           font-size: 0.85em;
+          color: #a5b4fc;
+        }
+        .value-highlight {
+          color: #a78bfa;
+          font-weight: 600;
+        }
+
+        /* Sample chips */
+        .sample-bar {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .sample-chip {
+          background: #1e1e2e;
+          border: 1px solid #3b3b52;
+          border-radius: 999px;
+          color: #94a3b8;
+          cursor: pointer;
+          font-size: 0.8rem;
+          padding: 4px 12px;
+          transition: border-color 0.15s, color 0.15s;
+        }
+        .sample-chip:hover {
+          border-color: #6366f1;
+          color: #e2e8f0;
+        }
+        .sample-chip.active {
+          background: #1e1e2e;
+          border-color: #6366f1;
           color: #a5b4fc;
         }
 
@@ -401,15 +494,6 @@ export default function Home() {
           gap: 0.4rem;
           flex: 1;
         }
-        .field-row {
-          display: flex;
-          gap: 1rem;
-          align-items: flex-end;
-        }
-        .operator-group {
-          flex: 0 0 auto;
-          min-width: 90px;
-        }
         .field-label {
           font-size: 0.8rem;
           font-weight: 600;
@@ -417,26 +501,22 @@ export default function Home() {
           letter-spacing: 0.05em;
           color: #64748b;
         }
-        .field-input,
-        .field-select {
+        .field-textarea {
           background: #0f0f18;
           border: 1px solid #2a2a3e;
           border-radius: 8px;
           color: #e2e8f0;
-          font-size: 0.95rem;
-          padding: 0.6rem 0.85rem;
-          width: 100%;
+          font-size: 0.9rem;
+          line-height: 1.6;
+          padding: 0.75rem 0.9rem;
+          resize: vertical;
           transition: border-color 0.15s;
-          appearance: none;
+          width: 100%;
+          font-family: inherit;
         }
-        .field-input:focus,
-        .field-select:focus {
+        .field-textarea:focus {
           outline: none;
           border-color: #6366f1;
-        }
-        .field-select {
-          cursor: pointer;
-          padding-right: 0.85rem;
         }
 
         /* Run button */
@@ -461,6 +541,46 @@ export default function Home() {
           cursor: not-allowed;
         }
 
+        /* Triage result */
+        .triage-result {
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .triage-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: #0d2218;
+          border: 1px solid #16a34a;
+          border-radius: 12px;
+          padding: 0.85rem 1.25rem;
+          flex: 1;
+          min-width: 160px;
+        }
+        .badge-icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+        .badge-label {
+          display: block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #64748b;
+        }
+        .badge-value {
+          display: block;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #4ade80;
+          margin-top: 2px;
+        }
+        .priority-badge .badge-value {
+          color: inherit;
+        }
+
         /* Result box */
         .result-box {
           border-radius: 10px;
@@ -472,10 +592,6 @@ export default function Home() {
         .result-box.success {
           background: #0d2218;
           border: 1px solid #16a34a;
-        }
-        .result-box.neutral {
-          background: #1a1a2e;
-          border: 1px solid #4b5563;
         }
         .result-box.error {
           background: #1f0a0a;
@@ -489,26 +605,69 @@ export default function Home() {
           color: #64748b;
         }
         .result-value {
-          font-size: 1.1rem;
-          font-weight: 600;
+          font-size: 1rem;
+          font-weight: 500;
           word-break: break-word;
+          line-height: 1.6;
         }
         .result-box.success .result-value {
           color: #4ade80;
         }
-        .result-box.neutral .result-value {
-          color: #f87171;
-        }
         .result-box.error .result-value {
           color: #f87171;
         }
-        .result-bool {
-          font-size: 1.3rem;
+        .summary-text {
+          font-size: 0.95rem;
+          color: #86efac;
         }
-        .result-expression {
-          font-size: 0.85rem;
-          color: #64748b;
+
+        /* Workflow diagram */
+        .workflow-diagram {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          padding: 0.75rem 1rem;
+          background: #0c0c15;
+          border: 1px dashed #2a2a3e;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          overflow-x: auto;
+        }
+        .wf-node {
+          border-radius: 6px;
+          padding: 4px 10px;
           font-family: monospace;
+          white-space: nowrap;
+        }
+        .input-node {
+          background: #1e293b;
+          border: 1px solid #334155;
+          color: #94a3b8;
+        }
+        .ai-node {
+          background: #1e1b4b;
+          border: 1px solid #4338ca;
+          color: #a5b4fc;
+        }
+        .output-node {
+          background: #052e16;
+          border: 1px solid #16a34a;
+          color: #4ade80;
+        }
+        .wf-arrow {
+          color: #475569;
+          font-size: 0.9rem;
+        }
+        .wf-parallel {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .wf-branch {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
         /* Footer */
@@ -525,11 +684,11 @@ export default function Home() {
         }
 
         @media (max-width: 600px) {
-          .field-row {
-            flex-direction: column;
-          }
           .hero-title {
             font-size: 1.8rem;
+          }
+          .triage-result {
+            flex-direction: column;
           }
         }
       `}</style>

@@ -1,0 +1,17 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "text_in", "type": "test.Input", "name": "text" },
+      {
+        "id": "summarizer",
+        "type": "nodetool.agents.Summarizer",
+        "properties": {}
+      },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "result" }
+    ],
+    "edges": [
+      { "source": "text_in", "sourceHandle": "value", "target": "summarizer", "targetHandle": "text" },
+      { "source": "summarizer", "sourceHandle": "text", "target": "sink", "targetHandle": "input_value" }
+    ]
+  }
+}

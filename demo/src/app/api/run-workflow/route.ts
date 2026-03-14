@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runWorkflow } from "@/lib/run-workflow";
 import type { WorkflowDefinition } from "@/lib/run-workflow";
-import formatTextWorkflow from "@/workflows/format-text.json";
-import compareNumbersWorkflow from "@/workflows/compare-numbers.json";
+import supportTriageWorkflow from "@/workflows/support-triage.json";
+import contentSummarizerWorkflow from "@/workflows/content-summarizer.json";
 
 const WORKFLOWS: Record<string, WorkflowDefinition> = {
-  "format-text": formatTextWorkflow as WorkflowDefinition,
-  "compare-numbers": compareNumbersWorkflow as WorkflowDefinition,
+  "support-triage": supportTriageWorkflow as WorkflowDefinition,
+  "content-summarizer": contentSummarizerWorkflow as WorkflowDefinition,
 };
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
