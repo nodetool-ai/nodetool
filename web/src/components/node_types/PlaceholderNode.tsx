@@ -59,14 +59,9 @@ const styles = (theme: Theme) =>
       margin: "8px 0"
     },
     ".search-button": {
-      // backgroundColor: "var(--palette-grey-400)",
-      // padding: 0,
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.1em",
       minWidth: "unset"
-      // "&:hover": {
-      //   backgroundColor: "var(--palette-grey-200)"
-      // }
     },
     ".install-button": {
       position: "relative",
