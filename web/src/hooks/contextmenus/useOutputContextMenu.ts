@@ -6,7 +6,6 @@ type MenuType = {
   left?: number;
   right?: number;
   bottom?: number;
-  [x: string]: any;
 };
 
 export function useOutputContextMenu() {
