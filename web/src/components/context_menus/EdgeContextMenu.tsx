@@ -8,6 +8,7 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RouteIcon from "@mui/icons-material/Route";
+import log from "loglevel";
 
 interface EdgeContextMenuProps {
   edgeId?: string;
@@ -61,7 +62,7 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
     // Get metadata for the Reroute node
     const rerouteMetadata = getMetadata("nodetool.control.Reroute");
     if (!rerouteMetadata) {
-      console.error("Reroute node metadata not found");
+      log.error("Reroute node metadata not found");
       closeContextMenu();
       return;
     }

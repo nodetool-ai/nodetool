@@ -137,7 +137,7 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/deleteNode"),
     import("./lib/tools/builtin/deleteEdge"),
   ]).catch((error) => {
-    console.error("Failed to register frontend tools:", error);
+    log.error("Failed to register frontend tools:", error);
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
@@ -146,7 +146,7 @@ import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 installIpcLogBridge();
 
 if (isLocalhost) {
-  useRemoteSettingsStore.getState().fetchSettings().catch(console.error);
+  useRemoteSettingsStore.getState().fetchSettings().catch((err) => log.error(err));
 }
 
 const NavigateToStart = () => {
@@ -187,7 +187,7 @@ const NavigateToStart = () => {
             const workflow = await createNewWorkflow();
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
-            console.error("Failed to create workflow:", error);
+            log.error("Failed to create workflow:", error);
             navigate("/dashboard", { replace: true });
           }
         }
@@ -497,7 +497,7 @@ const AppWrapper = () => {
         }
       })
       .catch((error) => {
-        console.error("Failed to load metadata:", error);
+        log.error("Failed to load metadata:", error);
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
   }, []); // Empty dependency array ensures this runs only once on mount
@@ -583,4 +583,4 @@ const initialize = async () => {
   root.render(<AppWrapper />);
 };
 
-initialize().catch(console.error);
+initialize().catch((err) => log.error(err));

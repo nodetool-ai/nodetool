@@ -19,6 +19,7 @@ import {
 } from "../../components/context_menus/ConnectionMatchMenu";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
+import log from "loglevel";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -75,19 +76,19 @@ export default function useConnectionHandlers() {
   const onConnectStart: OnConnectStart = useCallback(
     (event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
-        console.warn("Missing required data for connection start");
+        log.warn("Missing required data for connection start");
         return;
       }
 
       const node = findNode(nodeId);
       if (!node) {
-        console.warn(`Node with id ${nodeId} not found`);
+        log.warn(`Node with id ${nodeId} not found`);
         return;
       }
 
       const nodeMetadata = getMetadata(node.type || "");
       if (!nodeMetadata) {
-        console.warn(`Metadata for node type ${node.type} not found`);
+        log.warn(`Metadata for node type ${node.type} not found`);
         return;
       }
 
@@ -96,12 +97,12 @@ export default function useConnectionHandlers() {
       try {
         const node = findNode(nodeId);
         if (!node) {
-          console.warn(`Node with id ${nodeId} not found`);
+          log.warn(`Node with id ${nodeId} not found`);
           return;
         }
         startConnecting(node, handleId, handleType, nodeMetadata);
       } catch (error) {
-        console.error("Error starting connection:", error);
+        log.error("Error starting connection:", error);
         endConnecting();
       }
     },
@@ -115,11 +116,11 @@ export default function useConnectionHandlers() {
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
       if (!sourceNode || !targetNode) {
-        console.warn("Invalid source or target node", { source, target });
+        log.warn("Invalid source or target node", { source, target });
         return;
       }
       if (!sourceHandle || !targetHandle) {
-        console.warn(
+        log.warn(
           `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
         );
         return;
@@ -151,7 +152,7 @@ export default function useConnectionHandlers() {
       const targetMetadata = getMetadata(targetNode.type || "");
 
       if (!sourceMetadata || !targetMetadata) {
-        console.warn("Missing metadata for source or target node");
+        log.warn("Missing metadata for source or target node");
         return;
       }
 
@@ -169,12 +170,12 @@ export default function useConnectionHandlers() {
         targetNode.data.dynamic_properties[targetHandle] !== undefined;
 
       if (!sourceHandleMetadata) {
-        console.warn(`Invalid source handle. Source: ${sourceHandle}`);
+        log.warn(`Invalid source handle. Source: ${sourceHandle}`);
         return;
       }
 
       if (!targetHandleMetadata && !isDynamicProperty) {
-        console.warn(`Invalid target handle. Target: ${targetHandle}`);
+        log.warn(`Invalid target handle. Target: ${targetHandle}`);
         return;
       }
 
@@ -317,7 +318,7 @@ export default function useConnectionHandlers() {
 
         const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
-          console.warn(`Metadata for node type ${node.type} not found`);
+          log.warn(`Metadata for node type ${node.type} not found`);
           return;
         }
 

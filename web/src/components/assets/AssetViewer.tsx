@@ -31,6 +31,7 @@ import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
+import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -363,7 +364,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
+      log.error("Failed to copy to clipboard:", error);
     }
   }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
 

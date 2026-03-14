@@ -16,6 +16,7 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import log from "loglevel";
 
 const tileStyles = (theme: Theme) =>
   css({
@@ -227,7 +228,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
 
       const metadata = getMetadata(nodeType);
       if (!metadata) {
-        console.warn(`Metadata not found for node type: ${nodeType}`);
+        log.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,

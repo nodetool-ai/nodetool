@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import log from "loglevel";
 
 interface PanelErrorBoundaryProps {
   fallback?: React.ReactNode;
@@ -33,7 +34,7 @@ export default class PanelErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log panel errors for debugging while preventing the entire app from crashing
-    console.error("Panel crashed:", error, errorInfo);
+    log.error("Panel crashed:", error, errorInfo);
   }
 
   render() {

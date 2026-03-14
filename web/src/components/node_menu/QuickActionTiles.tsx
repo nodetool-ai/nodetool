@@ -28,6 +28,7 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { IconForType, colorForType } from "../../config/data_types";
+import log from "loglevel";
 
 export type QuickActionDefinition = {
   key: string;
@@ -528,7 +529,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
       const metadata = getMetadata(nodeType);
 
       if (!metadata) {
-        console.warn(`Metadata not found for node type: ${nodeType}`);
+        log.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${label}.`,

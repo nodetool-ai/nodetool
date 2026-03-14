@@ -36,6 +36,7 @@ import {
   IDockviewPanel
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
+import log from "loglevel";
 
 const panelComponents = {
   "asset-folders": () => (
@@ -149,7 +150,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (user) {
       navigateToFolderId(user?.id);
     } else {
-      console.error("User is not logged in");
+      log.error("User is not logged in");
     }
   }
 
