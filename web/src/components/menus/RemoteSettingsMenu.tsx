@@ -68,6 +68,85 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
 };
 
+interface SettingItemProps {
+  setting: SettingWithValue;
+  value: string;
+  onChange: (envVar: string, value: string) => void;
+}
+
+const SettingItem = memo(function SettingItem({
+  setting,
+  value,
+  onChange
+}: SettingItemProps) {
+  const handleChange = useCallback((e: unknown) => {
+    const target = e as { target: { value: string } };
+    onChange(setting.env_var, target.target.value);
+  }, [setting.env_var, onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  return (
+    <div className="settings-item large">
+      {setting.enum && setting.enum.length > 0 ? (
+        <FormControl variant="standard" fullWidth>
+          <InputLabel
+            id={`${setting.env_var.toLowerCase()}-label`}
+          >
+            {setting.env_var.replace(/_/g, " ")}
+          </InputLabel>
+          <Select
+            labelId={`${setting.env_var.toLowerCase()}-label`}
+            id={`${setting.env_var.toLowerCase()}-select`}
+            value={value || ""}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+          >
+            {setting.enum.map((option: string) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ) : (
+        <TextField
+          type={setting.is_secret ? "password" : "text"}
+          autoComplete="off"
+          id={`${setting.env_var.toLowerCase()}-input`}
+          label={setting.env_var.replace(/_/g, " ")}
+          value={value || ""}
+          onChange={handleChange}
+          variant="standard"
+          onKeyDown={handleKeyDown}
+        />
+      )}
+      {setting.description && (
+        <Typography className="description">
+          {setting.description}
+        </Typography>
+      )}
+      {SETTING_LINKS[setting.env_var] && (
+        <div style={{ marginTop: "0.5em" }}>
+          <ExternalLink
+            href={SETTING_LINKS[setting.env_var]}
+            tooltipText={
+              SETTING_TOOLTIPS[setting.env_var] || ""
+            }
+          >
+            {SETTING_BUTTON_TITLES[setting.env_var] ||
+              "GET YOUR API KEY"}
+          </ExternalLink>
+        </div>
+      )}
+    </div>
+  );
+});
+
+SettingItem.displayName = "SettingItem";
+
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
   const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
@@ -356,66 +435,12 @@ const RemoteSettings = () => {
                     {groupSettings
                       .filter((setting) => !setting.is_secret)
                       .map((setting) => (
-                        <div
+                        <SettingItem
                           key={setting.env_var}
-                          className="settings-item large"
-                        >
-                          {setting.enum && setting.enum.length > 0 ? (
-                            <FormControl variant="standard" fullWidth>
-                              <InputLabel
-                                id={`${setting.env_var.toLowerCase()}-label`}
-                              >
-                                {setting.env_var.replace(/_/g, " ")}
-                              </InputLabel>
-                              <Select
-                                labelId={`${setting.env_var.toLowerCase()}-label`}
-                                id={`${setting.env_var.toLowerCase()}-select`}
-                                value={settingValues[setting.env_var] || ""}
-                                onChange={(e) =>
-                                  handleChange(setting.env_var, e.target.value)
-                                }
-                                onKeyDown={(e) => e.stopPropagation()}
-                              >
-                                {setting.enum.map((option: string) => (
-                                  <MenuItem key={option} value={option}>
-                                    {option}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          ) : (
-                            <TextField
-                              type={setting.is_secret ? "password" : "text"}
-                              autoComplete="off"
-                              id={`${setting.env_var.toLowerCase()}-input`}
-                              label={setting.env_var.replace(/_/g, " ")}
-                              value={settingValues[setting.env_var] || ""}
-                              onChange={(e) =>
-                                handleChange(setting.env_var, e.target.value)
-                              }
-                              variant="standard"
-                              onKeyDown={(e) => e.stopPropagation()}
-                            />
-                          )}
-                          {setting.description && (
-                            <Typography className="description">
-                              {setting.description}
-                            </Typography>
-                          )}
-                          {SETTING_LINKS[setting.env_var] && (
-                            <div style={{ marginTop: "0.5em" }}>
-                              <ExternalLink
-                                href={SETTING_LINKS[setting.env_var]}
-                                tooltipText={
-                                  SETTING_TOOLTIPS[setting.env_var] || ""
-                                }
-                              >
-                                {SETTING_BUTTON_TITLES[setting.env_var] ||
-                                  "GET YOUR API KEY"}
-                              </ExternalLink>
-                            </div>
-                          )}
-                        </div>
+                          setting={setting}
+                          value={settingValues[setting.env_var] || ""}
+                          onChange={handleChange}
+                        />
                       ))}
                   </div>
                 )
