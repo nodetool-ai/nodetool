@@ -148,7 +148,10 @@
   },
   "overrides": {
     "react-is": "18.2.0",
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "monaco-editor": {
+      "dompurify": ">=3.3.2"
+    }
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
