@@ -1,0 +1,29 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "text_in", "type": "test.Input", "name": "text" },
+      {
+        "id": "classify_cat",
+        "type": "nodetool.agents.Classifier",
+        "properties": {
+          "categories": ["Billing", "Technical", "Feature Request", "Bug", "General Inquiry"]
+        }
+      },
+      {
+        "id": "classify_pri",
+        "type": "nodetool.agents.Classifier",
+        "properties": {
+          "categories": ["Critical", "High", "Medium", "Low"]
+        }
+      },
+      { "id": "sink_cat", "type": "nodetool.control.Reroute", "name": "category" },
+      { "id": "sink_pri", "type": "nodetool.control.Reroute", "name": "priority" }
+    ],
+    "edges": [
+      { "source": "text_in", "sourceHandle": "value", "target": "classify_cat", "targetHandle": "text" },
+      { "source": "text_in", "sourceHandle": "value", "target": "classify_pri", "targetHandle": "text" },
+      { "source": "classify_cat", "sourceHandle": "output", "target": "sink_cat", "targetHandle": "input_value" },
+      { "source": "classify_pri", "sourceHandle": "output", "target": "sink_pri", "targetHandle": "input_value" }
+    ]
+  }
+}
