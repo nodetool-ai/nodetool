@@ -584,6 +584,8 @@ function toVersionResponse(v: WorkflowVersion): JsonObject {
     description: v.description,
     graph: v.graph,
     version: v.version,
+    save_type: v.save_type ?? "manual",
+    autosave_metadata: v.autosave_metadata ?? null,
     created_at: v.created_at,
   };
 }

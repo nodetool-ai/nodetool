@@ -1,11 +1,9 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
-import { components } from "../api";
+import type { SettingWithValue } from "./ApiTypes";
 
-export type SettingWithValue = components["schemas"]["SettingWithValue"] & {
-  is_secret: boolean;
-};
+export type { SettingWithValue };
 
 interface RemoteSettingsStore {
   settings: SettingWithValue[];

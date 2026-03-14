@@ -249,7 +249,7 @@ export interface Chunk {
   thread_id?: string | null;
   workflow_id?: string | null;
   content_type?: ContentType;
-  content?: string;
+  content: string;
   content_metadata?: Record<string, unknown>;
   done?: boolean;
   thinking?: boolean;

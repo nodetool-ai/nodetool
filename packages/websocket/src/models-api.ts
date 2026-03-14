@@ -35,31 +35,9 @@ import {
   getHuggingfaceFileInfos,
   type HFFileRequest,
 } from "@nodetool/huggingface";
+import type { UnifiedModel } from "@nodetool/protocol";
 
-export interface UnifiedModel {
-  id: string;
-  type: string | null;
-  name: string;
-  repo_id: string | null;
-  path: string | null;
-  artifact_family?: string | null;
-  artifact_component?: string | null;
-  artifact_confidence?: number | null;
-  artifact_evidence?: string[] | null;
-  cache_path?: string | null;
-  allow_patterns?: string[] | null;
-  ignore_patterns?: string[] | null;
-  description?: string | null;
-  readme?: string | null;
-  downloaded?: boolean | null;
-  size_on_disk?: number | null;
-  pipeline_tag?: string | null;
-  tags?: string[] | null;
-  has_model_index?: boolean | null;
-  downloads?: number | null;
-  likes?: number | null;
-  trending_score?: number | null;
-}
+export type { UnifiedModel };
 
 interface RecommendedUnifiedModel extends UnifiedModel {
   modality: "language" | "image" | "tts" | "asr" | "video";

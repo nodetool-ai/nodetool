@@ -423,7 +423,7 @@ declare global {
       on: (channel: string, listener: (...args: unknown[]) => void) => void;
       off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
-    __UPDATES__?: Record<string, unknown>[];
+    __UPDATES__?: unknown[];
   }
 }
 

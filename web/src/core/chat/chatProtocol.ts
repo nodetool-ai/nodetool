@@ -659,7 +659,7 @@ const applyAgentExecutionMessage = (
     const content = agentMsg.content;
     log.debug("PlanningUpdate content:", content);
     if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentPlanningUpdate = content as PlanningUpdate;
+      update.currentPlanningUpdate = content as unknown as PlanningUpdate;
       log.info("Set currentPlanningUpdate:", content);
     } else {
       log.warn("PlanningUpdate content is invalid:", content);
@@ -667,17 +667,17 @@ const applyAgentExecutionMessage = (
   } else if (agentMsg.execution_event_type === "task_update") {
     const content = agentMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentTaskUpdate = content as TaskUpdate;
+      update.currentTaskUpdate = content as unknown as TaskUpdate;
       update.currentTaskUpdateThreadId = threadId;
       update.lastTaskUpdatesByThread = {
         ...state.lastTaskUpdatesByThread,
-        [threadId]: content as TaskUpdate
+        [threadId]: content as unknown as TaskUpdate
       };
     }
   } else if (agentMsg.execution_event_type === "log_update") {
     const content = agentMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentLogUpdate = content as LogUpdate;
+      update.currentLogUpdate = content as unknown as LogUpdate;
     }
   }
 
