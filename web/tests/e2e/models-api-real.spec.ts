@@ -6,6 +6,13 @@ import {
   waitForAnimation,
 } from "./helpers/waitHelpers";
 
+interface HuggingFaceModel {
+  type: string;
+  id: string;
+  name: string;
+  repo_id: string;
+}
+
 /**
  * Browser-based e2e tests for the Models Manager UI.
  * Exercises the model API consumers (useProviders, useModelsByProvider,
@@ -232,10 +239,10 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should have different model types in mock data", async ({ page }) => {
         // Verify we have various model types
-        const imageModels = (models.huggingface as { type: string }[]).filter(
+        const imageModels = (models.huggingface as HuggingFaceModel[]).filter(
           (m) => m.type === "hf.text_to_image"
         );
-        const languageModels = (models.huggingface as { type: string }[]).filter(
+        const languageModels = (models.huggingface as HuggingFaceModel[]).filter(
           (m) => m.type === "hf.text_generation"
         );
 

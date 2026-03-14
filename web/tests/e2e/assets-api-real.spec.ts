@@ -76,9 +76,9 @@ if (process.env.JEST_WORKER_ID) {
         await navigateToPage(page, "/assets");
         await waitForAnimation(page);
 
-        // Look for create folder button (icon button with folder icon)
+        // Look for create folder button
         const createFolderBtn = page.locator(
-          'button[aria-label*="folder" i], button[aria-label*="create" i], button:has([data-testid*="folder"])'
+          'button[aria-label*="folder" i], [data-testid*="create-folder"]'
         );
 
         // If the button exists, it should be visible

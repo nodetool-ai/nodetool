@@ -8,9 +8,9 @@ import {
 
 /**
  * Browser-based e2e tests for the Chat/Threads UI.
- * Exercises thread and message API consumers (useGlobalChatStore,
- * useChatService, useThreadsQuery) by navigating to the /chat page
- * and interacting with UI elements.
+ * Exercises thread and message API consumers by navigating to the /chat
+ * page and interacting with UI elements like thread list, message display,
+ * and sidebar controls.
  */
 
 // Skip when executed by Jest

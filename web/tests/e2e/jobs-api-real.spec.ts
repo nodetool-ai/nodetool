@@ -51,7 +51,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Look for run/execute button
         const runButton = page.locator(
-          'button:has-text("Run"), button[aria-label*="run" i], button[aria-label*="Run" i], [data-testid="run-button"]'
+          'button:has-text("Run"), button[aria-label*="run" i], [data-testid="run-button"]'
         );
 
         // Run button should exist
