@@ -98,6 +98,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <IconButton
+        aria-label={isBypassed ? "Enable All Nodes" : "Bypass All Nodes"}
         size="small"
         tabIndex={-1}
         css={buttonStyles}
