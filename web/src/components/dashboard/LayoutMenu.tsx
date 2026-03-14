@@ -19,6 +19,12 @@ import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
 import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 
+/** Minimal shape of a panel entry in SerializedDockview.panels */
+interface SerializedPanel {
+  id?: string;
+  params?: Record<string, unknown>;
+}
+
 interface LayoutMenuProps {
   dockviewApi: DockviewApi | null;
 }
@@ -67,8 +73,9 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     if (dockviewApi && newLayoutName) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
-             delete (panel as any).params;
+        const p = panel as SerializedPanel;
+        if (p.id !== "mini-app" && !p.id?.startsWith("mini-app")) {
+             delete p.params;
         }
       });
 
@@ -87,8 +94,9 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     if (dockviewApi) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
-            delete (panel as any).params;
+        const p = panel as SerializedPanel;
+        if (p.id !== "mini-app" && !p.id?.startsWith("mini-app")) {
+            delete p.params;
         }
       });
       updateActiveLayout(layout);
