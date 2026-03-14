@@ -274,6 +274,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
                 e.stopPropagation();
                 window.open(externalLink, "_blank", "noopener,noreferrer");
               }}
+              aria-label={externalLinkTitle || "Open link"}
               sx={{ 
                 padding: "2px",
                 marginLeft: "2px",
@@ -296,6 +297,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             <IconButton
               size="small"
               onClick={handleOpenLogsDialog}
+              aria-label={`View ${logCount} logs`}
               sx={{ padding: "4px" }}
             >
               <Badge badgeContent={logCount} color="warning" max={99}>
@@ -315,6 +317,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               <IconButton
                 size="small"
                 onClick={handleShowResultsClick}
+                aria-label="Show result"
                 sx={toggleIconButtonStyles}
               >
                 <Visibility sx={{ fontSize: 16 }} />
@@ -327,6 +330,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               <IconButton
                 size="small"
                 onClick={handleShowInputsClick}
+                aria-label="Show inputs"
                 sx={toggleIconButtonStyles}
               >
                 <InputOutlined sx={{ fontSize: 16 }} />

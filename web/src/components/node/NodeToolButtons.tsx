@@ -179,6 +179,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               tabIndex={-1}
               disabled={isWorkflowRunning}
               size="small"
+              aria-label={isWorkflowRunning ? "Running..." : "Run from here"}
             >
               <PlayArrowIcon fontSize="small" />
             </IconButton>
@@ -200,6 +201,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             tabIndex={-1}
             color={isBypassed ? "warning" : "default"}
             size="small"
+            aria-label={isBypassed ? "Enable node" : "Bypass node"}
           >
             <PowerSettingsNewIcon fontSize="small" />
           </IconButton>
@@ -219,6 +221,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             tabIndex={-1}
             color={hasCommentTitle ? "primary" : "default"}
             size="small"
+            aria-label={hasCommentTitle ? "Remove comment" : "Add comment"}
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -238,6 +241,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             onClick={handleDuplicateNodes}
             tabIndex={-1}
             size="small"
+            aria-label="Duplicate node"
           >
             <CopyAllIcon fontSize="small" />
           </IconButton>
@@ -264,6 +268,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             tabIndex={-1}
             color={isInspected ? "primary" : "default"}
             size="small"
+            aria-label="Toggle node info"
           >
             <InfoIcon fontSize="small" />
           </IconButton>
@@ -280,6 +285,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             onClick={handleOpenDropdown}
             tabIndex={-1}
             size="small"
+            aria-label="More actions"
           >
             <MoreVertIcon fontSize="small" />
           </IconButton>
