@@ -420,6 +420,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
           onClick={toggleSearchMode}
           data-testid="asset-search-mode-toggle"
           tabIndex={-1}
+          aria-label={isGlobalSearchMode ? "Switch to local search" : "Switch to global search"}
         >
           {isGlobalSearchMode ? <GlobalIcon /> : <LocalIcon />}
         </button>
@@ -453,6 +454,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
           tabIndex={-1}
           onClick={clearSearch}
           data-testid="asset-search-clear-btn"
+          aria-label="Clear search"
         >
           <BackspaceIcon />
         </button>

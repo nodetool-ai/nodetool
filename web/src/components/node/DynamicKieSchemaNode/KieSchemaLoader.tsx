@@ -137,6 +137,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
       <Box sx={{ display: "inline-flex", alignItems: "center" }}>
         <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
+            aria-label="Reload Schema"
             size="small"
             disabled={loading}
             onClick={handleLoad}

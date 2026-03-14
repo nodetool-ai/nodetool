@@ -145,6 +145,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
   return (
     <div css={colorPickerButtonStyles(theme, alwaysVisible)}>
       <IconButton
+        aria-label="Select node color"
         size="small"
         className="color-picker-button"
         onClick={handleModalOpen}

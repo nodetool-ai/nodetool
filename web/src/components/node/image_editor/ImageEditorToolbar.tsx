@@ -316,6 +316,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           <div className="tools-grid">
             <Tooltip title="Select / Pan (V)" placement="top">
               <IconButton
+                aria-label="Select / Pan (V)"
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
                 onClick={handleSelectTool("select")}
                 size="small"
@@ -325,6 +326,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Crop (C)" placement="top">
               <IconButton
+                aria-label="Crop (C)"
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
                 onClick={handleSelectTool("crop")}
                 size="small"
@@ -334,6 +336,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Draw / Paint (B)" placement="top">
               <IconButton
+                aria-label="Draw / Paint (B)"
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
                 onClick={handleSelectTool("draw")}
                 size="small"
@@ -343,6 +346,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Erase (E)" placement="top">
               <IconButton
+                aria-label="Erase (E)"
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
                 onClick={handleSelectTool("erase")}
                 size="small"
@@ -352,6 +356,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Fill (G)" placement="top">
               <IconButton
+                aria-label="Fill (G)"
                 className={`tool-button ${tool === "fill" ? "active" : ""}`}
                 onClick={handleSelectTool("fill")}
                 size="small"
@@ -361,6 +366,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Text (T)" placement="top">
               <IconButton
+                aria-label="Text (T)"
                 className={`tool-button ${tool === "text" ? "active" : ""}`}
                 onClick={handleSelectTool("text")}
                 size="small"
@@ -370,6 +376,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Rectangle (R)" placement="top">
               <IconButton
+                aria-label="Rectangle (R)"
                 className={`tool-button ${tool === "rectangle" ? "active" : ""}`}
                 onClick={handleSelectTool("rectangle")}
                 size="small"
@@ -379,6 +386,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Ellipse (O)" placement="top">
               <IconButton
+                aria-label="Ellipse (O)"
                 className={`tool-button ${tool === "ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("ellipse")}
                 size="small"
@@ -388,6 +396,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Line (L)" placement="top">
               <IconButton
+                aria-label="Line (L)"
                 className={`tool-button ${tool === "line" ? "active" : ""}`}
                 onClick={handleSelectTool("line")}
                 size="small"
@@ -397,6 +406,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Arrow (A)" placement="top">
               <IconButton
+                aria-label="Arrow (A)"
                 className={`tool-button ${tool === "arrow" ? "active" : ""}`}
                 onClick={handleSelectTool("arrow")}
                 size="small"
@@ -663,6 +673,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           <div className="actions-row">
             <Tooltip title="Rotate 90° CCW">
               <IconButton
+                aria-label="Rotate 90° CCW"
                 className="action-button"
                 onClick={handleRotateCCW}
                 size="small"
@@ -672,6 +683,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Rotate 90° CW">
               <IconButton
+                aria-label="Rotate 90° CW"
                 className="action-button"
                 onClick={handleRotateCW}
                 size="small"
@@ -681,6 +693,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Flip Horizontal">
               <IconButton
+                aria-label="Flip Horizontal"
                 className="action-button"
                 onClick={handleFlipH}
                 size="small"
@@ -690,6 +703,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Flip Vertical">
               <IconButton
+                aria-label="Flip Vertical"
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
@@ -758,6 +772,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           <Typography className="section-title">View</Typography>
           <div className="zoom-controls">
             <IconButton
+              aria-label="Zoom Out"
               className="action-button"
               onClick={handleZoomOut}
               size="small"
@@ -766,6 +781,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </IconButton>
             <span className="zoom-value">{Math.round(zoom * 100)}%</span>
             <IconButton
+              aria-label="Zoom In"
               className="action-button"
               onClick={handleZoomIn}
               size="small"
@@ -774,6 +790,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </IconButton>
             <Tooltip title="Reset Zoom">
               <IconButton
+                aria-label="Reset Zoom"
                 className="action-button"
                 onClick={handleZoomReset}
                 size="small"
@@ -791,6 +808,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Undo (Ctrl+Z)">
               <span>
                 <IconButton
+                  aria-label="Undo (Ctrl+Z)"
                   className="action-button"
                   onClick={onUndo}
                   disabled={!canUndo}
@@ -803,6 +821,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Redo (Ctrl+Y)">
               <span>
                 <IconButton
+                  aria-label="Redo (Ctrl+Y)"
                   className="action-button"
                   onClick={onRedo}
                   disabled={!canRedo}
@@ -814,6 +833,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Tooltip>
             <Tooltip title="Reset to Original">
               <IconButton
+                aria-label="Reset to Original"
                 className="action-button"
                 onClick={handleReset}
                 size="small"

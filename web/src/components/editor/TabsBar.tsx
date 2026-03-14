@@ -278,6 +278,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         onClick={handleScrollLeft}
         disabled={!canScrollLeft}
         data-hidden={!showScrollButtons}
+        aria-label="Scroll tabs left"
       >
         <ChevronLeftIcon />
       </button>
@@ -322,6 +323,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
           className="new-workflow-button"
           onClick={handleNewWorkflow}
           title="Create new workflow"
+          aria-label="Create new workflow"
         >
           <AddIcon />
         </button>
@@ -332,6 +334,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         onClick={handleScrollRight}
         disabled={!canScrollRight}
         data-hidden={!showScrollButtons}
+        aria-label="Scroll tabs right"
       >
         <ChevronRightIcon />
       </button>

@@ -110,6 +110,7 @@ const EditorToolbar = ({
                 onClick={onUndo}
                 disabled={!canUndo}
                 size="small"
+                aria-label="Undo"
               >
                 <UndoIcon fontSize="small" />
               </IconButton>
@@ -122,6 +123,7 @@ const EditorToolbar = ({
                 onClick={onRedo}
                 disabled={!canRedo}
                 size="small"
+                aria-label="Redo"
               >
                 <RedoIcon fontSize="small" />
               </IconButton>
@@ -136,6 +138,7 @@ const EditorToolbar = ({
             className="toolbar-button"
             onClick={onToggleFind}
             size="small"
+            aria-label="Find & Replace"
           >
             <SearchIcon fontSize="small" />
           </IconButton>
@@ -148,6 +151,7 @@ const EditorToolbar = ({
             className={`toolbar-button ${wordWrapEnabled ? "active" : ""}`}
             onClick={onToggleWordWrap}
             size="small"
+            aria-label="Toggle Word Wrap"
           >
             <WrapTextIcon fontSize="small" />
           </IconButton>
@@ -157,6 +161,7 @@ const EditorToolbar = ({
             className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
             onClick={onFormatCodeBlock}
             size="small"
+            aria-label="Format as Code Block"
           >
             <CodeIcon fontSize="small" />
           </IconButton>

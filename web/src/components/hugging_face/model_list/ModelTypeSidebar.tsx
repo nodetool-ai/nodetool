@@ -72,6 +72,7 @@ const ModelTypeSidebar: React.FC = () => {
                       rel="noopener noreferrer"
                       size="small"
                       onClick={handleLinkClick}
+                      aria-label="View on Hugging Face"
                       sx={{ 
                         color: isSelected ? theme.vars.palette.text.primary : "inherit",
                         opacity: 0.7,

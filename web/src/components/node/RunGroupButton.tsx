@@ -86,6 +86,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <IconButton
+        aria-label="Run Group"
         size="small"
         tabIndex={-1}
         css={styles(theme, isRunning)}

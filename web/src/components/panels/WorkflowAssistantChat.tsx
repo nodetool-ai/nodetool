@@ -529,7 +529,7 @@ const WorkflowAssistantChat: React.FC = () => {
       >
         <NewChatButton onNewThread={handleNewChat} />
         <Tooltip title="Chat History">
-          <IconButton onClick={handleOpenThreadList} size="small">
+          <IconButton onClick={handleOpenThreadList} size="small" aria-label="Open chat history">
             <ListIcon />
           </IconButton>
         </Tooltip>

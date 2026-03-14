@@ -506,6 +506,7 @@ const ImageListProperty = (props: PropertyProps) => {
                   className="remove-button"
                   onClick={removeHandlers[index]}
                   size="small"
+                  aria-label="Remove image"
                 >
                   <CloseIcon />
                 </IconButton>

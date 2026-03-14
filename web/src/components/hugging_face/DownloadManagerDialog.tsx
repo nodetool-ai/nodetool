@@ -99,6 +99,7 @@ const DownloadManagerDialog: React.FC = () => {
             size="small"
             onClick={closeDialog}
             className="title-close"
+            aria-label="Close"
           >
             <CloseIcon fontSize="small" />
           </IconButton>

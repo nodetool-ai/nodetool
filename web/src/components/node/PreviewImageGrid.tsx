@@ -460,6 +460,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                   />
                   <Tooltip title="Download" placement="top">
                     <IconButton
+                      aria-label="Download"
                       className="tile-action-btn"
                       size="small"
                       onClick={(e) => handleDownloadImage(idx, e)}
@@ -469,6 +470,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                   </Tooltip>
                   <Tooltip title="Open in Viewer (double-click)" placement="top">
                     <IconButton
+                      aria-label="Open in Viewer"
                       className="tile-action-btn"
                       size="small"
                       onClick={(e) => handleOpenInViewer(idx, e)}
@@ -510,7 +512,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             </span>
           </Tooltip>
           <Tooltip title="Clear selection">
-            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }}>
+            <IconButton aria-label="Clear selection" size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }}>
               <ClearIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -530,6 +532,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
         >
           <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
             <IconButton
+              aria-label="Close compare dialog"
               onClick={handleCloseCompare}
               sx={{
                 position: "absolute",
