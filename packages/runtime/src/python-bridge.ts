@@ -56,11 +56,27 @@ interface PendingRequest {
   onProgress?: (event: ProgressEvent) => void;
 }
 
+/** Callback for streaming responses (provider.stream, provider.tts). */
+export type StreamCallback = (chunk: Record<string, unknown>) => void;
+
+interface PendingStreamRequest {
+  resolve: (value: Record<string, unknown>) => void;
+  reject: (error: Error) => void;
+  onChunk: StreamCallback;
+}
+
+export interface PythonProviderInfo {
+  id: string;
+  capabilities: string[];
+  required_secrets: string[];
+}
+
 export class PythonBridge extends EventEmitter {
   private _ws: WebSocket | null = null;
   private _process: ChildProcess | null = null;
   private _nodeMetadata: PythonNodeMetadata[] = [];
   private _pending = new Map<string, PendingRequest>();
+  private _pendingStream = new Map<string, PendingStreamRequest>();
   private _options: PythonBridgeOptions;
   private _connected = false;
 
@@ -127,6 +143,10 @@ export class PythonBridge extends EventEmitter {
           req.reject(new Error(`Python worker exited with code ${code}`));
         }
         this._pending.clear();
+        for (const [, req] of this._pendingStream) {
+          req.reject(new Error(`Python worker exited with code ${code}`));
+        }
+        this._pendingStream.clear();
       });
     });
   }
@@ -153,6 +173,10 @@ export class PythonBridge extends EventEmitter {
           req.reject(new Error("WebSocket connection closed"));
         }
         this._pending.clear();
+        for (const [, req] of this._pendingStream) {
+          req.reject(new Error("WebSocket connection closed"));
+        }
+        this._pendingStream.clear();
       });
 
       ws.on("message", (data: ArrayBuffer | Buffer) => {
@@ -176,6 +200,13 @@ export class PythonBridge extends EventEmitter {
         pending.resolve({ outputs: {}, blobs: {} });
       }
     } else if (type === "result" && requestId) {
+      // Check streaming requests first
+      const streamReq = this._pendingStream.get(requestId);
+      if (streamReq) {
+        this._pendingStream.delete(requestId);
+        streamReq.resolve(msg.data as Record<string, unknown>);
+        return;
+      }
       const pending = this._pending.get(requestId);
       if (pending) {
         this._pending.delete(requestId);
@@ -186,6 +217,16 @@ export class PythonBridge extends EventEmitter {
         pending.resolve({ outputs: data.outputs, blobs: data.blobs ?? {} });
       }
     } else if (type === "error" && requestId) {
+      // Check streaming requests first
+      const streamReq = this._pendingStream.get(requestId);
+      if (streamReq) {
+        this._pendingStream.delete(requestId);
+        const data = msg.data as { error: string; traceback?: string };
+        const err = new Error(data.error);
+        (err as unknown as Record<string, unknown>).traceback = data.traceback;
+        streamReq.reject(err);
+        return;
+      }
       const pending = this._pending.get(requestId);
       if (pending) {
         this._pending.delete(requestId);
@@ -193,6 +234,11 @@ export class PythonBridge extends EventEmitter {
         const err = new Error(data.error);
         (err as unknown as Record<string, unknown>).traceback = data.traceback;
         pending.reject(err);
+      }
+    } else if (type === "chunk" && requestId) {
+      const streamReq = this._pendingStream.get(requestId);
+      if (streamReq) {
+        streamReq.onChunk(msg.data as Record<string, unknown>);
       }
     } else if (type === "progress" && requestId) {
       const pending = this._pending.get(requestId);
@@ -277,6 +323,269 @@ export class PythonBridge extends EventEmitter {
 
   get isConnected(): boolean {
     return this._connected;
+  }
+
+  // ── Provider bridge methods ─────────────────────────────────────────
+
+  /** List available Python providers and their capabilities. */
+  async listProviders(): Promise<PythonProviderInfo[]> {
+    const result = await this._providerCall("provider.list", {});
+    return (result as { providers: PythonProviderInfo[] }).providers;
+  }
+
+  /** Get available models for a provider. */
+  async getProviderModels(
+    providerId: string,
+    modelType: string,
+    secrets?: Record<string, string>,
+  ): Promise<Record<string, unknown>[]> {
+    const result = await this._providerCall("provider.models", {
+      provider: providerId,
+      model_type: modelType,
+      secrets: secrets ?? {},
+    });
+    return (result as { models: Record<string, unknown>[] }).models;
+  }
+
+  /** Generate a single message (non-streaming). */
+  async providerGenerate(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const result = await this._providerCall("provider.generate", {
+      provider: providerId,
+      messages,
+      model,
+      ...options,
+    });
+    return (result as { message: Record<string, unknown> }).message;
+  }
+
+  /**
+   * Stream message generation from a Python provider.
+   * Returns an async generator yielding chunk/tool_call objects.
+   */
+  async *providerStream(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>,
+  ): AsyncGenerator<Record<string, unknown>> {
+    const requestId = randomUUID();
+    const chunks: Record<string, unknown>[] = [];
+    let done = false;
+    let error: Error | null = null;
+    let resolveWait: (() => void) | null = null;
+
+    const onChunk = (chunk: Record<string, unknown>) => {
+      chunks.push(chunk);
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const streamPromise = new Promise<Record<string, unknown>>(
+      (resolve, reject) => {
+        this._pendingStream.set(requestId, { resolve, reject, onChunk });
+      },
+    );
+
+    streamPromise
+      .then(() => {
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((err) => {
+        error = err;
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
+
+    this._send({
+      type: "provider.stream",
+      request_id: requestId,
+      data: {
+        provider: providerId,
+        messages,
+        model,
+        ...options,
+      },
+    });
+
+    while (true) {
+      while (chunks.length > 0) {
+        yield chunks.shift()!;
+      }
+      if (done) break;
+      if (error) throw error;
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
+    }
+    if (error) throw error;
+  }
+
+  /** Text-to-image via Python provider. */
+  async providerTextToImage(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+  ): Promise<Uint8Array> {
+    const result = await this._providerCall("provider.text_to_image", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {},
+    });
+    const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
+    return blobs.image;
+  }
+
+  /** Image-to-image via Python provider. */
+  async providerImageToImage(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+  ): Promise<Uint8Array> {
+    const result = await this._providerCall("provider.image_to_image", {
+      provider: providerId,
+      image,
+      params,
+      secrets: secrets ?? {},
+    });
+    const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
+    return blobs.image;
+  }
+
+  /**
+   * Streaming text-to-speech via Python provider.
+   * Yields raw audio chunk bytes (Int16 PCM).
+   */
+  async *providerTTS(
+    providerId: string,
+    text: string,
+    model: string,
+    options?: Record<string, unknown>,
+  ): AsyncGenerator<Uint8Array> {
+    const requestId = randomUUID();
+    const chunks: Uint8Array[] = [];
+    let done = false;
+    let error: Error | null = null;
+    let resolveWait: (() => void) | null = null;
+
+    const onChunk = (chunk: Record<string, unknown>) => {
+      const blobs = chunk.blobs as Record<string, Uint8Array> | undefined;
+      if (blobs?.audio) {
+        chunks.push(blobs.audio);
+      }
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const streamPromise = new Promise<Record<string, unknown>>(
+      (resolve, reject) => {
+        this._pendingStream.set(requestId, { resolve, reject, onChunk });
+      },
+    );
+
+    streamPromise
+      .then(() => {
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((err) => {
+        error = err;
+        done = true;
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
+
+    this._send({
+      type: "provider.tts",
+      request_id: requestId,
+      data: {
+        provider: providerId,
+        text,
+        model,
+        ...options,
+      },
+    });
+
+    while (true) {
+      while (chunks.length > 0) {
+        yield chunks.shift()!;
+      }
+      if (done) break;
+      if (error) throw error;
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
+    }
+    if (error) throw error;
+  }
+
+  /** Automatic speech recognition via Python provider. */
+  async providerASR(
+    providerId: string,
+    audio: Uint8Array,
+    model: string,
+    options?: Record<string, unknown>,
+  ): Promise<string> {
+    const result = await this._providerCall("provider.asr", {
+      provider: providerId,
+      audio,
+      model,
+      ...options,
+    });
+    return (result as { text: string }).text;
+  }
+
+  /** Generate embeddings via Python provider. */
+  async providerEmbedding(
+    providerId: string,
+    text: string | string[],
+    model: string,
+    dimensions?: number,
+  ): Promise<number[][]> {
+    const result = await this._providerCall("provider.embedding", {
+      provider: providerId,
+      text,
+      model,
+      dimensions,
+    });
+    return (result as { embeddings: number[][] }).embeddings;
+  }
+
+  /** Send a non-streaming provider request and wait for the result. */
+  private async _providerCall(
+    type: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const requestId = randomUUID();
+    return new Promise<Record<string, unknown>>((resolve, reject) => {
+      this._pendingStream.set(requestId, {
+        resolve,
+        reject,
+        onChunk: () => {},
+      });
+      this._send({ type, request_id: requestId, data });
+    });
   }
 
   /** Shut down the bridge. */

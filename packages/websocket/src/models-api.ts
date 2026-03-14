@@ -14,6 +14,7 @@ import {
   OllamaProvider,
   OpenAIProvider,
   OpenRouterProvider,
+  PythonProvider,
   TogetherProvider,
   VLLMProvider,
   type ASRModel,
@@ -24,6 +25,7 @@ import {
   type TTSModel,
   type VideoModel,
 } from "@nodetool/runtime";
+import type { PythonBridge } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
 import {
   readCachedHfModels,
@@ -454,6 +456,32 @@ const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
 };
 
 /**
+ * Register Python-only providers (HuggingFace Local, MLX) discovered
+ * via the PythonBridge. Call after the bridge has connected.
+ */
+export async function registerPythonProviders(bridge: PythonBridge): Promise<string[]> {
+  const providers = await bridge.listProviders();
+  const registered: string[] = [];
+  for (const info of providers) {
+    if (PROVIDER_REGISTRY[info.id]) continue; // don't override existing
+    PROVIDER_REGISTRY[info.id] = {
+      secretKey: null, // local providers don't need API keys to be "available"
+      create: async () => {
+        // Resolve any required secrets for the provider
+        const secrets: Record<string, string> = {};
+        for (const key of info.required_secrets) {
+          const val = await resolveKey(key);
+          if (val) secrets[key] = val;
+        }
+        return new PythonProvider(info.id, bridge, secrets);
+      },
+    };
+    registered.push(info.id);
+  }
+  return registered;
+}
+
+/**
  * Check if a provider's required secret is available
  * (env var OR encrypted secrets DB).
  */
@@ -631,10 +659,9 @@ function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?:
 async function getAllModels(): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
-  // Include local models: Ollama and llama.cpp language models
-  const localProviders: ProviderId[] = ["ollama", "llama_cpp"];
-  for (const providerId of localProviders) {
-    if (!(await isProviderAvailable(providerId))) continue;
+  // Include language models from all available providers
+  const availableIds = await getAvailableProviderIds();
+  for (const providerId of availableIds) {
     try {
       const models = await getLanguageModelsByProvider(providerId);
       all.push(...models.map(toUnifiedLanguageModel));
