@@ -216,12 +216,12 @@ const ChatMarkdownTest: React.FC = () => {
           sx={{ mb: 1 }}
         >
           {tabs.map((tab, i) => (
-            <Tab key={i} label={tab.label} />
+            <Tab key={tab.label} label={tab.label} />
           ))}
         </Tabs>
 
         {tabs.map((tab, i) => (
-          <TabPanel key={i} value={activeTab} index={i}>
+          <TabPanel key={tab.label} value={activeTab} index={i}>
             {renderChatMessage(tab.content, "assistant", `Assistant — ${tab.label}`)}
             {renderChatMessage(
               `Please show me: ${tab.label.toLowerCase()}`,
