@@ -177,6 +177,8 @@ typecheck-electron:
 	cd electron && npm run typecheck
 
 typecheck-mobile:
+	@echo "Building shared protocol package for mobile..."
+	cd packages/protocol && npm run build
 	@echo "Type checking mobile package..."
 	cd mobile && npm run typecheck
 

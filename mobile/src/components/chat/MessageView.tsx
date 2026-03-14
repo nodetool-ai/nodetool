@@ -43,6 +43,14 @@ function getTextContent(content: Message['content']): string {
 }
 
 /**
+ * Type guard: checks whether a plain object looks like a valid MessageContent item.
+ * Used when Message.content arrives as Record<string, unknown>.
+ */
+function isMessageContent(obj: unknown): obj is MessageContent {
+  return typeof obj === 'object' && obj !== null && 'type' in obj && typeof (obj as Record<string, unknown>)['type'] === 'string';
+}
+
+/**
  * Get content items as an array of MessageContent
  */
 function getContentItems(content: Message['content']): MessageContent[] {
@@ -56,9 +64,9 @@ function getContentItems(content: Message['content']): MessageContent[] {
     return content.filter((c): c is MessageContent => c !== null && c !== undefined);
   }
 
-  // Single object content
-  if (typeof content === 'object' && 'type' in content) {
-    return [content as MessageContent];
+  // Single object content — guard ensures it has a type discriminant
+  if (isMessageContent(content)) {
+    return [content];
   }
 
   return [];
