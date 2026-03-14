@@ -6,6 +6,7 @@ import {
   AnthropicProvider,
   BaseProvider,
   CerebrasProvider,
+  FakeProvider,
   GeminiProvider,
   GroqProvider,
   LlamaProvider,
@@ -379,6 +380,10 @@ interface ProviderEntry {
 }
 
 const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
+  fake: {
+    secretKey: null,
+    create: async () => new FakeProvider(),
+  },
   openai: {
     secretKey: "OPENAI_API_KEY",
     create: async () => new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") }),

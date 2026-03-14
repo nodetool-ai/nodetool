@@ -77,6 +77,10 @@ interface TemplateWorkflow {
   name: string;
   description: string;
   tags: string[];
+  graph: {
+    nodes: unknown[];
+    edges: unknown[];
+  };
 }
 
 interface Templates {
