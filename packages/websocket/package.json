@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",
     "test-ui": "node ../../scripts/run-websocket-dev.mjs test-ui",
