@@ -111,16 +111,38 @@ export function getBackendApiUrl(): string {
 export async function setupMockApiRoutes(page: Page): Promise<void> {
   const apiUrl = getBackendApiUrl();
 
-  // Mock workflows endpoints
+  // Mock workflows endpoints (method-aware)
   await page.route(`${apiUrl}/workflows`, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        workflows: workflows.workflows,
-        next: null
-      })
-    });
+    const method = route.request().method();
+
+    if (method === "POST") {
+      // Mock workflow creation
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: `mock-${Date.now()}`,
+          name: body.name || "Untitled",
+          description: body.description || "",
+          access: body.access || "private",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          thumbnail: null,
+          tags: [],
+          graph: { nodes: [], edges: [] }
+        })
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          workflows: workflows.workflows,
+          next: null
+        })
+      });
+    }
   });
 
   await page.route(`${apiUrl}/workflows/examples`, async (route: Route) => {
@@ -152,14 +174,33 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     });
   });
 
-  // Mock individual workflow endpoint
+  // Mock individual workflow endpoint (method-aware)
   await page.route(`${apiUrl}/workflows/*`, async (route: Route) => {
     const url = route.request().url();
+    const method = route.request().method();
     const workflowId = url.split("/workflows/")[1]?.split("?")[0];
     
     const workflow = workflows.workflows.find(w => w.id === workflowId);
-    
-    if (workflow) {
+
+    if (method === "DELETE") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Deleted" })
+      });
+    } else if (method === "PUT") {
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...(workflow || {}),
+          ...body,
+          id: workflowId,
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else if (workflow) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -174,26 +215,57 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     }
   });
 
-  // Mock threads endpoints
+  // Mock threads endpoints (method-aware)
   await page.route(`${apiUrl}/threads`, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        threads: threads.threads,
-        next: null
-      })
-    });
+    const method = route.request().method();
+
+    if (method === "POST") {
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: `mock-thread-${Date.now()}`,
+          title: body.title || "New Thread",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          threads: threads.threads,
+          next: null
+        })
+      });
+    }
   });
 
-  // Mock individual thread endpoint
+  // Mock individual thread endpoint (method-aware)
   await page.route(`${apiUrl}/threads/*`, async (route: Route) => {
     const url = route.request().url();
+    const method = route.request().method();
     const threadId = url.split("/threads/")[1]?.split("/")[0];
     
     const thread = threads.threads.find(t => t.id === threadId);
-    
-    if (thread) {
+
+    if (method === "DELETE") {
+      await route.fulfill({ status: 204, body: "" });
+    } else if (method === "PUT") {
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...(thread || {}),
+          ...body,
+          id: threadId,
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else if (thread) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -208,21 +280,41 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     }
   });
 
-  // Mock messages endpoints
+  // Mock messages endpoints (method-aware)
   await page.route(`${apiUrl}/threads/*/messages`, async (route: Route) => {
     const url = route.request().url();
+    const method = route.request().method();
     const threadId = url.split("/threads/")[1]?.split("/messages")[0];
     
-    const threadMessages = messages[threadId as keyof typeof messages] || [];
-    
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        messages: threadMessages,
-        next: null
-      })
-    });
+    if (method === "POST") {
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          type: "message",
+          id: `mock-msg-${Date.now()}`,
+          thread_id: threadId,
+          role: body.role || "user",
+          content: body.content || "",
+          tool_calls: null,
+          tool_call_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else {
+      const threadMessages = messages[threadId as keyof typeof messages] || [];
+      
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          messages: threadMessages,
+          next: null
+        })
+      });
+    }
   });
 
   // Mock models endpoints
@@ -482,13 +574,34 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     });
   });
 
-  // Mock assets endpoint
+  // Mock assets endpoint (method-aware)
   await page.route(`${apiUrl}/assets/`, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ assets: [], next: null })
-    });
+    const method = route.request().method();
+
+    if (method === "POST") {
+      const body = await route.request().postDataJSON().catch(() => ({}));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: `mock-asset-${Date.now()}`,
+          name: body.name || "Untitled",
+          content_type: body.content_type || "application/octet-stream",
+          parent_id: body.parent_id || null,
+          created_at: new Date().toISOString(),
+          get_url: null,
+          thumb_url: null,
+          size: null,
+          metadata: null
+        })
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ assets: [], next: null })
+      });
+    }
   });
 
   // Mock jobs endpoint
