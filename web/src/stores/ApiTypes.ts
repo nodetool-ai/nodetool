@@ -43,6 +43,13 @@ import type {
   WorkflowTool as _WorkflowTool,
   WorkflowToolList as _WorkflowToolList,
   WorkflowGraph as _WorkflowGraph,
+  // Workflow version types
+  WorkflowVersion as _WorkflowVersion,
+  WorkflowVersionList as _WorkflowVersionList,
+  WorkflowVersionSaveType as _WorkflowVersionSaveType,
+  CreateWorkflowVersionRequest as _CreateWorkflowVersionRequest,
+  AutosaveWorkflowRequest as _AutosaveWorkflowRequest,
+  AutosaveResponse as _AutosaveResponse,
   // Thread & Message types
   Thread as _Thread,
   ThreadList as _ThreadList,
@@ -57,6 +64,7 @@ import type {
   MessageVideoContent as _MessageVideoContent,
   MessageAudioContent as _MessageAudioContent,
   MessageDocumentContent as _MessageDocumentContent,
+  MessageThoughtContent as _MessageThoughtContent,
   MessageContent as _MessageContent,
   ToolCall as _ToolCall,
   // Node Metadata types
@@ -87,6 +95,10 @@ import type {
   // System types
   SystemStats as _SystemStats,
   SecretResponse as _SecretResponse,
+  // Settings types
+  SettingWithValue as _SettingWithValue,
+  SettingsResponse as _SettingsResponse,
+  SettingsUpdateRequest as _SettingsUpdateRequest,
   // Task/Agent types
   Task as _Task,
   TaskPlan as _TaskPlan,
@@ -160,6 +172,14 @@ export type WorkflowTool = _WorkflowTool;
 export type WorkflowToolList = _WorkflowToolList;
 export type WorkflowGraph = _WorkflowGraph;
 
+// Workflow versions
+export type WorkflowVersion = _WorkflowVersion;
+export type WorkflowVersionList = _WorkflowVersionList;
+export type WorkflowVersionSaveType = _WorkflowVersionSaveType;
+export type CreateWorkflowVersionRequest = _CreateWorkflowVersionRequest;
+export type AutosaveWorkflowRequest = _AutosaveWorkflowRequest;
+export type AutosaveResponse = _AutosaveResponse;
+
 // Thread & Message
 export type Thread = _Thread;
 export type ThreadList = _ThreadList;
@@ -174,6 +194,7 @@ export type MessageImageContent = _MessageImageContent;
 export type MessageVideoContent = _MessageVideoContent;
 export type MessageAudioContent = _MessageAudioContent;
 export type MessageDocumentContent = _MessageDocumentContent;
+export type MessageThoughtContent = _MessageThoughtContent;
 export type MessageContent = _MessageContent;
 export type ToolCall = _ToolCall;
 
@@ -208,6 +229,11 @@ export type ModelPack = _ModelPack;
 // System
 export type SystemStats = _SystemStats;
 export type SecretResponse = _SecretResponse;
+
+// Settings
+export type SettingWithValue = _SettingWithValue;
+export type SettingsResponse = _SettingsResponse;
+export type SettingsUpdateRequest = _SettingsUpdateRequest;
 
 // Task/Agent
 export type Task = _Task;
@@ -273,29 +299,6 @@ export interface AssetSearchResult {
   is_global_search: boolean;
 }
 
-// Workflow version types
-export interface WorkflowVersion {
-  id: string;
-  workflow_id: string;
-  version: number;
-  created_at: string;
-  name?: string;
-  description?: string;
-  is_pinned?: boolean;
-  save_type?: "manual" | "autosave" | "checkpoint" | "restore";
-  graph: _Graph;
-}
-
-export interface WorkflowVersionList {
-  versions: WorkflowVersion[];
-  next: string | null;
-}
-
-export interface CreateWorkflowVersionRequest {
-  name?: string;
-  description?: string;
-}
-
 // Model property value types for component onChange handlers
 export interface LlamaModelValue {
   type: "llama_model";
@@ -325,14 +328,6 @@ export interface TTSModelValue {
   voices: string[];
   selected_voice: string;
 }
-
-// Extended UnifiedModel with artifact info
-export type UnifiedModelExtended = _UnifiedModel & {
-  artifact_family?: string | null;
-  artifact_component?: string | null;
-  artifact_confidence?: number | null;
-  artifact_evidence?: string[] | null;
-};
 
 // Convenience aliases
 export type Image = _ImageRef;

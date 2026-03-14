@@ -9,30 +9,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { WorkflowVersionSaveType } from "./ApiTypes";
 
-export type SaveType = "manual" | "autosave" | "restore" | "checkpoint";
+export type SaveType = WorkflowVersionSaveType;
 
-export interface WorkflowVersion {
-  id: string;
-  workflow_id: string;
-  version: number;
-  created_at: string;
-  name?: string;
-  description?: string;
-  graph: {
-    nodes: Array<{
-      id: string;
-      type: string;
-      data?: Record<string, unknown>;
-    }>;
-    edges: Array<{
-      id: string;
-      source: string;
-      target: string;
-    }>;
-  };
-  save_type?: SaveType;
-}
+export type { WorkflowVersion } from "./ApiTypes";
 
 interface VersionHistoryState {
   // Currently selected version for viewing
