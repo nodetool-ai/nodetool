@@ -29,7 +29,7 @@ const styles = (_theme: Theme) =>
   });
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({
-  node,
+  node: _node,
   inline,
   className,
   children,
