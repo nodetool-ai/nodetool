@@ -273,8 +273,8 @@ const CollectionList = () => {
               The following files encountered errors during indexing:
             </Typography>
             <List sx={{ pl: 2 }}>
-              {indexErrors.map((error, index) => (
-                <ListItem key={index} sx={{ display: "list-item" }}>
+              {indexErrors.map((error) => (
+                <ListItem key={error.file} sx={{ display: "list-item" }}>
                   <strong>{error.file}</strong>: {error.error}
                 </ListItem>
               ))}
