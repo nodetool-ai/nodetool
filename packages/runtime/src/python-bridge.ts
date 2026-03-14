@@ -86,7 +86,7 @@ export class PythonBridge extends EventEmitter {
       process.env.NODETOOL_PYTHON ??
       "python";
 
-    const args = ["-m", "nodetool_worker", ...(this._options.workerArgs ?? [])];
+    const args = ["-m", "nodetool.worker", ...(this._options.workerArgs ?? [])];
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(pythonPath, args, {
