@@ -2,12 +2,26 @@
  * Server-side workflow execution using @nodetool packages.
  * Runs entirely within the Next.js API route – no external server needed.
  *
- * Uses dynamic imports so that the heavy native modules (isolated-vm, etc.)
- * are only loaded at request time, not during Next.js build analysis.
+ * Imports only the specific node sub-files needed (text, control, boolean)
+ * rather than the full @nodetool/base-nodes barrel, which would transitively
+ * load @nodetool/code-runners → isolated-vm (a native module that cannot be
+ * bundled or executed during Next.js build-time page-data collection).
+ * All @nodetool/* packages are declared in serverExternalPackages so webpack
+ * never bundles them; they are resolved by Node.js at runtime instead.
  */
 
+import { WorkflowRunner } from "@nodetool/kernel";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool/node-sdk";
+import { ProcessingContext } from "@nodetool/runtime";
 import type { NodeDescriptor, Edge } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
+
+// Import only the specific node files we need — NOT the barrel (@nodetool/base-nodes
+// index.js) which loads lib-beautifulsoup → jsdom and code-node → isolated-vm.
+import { FormatTextNode } from "@nodetool/base-nodes/dist/nodes/text.js";
+import { RerouteNode } from "@nodetool/base-nodes/dist/nodes/control.js";
+import { CompareNode } from "@nodetool/base-nodes/dist/nodes/boolean.js";
 
 // Use flexible types so plain workflow JSON (without edge_type etc.) is accepted.
 export interface WorkflowGraph {
@@ -26,32 +40,17 @@ export interface WorkflowRunResult {
   error?: string;
 }
 
-// Cache the registry across requests within the same server process.
-let registryPromise: Promise<import("@nodetool/node-sdk").NodeRegistry> | null =
-  null;
+// Cache the registry singleton across requests within the same server process.
+let registryCache: NodeRegistry | null = null;
 
-async function getRegistry(): Promise<import("@nodetool/node-sdk").NodeRegistry> {
-  if (!registryPromise) {
-    registryPromise = (async () => {
-      // Dynamic imports keep these modules out of the webpack bundle and prevent
-      // native-module errors (isolated-vm, better-sqlite3, etc.) at build time.
-      const [{ NodeRegistry }, textMod, controlMod, booleanMod] =
-        await Promise.all([
-          import("@nodetool/node-sdk"),
-          import("@nodetool/base-nodes/dist/nodes/text.js"),
-          import("@nodetool/base-nodes/dist/nodes/control.js"),
-          import("@nodetool/base-nodes/dist/nodes/boolean.js"),
-        ]);
-
-      type NodeClass = import("@nodetool/node-sdk").NodeClass;
-      const registry = new NodeRegistry();
-      registry.register(textMod.FormatTextNode as unknown as NodeClass);
-      registry.register(controlMod.RerouteNode as unknown as NodeClass);
-      registry.register(booleanMod.CompareNode as unknown as NodeClass);
-      return registry;
-    })();
+function getRegistry(): NodeRegistry {
+  if (!registryCache) {
+    registryCache = new NodeRegistry();
+    registryCache.register(FormatTextNode as unknown as NodeClass);
+    registryCache.register(RerouteNode as unknown as NodeClass);
+    registryCache.register(CompareNode as unknown as NodeClass);
   }
-  return registryPromise;
+  return registryCache;
 }
 
 export async function runWorkflow(
@@ -59,13 +58,7 @@ export async function runWorkflow(
   params: Record<string, unknown>
 ): Promise<WorkflowRunResult> {
   const jobId = randomUUID();
-
-  const [{ WorkflowRunner }, { ProcessingContext }, registry] =
-    await Promise.all([
-      import("@nodetool/kernel"),
-      import("@nodetool/runtime"),
-      getRegistry(),
-    ]);
+  const registry = getRegistry();
 
   const resolvedParams = { ...(definition.params ?? {}), ...params };
 
