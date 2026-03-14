@@ -1,3 +1,4 @@
+import log from "loglevel";
 import React from "react";
 import { createPortal } from "react-dom";
 
@@ -43,7 +44,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
     return createPortal(speedDisplay, document.body);
   } catch (error) {
     // Fallback: render normally if portal fails
-    console.warn("Failed to create portal for SpeedDisplay:", error);
+    log.warn("Failed to create portal for SpeedDisplay:", error);
     return speedDisplay;
   }
 };

@@ -1,3 +1,5 @@
+import log from "loglevel";
+
 import {
   calculateStep,
   calculateDecimalPlaces,
@@ -125,11 +127,11 @@ describe("NumberInput.utils", () => {
     });
 
     it("handles invalid bounds (min > max) by swapping", () => {
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const logSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
       const result = applyValueConstraints(50, 100, 50, "int", 0);
       expect(result).toBe(50);
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(logSpy).toHaveBeenCalled();
+      logSpy.mockRestore();
     });
 
     it("handles negative min values", () => {
