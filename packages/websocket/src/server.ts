@@ -17,6 +17,7 @@ import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import {
   AnthropicProvider,
+  FakeProvider,
   GeminiProvider,
   OllamaProvider,
   OpenAIProvider,
@@ -81,6 +82,8 @@ async function resolveKey(key: string): Promise<string | undefined> {
 
 async function resolveProvider(providerId: string) {
   switch (providerId.toLowerCase()) {
+    case "fake":
+      return new FakeProvider();
     case "anthropic":
       return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") });
     case "openai":
