@@ -3,6 +3,9 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
 
 export interface NodeMetadataProperty {
   name: string;
@@ -71,6 +74,12 @@ export interface PythonProviderInfo {
   required_secrets: string[];
 }
 
+type PythonLaunchCandidate = {
+  command: string;
+  argsPrefix?: string[];
+  source: string;
+};
+
 export class PythonBridge extends EventEmitter {
   private _ws: WebSocket | null = null;
   private _process: ChildProcess | null = null;
@@ -97,20 +106,125 @@ export class PythonBridge extends EventEmitter {
 
   /** Spawn Python child process and connect to its WebSocket. */
   private async _spawnAndConnect(): Promise<void> {
-    const pythonPath =
-      this._options.pythonPath ??
-      process.env.NODETOOL_PYTHON ??
-      "python";
+    const candidates = this._getPythonLaunchCandidates();
+    let lastError: Error | null = null;
 
-    const args = ["-m", "nodetool.worker", ...(this._options.workerArgs ?? [])];
+    for (const candidate of candidates) {
+      try {
+        await this._spawnCandidate(candidate);
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    throw lastError ?? new Error("Failed to start Python worker");
+  }
+
+  private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
+    const explicitPythonPath = this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
+    if (explicitPythonPath) {
+      return [{ command: explicitPythonPath, source: "NODETOOL_PYTHON" }];
+    }
+
+    const condaPrefix = process.env.CONDA_PREFIX;
+    if (condaPrefix && this._looksLikeNodeToolEnv(condaPrefix)) {
+      const activeEnvPython =
+        process.platform === "win32"
+          ? join(condaPrefix, "python.exe")
+          : join(condaPrefix, "bin", "python");
+      if (existsSync(activeEnvPython)) {
+        return [{ command: activeEnvPython, source: "active CONDA_PREFIX" }];
+      }
+    }
+
+    const candidates = this._getManagedPythonPaths().map((command) => ({
+      command,
+      source: "NodeTool-managed env",
+    }));
+
+    if (candidates.length > 0) {
+      return candidates;
+    }
+
+    throw new Error(
+      "No NodeTool Python interpreter found. Set NODETOOL_PYTHON to the NodeTool env's python, activate the nodetool conda env before starting the server, or install the Electron-managed conda_env.",
+    );
+  }
+
+  private _looksLikeNodeToolEnv(envPath: string): boolean {
+    const normalized = envPath.replaceAll("\\", "/").toLowerCase();
+    const envName = basename(envPath).toLowerCase();
+    return envName === "nodetool" || envName === "conda_env" || normalized.includes("/nodetool/conda_env");
+  }
+
+  private _getManagedPythonPaths(): string[] {
+    const home = homedir();
+
+    if (process.platform === "win32") {
+      return [
+        process.env.ALLUSERSPROFILE
+          ? join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env", "python.exe")
+          : join(
+              process.env.APPDATA ??
+                join(home, "AppData", "Roaming"),
+              "nodetool",
+              "conda_env",
+              "python.exe",
+            ),
+        join(home, "Miniconda3", "envs", "nodetool", "python.exe"),
+        join(home, "miniconda3", "envs", "nodetool", "python.exe"),
+        join(home, "Anaconda3", "envs", "nodetool", "python.exe"),
+        join(home, "anaconda3", "envs", "nodetool", "python.exe"),
+        String.raw`C:\ProgramData\nodetool\conda_env\python.exe`,
+      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+    }
+
+    if (process.platform === "darwin") {
+      return [
+        join(home, "nodetool_env", "bin", "python"),
+        join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
+        join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
+      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+    }
+
+    return [
+      join(home, ".local", "share", "nodetool", "conda_env", "bin", "python"),
+      "/opt/nodetool/conda_env/bin/python",
+      join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
+      join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
+    ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+  }
+
+  private async _spawnCandidate(candidate: PythonLaunchCandidate): Promise<void> {
+    const args = [
+      ...(candidate.argsPrefix ?? []),
+      "-m",
+      "nodetool.worker",
+      ...(this._options.workerArgs ?? []),
+    ];
 
     return new Promise<void>((resolve, reject) => {
-      const proc = spawn(pythonPath, args, {
+      const proc = spawn(candidate.command, args, {
         stdio: ["pipe", "pipe", "pipe"],
       });
       this._process = proc;
 
       let portFound = false;
+      let stderrOutput = "";
+      let startupSettled = false;
+
+      const settleError = (error: Error) => {
+        if (startupSettled) return;
+        startupSettled = true;
+        reject(error);
+      };
+
+      const settleSuccess = () => {
+        if (startupSettled) return;
+        startupSettled = true;
+        resolve();
+      };
 
       proc.stdout!.on("data", (chunk: Buffer) => {
         if (portFound) return;
@@ -121,23 +235,43 @@ export class PythonBridge extends EventEmitter {
             portFound = true;
             const port = parseInt(match[1], 10);
             this._connectWs(`ws://127.0.0.1:${port}`)
-              .then(resolve)
-              .catch(reject);
+              .then(settleSuccess)
+              .catch((error) => {
+                settleError(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+              });
             return;
           }
         }
       });
 
       proc.stderr!.on("data", (chunk: Buffer) => {
-        this.emit("stderr", chunk.toString());
+        const text = chunk.toString();
+        stderrOutput += text;
+        this.emit("stderr", text);
       });
 
       proc.on("error", (err) => {
-        if (!portFound) reject(err);
+        if (!portFound) {
+          settleError(err);
+        }
       });
 
       proc.on("exit", (code) => {
         this._connected = false;
+
+        if (!portFound) {
+          const detail = stderrOutput.trim();
+          settleError(
+            new Error(
+              detail ||
+                `Python worker (${candidate.source}: ${candidate.command}) exited before startup with code ${code}`,
+            ),
+          );
+          return;
+        }
+
         this.emit("exit", code);
         for (const [, req] of this._pending) {
           req.reject(new Error(`Python worker exited with code ${code}`));
