@@ -23,6 +23,7 @@ import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
+import log from "loglevel";
 
 type NodeLogsProps = {
   id: string;
@@ -89,7 +90,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         return;
       }
       navigator.clipboard?.writeText(text).catch((err) => {
-        console.warn("Failed to copy logs to clipboard:", err);
+        log.warn("Failed to copy logs to clipboard:", err);
       });
     }, [logs]);
 
