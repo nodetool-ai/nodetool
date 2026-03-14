@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
+import React, { memo, useMemo, useCallback } from "react";
 import { css } from "@emotion/react";
-import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
-import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
+import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
@@ -13,7 +14,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
-import { shallow } from "zustand/shallow";
+
 
 export interface NodeInputsProps {
   id: string;
@@ -153,19 +154,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  // Combine multiple useNodes subscriptions into a single selector with shallow equality
-  // to reduce unnecessary re-renders when other parts of the node state change
-  const { edges, findNode } = useNodes(
-    (state) => ({
-      edges: state.edges,
-      findNode: state.findNode
-    }),
-    shallow
-  );
-  const connectedEdges = useMemo(
-    () => edges.filter((e) => e.target === id),
-    [edges, id]
-  );
+  const findNode = useNodes((state) => state.findNode);
+
+  // Use optimized stable selector for connected edges to prevent re-renders on unrelated edge changes
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
