@@ -182,7 +182,7 @@ export async function waitForTextStable(
       }
     } else {
       stableCount = 0;
-      previousText = currentText;
+      previousText = currentText ?? '';
     }
     
     await new Promise(resolve => setTimeout(resolve, checkInterval));

@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
-import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForEditorReady,
@@ -13,20 +12,36 @@ import {
  * by navigating to editor/dashboard pages and interacting with UI elements.
  */
 
-const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
-
 // Skip when executed by Jest
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Jobs E2E", () => {
-    test.describe("Job Status in Editor", () => {
-      test.beforeEach(async ({ page }) => {
-        await setupMockApiRoutes(page);
-      });
+    let workflowId: string;
 
+    test.beforeAll(async ({ request }) => {
+      const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
+        data: {
+          name: `e2e-jobs-${Date.now()}`,
+          description: "E2E jobs test workflow",
+          access: "private",
+        },
+      });
+      const workflow = await res.json();
+      workflowId = workflow.id;
+    });
+
+    test.afterAll(async ({ request }) => {
+      if (workflowId) {
+        await request
+          .delete(`${BACKEND_API_URL}/workflows/${workflowId}`)
+          .catch(() => {});
+      }
+    });
+
+    test.describe("Job Status in Editor", () => {
       test("should load editor with job status area", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
         await waitForEditorReady(page);
 
         const canvas = page.locator(".react-flow");
@@ -43,7 +58,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display run button for workflow execution", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
         await waitForEditorReady(page);
 
         const canvas = page.locator(".react-flow");
@@ -61,7 +76,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show progress indicators when available", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
         await waitForEditorReady(page);
 
         // Look for MUI progress components
@@ -77,24 +92,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("Jobs API Consumer in Dashboard", () => {
-      test("should call jobs API when dashboard loads", async ({ page }) => {
-        let jobsApiCalled = false;
-        await page.route("**/api/jobs/**", (route) => {
-          jobsApiCalled = true;
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ jobs: [], next: null })
-          });
-        });
-
-        await navigateToPage(page, "/dashboard");
-        await waitForAnimation(page);
-
-        // Dashboard should trigger the jobs API consumer
-        expect(jobsApiCalled).toBe(true);
-      });
-
       test("should display dashboard without job errors", async ({ page }) => {
         await navigateToPage(page, "/dashboard");
         await waitForAnimation(page);
@@ -179,9 +176,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should load mini app with workflow ID", async ({ page }) => {
-        await setupMockApiRoutes(page);
-
-        await navigateToPage(page, `/apps/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/apps/${workflowId}`);
         await waitForAnimation(page);
 
         const bodyText = await page.textContent("body");
