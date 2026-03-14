@@ -89,7 +89,7 @@ const ModelListItem: React.FC<
                 const repo =
                   lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
                 const modelUrl = getModelUrl(
-                  (model as any).provider,
+                  model.provider ?? undefined,
                   model.id,
                   model.type || undefined
                 );

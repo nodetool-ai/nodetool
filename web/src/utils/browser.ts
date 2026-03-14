@@ -26,8 +26,8 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
   const isRendererProcess =
     hasWindow &&
     typeof window.process === "object" &&
-    typeof (window.process as any).type === "string" &&
-    (window.process as any).type === "renderer";
+    typeof window.process.type === "string" &&
+    window.process.type === "renderer";
 
   const hasElectronVersionInWindowProcess =
     hasWindow &&

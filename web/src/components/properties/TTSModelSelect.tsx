@@ -3,7 +3,7 @@ import isEqual from "lodash/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -18,16 +18,11 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadTTSModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "tts" } }
-      }
-    );
-    if (error) {
-      throw error;
+    const res = await fetch(`${BASE_URL}/api/models/tts`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch TTS models: ${res.status}`);
     }
-    return data as unknown as TTSModel[];
+    return (await res.json()) as TTSModel[];
   }, []);
 
   const { data: models } = useQuery({
