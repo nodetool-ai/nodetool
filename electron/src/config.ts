@@ -7,6 +7,7 @@ import { readSettings, updateSetting } from "./settings";
 
 // Base paths
 const resourcesPath: string = process.resourcesPath;
+const srcPath: string = __dirname;
 
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
@@ -143,6 +144,16 @@ const getPythonPath = (): string => {
   logMessage(`getPythonPath() - pythonPath: ${pythonPath}`);
 
   return pythonPath;
+};
+
+/**
+ * Retrieves the path to the uv package manager executable from the conda environment.
+ */
+const getUVPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "uv.exe")
+    : path.join(condaPath, "bin", "uv");
 };
 
 /**
@@ -295,9 +306,22 @@ const getProcessEnv = (): ProcessEnv => {
   // This ensures consistency between Electron app and CLI usage
   const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
 
+  // UV cache: store inside userData so it's writable by the Electron app
+  const userDataPath = app.getPath("userData");
+  const uvCacheDir = path.join(userDataPath, "uv-cache");
+  const xdgCacheHome = path.join(userDataPath, "cache");
+
+  // Python path for the conda environment
+  const pythonLibPath =
+    process.platform === "win32"
+      ? path.join(condaPath, "Lib", "site-packages")
+      : path.join(condaPath, "lib");
+
   // Ensure cache directories exist
   try {
     fs.mkdirSync(hfHome, { recursive: true });
+    fs.mkdirSync(uvCacheDir, { recursive: true });
+    fs.mkdirSync(xdgCacheHome, { recursive: true });
   } catch (error) {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
@@ -306,6 +330,11 @@ const getProcessEnv = (): ProcessEnv => {
     ...baseEnv,
     HOME: homeDir,
     HF_HOME: hfHome,
+    PYTHONPATH: pythonLibPath,
+    PYTHONUNBUFFERED: "1",
+    PYTHONNOUSERSITE: "1",
+    UV_CACHE_DIR: uvCacheDir,
+    XDG_CACHE_HOME: xdgCacheHome,
     PATH:
       process.platform === "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
@@ -317,6 +346,7 @@ export {
   getCondaEnvPath,
   getNodePath,
   getPythonPath,
+  getUVPath,
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
@@ -325,5 +355,6 @@ export {
   getSystemDataPath,
   PID_FILE_PATH,
   PID_DIRECTORY,
+  srcPath,
   webPath,
 };
