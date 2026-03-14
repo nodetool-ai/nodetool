@@ -353,6 +353,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
               size="small"
               onClick={handleRemoveStopClick(selectedStopIndex)}
               disabled={gradient.stops.length <= 2}
+              aria-label="Remove stop"
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
