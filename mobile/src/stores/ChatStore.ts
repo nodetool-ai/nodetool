@@ -76,8 +76,9 @@ function handleWebSocketMessage(
   console.log('WebSocket message received:', data.type);
 
   if (state.status === 'stopping') {
-    // Only process certain messages while stopping
-    if (!['generation_stopped', 'error', 'job_update'].includes(data.type)) {
+    // Only process certain messages while stopping; messages without a type are ignored
+    const msgType = data.type ?? '';
+    if (!['generation_stopped', 'error', 'job_update'].includes(msgType)) {
       return;
     }
   }
