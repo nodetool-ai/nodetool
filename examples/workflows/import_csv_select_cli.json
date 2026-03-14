@@ -1,0 +1,42 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "csv", "type": "test.Input", "name": "csv_data" },
+      { "id": "columns", "type": "test.Input", "name": "columns" },
+      { "id": "import", "type": "nodetool.data.ImportCSV" },
+      { "id": "select", "type": "nodetool.data.SelectColumn" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "dataframe" }
+    ],
+    "edges": [
+      {
+        "source": "csv",
+        "sourceHandle": "value",
+        "target": "import",
+        "targetHandle": "csv_data"
+      },
+      {
+        "source": "import",
+        "sourceHandle": "output",
+        "target": "select",
+        "targetHandle": "dataframe"
+      },
+      {
+        "source": "columns",
+        "sourceHandle": "value",
+        "target": "select",
+        "targetHandle": "columns"
+      },
+      {
+        "source": "select",
+        "sourceHandle": "output",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "csv_data": "team,score,city\nA,10,NY\nB,5,SF",
+    "columns": "team,score"
+  }
+}
+

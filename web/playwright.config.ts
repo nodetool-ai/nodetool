@@ -16,15 +16,27 @@ const shouldStartBackend = process.env.E2E_START_BACKEND
 
 const shouldStartFrontend = process.env.E2E_START_FRONTEND !== 'false';
 
-const webServers = process.env.CI ? {
-  command: 'npm start',
-  url: FRONTEND_URL,
-  reuseExistingServer: false,
-  timeout: 120 * 1000,
-} : [
+const backendCommand = 'PORT=7777 HOST=127.0.0.1 node ../packages/websocket/dist/server.js';
+
+const webServers = process.env.CI ? [
   ...(shouldStartBackend
     ? [{
-        command: 'conda run -n nodetool nodetool serve --port 7777 --mock',
+        command: backendCommand,
+        url: BACKEND_HEALTH_URL,
+        reuseExistingServer: false,
+        timeout: 120 * 1000,
+      }]
+    : []),
+  {
+    command: 'npm start',
+    url: FRONTEND_URL,
+    reuseExistingServer: false,
+    timeout: 120 * 1000,
+  },
+] : [
+  ...(shouldStartBackend
+    ? [{
+        command: backendCommand,
         url: BACKEND_HEALTH_URL,
         reuseExistingServer: true,
         timeout: 120 * 1000,

@@ -1,0 +1,21 @@
+{
+  "name": "@nodetool/chat",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*",
+    "@nodetool/agents": "*"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1",
+    "typescript": "^5.4.5"
+  }
+}

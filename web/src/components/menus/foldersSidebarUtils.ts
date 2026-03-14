@@ -22,7 +22,7 @@ export const getFoldersSidebarSections = () => {
     ];
   }
 
-  const desiredLabels = ["Font Path", "Comfy Folder", "Chroma Path"];
+  const desiredLabels = ["Font Path", "Comfy Folder", "Vector DB Path"];
   const sectionId = "folders-settings"; // Static ID for the "Folders" section group
 
   const items = folderGroupSettings

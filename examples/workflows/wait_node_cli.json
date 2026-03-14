@@ -1,0 +1,29 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "value", "type": "test.Input", "name": "input" },
+      { "id": "timeout", "type": "test.Input", "name": "timeout_seconds" },
+      { "id": "wait", "type": "nodetool.triggers.Wait" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "wait_result" }
+    ],
+    "edges": [
+      { "source": "value", "sourceHandle": "value", "target": "wait", "targetHandle": "input" },
+      {
+        "source": "timeout",
+        "sourceHandle": "value",
+        "target": "wait",
+        "targetHandle": "timeout_seconds"
+      },
+      {
+        "source": "wait",
+        "sourceHandle": "data",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "input": { "message": "hello" },
+    "timeout_seconds": 0.05
+  }
+}

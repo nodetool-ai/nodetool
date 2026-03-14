@@ -4,12 +4,11 @@ const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
       <Typography variant="h2" sx={{ margin: "1em 0 .5em 0" }}>
-        ChromaDB Collections
+        Vector Collections
       </Typography>
       <Typography variant="body1" sx={{ marginBottom: 1 }}>
-        ChromaDB is a vector database for storing embeddings. In NodeTool,
-        collections organize these vector representations of your text and
-        images.
+        Collections organize vector representations of your text and images in a
+        local SQLite database.
       </Typography>
       <Typography variant="body1" sx={{ marginBottom: 2 }}>
         Creating a collection enables semantic search in your workflows,
