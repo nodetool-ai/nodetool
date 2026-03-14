@@ -117,6 +117,7 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
   artifact_component?: string | null;
   artifact_confidence?: number | null;
   artifact_evidence?: string[] | null;
+  provider?: string | null;
 };
 
 // Model property value types for use in component onChange handlers
