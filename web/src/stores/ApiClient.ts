@@ -1,5 +1,3 @@
-import createClient, { type Middleware } from "openapi-fetch";
-import { paths } from "../api.js"; // Generated from openapi-typescript
 import { supabase } from "../lib/supabaseClient";
 import log from "loglevel";
 import { BASE_URL } from "./BASE_URL";
@@ -109,53 +107,168 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Middleware for the openapi-fetch client to handle authentication.
+ * Options for HTTP client requests.
  */
-const authMiddleware: Middleware = {
-  /**
-   * Intercepts requests before they are sent.
-   * Fetches the current Supabase session and adds the Authorization (Bearer token)
-   * and apikey headers if a session exists.
-   */
-  async onRequest({ request }) {
-    if (isLocalhost) {
-      return request;
-    }
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
+interface RequestOptions {
+  params?: {
+    path?: Record<string, string | number | boolean>;
+    query?: Record<string, string | number | boolean | null | undefined>;
+  };
+  body?: unknown;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+}
 
-    if (session && request) {
-      const token = session.access_token;
-      request.headers.set("Authorization", `Bearer ${token}`);
-    }
-    return request;
-  },
-  /**
-   * Intercepts responses after they are received.
-   * If a 401 Unauthorized status is detected, it triggers a Supabase sign-out
-   * and redirects the user to the login page.
-   * Note: Supabase client handles token refreshes automatically.
-   * This handler primarily deals with completely invalid/expired sessions.
-   */
-  async onResponse({ response }) {
-    if (response?.status === 401 && window.location.pathname !== "/login") {
-      log.warn("API request unauthorized (401).");
-    }
-    return response;
-  }
+/**
+ * Result type returned by HTTP client methods.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ClientResult<T = any> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: T | null | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: Record<string, any> | null | undefined;
 };
 
 /**
- * The configured openapi-fetch client instance for making API calls.
- * Includes the base URL and authentication middleware.
+ * Builds a URL by replacing path parameters and appending query parameters.
  */
-export const client = createClient<paths>({
-  baseUrl: BASE_URL
-});
+function buildUrl(
+  baseUrl: string,
+  path: string,
+  options?: RequestOptions
+): string {
+  let url = path;
 
-// Apply the authentication middleware to the client instance
-client.use(authMiddleware);
+  // Replace path parameters (e.g., {id} -> actual value)
+  if (options?.params?.path) {
+    for (const [key, value] of Object.entries(options.params.path)) {
+      url = url.replace(`{${key}}`, encodeURIComponent(String(value)));
+    }
+  }
+
+  // Append query parameters
+  if (options?.params?.query) {
+    const queryParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(options.params.query)) {
+      if (value !== null && value !== undefined) {
+        queryParams.append(key, String(value));
+      }
+    }
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += (url.includes("?") ? "&" : "?") + queryString;
+    }
+  }
+
+  return baseUrl.replace(/\/$/, "") + url;
+}
+
+/**
+ * Gets authentication headers for the current Supabase session.
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (isLocalhost) {
+    return {};
+  }
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  if (session) {
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+  return {};
+}
+
+/**
+ * Performs an HTTP request and returns { data, error } result.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function request<T = any>(
+  method: string,
+  path: string,
+  options?: RequestOptions
+): Promise<ClientResult<T>> {
+  const url = buildUrl(BASE_URL, path, options);
+  const authHeaders = await getAuthHeaders();
+
+  // Determine body and content-type
+  let body: BodyInit | undefined;
+  const headers: Record<string, string> = {
+    ...authHeaders,
+    ...options?.headers
+  };
+
+  if (options?.body !== undefined) {
+    if (options.body instanceof FormData) {
+      body = options.body;
+      // Don't set Content-Type for FormData (browser sets it with boundary)
+    } else {
+      body = JSON.stringify(options.body);
+      headers["Content-Type"] = "application/json";
+    }
+  }
+
+  try {
+    const response = await fetch(url, { method, headers, body, signal: options?.signal });
+
+    if (response.status === 401 && window.location.pathname !== "/login") {
+      log.warn("API request unauthorized (401).");
+    }
+
+    if (!response.ok) {
+      let errorData: Record<string, unknown>;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { detail: response.statusText };
+      }
+      return { data: undefined, error: errorData };
+    }
+
+    // Handle empty responses (204 No Content)
+    if (response.status === 204) {
+      return { data: undefined as unknown as T, error: undefined };
+    }
+
+    const data = (await response.json()) as T;
+    return { data, error: undefined };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { data: undefined, error: { detail: message } };
+  }
+}
+
+/**
+ * Simple HTTP client with GET, POST, PUT, DELETE methods.
+ * Returns { data, error } for each request.
+ */
+export const client = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  GET: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ): Promise<ClientResult<T>> => request<T>("GET", path, options),
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  POST: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ): Promise<ClientResult<T>> => request<T>("POST", path, options),
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PUT: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ): Promise<ClientResult<T>> => request<T>("PUT", path, options),
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DELETE: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ): Promise<ClientResult<T>> => request<T>("DELETE", path, options)
+};
 
 /**
  * Asynchronously generates an object containing the necessary authentication headers

@@ -21,6 +21,7 @@ import {
   PlanningUpdate,
   LogUpdate,
   Thread,
+  ThreadList,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
   LanguageModel
@@ -596,7 +597,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       fetchThreads: async () => {
         set({ isLoadingThreads: true });
         try {
-          const { data, error } = await client.GET("/api/threads/");
+          const { data, error } = await client.GET<ThreadList>("/api/threads/");
           if (error) {
             throw new Error(
               error.detail?.[0]?.msg || "Failed to fetch threads"
@@ -1188,7 +1189,7 @@ export const useThreadsQuery = () => {
   const query = useQuery({
     queryKey: ["threads"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/threads/", {
+      const { data, error } = await client.GET<ThreadList>("/api/threads/", {
         params: {
           query: {
             limit: 100

@@ -160,7 +160,7 @@ const styles = (theme: Theme) =>
 // --- Helper Functions ---
 
 const fetchFileList = async (path: string) => {
-  const { data, error } = await client.GET("/api/files/list", {
+  const { data, error } = await client.GET<FileInfo[]>("/api/files/list", {
     params: { query: { path } }
   });
   if (error) {

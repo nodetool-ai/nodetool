@@ -30,7 +30,7 @@ export const useModels = () => {
   } = useQuery({
     queryKey: ["allModels"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/all", {});
+      const { data, error } = await client.GET<UnifiedModel[]>("/api/models/all", {});
       if (error) {throw error;}
       return data;
     },

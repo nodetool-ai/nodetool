@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
-import { components } from "../api";
+import type { SettingWithValue as BaseSettingWithValue } from "./BaseTypes";
 
-export type SettingWithValue = components["schemas"]["SettingWithValue"] & {
+export type SettingWithValue = BaseSettingWithValue & {
   is_secret: boolean;
 };
 

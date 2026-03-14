@@ -151,7 +151,7 @@ describe("useOllamaModels", () => {
   describe("loading states", () => {
     it("sets ollamaLoading to true during initial fetch", async () => {
       let resolvePromise: (value: any) => void;
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<any>((resolve) => {
         resolvePromise = resolve;
       });
       mockClient.GET.mockReturnValueOnce(promise);

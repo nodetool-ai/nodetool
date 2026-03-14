@@ -70,9 +70,6 @@
     "luxon": "^3.5.0",
     "mock-socket": "^9.3.1",
     "monaco-editor": "^0.55.1",
-    "openapi-fetch": "^0.14.0",
-    "openapi-typescript": "^7.8.0",
-    "papaparse": "^5.4.1",
     "plotly": "^1.0.6",
     "plotly.js": "^3.3.1",
     "prismjs": "^1.30.0",
@@ -129,7 +126,6 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "release": "ts-node release.ts",
-    "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "upload-stock-images": "node scripts/upload-stock-images.js"

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
+import { ProviderInfo } from "../stores/ApiTypes";
 
 /**
  * Hook to fetch and cache available providers with their capabilities.
@@ -14,7 +15,7 @@ export const useProviders = () => {
   } = useQuery({
     queryKey: ["providers"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/providers", {});
+      const { data, error } = await client.GET<ProviderInfo[]>("/api/models/providers", {});
       if (error) {throw error;}
       return data || [];
     },

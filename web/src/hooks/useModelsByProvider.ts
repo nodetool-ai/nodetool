@@ -57,7 +57,7 @@ export const useLanguageModelsByProvider = (options?: {
       queryKey: ["language-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/llm/{provider}", {
+        const { data, error } = await client.GET<LanguageModel[]>("/api/models/llm/{provider}", {
           params: {
             path: {
               provider: providerValue as any
@@ -139,7 +139,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
         try {
           // Convert Provider enum to string for API path parameter
           const providerValue = String(provider.provider);
-          const { data, error } = await client.GET("/api/models/image/{provider}", {
+          const { data, error } = await client.GET<ImageModel[]>("/api/models/image/{provider}", {
             params: {
               path: {
                 provider: providerValue as any
@@ -213,7 +213,7 @@ export const useTTSModelsByProvider = () => {
       queryKey: ["tts-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/tts/{provider}", {
+        const { data, error } = await client.GET<TTSModel[]>("/api/models/tts/{provider}", {
           params: {
             path: {
               provider: providerValue as any
@@ -268,7 +268,7 @@ export const useASRModelsByProvider = () => {
       queryKey: ["asr-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/asr/{provider}", {
+        const { data, error } = await client.GET<ASRModel[]>("/api/models/asr/{provider}", {
           params: {
             path: {
               provider: providerValue as any
@@ -323,7 +323,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
       queryKey: ["video-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/video/{provider}", {
+        const { data, error } = await client.GET<VideoModel[]>("/api/models/video/{provider}", {
           params: {
             path: {
               provider: providerValue as any

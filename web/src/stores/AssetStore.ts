@@ -14,7 +14,7 @@ import {
   UploadValidationError,
   UploadSource
 } from "../utils/imageUploadValidation";
-import type { components } from "../api";
+import type { Body_create_api_assets__post } from "./BaseTypes";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -78,7 +78,7 @@ const uploadAsset = async (
 
   try {
     const { data, error } = await client.POST("/api/assets/", {
-      body: formData as unknown as components["schemas"]["Body_create_api_assets__post"]
+      body: formData as unknown as Body_create_api_assets__post
     });
 
     if (error) {

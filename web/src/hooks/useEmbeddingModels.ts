@@ -40,7 +40,7 @@ export const useEmbeddingModelsByProvider = (options?: {
       queryKey: ["embedding-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/embedding/{provider}", {
+        const { data, error } = await client.GET<EmbeddingModel[]>("/api/models/embedding/{provider}", {
           params: {
             path: {
               provider: providerValue as any

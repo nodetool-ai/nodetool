@@ -40,7 +40,7 @@ export const useRecommendedModels = () => {
   } = useQuery({
     queryKey: ["recommendedModels"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/recommended", {});
+      const { data, error } = await client.GET<UnifiedModel[]>("/api/models/recommended", {});
       if (error) {throw error;}
       return data;
     },

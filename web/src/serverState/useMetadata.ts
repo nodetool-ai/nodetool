@@ -66,9 +66,13 @@ const defaultMetadata: Record<string, NodeMetadata> = {
 };
 
 export const loadMetadata = async () => {
-  const { data, error } = await client.GET("/api/nodes/metadata", {});
+  const { data, error } = await client.GET<NodeMetadata[]>("/api/nodes/metadata", {});
   if (error) {
     console.error(error);
+    return "error";
+  }
+
+  if (!data) {
     return "error";
   }
 

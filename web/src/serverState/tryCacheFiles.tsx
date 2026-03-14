@@ -2,7 +2,7 @@ import { client } from "../stores/ApiClient";
 import { RepoPath } from "../stores/ApiTypes";
 
 export const tryCacheFiles = async (files: RepoPath[]) => {
-  const { data, error } = await client.POST(
+  const { data, error } = await client.POST<RepoPath[]>(
     "/api/models/huggingface/try_cache_files",
     {
       body: files
