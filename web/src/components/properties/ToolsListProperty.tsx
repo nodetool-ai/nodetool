@@ -153,6 +153,7 @@ const ToolsListProperty = (props: PropertyProps) => {
             <IconButton
               size="small"
               onClick={handleToolClick(tool)}
+              aria-label={`Remove ${tool} tool`}
               sx={{
                 padding: "1px",
                 marginLeft: "0 !important",
@@ -176,6 +177,7 @@ const ToolsListProperty = (props: PropertyProps) => {
           <IconButton
             size="small"
             onClick={openMenu}
+            aria-label="Add or remove tools"
             sx={{
               padding: "1px",
               marginLeft: "0 !important",

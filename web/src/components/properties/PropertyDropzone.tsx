@@ -501,6 +501,7 @@ const PropertyDropzone = ({
                         handleDropzoneClick();
                       }}
                       size="small"
+                      aria-label="Replace file"
                     >
                       <FolderOpenIcon fontSize="small" />
                     </IconButton>

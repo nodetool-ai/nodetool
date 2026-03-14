@@ -171,6 +171,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
                 alignSelf: 'center',
             }}
             title="Swap Width and Height"
+            aria-label="Swap width and height"
           >
             <SwapHoriz sx={{ fontSize: '1.2rem' }} />
           </IconButton>
@@ -185,6 +186,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
                 alignSelf: 'center',
             }}
             title={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
+            aria-label={locked ? "Unlock aspect ratio" : "Lock aspect ratio"}
           >
             {locked ? <Lock sx={{ fontSize: '1rem' }} /> : <LockOpen sx={{ fontSize: '1rem' }} />}
           </IconButton>
@@ -199,6 +201,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
                 alignSelf: 'center',
             }}
             title="Presets"
+            aria-label="Open size presets"
           >
             <MoreVert sx={{ fontSize: '1.2rem' }} />
           </IconButton>
