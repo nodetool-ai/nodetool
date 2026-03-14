@@ -608,9 +608,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
       // Clear the flag after a short delay to allow the scroll to complete
       // but still prevent immediate auto-scroll during streaming
-      setTimeout(() => {
+      const scrollFlagTimeoutId = setTimeout(() => {
         scrolledToUserMessageRef.current = false;
       }, 1000);
+      return () => clearTimeout(scrollFlagTimeoutId);
     }
   }, [messages, scrollToLastUserMessage]);
 

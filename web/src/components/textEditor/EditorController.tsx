@@ -595,7 +595,7 @@ const EditorController = ({
   // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
-      setTimeout(() => {
+      const initTimeoutId = setTimeout(() => {
         editor.update(() => {
           const root = $getRoot();
           const currentText = root.getTextContent();
@@ -610,6 +610,7 @@ const EditorController = ({
         });
         setInitialContentSet(true);
       }, 0);
+      return () => clearTimeout(initTimeoutId);
     }
   }, [editor, initialContent, initialContentSet]);
 
