@@ -332,10 +332,12 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={handleClick}
                 sx={{ padding: "2px" }}
+                aria-label="View log data"
+                title="View log data"
               >
                 <DataObjectIcon fontSize="inherit" />
               </IconButton>
@@ -543,10 +545,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       
       {showScrollButton && (
         <Tooltip title="Scroll to latest">
-          <IconButton 
-            className="scroll-to-bottom" 
+          <IconButton
+            className="scroll-to-bottom"
             onClick={scrollToBottom}
             size="small"
+            aria-label="Scroll to latest logs"
           >
             <KeyboardArrowDownIcon />
           </IconButton>
