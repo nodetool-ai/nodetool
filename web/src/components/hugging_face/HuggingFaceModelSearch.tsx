@@ -93,8 +93,11 @@ const HuggingFaceModelSearch: React.FC = () => {
     setSelectedModel(modelId);
   }, []);
 
-  const handleCardClick = useCallback((modelId: string) => {
-    return () => handleModelSelect(modelId);
+  const handleCardClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const modelId = event.currentTarget.dataset.modelId;
+    if (modelId) {
+      handleModelSelect(modelId);
+    }
   }, [handleModelSelect]);
 
   return (
@@ -131,7 +134,8 @@ const HuggingFaceModelSearch: React.FC = () => {
             >
               <Card
                 className="model-card"
-                onClick={handleCardClick(model.id)}
+                onClick={handleCardClick}
+                data-model-id={model.id}
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">
