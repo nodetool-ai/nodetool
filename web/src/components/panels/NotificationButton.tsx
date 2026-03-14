@@ -141,13 +141,13 @@ const NotificationButton: React.FC = React.memo(() => {
                   backgroundColor: `${theme.vars.palette.grey[800]}CC`,
                   borderLeft: `3px solid ${
                     notification.type === "error"
-                      ? "#f44336"
+                      ? theme.vars.palette.error.main
                       : notification.type === "warning"
-                      ? "#ff9800"
+                      ? theme.vars.palette.warning.main
                       : notification.type === "success"
-                      ? "#4caf50"
+                      ? theme.vars.palette.success.main
                       : notification.type === "info"
-                      ? "#2196f3"
+                      ? theme.vars.palette.info.main
                       : theme.vars.palette.grey[600]
                   }`,
                   transition: "all 0.2s ease",
