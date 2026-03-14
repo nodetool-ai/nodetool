@@ -4,6 +4,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 
 ## Quick Navigation
 
+- **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
@@ -174,9 +175,12 @@ This review helps catch issues before they reach production and ensures your cha
 
 ## E2E Testing Setup
 
-E2E tests require the Python backend and Node.js frontend. For comprehensive E2E testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
+E2E tests require the TypeScript backend and Node.js frontend. For comprehensive E2E testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
 
 ```bash
+# Build the backend packages first (one time)
+npm run build:packages
+
 # Install and run
 cd web
 npm install
@@ -184,7 +188,7 @@ npx playwright install chromium
 npm run test:e2e           # Automatically starts servers
 
 # Manual setup for debugging
-# Terminal 1: conda activate nodetool && nodetool serve --port 7777
+# Terminal 1: PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 # Terminal 2: cd web && npm start
 # Terminal 3: cd web && npx playwright test
 ```
@@ -209,6 +213,12 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 - Validate all IPC inputs.
 
 ## Technologies
+
+### TypeScript Backend (`packages/`)
+- **Node.js LTS**, **TypeScript 5.4+**, **ES Modules**
+- **Vitest** for testing
+- Key packages: `@nodetool/websocket` (server), `@nodetool/kernel` (runtime), `@nodetool/cli` (CLI)
+- See [packages/AGENTS.md](packages/AGENTS.md) for full package list
 
 ### Web
 - **React 18.2.0**, **TypeScript 5.7.2**, **Vite 6.4.1**
