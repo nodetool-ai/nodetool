@@ -65,7 +65,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -111,7 +111,7 @@ replicate, ai`;
 
     const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
-      const audioFileUrl = assetToUrl(audioFileRef!);
+      const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
     }
     removeNulls(args);
@@ -202,7 +202,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -248,7 +248,7 @@ replicate, ai`;
 
     const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
-      const audioFileUrl = assetToUrl(audioFileRef!);
+      const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
     }
     removeNulls(args);
@@ -299,7 +299,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -365,7 +365,7 @@ replicate, ai`;
 
     const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
-      const fileUrl = assetToUrl(fileRef!);
+      const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;
     }
     removeNulls(args);
@@ -395,7 +395,7 @@ replicate, ai`;
 
     const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
-      const audioFileUrl = assetToUrl(audioFileRef!);
+      const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
     }
     removeNulls(args);
@@ -425,7 +425,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -455,7 +455,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -491,7 +491,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -537,7 +537,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);

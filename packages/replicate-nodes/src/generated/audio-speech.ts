@@ -511,7 +511,7 @@ replicate, ai`;
 
     const speakerRef = (inputs.speaker ?? this.speaker) as Record<string, unknown> | undefined;
     if (isRefSet(speakerRef)) {
-      const speakerUrl = assetToUrl(speakerRef!);
+      const speakerUrl = await assetToUrl(speakerRef!, apiKey);
       if (speakerUrl) args["speaker"] = speakerUrl;
     }
     removeNulls(args);
@@ -733,7 +733,7 @@ replicate, ai`;
 
     const origAudioRef = (inputs.orig_audio ?? this.orig_audio) as Record<string, unknown> | undefined;
     if (isRefSet(origAudioRef)) {
-      const origAudioUrl = assetToUrl(origAudioRef!);
+      const origAudioUrl = await assetToUrl(origAudioRef!, apiKey);
       if (origAudioUrl) args["orig_audio"] = origAudioUrl;
     }
     removeNulls(args);
@@ -779,7 +779,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
@@ -835,7 +835,7 @@ replicate, ai`;
 
     const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
-      const refAudioUrl = assetToUrl(refAudioRef!);
+      const refAudioUrl = await assetToUrl(refAudioRef!, apiKey);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
     }
     removeNulls(args);
@@ -886,7 +886,7 @@ replicate, ai`;
 
     const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
-      const refAudioUrl = assetToUrl(refAudioRef!);
+      const refAudioUrl = await assetToUrl(refAudioRef!, apiKey);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
     }
     removeNulls(args);
@@ -952,7 +952,7 @@ replicate, ai`;
 
     const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
-      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
     }
     removeNulls(args);
@@ -1008,7 +1008,7 @@ replicate, ai`;
 
     const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
-      const audioPromptUrl = assetToUrl(audioPromptRef!);
+      const audioPromptUrl = await assetToUrl(audioPromptRef!, apiKey);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
     }
     removeNulls(args);
@@ -1069,7 +1069,7 @@ replicate, ai`;
 
     const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
-      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
     }
     removeNulls(args);
@@ -1192,7 +1192,7 @@ replicate, ai`;
 
     const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
-      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
     }
     removeNulls(args);
@@ -1678,7 +1678,7 @@ replicate, ai`;
 
     const voiceFileRef = (inputs.voice_file ?? this.voice_file) as Record<string, unknown> | undefined;
     if (isRefSet(voiceFileRef)) {
-      const voiceFileUrl = assetToUrl(voiceFileRef!);
+      const voiceFileUrl = await assetToUrl(voiceFileRef!, apiKey);
       if (voiceFileUrl) args["voice_file"] = voiceFileUrl;
     }
     removeNulls(args);
@@ -2062,7 +2062,7 @@ replicate, ai`;
 
     const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
-      const audioChordsUrl = assetToUrl(audioChordsRef!);
+      const audioChordsUrl = await assetToUrl(audioChordsRef!, apiKey);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
     }
     removeNulls(args);
@@ -2163,7 +2163,7 @@ replicate, ai`;
 
     const musicInputRef = (inputs.music_input ?? this.music_input) as Record<string, unknown> | undefined;
     if (isRefSet(musicInputRef)) {
-      const musicInputUrl = assetToUrl(musicInputRef!);
+      const musicInputUrl = await assetToUrl(musicInputRef!, apiKey);
       if (musicInputUrl) args["music_input"] = musicInputUrl;
     }
     removeNulls(args);
@@ -2284,7 +2284,7 @@ replicate, ai`;
 
     const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
-      const audioChordsUrl = assetToUrl(audioChordsRef!);
+      const audioChordsUrl = await assetToUrl(audioChordsRef!, apiKey);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
     }
     removeNulls(args);
@@ -2499,7 +2499,7 @@ replicate, ai`;
 
     const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
-      const audioPromptUrl = assetToUrl(audioPromptRef!);
+      const audioPromptUrl = await assetToUrl(audioPromptRef!, apiKey);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
     }
     removeNulls(args);
@@ -2555,7 +2555,7 @@ replicate, ai`;
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);

@@ -95,7 +95,7 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
     removeNulls(args);
