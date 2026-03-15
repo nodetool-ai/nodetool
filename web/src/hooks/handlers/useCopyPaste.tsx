@@ -11,16 +11,29 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
 
-const hasValidPosition = (position: any) =>
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface ClipboardData {
+  nodes: unknown[];
+  edges: unknown[];
+}
+
+const hasValidPosition = (position: unknown): position is Position =>
   !!position &&
-  typeof position.x === "number" &&
-  typeof position.y === "number";
+  typeof position === "object" &&
+  "x" in position &&
+  "y" in position &&
+  typeof (position as Position).x === "number" &&
+  typeof (position as Position).y === "number";
 
-const isValidNode = (node: any): node is Node<NodeData> =>
-  !!node && typeof node.id === "string" && hasValidPosition(node.position);
+const isValidNode = (node: unknown): node is Node<NodeData> =>
+  !!node && typeof node === "object" && "id" in node && typeof (node as Node<NodeData>).id === "string" && "position" in node && hasValidPosition((node as Node<NodeData>).position);
 
-const isValidEdge = (edge: any): edge is Edge =>
-  !!edge && typeof edge.source === "string" && typeof edge.target === "string";
+const isValidEdge = (edge: unknown): edge is Edge =>
+  !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
@@ -53,7 +66,7 @@ export const useCopyPaste = () => {
     async (nodeId?: string) => {
       let nodesToCopy: Node[];
       if (nodeId && nodeId !== "") {
-        const node = nodes.find((node: any) => node.id === nodeId);
+        const node = nodes.find((node) => node.id === nodeId);
         nodesToCopy = node ? [node] : [];
       } else {
         nodesToCopy = selectedNodes;
@@ -135,10 +148,12 @@ export const useCopyPaste = () => {
         if (
           parsed &&
           typeof parsed === "object" &&
-          Array.isArray((parsed as any).nodes) &&
-          Array.isArray((parsed as any).edges) &&
-          (parsed as any).nodes.every(isValidNode) &&
-          (parsed as any).edges.every(isValidEdge)
+          "nodes" in parsed &&
+          "edges" in parsed &&
+          Array.isArray((parsed as ClipboardData).nodes) &&
+          Array.isArray((parsed as ClipboardData).edges) &&
+          (parsed as ClipboardData).nodes.every(isValidNode) &&
+          (parsed as ClipboardData).edges.every(isValidEdge)
         ) {
           clipboardData = clipboardText;
         }
@@ -184,10 +199,12 @@ export const useCopyPaste = () => {
     if (
       !parsedData ||
       typeof parsedData !== "object" ||
-      !Array.isArray((parsedData as any).nodes) ||
-      !Array.isArray((parsedData as any).edges) ||
-      !(parsedData as any).nodes.every(isValidNode) ||
-      !(parsedData as any).edges.every(isValidEdge)
+      !("nodes" in parsedData) ||
+      !("edges" in parsedData) ||
+      !Array.isArray((parsedData as ClipboardData).nodes) ||
+      !Array.isArray((parsedData as ClipboardData).edges) ||
+      !(parsedData as ClipboardData).nodes.every(isValidNode) ||
+      !(parsedData as ClipboardData).edges.every(isValidEdge)
     ) {
       return;
     }

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { getSecret } from "@nodetool/security";
 import { pack, unpack } from "msgpackr";
 import { createLogger } from "@nodetool/config";
@@ -26,8 +28,11 @@ import type {
   ProcessingContext,
   ToolCall as ProviderToolCall,
 } from "@nodetool/runtime";
-import { ProcessingContext as RuntimeProcessingContext } from "@nodetool/runtime";
-import type { Chunk, NodeDescriptor, Edge } from "@nodetool/protocol";
+import {
+  FileStorageAdapter,
+  ProcessingContext as RuntimeProcessingContext,
+} from "@nodetool/runtime";
+import type { Chunk } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -36,6 +41,94 @@ import type {
 import { Tool } from "@nodetool/agents";
 
 const log = createLogger("nodetool.websocket.runner");
+const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
+const MAX_ERROR_TEXT_LENGTH = 4000;
+
+function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): string {
+  const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
+    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    return `[${mime} base64 omitted, ${match.length} chars]`;
+  });
+
+  if (sanitized.length <= maxLength) {
+    return sanitized;
+  }
+
+  const truncatedChars = sanitized.length - maxLength;
+  return `${sanitized.slice(0, maxLength)}... (truncated ${truncatedChars} chars)`;
+}
+
+function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (typeof value === "string") {
+    return sanitizeLargeText(value);
+  }
+
+  if (value instanceof Error) {
+    return sanitizeLargeText(value.message);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeErrorValue(item, seen));
+  }
+
+  if (value && typeof value === "object") {
+    if (seen.has(value)) {
+      return "[circular]";
+    }
+
+    seen.add(value);
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = sanitizeErrorValue(nested, seen);
+    }
+    return result;
+  }
+
+  return value;
+}
+
+function formatSanitizedError(error: unknown): string {
+  if (typeof error === "string") {
+    return sanitizeLargeText(error);
+  }
+
+  if (error instanceof Error) {
+    return sanitizeLargeText(error.message);
+  }
+
+  const sanitized = sanitizeErrorValue(error);
+  if (typeof sanitized === "string") {
+    return sanitized;
+  }
+
+  try {
+    return sanitizeLargeText(JSON.stringify(sanitized));
+  } catch {
+    return sanitizeLargeText(String(error));
+  }
+}
+
+function getAssetStoragePath(): string {
+  return (
+    process.env.ASSET_FOLDER ??
+    process.env.STORAGE_PATH ??
+    join(homedir(), ".local", "share", "nodetool", "assets")
+  );
+}
+
+function createRuntimeContext(opts: {
+  jobId: string;
+  workflowId?: string | null;
+  userId: string;
+  workspaceDir: string | null;
+  assetOutputMode?: "python" | "data_uri" | "temp_url" | "storage_url" | "workspace" | "raw";
+}): RuntimeProcessingContext {
+  return new RuntimeProcessingContext({
+    ...opts,
+    secretResolver: getSecret,
+    storage: new FileStorageAdapter(getAssetStoragePath()),
+  });
+}
 
 /**
  * Default system prompt for regular chat — matches Python's REGULAR_SYSTEM_PROMPT.
@@ -209,7 +302,7 @@ export class UnifiedWebSocketRunner {
   private observerRegistered = false;
 
   private logError(context: string, error: unknown): void {
-    log.error(context, error instanceof Error ? error : new Error(String(error)));
+    log.error(context, formatSanitizedError(error));
   }
 
   /**
@@ -400,7 +493,13 @@ export class UnifiedWebSocketRunner {
       }
       return n;
     });
-    return { nodes, edges: graph.edges };
+    const edges = graph.edges.map((edge) => {
+      const rawEdgeType = edge.edge_type ?? edge.type;
+      const edge_type = rawEdgeType === "control" ? "control" : "data";
+      const { type, ...rest } = edge;
+      return { ...rest, edge_type };
+    });
+    return { nodes, edges };
   }
 
   private async hydrateGraph(
@@ -441,13 +540,12 @@ export class UnifiedWebSocketRunner {
     const graph = await this.getWorkflowGraph(req);
     const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
 
-    const context = new RuntimeProcessingContext({
+    const context = createRuntimeContext({
       jobId,
       workflowId,
       userId,
       workspaceDir,
       assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
-      secretResolver: getSecret,
     });
 
     const runner = new WorkflowRunner(jobId, {
@@ -490,7 +588,17 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId ?? undefined,
         params: req.params ?? {},
       },
-      graph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] },
+        graph as unknown as {
+          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+          edges: Array<{
+            id?: string | null;
+            source: string;
+            target: string;
+            sourceHandle: string;
+            targetHandle: string;
+            edge_type: "data" | "control";
+          }>;
+        },
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
@@ -515,7 +623,7 @@ export class UnifiedWebSocketRunner {
       .catch((err) => {
         this.logError("job execution failed", err);
         active.status = "failed";
-        active.error = err instanceof Error ? err.message : String(err);
+        active.error = formatSanitizedError(err);
       })
       .finally(() => {
         active.finished = true;
@@ -530,6 +638,12 @@ export class UnifiedWebSocketRunner {
           job_id: (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
           workflow_id: (msg as unknown as Record<string, unknown>).workflow_id ?? active.workflowId,
         };
+        if (outbound.error !== undefined) {
+          outbound.error = formatSanitizedError(outbound.error);
+        }
+        if (outbound.type === "notification" && typeof outbound.content === "string") {
+          outbound.content = sanitizeLargeText(outbound.content);
+        }
         if (outbound.type === "node_update" && outbound.status === "error") {
           log.error("Node error", { jobId: active.jobId, nodeId: outbound.node_id, error: outbound.error });
         } else if (outbound.type === "job_update" && outbound.status === "failed") {
@@ -935,11 +1049,10 @@ export class UnifiedWebSocketRunner {
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
 
     // Create a processing context for tool execution
-    const ctx = new RuntimeProcessingContext({
+    const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
       workspaceDir: null,
-      secretResolver: getSecret,
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
@@ -1422,13 +1535,12 @@ export class UnifiedWebSocketRunner {
 
       // Create processing context
       const workspaceDir = this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
-      const context = new RuntimeProcessingContext({
+      const context = createRuntimeContext({
         jobId,
         workflowId,
         userId,
         workspaceDir,
         assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
-        secretResolver: getSecret,
       });
 
       // Create and run workflow
@@ -1465,7 +1577,17 @@ export class UnifiedWebSocketRunner {
       // Execute workflow and stream messages
       const executePromise = runner.run(
         { job_id: jobId, workflow_id: workflowId, params },
-        graph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] },
+        graph as unknown as {
+          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+          edges: Array<{
+            id?: string | null;
+            source: string;
+            target: string;
+            sourceHandle: string;
+            targetHandle: string;
+            edge_type: "data" | "control";
+          }>;
+        },
       );
 
       // Stream events, collect output_update results
@@ -1679,11 +1801,10 @@ export class UnifiedWebSocketRunner {
     }
 
     // Create ProcessingContext for agent execution
-    const ctx = new RuntimeProcessingContext({
+    const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
       workspaceDir: null,
-      secretResolver: getSecret,
     });
 
     try {

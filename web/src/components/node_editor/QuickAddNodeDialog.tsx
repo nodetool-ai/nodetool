@@ -171,16 +171,17 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
     Object.is
   );
 
-  // Get actions directly (will be stable references)
-  const {
-    setSearchTerm,
-    setSelectedIndex,
-    moveSelectionUp,
-    moveSelectionDown,
-    getSelectedNode,
-    closeDialog,
-    resetFilters
-  } = useQuickAddNodeStore();
+  // Get actions via selectors to avoid re-renders when unrelated state changes
+  // Note: While actions are stable references in Zustand, using selectors here
+  // prevents subscription to the entire store and follows the same pattern as
+  // state subscriptions above for consistency.
+  const setSearchTerm = useQuickAddNodeStore((state) => state.setSearchTerm);
+  const setSelectedIndex = useQuickAddNodeStore((state) => state.setSelectedIndex);
+  const moveSelectionUp = useQuickAddNodeStore((state) => state.moveSelectionUp);
+  const moveSelectionDown = useQuickAddNodeStore((state) => state.moveSelectionDown);
+  const getSelectedNode = useQuickAddNodeStore((state) => state.getSelectedNode);
+  const closeDialog = useQuickAddNodeStore((state) => state.closeDialog);
+  const resetFilters = useQuickAddNodeStore((state) => state.resetFilters);
 
   // Define callbacks before useEffect to satisfy dependency requirements
   const handleClose = useCallback(() => {

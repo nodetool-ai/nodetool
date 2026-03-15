@@ -279,6 +279,7 @@ const areEqual = (prevProps: ListChildComponentProps<RowItemData>, nextProps: Li
 };
 
 const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemData>) => {
+  const { toggleExpand } = data;
   const r = data.rows[index];
   const rowKey = data.rowKeys[index];
   const theme = useTheme();
@@ -296,7 +297,11 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
       setAnchorEl(null);
       event.stopPropagation();
   };
-  
+
+  const handleRowClick = useCallback(() => {
+    toggleExpand(rowKey, index);
+  }, [toggleExpand, rowKey, index]);
+
   const open = Boolean(anchorEl);
   
   return (
@@ -307,7 +312,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           gridTemplateColumns: data.columns,
           borderLeftColor: colors.text
         }}
-        onClick={() => data.toggleExpand(rowKey, index)}
+        onClick={handleRowClick}
       >
         <Tooltip
           title={timeTooltip}
@@ -332,10 +337,12 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={handleClick}
                 sx={{ padding: "2px" }}
+                aria-label="View log data"
+                title="View log data"
               >
                 <DataObjectIcon fontSize="inherit" />
               </IconButton>
@@ -543,10 +550,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       
       {showScrollButton && (
         <Tooltip title="Scroll to latest">
-          <IconButton 
-            className="scroll-to-bottom" 
+          <IconButton
+            className="scroll-to-bottom"
             onClick={scrollToBottom}
             size="small"
+            aria-label="Scroll to latest logs"
           >
             <KeyboardArrowDownIcon />
           </IconButton>

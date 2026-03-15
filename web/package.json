@@ -53,7 +53,7 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "@xyflow/react": "^12.10.0",
-    "axios": "^1.12.0",
+    "axios": "^1.13.5",
     "browserslist-to-esbuild": "^2.1.1",
     "chroma-js": "^3.1.2",
     "clipboard-polyfill": "^4.1.0",
@@ -97,7 +97,7 @@
     "read-excel-file": "^6.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
-    "rollup": "^4.28.1",
+    "rollup": "^4.59.0",
     "slate": "^0.123.0",
     "slate-react": "^0.112.0",
     "string-to-color": "^2.2.2",
@@ -148,7 +148,8 @@
     ]
   },
   "overrides": {
-    "react-is": "18.2.0"
+    "react-is": "18.2.0",
+    "rollup": "^4.59.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

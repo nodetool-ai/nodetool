@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { client } from "../../stores/ApiClient";
+import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { Menu, MenuItem, ListItemText, Typography, Divider } from "@mui/material";
@@ -48,7 +49,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
 ModelMenuItem.displayName = "ModelMenuItem";
 
 interface Model3DModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: Model3DModelValue) => void;
   value: string;
   task?: "text_to_3d" | "image_to_3d";
 }

@@ -12,7 +12,7 @@ import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useNodeMenuStore, { type NodeMenuStore } from "../../stores/NodeMenuStore";
 
 // utils
 import Draggable from "react-draggable";
@@ -201,7 +201,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       return;
     }
     try {
-      const state: any = (useNodeMenuStore as any).getState?.();
+      const state = useNodeMenuStore.getState() as NodeMenuStore | undefined;
       // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {

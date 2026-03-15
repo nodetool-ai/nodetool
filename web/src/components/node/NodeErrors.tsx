@@ -4,6 +4,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
+import {
+  nodeErrorToDisplayString,
+  hasNodeError,
+} from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
 import isEqual from "lodash/isEqual";
 import { CopyButton } from "../ui_primitives";
@@ -47,20 +51,11 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
     workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
   );
 
-  if (!error) {
+  if (!hasNodeError(error)) {
     return null;
   }
 
-  let errorDisplay: React.ReactNode = '';
-  if (typeof error === 'string') {
-    errorDisplay = error;
-  } else if (error instanceof Error) {
-    errorDisplay = error.message;
-  } else if (error && typeof error === 'object' && 'message' in error) {
-    errorDisplay = String(error.message);
-  } else if (error) {
-    errorDisplay = JSON.stringify(error);
-  }
+  const errorDisplay = nodeErrorToDisplayString(error);
 
   return (
     <div css={errorStyles(theme)} className="node-error nodrag nowheel">

@@ -162,12 +162,14 @@ export class TaskPlanner {
       for await (const item of stream) {
         if ("type" in item && (item as unknown as Record<string, unknown>)["type"] === "chunk") {
           const chunk = item as { content?: string };
-          content += chunk.content ?? "";
-          yield {
-            type: "chunk",
-            content: chunk.content ?? "",
-            done: false,
-          } satisfies Chunk;
+          if (typeof chunk.content === "string") {
+            content += chunk.content;
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false,
+            } satisfies Chunk;
+          }
         }
         if ("name" in item && item.name === "create_task") {
           taskData = item.args as Record<string, unknown>;

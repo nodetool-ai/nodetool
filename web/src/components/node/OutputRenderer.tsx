@@ -33,6 +33,7 @@ import TaskView from "./TaskView";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
   typeFor,
+  normalizeOutputType,
   renderSVGDocument,
   useImageAssets,
   useRevokeBlobUrls,
@@ -668,7 +669,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             );
           }
           if (typeof value[0] === "object") {
-            if (value[0].type === "chunk") {
+            const firstValueType = normalizeOutputType(String(value[0].type));
+            if (firstValueType === "chunk") {
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => isTextLikeChunk(c));
               if (allText) {
@@ -732,18 +734,18 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 </Container>
               );
             }
-            if (value[0].type === "svg_element") {
+            if (firstValueType === "svg_element") {
               return renderSVGDocument(value);
             }
-            if (value[0].type === "thread_message") {
+            if (firstValueType === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
             }
-            if (value[0].type === "image") {
+            if (firstValueType === "image") {
               return (
                 <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video", "html"].includes(value[0].type)) {
+            if (["audio", "video", "html"].includes(firstValueType)) {
               const seen = new Map<string, number>();
               return (
                 <Container>

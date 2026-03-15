@@ -19,7 +19,7 @@ import {
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore from "./ErrorStore";
+import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -30,6 +30,7 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
+import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 
 export type { NodeStore };
 
@@ -52,7 +53,6 @@ const formatJobDurationSeconds = (
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
-
 export const setGetNodeStore = (
   fn: (workflowId: string) => NodeStore | undefined
 ): void => {
@@ -399,11 +399,13 @@ export const handleUpdate = (
         clearTimings(workflow.id);
         break;
       case "failed":
-      case "timed_out":
+      case "timed_out": {
+        const sanitizedJobError =
+          typeof job.error === "string" ? sanitizeDisplayText(job.error) : "";
         runner.addNotification({
           type: "error",
           alert: true,
-          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+          content: `Job ${job.status}${sanitizedJobError ? ` ${sanitizedJobError}` : ""}`,
           timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
         });
         clearStatuses(workflow.id);
@@ -412,6 +414,7 @@ export const handleUpdate = (
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "queued":
         runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
@@ -476,33 +479,40 @@ export const handleUpdate = (
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
     const currentState = runnerStore.getState().state;
+    const normalizedNodeError = normalizeNodeError(update.error);
 
     // Don't update node status if workflow is cancelled
     if (currentState === "cancelled") {
       return;
     }
 
-    if (update.error) {
-      log.error("WorkflowRunner update error", update.error);
+    if (normalizedNodeError) {
+      const sanitizedError = sanitizeDisplayText(
+        typeof normalizedNodeError === "string"
+          ? normalizedNodeError
+          : String(normalizedNodeError)
+      );
+      log.error("WorkflowRunner update error", sanitizedError);
       runner.addNotification({
         type: "error",
         alert: true,
-        content: update.error
+        content: sanitizedError
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
       setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, update.error);
+      setError(workflow.id, update.node_id, sanitizedError);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
         nodeId: update.node_id,
         nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} error: ${update.error}`,
+        content: `${update.node_name || update.node_id} error: ${sanitizedError}`,
         severity: "error",
         timestamp: Date.now()
       });
     } else {
+      setError(workflow.id, update.node_id, null);
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });

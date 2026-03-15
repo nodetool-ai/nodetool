@@ -28,7 +28,7 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import { escapeHtml } from "../../utils/highlightText";
+import { addBreaks } from "../../utils/sanitize";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
 const styles = (theme: Theme) =>
   css({
@@ -190,9 +190,6 @@ const OpenOrCreateDialog = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  function addBreaks(text: string) {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-  }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
@@ -225,9 +222,14 @@ const OpenOrCreateDialog = () => {
     navigate("/examples");
   };
 
-  const onClickWorkflow = useCallback(
-    (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
+  const handleWorkflowClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const workflowId = event.currentTarget.dataset.workflowId;
+      if (workflowId) {
+        navigate("/editor/" + workflowId);
+      }
     },
     [navigate]
   );
@@ -257,7 +259,8 @@ const OpenOrCreateDialog = () => {
       <Box
         key={`${workflow.id}-${index}`}
         className="workflow list"
-        onClick={() => onClickWorkflow(workflow)}
+        onClick={handleWorkflowClick}
+        data-workflow-id={workflow.id}
       >
         <Box
           className="image-wrapper"
@@ -292,7 +295,7 @@ const OpenOrCreateDialog = () => {
         </div>
       </Box>
     )),
-    [sortedWorkflows, onClickWorkflow, settings]
+    [sortedWorkflows, handleWorkflowClick, settings]
   );
 
   // List view

@@ -179,7 +179,6 @@ export type WorkflowVersionSaveType = _WorkflowVersionSaveType;
 export type CreateWorkflowVersionRequest = _CreateWorkflowVersionRequest;
 export type AutosaveWorkflowRequest = _AutosaveWorkflowRequest;
 export type AutosaveResponse = _AutosaveResponse;
-
 // Thread & Message
 export type Thread = _Thread;
 export type ThreadList = _ThreadList;
@@ -234,7 +233,6 @@ export type SecretResponse = _SecretResponse;
 export type SettingWithValue = _SettingWithValue;
 export type SettingsResponse = _SettingsResponse;
 export type SettingsUpdateRequest = _SettingsUpdateRequest;
-
 // Task/Agent
 export type Task = _Task;
 export type TaskPlan = _TaskPlan;
@@ -334,6 +332,39 @@ export type Image = _ImageRef;
 export type Document = _DocumentRef;
 export type Audio = _AudioRef;
 export type Video = _VideoRef;
+export interface HuggingFaceModelValue {
+  type: "hf.text_to_image" | "hf.image_to_image";
+  repo_id: string;
+  path?: string;
+}
+
+export type HuggingFaceModelValueInput = HuggingFaceModelValue & {
+  id?: string;
+  provider?: string;
+  name?: string;
+};
+
+export interface Model3DModelValue {
+  type: "model_3d_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
+export type InferenceProviderModelValue =
+  | { type: "inference_provider_automatic_speech_recognition_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_audio_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_segmentation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_summarization_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_generation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_audio_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_speech_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_text_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_translation_model"; provider: InferenceProvider; model_id: string };
 export type TypeName = string;
 export type WorkflowAttributes = Omit<_Workflow, "graph">;
 export type Job = _JobResponse;

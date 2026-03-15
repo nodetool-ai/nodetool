@@ -100,13 +100,17 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
         <Button
           onClick={onDownload}
           className="action-button download"
-          tabIndex={-1}
+          aria-label="Download"
         >
           <FileDownloadIcon />
         </Button>
       </Tooltip>
       <Tooltip title="Add to Assets">
-        <Button onClick={onAddToAssets} className="action-button" tabIndex={-1}>
+        <Button
+          onClick={onAddToAssets}
+          className="action-button"
+          aria-label="Add to Assets"
+        >
           <AddIcon />
         </Button>
       </Tooltip>
@@ -117,7 +121,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={buttonStyles}
-          tabIndex={-1}
+          aria-label="Copy asset to clipboard"
         />
       ) : (
         <CopyButton
@@ -125,7 +129,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={buttonStyles}
-          tabIndex={-1}
+          aria-label="Copy to clipboard"
         />
       )}
     </Box>

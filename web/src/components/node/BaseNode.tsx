@@ -23,6 +23,7 @@ import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
+import { hasNodeError } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -636,7 +637,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
-    workflow_id !== undefined ? !!state.getError(workflow_id, id) : false
+    workflow_id !== undefined
+      ? hasNodeError(state.getError(workflow_id, id))
+      : false
   );
 
   // Force node re-measurement when content that affects height changes

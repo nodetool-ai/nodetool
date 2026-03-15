@@ -12,3 +12,13 @@ export function sanitizeText(str: string): string {
 
   return str.replace(/[<>"'&]/g, (char) => map[char] ?? char);
 }
+
+/**
+ * Adds word break opportunities (<wbr>) after specific characters to improve text wrapping.
+ * First escapes HTML entities to prevent XSS, then adds break opportunities after -, _, and .
+ * @param text - The text to process
+ * @returns Sanitized HTML with word break opportunities
+ */
+export function addBreaks(text: string): string {
+  return sanitizeText(text).replace(/([-_.])/g, "$1<wbr>");
+}

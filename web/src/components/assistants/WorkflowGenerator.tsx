@@ -8,6 +8,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
+import type { Graph } from "../../stores/ApiTypes";
 
 const WorkflowGenerator: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
@@ -31,6 +32,7 @@ const WorkflowGenerator: React.FC = memo(() => {
 
       setIsLoading(true);
       try {
+        // The create-smart endpoint returns a Graph with nodes and edges
         const { data, error } = await client.POST(
           "/api/workflows/create-smart" as any,
           { body: { prompt: prompt.trim() } }
@@ -46,12 +48,13 @@ const WorkflowGenerator: React.FC = memo(() => {
           );
         }
 
-        if (data && (data as any).nodes && (data as any).edges && workflow) {
+        if (data && "nodes" in data && "edges" in data && workflow) {
           setPrompt("");
-          const nodes = (data as any).nodes.map((node: any) =>
+          const workflowData = data as Graph;
+          const nodes = workflowData.nodes.map((node) =>
             graphNodeToReactFlowNode(workflow, node)
           );
-          const edges = (data as any).edges.map((edge: any) =>
+          const edges = workflowData.edges.map((edge) =>
             graphEdgeToReactFlowEdge(edge)
           );
           setNodes(nodes);
@@ -66,9 +69,9 @@ const WorkflowGenerator: React.FC = memo(() => {
     [prompt, isLoading, workflow, setNodes, setEdges]
   );
 
-  const handleButtonClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    handleSubmit(e as any);
+  const handleButtonClick = useCallback(() => {
+    // Call submit without an event - the form will handle the event properly
+    void handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
   }, [handleSubmit]);
 
   return (

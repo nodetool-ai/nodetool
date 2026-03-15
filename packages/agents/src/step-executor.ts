@@ -1070,7 +1070,11 @@ export class StepExecutor {
 // ---------------------------------------------------------------------------
 
 function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && (item as unknown as Record<string, unknown>)["type"] === "chunk";
+  return (
+    "type" in item &&
+    (item as unknown as Record<string, unknown>)["type"] === "chunk" &&
+    typeof (item as unknown as Record<string, unknown>)["content"] === "string"
+  );
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {

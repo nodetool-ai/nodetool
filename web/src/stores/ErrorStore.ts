@@ -13,6 +13,62 @@ type ErrorStore = {
 const hashKey = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}`;
 
+export const normalizeNodeError = (
+  error: NodeError | undefined
+): NodeError | undefined => {
+  if (error === null || error === undefined) {
+    return undefined;
+  }
+
+  if (typeof error === "string") {
+    const trimmed = error.trim();
+    if (
+      trimmed === "" ||
+      trimmed.toLowerCase() === "null" ||
+      trimmed.toLowerCase() === "undefined"
+    ) {
+      return undefined;
+    }
+    return trimmed;
+  }
+
+  if (error instanceof Error) {
+    return error.message.trim() === "" ? undefined : error;
+  }
+
+  return error;
+};
+
+export const hasNodeError = (error: NodeError | undefined): boolean =>
+  normalizeNodeError(error) !== undefined;
+
+export const nodeErrorToDisplayString = (
+  error: NodeError | undefined
+): string => {
+  const normalized = normalizeNodeError(error);
+  if (normalized === undefined) {
+    return "";
+  }
+
+  if (typeof normalized === "string") {
+    return normalized;
+  }
+
+  if (normalized instanceof Error) {
+    return normalized.message;
+  }
+
+  if (
+    normalized &&
+    typeof normalized === "object" &&
+    "message" in normalized
+  ) {
+    return String(normalized.message);
+  }
+
+  return JSON.stringify(normalized);
+};
+
 const useErrorStore = create<ErrorStore>((set, get) => ({
   errors: {},
   /**
@@ -64,9 +120,17 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
    */
   setError: (workflowId: string, nodeId: string, error: NodeError) => {
     const key = hashKey(workflowId, nodeId);
-    set((state) => ({
-      errors: { ...state.errors, [key]: error }
-    }));
+    const normalized = normalizeNodeError(error);
+    set((state) => {
+      if (normalized === undefined) {
+        const { [key]: removed, ...remainingErrors } = state.errors;
+        return { errors: remainingErrors };
+      }
+
+      return {
+        errors: { ...state.errors, [key]: normalized }
+      };
+    });
   },
 
   /**
