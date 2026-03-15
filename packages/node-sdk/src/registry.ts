@@ -43,11 +43,10 @@ export class NodeRegistry {
         `Cannot register node class without nodeType: ${nodeClass.name}`
       );
     }
-    const loadedMetadata = this._resolveLoadedMetadata(nodeClass.nodeType);
-    const metadata = options.metadata ?? getNodeMetadata(nodeClass, {
-      pythonMetadata: loadedMetadata,
-      mergePythonBackfill: true,
-    });
+    // TS class definitions are the source of truth for TS nodes.
+    // Python metadata is NOT merged — it is only used for Python-only
+    // node packs (huggingface, mlx, etc.) that have no TS class.
+    const metadata = options.metadata ?? getNodeMetadata(nodeClass);
 
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
@@ -114,15 +113,6 @@ export class NodeRegistry {
       this._loadedMetadataByType.set(nodeType, metadata);
     }
     return loaded;
-  }
-
-  private _resolveLoadedMetadata(nodeType: string): NodeMetadata | undefined {
-    const exact = this._loadedMetadataByType.get(nodeType);
-    if (exact) return exact;
-    if (nodeType.endsWith("Node")) {
-      return this._loadedMetadataByType.get(nodeType.slice(0, -4));
-    }
-    return undefined;
   }
 
   clear(): void {

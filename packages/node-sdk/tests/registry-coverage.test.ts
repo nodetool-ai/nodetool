@@ -157,8 +157,8 @@ describe("NodeRegistry – _resolveLoadedMetadata Node suffix", () => {
     const registry = new NodeRegistry({ metadataByType: loaded });
     registry.register(TestNodeWithSuffix);
 
-    // Loaded Python metadata is merged in during registration and remains authoritative.
-    expect(registry.getMetadata("test.SampleNode")?.title).toBe("Sample From Python");
-    expect(registry.resolveMetadata("test.SampleNode")?.title).toBe("Sample From Python");
+    // TS class is authoritative; Python metadata is used for backfill only.
+    expect(registry.getMetadata("test.SampleNode")?.title).toBe("Sample Node");
+    expect(registry.resolveMetadata("test.SampleNode")?.title).toBe("Sample Node");
   });
 });

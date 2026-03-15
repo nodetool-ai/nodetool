@@ -583,11 +583,20 @@ export class WorkflowRunner {
   ): Promise<void> {
     if (this._cancelled) return;
 
+    // Handle __control_output__ from ControlAgent nodes (Python parity:
+    // send_messages wraps __control_output__ in RunEvent and routes to
+    // all controlled nodes via control edges).
+    if ("__control_output__" in outputs) {
+      await this._routeControlOutput(sourceNodeId, outputs["__control_output__"]);
+    }
+
     const outgoing = this._graph.findOutgoingEdges(sourceNodeId);
 
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
         // Route control events from controller nodes to controlled nodes.
+        // Try __control__ first, then fall back to __control_output__
+        // (already handled above, skip duplicate routing).
         const value = outputs[edge.sourceHandle];
         if (value === undefined) continue;
         const targetInbox = this._inboxes.get(edge.target);
@@ -643,7 +652,7 @@ export class WorkflowRunner {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;
-        if (handle === "__control__") continue;
+        if (handle === "__control__" || handle === "__control_output__") continue;
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,
@@ -696,6 +705,45 @@ export class WorkflowRunner {
         status: "completed",
         counter: this._edgeCounters.get(edgeId) ?? null,
       });
+    }
+  }
+
+  /**
+   * Route __control_output__ from ControlAgent-style nodes to all controlled
+   * nodes via control edges. Wraps raw property dicts in a RunEvent.
+   * (Python parity: send_messages special handling of __control_output__.)
+   */
+  private async _routeControlOutput(
+    sourceNodeId: string,
+    controlOutput: unknown
+  ): Promise<void> {
+    if (!controlOutput || typeof controlOutput !== "object") return;
+
+    const controlEdges = this._graph
+      .findOutgoingEdges(sourceNodeId)
+      .filter(isControlEdge);
+    if (controlEdges.length === 0) return;
+
+    let properties = controlOutput as Record<string, unknown>;
+
+    // Extract properties if nested inside a metadata wrapper
+    if (
+      "properties" in properties &&
+      properties.properties &&
+      typeof properties.properties === "object" &&
+      !Array.isArray(properties.properties)
+    ) {
+      properties = properties.properties as Record<string, unknown>;
+    }
+
+    const event: ControlEvent = { event_type: "run", properties };
+
+    for (const edge of controlEdges) {
+      const targetInbox = this._inboxes.get(edge.target);
+      if (!targetInbox) continue;
+      await targetInbox.put("__control__", event);
+      const ctrlEdgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+      this._controlEdgesRouted.add(ctrlEdgeId);
     }
   }
 

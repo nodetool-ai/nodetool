@@ -506,6 +506,100 @@ export function serializeToolResult(value: unknown): unknown {
   return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, serializeToolResult(item)]));
 }
 
+// ---------------------------------------------------------------------------
+// Control tool support for Agent nodes with outgoing control edges
+// ---------------------------------------------------------------------------
+
+/**
+ * Marker symbol to identify control tools built from _control_context.
+ */
+const CONTROL_TOOL_MARKER = Symbol("controlTool");
+
+interface ControlToolLike extends ToolLike {
+  [CONTROL_TOOL_MARKER]: true;
+  targetNodeId: string;
+}
+
+function isControlTool(tool: ToolLike): tool is ControlToolLike {
+  return CONTROL_TOOL_MARKER in tool && (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true;
+}
+
+/**
+ * Sanitize a node title to a valid tool name (snake_case, max 64 chars).
+ */
+function sanitizeControlToolName(name: string): string {
+  if (!name) return "control_node";
+  let s = name
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (!s) return "control_node";
+  if (s.length > 64) s = s.slice(0, 64);
+  return s;
+}
+
+/**
+ * Build ControlToolLike instances from `_control_context` input.
+ * These tools allow the agent's LLM to call controlled nodes via tool-calling.
+ */
+function buildControlTools(controlContext: unknown): ControlToolLike[] {
+  if (!controlContext || typeof controlContext !== "object") return [];
+
+  const tools: ControlToolLike[] = [];
+
+  for (const [targetId, info] of Object.entries(controlContext as Record<string, unknown>)) {
+    if (!info || typeof info !== "object") continue;
+    const nodeInfo = info as Record<string, unknown>;
+
+    const nodeTitle = String(nodeInfo.node_title ?? nodeInfo.node_type ?? targetId);
+    const toolName = sanitizeControlToolName(nodeTitle);
+
+    // Build input schema from control_actions.run.properties
+    const actions = (nodeInfo.control_actions ?? {}) as Record<string, unknown>;
+    const runAction = (actions.run ?? {}) as Record<string, unknown>;
+    const rawProperties = (runAction.properties ?? {}) as Record<string, Record<string, unknown>>;
+    const properties: Record<string, Record<string, unknown>> = {};
+    for (const [key, schema] of Object.entries(rawProperties)) {
+      if (typeof schema === "object" && schema !== null) {
+        properties[key] = { ...schema };
+      } else {
+        properties[key] = { type: "string", description: String(schema) };
+      }
+    }
+
+    const inputSchema = {
+      type: "object",
+      properties,
+      required: [] as string[],
+    };
+
+    let description = `Control ${nodeTitle}: trigger execution with optional property overrides`;
+    const propNames = Object.keys(properties);
+    if (propNames.length > 0) {
+      description += `. Available properties: ${propNames.join(", ")}`;
+    }
+
+    tools.push({
+      [CONTROL_TOOL_MARKER]: true as const,
+      targetNodeId: targetId,
+      name: toolName,
+      description,
+      inputSchema,
+      // Stub process — actual execution goes through sendControlEvent
+      async process(_ctx: ProcessingContext, _params: Record<string, unknown>) {
+        return { status: "dispatched", target: targetId };
+      },
+      toProviderTool() {
+        return { name: toolName, description, inputSchema };
+      },
+    });
+  }
+
+  return tools;
+}
+
 export interface AgentLoopOptions {
   context: ProcessingContext;
   providerId: string;
@@ -677,6 +771,8 @@ function parseControlOutput(raw: string): Record<string, unknown> {
   const parsed = extractJson(raw);
   if (!parsed) return {};
 
+  // Unwrap common wrapper keys if the LLM wraps the output in
+  // "result", "output", "json", "data", "properties", or "response"
   if (Object.keys(parsed).length === 1) {
     const [key] = Object.keys(parsed);
     const value = parsed[key];
@@ -692,15 +788,23 @@ function parseControlOutput(raw: string): Record<string, unknown> {
     }
   }
 
+  // Extract properties if LLM included metadata fields alongside them.
+  // LLMs sometimes return: {"node_id": "...", "node_type": "...", "properties": {...}}
+  // We only want the actual properties to apply to the controlled node.
   if (
     "properties" in parsed &&
     parsed.properties &&
     typeof parsed.properties === "object" &&
     !Array.isArray(parsed.properties)
   ) {
-    return parsed.properties as Record<string, unknown>;
+    const metadataKeys = new Set(["node_id", "node_type", "analysis"]);
+    const hasMetadata = Object.keys(parsed).some((k) => metadataKeys.has(k));
+    if (hasMetadata) {
+      return parsed.properties as Record<string, unknown>;
+    }
   }
 
+  if (typeof parsed !== "object" || Array.isArray(parsed)) return {};
   return parsed;
 }
 
@@ -1925,7 +2029,22 @@ export class AgentNode extends BaseNode {
       : [];
     const threadId = String(inputs.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const tools = normalizeTools(inputs.tools ?? this.tools);
+    const tools: ToolLike[] = normalizeTools(inputs.tools ?? this.tools);
+
+    // Build control tools from _control_context (injected by the kernel
+    // for nodes that have outgoing control edges). This lets the LLM
+    // call controlled nodes as tools.
+    const controlContext = inputs._control_context;
+    const controlTools = buildControlTools(controlContext);
+    if (controlTools.length > 0) {
+      tools.push(...controlTools);
+      log.info("AgentNode added control tools", {
+        nodeId: this.__node_id ?? null,
+        controlToolNames: controlTools.map((t) => t.name),
+        controlTargets: controlTools.map((t) => t.targetNodeId),
+      });
+    }
+
     const structuredSchema = getStructuredOutputSchema(this);
     const responseFormat = structuredSchema
       ? {
@@ -2092,12 +2211,76 @@ export class AgentNode extends BaseNode {
           });
           continue;
         }
-        log.info("AgentNode executing tool", {
-          nodeId: this.__node_id ?? null,
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-        });
-        const result = await tool.process(context, toolCall.args);
+
+        let result: unknown;
+
+        if (isControlTool(tool)) {
+          // Control tool: dispatch control event to the controlled node
+          // and await its output, rather than calling tool.process().
+          const callArgs = toolCall.args ?? {};
+          log.info("AgentNode dispatching control tool", {
+            nodeId: this.__node_id ?? null,
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            targetNodeId: tool.targetNodeId,
+            argKeys: Object.keys(callArgs),
+          });
+
+          if (context.hasControlEventSupport) {
+            try {
+              const controlResult = await context.sendControlEvent(
+                tool.targetNodeId,
+                callArgs,
+              );
+              result = {
+                status: "completed",
+                target_node_id: tool.targetNodeId,
+                result: controlResult,
+              };
+              log.info("AgentNode control tool completed", {
+                nodeId: this.__node_id ?? null,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                targetNodeId: tool.targetNodeId,
+                resultKeys: controlResult ? Object.keys(controlResult) : [],
+              });
+            } catch (err) {
+              result = {
+                status: "error",
+                target_node_id: tool.targetNodeId,
+                error: err instanceof Error ? err.message : String(err),
+              };
+              log.error("AgentNode control tool failed", {
+                nodeId: this.__node_id ?? null,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                targetNodeId: tool.targetNodeId,
+                error: String(err),
+              });
+            }
+          } else {
+            result = {
+              status: "error",
+              target_node_id: tool.targetNodeId,
+              error: "Control event dispatch is not available in this execution context",
+            };
+            log.warn("AgentNode control tool dispatch unavailable", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              targetNodeId: tool.targetNodeId,
+            });
+          }
+        } else {
+          // Regular tool: execute normally
+          log.info("AgentNode executing tool", {
+            nodeId: this.__node_id ?? null,
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+          });
+          result = await tool.process(context, toolCall.args);
+        }
+
         const toolMessage: Message = {
           role: "tool",
           toolCallId: toolCall.id,
@@ -2268,37 +2451,69 @@ export class ControlAgentNode extends BaseNode {
   @prop({ type: "int", default: 2048, title: "Max Tokens", min: 1, max: 100000 })
   declare max_tokens: any;
 
+  @prop({ type: "image", default: {
+  "type": "image",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Image", description: "Optional image for visual context in control decisions" })
+  declare image: any;
 
-
+  @prop({ type: "audio", default: {
+  "type": "audio",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Audio", description: "Optional audio for audio-based control decisions" })
+  declare audio: any;
 
   async process(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const value = inputs._control_context ?? this._control_context ?? {};
+    const controlContext = inputs._control_context;
     const legacyContext = asText(inputs.context ?? this.context ?? "");
     const schemaDescription = asText(
       inputs.schema_description ?? this.schema_description ?? ""
     );
+    const systemPrompt = asText(inputs.system ?? this.system ?? CONTROL_AGENT_SYSTEM_PROMPT);
+    const image = inputs.image ?? this.image;
+    const audio = inputs.audio ?? this.audio;
+
     const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+
+    // Validate model selection (Python parity: raise ValueError on empty provider)
+    if (!providerId || providerId === "empty") {
+      throw new Error("Select a model");
+    }
+
+    // Build user prompt based on available context
+    let userPrompt: string;
+    if (controlContext && typeof controlContext === "object" && Object.keys(controlContext as Record<string, unknown>).length > 0) {
+      userPrompt = `_control_context (nodes and properties you control):\n\n\`\`\`json\n${JSON.stringify(controlContext, null, 2)}\n\`\`\`\n\nBased on the above control context, analyze the controlled nodes and their properties.\nOutput a JSON object with property names as keys and appropriate values.`;
+    } else if (legacyContext.trim() || schemaDescription.trim()) {
+      userPrompt = `Context:\n${legacyContext}\n\nSchema description:\n${schemaDescription}\n\nInfer the control parameters from the context and return ONLY a JSON object.`;
+    } else {
+      log.warn("No _control_context provided to ControlAgent, returning empty control params");
+      return { __control_output__: {} };
+    }
+
     if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const userPrompt =
-        value && typeof value === "object"
-          ? `_control_context:\n${JSON.stringify(value, null, 2)}`
-          : `Context:\n${legacyContext}\n\nSchema description:\n${schemaDescription}`;
+      const provider = await context!.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
         maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 2048),
         responseFormat: { type: "json_object" },
         messages: [
-          { role: "system", content: CONTROL_AGENT_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
+          { role: "system", content: systemPrompt },
+          buildUserMessage(userPrompt, image, audio),
         ],
       });
       return { __control_output__: parseControlOutput(raw) };
     }
-    return { __control_output__: inferControlParams(value) };
+    return { __control_output__: inferControlParams(controlContext) };
   }
 }
 
