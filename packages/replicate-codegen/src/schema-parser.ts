@@ -110,9 +110,18 @@ export class SchemaParser {
     const format = prop.format as string | undefined;
 
     if (jsonType === "string") {
-      // Check for URI format — default to str, overridden by config
+      // URI format fields are media inputs (image/video/audio)
       if (format === "uri") {
-        return { tsType: "string", propType: "str" };
+        // Infer media type from field name
+        const lower = propName.toLowerCase();
+        if (lower.includes("video")) {
+          return { tsType: "video", propType: "video" };
+        }
+        if (lower.includes("audio") || lower.includes("sound") || lower.includes("music")) {
+          return { tsType: "audio", propType: "audio" };
+        }
+        // Default URI fields to image (most common in Replicate)
+        return { tsType: "image", propType: "image" };
       }
       return { tsType: "string", propType: "str" };
     }

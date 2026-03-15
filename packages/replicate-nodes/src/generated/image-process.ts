@@ -84,7 +84,7 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Grayscale input image." })
+  @prop({ type: "image", default: "", description: "Grayscale input image." })
   declare image: any;
 
   @prop({ type: "enum", default: "large", values: ["large", "tiny"], description: "Choose the model size." })
@@ -92,13 +92,17 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const modelSize = String(inputs.model_size ?? this.model_size ?? "large");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "model_size": modelSize,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "piddnad/ddcolor:ca494ba129e44e45f661d6ece83c4c98a9a7c774309beca01429b58fce8aa695", args);
@@ -278,7 +282,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to transform or use as reference (supports multiple images)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to transform or use as reference (supports multiple images)" })
   declare image_input: any;
 
   @prop({ type: "enum", default: "jpg", values: ["jpg", "png"], description: "Format of the output image" })
@@ -290,16 +294,20 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image_input": imageInput,
       "output_format": outputFormat,
       "prompt": prompt,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/nano-banana:5bdc2c7cd642ae33611d8c33f79615f98ff02509ab8db9d8ec1cc6c36d378fba", args);

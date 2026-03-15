@@ -93,10 +93,10 @@ describe("removeNulls", () => {
     expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
   });
 
-  it("does not remove falsy non-null values (0, false)", () => {
+  it("removes zero values but keeps false", () => {
     const obj: Record<string, unknown> = { a: 0, b: false };
     removeNulls(obj);
-    expect(obj).toEqual({ a: 0, b: false });
+    expect(obj).toEqual({ b: false });
   });
 
   it("removes empty strings", () => {

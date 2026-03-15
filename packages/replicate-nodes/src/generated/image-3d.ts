@@ -33,7 +33,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Generate normal video render" })
   declare generate_normal: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of input images to generate 3D asset from" })
+  @prop({ type: "list[image]", default: [], description: "List of input images to generate 3D asset from" })
   declare images: any;
 
   @prop({ type: "float", default: 0.95, description: "GLB Extraction - Mesh Simplification (only used if generate_model=True)" })
@@ -71,7 +71,6 @@ replicate, ai`;
     const generateColor = Boolean(inputs.generate_color ?? this.generate_color ?? true);
     const generateModel = Boolean(inputs.generate_model ?? this.generate_model ?? false);
     const generateNormal = Boolean(inputs.generate_normal ?? this.generate_normal ?? false);
-    const images = String(inputs.images ?? this.images ?? []);
     const meshSimplify = Number(inputs.mesh_simplify ?? this.mesh_simplify ?? 0.95);
     const randomizeSeed = Boolean(inputs.randomize_seed ?? this.randomize_seed ?? true);
     const returnNoBackground = Boolean(inputs.return_no_background ?? this.return_no_background ?? false);
@@ -87,7 +86,6 @@ replicate, ai`;
       "generate_color": generateColor,
       "generate_model": generateModel,
       "generate_normal": generateNormal,
-      "images": images,
       "mesh_simplify": meshSimplify,
       "randomize_seed": randomizeSeed,
       "return_no_background": returnNoBackground,
@@ -99,6 +97,12 @@ replicate, ai`;
       "ss_sampling_steps": ssSamplingSteps,
       "texture_size": textureSize,
     };
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "firtoz/trellis:e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c", args);
@@ -122,7 +126,7 @@ replicate, ai`;
   @prop({ type: "float", default: 15, description: "Set the scale for guidanece" })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "A synthetic view image for generating the 3D modeld. To get the best result, remove background from the input image" })
+  @prop({ type: "image", default: "", description: "A synthetic view image for generating the 3D modeld. To get the best result, remove background from the input image" })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generating the 3D model, ignored if an image is provide below" })
@@ -141,7 +145,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 1);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const renderMode = String(inputs.render_mode ?? this.render_mode ?? "nerf");
     const renderSize = Number(inputs.render_size ?? this.render_size ?? 128);
@@ -150,12 +153,17 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
       "guidance_scale": guidanceScale,
-      "image": image,
       "prompt": prompt,
       "render_mode": renderMode,
       "render_size": renderSize,
       "save_mesh": saveMesh,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "cjwbw/shap-e:5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c", args);
@@ -176,18 +184,22 @@ replicate, ai`;
   @prop({ type: "enum", default: "deep3d_v1.0_640x360", values: ["deep3d_v1.0_640x360", "deep3d_v1.0_1280x720"], description: "Model size" })
   declare model: any;
 
-  @prop({ type: "str", default: "", description: "Input video" })
+  @prop({ type: "video", default: "", description: "Input video" })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const model = String(inputs.model ?? this.model ?? "deep3d_v1.0_640x360");
-    const video = String(inputs.video ?? this.video ?? "");
 
     const args: Record<string, unknown> = {
       "model": model,
-      "video": video,
     };
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "lucataco/deep3d:108b6cc8629f25abea20f56446a34e9d676dd1d7218f1ecefdd52239166903e3", args);
@@ -214,7 +226,7 @@ replicate, ai`;
   @prop({ type: "int", default: 12345, description: "Seed for random generator" })
   declare generator_seed: any;
 
-  @prop({ type: "str", default: "", description: "Input image for hunyuan3d control" })
+  @prop({ type: "image", default: "", description: "Input image for hunyuan3d control" })
   declare image_path: any;
 
   @prop({ type: "int", default: 20000, description: "Number of chunks" })
@@ -234,7 +246,6 @@ replicate, ai`;
     const faceCount = Number(inputs.face_count ?? this.face_count ?? 40000);
     const fileType = String(inputs.file_type ?? this.file_type ?? "glb");
     const generatorSeed = Number(inputs.generator_seed ?? this.generator_seed ?? 12345);
-    const imagePath = String(inputs.image_path ?? this.image_path ?? "");
     const numChunks = Number(inputs.num_chunks ?? this.num_chunks ?? 20000);
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 50);
     const octreeResolution = Number(inputs.octree_resolution ?? this.octree_resolution ?? 200);
@@ -244,12 +255,17 @@ replicate, ai`;
       "face_count": faceCount,
       "file_type": fileType,
       "generator_seed": generatorSeed,
-      "image_path": imagePath,
       "num_chunks": numChunks,
       "num_inference_steps": numInferenceSteps,
       "octree_resolution": octreeResolution,
       "speed_mode": speedMode,
     };
+
+    const imagePathRef = inputs.image_path as Record<string, unknown> | undefined;
+    if (isRefSet(imagePathRef)) {
+      const imagePathUrl = assetToUrl(imagePathRef!);
+      if (imagePathUrl) args["image_path"] = imagePathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "prunaai/hunyuan3d-2:6dd3e3e1f8a29a38807e8f23aaf8953a0051996ccc8c1861f709a5b1ee6826b5", args);
@@ -323,19 +339,19 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Back view image" })
+  @prop({ type: "image", default: "", description: "Back view image" })
   declare back_image: any;
 
   @prop({ type: "enum", default: "glb", values: ["glb", "obj", "ply", "stl"], description: "Output file type" })
   declare file_type: any;
 
-  @prop({ type: "str", default: "", description: "Front view image" })
+  @prop({ type: "image", default: "", description: "Front view image" })
   declare front_image: any;
 
   @prop({ type: "float", default: 5, description: "Guidance scale" })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "Left view image" })
+  @prop({ type: "image", default: "", description: "Left view image" })
   declare left_image: any;
 
   @prop({ type: "int", default: 200000, description: "Number of chunks" })
@@ -350,7 +366,7 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Remove image background" })
   declare remove_background: any;
 
-  @prop({ type: "str", default: "", description: "Right view image" })
+  @prop({ type: "image", default: "", description: "Right view image" })
   declare right_image: any;
 
   @prop({ type: "int", default: 1234, description: "Random seed" })
@@ -364,35 +380,51 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const backImage = String(inputs.back_image ?? this.back_image ?? "");
     const fileType = String(inputs.file_type ?? this.file_type ?? "glb");
-    const frontImage = String(inputs.front_image ?? this.front_image ?? "");
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const leftImage = String(inputs.left_image ?? this.left_image ?? "");
     const numChunks = Number(inputs.num_chunks ?? this.num_chunks ?? 200000);
     const octreeResolution = Number(inputs.octree_resolution ?? this.octree_resolution ?? 256);
     const randomizeSeed = Boolean(inputs.randomize_seed ?? this.randomize_seed ?? true);
     const removeBackground = Boolean(inputs.remove_background ?? this.remove_background ?? true);
-    const rightImage = String(inputs.right_image ?? this.right_image ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? 1234);
     const steps = Number(inputs.steps ?? this.steps ?? 30);
     const targetFaceNum = Number(inputs.target_face_num ?? this.target_face_num ?? 10000);
 
     const args: Record<string, unknown> = {
-      "back_image": backImage,
       "file_type": fileType,
-      "front_image": frontImage,
       "guidance_scale": guidanceScale,
-      "left_image": leftImage,
       "num_chunks": numChunks,
       "octree_resolution": octreeResolution,
       "randomize_seed": randomizeSeed,
       "remove_background": removeBackground,
-      "right_image": rightImage,
       "seed": seed,
       "steps": steps,
       "target_face_num": targetFaceNum,
     };
+
+    const backImageRef = inputs.back_image as Record<string, unknown> | undefined;
+    if (isRefSet(backImageRef)) {
+      const backImageUrl = assetToUrl(backImageRef!);
+      if (backImageUrl) args["back_image"] = backImageUrl;
+    }
+
+    const frontImageRef = inputs.front_image as Record<string, unknown> | undefined;
+    if (isRefSet(frontImageRef)) {
+      const frontImageUrl = assetToUrl(frontImageRef!);
+      if (frontImageUrl) args["front_image"] = frontImageUrl;
+    }
+
+    const leftImageRef = inputs.left_image as Record<string, unknown> | undefined;
+    if (isRefSet(leftImageRef)) {
+      const leftImageUrl = assetToUrl(leftImageRef!);
+      if (leftImageUrl) args["left_image"] = leftImageUrl;
+    }
+
+    const rightImageRef = inputs.right_image as Record<string, unknown> | undefined;
+    if (isRefSet(rightImageRef)) {
+      const rightImageUrl = assetToUrl(rightImageRef!);
+      if (rightImageUrl) args["right_image"] = rightImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "tencent/hunyuan3d-2mv:71798fbc3c9f7b7097e3bb85496e5a797d8b8f616b550692e7c3e176a8e9e5db", args);
@@ -419,7 +451,7 @@ replicate, ai`;
   @prop({ type: "int", default: 24, description: "Frames-per-second for video outputs." })
   declare fps: any;
 
-  @prop({ type: "str", default: "", description: "Video (mp4/mov) or image (png/jpg/webp) to restore." })
+  @prop({ type: "image", default: "", description: "Video (mp4/mov) or image (png/jpg/webp) to restore." })
   declare media: any;
 
   @prop({ type: "enum", default: "3b", values: ["3b", "7b"], description: "Model size to run." })
@@ -445,7 +477,6 @@ replicate, ai`;
     const applyColorFix = Boolean(inputs.apply_color_fix ?? this.apply_color_fix ?? false);
     const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
     const fps = Number(inputs.fps ?? this.fps ?? 24);
-    const media = String(inputs.media ?? this.media ?? "");
     const modelVariant = String(inputs.model_variant ?? this.model_variant ?? "3b");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 90);
@@ -457,7 +488,6 @@ replicate, ai`;
       "apply_color_fix": applyColorFix,
       "cfg_scale": cfgScale,
       "fps": fps,
-      "media": media,
       "model_variant": modelVariant,
       "output_format": outputFormat,
       "output_quality": outputQuality,
@@ -465,6 +495,12 @@ replicate, ai`;
       "seed": seed,
       "sp_size": spSize,
     };
+
+    const mediaRef = inputs.media as Record<string, unknown> | undefined;
+    if (isRefSet(mediaRef)) {
+      const mediaUrl = assetToUrl(mediaRef!);
+      if (mediaUrl) args["media"] = mediaUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/seedvr2:ca98249be9cb623f02a80a7851a2b1a33d5104c251a8f5a1588f251f79bf7c78", args);

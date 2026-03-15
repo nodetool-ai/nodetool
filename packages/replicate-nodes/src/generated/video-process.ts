@@ -24,7 +24,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "An optional first frame of the video to modify. This should be a modified version of the original first frame, it will be used to guide the video modification." })
+  @prop({ type: "image", default: "", description: "An optional first frame of the video to modify. This should be a modified version of the original first frame, it will be used to guide the video modification." })
   declare first_frame: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use first_frame instead." })
@@ -44,19 +44,23 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const firstFrame = String(inputs.first_frame ?? this.first_frame ?? "");
     const firstFrameUrl = String(inputs.first_frame_url ?? this.first_frame_url ?? "");
     const mode = String(inputs.mode ?? this.mode ?? "adhere_1");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const videoUrl = String(inputs.video_url ?? this.video_url ?? "");
 
     const args: Record<string, unknown> = {
-      "first_frame": firstFrame,
       "first_frame_url": firstFrameUrl,
       "mode": mode,
       "prompt": prompt,
       "video_url": videoUrl,
     };
+
+    const firstFrameRef = inputs.first_frame as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameRef)) {
+      const firstFrameUrl = assetToUrl(firstFrameRef!);
+      if (firstFrameUrl) args["first_frame"] = firstFrameUrl;
+    }
 
     const videoRef = inputs.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
@@ -228,20 +232,24 @@ replicate, ai`;
   @prop({ type: "enum", default: "FHD", values: ["FHD", "2k", "4k"], description: "Output resolution" })
   declare resolution: any;
 
-  @prop({ type: "str", default: "", description: "Input Video" })
+  @prop({ type: "video", default: "", description: "Input Video" })
   declare video_path: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const model = String(inputs.model ?? this.model ?? "RealESRGAN_x4plus");
     const resolution = String(inputs.resolution ?? this.resolution ?? "FHD");
-    const videoPath = String(inputs.video_path ?? this.video_path ?? "");
 
     const args: Record<string, unknown> = {
       "model": model,
       "resolution": resolution,
-      "video_path": videoPath,
     };
+
+    const videoPathRef = inputs.video_path as Record<string, unknown> | undefined;
+    if (isRefSet(videoPathRef)) {
+      const videoPathUrl = assetToUrl(videoPathRef!);
+      if (videoPathUrl) args["video_path"] = videoPathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "lucataco/real-esrgan-video:3e56ce4b57863bd03048b42bc09bdd4db20d427cca5fde9d8ae4dc60e1bb4775", args);
@@ -265,7 +273,7 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Image-to-image noise strength." })
   declare i2i_noise_strength: any;
 
-  @prop({ type: "str", default: "", description: "An inpainting mask image (white areas will be restored). Only required when tasks includes inpainting." })
+  @prop({ type: "image", default: "", description: "An inpainting mask image (white areas will be restored). Only required when tasks includes inpainting." })
   declare mask: any;
 
   @prop({ type: "float", default: 2, description: "Maximum guidance scale for restoration." })
@@ -296,7 +304,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const decodeChunkSize = Number(inputs.decode_chunk_size ?? this.decode_chunk_size ?? 16);
     const i2iNoiseStrength = Number(inputs.i2i_noise_strength ?? this.i2i_noise_strength ?? 1);
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const maxAppearanceGuidanceScale = Number(inputs.max_appearance_guidance_scale ?? this.max_appearance_guidance_scale ?? 2);
     const minAppearanceGuidanceScale = Number(inputs.min_appearance_guidance_scale ?? this.min_appearance_guidance_scale ?? 2);
     const noiseAugStrength = Number(inputs.noise_aug_strength ?? this.noise_aug_strength ?? 0);
@@ -308,7 +315,6 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "decode_chunk_size": decodeChunkSize,
       "i2i_noise_strength": i2iNoiseStrength,
-      "mask": mask,
       "max_appearance_guidance_scale": maxAppearanceGuidanceScale,
       "min_appearance_guidance_scale": minAppearanceGuidanceScale,
       "noise_aug_strength": noiseAugStrength,
@@ -317,6 +323,12 @@ replicate, ai`;
       "seed": seed,
       "tasks": tasks,
     };
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
 
     const videoRef = inputs.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
@@ -340,7 +352,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Path to a video" })
+  @prop({ type: "video", default: "", description: "Path to a video" })
   declare input_video: any;
 
   @prop({ type: "int", default: 21, description: "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out." })
@@ -348,13 +360,17 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const inputVideo = String(inputs.input_video ?? this.input_video ?? "");
     const renderFactor = Number(inputs.render_factor ?? this.render_factor ?? 21);
 
     const args: Record<string, unknown> = {
-      "input_video": inputVideo,
       "render_factor": renderFactor,
     };
+
+    const inputVideoRef = inputs.input_video as Record<string, unknown> | undefined;
+    if (isRefSet(inputVideoRef)) {
+      const inputVideoUrl = assetToUrl(inputVideoRef!);
+      if (inputVideoUrl) args["input_video"] = inputVideoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "arielreplicate/deoldify_video:8f1189b476fcb54cfbe1d07d97b025c571a2ce4e9a7a9558640c78647576e16f", args);
@@ -411,13 +427,13 @@ replicate, ai`;
   @prop({ type: "enum", default: "bottom75", values: ["bottom75", "center", "top", "bottom", "left", "right"], description: "Subtitles position" })
   declare subs_position: any;
 
-  @prop({ type: "str", default: "", description: "Transcript file, if provided will use this for words rather than whisper." })
+  @prop({ type: "image", default: "", description: "Transcript file, if provided will use this for words rather than whisper." })
   declare transcript_file_input: any;
 
   @prop({ type: "bool", default: false, description: "Translate the subtitles to English" })
   declare translate: any;
 
-  @prop({ type: "str", default: "", description: "Video file" })
+  @prop({ type: "video", default: "", description: "Video file" })
   declare video_file_input: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -435,9 +451,7 @@ replicate, ai`;
     const strokeColor = String(inputs.stroke_color ?? this.stroke_color ?? "black");
     const strokeWidth = Number(inputs.stroke_width ?? this.stroke_width ?? 2.6);
     const subsPosition = String(inputs.subs_position ?? this.subs_position ?? "bottom75");
-    const transcriptFileInput = String(inputs.transcript_file_input ?? this.transcript_file_input ?? "");
     const translate = Boolean(inputs.translate ?? this.translate ?? false);
-    const videoFileInput = String(inputs.video_file_input ?? this.video_file_input ?? "");
 
     const args: Record<string, unknown> = {
       "MaxChars": MaxChars,
@@ -453,10 +467,20 @@ replicate, ai`;
       "stroke_color": strokeColor,
       "stroke_width": strokeWidth,
       "subs_position": subsPosition,
-      "transcript_file_input": transcriptFileInput,
       "translate": translate,
-      "video_file_input": videoFileInput,
     };
+
+    const transcriptFileInputRef = inputs.transcript_file_input as Record<string, unknown> | undefined;
+    if (isRefSet(transcriptFileInputRef)) {
+      const transcriptFileInputUrl = assetToUrl(transcriptFileInputRef!);
+      if (transcriptFileInputUrl) args["transcript_file_input"] = transcriptFileInputUrl;
+    }
+
+    const videoFileInputRef = inputs.video_file_input as Record<string, unknown> | undefined;
+    if (isRefSet(videoFileInputRef)) {
+      const videoFileInputUrl = assetToUrl(videoFileInputRef!);
+      if (videoFileInputUrl) args["video_file_input"] = videoFileInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "fictions-ai/autocaption:18a45ff0d95feb4449d192bbdc06b4a6df168fa33def76dfc51b78ae224b599b", args);
@@ -474,10 +498,10 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file to synchronize the video with" })
+  @prop({ type: "audio", default: "", description: "Audio file to synchronize the video with" })
   declare audio: any;
 
-  @prop({ type: "str", default: "", description: "First frame image to start the video from" })
+  @prop({ type: "image", default: "", description: "First frame image to start the video from" })
   declare image: any;
 
   @prop({ type: "bool", default: false, description: "Whether to interpolate video to higher frame rate (25fps)" })
@@ -494,21 +518,29 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
-    const image = String(inputs.image ?? this.image ?? "");
     const interpolate = Boolean(inputs.interpolate ?? this.interpolate ?? false);
     const numFramesPerChunk = Number(inputs.num_frames_per_chunk ?? this.num_frames_per_chunk ?? 81);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
-      "image": image,
       "interpolate": interpolate,
       "num_frames_per_chunk": numFramesPerChunk,
       "prompt": prompt,
       "seed": seed,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "wan-video/wan-2.2-s2v:09607e6e761d2f015b0d740f938ec59199f54aa623384465a5054b230405acf4", args);
@@ -526,10 +558,10 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio to generate video from" })
+  @prop({ type: "audio", default: "", description: "Audio to generate video from" })
   declare audio: any;
 
-  @prop({ type: "str", default: "", description: "Image to generate video from" })
+  @prop({ type: "image", default: "", description: "Image to generate video from" })
   declare image: any;
 
   @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video" })
@@ -537,15 +569,23 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
-    const image = String(inputs.image ?? this.image ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
 
     const args: Record<string, unknown> = {
-      "audio": audio,
-      "image": image,
       "resolution": resolution,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "veed/fabric-1.0:739bbce4edc07b0b1bd055998983324fe9a8ea18d854b5979423c5d6f62e5b78", args);

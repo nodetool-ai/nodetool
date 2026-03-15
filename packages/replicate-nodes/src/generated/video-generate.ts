@@ -98,7 +98,7 @@ replicate, ai`;
   @prop({ type: "int", default: 320, description: "Height of the output video" })
   declare height: any;
 
-  @prop({ type: "str", default: "", description: "URL of the initial video (optional)" })
+  @prop({ type: "video", default: "", description: "URL of the initial video (optional)" })
   declare init_video: any;
 
   @prop({ type: "float", default: 0.5, description: "Strength of init_video" })
@@ -134,7 +134,6 @@ replicate, ai`;
     const fps = Number(inputs.fps ?? this.fps ?? 8);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);
     const height = Number(inputs.height ?? this.height ?? 320);
-    const initVideo = String(inputs.init_video ?? this.init_video ?? "");
     const initWeight = Number(inputs.init_weight ?? this.init_weight ?? 0.5);
     const model = String(inputs.model ?? this.model ?? "xl");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
@@ -150,7 +149,6 @@ replicate, ai`;
       "fps": fps,
       "guidance_scale": guidanceScale,
       "height": height,
-      "init_video": initVideo,
       "init_weight": initWeight,
       "model": model,
       "negative_prompt": negativePrompt,
@@ -161,6 +159,12 @@ replicate, ai`;
       "seed": seed,
       "width": width,
     };
+
+    const initVideoRef = inputs.init_video as Record<string, unknown> | undefined;
+    if (isRefSet(initVideoRef)) {
+      const initVideoUrl = assetToUrl(initVideoRef!);
+      if (initVideoUrl) args["init_video"] = initVideoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351", args);
@@ -337,7 +341,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -348,15 +352,19 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
-      "first_frame_image": firstFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/video-01-live:7574e16b8f1ad52c6332ecb264c0f132e555f46c222255a738131ec1bb614092", args);
@@ -374,7 +382,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -383,22 +391,30 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "str", default: "", description: "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)" })
+  @prop({ type: "image", default: "", description: "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)" })
   declare subject_reference: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
-    const subjectReference = String(inputs.subject_reference ?? this.subject_reference ?? "");
 
     const args: Record<string, unknown> = {
-      "first_frame_image": firstFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
-      "subject_reference": subjectReference,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
+
+    const subjectReferenceRef = inputs.subject_reference as Record<string, unknown> | undefined;
+    if (isRefSet(subjectReferenceRef)) {
+      const subjectReferenceUrl = assetToUrl(subjectReferenceRef!);
+      if (subjectReferenceUrl) args["subject_reference"] = subjectReferenceUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/video-01:5aa835260ff7f40f4069c41185f72036accf99e29957bb4a3b3a911f3b6c1912", args);
@@ -419,7 +435,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 256000, values: ["32000", "64000", "128000", "256000"], description: "Bitrate for the generated music" })
   declare bitrate: any;
 
-  @prop({ type: "str", default: "", description: "Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated." })
+  @prop({ type: "image", default: "", description: "Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated." })
   declare instrumental_file: any;
 
   @prop({ type: "str", default: "", description: "Reuse a previously uploaded instrumental ID" })
@@ -443,7 +459,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const bitrate = String(inputs.bitrate ?? this.bitrate ?? 256000);
-    const instrumentalFile = String(inputs.instrumental_file ?? this.instrumental_file ?? "");
     const instrumentalId = String(inputs.instrumental_id ?? this.instrumental_id ?? "");
     const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
     const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 44100);
@@ -451,12 +466,17 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "bitrate": bitrate,
-      "instrumental_file": instrumentalFile,
       "instrumental_id": instrumentalId,
       "lyrics": lyrics,
       "sample_rate": sampleRate,
       "voice_id": voiceId,
     };
+
+    const instrumentalFileRef = inputs.instrumental_file as Record<string, unknown> | undefined;
+    if (isRefSet(instrumentalFileRef)) {
+      const instrumentalFileUrl = assetToUrl(instrumentalFileRef!);
+      if (instrumentalFileUrl) args["instrumental_file"] = instrumentalFileUrl;
+    }
 
     const songFileRef = inputs.song_file as Record<string, unknown> | undefined;
     if (isRefSet(songFileRef)) {
@@ -724,10 +744,10 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. V5 supports effects. Does not work with last_frame_image." })
   declare effect: any;
 
-  @prop({ type: "str", default: "", description: "Image to use for the first frame of the video" })
+  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
@@ -747,8 +767,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const effect = String(inputs.effect ?? this.effect ?? "None");
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const quality = String(inputs.quality ?? this.quality ?? "540p");
@@ -758,13 +776,23 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "effect": effect,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
       "quality": quality,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "pixverse/pixverse-v5:450181c56fcbf920d8d5ba9d7c5653537a009b626652c1a0a909924a785e3389", args);
@@ -788,7 +816,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the output video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Initial image for video generation (first frame)" })
+  @prop({ type: "image", default: "", description: "Initial image for video generation (first frame)" })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
@@ -801,17 +829,21 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "image": image,
       "prompt": prompt,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "runwayml/gen4-turbo:6257a44f7b6390e47eb18a1c11f55d221fc90ec056d9acfe490ec9924739533c", args);
@@ -835,30 +867,38 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "Reference image to influence the style or content of the output." })
+  @prop({ type: "image", default: "", description: "Reference image to influence the style or content of the output." })
   declare reference_image: any;
 
   @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Input video to generate from. Videos must be less than 16MB. Only 5s of the input video will be used." })
+  @prop({ type: "video", default: "", description: "Input video to generate from. Videos must be less than 16MB. Only 5s of the input video will be used." })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImage = String(inputs.reference_image ?? this.reference_image ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const video = String(inputs.video ?? this.video ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "prompt": prompt,
-      "reference_image": referenceImage,
       "seed": seed,
-      "video": video,
     };
+
+    const referenceImageRef = inputs.reference_image as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImageRef)) {
+      const referenceImageUrl = assetToUrl(referenceImageRef!);
+      if (referenceImageUrl) args["reference_image"] = referenceImageUrl;
+    }
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "runwayml/gen4-aleph:68cabc3b111f47bd881cffaca63ad0b1e7834c77737e042cec6eca18962ce1d2", args);
@@ -879,7 +919,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Last frame of the video (pro mode is required when this parameter is set)" })
+  @prop({ type: "image", default: "", description: "Last frame of the video (pro mode is required when this parameter is set)" })
   declare end_image: any;
 
   @prop({ type: "enum", default: "standard", values: ["standard", "pro"], description: "Standard has a resolution of 720p, pro is 1080p. Both are 24fps." })
@@ -891,26 +931,34 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "First frame of the video. You must use a start image with kling-v2.1." })
+  @prop({ type: "image", default: "", description: "First frame of the video. You must use a start image with kling-v2.1." })
   declare start_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const mode = String(inputs.mode ?? this.mode ?? "standard");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
 
     const args: Record<string, unknown> = {
       "duration": duration,
-      "end_image": endImage,
       "mode": mode,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
-      "start_image": startImage,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.1:daad218feb714b03e2a1ac445986aebb9d05243cd00da2af17be2e4049f48f69", args);
@@ -928,7 +976,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file for lip sync. Must be .mp3, .wav, .m4a, or .aac and less than 5MB." })
+  @prop({ type: "audio", default: "", description: "Audio file for lip sync. Must be .mp3, .wav, .m4a, or .aac and less than 5MB." })
   declare audio_file: any;
 
   @prop({ type: "str", default: "", description: "Text content for lip sync (if not using audio)" })
@@ -948,7 +996,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioFile = String(inputs.audio_file ?? this.audio_file ?? "");
     const text = String(inputs.text ?? this.text ?? "");
     const videoId = String(inputs.video_id ?? this.video_id ?? "");
     const videoUrl = String(inputs.video_url ?? this.video_url ?? "");
@@ -956,13 +1003,18 @@ replicate, ai`;
     const voiceSpeed = Number(inputs.voice_speed ?? this.voice_speed ?? 1);
 
     const args: Record<string, unknown> = {
-      "audio_file": audioFile,
       "text": text,
       "video_id": videoId,
       "video_url": videoUrl,
       "voice_id": voiceId,
       "voice_speed": voiceSpeed,
     };
+
+    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    if (isRefSet(audioFileRef)) {
+      const audioFileUrl = assetToUrl(audioFileRef!);
+      if (audioFileUrl) args["audio_file"] = audioFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-lip-sync:8311467f07043d4b3feb44584d2586bfa2fc70203eca612ed26f84d0b55df3ce", args);
@@ -983,10 +1035,10 @@ replicate, ai`;
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
-  @prop({ type: "str", default: "", description: "Last frame image for video generation. The final frame of the output video will match this image." })
+  @prop({ type: "image", default: "", description: "Last frame image for video generation. The final frame of the output video will match this image." })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -1001,20 +1053,28 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const duration = String(inputs.duration ?? this.duration ?? 6);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
 
     const args: Record<string, unknown> = {
       "duration": duration,
-      "first_frame_image": firstFrameImage,
-      "last_frame_image": lastFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
       "resolution": resolution,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/hailuo-02:baaadb886e09b1e711387e270d841930e8253f08775bc6cb176580658f0f2fd9", args);
@@ -1254,7 +1314,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Interpolate the generated video to 30 FPS using ffmpeg" })
   declare interpolate_output: any;
 
-  @prop({ type: "str", default: "", description: "Optional last image to condition the video generation. If provided, creates smoother transitions between frames." })
+  @prop({ type: "image", default: "", description: "Optional last image to condition the video generation. If provided, creates smoother transitions between frames." })
   declare last_image: any;
 
   @prop({ type: "float", default: 1, description: "Determines how strongly the transformer LoRA should be applied." })
@@ -1290,7 +1350,6 @@ replicate, ai`;
     const framesPerSecond = Number(inputs.frames_per_second ?? this.frames_per_second ?? 16);
     const goFast = Boolean(inputs.go_fast ?? this.go_fast ?? true);
     const interpolateOutput = Boolean(inputs.interpolate_output ?? this.interpolate_output ?? false);
-    const lastImage = String(inputs.last_image ?? this.last_image ?? "");
     const loraScaleTransformer = Number(inputs.lora_scale_transformer ?? this.lora_scale_transformer ?? 1);
     const loraScaleTransformer_2 = Number(inputs.lora_scale_transformer_2 ?? this.lora_scale_transformer_2 ?? 1);
     const loraWeightsTransformer = String(inputs.lora_weights_transformer ?? this.lora_weights_transformer ?? "");
@@ -1306,7 +1365,6 @@ replicate, ai`;
       "frames_per_second": framesPerSecond,
       "go_fast": goFast,
       "interpolate_output": interpolateOutput,
-      "last_image": lastImage,
       "lora_scale_transformer": loraScaleTransformer,
       "lora_scale_transformer_2": loraScaleTransformer_2,
       "lora_weights_transformer": loraWeightsTransformer,
@@ -1322,6 +1380,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastImageRef = inputs.last_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastImageRef)) {
+      const lastImageUrl = assetToUrl(lastImageRef!);
+      if (lastImageUrl) args["last_image"] = lastImageUrl;
     }
     removeNulls(args);
 
@@ -1349,10 +1413,10 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Generate audio with the video" })
   declare generate_audio: any;
 
-  @prop({ type: "str", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Ending image for interpolation. When provided with an input image, creates a transition between the two images." })
+  @prop({ type: "image", default: "", description: "Ending image for interpolation. When provided with an input image, creates a transition between the two images." })
   declare last_frame: any;
 
   @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
@@ -1361,7 +1425,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "list[str]", default: [], description: "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided." })
+  @prop({ type: "list[image]", default: [], description: "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided." })
   declare reference_images: any;
 
   @prop({ type: "enum", default: "1080p", values: ["720p", "1080p"], description: "Resolution of the generated video" })
@@ -1375,11 +1439,8 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 8);
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrame = String(inputs.last_frame ?? this.last_frame ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImages = String(inputs.reference_images ?? this.reference_images ?? []);
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
@@ -1387,14 +1448,29 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "generate_audio": generateAudio,
-      "image": image,
-      "last_frame": lastFrame,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
-      "reference_images": referenceImages,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameRef = inputs.last_frame as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameRef)) {
+      const lastFrameUrl = assetToUrl(lastFrameRef!);
+      if (lastFrameUrl) args["last_frame"] = lastFrameUrl;
+    }
+
+    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImagesRef)) {
+      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/veo-3.1:ed5b1767b711dd15d954b162af1e890d27882680f463a85e94f02d604012b972", args);
@@ -1418,7 +1494,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the output video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Optional initial image for video generation (first frame). If not provided, video will be generated from text only." })
+  @prop({ type: "image", default: "", description: "Optional initial image for video generation (first frame). If not provided, video will be generated from text only." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
@@ -1431,17 +1507,21 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "image": image,
       "prompt": prompt,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "runwayml/gen-4.5:2e10d5ae08888b39ed31c828003f4a5ddc89a7cdec3bc7a9926661e0d22cb034", args);
@@ -1465,7 +1545,7 @@ replicate, ai`;
   @prop({ type: "int", default: 5, description: "Video duration in seconds." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
+  @prop({ type: "image", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
   declare end_image: any;
 
   @prop({ type: "bool", default: false, description: "Generate native audio for the video." })
@@ -1483,32 +1563,40 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Max 2500 characters." })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
+  @prop({ type: "image", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
   declare start_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = Number(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
     const mode = String(inputs.mode ?? this.mode ?? "pro");
     const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "end_image": endImage,
       "generate_audio": generateAudio,
       "mode": mode,
       "multi_prompt": multiPrompt,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
-      "start_image": startImage,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-v3-video:4a8ba2743bd9dc2b487e0c4319988aacd658d33c2d064b8a420f4ee1732c30bd", args);
@@ -1532,7 +1620,7 @@ replicate, ai`;
   @prop({ type: "int", default: 5, description: "Video duration in seconds (3-15). Ignored for video editing (base)." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
+  @prop({ type: "image", default: "", description: "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px." })
   declare end_image: any;
 
   @prop({ type: "bool", default: false, description: "Generate native audio. Mutually exclusive with reference video." })
@@ -1550,13 +1638,13 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Supports <<<image_1>>>, <<<video_1>>> template references. Max 2500 characters." })
   declare prompt: any;
 
-  @prop({ type: "list[str]", default: [], description: "Reference images for elements, scenes, or styles. Supports .jpg/.jpeg/.png. Max 7 without video, 4 with video." })
+  @prop({ type: "list[image]", default: [], description: "Reference images for elements, scenes, or styles. Supports .jpg/.jpeg/.png. Max 7 without video, 4 with video." })
   declare reference_images: any;
 
-  @prop({ type: "str", default: "", description: "Reference video (.mp4/.mov). Duration 3-10s, resolution 720-2160px per side, max 200MB." })
+  @prop({ type: "video", default: "", description: "Reference video (.mp4/.mov). Duration 3-10s, resolution 720-2160px per side, max 200MB." })
   declare reference_video: any;
 
-  @prop({ type: "str", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
+  @prop({ type: "image", default: "", description: "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1." })
   declare start_image: any;
 
   @prop({ type: "enum", default: "feature", values: ["feature", "base"], description: "How to use reference video: 'feature' for style/camera reference, 'base' for video editing." })
@@ -1566,31 +1654,47 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = Number(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
     const keepOriginalSound = Boolean(inputs.keep_original_sound ?? this.keep_original_sound ?? true);
     const mode = String(inputs.mode ?? this.mode ?? "pro");
     const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImages = String(inputs.reference_images ?? this.reference_images ?? []);
-    const referenceVideo = String(inputs.reference_video ?? this.reference_video ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
     const videoReferenceType = String(inputs.video_reference_type ?? this.video_reference_type ?? "feature");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "end_image": endImage,
       "generate_audio": generateAudio,
       "keep_original_sound": keepOriginalSound,
       "mode": mode,
       "multi_prompt": multiPrompt,
       "prompt": prompt,
-      "reference_images": referenceImages,
-      "reference_video": referenceVideo,
-      "start_image": startImage,
       "video_reference_type": videoReferenceType,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImagesRef)) {
+      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
+    }
+
+    const referenceVideoRef = inputs.reference_video as Record<string, unknown> | undefined;
+    if (isRefSet(referenceVideoRef)) {
+      const referenceVideoUrl = assetToUrl(referenceVideoRef!);
+      if (referenceVideoUrl) args["reference_video"] = referenceVideoUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-v3-omni-video:1d449e255319a7c07feca688cf0596cb82cc8a96ceddff6c44fd0d090b4e830c", args);
@@ -1614,10 +1718,10 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Last frame of the video" })
+  @prop({ type: "image", default: "", description: "Last frame of the video" })
   declare end_image: any;
 
-  @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead." })
+  @prop({ type: "image", default: "", description: "Deprecated: Use start_image instead." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Things you do not want to see in the video" })
@@ -1626,28 +1730,40 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "First frame of the video" })
+  @prop({ type: "image", default: "", description: "First frame of the video" })
   declare start_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
-    const image = String(inputs.image ?? this.image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "end_image": endImage,
-      "image": image,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
-      "start_image": startImage,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.5-turbo-pro:18f41bfca7f1997ce37b04b407152c385c9159095681a6f5a4ff47718bc25a57", args);
@@ -1680,7 +1796,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "First frame of the video" })
+  @prop({ type: "image", default: "", description: "First frame of the video" })
   declare start_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -1690,7 +1806,6 @@ replicate, ai`;
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
@@ -1698,8 +1813,13 @@ replicate, ai`;
       "generate_audio": generateAudio,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
-      "start_image": startImage,
     };
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.6:b13f36d030496dd78d2986ba8b2b22a44222b3f58c15fb63ef7d6b4aa3a53319", args);
@@ -1726,7 +1846,7 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Generate audio with the video" })
   declare generate_audio: any;
 
-  @prop({ type: "str", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
@@ -1746,7 +1866,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 8);
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const image = String(inputs.image ?? this.image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
@@ -1756,12 +1875,17 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "generate_audio": generateAudio,
-      "image": image,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/veo-3:5e80c73750ffc5dfbe5cee2d694c6ed3da7706660d9132613e6736443b365464", args);
@@ -1788,7 +1912,7 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Generate audio with the video" })
   declare generate_audio: any;
 
-  @prop({ type: "str", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Description of what to exclude from the generated video" })
@@ -1808,7 +1932,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 8);
     const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const image = String(inputs.image ?? this.image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
@@ -1818,12 +1941,17 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "generate_audio": generateAudio,
-      "image": image,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/veo-3-fast:368d4063e21ecf73746b8e6d27989837d97ba07b5eca43a4e5488c852e10c2ec", args);
@@ -1847,7 +1975,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "6", "7", "8"], description: "Video duration in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
+  @prop({ type: "image", default: "", description: "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
@@ -1860,17 +1988,21 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "duration": duration,
-      "image": image,
       "prompt": prompt,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/veo-2:af8ebddc406d877a89d631dbbcba24b31692e0f9819639299b1d5def12dd7c95", args);
@@ -1891,7 +2023,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -1906,18 +2038,22 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const duration = String(inputs.duration ?? this.duration ?? 6);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
     const resolution = String(inputs.resolution ?? this.resolution ?? "768p");
 
     const args: Record<string, unknown> = {
       "duration": duration,
-      "first_frame_image": firstFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
       "resolution": resolution,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/hailuo-2.3:23a02633b5a44780345a59d4d43f8bd510efa239c56f08f29639ff24fa6615e1", args);
@@ -1938,7 +2074,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for generation" })
@@ -1953,18 +2089,22 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const duration = String(inputs.duration ?? this.duration ?? 6);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
     const resolution = String(inputs.resolution ?? this.resolution ?? "768p");
 
     const args: Record<string, unknown> = {
       "duration": duration,
-      "first_frame_image": firstFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
       "resolution": resolution,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/hailuo-2.3-fast:c92f075dfd04541f1c1913a9689f778ecf76bfec3dd9fdfe19903a86e07f2cdc", args);
@@ -1991,10 +2131,10 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Enable AI-generated audio including BGM, SFX, and character dialogues" })
   declare generate_audio_switch: any;
 
-  @prop({ type: "str", default: "", description: "Image to use for the first frame of the video" })
+  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt to avoid certain elements in the video" })
@@ -2017,8 +2157,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const generateAudioSwitch = Boolean(inputs.generate_audio_switch ?? this.generate_audio_switch ?? false);
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const quality = String(inputs.quality ?? this.quality ?? "540p");
@@ -2029,14 +2167,24 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "generate_audio_switch": generateAudioSwitch,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
       "quality": quality,
       "seed": seed,
       "thinking_type": thinkingType,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "pixverse/pixverse-v5.6:716a21c01b88914165473824a15be03188a54c5830fac57d64de93919fcae0e9", args);
@@ -2063,10 +2211,10 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. Does not work with last_frame_image." })
   declare effect: any;
 
-  @prop({ type: "str", default: "", description: "Image to use for the first frame of the video" })
+  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
   declare last_frame_image: any;
 
   @prop({ type: "enum", default: "normal", values: ["normal", "smooth"], description: "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)" })
@@ -2098,8 +2246,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const effect = String(inputs.effect ?? this.effect ?? "None");
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const motionMode = String(inputs.motion_mode ?? this.motion_mode ?? "normal");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -2113,8 +2259,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "effect": effect,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "motion_mode": motionMode,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
@@ -2124,6 +2268,18 @@ replicate, ai`;
       "sound_effect_switch": soundEffectSwitch,
       "style": style,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "pixverse/pixverse-v4:5d3d7389baa4d420ce9aaa270a8b251b3923e778dee4c51e35f8e09d815c6b36", args);
@@ -2150,10 +2306,10 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "Let's YMCA!", "Subject 3 Fever", "Ghibli Live!", "Suit Swagger", "Muscle Surge", "360° Microwave", "Warmth of Jesus", "Emergency Beat", "Anything, Robot", "Kungfu Club", "Mint in Box", "Retro Anime Pop", "Vogue Walk", "Mega Dive", "Evil Trigger"], description: "Special effect to apply to the video. Does not work with last_frame_image." })
   declare effect: any;
 
-  @prop({ type: "str", default: "", description: "Image to use for the first frame of the video" })
+  @prop({ type: "image", default: "", description: "Image to use for the first frame of the video" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
+  @prop({ type: "image", default: "", description: "Use to generate a video that transitions from the first image to the last image. Must be used with image." })
   declare last_frame_image: any;
 
   @prop({ type: "enum", default: "normal", values: ["normal", "smooth"], description: "Motion mode for the video. Smooth videos generate more frames, so they cost twice as much. (smooth is only available when using a 5 second duration, 1080p does not support smooth motion)" })
@@ -2185,8 +2341,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const effect = String(inputs.effect ?? this.effect ?? "None");
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const motionMode = String(inputs.motion_mode ?? this.motion_mode ?? "normal");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -2200,8 +2354,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "duration": duration,
       "effect": effect,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "motion_mode": motionMode,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
@@ -2211,6 +2363,18 @@ replicate, ai`;
       "sound_effect_switch": soundEffectSwitch,
       "style": style,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "pixverse/pixverse-v4.5:5a31b090decb67bde4291ca5d2a69d7908720c0a1262a4b5d72022518a9b5a3c", args);
@@ -2228,7 +2392,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
 
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
@@ -2251,7 +2415,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
@@ -2260,7 +2423,6 @@ replicate, ai`;
     const size = String(inputs.size ?? this.size ?? "1280*720");
 
     const args: Record<string, unknown> = {
-      "audio": audio,
       "duration": duration,
       "enable_prompt_expansion": enablePromptExpansion,
       "negative_prompt": negativePrompt,
@@ -2268,6 +2430,12 @@ replicate, ai`;
       "seed": seed,
       "size": size,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-t2v:4e22e64c604706aa4ac1929a7ae146ea033f39bb228e896da79d91b7a39e8d32", args);
@@ -2285,7 +2453,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
 
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
@@ -2308,7 +2476,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
@@ -2317,7 +2484,6 @@ replicate, ai`;
     const size = String(inputs.size ?? this.size ?? "1280*720");
 
     const args: Record<string, unknown> = {
-      "audio": audio,
       "duration": duration,
       "enable_prompt_expansion": enablePromptExpansion,
       "negative_prompt": negativePrompt,
@@ -2325,6 +2491,12 @@ replicate, ai`;
       "seed": seed,
       "size": size,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "wan-video/wan-2.5-t2v-fast:1ffaab95d8f67adf487548468b03e795ad0410089c655c560e492add1b7beaf0", args);
@@ -2342,7 +2514,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
 
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
@@ -2368,7 +2540,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
@@ -2377,7 +2548,6 @@ replicate, ai`;
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
       "duration": duration,
       "enable_prompt_expansion": enablePromptExpansion,
       "negative_prompt": negativePrompt,
@@ -2385,6 +2555,12 @@ replicate, ai`;
       "resolution": resolution,
       "seed": seed,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
 
     const imageRef = inputs.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
@@ -2408,7 +2584,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
+  @prop({ type: "audio", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
 
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the generated video in seconds" })
@@ -2434,7 +2610,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
     const duration = String(inputs.duration ?? this.duration ?? 5);
     const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
@@ -2443,7 +2618,6 @@ replicate, ai`;
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
       "duration": duration,
       "enable_prompt_expansion": enablePromptExpansion,
       "negative_prompt": negativePrompt,
@@ -2451,6 +2625,12 @@ replicate, ai`;
       "resolution": resolution,
       "seed": seed,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
 
     const imageRef = inputs.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
@@ -2486,10 +2666,10 @@ replicate, ai`;
   @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
   declare fps: any;
 
-  @prop({ type: "str", default: "", description: "Input image for image-to-video generation" })
+  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
+  @prop({ type: "image", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
@@ -2507,8 +2687,6 @@ replicate, ai`;
     const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
     const duration = Number(inputs.duration ?? this.duration ?? 5);
     const fps = String(inputs.fps ?? this.fps ?? 24);
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -2518,12 +2696,22 @@ replicate, ai`;
       "camera_fixed": cameraFixed,
       "duration": duration,
       "fps": fps,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedance-1-pro:a5fd550893da3b6f67997812759065652454ddaca10e96b83b59cbae1814cb36", args);
@@ -2553,16 +2741,16 @@ replicate, ai`;
   @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
   declare fps: any;
 
-  @prop({ type: "str", default: "", description: "Input image for image-to-video generation" })
+  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
+  @prop({ type: "image", default: "", description: "Input image for last frame generation. This only works if an image start frame is given too." })
   declare last_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "list[str]", default: [], description: "Reference images (1-4 images) to guide video generation for characters, avatars, clothing, environments, or multi-character interactions. Reference images cannot be used with 1080p resolution or first frame or last frame images." })
+  @prop({ type: "list[image]", default: [], description: "Reference images (1-4 images) to guide video generation for characters, avatars, clothing, environments, or multi-character interactions. Reference images cannot be used with 1080p resolution or first frame or last frame images." })
   declare reference_images: any;
 
   @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution" })
@@ -2577,10 +2765,7 @@ replicate, ai`;
     const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
     const duration = Number(inputs.duration ?? this.duration ?? 5);
     const fps = String(inputs.fps ?? this.fps ?? 24);
-    const image = String(inputs.image ?? this.image ?? "");
-    const lastFrameImage = String(inputs.last_frame_image ?? this.last_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImages = String(inputs.reference_images ?? this.reference_images ?? []);
     const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
@@ -2589,13 +2774,28 @@ replicate, ai`;
       "camera_fixed": cameraFixed,
       "duration": duration,
       "fps": fps,
-      "image": image,
-      "last_frame_image": lastFrameImage,
       "prompt": prompt,
-      "reference_images": referenceImages,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(lastFrameImageRef)) {
+      const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
+      if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
+    }
+
+    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImagesRef)) {
+      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedance-1-lite:78c9c4b0a7056c911b0483f58349b9931aff30d6465e7ab665e6c852949ce6d5", args);
@@ -2625,7 +2825,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 24, values: ["24"], description: "Frame rate (frames per second)" })
   declare fps: any;
 
-  @prop({ type: "str", default: "", description: "Input image for image-to-video generation" })
+  @prop({ type: "image", default: "", description: "Input image for image-to-video generation" })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
@@ -2643,7 +2843,6 @@ replicate, ai`;
     const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
     const duration = Number(inputs.duration ?? this.duration ?? 5);
     const fps = String(inputs.fps ?? this.fps ?? 24);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -2653,11 +2852,16 @@ replicate, ai`;
       "camera_fixed": cameraFixed,
       "duration": duration,
       "fps": fps,
-      "image": image,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedance-1-pro-fast:155d6d446da5e7cd4a2ef72725461ba8687bdf63a2a1fb7bb574f25af24dc7b5", args);
@@ -2684,7 +2888,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
   declare end_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
@@ -2696,7 +2900,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
   declare start_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
@@ -2707,24 +2911,32 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const concepts = String(inputs.concepts ?? this.concepts ?? []);
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const endImageUrl = String(inputs.end_image_url ?? this.end_image_url ?? "");
     const loop = Boolean(inputs.loop ?? this.loop ?? false);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
     const startImageUrl = String(inputs.start_image_url ?? this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "concepts": concepts,
       "duration": duration,
-      "end_image": endImage,
       "end_image_url": endImageUrl,
       "loop": loop,
       "prompt": prompt,
-      "start_image": startImage,
       "start_image_url": startImageUrl,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "luma/ray-2-540p:838565ddabd524ed2b1ab8011d811956b954b8f3716c7a15853fd326e826b6c7", args);
@@ -2751,7 +2963,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
   declare end_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
@@ -2763,7 +2975,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
   declare start_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
@@ -2774,24 +2986,32 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const concepts = String(inputs.concepts ?? this.concepts ?? []);
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const endImageUrl = String(inputs.end_image_url ?? this.end_image_url ?? "");
     const loop = Boolean(inputs.loop ?? this.loop ?? false);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
     const startImageUrl = String(inputs.start_image_url ?? this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "concepts": concepts,
       "duration": duration,
-      "end_image": endImage,
       "end_image_url": endImageUrl,
       "loop": loop,
       "prompt": prompt,
-      "start_image": startImage,
       "start_image_url": startImageUrl,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "luma/ray-2-720p:3ca2bc3597e124149bcae1f9c239790a58ba0f1aa72e1c8747192d2b44284dc4", args);
@@ -2818,7 +3038,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
   declare end_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
@@ -2830,7 +3050,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
   declare start_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
@@ -2841,24 +3061,32 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const concepts = String(inputs.concepts ?? this.concepts ?? []);
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const endImageUrl = String(inputs.end_image_url ?? this.end_image_url ?? "");
     const loop = Boolean(inputs.loop ?? this.loop ?? false);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
     const startImageUrl = String(inputs.start_image_url ?? this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "concepts": concepts,
       "duration": duration,
-      "end_image": endImage,
       "end_image_url": endImageUrl,
       "loop": loop,
       "prompt": prompt,
-      "start_image": startImage,
       "start_image_url": startImageUrl,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "luma/ray-flash-2-720p:4de59b4688ad158409be13c0c0c37ddfcf21824b2acf326505b03bcf679acab5", args);
@@ -2885,7 +3113,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 5, values: ["5", "9"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "An optional last frame of the video to use as the ending frame." })
+  @prop({ type: "image", default: "", description: "An optional last frame of the video to use as the ending frame." })
   declare end_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use end_image instead" })
@@ -2897,7 +3125,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "An optional first frame of the video to use as the starting frame." })
+  @prop({ type: "image", default: "", description: "An optional first frame of the video to use as the starting frame." })
   declare start_image: any;
 
   @prop({ type: "str", default: "", description: "Deprecated: Use start_image instead" })
@@ -2908,24 +3136,32 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const concepts = String(inputs.concepts ?? this.concepts ?? []);
     const duration = String(inputs.duration ?? this.duration ?? 5);
-    const endImage = String(inputs.end_image ?? this.end_image ?? "");
     const endImageUrl = String(inputs.end_image_url ?? this.end_image_url ?? "");
     const loop = Boolean(inputs.loop ?? this.loop ?? false);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const startImage = String(inputs.start_image ?? this.start_image ?? "");
     const startImageUrl = String(inputs.start_image_url ?? this.start_image_url ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "concepts": concepts,
       "duration": duration,
-      "end_image": endImage,
       "end_image_url": endImageUrl,
       "loop": loop,
       "prompt": prompt,
-      "start_image": startImage,
       "start_image_url": startImageUrl,
     };
+
+    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = assetToUrl(endImageRef!);
+      if (endImageUrl) args["end_image"] = endImageUrl;
+    }
+
+    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = assetToUrl(startImageRef!);
+      if (startImageUrl) args["start_image"] = startImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "luma/ray-flash-2-540p:ab7a8dbfe56fe6712c7a64f684930372677a31a3470d260f4786928395c1c5cc", args);
@@ -2946,7 +3182,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
+  @prop({ type: "image", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
   declare input_reference: any;
 
   @prop({ type: "str", default: "", description: "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI." })
@@ -2961,18 +3197,22 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "portrait");
-    const inputReference = String(inputs.input_reference ?? this.input_reference ?? "");
     const openaiApiKey = String(inputs.openai_api_key ?? this.openai_api_key ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seconds = String(inputs.seconds ?? this.seconds ?? 4);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "input_reference": inputReference,
       "openai_api_key": openaiApiKey,
       "prompt": prompt,
       "seconds": seconds,
     };
+
+    const inputReferenceRef = inputs.input_reference as Record<string, unknown> | undefined;
+    if (isRefSet(inputReferenceRef)) {
+      const inputReferenceUrl = assetToUrl(inputReferenceRef!);
+      if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/sora-2:763a9321f615f4867b1d7a2d53666200da21f71da358b12c9b25e0127edae014", args);
@@ -2993,7 +3233,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
+  @prop({ type: "image", default: "", description: "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video." })
   declare input_reference: any;
 
   @prop({ type: "str", default: "", description: "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI." })
@@ -3011,7 +3251,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "portrait");
-    const inputReference = String(inputs.input_reference ?? this.input_reference ?? "");
     const openaiApiKey = String(inputs.openai_api_key ?? this.openai_api_key ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "standard");
@@ -3019,12 +3258,17 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "input_reference": inputReference,
       "openai_api_key": openaiApiKey,
       "prompt": prompt,
       "resolution": resolution,
       "seconds": seconds,
     };
+
+    const inputReferenceRef = inputs.input_reference as Record<string, unknown> | undefined;
+    if (isRefSet(inputReferenceRef)) {
+      const inputReferenceUrl = assetToUrl(inputReferenceRef!);
+      if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/sora-2-pro:ccf1a58e3ec72e86d01ab19ef240009409f26a9a0470cc246a1728e54b0a6b8f", args);
@@ -3042,7 +3286,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
+  @prop({ type: "image", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]" })
@@ -3053,15 +3297,19 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const firstFrameImage = String(inputs.first_frame_image ?? this.first_frame_image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
-      "first_frame_image": firstFrameImage,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
+
+    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    if (isRefSet(firstFrameImageRef)) {
+      const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
+      if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/video-01-director:377cde553c72d2a8a034a2824a43b63b9472247d670dbb14d8c917abb2d39b64", args);

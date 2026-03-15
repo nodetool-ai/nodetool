@@ -119,23 +119,27 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image containing a human subject. Supported formats: JPEG, JPG, PNG. Max size: 4.7 MB. Resolution: 480x480 to 1920x1080." })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Template video whose motion, facial expressions, and lip movements will be applied to the image subject. Supported formats: MP4, MOV, WebM. Max duration: 30 seconds. Resolution: 200x200 to 2048x1440." })
+  @prop({ type: "video", default: "", description: "Template video whose motion, facial expressions, and lip movements will be applied to the image subject. Supported formats: MP4, MOV, WebM. Max duration: 30 seconds. Resolution: 200x200 to 2048x1440." })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const cutFirstSecond = Boolean(inputs.cut_first_second ?? this.cut_first_second ?? true);
-    const video = String(inputs.video ?? this.video ?? "");
 
     const args: Record<string, unknown> = {
       "cut_first_second": cutFirstSecond,
-      "video": video,
     };
 
     const imageRef = inputs.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
 
@@ -246,7 +250,7 @@ replicate, ai`;
   @prop({ type: "int", default: 512, description: "Height of output video" })
   declare height: any;
 
-  @prop({ type: "str", default: "", description: "Input image" })
+  @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
@@ -263,7 +267,6 @@ replicate, ai`;
     const fps = Number(inputs.fps ?? this.fps ?? 30);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
     const height = Number(inputs.height ?? this.height ?? 512);
-    const image = String(inputs.image ?? this.image ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const steps = Number(inputs.steps ?? this.steps ?? 25);
     const width = Number(inputs.width ?? this.width ?? 512);
@@ -272,7 +275,6 @@ replicate, ai`;
       "fps": fps,
       "guidance_scale": guidanceScale,
       "height": height,
-      "image": image,
       "seed": seed,
       "steps": steps,
       "width": width,
@@ -282,6 +284,12 @@ replicate, ai`;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
 
@@ -300,21 +308,28 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Input video file of a talking-head." })
+  @prop({ type: "image", default: "", description: "Input video file of a talking-head." })
   declare face: any;
 
-  @prop({ type: "str", default: "", description: "Input audio file. Avoid special symbol in the filename as it may cause ffmpeg erros." })
+  @prop({ type: "audio", default: "", description: "Input audio file. Avoid special symbol in the filename as it may cause ffmpeg erros." })
   declare input_audio: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const face = String(inputs.face ?? this.face ?? "");
-    const inputAudio = String(inputs.input_audio ?? this.input_audio ?? "");
-
     const args: Record<string, unknown> = {
-      "face": face,
-      "input_audio": inputAudio,
     };
+
+    const faceRef = inputs.face as Record<string, unknown> | undefined;
+    if (isRefSet(faceRef)) {
+      const faceUrl = assetToUrl(faceRef!);
+      if (faceUrl) args["face"] = faceUrl;
+    }
+
+    const inputAudioRef = inputs.input_audio as Record<string, unknown> | undefined;
+    if (isRefSet(inputAudioRef)) {
+      const inputAudioUrl = assetToUrl(inputAudioRef!);
+      if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "chenxwh/video-retalking:db5a650c807b007dc5f9e5abe27c53e1b62880d1f94d218d27ce7fa802711d67", args);
@@ -371,7 +386,7 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "First audio file for driving the conversation" })
+  @prop({ type: "audio", default: "", description: "First audio file for driving the conversation" })
   declare first_audio: any;
 
   @prop({ type: "image", default: "", description: "Reference image containing the person(s) for video generation" })
@@ -386,7 +401,7 @@ replicate, ai`;
   @prop({ type: "int", default: 40, description: "Number of sampling steps (higher = better quality, lower = faster)" })
   declare sampling_steps: any;
 
-  @prop({ type: "str", default: "", description: "Second audio file for multi-person conversation (optional)" })
+  @prop({ type: "audio", default: "", description: "Second audio file for multi-person conversation (optional)" })
   declare second_audio: any;
 
   @prop({ type: "int", default: -1, description: "Random seed for reproducible results" })
@@ -397,28 +412,36 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const firstAudio = String(inputs.first_audio ?? this.first_audio ?? "");
     const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
     const prompt = String(inputs.prompt ?? this.prompt ?? "A smiling man and woman wearing headphones sit in front of microphones, appearing to host a podcast.");
     const samplingSteps = Number(inputs.sampling_steps ?? this.sampling_steps ?? 40);
-    const secondAudio = String(inputs.second_audio ?? this.second_audio ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const turbo = Boolean(inputs.turbo ?? this.turbo ?? true);
 
     const args: Record<string, unknown> = {
-      "first_audio": firstAudio,
       "num_frames": numFrames,
       "prompt": prompt,
       "sampling_steps": samplingSteps,
-      "second_audio": secondAudio,
       "seed": seed,
       "turbo": turbo,
     };
+
+    const firstAudioRef = inputs.first_audio as Record<string, unknown> | undefined;
+    if (isRefSet(firstAudioRef)) {
+      const firstAudioUrl = assetToUrl(firstAudioRef!);
+      if (firstAudioUrl) args["first_audio"] = firstAudioUrl;
+    }
 
     const imageRef = inputs.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const secondAudioRef = inputs.second_audio as Record<string, unknown> | undefined;
+    if (isRefSet(secondAudioRef)) {
+      const secondAudioUrl = assetToUrl(secondAudioRef!);
+      if (secondAudioUrl) args["second_audio"] = secondAudioUrl;
     }
     removeNulls(args);
 
@@ -487,21 +510,28 @@ replicate, ai`;
     output: "video"
   };
 
-  @prop({ type: "str", default: "", description: "Input body image" })
+  @prop({ type: "image", default: "", description: "Input body image" })
   declare template_image: any;
 
-  @prop({ type: "str", default: "", description: "Input face image" })
+  @prop({ type: "image", default: "", description: "Input face image" })
   declare user_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const templateImage = String(inputs.template_image ?? this.template_image ?? "");
-    const userImage = String(inputs.user_image ?? this.user_image ?? "");
-
     const args: Record<string, unknown> = {
-      "template_image": templateImage,
-      "user_image": userImage,
     };
+
+    const templateImageRef = inputs.template_image as Record<string, unknown> | undefined;
+    if (isRefSet(templateImageRef)) {
+      const templateImageUrl = assetToUrl(templateImageRef!);
+      if (templateImageUrl) args["template_image"] = templateImageUrl;
+    }
+
+    const userImageRef = inputs.user_image as Record<string, unknown> | undefined;
+    if (isRefSet(userImageRef)) {
+      const userImageUrl = assetToUrl(userImageRef!);
+      if (userImageUrl) args["user_image"] = userImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", args);
@@ -519,21 +549,28 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Target image" })
+  @prop({ type: "image", default: "", description: "Target image" })
   declare input_image: any;
 
-  @prop({ type: "str", default: "", description: "Swap image" })
+  @prop({ type: "image", default: "", description: "Swap image" })
   declare swap_image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
-    const swapImage = String(inputs.swap_image ?? this.swap_image ?? "");
-
     const args: Record<string, unknown> = {
-      "input_image": inputImage,
-      "swap_image": swapImage,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
+
+    const swapImageRef = inputs.swap_image as Record<string, unknown> | undefined;
+    if (isRefSet(swapImageRef)) {
+      const swapImageUrl = assetToUrl(swapImageRef!);
+      if (swapImageUrl) args["swap_image"] = swapImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34", args);
@@ -557,10 +594,10 @@ replicate, ai`;
   @prop({ type: "enum", default: "user", values: ["user", "target"], description: "Choose whose hairstyle to preserve: 'user' preserves hairstyle from face image, 'target' preserves from target image" })
   declare hair_source: any;
 
-  @prop({ type: "str", default: "", description: "The face image to swap from" })
+  @prop({ type: "image", default: "", description: "The face image to swap from" })
   declare swap_image: any;
 
-  @prop({ type: "str", default: "", description: "Optional second face image to swap from" })
+  @prop({ type: "image", default: "", description: "Optional second face image to swap from" })
   declare swap_image_b: any;
 
   @prop({ type: "image", default: "", description: "The image to swap onto" })
@@ -579,8 +616,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const detailer = Boolean(inputs.detailer ?? this.detailer ?? false);
     const hairSource = String(inputs.hair_source ?? this.hair_source ?? "user");
-    const swapImage = String(inputs.swap_image ?? this.swap_image ?? "");
-    const swapImageB = String(inputs.swap_image_b ?? this.swap_image_b ?? "");
     const upscale = Boolean(inputs.upscale ?? this.upscale ?? true);
     const userBGender = String(inputs.user_b_gender ?? this.user_b_gender ?? "a woman");
     const userGender = String(inputs.user_gender ?? this.user_gender ?? "a woman");
@@ -588,12 +623,22 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "detailer": detailer,
       "hair_source": hairSource,
-      "swap_image": swapImage,
-      "swap_image_b": swapImageB,
       "upscale": upscale,
       "user_b_gender": userBGender,
       "user_gender": userGender,
     };
+
+    const swapImageRef = inputs.swap_image as Record<string, unknown> | undefined;
+    if (isRefSet(swapImageRef)) {
+      const swapImageUrl = assetToUrl(swapImageRef!);
+      if (swapImageUrl) args["swap_image"] = swapImageUrl;
+    }
+
+    const swapImageBRef = inputs.swap_image_b as Record<string, unknown> | undefined;
+    if (isRefSet(swapImageBRef)) {
+      const swapImageBUrl = assetToUrl(swapImageBRef!);
+      if (swapImageBUrl) args["swap_image_b"] = swapImageBUrl;
+    }
 
     const targetImageRef = inputs.target_image as Record<string, unknown> | undefined;
     if (isRefSet(targetImageRef)) {
@@ -647,16 +692,16 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Positive prompt" })
   declare positive_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Reference face image 1" })
+  @prop({ type: "image", default: "", description: "Reference face image 1" })
   declare reference_face_1: any;
 
-  @prop({ type: "str", default: "", description: "Reference face image 2" })
+  @prop({ type: "image", default: "", description: "Reference face image 2" })
   declare reference_face_2: any;
 
-  @prop({ type: "str", default: "", description: "Reference face image 3" })
+  @prop({ type: "image", default: "", description: "Reference face image 3" })
   declare reference_face_3: any;
 
-  @prop({ type: "str", default: "", description: "Reference face image 4" })
+  @prop({ type: "image", default: "", description: "Reference face image 4" })
   declare reference_face_4: any;
 
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
@@ -683,10 +728,6 @@ replicate, ai`;
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
     const positivePrompt = String(inputs.positive_prompt ?? this.positive_prompt ?? "");
-    const referenceFace_1 = String(inputs.reference_face_1 ?? this.reference_face_1 ?? "");
-    const referenceFace_2 = String(inputs.reference_face_2 ?? this.reference_face_2 ?? "");
-    const referenceFace_3 = String(inputs.reference_face_3 ?? this.reference_face_3 ?? "");
-    const referenceFace_4 = String(inputs.reference_face_4 ?? this.reference_face_4 ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stepToLaunchFaceGuidance = Number(inputs.step_to_launch_face_guidance ?? this.step_to_launch_face_guidance ?? 600);
     const steps = Number(inputs.steps ?? this.steps ?? 35);
@@ -703,15 +744,35 @@ replicate, ai`;
       "output_format": outputFormat,
       "output_quality": outputQuality,
       "positive_prompt": positivePrompt,
-      "reference_face_1": referenceFace_1,
-      "reference_face_2": referenceFace_2,
-      "reference_face_3": referenceFace_3,
-      "reference_face_4": referenceFace_4,
       "seed": seed,
       "step_to_launch_face_guidance": stepToLaunchFaceGuidance,
       "steps": steps,
       "text_control_scale": textControlScale,
     };
+
+    const referenceFace_1Ref = inputs.reference_face_1 as Record<string, unknown> | undefined;
+    if (isRefSet(referenceFace_1Ref)) {
+      const referenceFace_1Url = assetToUrl(referenceFace_1Ref!);
+      if (referenceFace_1Url) args["reference_face_1"] = referenceFace_1Url;
+    }
+
+    const referenceFace_2Ref = inputs.reference_face_2 as Record<string, unknown> | undefined;
+    if (isRefSet(referenceFace_2Ref)) {
+      const referenceFace_2Url = assetToUrl(referenceFace_2Ref!);
+      if (referenceFace_2Url) args["reference_face_2"] = referenceFace_2Url;
+    }
+
+    const referenceFace_3Ref = inputs.reference_face_3 as Record<string, unknown> | undefined;
+    if (isRefSet(referenceFace_3Ref)) {
+      const referenceFace_3Url = assetToUrl(referenceFace_3Ref!);
+      if (referenceFace_3Url) args["reference_face_3"] = referenceFace_3Url;
+    }
+
+    const referenceFace_4Ref = inputs.reference_face_4 as Record<string, unknown> | undefined;
+    if (isRefSet(referenceFace_4Ref)) {
+      const referenceFace_4Url = assetToUrl(referenceFace_4Ref!);
+      if (referenceFace_4Url) args["reference_face_4"] = referenceFace_4Url;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/flash-face:edb17f54faec253ee86e58e0b5f18f24a89c4e31fe7fcefa970e13d8ad934117", args);

@@ -491,7 +491,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "en", values: ["en", "es", "fr", "de", "it", "pt", "pl", "tr", "ru", "nl", "cs", "ar", "zh", "hu", "ko", "hi"], description: "Output language for the synthesised speech" })
   declare language: any;
 
-  @prop({ type: "str", default: "", description: "Original speaker audio (wav, mp3, m4a, ogg, or flv)" })
+  @prop({ type: "image", default: "", description: "Original speaker audio (wav, mp3, m4a, ogg, or flv)" })
   declare speaker: any;
 
   @prop({ type: "str", default: "Hi there, I'm your new voice clone. Try your best to upload quality audio", description: "Text to synthesize" })
@@ -501,15 +501,19 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const cleanupVoice = Boolean(inputs.cleanup_voice ?? this.cleanup_voice ?? false);
     const language = String(inputs.language ?? this.language ?? "en");
-    const speaker = String(inputs.speaker ?? this.speaker ?? "");
     const text = String(inputs.text ?? this.text ?? "Hi there, I'm your new voice clone. Try your best to upload quality audio");
 
     const args: Record<string, unknown> = {
       "cleanup_voice": cleanupVoice,
       "language": language,
-      "speaker": speaker,
       "text": text,
     };
+
+    const speakerRef = inputs.speaker as Record<string, unknown> | undefined;
+    if (isRefSet(speakerRef)) {
+      const speakerUrl = assetToUrl(speakerRef!);
+      if (speakerUrl) args["speaker"] = speakerUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "lucataco/xtts-v2:684bc3855b37866c0c65add2ff39c78f3dea3f4ff103a436465326e0f438d55e", args);
@@ -657,7 +661,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0.08, description: "Margin to the left of the editing segment" })
   declare left_margin: any;
 
-  @prop({ type: "str", default: "", description: "Original audio file" })
+  @prop({ type: "audio", default: "", description: "Original audio file" })
   declare orig_audio: any;
 
   @prop({ type: "str", default: "", description: "Optionally provide the transcript of the input audio. Leave it blank to use the WhisperX model below to generate the transcript. Inaccurate transcription may lead to error TTS or speech editing" })
@@ -698,7 +702,6 @@ replicate, ai`;
     const cutOffSec = Number(inputs.cut_off_sec ?? this.cut_off_sec ?? 3.01);
     const kvcache = String(inputs.kvcache ?? this.kvcache ?? 1);
     const leftMargin = Number(inputs.left_margin ?? this.left_margin ?? 0.08);
-    const origAudio = String(inputs.orig_audio ?? this.orig_audio ?? "");
     const origTranscript = String(inputs.orig_transcript ?? this.orig_transcript ?? "");
     const rightMargin = Number(inputs.right_margin ?? this.right_margin ?? 0.08);
     const sampleBatchSize = Number(inputs.sample_batch_size ?? this.sample_batch_size ?? 4);
@@ -715,7 +718,6 @@ replicate, ai`;
       "cut_off_sec": cutOffSec,
       "kvcache": kvcache,
       "left_margin": leftMargin,
-      "orig_audio": origAudio,
       "orig_transcript": origTranscript,
       "right_margin": rightMargin,
       "sample_batch_size": sampleBatchSize,
@@ -728,6 +730,12 @@ replicate, ai`;
       "voicecraft_model": voicecraftModel,
       "whisperx_model": whisperxModel,
     };
+
+    const origAudioRef = inputs.orig_audio as Record<string, unknown> | undefined;
+    if (isRefSet(origAudioRef)) {
+      const origAudioUrl = assetToUrl(origAudioRef!);
+      if (origAudioUrl) args["orig_audio"] = origAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "cjwbw/voicecraft:db97f6312d4c4d20e500e47fd95d8f14b00d8d28e046834faffb7999d83b6b30", args);
@@ -745,7 +753,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "Input reference audio" })
+  @prop({ type: "audio", default: "", description: "Input reference audio" })
   declare audio: any;
 
   @prop({ type: "enum", default: "EN_NEWEST", values: ["EN_NEWEST", "EN", "ES", "FR", "ZH", "JP", "KR"], description: "The language of the audio to be generated" })
@@ -759,17 +767,21 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
     const language = String(inputs.language ?? this.language ?? "EN_NEWEST");
     const speed = Number(inputs.speed ?? this.speed ?? 1);
     const text = String(inputs.text ?? this.text ?? "Did you ever hear a folk tale about a giant turtle?");
 
     const args: Record<string, unknown> = {
-      "audio": audio,
       "language": language,
       "speed": speed,
       "text": text,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "chenxwh/openvoice:d548923c9d7fc9330a3b7c7f9e2f91b2ee90c83311a351dfcd32af353799223d", args);
@@ -793,7 +805,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text to Generate" })
   declare gen_text: any;
 
-  @prop({ type: "str", default: "", description: "Reference audio for voice cloning" })
+  @prop({ type: "audio", default: "", description: "Reference audio for voice cloning" })
   declare ref_audio: any;
 
   @prop({ type: "str", default: "", description: "Reference Text" })
@@ -809,7 +821,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const customSplitWords = String(inputs.custom_split_words ?? this.custom_split_words ?? "");
     const genText = String(inputs.gen_text ?? this.gen_text ?? "");
-    const refAudio = String(inputs.ref_audio ?? this.ref_audio ?? "");
     const refText = String(inputs.ref_text ?? this.ref_text ?? "");
     const removeSilence = Boolean(inputs.remove_silence ?? this.remove_silence ?? true);
     const speed = Number(inputs.speed ?? this.speed ?? 1);
@@ -817,11 +828,16 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "custom_split_words": customSplitWords,
       "gen_text": genText,
-      "ref_audio": refAudio,
       "ref_text": refText,
       "remove_silence": removeSilence,
       "speed": speed,
     };
+
+    const refAudioRef = inputs.ref_audio as Record<string, unknown> | undefined;
+    if (isRefSet(refAudioRef)) {
+      const refAudioUrl = assetToUrl(refAudioRef!);
+      if (refAudioUrl) args["ref_audio"] = refAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "x-lance/f5-tts:87faf6dd7a692dd82043f662e76369cab126a2cf1937e25a9d41e0b834fd230e", args);
@@ -845,7 +861,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text to Generate" })
   declare gen_text: any;
 
-  @prop({ type: "str", default: "", description: "Reference audio for voice cloning" })
+  @prop({ type: "audio", default: "", description: "Reference audio for voice cloning" })
   declare ref_audio: any;
 
   @prop({ type: "str", default: "", description: "Reference Text" })
@@ -858,17 +874,21 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const customSplitWords = String(inputs.custom_split_words ?? this.custom_split_words ?? "");
     const genText = String(inputs.gen_text ?? this.gen_text ?? "");
-    const refAudio = String(inputs.ref_audio ?? this.ref_audio ?? "");
     const refText = String(inputs.ref_text ?? this.ref_text ?? "");
     const removeSilence = Boolean(inputs.remove_silence ?? this.remove_silence ?? true);
 
     const args: Record<string, unknown> = {
       "custom_split_words": customSplitWords,
       "gen_text": genText,
-      "ref_audio": refAudio,
       "ref_text": refText,
       "remove_silence": removeSilence,
     };
+
+    const refAudioRef = inputs.ref_audio as Record<string, unknown> | undefined;
+    if (isRefSet(refAudioRef)) {
+      const refAudioUrl = assetToUrl(refAudioRef!);
+      if (refAudioUrl) args["ref_audio"] = refAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "fermatresearch/spanish-f5-tts:f26405b801a0b0945679fb3adf9bbca7ab8559c7fd9cf7cd2a68067c3aab83f7", args);
@@ -892,7 +912,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "custom_voice", values: ["custom_voice", "voice_clone", "voice_design"], description: "TTS mode: 'custom_voice' uses preset speakers, 'voice_clone' clones from reference audio, 'voice_design' creates voice from description" })
   declare mode: any;
 
-  @prop({ type: "str", default: "", description: "Reference audio file for voice cloning (only for 'voice_clone' mode)" })
+  @prop({ type: "audio", default: "", description: "Reference audio file for voice cloning (only for 'voice_clone' mode)" })
   declare reference_audio: any;
 
   @prop({ type: "str", default: "", description: "Transcript of the reference audio (recommended for 'voice_clone' mode)" })
@@ -914,7 +934,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const language = String(inputs.language ?? this.language ?? "auto");
     const mode = String(inputs.mode ?? this.mode ?? "custom_voice");
-    const referenceAudio = String(inputs.reference_audio ?? this.reference_audio ?? "");
     const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
     const speaker = String(inputs.speaker ?? this.speaker ?? "Serena");
     const styleInstruction = String(inputs.style_instruction ?? this.style_instruction ?? "");
@@ -924,13 +943,18 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "language": language,
       "mode": mode,
-      "reference_audio": referenceAudio,
       "reference_text": referenceText,
       "speaker": speaker,
       "style_instruction": styleInstruction,
       "text": text,
       "voice_description": voiceDescription,
     };
+
+    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    if (isRefSet(referenceAudioRef)) {
+      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "qwen/qwen3-tts:501be1210291d541fb5656bbe4808e6290470741029a34004f19e20f6d2365e8", args);
@@ -948,7 +972,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "Path to the reference audio file (Optional)" })
+  @prop({ type: "audio", default: "", description: "Path to the reference audio file (Optional)" })
   declare audio_prompt: any;
 
   @prop({ type: "float", default: 0.5, description: "CFG/Pace weight" })
@@ -968,7 +992,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioPrompt = String(inputs.audio_prompt ?? this.audio_prompt ?? "");
     const cfgWeight = Number(inputs.cfg_weight ?? this.cfg_weight ?? 0.5);
     const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -976,13 +999,18 @@ replicate, ai`;
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
 
     const args: Record<string, unknown> = {
-      "audio_prompt": audioPrompt,
       "cfg_weight": cfgWeight,
       "exaggeration": exaggeration,
       "prompt": prompt,
       "seed": seed,
       "temperature": temperature,
     };
+
+    const audioPromptRef = inputs.audio_prompt as Record<string, unknown> | undefined;
+    if (isRefSet(audioPromptRef)) {
+      const audioPromptUrl = assetToUrl(audioPromptRef!);
+      if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "resemble-ai/chatterbox:1b8422bc49635c20d0a84e387ed20879c0dd09254ecdb4e75dc4bec10ff94e97", args);
@@ -1009,7 +1037,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "en", values: ["ar", "da", "de", "el", "en", "es", "fi", "fr", "he", "hi", "it", "ja", "ko", "ms", "nl", "no", "pl", "pt", "ru", "sv", "sw", "tr", "zh"], description: "Language for synthesis" })
   declare language: any;
 
-  @prop({ type: "str", default: "", description: "Reference audio file for voice cloning (optional). If not provided, uses default voice for the selected language." })
+  @prop({ type: "audio", default: "", description: "Reference audio file for voice cloning (optional). If not provided, uses default voice for the selected language." })
   declare reference_audio: any;
 
   @prop({ type: "int", default: 0, description: "Random seed for reproducible results (0 for random generation)" })
@@ -1026,7 +1054,6 @@ replicate, ai`;
     const cfgWeight = Number(inputs.cfg_weight ?? this.cfg_weight ?? 0.5);
     const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
     const language = String(inputs.language ?? this.language ?? "en");
-    const referenceAudio = String(inputs.reference_audio ?? this.reference_audio ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? 0);
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
     const text = String(inputs.text ?? this.text ?? "");
@@ -1035,11 +1062,16 @@ replicate, ai`;
       "cfg_weight": cfgWeight,
       "exaggeration": exaggeration,
       "language": language,
-      "reference_audio": referenceAudio,
       "seed": seed,
       "temperature": temperature,
       "text": text,
     };
+
+    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    if (isRefSet(referenceAudioRef)) {
+      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "resemble-ai/chatterbox-multilingual:9cfba4c265e685f840612be835424f8c33bdee685d7466ece7684b0d9d4c0b1c", args);
@@ -1114,7 +1146,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "Reference audio file for voice cloning (optional). Must be longer than 5 seconds. If provided, overrides the voice selection." })
+  @prop({ type: "audio", default: "", description: "Reference audio file for voice cloning (optional). Must be longer than 5 seconds. If provided, overrides the voice selection." })
   declare reference_audio: any;
 
   @prop({ type: "float", default: 1.2, description: "Penalizes token repetition. Higher values reduce repetition." })
@@ -1140,7 +1172,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const referenceAudio = String(inputs.reference_audio ?? this.reference_audio ?? "");
     const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.2);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
@@ -1150,7 +1181,6 @@ replicate, ai`;
     const voice = String(inputs.voice ?? this.voice ?? "Andy");
 
     const args: Record<string, unknown> = {
-      "reference_audio": referenceAudio,
       "repetition_penalty": repetitionPenalty,
       "seed": seed,
       "temperature": temperature,
@@ -1159,6 +1189,12 @@ replicate, ai`;
       "top_p": topP,
       "voice": voice,
     };
+
+    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    if (isRefSet(referenceAudioRef)) {
+      const referenceAudioUrl = assetToUrl(referenceAudioRef!);
+      if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "resemble-ai/chatterbox-turbo:95c87b883ff3e842a1643044dff67f9d204f70a80228f24ff64bffe4a4b917d4", args);
@@ -1623,7 +1659,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Enable volume normalization" })
   declare need_volume_normalization: any;
 
-  @prop({ type: "str", default: "", description: "Voice file to clone. Must be MP3, M4A, or WAV format, 10s to 5min duration, and less than 20MB." })
+  @prop({ type: "image", default: "", description: "Voice file to clone. Must be MP3, M4A, or WAV format, 10s to 5min duration, and less than 20MB." })
   declare voice_file: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -1632,15 +1668,19 @@ replicate, ai`;
     const model = String(inputs.model ?? this.model ?? "speech-02-turbo");
     const needNoiseReduction = Boolean(inputs.need_noise_reduction ?? this.need_noise_reduction ?? false);
     const needVolumeNormalization = Boolean(inputs.need_volume_normalization ?? this.need_volume_normalization ?? false);
-    const voiceFile = String(inputs.voice_file ?? this.voice_file ?? "");
 
     const args: Record<string, unknown> = {
       "accuracy": accuracy,
       "model": model,
       "need_noise_reduction": needNoiseReduction,
       "need_volume_normalization": needVolumeNormalization,
-      "voice_file": voiceFile,
     };
+
+    const voiceFileRef = inputs.voice_file as Record<string, unknown> | undefined;
+    if (isRefSet(voiceFileRef)) {
+      const voiceFileUrl = assetToUrl(voiceFileRef!);
+      if (voiceFileUrl) args["voice_file"] = voiceFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/voice-cloning:fff8a670880f066d3742838515a88f7f0a3ae40a4f2e06dae0f7f70ba63582d7", args);
@@ -1926,7 +1966,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
+  @prop({ type: "audio", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
   declare audio_chords: any;
 
   @prop({ type: "int", default: 0, description: "End time of the audio file to use for chord conditioning. If None, will default to the end of the audio clip." })
@@ -1982,7 +2022,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioChords = String(inputs.audio_chords ?? this.audio_chords ?? "");
     const audioEnd = Number(inputs.audio_end ?? this.audio_end ?? 0);
     const audioStart = Number(inputs.audio_start ?? this.audio_start ?? 0);
     const bpm = Number(inputs.bpm ?? this.bpm ?? 0);
@@ -2002,7 +2041,6 @@ replicate, ai`;
     const topP = Number(inputs.top_p ?? this.top_p ?? 0);
 
     const args: Record<string, unknown> = {
-      "audio_chords": audioChords,
       "audio_end": audioEnd,
       "audio_start": audioStart,
       "bpm": bpm,
@@ -2021,6 +2059,12 @@ replicate, ai`;
       "top_k": topK,
       "top_p": topP,
     };
+
+    const audioChordsRef = inputs.audio_chords as Record<string, unknown> | undefined;
+    if (isRefSet(audioChordsRef)) {
+      const audioChordsUrl = assetToUrl(audioChordsRef!);
+      if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "sakemin/musicgen-chord:c940ab4308578237484f90f010b2b3871bf64008e95f26f4d567529ad019a3d6", args);
@@ -2056,7 +2100,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "If 'True', the EnCodec tokens will be decoded with MultiBand Diffusion. Not compatible with 'stereo' models." })
   declare multi_band_diffusion: any;
 
-  @prop({ type: "str", default: "", description: "An audio file input for the remix." })
+  @prop({ type: "audio", default: "", description: "An audio file input for the remix." })
   declare music_input: any;
 
   @prop({ type: "enum", default: "loudness", values: ["loudness", "clip", "peak", "rms"], description: "Strategy for normalizing audio." })
@@ -2091,7 +2135,6 @@ replicate, ai`;
     const largeChordVoca = Boolean(inputs.large_chord_voca ?? this.large_chord_voca ?? true);
     const modelVersion = String(inputs.model_version ?? this.model_version ?? "stereo-chord");
     const multiBandDiffusion = Boolean(inputs.multi_band_diffusion ?? this.multi_band_diffusion ?? false);
-    const musicInput = String(inputs.music_input ?? this.music_input ?? "");
     const normalizationStrategy = String(inputs.normalization_strategy ?? this.normalization_strategy ?? "loudness");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -2108,7 +2151,6 @@ replicate, ai`;
       "large_chord_voca": largeChordVoca,
       "model_version": modelVersion,
       "multi_band_diffusion": multiBandDiffusion,
-      "music_input": musicInput,
       "normalization_strategy": normalizationStrategy,
       "output_format": outputFormat,
       "prompt": prompt,
@@ -2118,6 +2160,12 @@ replicate, ai`;
       "top_k": topK,
       "top_p": topP,
     };
+
+    const musicInputRef = inputs.music_input as Record<string, unknown> | undefined;
+    if (isRefSet(musicInputRef)) {
+      const musicInputUrl = assetToUrl(musicInputRef!);
+      if (musicInputUrl) args["music_input"] = musicInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "sakemin/musicgen-remixer:0b769f28e399c7c30e4f2360691b9b11c294183e9ab2fd9f3398127b556c86d7", args);
@@ -2135,7 +2183,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
+  @prop({ type: "audio", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
   declare audio_chords: any;
 
   @prop({ type: "int", default: 0, description: "End time of the audio file to use for chord conditioning. If None, will default to the end of the audio clip." })
@@ -2194,7 +2242,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioChords = String(inputs.audio_chords ?? this.audio_chords ?? "");
     const audioEnd = Number(inputs.audio_end ?? this.audio_end ?? 0);
     const audioStart = Number(inputs.audio_start ?? this.audio_start ?? 0);
     const bpm = Number(inputs.bpm ?? this.bpm ?? 0);
@@ -2215,7 +2262,6 @@ replicate, ai`;
     const topP = Number(inputs.top_p ?? this.top_p ?? 0);
 
     const args: Record<string, unknown> = {
-      "audio_chords": audioChords,
       "audio_end": audioEnd,
       "audio_start": audioStart,
       "bpm": bpm,
@@ -2235,6 +2281,12 @@ replicate, ai`;
       "top_k": topK,
       "top_p": topP,
     };
+
+    const audioChordsRef = inputs.audio_chords as Record<string, unknown> | undefined;
+    if (isRefSet(audioChordsRef)) {
+      const audioChordsUrl = assetToUrl(audioChordsRef!);
+      if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "sakemin/musicgen-stereo-chord:fbdc5ef7200220ed300015d9b4fd3f8e620f84547e970b23aa2be7f2ff366a5b", args);
@@ -2386,7 +2438,7 @@ replicate, ai`;
     output: "audio"
   };
 
-  @prop({ type: "str", default: "", description: "Optional audio file (.wav/.mp3/.flac) for voice cloning. The model will attempt to mimic this voice style." })
+  @prop({ type: "audio", default: "", description: "Optional audio file (.wav/.mp3/.flac) for voice cloning. The model will attempt to mimic this voice style." })
   declare audio_prompt: any;
 
   @prop({ type: "str", default: "", description: "Optional transcript of the audio prompt. If provided, this will be prepended to the main text input." })
@@ -2421,7 +2473,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioPrompt = String(inputs.audio_prompt ?? this.audio_prompt ?? "");
     const audioPromptText = String(inputs.audio_prompt_text ?? this.audio_prompt_text ?? "");
     const cfgFilterTopK = Number(inputs.cfg_filter_top_k ?? this.cfg_filter_top_k ?? 45);
     const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 3);
@@ -2434,7 +2485,6 @@ replicate, ai`;
     const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
-      "audio_prompt": audioPrompt,
       "audio_prompt_text": audioPromptText,
       "cfg_filter_top_k": cfgFilterTopK,
       "cfg_scale": cfgScale,
@@ -2446,6 +2496,12 @@ replicate, ai`;
       "text": text,
       "top_p": topP,
     };
+
+    const audioPromptRef = inputs.audio_prompt as Record<string, unknown> | undefined;
+    if (isRefSet(audioPromptRef)) {
+      const audioPromptUrl = assetToUrl(audioPromptRef!);
+      if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/dia:2119e338ca5c0dacd3def83158d6c80d431f2ac1024146d8cca9220b74385599", args);
@@ -2478,7 +2534,7 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed for reproducible outputs. Leave empty for random seed" })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Input video file (supports various formats)" })
+  @prop({ type: "video", default: "", description: "Input video file (supports various formats)" })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -2488,7 +2544,6 @@ replicate, ai`;
     const cot = String(inputs.cot ?? this.cot ?? "");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 24);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const video = String(inputs.video ?? this.video ?? "");
 
     const args: Record<string, unknown> = {
       "caption": caption,
@@ -2496,8 +2551,13 @@ replicate, ai`;
       "cot": cot,
       "num_inference_steps": numInferenceSteps,
       "seed": seed,
-      "video": video,
     };
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/thinksound:40d08f9f569e91a5d72f6795ebed75178c185b0434699a98c07fc5f566efb2d4", args);

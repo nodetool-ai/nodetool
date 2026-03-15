@@ -130,7 +130,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Link to a lora file you want to use in your upscaling. Multiple links possible, seperated by comma" })
   declare lora_links: any;
 
-  @prop({ type: "str", default: "", description: "Mask image to mark areas that should be preserved during upscaling" })
+  @prop({ type: "image", default: "", description: "Mask image to mark areas that should be preserved during upscaling" })
   declare mask: any;
 
   @prop({ type: "str", default: "(worst quality, low quality, normal quality:2) JuggernautNegative-neg", description: "Negative Prompt" })
@@ -181,7 +181,6 @@ replicate, ai`;
     const dynamic = Number(inputs.dynamic ?? this.dynamic ?? 6);
     const handfix = String(inputs.handfix ?? this.handfix ?? "disabled");
     const loraLinks = String(inputs.lora_links ?? this.lora_links ?? "");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "(worst quality, low quality, normal quality:2) JuggernautNegative-neg");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 18);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
@@ -204,7 +203,6 @@ replicate, ai`;
       "dynamic": dynamic,
       "handfix": handfix,
       "lora_links": loraLinks,
-      "mask": mask,
       "negative_prompt": negativePrompt,
       "num_inference_steps": numInferenceSteps,
       "output_format": outputFormat,
@@ -224,6 +222,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
 
@@ -1368,7 +1372,7 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Input image or video file" })
+  @prop({ type: "image", default: "", description: "Input image or video file" })
   declare input_file: any;
 
   @prop({ type: "enum", default: 4, values: ["2", "4"], description: "Upscaling factor (2x or 4x)" })
@@ -1376,13 +1380,17 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const inputFile = String(inputs.input_file ?? this.input_file ?? "");
     const scaleFactor = String(inputs.scale_factor ?? this.scale_factor ?? 4);
 
     const args: Record<string, unknown> = {
-      "input_file": inputFile,
       "scale_factor": scaleFactor,
     };
+
+    const inputFileRef = inputs.input_file as Record<string, unknown> | undefined;
+    if (isRefSet(inputFileRef)) {
+      const inputFileUrl = assetToUrl(inputFileRef!);
+      if (inputFileUrl) args["input_file"] = inputFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/bsrgan:1ae02b13920bbc43cedec32a680b836412a55d978d0a2f2f6a423acc85e332e4", args);
@@ -1436,7 +1444,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "For 'faces' mode: Indicates if the input images are already cropped and aligned to faces. If not, the model will attempt to do this." })
   declare has_aligned: any;
 
-  @prop({ type: "str", default: "", description: "Path to the input image you want to enhance." })
+  @prop({ type: "image", default: "", description: "Path to the input image you want to enhance." })
   declare input: any;
 
   @prop({ type: "bool", default: false, description: "For 'faces' mode: If multiple faces are detected, only enhance the center-most face in the image." })
@@ -1489,7 +1497,6 @@ replicate, ai`;
     const guidanceTimeStart = Number(inputs.guidance_time_start ?? this.guidance_time_start ?? 1001);
     const guidanceTimeStop = Number(inputs.guidance_time_stop ?? this.guidance_time_stop ?? -1);
     const hasAligned = Boolean(inputs.has_aligned ?? this.has_aligned ?? false);
-    const input = String(inputs.input ?? this.input ?? "");
     const onlyCenterFace = Boolean(inputs.only_center_face ?? this.only_center_face ?? false);
     const reloadRestorationModel = Boolean(inputs.reload_restoration_model ?? this.reload_restoration_model ?? false);
     const repeatTimes = Number(inputs.repeat_times ?? this.repeat_times ?? 1);
@@ -1516,7 +1523,6 @@ replicate, ai`;
       "guidance_time_start": guidanceTimeStart,
       "guidance_time_stop": guidanceTimeStop,
       "has_aligned": hasAligned,
-      "input": input,
       "only_center_face": onlyCenterFace,
       "reload_restoration_model": reloadRestorationModel,
       "repeat_times": repeatTimes,
@@ -1530,6 +1536,12 @@ replicate, ai`;
       "upscaling_model_type": upscalingModelType,
       "use_guidance": useGuidance,
     };
+
+    const inputRef = inputs.input as Record<string, unknown> | undefined;
+    if (isRefSet(inputRef)) {
+      const inputUrl = assetToUrl(inputRef!);
+      if (inputUrl) args["input"] = inputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/diffbir:51ed1464d8bbbaca811153b051d3b09ab42f0bdeb85804ae26ba323d7a66a4ac", args);
@@ -1550,7 +1562,7 @@ replicate, ai`;
   @prop({ type: "enum", default: 128, values: ["128", "256", "512"], description: "Chopping resolution" })
   declare chopping_size: any;
 
-  @prop({ type: "str", default: "", description: "Input low-quality image" })
+  @prop({ type: "image", default: "", description: "Input low-quality image" })
   declare in_path: any;
 
   @prop({ type: "enum", default: 1, values: ["1", "2", "3", "4", "5"], description: "Number of sampling steps." })
@@ -1562,16 +1574,20 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const choppingSize = String(inputs.chopping_size ?? this.chopping_size ?? 128);
-    const inPath = String(inputs.in_path ?? this.in_path ?? "");
     const numSteps = String(inputs.num_steps ?? this.num_steps ?? 1);
     const seed = Number(inputs.seed ?? this.seed ?? 12345);
 
     const args: Record<string, unknown> = {
       "chopping_size": choppingSize,
-      "in_path": inPath,
       "num_steps": numSteps,
       "seed": seed,
     };
+
+    const inPathRef = inputs.in_path as Record<string, unknown> | undefined;
+    if (isRefSet(inPathRef)) {
+      const inPathUrl = assetToUrl(inPathRef!);
+      if (inPathUrl) args["in_path"] = inPathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsyoaoa/invsr:37eebabfb6cdc4be2892b884b96b361d6fedc9f6a934d2fa3c1a2f85f004b0f0", args);

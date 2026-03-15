@@ -479,7 +479,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Image to moderate" })
+  @prop({ type: "image", default: "", description: "Image to moderate" })
   declare image: any;
 
   @prop({ type: "str", default: "Which one should I buy?", description: "User message to moderate" })
@@ -487,13 +487,17 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "Which one should I buy?");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "prompt": prompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "meta/llama-guard-3-11b-vision:21d9a2579c40ab00a401cd487c6fab3b3053ef582eb5c9ca06920c1c76bdebf1", args);
@@ -618,7 +622,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Whether to enable extended thinking mode (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare extended_thinking: any;
 
-  @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
+  @prop({ type: "image", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
 
   @prop({ type: "float", default: 0.5, description: "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money." })
@@ -639,7 +643,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const extendedThinking = Boolean(inputs.extended_thinking ?? this.extended_thinking ?? false);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -648,13 +651,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "extended_thinking": extendedThinking,
-      "image": image,
       "max_image_resolution": maxImageResolution,
       "max_tokens": maxTokens,
       "prompt": prompt,
       "system_prompt": systemPrompt,
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anthropic/claude-3.7-sonnet:81a891bd00c339f3565bda15b255b372eb8bf6c669fe996b66eea5d677454a46", args);
@@ -727,7 +735,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Allow GPT-5 to use web search for the response." })
   declare enable_web_search: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "list[dict[str, any]]", default: [], description: "A list of one or many input items to the model, containing different content types. This parameter corresponds with the 'input' OpenAI API parameter. For more details see: https://platform.openai.com/docs/api-reference/responses/create#responses_create-input. Similar to the 'messages' parameter, but with more flexibility in the content types." })
@@ -766,7 +774,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const enableWebSearch = Boolean(inputs.enable_web_search ?? this.enable_web_search ?? false);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const inputItemList = String(inputs.input_item_list ?? this.input_item_list ?? []);
     const instructions = String(inputs.instructions ?? this.instructions ?? "");
     const jsonSchema = String(inputs.json_schema ?? this.json_schema ?? "");
@@ -781,7 +788,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "enable_web_search": enableWebSearch,
-      "image_input": imageInput,
       "input_item_list": inputItemList,
       "instructions": instructions,
       "json_schema": jsonSchema,
@@ -794,6 +800,12 @@ replicate, ai`;
       "tools": tools,
       "verbosity": verbosity,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-5-structured:9f4cd9ec1133f55d442aeb426e42df5180a56e79a33183623611d62d4c3b44ae", args);
@@ -811,7 +823,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning)." })
@@ -834,7 +846,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -843,7 +854,6 @@ replicate, ai`;
     const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
@@ -851,6 +861,12 @@ replicate, ai`;
       "system_prompt": systemPrompt,
       "verbosity": verbosity,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-5:feacd077889bbeea463bb0314810093c23b2e1b49af8ca6f82975f8c36a2ebd0", args);
@@ -868,7 +884,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning)." })
@@ -891,7 +907,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -900,7 +915,6 @@ replicate, ai`;
     const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
@@ -908,6 +922,12 @@ replicate, ai`;
       "system_prompt": systemPrompt,
       "verbosity": verbosity,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-5-mini:8fd5dbfbc0f88570a4ba7f9d529aa02b10ca1f92d77c4ada0a56e549ffda0bae", args);
@@ -925,7 +945,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning)." })
@@ -948,7 +968,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -957,7 +976,6 @@ replicate, ai`;
     const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
@@ -965,6 +983,12 @@ replicate, ai`;
       "system_prompt": systemPrompt,
       "verbosity": verbosity,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-5-nano:034fc01c1d162ba028187fc496eb079e6c1329c1c8f686d971eba9d01e7ffb96", args);
@@ -985,7 +1009,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1012,7 +1036,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
@@ -1023,7 +1046,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "presence_penalty": presencePenalty,
@@ -1032,6 +1054,12 @@ replicate, ai`;
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4.1:f7e65222875892b7893e5c7581bdde9056c78cd77171a315c369b63b8907a619", args);
@@ -1052,7 +1080,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1079,7 +1107,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
@@ -1090,7 +1117,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "presence_penalty": presencePenalty,
@@ -1099,6 +1125,12 @@ replicate, ai`;
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4.1-mini:aca77ca43d7155cf9480ea2f697adf1c9c008ab5a471050cedb90dadfb5dc4cc", args);
@@ -1119,7 +1151,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1146,7 +1178,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
@@ -1157,7 +1188,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "presence_penalty": presencePenalty,
@@ -1166,6 +1196,12 @@ replicate, ai`;
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4.1-nano:756e9851b24d755bc245572b53d1f40121719eed75663c38ea6628202720a54b", args);
@@ -1240,10 +1276,10 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
+  @prop({ type: "audio", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
   declare images: any;
 
   @prop({ type: "int", default: 65535, description: "Maximum number of tokens to generate" })
@@ -1264,32 +1300,44 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass" })
   declare top_p: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
+  @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
-    const images = String(inputs.images ?? this.images ?? []);
     const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
     const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "high");
     const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const videos = String(inputs.videos ?? this.videos ?? []);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
-      "images": images,
       "max_output_tokens": maxOutputTokens,
       "prompt": prompt,
       "system_instruction": systemInstruction,
       "temperature": temperature,
       "thinking_level": thinkingLevel,
       "top_p": topP,
-      "videos": videos,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
+
+    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    if (isRefSet(videosRef)) {
+      const videosUrl = assetToUrl(videosRef!);
+      if (videosUrl) args["videos"] = videosUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/gemini-3.1-pro:68423ca56f33c1a05b4e763003d73aee779cb07f0e20903bcc956c1bacc655b6", args);
@@ -1310,7 +1358,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Enable dynamic thinking - the model will adjust the thinking budget based on the complexity of the request (overrides thinking_budget parameter)" })
   declare dynamic_thinking: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
   declare images: any;
 
   @prop({ type: "int", default: 65535, description: "Maximum number of tokens to generate" })
@@ -1331,32 +1379,40 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass" })
   declare top_p: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
+  @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const dynamicThinking = Boolean(inputs.dynamic_thinking ?? this.dynamic_thinking ?? false);
-    const images = String(inputs.images ?? this.images ?? []);
     const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
     const thinkingBudget = Number(inputs.thinking_budget ?? this.thinking_budget ?? 0);
     const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const videos = String(inputs.videos ?? this.videos ?? []);
 
     const args: Record<string, unknown> = {
       "dynamic_thinking": dynamicThinking,
-      "images": images,
       "max_output_tokens": maxOutputTokens,
       "prompt": prompt,
       "system_instruction": systemInstruction,
       "temperature": temperature,
       "thinking_budget": thinkingBudget,
       "top_p": topP,
-      "videos": videos,
     };
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
+
+    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    if (isRefSet(videosRef)) {
+      const videosUrl = assetToUrl(videosRef!);
+      if (videosUrl) args["videos"] = videosUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/gemini-2.5-flash:6585308f2652e91c80134f0e070d01bd66107b68590f50ff601860ea6902e813", args);
@@ -1374,10 +1430,10 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
+  @prop({ type: "audio", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
   declare images: any;
 
   @prop({ type: "int", default: 65535, description: "Maximum number of tokens to generate" })
@@ -1398,32 +1454,44 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass" })
   declare top_p: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
+  @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
-    const images = String(inputs.images ?? this.images ?? []);
     const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
     const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "");
     const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const videos = String(inputs.videos ?? this.videos ?? []);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
-      "images": images,
       "max_output_tokens": maxOutputTokens,
       "prompt": prompt,
       "system_instruction": systemInstruction,
       "temperature": temperature,
       "thinking_level": thinkingLevel,
       "top_p": topP,
-      "videos": videos,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
+
+    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    if (isRefSet(videosRef)) {
+      const videosUrl = assetToUrl(videosRef!);
+      if (videosUrl) args["videos"] = videosUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/gemini-3-pro:6c727b6aa9d5663b515ff4d6d36520213d9991d5078adeafce44e6e49ed6f6ac", args);
@@ -1441,7 +1509,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
+  @prop({ type: "image", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
 
   @prop({ type: "float", default: 0.5, description: "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money." })
@@ -1458,19 +1526,23 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "max_image_resolution": maxImageResolution,
       "max_tokens": maxTokens,
       "prompt": prompt,
       "system_prompt": systemPrompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anthropic/claude-opus-4.6:5a2f72c8a00f561d217e4b5d1f1f96727d6a86a73b6caf444545d67b26bdca46", args);
@@ -1488,7 +1560,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
+  @prop({ type: "image", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
 
   @prop({ type: "float", default: 0.5, description: "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money." })
@@ -1505,19 +1577,23 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "max_image_resolution": maxImageResolution,
       "max_tokens": maxTokens,
       "prompt": prompt,
       "system_prompt": systemPrompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anthropic/claude-4.5-sonnet:459655107e29a683cb6deb73a9640cf9aeae39ea7c87803a2ae81c311f6ef44f", args);
@@ -1535,7 +1611,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
+  @prop({ type: "image", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
 
   @prop({ type: "float", default: 0.5, description: "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money." })
@@ -1552,19 +1628,23 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "max_image_resolution": maxImageResolution,
       "max_tokens": maxTokens,
       "prompt": prompt,
       "system_prompt": systemPrompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anthropic/claude-4.5-haiku:1ad171f62532e2099a3ed7d8d80327911f5f8d332e83cf4c8959da0be9a8bf3e", args);
@@ -1585,7 +1665,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Whether to enable extended thinking mode (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare extended_thinking: any;
 
-  @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
+  @prop({ type: "image", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
 
   @prop({ type: "float", default: 0.5, description: "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money." })
@@ -1606,7 +1686,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const extendedThinking = Boolean(inputs.extended_thinking ?? this.extended_thinking ?? false);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1615,13 +1694,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "extended_thinking": extendedThinking,
-      "image": image,
       "max_image_resolution": maxImageResolution,
       "max_tokens": maxTokens,
       "prompt": prompt,
       "system_prompt": systemPrompt,
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "anthropic/claude-4-sonnet:3380fe4ca9cac053c89d1df86a5ba850e61cbef1d474a24abded9516e5a73a04", args);
@@ -1639,7 +1723,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning)." })
@@ -1662,7 +1746,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1671,7 +1754,6 @@ replicate, ai`;
     const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
@@ -1679,6 +1761,12 @@ replicate, ai`;
       "system_prompt": systemPrompt,
       "verbosity": verbosity,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-5.2:e805d0794e42cc941a20b67ef7e57e432a7e4abdd36d61dbc6c842e911a75ec4", args);
@@ -1696,7 +1784,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1716,7 +1804,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1724,13 +1811,18 @@ replicate, ai`;
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
       "reasoning_effort": reasoningEffort,
       "system_prompt": systemPrompt,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/o4-mini:04ce1dc5eea6a7dd3ef53f69c65f7933bd70ce76dedda7e9fbb8cdf316214cf7", args);
@@ -1748,7 +1840,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1768,7 +1860,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1776,13 +1867,18 @@ replicate, ai`;
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "prompt": prompt,
       "reasoning_effort": reasoningEffort,
       "system_prompt": systemPrompt,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/o1:729043ff117dccc608d5b114e55ffed41bc849f4d85f9e61cc164d8ddde781df", args);
@@ -1803,7 +1899,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1830,7 +1926,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
@@ -1841,7 +1936,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "presence_penalty": presencePenalty,
@@ -1850,6 +1944,12 @@ replicate, ai`;
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4o:42f4eb858641c70ce390c381605f5aed04eeb37554d299459429e14a33f88933", args);
@@ -1870,7 +1970,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
+  @prop({ type: "list[image]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
 
   @prop({ type: "int", default: 4096, description: "Maximum number of completion tokens to generate" })
@@ -1897,7 +1997,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
     const messages = String(inputs.messages ?? this.messages ?? []);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
@@ -1908,7 +2007,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image_input": imageInput,
       "max_completion_tokens": maxCompletionTokens,
       "messages": messages,
       "presence_penalty": presencePenalty,
@@ -1917,6 +2015,12 @@ replicate, ai`;
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4o-mini:86d7f12d34e3f9b6e149231f42154d0f41081d91484932e3f1ee608fc207f7d9", args);
@@ -2093,7 +2197,7 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
 
-  @prop({ type: "str", default: "", description: "Image file to analyze (optional). Will be resized if larger than 1024px." })
+  @prop({ type: "image", default: "", description: "Image file to analyze (optional). Will be resized if larger than 1024px." })
   declare image: any;
 
   @prop({ type: "int", default: 1024, description: "Maximum number of tokens to generate." })
@@ -2114,7 +2218,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const image = String(inputs.image ?? this.image ?? "");
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -2123,13 +2226,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
-      "image": image,
       "max_tokens": maxTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
       "temperature": temperature,
       "top_p": topP,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "moonshotai/kimi-k2.5:b4d8427a98a2de294f719d281c5218daebd44895b308ace34792d0746f6670ba", args);
