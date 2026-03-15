@@ -20,6 +20,7 @@ import { REPLICATE_VIDEO_ENHANCE_NODES } from "./generated/video-enhance.js";
 import { REPLICATE_VIDEO_FACE_NODES } from "./generated/video-face.js";
 import { REPLICATE_VIDEO_GENERATE_NODES } from "./generated/video-generate.js";
 import { REPLICATE_VIDEO_PROCESS_NODES } from "./generated/video-process.js";
+import { REPLICATE_EMBEDDING_NODES } from "./generated/embedding.js";
 
 export const REPLICATE_NODES: readonly NodeClass[] = [
   ...REPLICATE_AUDIO_ENHANCE_NODES,
@@ -41,6 +42,7 @@ export const REPLICATE_NODES: readonly NodeClass[] = [
   ...REPLICATE_VIDEO_FACE_NODES,
   ...REPLICATE_VIDEO_GENERATE_NODES,
   ...REPLICATE_VIDEO_PROCESS_NODES,
+  ...REPLICATE_EMBEDDING_NODES,
 ];
 
 export function registerReplicateNodes(registry: NodeRegistry): void {

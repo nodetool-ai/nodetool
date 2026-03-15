@@ -212,7 +212,7 @@ describe("ReplicateProvider", () => {
         },
         prompt: "",
       })
-    ).rejects.toThrow("prompt cannot be empty");
+    ).rejects.toThrow("Prompt is required");
   });
 
   it("textToImage polls when prediction is processing", async () => {

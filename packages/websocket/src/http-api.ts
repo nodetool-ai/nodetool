@@ -1682,7 +1682,7 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/replicate_status") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const replicateKey = process.env.REPLICATE_API_TOKEN ?? await getSecret("REPLICATE_API_TOKEN", "1");
+    const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
     const configured = Boolean(replicateKey);
     return jsonResponse({ configured });
   }
