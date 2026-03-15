@@ -58,7 +58,7 @@ const probeWebGpu = async (): Promise<GpuProbe | null> => {
     return null;
   }
   try {
-    const gpu = (navigator as { gpu: GPU }).gpu;
+    const gpu = (navigator as any).gpu;
     const adapter = await gpu.requestAdapter();
     if (!adapter) { return null; }
     const info = adapter.info;
