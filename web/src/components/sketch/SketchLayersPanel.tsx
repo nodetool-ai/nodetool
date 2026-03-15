@@ -16,7 +16,10 @@ import {
   Slider,
   Tooltip,
   Typography,
-  Divider
+  Divider,
+  Select,
+  MenuItem,
+  FormControl
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -26,7 +29,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MasksIcon from "@mui/icons-material/Masks";
-import { Layer } from "./types";
+import { Layer, BlendMode } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -100,6 +103,7 @@ export interface SketchLayersPanelProps {
   onMoveLayerDown: (index: number) => void;
   onSetMaskLayer: (layerId: string | null) => void;
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
+  onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
 }
 
@@ -116,6 +120,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onMoveLayerDown,
   onSetMaskLayer,
   onLayerOpacityChange,
+  onLayerBlendModeChange,
   onRenameLayer
 }) => {
   const theme = useTheme();
@@ -291,26 +296,44 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       <Divider />
 
-      {/* Active layer opacity */}
+      {/* Active layer opacity & blend mode */}
       {activeLayer && (
-        <Box className="opacity-row">
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.400" }}>
-            Opacity
-          </Typography>
-          <Slider
-            size="small"
-            min={0}
-            max={1}
-            step={0.01}
-            value={activeLayer.opacity}
-            onChange={(_, v) =>
-              onLayerOpacityChange(activeLayerId, v as number)
-            }
-          />
-          <Typography sx={{ fontSize: "0.7rem", minWidth: "30px", textAlign: "right" }}>
-            {Math.round(activeLayer.opacity * 100)}%
-          </Typography>
-        </Box>
+        <>
+          <Box className="opacity-row">
+            <Typography sx={{ fontSize: "0.7rem", color: "grey.400" }}>
+              Opacity
+            </Typography>
+            <Slider
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={activeLayer.opacity}
+              onChange={(_, v) =>
+                onLayerOpacityChange(activeLayerId, v as number)
+              }
+            />
+            <Typography sx={{ fontSize: "0.7rem", minWidth: "30px", textAlign: "right" }}>
+              {Math.round(activeLayer.opacity * 100)}%
+            </Typography>
+          </Box>
+          <FormControl size="small" sx={{ px: "6px" }}>
+            <Select
+              value={activeLayer.blendMode || "normal"}
+              onChange={(e) =>
+                onLayerBlendModeChange(activeLayerId, e.target.value as BlendMode)
+              }
+              sx={{ fontSize: "0.7rem", height: "28px" }}
+            >
+              <MenuItem value="normal">Normal</MenuItem>
+              <MenuItem value="multiply">Multiply</MenuItem>
+              <MenuItem value="screen">Screen</MenuItem>
+              <MenuItem value="overlay">Overlay</MenuItem>
+              <MenuItem value="darken">Darken</MenuItem>
+              <MenuItem value="lighten">Lighten</MenuItem>
+            </Select>
+          </FormControl>
+        </>
       )}
     </Box>
   );

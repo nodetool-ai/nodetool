@@ -2,7 +2,8 @@
  * SketchCanvas
  *
  * Core canvas rendering and drawing engine for the sketch editor.
- * Manages raster drawing with brush and eraser tools, zoom/pan, and layer compositing.
+ * Manages raster drawing with brush/eraser/shape/fill tools, zoom/pan,
+ * layer compositing with blend modes, and shape preview overlay.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -21,7 +22,11 @@ import {
   SketchTool,
   BrushSettings,
   EraserSettings,
-  Point
+  ShapeSettings,
+  FillSettings,
+  Point,
+  BlendMode,
+  isShapeTool
 } from "./types";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -45,15 +50,10 @@ const styles = (theme: Theme) =>
 // ─── Canvas Ref Interface ────────────────────────────────────────────────────
 
 export interface SketchCanvasRef {
-  /** Get the current active layer's canvas data as data URL */
   getLayerData: (layerId: string) => string | null;
-  /** Load data URL into a layer's offscreen canvas */
   setLayerData: (layerId: string, data: string | null) => void;
-  /** Flatten all visible layers to a single canvas and return data URL */
   flattenToDataUrl: () => string;
-  /** Get mask layer data URL */
   getMaskDataUrl: () => string | null;
-  /** Clear a layer */
   clearLayer: (layerId: string) => void;
 }
 
@@ -64,10 +64,24 @@ export interface SketchCanvasProps {
   activeTool: SketchTool;
   zoom: number;
   pan: Point;
+  mirrorX: boolean;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
+}
+
+// ─── Blend mode mapping ──────────────────────────────────────────────────────
+
+function blendModeToComposite(mode: BlendMode): GlobalCompositeOperation {
+  switch (mode) {
+    case "multiply": return "multiply";
+    case "screen": return "screen";
+    case "overlay": return "overlay";
+    case "darken": return "darken";
+    case "lighten": return "lighten";
+    default: return "source-over";
+  }
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -79,6 +93,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       activeTool,
       zoom,
       pan,
+      mirrorX,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -88,6 +103,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const theme = useTheme();
     const containerRef = useRef<HTMLDivElement>(null);
     const displayCanvasRef = useRef<HTMLCanvasElement>(null);
+    const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
     const isDrawingRef = useRef(false);
     const lastPointRef = useRef<Point | null>(null);
@@ -95,7 +111,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const panStartRef = useRef<Point>({ x: 0, y: 0 });
     const panOffsetRef = useRef<Point>(pan);
 
-    // Keep pan ref in sync
+    // Shape tool state
+    const shapeStartRef = useRef<Point | null>(null);
+
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
@@ -119,7 +137,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Initialize layer canvases from document data ─────────────────
 
     useEffect(() => {
-      // Clean up canvases for layers that no longer exist
       const layerIds = new Set(doc.layers.map((l) => l.id));
       for (const [id] of layerCanvasesRef.current) {
         if (!layerIds.has(id)) {
@@ -127,7 +144,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
       }
 
-      // Load layer data into canvases
       for (const layer of doc.layers) {
         const canvas = getOrCreateLayerCanvas(layer.id);
         if (canvas.width !== doc.canvas.width || canvas.height !== doc.canvas.height) {
@@ -163,19 +179,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       }
 
       ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
-
-      // Fill background
-      ctx.fillStyle = doc.canvas.backgroundColor;
-      ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
-
-      // Draw checkerboard for transparency visualization
       drawCheckerboard(ctx, displayCanvas.width, displayCanvas.height);
 
-      // Fill background again on top of checkerboard
       ctx.fillStyle = doc.canvas.backgroundColor;
       ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
 
-      // Composite visible layers bottom to top
       for (const layer of doc.layers) {
         if (!layer.visible) {
           continue;
@@ -184,13 +192,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (!layerCanvas) {
           continue;
         }
+        ctx.save();
         ctx.globalAlpha = layer.opacity;
+        ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
         ctx.drawImage(layerCanvas, 0, 0);
+        ctx.restore();
       }
-      ctx.globalAlpha = 1;
     }, [doc.layers, doc.canvas.backgroundColor]);
 
-    // Redraw when layers or visibility changes
     useEffect(() => {
       redraw();
     }, [redraw, doc.layers]);
@@ -206,12 +215,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineWidth = settings.size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-
-        // Hardness affects blur
         if (settings.hardness < 1) {
           ctx.filter = `blur(${(1 - settings.hardness) * settings.size * 0.3}px)`;
         }
-
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
@@ -230,7 +236,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineWidth = settings.size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
@@ -240,16 +245,184 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       []
     );
 
+    // ─── Shape Drawing ────────────────────────────────────────────────
+
+    const drawShapeOnCtx = useCallback(
+      (
+        ctx: CanvasRenderingContext2D,
+        tool: SketchTool,
+        start: Point,
+        end: Point,
+        settings: ShapeSettings
+      ) => {
+        ctx.save();
+        ctx.strokeStyle = settings.strokeColor;
+        ctx.lineWidth = settings.strokeWidth;
+        ctx.fillStyle = settings.fillColor;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        switch (tool) {
+          case "rectangle": {
+            const x = Math.min(start.x, end.x);
+            const y = Math.min(start.y, end.y);
+            const w = Math.abs(end.x - start.x);
+            const h = Math.abs(end.y - start.y);
+            if (settings.filled) {
+              ctx.fillRect(x, y, w, h);
+            }
+            ctx.strokeRect(x, y, w, h);
+            break;
+          }
+          case "ellipse": {
+            const cx = (start.x + end.x) / 2;
+            const cy = (start.y + end.y) / 2;
+            const rx = Math.abs(end.x - start.x) / 2;
+            const ry = Math.abs(end.y - start.y) / 2;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, Math.max(rx, 0.1), Math.max(ry, 0.1), 0, 0, Math.PI * 2);
+            if (settings.filled) {
+              ctx.fill();
+            }
+            ctx.stroke();
+            break;
+          }
+          case "line": {
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+            break;
+          }
+          case "arrow": {
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+            const angle = Math.atan2(end.y - start.y, end.x - start.x);
+            const headLen = Math.max(settings.strokeWidth * 3, 10);
+            ctx.beginPath();
+            ctx.moveTo(end.x, end.y);
+            ctx.lineTo(
+              end.x - headLen * Math.cos(angle - Math.PI / 6),
+              end.y - headLen * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(end.x, end.y);
+            ctx.lineTo(
+              end.x - headLen * Math.cos(angle + Math.PI / 6),
+              end.y - headLen * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+            break;
+          }
+        }
+        ctx.restore();
+      },
+      []
+    );
+
+    // ─── Flood Fill ───────────────────────────────────────────────────
+
+    const floodFill = useCallback(
+      (ctx: CanvasRenderingContext2D, startX: number, startY: number, settings: FillSettings) => {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        const sx = Math.round(startX);
+        const sy = Math.round(startY);
+        if (sx < 0 || sx >= w || sy < 0 || sy >= h) {
+          return;
+        }
+
+        const fillR = parseInt(settings.color.slice(1, 3), 16);
+        const fillG = parseInt(settings.color.slice(3, 5), 16);
+        const fillB = parseInt(settings.color.slice(5, 7), 16);
+
+        const idx = (sy * w + sx) * 4;
+        const targetR = data[idx];
+        const targetG = data[idx + 1];
+        const targetB = data[idx + 2];
+        const targetA = data[idx + 3];
+
+        if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === 255) {
+          return;
+        }
+
+        const tolerance = settings.tolerance;
+        const matches = (i: number): boolean => {
+          return (
+            Math.abs(data[i] - targetR) <= tolerance &&
+            Math.abs(data[i + 1] - targetG) <= tolerance &&
+            Math.abs(data[i + 2] - targetB) <= tolerance &&
+            Math.abs(data[i + 3] - targetA) <= tolerance
+          );
+        };
+
+        const stack: [number, number][] = [[sx, sy]];
+        const visited = new Uint8Array(w * h);
+
+        while (stack.length > 0) {
+          const [x, y] = stack.pop()!;
+          const pi = y * w + x;
+          if (x < 0 || x >= w || y < 0 || y >= h || visited[pi]) {
+            continue;
+          }
+          const i = pi * 4;
+          if (!matches(i)) {
+            continue;
+          }
+          visited[pi] = 1;
+          data[i] = fillR;
+          data[i + 1] = fillG;
+          data[i + 2] = fillB;
+          data[i + 3] = 255;
+
+          stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      },
+      []
+    );
+
+    // ─── Overlay (shape preview) ──────────────────────────────────────
+
+    const clearOverlay = useCallback(() => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+      }
+    }, []);
+
+    const drawOverlayShape = useCallback(
+      (start: Point, end: Point) => {
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) {
+          return;
+        }
+        const ctx = overlay.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        drawShapeOnCtx(ctx, activeTool, start, end, doc.toolSettings.shape);
+      },
+      [activeTool, doc.toolSettings.shape, drawShapeOnCtx]
+    );
+
     // ─── Coordinate Transform ─────────────────────────────────────────
 
     const screenToCanvas = useCallback(
       (clientX: number, clientY: number): Point => {
-        const container = containerRef.current;
         const displayCanvas = displayCanvasRef.current;
-        if (!container || !displayCanvas) {
+        if (!displayCanvas) {
           return { x: 0, y: 0 };
         }
-
         const rect = displayCanvas.getBoundingClientRect();
         const x = (clientX - rect.left) / zoom;
         const y = (clientY - rect.top) / zoom;
@@ -258,14 +431,36 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [zoom]
     );
 
+    // ─── Helper: perform mirrored drawing ─────────────────────────────
+
+    const withMirror = useCallback(
+      (
+        ctx: CanvasRenderingContext2D,
+        drawFn: (from: Point, to: Point, c: CanvasRenderingContext2D) => void,
+        from: Point,
+        to: Point
+      ) => {
+        drawFn(from, to, ctx);
+        if (mirrorX) {
+          const cw = doc.canvas.width;
+          const mirroredFrom = { x: cw - from.x, y: from.y };
+          const mirroredTo = { x: cw - to.x, y: to.y };
+          drawFn(mirroredFrom, mirroredTo, ctx);
+        }
+      },
+      [mirrorX, doc.canvas.width]
+    );
+
     // ─── Pointer Events ──────────────────────────────────────────────
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
-        // Middle mouse or space+click for panning
         if (e.button === 1 || (e.button === 0 && e.altKey)) {
           isPanningRef.current = true;
-          panStartRef.current = { x: e.clientX - panOffsetRef.current.x, y: e.clientY - panOffsetRef.current.y };
+          panStartRef.current = {
+            x: e.clientX - panOffsetRef.current.x,
+            y: e.clientY - panOffsetRef.current.y
+          };
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           return;
         }
@@ -280,7 +475,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "eyedropper") {
-          // Pick color from display canvas
           const displayCanvas = displayCanvasRef.current;
           if (displayCanvas) {
             const ctx = displayCanvas.getContext("2d");
@@ -288,16 +482,34 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               const pt = screenToCanvas(e.clientX, e.clientY);
               const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
               const hex = `#${pixel[0].toString(16).padStart(2, "0")}${pixel[1].toString(16).padStart(2, "0")}${pixel[2].toString(16).padStart(2, "0")}`;
-              // We don't have direct access to setBrushSettings here,
-              // so emit a custom event that the parent can handle
               containerRef.current?.dispatchEvent(
-                new CustomEvent("sketch-eyedropper", {
-                  detail: { color: hex },
-                  bubbles: true
-                })
+                new CustomEvent("sketch-eyedropper", { detail: { color: hex }, bubbles: true })
               );
             }
           }
+          return;
+        }
+
+        if (activeTool === "fill") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+          const ctx = layerCanvas.getContext("2d");
+          if (ctx) {
+            onStrokeStart();
+            floodFill(ctx, pt.x, pt.y, doc.toolSettings.fill);
+            redraw();
+            const data = layerCanvas.toDataURL("image/png");
+            onStrokeEnd(activeLayer.id, data);
+          }
+          return;
+        }
+
+        if (isShapeTool(activeTool)) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          shapeStartRef.current = pt;
+          isDrawingRef.current = true;
+          onStrokeStart();
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
           return;
         }
 
@@ -306,14 +518,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         lastPointRef.current = pt;
         onStrokeStart();
 
-        // Draw a single dot at the start point
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
           if (activeTool === "brush") {
-            drawBrushStroke(pt, pt, doc.toolSettings.brush, ctx);
+            withMirror(
+              ctx,
+              (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+              pt, pt
+            );
           } else if (activeTool === "eraser") {
-            drawEraserStroke(pt, pt, doc.toolSettings.eraser, ctx);
+            withMirror(
+              ctx,
+              (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+              pt, pt
+            );
           }
           redraw();
         }
@@ -321,8 +540,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
       },
       [
-        doc, activeTool, screenToCanvas, onStrokeStart,
-        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke, redraw
+        doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd,
+        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke,
+        floodFill, redraw, withMirror
       ]
     );
 
@@ -338,16 +558,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
-        if (!isDrawingRef.current || !lastPointRef.current) {
+        if (!isDrawingRef.current) {
           return;
         }
 
+        const pt = screenToCanvas(e.clientX, e.clientY);
+
+        if (isShapeTool(activeTool) && shapeStartRef.current) {
+          drawOverlayShape(shapeStartRef.current, pt);
+          return;
+        }
+
+        if (!lastPointRef.current) {
+          return;
+        }
         const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
         if (!activeLayer) {
           return;
         }
 
-        const pt = screenToCanvas(e.clientX, e.clientY);
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (!ctx) {
@@ -355,17 +584,26 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "brush") {
-          drawBrushStroke(lastPointRef.current, pt, doc.toolSettings.brush, ctx);
+          withMirror(
+            ctx,
+            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+            lastPointRef.current, pt
+          );
         } else if (activeTool === "eraser") {
-          drawEraserStroke(lastPointRef.current, pt, doc.toolSettings.eraser, ctx);
+          withMirror(
+            ctx,
+            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+            lastPointRef.current, pt
+          );
         }
 
         lastPointRef.current = pt;
         redraw();
       },
       [
-        doc, activeTool, screenToCanvas,
-        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke, redraw, onPanChange
+        doc, activeTool, screenToCanvas, onPanChange,
+        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke,
+        drawOverlayShape, redraw, withMirror
       ]
     );
 
@@ -380,17 +618,32 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
         isDrawingRef.current = false;
+
+        const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+
+        if (isShapeTool(activeTool) && shapeStartRef.current && activeLayer) {
+          const overlay = overlayCanvasRef.current;
+          if (overlay) {
+            const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+            const ctx = layerCanvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(overlay, 0, 0);
+              clearOverlay();
+              redraw();
+            }
+          }
+          shapeStartRef.current = null;
+        }
+
         lastPointRef.current = null;
 
-        // Emit the updated layer data
-        const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
         if (activeLayer) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
           const data = layerCanvas ? layerCanvas.toDataURL("image/png") : null;
           onStrokeEnd(activeLayer.id, data);
         }
       },
-      [doc.layers, doc.activeLayerId, onStrokeEnd]
+      [doc.layers, doc.activeLayerId, activeTool, onStrokeEnd, getOrCreateLayerCanvas, clearOverlay, redraw]
     );
 
     // ─── Wheel zoom ──────────────────────────────────────────────────
@@ -448,11 +701,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             }
             const layerCanvas = layerCanvasesRef.current.get(layer.id);
             if (layerCanvas) {
+              ctx.save();
               ctx.globalAlpha = layer.opacity;
+              ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
               ctx.drawImage(layerCanvas, 0, 0);
+              ctx.restore();
             }
           }
-          ctx.globalAlpha = 1;
           return canvas.toDataURL("image/png");
         },
         getMaskDataUrl: () => {
@@ -497,6 +752,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           width={doc.canvas.width}
           height={doc.canvas.height}
           style={canvasStyle}
+        />
+        {/* Overlay canvas for shape preview */}
+        <canvas
+          ref={overlayCanvasRef}
+          width={doc.canvas.width}
+          height={doc.canvas.height}
+          style={{ ...canvasStyle, pointerEvents: "none" }}
         />
       </div>
     );

@@ -14,6 +14,9 @@ import {
   Point,
   BrushSettings,
   EraserSettings,
+  ShapeSettings,
+  FillSettings,
+  BlendMode,
   createDefaultDocument,
   createDefaultLayer,
   generateLayerId,
@@ -40,6 +43,8 @@ export interface SketchStore {
   setActiveTool: (tool: SketchTool) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
+  setShapeSettings: (settings: Partial<ShapeSettings>) => void;
+  setFillSettings: (settings: Partial<FillSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -52,6 +57,7 @@ export interface SketchStore {
   reorderLayers: (fromIndex: number, toIndex: number) => void;
   toggleLayerVisibility: (layerId: string) => void;
   setLayerOpacity: (layerId: string, opacity: number) => void;
+  setLayerBlendMode: (layerId: string, blendMode: BlendMode) => void;
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setMaskLayer: (layerId: string | null) => void;
@@ -120,6 +126,36 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           eraser: { ...state.document.toolSettings.eraser, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setShapeSettings: (settings: Partial<ShapeSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          shape: { ...state.document.toolSettings.shape, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setFillSettings: (settings: Partial<FillSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          fill: { ...state.document.toolSettings.fill, ...settings }
         },
         metadata: {
           ...state.document.metadata,
@@ -241,6 +277,16 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         layers: state.document.layers.map((l) =>
           l.id === layerId ? { ...l, opacity: Math.max(0, Math.min(1, opacity)) } : l
+        )
+      }
+    })),
+
+  setLayerBlendMode: (layerId: string, blendMode: BlendMode) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, blendMode } : l
         )
       }
     })),

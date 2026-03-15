@@ -9,8 +9,12 @@ import {
   generateLayerId,
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_FILL_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
-  MAX_HISTORY_SIZE
+  DEFAULT_SWATCHES,
+  MAX_HISTORY_SIZE,
+  isShapeTool
 } from "../types";
 
 describe("Sketch Types", () => {
@@ -73,6 +77,11 @@ describe("Sketch Types", () => {
       expect(layer.data).toBeNull();
     });
 
+    it("creates layers with default blendMode of 'normal'", () => {
+      const layer = createDefaultLayer("Test");
+      expect(layer.blendMode).toBe("normal");
+    });
+
     it("creates a mask layer when specified", () => {
       const layer = createDefaultLayer("Mask", "mask");
       expect(layer.type).toBe("mask");
@@ -116,8 +125,51 @@ describe("Sketch Types", () => {
       expect(DEFAULT_ERASER_SETTINGS.opacity).toBeLessThanOrEqual(1);
     });
 
+    it("has valid shape defaults", () => {
+      expect(DEFAULT_SHAPE_SETTINGS.strokeWidth).toBeGreaterThan(0);
+      expect(DEFAULT_SHAPE_SETTINGS.strokeColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(DEFAULT_SHAPE_SETTINGS.fillColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(typeof DEFAULT_SHAPE_SETTINGS.filled).toBe("boolean");
+    });
+
+    it("has valid fill defaults", () => {
+      expect(DEFAULT_FILL_SETTINGS.color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(DEFAULT_FILL_SETTINGS.tolerance).toBeGreaterThanOrEqual(0);
+      expect(DEFAULT_FILL_SETTINGS.tolerance).toBeLessThanOrEqual(255);
+    });
+
+    it("has all tool settings in DEFAULT_TOOL_SETTINGS", () => {
+      expect(DEFAULT_TOOL_SETTINGS.brush).toBeDefined();
+      expect(DEFAULT_TOOL_SETTINGS.eraser).toBeDefined();
+      expect(DEFAULT_TOOL_SETTINGS.shape).toBeDefined();
+      expect(DEFAULT_TOOL_SETTINGS.fill).toBeDefined();
+    });
+
     it("has valid history size limit", () => {
       expect(MAX_HISTORY_SIZE).toBeGreaterThan(0);
+    });
+
+    it("has non-empty default swatches", () => {
+      expect(DEFAULT_SWATCHES.length).toBeGreaterThan(0);
+      for (const swatch of DEFAULT_SWATCHES) {
+        expect(swatch).toMatch(/^#[0-9a-fA-F]{6}$/);
+      }
+    });
+  });
+
+  describe("isShapeTool", () => {
+    it("returns true for shape tools", () => {
+      expect(isShapeTool("line")).toBe(true);
+      expect(isShapeTool("rectangle")).toBe(true);
+      expect(isShapeTool("ellipse")).toBe(true);
+      expect(isShapeTool("arrow")).toBe(true);
+    });
+
+    it("returns false for non-shape tools", () => {
+      expect(isShapeTool("brush")).toBe(false);
+      expect(isShapeTool("eraser")).toBe(false);
+      expect(isShapeTool("eyedropper")).toBe(false);
+      expect(isShapeTool("fill")).toBe(false);
     });
   });
 });

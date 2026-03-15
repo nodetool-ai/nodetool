@@ -16,10 +16,14 @@ export { useSketchStore } from "./state";
 export type {
   SketchDocument,
   SketchTool,
+  ShapeToolType,
   Layer,
   LayerType,
+  BlendMode,
   BrushSettings,
   EraserSettings,
+  ShapeSettings,
+  FillSettings,
   ToolSettings,
   Point,
   Size,
@@ -32,10 +36,14 @@ export {
   SKETCH_FORMAT_VERSION,
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_FILL_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
+  DEFAULT_SWATCHES,
   createDefaultDocument,
   createDefaultLayer,
   generateLayerId,
+  isShapeTool,
   MAX_HISTORY_SIZE
 } from "./types";
 

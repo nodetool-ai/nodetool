@@ -1,8 +1,8 @@
 /**
  * SketchToolbar
  *
- * Toolbar for the sketch editor with tool selection, brush/eraser settings,
- * and undo/redo controls.
+ * Toolbar for the sketch editor with tool selection, settings panels for
+ * brush/eraser/shape/fill, undo/redo, zoom, color swatches, and mirror toggle.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -18,17 +18,33 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Typography,
-  Divider
+  Divider,
+  Checkbox,
+  FormControlLabel
 } from "@mui/material";
 import BrushIcon from "@mui/icons-material/Brush";
 import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import ColorizeIcon from "@mui/icons-material/Colorize";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
+import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
+import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
+import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
-import { SketchTool, BrushSettings, EraserSettings } from "./types";
+import FlipIcon from "@mui/icons-material/Flip";
+import {
+  SketchTool,
+  BrushSettings,
+  EraserSettings,
+  ShapeSettings,
+  FillSettings,
+  DEFAULT_SWATCHES,
+  isShapeTool
+} from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -80,6 +96,23 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       padding: 0,
       backgroundColor: "transparent"
+    },
+    "& .swatch-grid": {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gap: "2px"
+    },
+    "& .swatch": {
+      width: "20px",
+      height: "20px",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderRadius: "2px",
+      cursor: "pointer",
+      padding: 0,
+      "&:hover": {
+        transform: "scale(1.2)",
+        zIndex: 1
+      }
     }
   });
 
@@ -87,12 +120,18 @@ export interface SketchToolbarProps {
   activeTool: SketchTool;
   brushSettings: BrushSettings;
   eraserSettings: EraserSettings;
+  shapeSettings: ShapeSettings;
+  fillSettings: FillSettings;
   zoom: number;
+  mirrorX: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onToolChange: (tool: SketchTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
+  onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
+  onFillSettingsChange: (settings: Partial<FillSettings>) => void;
+  onMirrorXChange: (mirrorX: boolean) => void;
   onUndo: () => void;
   onRedo: () => void;
   onZoomIn: () => void;
@@ -104,12 +143,18 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   activeTool,
   brushSettings,
   eraserSettings,
+  shapeSettings,
+  fillSettings,
   zoom,
+  mirrorX,
   canUndo,
   canRedo,
   onToolChange,
   onBrushSettingsChange,
   onEraserSettingsChange,
+  onShapeSettingsChange,
+  onFillSettingsChange,
+  onMirrorXChange,
   onUndo,
   onRedo,
   onZoomIn,
@@ -127,10 +172,26 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     [onToolChange]
   );
 
+  const handleSwatchClick = useCallback(
+    (color: string) => {
+      if (activeTool === "brush") {
+        onBrushSettingsChange({ color });
+      } else if (activeTool === "fill") {
+        onFillSettingsChange({ color });
+      } else if (isShapeTool(activeTool)) {
+        onShapeSettingsChange({ strokeColor: color });
+      } else {
+        // Default: set brush color
+        onBrushSettingsChange({ color });
+      }
+    },
+    [activeTool, onBrushSettingsChange, onFillSettingsChange, onShapeSettingsChange]
+  );
+
   return (
     <Box css={styles(theme)}>
-      {/* Tools */}
-      <Typography className="section-label">Tools</Typography>
+      {/* Drawing Tools */}
+      <Typography className="section-label">Draw</Typography>
       <ToggleButtonGroup
         value={activeTool}
         exclusive
@@ -148,6 +209,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <AutoFixNormalIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
+        <ToggleButton value="fill" aria-label="Fill">
+          <Tooltip title="Fill (G)">
+            <FormatColorFillIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
         <ToggleButton value="eyedropper" aria-label="Eyedropper">
           <Tooltip title="Eyedropper (I)">
             <ColorizeIcon fontSize="small" />
@@ -155,11 +221,42 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         </ToggleButton>
       </ToggleButtonGroup>
 
+      {/* Shape Tools */}
+      <Typography className="section-label">Shapes</Typography>
+      <ToggleButtonGroup
+        value={activeTool}
+        exclusive
+        onChange={handleToolChange}
+        size="small"
+        className="tool-group"
+      >
+        <ToggleButton value="line" aria-label="Line">
+          <Tooltip title="Line (L)">
+            <HorizontalRuleIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="rectangle" aria-label="Rectangle">
+          <Tooltip title="Rectangle (R)">
+            <RectangleOutlinedIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="ellipse" aria-label="Ellipse">
+          <Tooltip title="Ellipse (O)">
+            <CircleOutlinedIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="arrow" aria-label="Arrow">
+          <Tooltip title="Arrow (A)">
+            <ArrowRightAltIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
+
       <Divider />
 
-      {/* Undo / Redo */}
+      {/* Undo / Redo / Mirror */}
       <Typography className="section-label">History</Typography>
-      <Box sx={{ display: "flex", gap: "4px" }}>
+      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
         <Tooltip title="Undo (Ctrl+Z)">
           <span>
             <IconButton size="small" onClick={onUndo} disabled={!canUndo}>
@@ -174,11 +271,20 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             </IconButton>
           </span>
         </Tooltip>
+        <Tooltip title="Mirror Drawing (M)">
+          <IconButton
+            size="small"
+            onClick={() => onMirrorXChange(!mirrorX)}
+            color={mirrorX ? "primary" : "default"}
+          >
+            <FlipIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Divider />
 
-      {/* Brush / Eraser Settings */}
+      {/* Tool-specific Settings */}
       {activeTool === "brush" && (
         <>
           <Typography className="section-label">Brush</Typography>
@@ -188,35 +294,24 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               type="color"
               className="color-input"
               value={brushSettings.color}
-              onChange={(e) =>
-                onBrushSettingsChange({ color: e.target.value })
-              }
+              onChange={(e) => onBrushSettingsChange({ color: e.target.value })}
             />
           </Box>
           <Box className="setting-row">
             <Typography className="setting-label">Size</Typography>
             <Slider
-              size="small"
-              min={1}
-              max={200}
+              size="small" min={1} max={200}
               value={brushSettings.size}
-              onChange={(_, v) =>
-                onBrushSettingsChange({ size: v as number })
-              }
+              onChange={(_, v) => onBrushSettingsChange({ size: v as number })}
             />
             <Typography className="setting-value">{brushSettings.size}</Typography>
           </Box>
           <Box className="setting-row">
             <Typography className="setting-label">Opacity</Typography>
             <Slider
-              size="small"
-              min={0}
-              max={1}
-              step={0.01}
+              size="small" min={0} max={1} step={0.01}
               value={brushSettings.opacity}
-              onChange={(_, v) =>
-                onBrushSettingsChange({ opacity: v as number })
-              }
+              onChange={(_, v) => onBrushSettingsChange({ opacity: v as number })}
             />
             <Typography className="setting-value">
               {Math.round(brushSettings.opacity * 100)}%
@@ -225,14 +320,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <Box className="setting-row">
             <Typography className="setting-label">Hard</Typography>
             <Slider
-              size="small"
-              min={0}
-              max={1}
-              step={0.01}
+              size="small" min={0} max={1} step={0.01}
               value={brushSettings.hardness}
-              onChange={(_, v) =>
-                onBrushSettingsChange({ hardness: v as number })
-              }
+              onChange={(_, v) => onBrushSettingsChange({ hardness: v as number })}
             />
             <Typography className="setting-value">
               {Math.round(brushSettings.hardness * 100)}%
@@ -247,27 +337,18 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <Box className="setting-row">
             <Typography className="setting-label">Size</Typography>
             <Slider
-              size="small"
-              min={1}
-              max={200}
+              size="small" min={1} max={200}
               value={eraserSettings.size}
-              onChange={(_, v) =>
-                onEraserSettingsChange({ size: v as number })
-              }
+              onChange={(_, v) => onEraserSettingsChange({ size: v as number })}
             />
             <Typography className="setting-value">{eraserSettings.size}</Typography>
           </Box>
           <Box className="setting-row">
             <Typography className="setting-label">Opacity</Typography>
             <Slider
-              size="small"
-              min={0}
-              max={1}
-              step={0.01}
+              size="small" min={0} max={1} step={0.01}
               value={eraserSettings.opacity}
-              onChange={(_, v) =>
-                onEraserSettingsChange({ opacity: v as number })
-              }
+              onChange={(_, v) => onEraserSettingsChange({ opacity: v as number })}
             />
             <Typography className="setting-value">
               {Math.round(eraserSettings.opacity * 100)}%
@@ -275,6 +356,95 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           </Box>
         </>
       )}
+
+      {isShapeTool(activeTool) && (
+        <>
+          <Typography className="section-label">Shape</Typography>
+          <Box className="setting-row">
+            <Typography className="setting-label">Stroke</Typography>
+            <input
+              type="color"
+              className="color-input"
+              value={shapeSettings.strokeColor}
+              onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
+            />
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Width</Typography>
+            <Slider
+              size="small" min={1} max={50}
+              value={shapeSettings.strokeWidth}
+              onChange={(_, v) => onShapeSettingsChange({ strokeWidth: v as number })}
+            />
+            <Typography className="setting-value">{shapeSettings.strokeWidth}</Typography>
+          </Box>
+          {(activeTool === "rectangle" || activeTool === "ellipse") && (
+            <>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={shapeSettings.filled}
+                    onChange={(e) => onShapeSettingsChange({ filled: e.target.checked })}
+                  />
+                }
+                label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
+              />
+              {shapeSettings.filled && (
+                <Box className="setting-row">
+                  <Typography className="setting-label">Fill</Typography>
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={shapeSettings.fillColor}
+                    onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {activeTool === "fill" && (
+        <>
+          <Typography className="section-label">Fill</Typography>
+          <Box className="setting-row">
+            <Typography className="setting-label">Color</Typography>
+            <input
+              type="color"
+              className="color-input"
+              value={fillSettings.color}
+              onChange={(e) => onFillSettingsChange({ color: e.target.value })}
+            />
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Tolerance</Typography>
+            <Slider
+              size="small" min={0} max={128}
+              value={fillSettings.tolerance}
+              onChange={(_, v) => onFillSettingsChange({ tolerance: v as number })}
+            />
+            <Typography className="setting-value">{fillSettings.tolerance}</Typography>
+          </Box>
+        </>
+      )}
+
+      <Divider />
+
+      {/* Color Swatches */}
+      <Typography className="section-label">Swatches</Typography>
+      <Box className="swatch-grid">
+        {DEFAULT_SWATCHES.map((color) => (
+          <button
+            key={color}
+            className="swatch"
+            style={{ backgroundColor: color }}
+            onClick={() => handleSwatchClick(color)}
+            aria-label={`Color ${color}`}
+          />
+        ))}
+      </Box>
 
       <Divider />
 
@@ -287,11 +457,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           </IconButton>
         </Tooltip>
         <Typography
-          sx={{
-            fontSize: "0.75rem",
-            minWidth: "40px",
-            textAlign: "center"
-          }}
+          sx={{ fontSize: "0.75rem", minWidth: "40px", textAlign: "center" }}
         >
           {Math.round(zoom * 100)}%
         </Typography>

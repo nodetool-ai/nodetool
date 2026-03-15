@@ -303,4 +303,77 @@ describe("useSketchStore", () => {
       expect(useSketchStore.getState().history[1].action).toBe("action4");
     });
   });
+
+  describe("shape and fill settings", () => {
+    it("sets shape settings", () => {
+      act(() => {
+        useSketchStore.getState().setShapeSettings({ strokeColor: "#ff0000", strokeWidth: 5 });
+      });
+      const shape = useSketchStore.getState().document.toolSettings.shape;
+      expect(shape.strokeColor).toBe("#ff0000");
+      expect(shape.strokeWidth).toBe(5);
+    });
+
+    it("sets fill settings", () => {
+      act(() => {
+        useSketchStore.getState().setFillSettings({ color: "#00ff00", tolerance: 50 });
+      });
+      const fill = useSketchStore.getState().document.toolSettings.fill;
+      expect(fill.color).toBe("#00ff00");
+      expect(fill.tolerance).toBe(50);
+    });
+
+    it("sets shape filled and fillColor", () => {
+      act(() => {
+        useSketchStore.getState().setShapeSettings({ filled: true, fillColor: "#0000ff" });
+      });
+      const shape = useSketchStore.getState().document.toolSettings.shape;
+      expect(shape.filled).toBe(true);
+      expect(shape.fillColor).toBe("#0000ff");
+    });
+  });
+
+  describe("layer blend mode", () => {
+    it("sets layer blend mode", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().setLayerBlendMode(layerId, "multiply");
+      });
+      expect(useSketchStore.getState().document.layers[0].blendMode).toBe("multiply");
+    });
+
+    it("sets different blend modes", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      const modes = ["normal", "multiply", "screen", "overlay", "darken", "lighten"] as const;
+      for (const mode of modes) {
+        act(() => {
+          useSketchStore.getState().setLayerBlendMode(layerId, mode);
+        });
+        expect(useSketchStore.getState().document.layers[0].blendMode).toBe(mode);
+      }
+    });
+
+    it("default layer has normal blend mode", () => {
+      expect(useSketchStore.getState().document.layers[0].blendMode).toBe("normal");
+    });
+  });
+
+  describe("new tool types", () => {
+    it("sets fill tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("fill");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("fill");
+    });
+
+    it("sets shape tools", () => {
+      const shapeTools = ["line", "rectangle", "ellipse", "arrow"] as const;
+      for (const tool of shapeTools) {
+        act(() => {
+          useSketchStore.getState().setActiveTool(tool);
+        });
+        expect(useSketchStore.getState().activeTool).toBe(tool);
+      }
+    });
+  });
 });

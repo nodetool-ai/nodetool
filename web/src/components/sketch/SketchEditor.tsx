@@ -7,7 +7,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -27,13 +27,9 @@ const styles = (theme: Theme) =>
   });
 
 export interface SketchEditorProps {
-  /** Initial document to load. If provided, replaces current store state. */
   initialDocument?: SketchDocument;
-  /** Called whenever the document changes (for autosave). */
   onDocumentChange?: (doc: SketchDocument) => void;
-  /** Called when the editor wants to export the flattened image. */
   onExportImage?: (dataUrl: string) => void;
-  /** Called when the editor wants to export the mask. */
   onExportMask?: (dataUrl: string | null) => void;
 }
 
@@ -45,6 +41,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 }) => {
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
+  const [mirrorX, setMirrorX] = useState(false);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -55,6 +52,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
   const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
+  const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
+  const setFillSettings = useSketchStore((s) => s.setFillSettings);
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -64,6 +63,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const reorderLayers = useSketchStore((s) => s.reorderLayers);
   const toggleLayerVisibility = useSketchStore((s) => s.toggleLayerVisibility);
   const setLayerOpacity = useSketchStore((s) => s.setLayerOpacity);
+  const setLayerBlendMode = useSketchStore((s) => s.setLayerBlendMode);
   const renameLayer = useSketchStore((s) => s.renameLayer);
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
@@ -91,14 +91,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
-    pushHistory(activeTool === "brush" ? "brush stroke" : "eraser stroke");
+    pushHistory(`${activeTool} stroke`);
   }, [pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
     (layerId: string, data: string | null) => {
       updateLayerData(layerId, data);
 
-      // Auto-export on each stroke
       if (canvasRef.current) {
         if (onExportImage) {
           onExportImage(canvasRef.current.flattenToDataUrl());
@@ -124,13 +123,32 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     return () => window.removeEventListener("sketch-eyedropper", handler);
   }, [setBrushSettings, setActiveTool]);
 
+  // ─── Undo/Redo handlers ────────────────────────────────────────────
+  const handleUndo = useCallback(() => {
+    const entry = undo();
+    if (entry && canvasRef.current) {
+      for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
+        canvasRef.current.setLayerData(layerId, data);
+      }
+    }
+  }, [undo]);
+
+  const handleRedo = useCallback(() => {
+    const entry = redo();
+    if (entry && canvasRef.current) {
+      for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
+        canvasRef.current.setLayerData(layerId, data);
+      }
+    }
+  }, [redo]);
+
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't handle if focus is in an input
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
       ) {
         return;
       }
@@ -150,15 +168,15 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         }
       } else {
         switch (e.key.toLowerCase()) {
-          case "b":
-            setActiveTool("brush");
-            break;
-          case "e":
-            setActiveTool("eraser");
-            break;
-          case "i":
-            setActiveTool("eyedropper");
-            break;
+          case "b": setActiveTool("brush"); break;
+          case "e": setActiveTool("eraser"); break;
+          case "i": setActiveTool("eyedropper"); break;
+          case "g": setActiveTool("fill"); break;
+          case "l": setActiveTool("line"); break;
+          case "r": setActiveTool("rectangle"); break;
+          case "o": setActiveTool("ellipse"); break;
+          case "a": setActiveTool("arrow"); break;
+          case "m": setMirrorX((prev) => !prev); break;
         }
       }
     };
@@ -167,32 +185,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Undo/Redo handlers ────────────────────────────────────────────
-  const handleUndo = useCallback(() => {
-    const entry = undo();
-    if (entry && canvasRef.current) {
-      // Restore canvas data from the history entry
-      for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-        canvasRef.current.setLayerData(layerId, data);
-      }
-    }
-  }, [undo]);
-
-  const handleRedo = useCallback(() => {
-    const entry = redo();
-    if (entry && canvasRef.current) {
-      for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-        canvasRef.current.setLayerData(layerId, data);
-      }
-    }
-  }, [redo]);
-
   // ─── Zoom handlers ─────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => setZoom(zoom * 1.2), [zoom, setZoom]);
-  const handleZoomOut = useCallback(
-    () => setZoom(zoom * 0.8),
-    [zoom, setZoom]
-  );
+  const handleZoomOut = useCallback(() => setZoom(zoom * 0.8), [zoom, setZoom]);
   const handleZoomReset = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -223,12 +218,18 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         activeTool={activeTool}
         brushSettings={document.toolSettings.brush}
         eraserSettings={document.toolSettings.eraser}
+        shapeSettings={document.toolSettings.shape}
+        fillSettings={document.toolSettings.fill}
         zoom={zoom}
+        mirrorX={mirrorX}
         canUndo={canUndo()}
         canRedo={canRedo()}
         onToolChange={setActiveTool}
         onBrushSettingsChange={setBrushSettings}
         onEraserSettingsChange={setEraserSettings}
+        onShapeSettingsChange={setShapeSettings}
+        onFillSettingsChange={setFillSettings}
+        onMirrorXChange={setMirrorX}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onZoomIn={handleZoomIn}
@@ -243,6 +244,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           activeTool={activeTool}
           zoom={zoom}
           pan={pan}
+          mirrorX={mirrorX}
           onZoomChange={setZoom}
           onPanChange={setPan}
           onStrokeStart={handleStrokeStart}
@@ -263,6 +265,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         onMoveLayerDown={handleMoveLayerDown}
         onSetMaskLayer={setMaskLayer}
         onLayerOpacityChange={setLayerOpacity}
+        onLayerBlendModeChange={setLayerBlendMode}
         onRenameLayer={renameLayer}
       />
     </Box>

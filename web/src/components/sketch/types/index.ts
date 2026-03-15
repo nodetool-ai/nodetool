@@ -33,7 +33,14 @@ export interface Color {
 export type SketchTool =
   | "brush"
   | "eraser"
-  | "eyedropper";
+  | "eyedropper"
+  | "fill"
+  | "line"
+  | "rectangle"
+  | "ellipse"
+  | "arrow";
+
+export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
 export interface BrushSettings {
   size: number;
@@ -48,14 +55,36 @@ export interface EraserSettings {
   hardness: number;
 }
 
+export interface ShapeSettings {
+  strokeColor: string;
+  strokeWidth: number;
+  fillColor: string;
+  filled: boolean;
+}
+
+export interface FillSettings {
+  color: string;
+  tolerance: number;
+}
+
 export interface ToolSettings {
   brush: BrushSettings;
   eraser: EraserSettings;
+  shape: ShapeSettings;
+  fill: FillSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
 
 export type LayerType = "raster" | "mask";
+
+export type BlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten";
 
 export interface Layer {
   id: string;
@@ -64,9 +93,21 @@ export interface Layer {
   visible: boolean;
   opacity: number;
   locked: boolean;
+  blendMode: BlendMode;
   /** Base64-encoded PNG data for the layer content */
   data: string | null;
 }
+
+// ─── Color Swatches ───────────────────────────────────────────────────────────
+
+export const DEFAULT_SWATCHES: string[] = [
+  "#ffffff", "#c0c0c0", "#808080", "#404040", "#000000",
+  "#ff0000", "#ff8000", "#ffff00", "#80ff00", "#00ff00",
+  "#00ff80", "#00ffff", "#0080ff", "#0000ff", "#8000ff",
+  "#ff00ff", "#ff0080", "#800000", "#804000", "#808000",
+  "#408000", "#008000", "#008040", "#008080", "#004080",
+  "#000080", "#400080", "#800080", "#800040"
+];
 
 // ─── Sketch Document ──────────────────────────────────────────────────────────
 
@@ -123,9 +164,23 @@ export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
   hardness: 0.8
 };
 
+export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
+  strokeColor: "#ffffff",
+  strokeWidth: 2,
+  fillColor: "#ffffff",
+  filled: false
+};
+
+export const DEFAULT_FILL_SETTINGS: FillSettings = {
+  color: "#ffffff",
+  tolerance: 32
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
-  eraser: DEFAULT_ERASER_SETTINGS
+  eraser: DEFAULT_ERASER_SETTINGS,
+  shape: DEFAULT_SHAPE_SETTINGS,
+  fill: DEFAULT_FILL_SETTINGS
 };
 
 export function generateLayerId(): string {
@@ -143,6 +198,7 @@ export function createDefaultLayer(
     visible: true,
     opacity: 1,
     locked: false,
+    blendMode: "normal",
     data: null
   };
 }
@@ -170,6 +226,11 @@ export function createDefaultDocument(
       updatedAt: now
     }
   };
+}
+
+/** Check if a tool is a shape tool */
+export function isShapeTool(tool: SketchTool): tool is ShapeToolType {
+  return tool === "line" || tool === "rectangle" || tool === "ellipse" || tool === "arrow";
 }
 
 export const MAX_HISTORY_SIZE = 30;
