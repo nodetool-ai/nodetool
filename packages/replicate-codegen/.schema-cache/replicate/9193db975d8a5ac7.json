@@ -1,0 +1,88 @@
+{
+  "modelId": "fofr/sticker-maker",
+  "owner": "fofr",
+  "name": "sticker-maker",
+  "version": "4acb778eb059772225ec213948f0660867b2e03f277448f18cf1800b96a65a1a",
+  "description": "Make stickers with AI. Generates graphics with transparent backgrounds.",
+  "inputSchema": {
+    "properties": {
+      "height": {
+        "default": 1152,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "Number of images to generate",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 5
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "output_quality": {
+        "default": 90,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "a cute cat",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Fix the random seed for reproducibility",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "steps": {
+        "default": 17,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "width": {
+        "default": 1152,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

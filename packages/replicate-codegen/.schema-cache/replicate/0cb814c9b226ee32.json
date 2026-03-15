@@ -1,0 +1,39 @@
+{
+  "modelId": "piddnad/ddcolor",
+  "owner": "piddnad",
+  "name": "ddcolor",
+  "version": "ca494ba129e44e45f661d6ece83c4c98a9a7c774309beca01429b58fce8aa695",
+  "description": "Towards Photo-Realistic Image Colorization via Dual Decoders",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Grayscale input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "model_size": {
+        "default": "large",
+        "description": "Choose the model size.",
+        "enum": [
+          "large",
+          "tiny"
+        ],
+        "title": "model_size",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

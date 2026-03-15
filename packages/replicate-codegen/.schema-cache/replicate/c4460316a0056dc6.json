@@ -1,0 +1,177 @@
+{
+  "modelId": "swartype/sdxl-pixar",
+  "owner": "swartype",
+  "name": "sdxl-pixar",
+  "version": "81f8bbd3463056c8521eb528feb10509cc1385e2fabef590747f159848589048",
+  "description": "Create Pixar poster easily with SDXL Pixar.",
+  "inputSchema": {
+    "properties": {
+      "apply_watermark": {
+        "default": true,
+        "description": "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.",
+        "title": "Apply Watermark",
+        "type": "boolean",
+        "x-order": 15
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 18
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of output image",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "high_noise_frac": {
+        "default": 0.8,
+        "description": "For expert_ensemble_refiner, the fraction of noise to use",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "High Noise Frac",
+        "type": "number",
+        "x-order": 13
+      },
+      "image": {
+        "description": "Input image for img2img or inpaint mode",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "lora_scale": {
+        "default": 0.6,
+        "description": "LoRA additive scale. Only applicable on trained models.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Lora Scale",
+        "type": "number",
+        "x-order": 16
+      },
+      "mask": {
+        "description": "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "default": "An astronaut riding a rainbow unicorn",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_strength": {
+        "default": 0.8,
+        "description": "Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 10
+      },
+      "refine": {
+        "default": "no_refiner",
+        "description": "Which refine style to use",
+        "enum": [
+          "no_refiner",
+          "expert_ensemble_refiner",
+          "base_image_refiner"
+        ],
+        "title": "refine",
+        "type": "string",
+        "x-order": 12
+      },
+      "refine_steps": {
+        "description": "For base_image_refiner, the number of steps to refine, defaults to num_inference_steps",
+        "title": "Refine Steps",
+        "type": "integer",
+        "x-order": 14
+      },
+      "replicate_weights": {
+        "description": "Replicate LoRA weights to use. Leave blank to use the default weights.",
+        "title": "Replicate Weights",
+        "type": "string",
+        "x-order": 17
+      },
+      "scheduler": {
+        "default": "K_EULER",
+        "description": "scheduler",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "HeunDiscrete",
+          "KarrasDPM",
+          "K_EULER_ANCESTRAL",
+          "K_EULER",
+          "PNDM"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of output image",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

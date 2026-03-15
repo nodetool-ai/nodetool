@@ -1,0 +1,91 @@
+{
+  "modelId": "bytedance/seedream-3",
+  "owner": "bytedance",
+  "name": "seedream-3",
+  "version": "ed344813bc9f4996be6de4febd8b9c14c7849ad7b21ab047572e3620ee374ee7",
+  "description": "A text-to-image model with support for native high-resolution (2K) image generation",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Image aspect ratio. Set to 'custom' to specify width and height.",
+        "enum": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "16:9",
+          "9:16",
+          "2:3",
+          "3:2",
+          "21:9",
+          "custom"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "guidance_scale": {
+        "default": 2.5,
+        "description": "Prompt adherence. Higher = more literal.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "height": {
+        "default": 2048,
+        "description": "Image height",
+        "maximum": 2048,
+        "minimum": 512,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 1
+      },
+      "size": {
+        "default": "regular",
+        "description": "Big images will have their longest dimension be 2048px. Small images will have their shortest dimension be 512px. Regular images will always be 1 megapixel. Ignored if aspect ratio is custom.",
+        "enum": [
+          "small",
+          "regular",
+          "big"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 3
+      },
+      "width": {
+        "default": 2048,
+        "description": "Image width",
+        "maximum": 2048,
+        "minimum": 512,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

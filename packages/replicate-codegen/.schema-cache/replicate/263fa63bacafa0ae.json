@@ -1,0 +1,74 @@
+{
+  "modelId": "lucataco/ip_adapter-face-inpaint",
+  "owner": "lucataco",
+  "name": "ip_adapter-face-inpaint",
+  "version": "b199f118e2133894551cc59ff0777276e275cf64e9e8e0369ca6c4c599097890",
+  "description": "A combination of ip_adapter SDv1.5 and mediapipe-face to inpaint a face",
+  "inputSchema": {
+    "properties": {
+      "blur_amount": {
+        "default": 0,
+        "description": "Blur to apply to mask to face",
+        "title": "Blur Amount",
+        "type": "number",
+        "x-order": 1
+      },
+      "face_image": {
+        "description": "Input face image",
+        "format": "uri",
+        "title": "Face Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "source_image": {
+        "description": "Source image of body",
+        "format": "uri",
+        "title": "Source Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "strength": {
+        "default": 0.7,
+        "description": "mask strength",
+        "title": "Strength",
+        "type": "number",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "face_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

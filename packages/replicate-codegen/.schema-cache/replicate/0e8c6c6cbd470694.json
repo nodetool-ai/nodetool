@@ -1,0 +1,105 @@
+{
+  "modelId": "recraft-ai/recraft-20b-svg",
+  "owner": "recraft-ai",
+  "name": "recraft-20b-svg",
+  "version": "666dcf90f18786723e083609cee6c84a0f162cc73d7066fd2d3ad3cb6ba88b1c",
+  "description": "Affordable and fast vector images",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "7:5",
+          "5:7",
+          "4:5",
+          "5:4",
+          "3:5",
+          "5:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "size": {
+        "default": "1024x1024",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "enum": [
+          "1024x1024",
+          "1365x1024",
+          "1024x1365",
+          "1536x1024",
+          "1024x1536",
+          "1820x1024",
+          "1024x1820",
+          "1024x2048",
+          "2048x1024",
+          "1434x1024",
+          "1024x1434",
+          "1024x1280",
+          "1280x1024",
+          "1024x1707",
+          "1707x1024"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      },
+      "style": {
+        "default": "vector_illustration",
+        "description": "Style of the generated image.",
+        "enum": [
+          "vector_illustration",
+          "vector_illustration/cartoon",
+          "vector_illustration/doodle_line_art",
+          "vector_illustration/engraving",
+          "vector_illustration/flat_2",
+          "vector_illustration/kawaii",
+          "vector_illustration/line_art",
+          "vector_illustration/line_circuit",
+          "vector_illustration/linocut",
+          "vector_illustration/seamless",
+          "icon",
+          "icon/broken_line",
+          "icon/colored_outline",
+          "icon/colored_shapes",
+          "icon/colored_shapes_gradient",
+          "icon/doodle_fill",
+          "icon/doodle_offset_fill",
+          "icon/offset_fill",
+          "icon/outline",
+          "icon/outline_gradient",
+          "icon/uneven_fill"
+        ],
+        "title": "style",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

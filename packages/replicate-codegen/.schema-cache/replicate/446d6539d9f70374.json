@@ -1,0 +1,44 @@
+{
+  "modelId": "minimax/video-01",
+  "owner": "minimax",
+  "name": "video-01",
+  "version": "5aa835260ff7f40f4069c41185f72036accf99e29957bb4a3b3a911f3b6c1912",
+  "description": "Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.",
+  "inputSchema": {
+    "properties": {
+      "first_frame_image": {
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "format": "uri",
+        "title": "First Frame Image",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_optimizer": {
+        "default": true,
+        "description": "Use prompt optimizer",
+        "title": "Prompt Optimizer",
+        "type": "boolean"
+      },
+      "subject_reference": {
+        "description": "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)",
+        "format": "uri",
+        "title": "Subject Reference",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

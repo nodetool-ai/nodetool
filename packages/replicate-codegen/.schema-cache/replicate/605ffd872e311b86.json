@@ -1,0 +1,113 @@
+{
+  "modelId": "pixverse/pixverse-v5.6",
+  "owner": "pixverse",
+  "name": "pixverse-v5.6",
+  "version": "716a21c01b88914165473824a15be03188a54c5830fac57d64de93919fcae0e9",
+  "description": "Latest video model from Pixverse with astonishing physics",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio of the video",
+        "enum": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "duration": {
+        "default": 5,
+        "description": "Duration of the video in seconds. 10 second videos are only available for 360p, 540p, and 720p.",
+        "enum": [
+          5,
+          8,
+          10
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 5
+      },
+      "generate_audio_switch": {
+        "default": false,
+        "description": "Enable AI-generated audio including BGM, SFX, and character dialogues",
+        "title": "Generate Audio Switch",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "image": {
+        "description": "Image to use for the first frame of the video",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "last_frame_image": {
+        "description": "Use to generate a video that transitions from the first image to the last image. Must be used with image.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Last Frame Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Negative prompt to avoid certain elements in the video",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 6
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "quality": {
+        "default": "540p",
+        "description": "Resolution of the video. Higher resolutions cost more. See pricing for details.",
+        "enum": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ],
+        "title": "quality",
+        "type": "string",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "thinking_type": {
+        "default": "auto",
+        "description": "Prompt reasoning enhancement. Controls whether the system enhances your prompt with internal reasoning and optimization.",
+        "enum": [
+          "disabled",
+          "enabled",
+          "auto"
+        ],
+        "title": "thinking_type",
+        "type": "string",
+        "x-order": 9
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "modelId": "fermatresearch/magic-style-transfer",
+  "owner": "fermatresearch",
+  "name": "magic-style-transfer",
+  "version": "3b5fa5d360c361090f11164292e45cc5d14cea8d089591d47c580cac9ec1c7ca",
+  "description": "Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI",
+  "inputSchema": {
+    "properties": {
+      "apply_watermark": {
+        "default": true,
+        "description": "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.",
+        "title": "Apply Watermark",
+        "type": "boolean",
+        "x-order": 16
+      },
+      "background_color": {
+        "default": "#A2A2A2",
+        "description": "When passing an image with alpha channel, it will be replaced with this color",
+        "title": "Background Color",
+        "type": "string",
+        "x-order": 9
+      },
+      "condition_canny_scale": {
+        "default": 0.15,
+        "description": "The bigger this number is, the more ControlNet interferes",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Condition Canny Scale",
+        "type": "number",
+        "x-order": 4
+      },
+      "condition_depth_scale": {
+        "default": 0.35,
+        "description": "The bigger this number is, the more ControlNet interferes",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Condition Depth Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "guidance_scale": {
+        "default": 4,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 14
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "ip_image": {
+        "description": "Input image for img2img or inpaint mode",
+        "format": "uri",
+        "title": "Ip Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "ip_scale": {
+        "default": 0.3,
+        "description": "IP Adapter strength.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Ip Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "lora_scale": {
+        "default": 0.9,
+        "description": "LoRA additive scale. Only applicable on trained models.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Lora Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "lora_weights": {
+        "description": "Replicate LoRA weights to use. Leave blank to use the default weights.",
+        "title": "Lora Weights",
+        "type": "string",
+        "x-order": 17
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 8
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 11
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 12
+      },
+      "prompt": {
+        "default": "An astronaut riding a rainbow unicorn",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resizing_scale": {
+        "default": 1,
+        "description": "If you want the image to have a solid margin. Scale of the solid margin. 1.0 means no resizing.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Resizing Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "scheduler": {
+        "default": "K_EULER",
+        "description": "scheduler",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "HeunDiscrete",
+          "KarrasDPM",
+          "K_EULER_ANCESTRAL",
+          "K_EULER",
+          "PNDM"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 13
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 15
+      },
+      "strength": {
+        "default": 0.9,
+        "description": "When img2img is active, the denoising strength. 1 means total destruction of the input image.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Strength",
+        "type": "number",
+        "x-order": 7
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

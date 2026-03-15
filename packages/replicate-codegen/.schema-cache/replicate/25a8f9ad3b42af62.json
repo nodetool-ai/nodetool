@@ -1,0 +1,144 @@
+{
+  "modelId": "lucataco/ace-step",
+  "owner": "lucataco",
+  "name": "ace-step",
+  "version": "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1",
+  "description": "A Step Towards Music Generation Foundation Model text2music",
+  "inputSchema": {
+    "properties": {
+      "duration": {
+        "default": 60,
+        "description": "Duration of the generated audio in seconds. -1 means a random duration between 30 and 240 seconds.",
+        "maximum": 240,
+        "minimum": 1,
+        "title": "Duration",
+        "type": "number",
+        "x-order": 2
+      },
+      "granularity_scale": {
+        "default": 10,
+        "description": "Omega scale for APG guidance, or similar for other CFG types.",
+        "maximum": 100,
+        "minimum": -100,
+        "title": "Granularity Scale",
+        "type": "number",
+        "x-order": 7
+      },
+      "guidance_interval": {
+        "default": 0.5,
+        "description": "Guidance interval.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Guidance Interval",
+        "type": "number",
+        "x-order": 8
+      },
+      "guidance_interval_decay": {
+        "default": 0,
+        "description": "Guidance interval decay.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Guidance Interval Decay",
+        "type": "number",
+        "x-order": 9
+      },
+      "guidance_scale": {
+        "default": 15,
+        "description": "Overall guidance scale.",
+        "maximum": 30,
+        "minimum": 0,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "guidance_type": {
+        "default": "apg",
+        "description": "Guidance type for CFG.",
+        "enum": [
+          "apg",
+          "cfg",
+          "cfg_star"
+        ],
+        "title": "guidance_type",
+        "type": "string",
+        "x-order": 6
+      },
+      "lyric_guidance_scale": {
+        "default": 0,
+        "description": "Guidance scale for lyrics.",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Lyric Guidance Scale",
+        "type": "number",
+        "x-order": 13
+      },
+      "lyrics": {
+        "description": "Lyrics for the music. Use [verse], [chorus], and [bridge] to separate different parts of the lyrics. Use [instrumental] or [inst] to generate instrumental music",
+        "title": "Lyrics",
+        "type": "string",
+        "x-order": 1
+      },
+      "min_guidance_scale": {
+        "default": 3,
+        "description": "Minimum guidance scale.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Min Guidance Scale",
+        "type": "number",
+        "x-order": 11
+      },
+      "number_of_steps": {
+        "default": 60,
+        "description": "Number of inference steps.",
+        "maximum": 200,
+        "minimum": 10,
+        "title": "Number Of Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "scheduler": {
+        "default": "euler",
+        "description": "Scheduler type.",
+        "enum": [
+          "euler",
+          "heun"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 5
+      },
+      "seed": {
+        "default": -1,
+        "description": "Random seed. Set to -1 to randomize.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      },
+      "tag_guidance_scale": {
+        "default": 0,
+        "description": "Guidance scale for tags (text prompt).",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Tag Guidance Scale",
+        "type": "number",
+        "x-order": 12
+      },
+      "tags": {
+        "description": "Text prompts to guide music generation, e.g., 'epic,cinematic'",
+        "title": "Tags",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "tags"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

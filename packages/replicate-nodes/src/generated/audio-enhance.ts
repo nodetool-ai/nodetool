@@ -21,28 +21,28 @@ export class AudioSuperResolution extends ReplicateNode {
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
 
-  @prop({ type: "int", default: "", description: "Random seed. Leave blank to randomize the seed" })
-  declare seed: any;
-
   @prop({ type: "int", default: 50, description: "Number of inference steps" })
   declare ddim_steps: any;
-
-  @prop({ type: "audio", default: "", description: "Audio to upsample" })
-  declare input_file: any;
 
   @prop({ type: "float", default: 3.5, description: "Scale for classifier free guidance" })
   declare guidance_scale: any;
 
+  @prop({ type: "audio", default: "", description: "Audio to upsample" })
+  declare input_file: any;
+
+  @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
+  declare seed: any;
+
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const seed = Number(inputs.seed ?? this.seed ?? "");
     const ddimSteps = Number(inputs.ddim_steps ?? this.ddim_steps ?? 50);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
+    const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "seed": seed,
       "ddim_steps": ddimSteps,
       "guidance_scale": guidanceScale,
+      "seed": seed,
     };
 
     const inputFileRef = inputs.input_file as Record<string, unknown> | undefined;
@@ -52,7 +52,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "nateraw/audio-super-resolution", args);
+    const res = await replicateSubmit(apiKey, "nateraw/audio-super-resolution:0e453d5e4c2e0ef4f8d38a6167053dda09cf3c8dbca2355cde61dca55a915bc5", args);
     return { output: outputToAudioRef(res.output) };
   }
 }

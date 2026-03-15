@@ -1,0 +1,40 @@
+{
+  "modelId": "cjwbw/real-esrgan",
+  "owner": "cjwbw",
+  "name": "real-esrgan",
+  "version": "d0ee3d708c9b911f122a4ad90046c5d26a0293b99476d697f6bb7f2e251ce2d4",
+  "description": "Real-ESRGAN: Real-World Blind Super-Resolution",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "upscale": {
+        "default": 4,
+        "description": "Upscaling factor",
+        "enum": [
+          2,
+          4,
+          8
+        ],
+        "title": "upscale",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

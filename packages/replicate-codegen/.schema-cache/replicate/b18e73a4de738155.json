@@ -1,0 +1,57 @@
+{
+  "modelId": "yangxy/gpen",
+  "owner": "yangxy",
+  "name": "gpen",
+  "version": "cf4e15a70049c0119884eb2906c8ae8807af8317bea98313fefd941e414d0c91",
+  "description": "Blind Face Restoration in the Wild",
+  "inputSchema": {
+    "properties": {
+      "broken_image": {
+        "default": true,
+        "description": "whether the input image is broken, valid for Face Inpainting. When set to True, the output will be the 'fixed' image. When set to False, the image will randomly add brush strokes to simulate a broken image and the output will be broken + fixed image",
+        "title": "Broken Image",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_individual": {
+        "default": false,
+        "description": "whether outputs individual enhanced faces.",
+        "title": "Output Individual",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "task": {
+        "default": "Face Restoration",
+        "description": "Choose a task.",
+        "enum": [
+          "Face Restoration",
+          "Face Colorization",
+          "Face Inpainting"
+        ],
+        "title": "task",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

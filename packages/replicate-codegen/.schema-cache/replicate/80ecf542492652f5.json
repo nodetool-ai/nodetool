@@ -1,0 +1,212 @@
+{
+  "modelId": "andreasjansson/musicgen-looper",
+  "owner": "andreasjansson",
+  "name": "musicgen-looper",
+  "version": "f8140d0457c2b39ad8728a80736fea9a67a0ec0cd37b35f40b68cce507db2366",
+  "description": "Generate fixed-bpm loops from text prompts",
+  "inputSchema": {
+    "properties": {
+      "bpm": {
+        "default": 140,
+        "description": "Tempo in beats per minute",
+        "maximum": 300,
+        "minimum": 40,
+        "title": "Bpm",
+        "type": "number",
+        "x-order": 1
+      },
+      "classifier_free_guidance": {
+        "default": 3,
+        "description": "Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs.",
+        "title": "Classifier Free Guidance",
+        "type": "integer",
+        "x-order": 8
+      },
+      "max_duration": {
+        "default": 8,
+        "description": "Maximum duration of the generated loop in seconds.",
+        "maximum": 20,
+        "minimum": 2,
+        "title": "Max Duration",
+        "type": "integer",
+        "x-order": 3
+      },
+      "model_version": {
+        "default": "medium",
+        "description": "Model to use for generation. .",
+        "enum": [
+          "medium",
+          "large"
+        ],
+        "title": "model_version",
+        "type": "string",
+        "x-order": 4
+      },
+      "output_format": {
+        "default": "wav",
+        "description": "Output format for generated audio.",
+        "enum": [
+          "wav",
+          "mp3"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "A description of the music you want to generate.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "default": -1,
+        "description": "Seed for random number generator. If None or -1, a random seed will be used.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Controls the 'conservativeness' of the sampling process. Higher temperature means more diversity.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 7
+      },
+      "top_k": {
+        "default": 250,
+        "description": "Reduces sampling to the k most likely tokens.",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 5
+      },
+      "top_p": {
+        "default": 0,
+        "description": "Reduces sampling to tokens with cumulative probability of p. When set to  `0` (default), top_k sampling is used.",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 6
+      },
+      "variations": {
+        "default": 4,
+        "description": "Number of variations to generate",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Variations",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "variation_01": {
+        "format": "uri",
+        "title": "Variation 01",
+        "type": "string"
+      },
+      "variation_02": {
+        "format": "uri",
+        "title": "Variation 02",
+        "type": "string"
+      },
+      "variation_03": {
+        "format": "uri",
+        "title": "Variation 03",
+        "type": "string"
+      },
+      "variation_04": {
+        "format": "uri",
+        "title": "Variation 04",
+        "type": "string"
+      },
+      "variation_05": {
+        "format": "uri",
+        "title": "Variation 05",
+        "type": "string"
+      },
+      "variation_06": {
+        "format": "uri",
+        "title": "Variation 06",
+        "type": "string"
+      },
+      "variation_07": {
+        "format": "uri",
+        "title": "Variation 07",
+        "type": "string"
+      },
+      "variation_08": {
+        "format": "uri",
+        "title": "Variation 08",
+        "type": "string"
+      },
+      "variation_09": {
+        "format": "uri",
+        "title": "Variation 09",
+        "type": "string"
+      },
+      "variation_10": {
+        "format": "uri",
+        "title": "Variation 10",
+        "type": "string"
+      },
+      "variation_11": {
+        "format": "uri",
+        "title": "Variation 11",
+        "type": "string"
+      },
+      "variation_12": {
+        "format": "uri",
+        "title": "Variation 12",
+        "type": "string"
+      },
+      "variation_13": {
+        "format": "uri",
+        "title": "Variation 13",
+        "type": "string"
+      },
+      "variation_14": {
+        "format": "uri",
+        "title": "Variation 14",
+        "type": "string"
+      },
+      "variation_15": {
+        "format": "uri",
+        "title": "Variation 15",
+        "type": "string"
+      },
+      "variation_16": {
+        "format": "uri",
+        "title": "Variation 16",
+        "type": "string"
+      },
+      "variation_17": {
+        "format": "uri",
+        "title": "Variation 17",
+        "type": "string"
+      },
+      "variation_18": {
+        "format": "uri",
+        "title": "Variation 18",
+        "type": "string"
+      },
+      "variation_19": {
+        "format": "uri",
+        "title": "Variation 19",
+        "type": "string"
+      },
+      "variation_20": {
+        "format": "uri",
+        "title": "Variation 20",
+        "type": "string"
+      }
+    },
+    "title": "Outputs",
+    "type": "object"
+  }
+}
