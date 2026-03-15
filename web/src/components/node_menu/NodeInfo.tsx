@@ -209,24 +209,25 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   });
 
   const handleTagClick = useCallback(
-    (tag: string) => {
+    (tag: string) => () => {
       setSearchTerm(tag.trim());
     },
     [setSearchTerm]
   );
 
   const renderTags = (tags: string = "") => {
-    return tags?.split(",").map((tag, index) => (
-      <span
-        onClick={() => {
-          handleTagClick(tag.trim());
-        }}
-        key={index}
-        className="tag"
-      >
-        {tag.trim()}
-      </span>
-    ));
+    return tags?.split(",").map((tag, index) => {
+      const trimmedTag = tag.trim();
+      return (
+        <span
+          onClick={handleTagClick(trimmedTag)}
+          key={index}
+          className="tag"
+        >
+          {trimmedTag}
+        </span>
+      );
+    });
   };
 
   const theme = useTheme();

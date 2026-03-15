@@ -240,6 +240,14 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handlePanelToggle();
   }, [handlePanelToggle]);
 
+  const handleWorkflowViewClick = useCallback(() => {
+    onViewChange("workflowGrid");
+  }, [onViewChange]);
+
+  const handleAssetsViewClick = useCallback(() => {
+    onViewChange("assets");
+  }, [onViewChange]);
+
   return (
     <div className="vertical-toolbar">
       {/* Drawer views section - My Stuff */}
@@ -257,7 +265,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("workflowGrid")}
+          onClick={handleWorkflowViewClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
           }
@@ -272,7 +280,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("assets")}
+          onClick={handleAssetsViewClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType iconName="asset" showTooltip={false} iconSize="small" />
@@ -443,7 +451,9 @@ const PanelLeft: React.FC = () => {
     [handlePanelToggle]
   );
 
-
+  const handlePanelToggleClick = useCallback(() => {
+    handlePanelToggle(activeView);
+  }, [handlePanelToggle, activeView]);
 
   return (
     <div css={styles(theme, hasHeader, isMobile)} className="panel-left-container">
@@ -453,7 +463,7 @@ const PanelLeft: React.FC = () => {
         <VerticalToolbar
           activeView={activeView}
           onViewChange={onViewChange}
-          handlePanelToggle={() => handlePanelToggle(activeView)}
+          handlePanelToggle={handlePanelToggleClick}
         />
 
         {/* Drawer content - appears right of toolbar when visible */}

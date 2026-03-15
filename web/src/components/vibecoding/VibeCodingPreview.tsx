@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, useRef, useState } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -91,6 +91,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const blobUrlCleanupRef = useRef<NodeJS.Timeout | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
   // Inject runtime configuration into HTML
@@ -111,6 +112,15 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
     setIframeKey((prev) => prev + 1);
   }, []);
 
+  // Cleanup blob URL timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlCleanupRef.current) {
+        clearTimeout(blobUrlCleanupRef.current);
+      }
+    };
+  }, []);
+
   // Open in new tab
   const handleOpenInNew = useCallback(() => {
     if (!processedHtml) {
@@ -122,7 +132,11 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
     window.open(url, "_blank", "noopener,noreferrer");
 
     // Clean up blob URL after a delay
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Clear any existing timeout before setting a new one
+    if (blobUrlCleanupRef.current) {
+      clearTimeout(blobUrlCleanupRef.current);
+    }
+    blobUrlCleanupRef.current = setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [processedHtml]);
 
   return (

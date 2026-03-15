@@ -549,6 +549,27 @@ describe("output normalization", () => {
   });
 });
 
+describe("FileStorageAdapter", () => {
+  it("retrieves assets via /api/storage URLs", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-storage-"));
+    try {
+      const storage = new FileStorageAdapter(dir);
+      const storedUri = await storage.store("asset-123.png", new Uint8Array([1, 2, 3]));
+      expect(storedUri.startsWith("file://")).toBe(true);
+
+      const fromRelative = await storage.retrieve("/api/storage/asset-123.png");
+      expect(Uint8Array.from(fromRelative ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+
+      const fromAbsolute = await storage.retrieve(
+        "http://127.0.0.1:7777/api/storage/asset-123.png",
+      );
+      expect(Uint8Array.from(fromAbsolute ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("ProcessingContext – asset helper methods", () => {
   const assetValue = {
     image: {

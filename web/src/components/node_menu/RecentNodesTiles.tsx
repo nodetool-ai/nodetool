@@ -170,8 +170,16 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
 
   const handleCreateNode = useCreateNode();
 
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
   const handleDragStart = useCallback(
-    (nodeType: string) => (event: ReactDragEvent<HTMLDivElement>) => {
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         event.preventDefault();
@@ -194,10 +202,14 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     clearDrag();
   }, [setDragToCreate, clearDrag]);
 
-  const onTileClick = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
+  const handleTileClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        return;
+      }
 
+      const metadata = getMetadata(nodeType);
       if (!metadata) {
         console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
@@ -213,8 +225,13 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata, addNotification, handleCreateNode]
   );
 
-  const onTileMouseEnter = useCallback(
-    (nodeType: string) => {
+  const handleTileMouseEnter = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        return;
+      }
+
       const metadata = getMetadata(nodeType);
       if (metadata) {
         setHoveredNode(metadata);
@@ -256,20 +273,6 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
       return names;
     },
     [filteredRecentNodes, getMetadata]
-  );
-
-  const handleTileClick = useCallback(
-    (nodeType: string) => () => {
-      onTileClick(nodeType);
-    },
-    [onTileClick]
-  );
-
-  const handleTileMouseEnter = useCallback(
-    (nodeType: string) => () => {
-      onTileMouseEnter(nodeType);
-    },
-    [onTileMouseEnter]
   );
 
   if (filteredRecentNodes.length === 0) {
@@ -323,10 +326,11 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
               <div
                 className="recent-tile"
                 draggable
-                onDragStart={handleDragStart(nodeType)}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={handleTileClick(nodeType)}
-                onMouseEnter={handleTileMouseEnter(nodeType)}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
                 style={
                   {
                     background: theme.vars.palette.action.selected
