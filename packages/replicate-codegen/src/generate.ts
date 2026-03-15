@@ -129,7 +129,7 @@ async function generateFromMetadata(
     for (const spec of specs) {
       // Try to find config entry by className
       const indexEntry = configIndex.get(spec.className);
-      let modelId = spec.endpointId; // owner/name from the_model_info
+      let modelId = spec.endpointId;
 
       // Check if modelId exists in config
       if (moduleConfig.configs[modelId]) {

@@ -13,7 +13,7 @@ export type NodeClass = {
   title: string;
   description: string;
   layout?: string;
-  theModelInfo?: Record<string, unknown>;
+
   recommendedModels?: unknown[];
   basicFields?: string[];
   requiredSettings?: string[];
@@ -37,7 +37,7 @@ export abstract class BaseNode {
   static readonly title: string = "";
   static readonly description: string = "";
   static readonly layout: string | undefined = undefined;
-  static readonly theModelInfo: Record<string, unknown> | undefined = undefined;
+
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly basicFields: string[] | undefined = undefined;
   static readonly requiredSettings: string[] | undefined = undefined;

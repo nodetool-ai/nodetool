@@ -205,7 +205,7 @@ export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOp
     layout: nodeClass.layout ?? "default",
     properties,
     outputs,
-    the_model_info: nodeClass.theModelInfo ?? {},
+
     recommended_models: nodeClass.recommendedModels ?? [],
     basic_fields: nodeClass.basicFields ?? properties.map((property) => property.name),
     required_settings: nodeClass.requiredSettings ?? [],

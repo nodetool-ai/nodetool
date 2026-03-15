@@ -266,7 +266,7 @@ for (const file of files) {
       "isDynamic",
       "exposeAsTool",
       "supportsDynamicOutputs",
-      "theModelInfo",
+
       "recommendedModels",
       "modelPacks",
       "metadataOutputTypes",
@@ -295,9 +295,7 @@ for (const file of files) {
     if (py.supports_dynamic_outputs) {
       desiredStatics.set("supportsDynamicOutputs", "  static readonly supportsDynamicOutputs = true;");
     }
-    if (py.the_model_info != null) {
-      desiredStatics.set("theModelInfo", `  static readonly theModelInfo = ${jsLiteral(py.the_model_info, 2)};`);
-    }
+
     if ((py.recommended_models?.length ?? 0) > 0) {
       desiredStatics.set("recommendedModels", `  static readonly recommendedModels = ${jsLiteral(py.recommended_models, 2)};`);
     }

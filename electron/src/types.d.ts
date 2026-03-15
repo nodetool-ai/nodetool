@@ -362,7 +362,7 @@ export interface PackageNode {
   layout?: string;
   properties?: NodeProperty[];
   outputs?: NodeOutputSlot[];
-  the_model_info?: Record<string, any>;
+
   recommended_models?: any[];
   basic_fields?: string[];
   is_dynamic?: boolean;

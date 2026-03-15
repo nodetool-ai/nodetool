@@ -44,7 +44,7 @@ function normalizeMetadata(metadata: NonNullable<ReturnType<NodeRegistry["getMet
     namespace: metadata.namespace,
     node_type: metadata.node_type,
     layout: metadata.layout ?? null,
-    the_model_info: sortJson(metadata.the_model_info ?? null),
+
     recommended_models: sortJson(metadata.recommended_models ?? []),
     basic_fields: metadata.basic_fields ?? [],
     required_settings: metadata.required_settings ?? [],
