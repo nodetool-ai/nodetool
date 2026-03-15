@@ -477,5 +477,95 @@ export const imageGenerateConfig: ModuleConfig = {
       className: "Hunyuan_Image_3",
       returnType: "image",
     },
+    "bytedance/flux-pulid": {
+      className: "Flux_PuLID",
+      returnType: "image",
+      fieldOverrides: { face_image: { propType: "image" } },
+    },
+    "bytedance/pulid": {
+      className: "PuLID",
+      returnType: "image",
+      fieldOverrides: { face_image: { propType: "image" } },
+    },
+    "flux-kontext-apps/change-haircut": {
+      className: "Flux_Change_Haircut",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "flux-kontext-apps/professional-headshot": {
+      className: "Flux_Professional_Headshot",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "flux-kontext-apps/restore-image": {
+      className: "Flux_Restore_Image",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "ideogram-ai/ideogram-character": {
+      className: "Ideogram_Character",
+      returnType: "image",
+    },
+    "lucataco/omnigen2": {
+      className: "OmniGen2",
+      returnType: "image",
+    },
+    "prunaai/flux-kontext-fast": {
+      className: "Flux_Kontext_Fast",
+      returnType: "image",
+    },
+    "prunaai/p-image-edit": {
+      className: "P_Image_Edit",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "qwen/qwen-image-edit-plus": {
+      className: "Qwen_Image_Edit_Plus",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "runwayml/gen4-image": {
+      className: "Gen4_Image",
+      returnType: "image",
+    },
+    "runwayml/gen4-image-turbo": {
+      className: "Gen4_Image_Turbo",
+      returnType: "image",
+    },
+    "zsxkib/ic-light-background": {
+      className: "IC_Light_Background",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "zsxkib/step1x-edit": {
+      className: "Step1X_Edit",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "fofr/color-matcher": {
+      className: "Color_Matcher",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" }, reference: { propType: "image" } },
+    },
+    "lucataco/controlnet-tile": {
+      className: "ControlNet_Tile",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "lucataco/ip-adapter-faceid": {
+      className: "IP_Adapter_FaceID",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" }, face_image: { propType: "image" } },
+    },
+    "lucataco/ip_adapter-face-inpaint": {
+      className: "IP_Adapter_Face_Inpaint",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" }, face_image: { propType: "image" } },
+    },
+    "lucataco/ip_adapter-sdxl-face": {
+      className: "IP_Adapter_SDXL_Face",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" }, face_image: { propType: "image" } },
+    },
   },
 };

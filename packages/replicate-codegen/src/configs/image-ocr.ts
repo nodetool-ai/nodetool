@@ -16,5 +16,24 @@ export const imageOcrConfig: ModuleConfig = {
         image: { propType: "image" },
       },
     },
+    "cudanexus/ocr-surya": {
+      className: "OCR_Surya",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "lucataco/deepseek-ocr": {
+      className: "Deepseek_OCR",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "datalab-to/ocr": {
+      className: "Datalab_OCR",
+      returnType: "str",
+      fieldOverrides: { image: { propType: "image" } },
+    },
+    "datalab-to/marker": {
+      className: "Marker",
+      returnType: "str",
+    },
   },
 };
