@@ -74,5 +74,69 @@ export const textGenerateConfig: ModuleConfig = {
       className: "Deepseek_V3_1",
       returnType: "str",
     },
+    "google/gemini-3.1-pro": {
+      className: "Gemini_3_1_Pro",
+      returnType: "str",
+    },
+    "google/gemini-2.5-flash": {
+      className: "Gemini_2_5_Flash",
+      returnType: "str",
+    },
+    "google/gemini-3-pro": {
+      className: "Gemini_3_Pro",
+      returnType: "str",
+    },
+    "anthropic/claude-opus-4.6": {
+      className: "Claude_Opus_4_6",
+      returnType: "str",
+    },
+    "anthropic/claude-4.5-sonnet": {
+      className: "Claude_4_5_Sonnet",
+      returnType: "str",
+    },
+    "anthropic/claude-4.5-haiku": {
+      className: "Claude_4_5_Haiku",
+      returnType: "str",
+    },
+    "anthropic/claude-4-sonnet": {
+      className: "Claude_4_Sonnet",
+      returnType: "str",
+    },
+    "openai/gpt-5.2": {
+      className: "GPT_5_2",
+      returnType: "str",
+    },
+    "openai/o4-mini": {
+      className: "O4_Mini",
+      returnType: "str",
+    },
+    "openai/o1": {
+      className: "O1",
+      returnType: "str",
+    },
+    "openai/gpt-4o": {
+      className: "GPT_4o",
+      returnType: "str",
+    },
+    "openai/gpt-4o-mini": {
+      className: "GPT_4o_Mini",
+      returnType: "str",
+    },
+    "xai/grok-4": {
+      className: "Grok_4",
+      returnType: "str",
+    },
+    "deepseek-ai/deepseek-v3": {
+      className: "Deepseek_V3",
+      returnType: "str",
+    },
+    "qwen/qwen3-235b-a22b-instruct-2507": {
+      className: "Qwen3_235B",
+      returnType: "str",
+    },
+    "moonshotai/kimi-k2.5": {
+      className: "Kimi_K2_5",
+      returnType: "str",
+    },
   },
 };

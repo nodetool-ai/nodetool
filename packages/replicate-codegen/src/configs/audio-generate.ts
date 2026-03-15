@@ -42,5 +42,9 @@ export const audioGenerateConfig: ModuleConfig = {
       className: "Lyria_2",
       returnType: "audio",
     },
+    "minimax/speech-2.8-hd": {
+      className: "Speech_2_8_HD",
+      returnType: "audio",
+    },
   },
 };

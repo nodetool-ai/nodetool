@@ -397,5 +397,85 @@ export const imageGenerateConfig: ModuleConfig = {
         image: { propType: "image" },
       },
     },
+    "bytedance/seedream-4.5": {
+      className: "Seedream_4_5",
+      returnType: "image",
+    },
+    "bytedance/seedream-5-lite": {
+      className: "Seedream_5_Lite",
+      returnType: "image",
+    },
+    "bytedance/seedream-3": {
+      className: "Seedream_3",
+      returnType: "image",
+    },
+    "recraft-ai/recraft-v4": {
+      className: "Recraft_V4",
+      returnType: "image",
+    },
+    "recraft-ai/recraft-v4-svg": {
+      className: "Recraft_V4_SVG",
+      returnType: "image",
+    },
+    "recraft-ai/recraft-v4-pro": {
+      className: "Recraft_V4_Pro",
+      returnType: "image",
+    },
+    "recraft-ai/recraft-v4-pro-svg": {
+      className: "Recraft_V4_Pro_SVG",
+      returnType: "image",
+    },
+    "ideogram-ai/ideogram-v3-balanced": {
+      className: "Ideogram_V3_Balanced",
+      returnType: "image",
+    },
+    "ideogram-ai/ideogram-v3-quality": {
+      className: "Ideogram_V3_Quality",
+      returnType: "image",
+    },
+    "ideogram-ai/ideogram-v2a-turbo": {
+      className: "Ideogram_V2A_Turbo",
+      returnType: "image",
+    },
+    "google/imagen-4": {
+      className: "Imagen_4",
+      returnType: "image",
+    },
+    "google/imagen-4-ultra": {
+      className: "Imagen_4_Ultra",
+      returnType: "image",
+    },
+    "google/imagen-3-fast": {
+      className: "Imagen_3_Fast",
+      returnType: "image",
+    },
+    "google/nano-banana-pro": {
+      className: "Nano_Banana_Pro",
+      returnType: "image",
+    },
+    "xai/grok-imagine-image": {
+      className: "Grok_Imagine_Image",
+      returnType: "image",
+    },
+    "bria/fibo": {
+      className: "Fibo",
+      returnType: "image",
+    },
+    "bria/image-3.2": {
+      className: "Bria_Image_3_2",
+      returnType: "image",
+    },
+    "black-forest-labs/flux-2-klein-4b": {
+      className: "Flux_2_Klein_4B",
+      returnType: "image",
+    },
+    "black-forest-labs/flux-kontext-max": {
+      className: "Flux_Kontext_Max",
+      returnType: "image",
+    },
+    "tencent/hunyuan-image-3": {
+      className: "Hunyuan_Image_3",
+      returnType: "image",
+    },
   },
 };
