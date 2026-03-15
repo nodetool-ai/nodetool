@@ -54,16 +54,19 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input image" })
+  @prop({ type: "image", default: "", description: "Input image" })
   declare image_path: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imagePath = String(inputs.image_path ?? this.image_path ?? "");
-
     const args: Record<string, unknown> = {
-      "image_path": imagePath,
     };
+
+    const imagePathRef = inputs.image_path as Record<string, unknown> | undefined;
+    if (isRefSet(imagePathRef)) {
+      const imagePathUrl = assetToUrl(imagePathRef!);
+      if (imagePathUrl) args["image_path"] = imagePathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "mickeybeurskens/latex-ocr:b3278fae4c46eb2798804fc66e721e6ce61a450d072041a7e402b2c77805dcc3", args);
@@ -178,7 +181,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp" })
+  @prop({ type: "image", default: "", description: "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp" })
   declare file: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of pages to process. Cannot be specified if page_range is set - these parameters are mutually exclusive" })
@@ -198,7 +201,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const file = String(inputs.file ?? this.file ?? "");
     const maxPages = Number(inputs.max_pages ?? this.max_pages ?? 0);
     const pageRange = String(inputs.page_range ?? this.page_range ?? "");
     const returnPages = Boolean(inputs.return_pages ?? this.return_pages ?? false);
@@ -206,13 +208,18 @@ replicate, ai`;
     const visualize = Boolean(inputs.visualize ?? this.visualize ?? false);
 
     const args: Record<string, unknown> = {
-      "file": file,
       "max_pages": maxPages,
       "page_range": pageRange,
       "return_pages": returnPages,
       "skip_cache": skipCache,
       "visualize": visualize,
     };
+
+    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    if (isRefSet(fileRef)) {
+      const fileUrl = assetToUrl(fileRef!);
+      if (fileUrl) args["file"] = fileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "datalab-to/ocr:3e6db0d5311d6fdc232eea333c1e26055ba4e542180043f12acb2967e5c77f4a", args);
@@ -242,7 +249,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Disable recognition of inline mathematical expressions during OCR. By default, math expressions are detected and can be formatted as LaTeX" })
   declare disable_ocr_math: any;
 
-  @prop({ type: "str", default: "", description: "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp" })
+  @prop({ type: "image", default: "", description: "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp" })
   declare file: any;
 
   @prop({ type: "bool", default: false, description: "Force OCR on all pages even if text is extractable. By default, Marker automatically uses OCR only when needed (e.g., scanned PDFs). Enable this if you see garbled or incorrect text in the output" })
@@ -290,7 +297,6 @@ replicate, ai`;
     const blockCorrectionPrompt = String(inputs.block_correction_prompt ?? this.block_correction_prompt ?? "");
     const disableImageExtraction = Boolean(inputs.disable_image_extraction ?? this.disable_image_extraction ?? false);
     const disableOcrMath = Boolean(inputs.disable_ocr_math ?? this.disable_ocr_math ?? false);
-    const file = String(inputs.file ?? this.file ?? "");
     const forceOcr = Boolean(inputs.force_ocr ?? this.force_ocr ?? false);
     const formatLines = Boolean(inputs.format_lines ?? this.format_lines ?? false);
     const includeMetadata = Boolean(inputs.include_metadata ?? this.include_metadata ?? false);
@@ -310,7 +316,6 @@ replicate, ai`;
       "block_correction_prompt": blockCorrectionPrompt,
       "disable_image_extraction": disableImageExtraction,
       "disable_ocr_math": disableOcrMath,
-      "file": file,
       "force_ocr": forceOcr,
       "format_lines": formatLines,
       "include_metadata": includeMetadata,
@@ -325,6 +330,12 @@ replicate, ai`;
       "strip_existing_ocr": stripExistingOcr,
       "use_llm": useLlm,
     };
+
+    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    if (isRefSet(fileRef)) {
+      const fileUrl = assetToUrl(fileRef!);
+      if (fileUrl) args["file"] = fileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "datalab-to/marker:60af7e72bef73c71197269b27a98929910d7496806efecac17d9deab596e5239", args);

@@ -344,7 +344,7 @@ replicate, ai`;
   @prop({ type: "int", default: 8, description: "Duration of the generated audio in seconds." })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "An audio file that will influence the generated music. If 'continuation' is 'True', the generated music will be a continuation of the audio file. Otherwise, the generated music will mimic the audio file's melody." })
+  @prop({ type: "audio", default: "", description: "An audio file that will influence the generated music. If 'continuation' is 'True', the generated music will be a continuation of the audio file. Otherwise, the generated music will mimic the audio file's melody." })
   declare input_audio: any;
 
   @prop({ type: "enum", default: "stereo-melody-large", values: ["stereo-melody-large", "stereo-large", "melody-large", "large"], description: "Model to use for generation" })
@@ -381,7 +381,6 @@ replicate, ai`;
     const continuationEnd = Number(inputs.continuation_end ?? this.continuation_end ?? 0);
     const continuationStart = Number(inputs.continuation_start ?? this.continuation_start ?? 0);
     const duration = Number(inputs.duration ?? this.duration ?? 8);
-    const inputAudio = String(inputs.input_audio ?? this.input_audio ?? "");
     const modelVersion = String(inputs.model_version ?? this.model_version ?? "stereo-melody-large");
     const multiBandDiffusion = Boolean(inputs.multi_band_diffusion ?? this.multi_band_diffusion ?? false);
     const normalizationStrategy = String(inputs.normalization_strategy ?? this.normalization_strategy ?? "loudness");
@@ -398,7 +397,6 @@ replicate, ai`;
       "continuation_end": continuationEnd,
       "continuation_start": continuationStart,
       "duration": duration,
-      "input_audio": inputAudio,
       "model_version": modelVersion,
       "multi_band_diffusion": multiBandDiffusion,
       "normalization_strategy": normalizationStrategy,
@@ -409,6 +407,12 @@ replicate, ai`;
       "top_k": topK,
       "top_p": topP,
     };
+
+    const inputAudioRef = inputs.input_audio as Record<string, unknown> | undefined;
+    if (isRefSet(inputAudioRef)) {
+      const inputAudioUrl = assetToUrl(inputAudioRef!);
+      if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb", args);
@@ -432,7 +436,7 @@ replicate, ai`;
   @prop({ type: "float", default: 8, description: "Duration of output in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "", description: "Optional image file for image-to-audio generation (experimental)" })
+  @prop({ type: "image", default: "", description: "Optional image file for image-to-audio generation (experimental)" })
   declare image: any;
 
   @prop({ type: "str", default: "music", description: "Negative prompt to avoid certain sounds" })
@@ -447,30 +451,38 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Use -1 or leave blank to randomize the seed" })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Optional video file for video-to-audio generation" })
+  @prop({ type: "video", default: "", description: "Optional video file for video-to-audio generation" })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const cfgStrength = Number(inputs.cfg_strength ?? this.cfg_strength ?? 4.5);
     const duration = Number(inputs.duration ?? this.duration ?? 8);
-    const image = String(inputs.image ?? this.image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "music");
     const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 25);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const video = String(inputs.video ?? this.video ?? "");
 
     const args: Record<string, unknown> = {
       "cfg_strength": cfgStrength,
       "duration": duration,
-      "image": image,
       "negative_prompt": negativePrompt,
       "num_steps": numSteps,
       "prompt": prompt,
       "seed": seed,
-      "video": video,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/mmaudio:62871fb59889b2d7c13777f08deb3b36bdff88f7e1d53a50ad7694548a41b484", args);

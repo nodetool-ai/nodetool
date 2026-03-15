@@ -404,7 +404,7 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Path to an image" })
+  @prop({ type: "image", default: "", description: "Path to an image" })
   declare input_image: any;
 
   @prop({ type: "enum", default: "", values: ["Artistic", "Stable"], description: "Which model to use: Artistic has more vibrant color but may leave important parts of the image gray.Stable is better for nature scenery and is less prone to leaving gray human parts" })
@@ -415,15 +415,19 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const modelName = String(inputs.model_name ?? this.model_name ?? "");
     const renderFactor = Number(inputs.render_factor ?? this.render_factor ?? 35);
 
     const args: Record<string, unknown> = {
-      "input_image": inputImage,
       "model_name": modelName,
       "render_factor": renderFactor,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "arielreplicate/deoldify_image:0da600fab0c45a66211339f1c16b71345d22f26ef5fea3dca1bb90bb5711e950", args);
@@ -485,7 +489,7 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image. Stereo Image Super-Resolution, upload the left image here." })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Right Input image for Stereo Image Super-Resolution. Optional, only valid for Stereo Image Super-Resolution task." })
+  @prop({ type: "image", default: "", description: "Right Input image for Stereo Image Super-Resolution. Optional, only valid for Stereo Image Super-Resolution task." })
   declare image_r: any;
 
   @prop({ type: "enum", default: "Image Debluring (REDS)", values: ["Image Denoising", "Image Debluring (GoPro)", "Image Debluring (REDS)", "Stereo Image Super-Resolution"], description: "Choose task type." })
@@ -493,11 +497,9 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const imageR = String(inputs.image_r ?? this.image_r ?? "");
     const taskType = String(inputs.task_type ?? this.task_type ?? "Image Debluring (REDS)");
 
     const args: Record<string, unknown> = {
-      "image_r": imageR,
       "task_type": taskType,
     };
 
@@ -505,6 +507,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const imageRRef = inputs.image_r as Record<string, unknown> | undefined;
+    if (isRefSet(imageRRef)) {
+      const imageRUrl = assetToUrl(imageRRef!);
+      if (imageRUrl) args["image_r"] = imageRUrl;
     }
     removeNulls(args);
 
@@ -564,21 +572,28 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Zip file of frames of a video. Ignored when video is provided." })
+  @prop({ type: "image", default: "", description: "Zip file of frames of a video. Ignored when video is provided." })
   declare frames: any;
 
-  @prop({ type: "str", default: "", description: "Input video file" })
+  @prop({ type: "video", default: "", description: "Input video file" })
   declare video: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const frames = String(inputs.frames ?? this.frames ?? "");
-    const video = String(inputs.video ?? this.video ?? "");
-
     const args: Record<string, unknown> = {
-      "frames": frames,
-      "video": video,
     };
+
+    const framesRef = inputs.frames as Record<string, unknown> | undefined;
+    if (isRefSet(framesRef)) {
+      const framesUrl = assetToUrl(framesRef!);
+      if (framesUrl) args["frames"] = framesUrl;
+    }
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "tencentarc/animesr:8c5b0d2da7a0c881bb2253adc3b899f27cb191f643f43c14a0e554078a7bbad3", args);

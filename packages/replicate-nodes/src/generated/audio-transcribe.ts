@@ -85,7 +85,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
+  @prop({ type: "audio", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
   declare audio_file: any;
 
   @prop({ type: "str", default: "", description: "The language of the input audio. Supplying the input language in ISO-639-1 (e.g. en) format will improve accuracy and latency." })
@@ -99,17 +99,21 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioFile = String(inputs.audio_file ?? this.audio_file ?? "");
     const language = String(inputs.language ?? this.language ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0);
 
     const args: Record<string, unknown> = {
-      "audio_file": audioFile,
       "language": language,
       "prompt": prompt,
       "temperature": temperature,
     };
+
+    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    if (isRefSet(audioFileRef)) {
+      const audioFileUrl = assetToUrl(audioFileRef!);
+      if (audioFileUrl) args["audio_file"] = audioFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4o-transcribe:cc7638666fc85e9defb010d99e304c0c0e94dcdbd3d31385f28f2730b4cdcc6d", args);
@@ -218,7 +222,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
+  @prop({ type: "audio", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
   declare audio_file: any;
 
   @prop({ type: "str", default: "", description: "The language of the input audio. Supplying the input language in ISO-639-1 (e.g. en) format will improve accuracy and latency." })
@@ -232,17 +236,21 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioFile = String(inputs.audio_file ?? this.audio_file ?? "");
     const language = String(inputs.language ?? this.language ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0);
 
     const args: Record<string, unknown> = {
-      "audio_file": audioFile,
       "language": language,
       "prompt": prompt,
       "temperature": temperature,
     };
+
+    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    if (isRefSet(audioFileRef)) {
+      const audioFileUrl = assetToUrl(audioFileRef!);
+      if (audioFileUrl) args["audio_file"] = audioFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-4o-mini-transcribe:684265b6c4d23a4f5b3536a76e0b9e022ce5084f6da95fd7d0b5ebbc573a8261", args);
@@ -311,7 +319,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Or an audio file" })
+  @prop({ type: "image", default: "", description: "Or an audio file" })
   declare file: any;
 
   @prop({ type: "str", default: "", description: "Either provide: Base64 encoded audio file," })
@@ -337,7 +345,6 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const file = String(inputs.file ?? this.file ?? "");
     const fileString = String(inputs.file_string ?? this.file_string ?? "");
     const fileUrl = String(inputs.file_url ?? this.file_url ?? "");
     const groupSegments = Boolean(inputs.group_segments ?? this.group_segments ?? true);
@@ -347,7 +354,6 @@ replicate, ai`;
     const translate = Boolean(inputs.translate ?? this.translate ?? false);
 
     const args: Record<string, unknown> = {
-      "file": file,
       "file_string": fileString,
       "file_url": fileUrl,
       "group_segments": groupSegments,
@@ -356,6 +362,12 @@ replicate, ai`;
       "prompt": prompt,
       "translate": translate,
     };
+
+    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    if (isRefSet(fileRef)) {
+      const fileUrl = assetToUrl(fileRef!);
+      if (fileUrl) args["file"] = fileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "thomasmol/whisper-diarization:1495a9cddc83b2203b0d8d3516e38b80fd1572ebc4bc5700ac1da56a9b3ed886", args);
@@ -373,16 +385,19 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input audio file to be transcribed by the ASR model" })
+  @prop({ type: "audio", default: "", description: "Input audio file to be transcribed by the ASR model" })
   declare audio_file: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audioFile = String(inputs.audio_file ?? this.audio_file ?? "");
-
     const args: Record<string, unknown> = {
-      "audio_file": audioFile,
     };
+
+    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    if (isRefSet(audioFileRef)) {
+      const audioFileUrl = assetToUrl(audioFileRef!);
+      if (audioFileUrl) args["audio_file"] = audioFileUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "nvidia/parakeet-rnnt-1.1b:73ddbebaef172a47c8dfdd79381f110bfdc7691bcc7a4edde82f0a39e380ce50", args);
@@ -400,7 +415,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "audio", default: "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3", description: "Audio file" })
+  @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -430,7 +445,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "audio", default: "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3", description: "Audio file" })
+  @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -496,7 +511,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "audio", default: "https://replicate.delivery/pbxt/IZjTvet2ZGiyiYaMEEPrzn0xY1UDNsh0NfcO9qeTlpwCo7ig/lex-levin-4min.mp3", description: "Audio file or url" })
+  @prop({ type: "audio", default: "", description: "Audio file or url" })
   declare audio: any;
 
   @prop({ type: "int", default: 0, description: "Maximum number of speakers to diarize. Default: None" })

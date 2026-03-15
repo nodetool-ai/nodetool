@@ -119,7 +119,7 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Whether to normalize embeddings." })
   declare normalize_embeddings: any;
 
-  @prop({ type: "str", default: "", description: "Path to file containing text as JSONL with 'text' field or valid JSON string list." })
+  @prop({ type: "image", default: "", description: "Path to file containing text as JSONL with 'text' field or valid JSON string list." })
   declare path: any;
 
   @prop({ type: "str", default: "", description: "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])" })
@@ -130,16 +130,20 @@ replicate, ai`;
     const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 32);
     const convertToNumpy = Boolean(inputs.convert_to_numpy ?? this.convert_to_numpy ?? false);
     const normalizeEmbeddings = Boolean(inputs.normalize_embeddings ?? this.normalize_embeddings ?? true);
-    const path = String(inputs.path ?? this.path ?? "");
     const texts = String(inputs.texts ?? this.texts ?? "");
 
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
       "convert_to_numpy": convertToNumpy,
       "normalize_embeddings": normalizeEmbeddings,
-      "path": path,
       "texts": texts,
     };
+
+    const pathRef = inputs.path as Record<string, unknown> | undefined;
+    if (isRefSet(pathRef)) {
+      const pathUrl = assetToUrl(pathRef!);
+      if (pathUrl) args["path"] = pathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "nateraw/bge-large-en-v1.5:9cf9f015a9cb9c61d1a2610659cdac4a4ca222f2d3707a68517b18c198a9add1", args);
@@ -224,7 +228,7 @@ replicate, ai`;
   @prop({ type: "int", default: 64, description: "Matryoshka dimension - output embedding dimension (64-1024)" })
   declare embedding_dim: any;
 
-  @prop({ type: "str", default: "", description: "Image file to embed (optimal size: 512x512). If both text and image provided, image embedding will be second in returned list." })
+  @prop({ type: "image", default: "", description: "Image file to embed (optimal size: 512x512). If both text and image provided, image embedding will be second in returned list." })
   declare image: any;
 
   @prop({ type: "enum", default: "base64", values: ["base64", "array"], description: "Format to use in outputs" })
@@ -236,16 +240,20 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const embeddingDim = Number(inputs.embedding_dim ?? this.embedding_dim ?? 64);
-    const image = String(inputs.image ?? this.image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "base64");
     const text = String(inputs.text ?? this.text ?? "");
 
     const args: Record<string, unknown> = {
       "embedding_dim": embeddingDim,
-      "image": image,
       "output_format": outputFormat,
       "text": text,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/jina-clip-v2:5050c3108bab23981802011a3c76ee327cc0dbfdd31a2f4ef1ee8ef0d3f0b448", args);
@@ -359,7 +367,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "file that you want to embed. Needs to be text, vision, or audio." })
+  @prop({ type: "image", default: "", description: "file that you want to embed. Needs to be text, vision, or audio." })
   declare input: any;
 
   @prop({ type: "enum", default: "vision", values: ["text", "vision", "audio"], description: "modality of the input you'd like to embed" })
@@ -370,15 +378,19 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const input = String(inputs.input ?? this.input ?? "");
     const modality = String(inputs.modality ?? this.modality ?? "vision");
     const textInput = String(inputs.text_input ?? this.text_input ?? "");
 
     const args: Record<string, unknown> = {
-      "input": input,
       "modality": modality,
       "text_input": textInput,
     };
+
+    const inputRef = inputs.input as Record<string, unknown> | undefined;
+    if (isRefSet(inputRef)) {
+      const inputUrl = assetToUrl(inputRef!);
+      if (inputUrl) args["input"] = inputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "daanelson/imagebind:0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304", args);
@@ -396,7 +408,7 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input image" })
+  @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Input text" })
@@ -404,13 +416,17 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
     const text = String(inputs.text ?? this.text ?? "");
 
     const args: Record<string, unknown> = {
-      "image": image,
       "text": text,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4", args);

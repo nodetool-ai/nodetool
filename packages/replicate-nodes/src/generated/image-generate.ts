@@ -530,13 +530,13 @@ replicate, ai`;
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Character reference image to guide generation" })
+  @prop({ type: "image", default: "", description: "Character reference image to guide generation" })
   declare character_reference: any;
 
   @prop({ type: "image", default: "", description: "Deprecated: Use character_reference instead" })
   declare character_reference_url: any;
 
-  @prop({ type: "str", default: "", description: "Reference image to guide generation" })
+  @prop({ type: "image", default: "", description: "Reference image to guide generation" })
   declare image_reference: any;
 
   @prop({ type: "image", default: "", description: "Deprecated: Use image_reference instead" })
@@ -551,7 +551,7 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Set for reproducible generation" })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Style reference image to guide generation" })
+  @prop({ type: "image", default: "", description: "Style reference image to guide generation" })
   declare style_reference: any;
 
   @prop({ type: "image", default: "", description: "Deprecated: Use style_reference instead" })
@@ -563,24 +563,24 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const characterReference = String(inputs.character_reference ?? this.character_reference ?? "");
-    const imageReference = String(inputs.image_reference ?? this.image_reference ?? "");
     const imageReferenceWeight = Number(inputs.image_reference_weight ?? this.image_reference_weight ?? 0.85);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const styleReference = String(inputs.style_reference ?? this.style_reference ?? "");
     const styleReferenceWeight = Number(inputs.style_reference_weight ?? this.style_reference_weight ?? 0.85);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "character_reference": characterReference,
-      "image_reference": imageReference,
       "image_reference_weight": imageReferenceWeight,
       "prompt": prompt,
       "seed": seed,
-      "style_reference": styleReference,
       "style_reference_weight": styleReferenceWeight,
     };
+
+    const characterReferenceRef = inputs.character_reference as Record<string, unknown> | undefined;
+    if (isRefSet(characterReferenceRef)) {
+      const characterReferenceUrl = assetToUrl(characterReferenceRef!);
+      if (characterReferenceUrl) args["character_reference"] = characterReferenceUrl;
+    }
 
     const characterReferenceUrlRef = inputs.character_reference_url as Record<string, unknown> | undefined;
     if (isRefSet(characterReferenceUrlRef)) {
@@ -588,10 +588,22 @@ replicate, ai`;
       if (characterReferenceUrlUrl) args["character_reference_url"] = characterReferenceUrlUrl;
     }
 
+    const imageReferenceRef = inputs.image_reference as Record<string, unknown> | undefined;
+    if (isRefSet(imageReferenceRef)) {
+      const imageReferenceUrl = assetToUrl(imageReferenceRef!);
+      if (imageReferenceUrl) args["image_reference"] = imageReferenceUrl;
+    }
+
     const imageReferenceUrlRef = inputs.image_reference_url as Record<string, unknown> | undefined;
     if (isRefSet(imageReferenceUrlRef)) {
       const imageReferenceUrlUrl = assetToUrl(imageReferenceUrlRef!);
       if (imageReferenceUrlUrl) args["image_reference_url"] = imageReferenceUrlUrl;
+    }
+
+    const styleReferenceRef = inputs.style_reference as Record<string, unknown> | undefined;
+    if (isRefSet(styleReferenceRef)) {
+      const styleReferenceUrl = assetToUrl(styleReferenceRef!);
+      if (styleReferenceUrl) args["style_reference"] = styleReferenceUrl;
     }
 
     const styleReferenceUrlRef = inputs.style_reference_url as Record<string, unknown> | undefined;
@@ -1232,7 +1244,7 @@ replicate, ai`;
   @prop({ type: "float", default: 3.5, description: "Guidance for generated image. Lower values can give more realistic images. Good values to try are 2, 2.5, 3 and 3.5" })
   declare guidance: any;
 
-  @prop({ type: "str", default: "", description: "Input image for image to image mode. The aspect ratio of your output will match this image" })
+  @prop({ type: "image", default: "", description: "Input image for image to image mode. The aspect ratio of your output will match this image" })
   declare image: any;
 
   @prop({ type: "enum", default: "1", values: ["1", "0.25"], description: "Approximate number of megapixels for generated image" })
@@ -1265,7 +1277,6 @@ replicate, ai`;
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
     const goFast = Boolean(inputs.go_fast ?? this.go_fast ?? true);
     const guidance = Number(inputs.guidance ?? this.guidance ?? 3.5);
-    const image = String(inputs.image ?? this.image ?? "");
     const megapixels = String(inputs.megapixels ?? this.megapixels ?? "1");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 28);
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
@@ -1280,7 +1291,6 @@ replicate, ai`;
       "disable_safety_checker": disableSafetyChecker,
       "go_fast": goFast,
       "guidance": guidance,
-      "image": image,
       "megapixels": megapixels,
       "num_inference_steps": numInferenceSteps,
       "num_outputs": numOutputs,
@@ -1290,6 +1300,12 @@ replicate, ai`;
       "prompt_strength": promptStrength,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-dev:6e4a938f85952bdabcc15aa329178c4d681c52bf25a0342403287dc26944661d", args);
@@ -1316,7 +1332,7 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes." })
   declare height: any;
 
-  @prop({ type: "str", default: "", description: "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp." })
   declare image_prompt: any;
 
   @prop({ type: "float", default: 2, description: "Deprecated" })
@@ -1351,7 +1367,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const guidance = Number(inputs.guidance ?? this.guidance ?? 3);
     const height = Number(inputs.height ?? this.height ?? 0);
-    const imagePrompt = String(inputs.image_prompt ?? this.image_prompt ?? "");
     const interval = Number(inputs.interval ?? this.interval ?? 2);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
@@ -1366,7 +1381,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "guidance": guidance,
       "height": height,
-      "image_prompt": imagePrompt,
       "interval": interval,
       "output_format": outputFormat,
       "output_quality": outputQuality,
@@ -1377,6 +1391,12 @@ replicate, ai`;
       "steps": steps,
       "width": width,
     };
+
+    const imagePromptRef = inputs.image_prompt as Record<string, unknown> | undefined;
+    if (isRefSet(imagePromptRef)) {
+      const imagePromptUrl = assetToUrl(imagePromptRef!);
+      if (imagePromptUrl) args["image_prompt"] = imagePromptUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-pro:ce4035b99fc7bac18bc2f0384632858f126f6b4d96c88603a898a76b8e0c4ac2", args);
@@ -1397,7 +1417,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "1:1", values: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp." })
   declare image_prompt: any;
 
   @prop({ type: "float", default: 0.1, description: "Blend between the prompt and the image prompt." })
@@ -1421,7 +1441,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const imagePrompt = String(inputs.image_prompt ?? this.image_prompt ?? "");
     const imagePromptStrength = Number(inputs.image_prompt_strength ?? this.image_prompt_strength ?? 0.1);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1431,7 +1450,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image_prompt": imagePrompt,
       "image_prompt_strength": imagePromptStrength,
       "output_format": outputFormat,
       "prompt": prompt,
@@ -1439,6 +1457,12 @@ replicate, ai`;
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const imagePromptRef = inputs.image_prompt as Record<string, unknown> | undefined;
+    if (isRefSet(imagePromptRef)) {
+      const imagePromptUrl = assetToUrl(imagePromptRef!);
+      if (imagePromptUrl) args["image_prompt"] = imagePromptUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-1.1-pro-ultra:5ea10f739af9f6d4002fae9aee4c15be14c3c8d7f8b309e634bf68df09159863", args);
@@ -1794,10 +1818,10 @@ replicate, ai`;
   @prop({ type: "float", default: 60, description: "Controls the balance between adherence to the text prompt and image quality/diversity. Higher values make the output more closely match the prompt but may reduce overall image quality. Lower values allow for more creative freedom but might produce results less relevant to the prompt." })
   declare guidance: any;
 
-  @prop({ type: "str", default: "", description: "The image to inpaint. Can contain an alpha mask. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "The image to inpaint. Can contain an alpha mask. Must be jpeg, png, gif, or webp." })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "A black-and-white image that describes the part of the image to inpaint. Black areas will be preserved while white areas will be inpainted. Must have the same size as image. Optional if you provide an alpha mask in the original image. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "A black-and-white image that describes the part of the image to inpaint. Black areas will be preserved while white areas will be inpainted. Must have the same size as image. Optional if you provide an alpha mask in the original image. Must be jpeg, png, gif, or webp." })
   declare mask: any;
 
   @prop({ type: "enum", default: "None", values: ["None", "Zoom out 1.5x", "Zoom out 2x", "Make square", "Left outpaint", "Right outpaint", "Top outpaint", "Bottom outpaint"], description: "A quick option for outpainting an input image. Mask will be ignored." })
@@ -1824,8 +1848,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const guidance = Number(inputs.guidance ?? this.guidance ?? 60);
-    const image = String(inputs.image ?? this.image ?? "");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const outpaint = String(inputs.outpaint ?? this.outpaint ?? "None");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -1836,8 +1858,6 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "guidance": guidance,
-      "image": image,
-      "mask": mask,
       "outpaint": outpaint,
       "output_format": outputFormat,
       "prompt": prompt,
@@ -1846,6 +1866,18 @@ replicate, ai`;
       "seed": seed,
       "steps": steps,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-fill-pro:2d4197724d8ed13cc78191e794ebbe6aeedcfe4c5b36f464794732d5ccb9735f", args);
@@ -2806,7 +2838,7 @@ replicate, ai`;
   @prop({ type: "float", default: 30, description: "Guidance for generated image" })
   declare guidance: any;
 
-  @prop({ type: "str", default: "", description: "The image to inpaint. Can contain alpha mask. If the image width or height are not multiples of 32, they will be scaled to the closest multiple of 32. If the image dimensions don't fit within 1440x1440, it will be scaled down to fit." })
+  @prop({ type: "image", default: "", description: "The image to inpaint. Can contain alpha mask. If the image width or height are not multiples of 32, they will be scaled to the closest multiple of 32. If the image dimensions don't fit within 1440x1440, it will be scaled down to fit." })
   declare image: any;
 
   @prop({ type: "float", default: 1, description: "Determines how strongly the main LoRA should be applied. Sane results between 0 and 1 for base inference. For go_fast we apply a 1.5x multiplier to this value; we've generally seen good performance when scaling the base value by that amount. You may still need to experiment to find the best value for your particular lora." })
@@ -2815,7 +2847,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Load LoRA weights. Supports Replicate models in the format <owner>/<username> or <owner>/<username>/<version>, HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet. For example, 'fofr/flux-pixar-cars'" })
   declare lora_weights: any;
 
-  @prop({ type: "str", default: "", description: "A black-and-white image that describes the part of the image to inpaint. Black areas will be preserved while white areas will be inpainted." })
+  @prop({ type: "image", default: "", description: "A black-and-white image that describes the part of the image to inpaint. Black areas will be preserved while white areas will be inpainted." })
   declare mask: any;
 
   @prop({ type: "enum", default: "1", values: ["1", "0.25", "match_input"], description: "Approximate number of megapixels for generated image. Use match_input to match the size of the input (with an upper limit of 1440x1440 pixels)" })
@@ -2843,10 +2875,8 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
     const guidance = Number(inputs.guidance ?? this.guidance ?? 30);
-    const image = String(inputs.image ?? this.image ?? "");
     const loraScale = Number(inputs.lora_scale ?? this.lora_scale ?? 1);
     const loraWeights = String(inputs.lora_weights ?? this.lora_weights ?? "");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const megapixels = String(inputs.megapixels ?? this.megapixels ?? "1");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 28);
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
@@ -2858,10 +2888,8 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "disable_safety_checker": disableSafetyChecker,
       "guidance": guidance,
-      "image": image,
       "lora_scale": loraScale,
       "lora_weights": loraWeights,
-      "mask": mask,
       "megapixels": megapixels,
       "num_inference_steps": numInferenceSteps,
       "num_outputs": numOutputs,
@@ -2870,6 +2898,18 @@ replicate, ai`;
       "prompt": prompt,
       "seed": seed,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c", args);
@@ -3263,7 +3303,7 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image for img2img or inpaint mode" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted." })
+  @prop({ type: "image", default: "", description: "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted." })
   declare mask: any;
 
   @prop({ type: "str", default: "ugly, deformed, noisy, blurry, distorted", description: "Negative Input prompt" })
@@ -3296,7 +3336,6 @@ replicate, ai`;
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
     const height = Number(inputs.height ?? this.height ?? 1024);
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "ugly, deformed, noisy, blurry, distorted");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 25);
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
@@ -3311,7 +3350,6 @@ replicate, ai`;
       "disable_safety_checker": disableSafetyChecker,
       "guidance_scale": guidanceScale,
       "height": height,
-      "mask": mask,
       "negative_prompt": negativePrompt,
       "num_inference_steps": numInferenceSteps,
       "num_outputs": numOutputs,
@@ -3326,6 +3364,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
 
@@ -4260,7 +4304,7 @@ replicate, ai`;
   @prop({ type: "int", default: 2048, description: "Custom image height (only used when size='custom'). Range: 1024-4096 pixels." })
   declare height: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input image(s) for image-to-image generation. List of 1-10 images for single or multi-reference generation." })
+  @prop({ type: "list[image]", default: [], description: "Input image(s) for image-to-image generation. List of 1-10 images for single or multi-reference generation." })
   declare image_input: any;
 
   @prop({ type: "int", default: 1, description: "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15." })
@@ -4283,7 +4327,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
     const enhancePrompt = Boolean(inputs.enhance_prompt ?? this.enhance_prompt ?? true);
     const height = Number(inputs.height ?? this.height ?? 2048);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxImages = Number(inputs.max_images ?? this.max_images ?? 1);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const sequentialImageGeneration = String(inputs.sequential_image_generation ?? this.sequential_image_generation ?? "disabled");
@@ -4294,13 +4337,18 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "enhance_prompt": enhancePrompt,
       "height": height,
-      "image_input": imageInput,
       "max_images": maxImages,
       "prompt": prompt,
       "sequential_image_generation": sequentialImageGeneration,
       "size": size,
       "width": width,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedream-4:cf7d431991436f19d1c8dad83fe463c729c816d7a21056c5105e75c84a0aa7e9", args);
@@ -4330,7 +4378,7 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use prompt optimizer" })
   declare prompt_optimizer: any;
 
-  @prop({ type: "str", default: "", description: "An optional character reference image (human face) to use as the subject in the generated image(s)." })
+  @prop({ type: "image", default: "", description: "An optional character reference image (human face) to use as the subject in the generated image(s)." })
   declare subject_reference: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -4339,15 +4387,19 @@ replicate, ai`;
     const numberOfImages = Number(inputs.number_of_images ?? this.number_of_images ?? 1);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
-    const subjectReference = String(inputs.subject_reference ?? this.subject_reference ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "number_of_images": numberOfImages,
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
-      "subject_reference": subjectReference,
     };
+
+    const subjectReferenceRef = inputs.subject_reference as Record<string, unknown> | undefined;
+    if (isRefSet(subjectReferenceRef)) {
+      const subjectReferenceUrl = assetToUrl(subjectReferenceRef!);
+      if (subjectReferenceUrl) args["subject_reference"] = subjectReferenceUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "minimax/image-01:928f3bd6ac899108d0ab8cf7f91dfa39a03eda0175e94c9b4cd075776dececf0", args);
@@ -4371,7 +4423,7 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Height of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 16 (if it's not, it will be rounded to nearest multiple of 16)." })
   declare height: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of input images for image-to-image generation. Maximum 8 images. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "list[image]", default: [], description: "List of input images for image-to-image generation. Maximum 8 images. Must be jpeg, png, gif, or webp." })
   declare input_images: any;
 
   @prop({ type: "enum", default: "webp", values: ["webp", "jpg", "png"], description: "Format of the output images." })
@@ -4399,7 +4451,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const height = Number(inputs.height ?? this.height ?? 0);
-    const inputImages = String(inputs.input_images ?? this.input_images ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -4411,7 +4462,6 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "height": height,
-      "input_images": inputImages,
       "output_format": outputFormat,
       "output_quality": outputQuality,
       "prompt": prompt,
@@ -4420,6 +4470,12 @@ replicate, ai`;
       "seed": seed,
       "width": width,
     };
+
+    const inputImagesRef = inputs.input_images as Record<string, unknown> | undefined;
+    if (isRefSet(inputImagesRef)) {
+      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      if (inputImagesUrl) args["input_images"] = inputImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-pro:00b07c32e314ceb5152c1d08e73400e6a61d7d22ba60a405fc76314fc807910c", args);
@@ -4446,7 +4502,7 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Height of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32)." })
   declare height: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of input images for image-to-image generation. Maximum 10 images. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "list[image]", default: [], description: "List of input images for image-to-image generation. Maximum 10 images. Must be jpeg, png, gif, or webp." })
   declare input_images: any;
 
   @prop({ type: "enum", default: "webp", values: ["webp", "jpg", "png"], description: "Format of the output images." })
@@ -4481,7 +4537,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const guidance = Number(inputs.guidance ?? this.guidance ?? 4.5);
     const height = Number(inputs.height ?? this.height ?? 0);
-    const inputImages = String(inputs.input_images ?? this.input_images ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -4496,7 +4551,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "guidance": guidance,
       "height": height,
-      "input_images": inputImages,
       "output_format": outputFormat,
       "output_quality": outputQuality,
       "prompt": prompt,
@@ -4507,6 +4561,12 @@ replicate, ai`;
       "steps": steps,
       "width": width,
     };
+
+    const inputImagesRef = inputs.input_images as Record<string, unknown> | undefined;
+    if (isRefSet(inputImagesRef)) {
+      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      if (inputImagesUrl) args["input_images"] = inputImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-flex:4139a7655e86b5d2f51450b52491369ec5b1250ff9af033f5de28cd121c24906", args);
@@ -4533,7 +4593,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "low", values: ["low", "high"], description: "Control how much effort the model will exert to match the style and features, especially facial features, of input images" })
   declare input_fidelity: any;
 
-  @prop({ type: "list[str]", default: [], description: "A list of images to use as input for the generation" })
+  @prop({ type: "list[image]", default: [], description: "A list of images to use as input for the generation" })
   declare input_images: any;
 
   @prop({ type: "enum", default: "auto", values: ["auto", "low"], description: "Content moderation level" })
@@ -4565,7 +4625,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const background = String(inputs.background ?? this.background ?? "auto");
     const inputFidelity = String(inputs.input_fidelity ?? this.input_fidelity ?? "low");
-    const inputImages = String(inputs.input_images ?? this.input_images ?? []);
     const moderation = String(inputs.moderation ?? this.moderation ?? "auto");
     const numberOfImages = Number(inputs.number_of_images ?? this.number_of_images ?? 1);
     const openaiApiKey = String(inputs.openai_api_key ?? this.openai_api_key ?? "");
@@ -4579,7 +4638,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "background": background,
       "input_fidelity": inputFidelity,
-      "input_images": inputImages,
       "moderation": moderation,
       "number_of_images": numberOfImages,
       "openai_api_key": openaiApiKey,
@@ -4589,6 +4647,12 @@ replicate, ai`;
       "quality": quality,
       "user_id": userId,
     };
+
+    const inputImagesRef = inputs.input_images as Record<string, unknown> | undefined;
+    if (isRefSet(inputImagesRef)) {
+      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      if (inputImagesUrl) args["input_images"] = inputImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "openai/gpt-image-1.5:118f53498ea7319519229b2d5bd0d4a69e3d77eb60d6292d5db38125534dc1ca", args);
@@ -4612,7 +4676,7 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Height of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32)." })
   declare height: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of input images for image-to-image generation. Maximum 8 images. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "list[image]", default: [], description: "List of input images for image-to-image generation. Maximum 8 images. Must be jpeg, png, gif, or webp." })
   declare input_images: any;
 
   @prop({ type: "enum", default: "webp", values: ["webp", "jpg", "png"], description: "Format of the output images." })
@@ -4640,7 +4704,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const height = Number(inputs.height ?? this.height ?? 0);
-    const inputImages = String(inputs.input_images ?? this.input_images ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -4652,7 +4715,6 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "height": height,
-      "input_images": inputImages,
       "output_format": outputFormat,
       "output_quality": outputQuality,
       "prompt": prompt,
@@ -4661,6 +4723,12 @@ replicate, ai`;
       "seed": seed,
       "width": width,
     };
+
+    const inputImagesRef = inputs.input_images as Record<string, unknown> | undefined;
+    if (isRefSet(inputImagesRef)) {
+      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      if (inputImagesUrl) args["input_images"] = inputImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-max:c9a020854ba37d5fe801ab712570d7e437b17c148843fe96dbcb7cadd160a8f7", args);
@@ -4744,7 +4812,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "80s Illustration", "90s Nostalgia", "Abstract Organic", "Analog Nostalgia", "Art Brut", "Art Deco", "Art Poster", "Aura", "Avant Garde", "Bauhaus", "Blueprint", "Blurry Motion", "Bright Art", "C4D Cartoon", "Children's Book", "Collage", "Coloring Book I", "Coloring Book II", "Cubism", "Dark Aura", "Doodle", "Double Exposure", "Dramatic Cinema", "Editorial", "Emotional Minimal", "Ethereal Party", "Expired Film", "Flat Art", "Flat Vector", "Forest Reverie", "Geo Minimalist", "Glass Prism", "Golden Hour", "Graffiti I", "Graffiti II", "Halftone Print", "High Contrast", "Hippie Era", "Iconic", "Japandi Fusion", "Jazzy", "Long Exposure", "Magazine Editorial", "Minimal Illustration", "Mixed Media", "Monochrome", "Nightlife", "Oil Painting", "Old Cartoons", "Paint Gesture", "Pop Art", "Retro Etching", "Riviera Pop", "Spotlight 80s", "Stylized Red", "Surreal Collage", "Travel Poster", "Vintage Geo", "Vintage Poster", "Watercolor", "Weird", "Woodblock Print"], description: "Apply a predefined artistic style to the generated image (V3 models only)." })
   declare style_preset: any;
 
-  @prop({ type: "list[str]", default: [], description: "A list of images to use as style references." })
+  @prop({ type: "list[image]", default: [], description: "A list of images to use as style references." })
   declare style_reference_images: any;
 
   @prop({ type: "enum", default: "None", values: ["None", "Auto", "General", "Realistic", "Design"], description: "The styles help define the specific aesthetic of the image you want to generate." })
@@ -4758,7 +4826,6 @@ replicate, ai`;
     const resolution = String(inputs.resolution ?? this.resolution ?? "None");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stylePreset = String(inputs.style_preset ?? this.style_preset ?? "None");
-    const styleReferenceImages = String(inputs.style_reference_images ?? this.style_reference_images ?? []);
     const styleType = String(inputs.style_type ?? this.style_type ?? "None");
 
     const args: Record<string, unknown> = {
@@ -4768,7 +4835,6 @@ replicate, ai`;
       "resolution": resolution,
       "seed": seed,
       "style_preset": stylePreset,
-      "style_reference_images": styleReferenceImages,
       "style_type": styleType,
     };
 
@@ -4782,6 +4848,12 @@ replicate, ai`;
     if (isRefSet(maskRef)) {
       const maskUrl = assetToUrl(maskRef!);
       if (maskUrl) args["mask"] = maskUrl;
+    }
+
+    const styleReferenceImagesRef = inputs.style_reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(styleReferenceImagesRef)) {
+      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
     }
     removeNulls(args);
 
@@ -4803,7 +4875,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Image to use as reference. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image to use as reference. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
 
   @prop({ type: "enum", default: "png", values: ["jpg", "png"], description: "Output format for the generated image" })
@@ -4824,7 +4896,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptUpsampling = Boolean(inputs.prompt_upsampling ?? this.prompt_upsampling ?? false);
@@ -4833,13 +4904,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "input_image": inputImage,
       "output_format": outputFormat,
       "prompt": prompt,
       "prompt_upsampling": promptUpsampling,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-kontext-pro:897a70f5a7dbd8a0611413b3b98cf417b45f266bd595c571a22947619d9ae462", args);
@@ -4863,7 +4939,7 @@ replicate, ai`;
   @prop({ type: "int", default: 2048, description: "Custom image height (only used when size='custom'). Range: 1024-4096 pixels." })
   declare height: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation." })
+  @prop({ type: "list[image]", default: [], description: "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation." })
   declare image_input: any;
 
   @prop({ type: "int", default: 1, description: "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15." })
@@ -4885,7 +4961,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
     const height = Number(inputs.height ?? this.height ?? 2048);
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxImages = Number(inputs.max_images ?? this.max_images ?? 1);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const sequentialImageGeneration = String(inputs.sequential_image_generation ?? this.sequential_image_generation ?? "disabled");
@@ -4895,13 +4970,18 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "height": height,
-      "image_input": imageInput,
       "max_images": maxImages,
       "prompt": prompt,
       "sequential_image_generation": sequentialImageGeneration,
       "size": size,
       "width": width,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedream-4.5:8356ab00a2acd0f79338ecf1ffa0e32493c6f7cdfc7178b5cfbdb1461202fdc2", args);
@@ -4922,7 +5002,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"], description: "Image aspect ratio. Use 'match_input_image' to automatically match the input image's aspect ratio." })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation." })
+  @prop({ type: "list[image]", default: [], description: "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation." })
   declare image_input: any;
 
   @prop({ type: "int", default: 1, description: "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15." })
@@ -4943,7 +5023,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const maxImages = Number(inputs.max_images ?? this.max_images ?? 1);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
@@ -4952,13 +5031,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image_input": imageInput,
       "max_images": maxImages,
       "output_format": outputFormat,
       "prompt": prompt,
       "sequential_image_generation": sequentialImageGeneration,
       "size": size,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/seedream-5-lite:eeb2857d94c49a5bcbc9d6c6057416e1d3b1a2735a16e08e4def9bf7ee22ec71", args);
@@ -5184,13 +5268,13 @@ replicate, ai`;
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "An image file to use for inpainting. You must also use a mask." })
+  @prop({ type: "image", default: "", description: "An image file to use for inpainting. You must also use a mask." })
   declare image: any;
 
   @prop({ type: "enum", default: "Auto", values: ["Auto", "On", "Off"], description: "Magic Prompt will interpret your prompt and optimize it to maximize variety and quality of the images generated. You can also use it to write prompts in different languages." })
   declare magic_prompt_option: any;
 
-  @prop({ type: "str", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
+  @prop({ type: "image", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
   declare mask: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation" })
@@ -5205,7 +5289,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "80s Illustration", "90s Nostalgia", "Abstract Organic", "Analog Nostalgia", "Art Brut", "Art Deco", "Art Poster", "Aura", "Avant Garde", "Bauhaus", "Blueprint", "Blurry Motion", "Bright Art", "C4D Cartoon", "Children's Book", "Collage", "Coloring Book I", "Coloring Book II", "Cubism", "Dark Aura", "Doodle", "Double Exposure", "Dramatic Cinema", "Editorial", "Emotional Minimal", "Ethereal Party", "Expired Film", "Flat Art", "Flat Vector", "Forest Reverie", "Geo Minimalist", "Glass Prism", "Golden Hour", "Graffiti I", "Graffiti II", "Halftone Print", "High Contrast", "Hippie Era", "Iconic", "Japandi Fusion", "Jazzy", "Long Exposure", "Magazine Editorial", "Minimal Illustration", "Mixed Media", "Monochrome", "Nightlife", "Oil Painting", "Old Cartoons", "Paint Gesture", "Pop Art", "Retro Etching", "Riviera Pop", "Spotlight 80s", "Stylized Red", "Surreal Collage", "Travel Poster", "Vintage Geo", "Vintage Poster", "Watercolor", "Weird", "Woodblock Print"], description: "Apply a predefined artistic style to the generated image (V3 models only)." })
   declare style_preset: any;
 
-  @prop({ type: "list[str]", default: [], description: "A list of images to use as style references." })
+  @prop({ type: "list[image]", default: [], description: "A list of images to use as style references." })
   declare style_reference_images: any;
 
   @prop({ type: "enum", default: "None", values: ["None", "Auto", "General", "Realistic", "Design"], description: "The styles help define the specific aesthetic of the image you want to generate." })
@@ -5214,28 +5298,40 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const image = String(inputs.image ?? this.image ?? "");
     const magicPromptOption = String(inputs.magic_prompt_option ?? this.magic_prompt_option ?? "Auto");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "None");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stylePreset = String(inputs.style_preset ?? this.style_preset ?? "None");
-    const styleReferenceImages = String(inputs.style_reference_images ?? this.style_reference_images ?? []);
     const styleType = String(inputs.style_type ?? this.style_type ?? "None");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image": image,
       "magic_prompt_option": magicPromptOption,
-      "mask": mask,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
       "style_preset": stylePreset,
-      "style_reference_images": styleReferenceImages,
       "style_type": styleType,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
+
+    const styleReferenceImagesRef = inputs.style_reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(styleReferenceImagesRef)) {
+      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v3-balanced:41f9f0d4bf6c470dd0f5085dadc6c14ffb8ed4ce1f6bffbbc10b03ecf5b053fb", args);
@@ -5256,13 +5352,13 @@ replicate, ai`;
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "An image file to use for inpainting. You must also use a mask." })
+  @prop({ type: "image", default: "", description: "An image file to use for inpainting. You must also use a mask." })
   declare image: any;
 
   @prop({ type: "enum", default: "Auto", values: ["Auto", "On", "Off"], description: "Magic Prompt will interpret your prompt and optimize it to maximize variety and quality of the images generated. You can also use it to write prompts in different languages." })
   declare magic_prompt_option: any;
 
-  @prop({ type: "str", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
+  @prop({ type: "image", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
   declare mask: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation" })
@@ -5277,7 +5373,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "80s Illustration", "90s Nostalgia", "Abstract Organic", "Analog Nostalgia", "Art Brut", "Art Deco", "Art Poster", "Aura", "Avant Garde", "Bauhaus", "Blueprint", "Blurry Motion", "Bright Art", "C4D Cartoon", "Children's Book", "Collage", "Coloring Book I", "Coloring Book II", "Cubism", "Dark Aura", "Doodle", "Double Exposure", "Dramatic Cinema", "Editorial", "Emotional Minimal", "Ethereal Party", "Expired Film", "Flat Art", "Flat Vector", "Forest Reverie", "Geo Minimalist", "Glass Prism", "Golden Hour", "Graffiti I", "Graffiti II", "Halftone Print", "High Contrast", "Hippie Era", "Iconic", "Japandi Fusion", "Jazzy", "Long Exposure", "Magazine Editorial", "Minimal Illustration", "Mixed Media", "Monochrome", "Nightlife", "Oil Painting", "Old Cartoons", "Paint Gesture", "Pop Art", "Retro Etching", "Riviera Pop", "Spotlight 80s", "Stylized Red", "Surreal Collage", "Travel Poster", "Vintage Geo", "Vintage Poster", "Watercolor", "Weird", "Woodblock Print"], description: "Apply a predefined artistic style to the generated image (V3 models only)." })
   declare style_preset: any;
 
-  @prop({ type: "list[str]", default: [], description: "A list of images to use as style references." })
+  @prop({ type: "list[image]", default: [], description: "A list of images to use as style references." })
   declare style_reference_images: any;
 
   @prop({ type: "enum", default: "None", values: ["None", "Auto", "General", "Realistic", "Design"], description: "The styles help define the specific aesthetic of the image you want to generate." })
@@ -5286,28 +5382,40 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const image = String(inputs.image ?? this.image ?? "");
     const magicPromptOption = String(inputs.magic_prompt_option ?? this.magic_prompt_option ?? "Auto");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "None");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stylePreset = String(inputs.style_preset ?? this.style_preset ?? "None");
-    const styleReferenceImages = String(inputs.style_reference_images ?? this.style_reference_images ?? []);
     const styleType = String(inputs.style_type ?? this.style_type ?? "None");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image": image,
       "magic_prompt_option": magicPromptOption,
-      "mask": mask,
       "prompt": prompt,
       "resolution": resolution,
       "seed": seed,
       "style_preset": stylePreset,
-      "style_reference_images": styleReferenceImages,
       "style_type": styleType,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
+
+    const styleReferenceImagesRef = inputs.style_reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(styleReferenceImagesRef)) {
+      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v3-quality:6dafa89a04b1547f0d1c1680b8dcd41ebb2f82c4e2f0c8a92d4bf5ea5250150b", args);
@@ -5519,7 +5627,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to transform or use as reference (supports up to 14 images)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to transform or use as reference (supports up to 14 images)" })
   declare image_input: any;
 
   @prop({ type: "enum", default: "jpg", values: ["jpg", "png"], description: "Format of the output image" })
@@ -5538,7 +5646,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const allowFallbackModel = Boolean(inputs.allow_fallback_model ?? this.allow_fallback_model ?? false);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const imageInput = String(inputs.image_input ?? this.image_input ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "2K");
@@ -5547,12 +5654,17 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "allow_fallback_model": allowFallbackModel,
       "aspect_ratio": aspectRatio,
-      "image_input": imageInput,
       "output_format": outputFormat,
       "prompt": prompt,
       "resolution": resolution,
       "safety_filter_level": safetyFilterLevel,
     };
+
+    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    if (isRefSet(imageInputRef)) {
+      const imageInputUrl = assetToUrl(imageInputRef!);
+      if (imageInputUrl) args["image_input"] = imageInputUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/nano-banana-pro:712e06a8e122fb7c8dae55dcf7ad6a8e717afb7b1c41c889fc8c5132fd42f374", args);
@@ -5573,7 +5685,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2", "19.5:9", "9:19.5", "20:9", "9:20", "auto"], description: "Aspect ratio of the generated image. Ignored when editing an image." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Input image for editing. When provided, the model edits this image based on the prompt. Supports jpg, jpeg, png, webp." })
+  @prop({ type: "image", default: "", description: "Input image for editing. When provided, the model edits this image based on the prompt. Supports jpg, jpeg, png, webp." })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation or editing" })
@@ -5582,14 +5694,18 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const image = String(inputs.image ?? this.image ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "image": image,
       "prompt": prompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "xai/grok-imagine-image:3032db31147241f86351f0d7ab1ffd5150dcb482bcb873580f15d8cb8970a812", args);
@@ -5613,7 +5729,7 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Guidance scale (1-10)" })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "Image file" })
+  @prop({ type: "image", default: "", description: "Image file" })
   declare image: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt for image generation" })
@@ -5632,7 +5748,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
-    const image = String(inputs.image ?? this.image ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -5641,12 +5756,17 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "guidance_scale": guidanceScale,
-      "image": image,
       "negative_prompt": negativePrompt,
       "prompt": prompt,
       "seed": seed,
       "structured_prompt": structuredPrompt,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bria/fibo:11d5854315b5c315a9e9335bb816e693eea668e47e347ca69e2ea1eac16acd6b", args);
@@ -5730,7 +5850,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Run faster predictions with additional optimizations." })
   declare go_fast: any;
 
-  @prop({ type: "list[str]", default: [], description: "List of input images for image-to-image generation. Maximum 5 images. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "list[image]", default: [], description: "List of input images for image-to-image generation. Maximum 5 images. Must be jpeg, png, gif, or webp." })
   declare images: any;
 
   @prop({ type: "enum", default: "jpg", values: ["webp", "jpg", "png"], description: "Format of the output images" })
@@ -5753,7 +5873,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
     const goFast = Boolean(inputs.go_fast ?? this.go_fast ?? false);
-    const images = String(inputs.images ?? this.images ?? []);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const outputMegapixels = String(inputs.output_megapixels ?? this.output_megapixels ?? "1");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 95);
@@ -5764,13 +5883,18 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "disable_safety_checker": disableSafetyChecker,
       "go_fast": goFast,
-      "images": images,
       "output_format": outputFormat,
       "output_megapixels": outputMegapixels,
       "output_quality": outputQuality,
       "prompt": prompt,
       "seed": seed,
     };
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-klein-4b:8e9c42d77b10a2a41af823ac4500f7545be6ebc4e745830fc3f3de10de200542", args);
@@ -5791,7 +5915,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "Image to use as reference. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image to use as reference. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
 
   @prop({ type: "enum", default: "png", values: ["jpg", "png"], description: "Output format for the generated image" })
@@ -5812,7 +5936,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const promptUpsampling = Boolean(inputs.prompt_upsampling ?? this.prompt_upsampling ?? false);
@@ -5821,13 +5944,18 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "input_image": inputImage,
       "output_format": outputFormat,
       "prompt": prompt,
       "prompt_upsampling": promptUpsampling,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "black-forest-labs/flux-kontext-max:8389ed8e4b16016c44fcdcc3ad142cf1e182e0a1ecaf0347b3e5254303f2beac", args);
@@ -5911,7 +6039,7 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Set the weight of the ID image influence (0.0-3.0)" })
   declare id_weight: any;
 
-  @prop({ type: "str", default: "", description: "Upload an ID image for face generation" })
+  @prop({ type: "image", default: "", description: "Upload an ID image for face generation" })
   declare main_face_image: any;
 
   @prop({ type: "int", default: 128, description: "Set the max sequence length for prompt (T5), smaller is faster (128-512)" })
@@ -5952,7 +6080,6 @@ replicate, ai`;
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 4);
     const height = Number(inputs.height ?? this.height ?? 1152);
     const idWeight = Number(inputs.id_weight ?? this.id_weight ?? 1);
-    const mainFaceImage = String(inputs.main_face_image ?? this.main_face_image ?? "");
     const maxSequenceLength = Number(inputs.max_sequence_length ?? this.max_sequence_length ?? 128);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "bad quality, worst quality, text, signature, watermark, extra limbs, low resolution, partially rendered objects, deformed or partially rendered eyes, deformed, deformed eyeballs, cross-eyed, blurry");
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
@@ -5969,7 +6096,6 @@ replicate, ai`;
       "guidance_scale": guidanceScale,
       "height": height,
       "id_weight": idWeight,
-      "main_face_image": mainFaceImage,
       "max_sequence_length": maxSequenceLength,
       "negative_prompt": negativePrompt,
       "num_outputs": numOutputs,
@@ -5982,6 +6108,12 @@ replicate, ai`;
       "true_cfg": trueCfg,
       "width": width,
     };
+
+    const mainFaceImageRef = inputs.main_face_image as Record<string, unknown> | undefined;
+    if (isRefSet(mainFaceImageRef)) {
+      const mainFaceImageUrl = assetToUrl(mainFaceImageRef!);
+      if (mainFaceImageUrl) args["main_face_image"] = mainFaceImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b", args);
@@ -5999,13 +6131,13 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Additional ID image (auxiliary)" })
+  @prop({ type: "image", default: "", description: "Additional ID image (auxiliary)" })
   declare auxiliary_face_image1: any;
 
-  @prop({ type: "str", default: "", description: "Additional ID image (auxiliary)" })
+  @prop({ type: "image", default: "", description: "Additional ID image (auxiliary)" })
   declare auxiliary_face_image2: any;
 
-  @prop({ type: "str", default: "", description: "Additional ID image (auxiliary)" })
+  @prop({ type: "image", default: "", description: "Additional ID image (auxiliary)" })
   declare auxiliary_face_image3: any;
 
   @prop({ type: "float", default: 1.2, description: "CFG, recommend value range [1, 1.5], 1 will be faster" })
@@ -6023,7 +6155,7 @@ replicate, ai`;
   @prop({ type: "int", default: 768, description: "Width" })
   declare image_width: any;
 
-  @prop({ type: "str", default: "", description: "ID image (main)" })
+  @prop({ type: "image", default: "", description: "ID image (main)" })
   declare main_face_image: any;
 
   @prop({ type: "bool", default: false, description: "ID Mix (if you want to mix two ID image, please turn this on, otherwise, turn this off)" })
@@ -6052,15 +6184,11 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const auxiliaryFaceImage1 = String(inputs.auxiliary_face_image1 ?? this.auxiliary_face_image1 ?? "");
-    const auxiliaryFaceImage2 = String(inputs.auxiliary_face_image2 ?? this.auxiliary_face_image2 ?? "");
-    const auxiliaryFaceImage3 = String(inputs.auxiliary_face_image3 ?? this.auxiliary_face_image3 ?? "");
     const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1.2);
     const generationMode = String(inputs.generation_mode ?? this.generation_mode ?? "fidelity");
     const identityScale = Number(inputs.identity_scale ?? this.identity_scale ?? 0.8);
     const imageHeight = Number(inputs.image_height ?? this.image_height ?? 1024);
     const imageWidth = Number(inputs.image_width ?? this.image_width ?? 768);
-    const mainFaceImage = String(inputs.main_face_image ?? this.main_face_image ?? "");
     const mixIdentities = Boolean(inputs.mix_identities ?? this.mix_identities ?? false);
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "flaws in the eyes, flaws in the face, flaws, lowres, non-HDRi, low quality, worst quality,artifacts noise, text, watermark, glitch, deformed, mutated, ugly, disfigured, hands, low resolution, partially rendered objects,  deformed or partially rendered eyes, deformed, deformed eyeballs, cross-eyed,blurry");
     const numSamples = Number(inputs.num_samples ?? this.num_samples ?? 4);
@@ -6071,15 +6199,11 @@ replicate, ai`;
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "auxiliary_face_image1": auxiliaryFaceImage1,
-      "auxiliary_face_image2": auxiliaryFaceImage2,
-      "auxiliary_face_image3": auxiliaryFaceImage3,
       "cfg_scale": cfgScale,
       "generation_mode": generationMode,
       "identity_scale": identityScale,
       "image_height": imageHeight,
       "image_width": imageWidth,
-      "main_face_image": mainFaceImage,
       "mix_identities": mixIdentities,
       "negative_prompt": negativePrompt,
       "num_samples": numSamples,
@@ -6089,6 +6213,30 @@ replicate, ai`;
       "prompt": prompt,
       "seed": seed,
     };
+
+    const auxiliaryFaceImage1Ref = inputs.auxiliary_face_image1 as Record<string, unknown> | undefined;
+    if (isRefSet(auxiliaryFaceImage1Ref)) {
+      const auxiliaryFaceImage1Url = assetToUrl(auxiliaryFaceImage1Ref!);
+      if (auxiliaryFaceImage1Url) args["auxiliary_face_image1"] = auxiliaryFaceImage1Url;
+    }
+
+    const auxiliaryFaceImage2Ref = inputs.auxiliary_face_image2 as Record<string, unknown> | undefined;
+    if (isRefSet(auxiliaryFaceImage2Ref)) {
+      const auxiliaryFaceImage2Url = assetToUrl(auxiliaryFaceImage2Ref!);
+      if (auxiliaryFaceImage2Url) args["auxiliary_face_image2"] = auxiliaryFaceImage2Url;
+    }
+
+    const auxiliaryFaceImage3Ref = inputs.auxiliary_face_image3 as Record<string, unknown> | undefined;
+    if (isRefSet(auxiliaryFaceImage3Ref)) {
+      const auxiliaryFaceImage3Url = assetToUrl(auxiliaryFaceImage3Ref!);
+      if (auxiliaryFaceImage3Url) args["auxiliary_face_image3"] = auxiliaryFaceImage3Url;
+    }
+
+    const mainFaceImageRef = inputs.main_face_image as Record<string, unknown> | undefined;
+    if (isRefSet(mainFaceImageRef)) {
+      const mainFaceImageUrl = assetToUrl(mainFaceImageRef!);
+      if (mainFaceImageUrl) args["main_face_image"] = mainFaceImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "bytedance/pulid:43d309c37ab4e62361e5e29b8e9e867fb2dcbcec77ae91206a8d95ac5dd451a0", args);
@@ -6118,7 +6266,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "No change", values: ["No change", "Random", "Straight", "Wavy", "Curly", "Bob", "Pixie Cut", "Layered", "Messy Bun", "High Ponytail", "Low Ponytail", "Braided Ponytail", "French Braid", "Dutch Braid", "Fishtail Braid", "Space Buns", "Top Knot", "Undercut", "Mohawk", "Crew Cut", "Faux Hawk", "Slicked Back", "Side-Parted", "Center-Parted", "Blunt Bangs", "Side-Swept Bangs", "Shag", "Lob", "Angled Bob", "A-Line Bob", "Asymmetrical Bob", "Graduated Bob", "Inverted Bob", "Layered Shag", "Choppy Layers", "Razor Cut", "Perm", "Ombré", "Straightened", "Soft Waves", "Glamorous Waves", "Hollywood Waves", "Finger Waves", "Tousled", "Feathered", "Pageboy", "Pigtails", "Pin Curls", "Rollerset", "Twist Out", "Bantu Knots", "Dreadlocks", "Cornrows", "Box Braids", "Crochet Braids", "Double Dutch Braids", "French Fishtail Braid", "Waterfall Braid", "Rope Braid", "Heart Braid", "Halo Braid", "Crown Braid", "Braided Crown", "Bubble Braid", "Bubble Ponytail", "Ballerina Braids", "Milkmaid Braids", "Bohemian Braids", "Flat Twist", "Crown Twist", "Twisted Bun", "Twisted Half-Updo", "Twist and Pin Updo", "Chignon", "Simple Chignon", "Messy Chignon", "French Twist", "French Twist Updo", "French Roll", "Updo", "Messy Updo", "Knotted Updo", "Ballerina Bun", "Banana Clip Updo", "Beehive", "Bouffant", "Hair Bow", "Half-Up Top Knot", "Half-Up, Half-Down", "Messy Bun with a Headband", "Messy Bun with a Scarf", "Messy Fishtail Braid", "Sideswept Pixie", "Mohawk Fade", "Zig-Zag Part", "Victory Rolls"], description: "The haircut to give them" })
   declare haircut: any;
 
-  @prop({ type: "str", default: "", description: "Image of the person's haircut you want to edit. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image of the person's haircut you want to edit. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
 
   @prop({ type: "enum", default: "png", values: ["jpg", "png"], description: "Output format for the generated image" })
@@ -6136,7 +6284,6 @@ replicate, ai`;
     const gender = String(inputs.gender ?? this.gender ?? "none");
     const hairColor = String(inputs.hair_color ?? this.hair_color ?? "No change");
     const haircut = String(inputs.haircut ?? this.haircut ?? "No change");
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const safetyTolerance = Number(inputs.safety_tolerance ?? this.safety_tolerance ?? 2);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -6146,11 +6293,16 @@ replicate, ai`;
       "gender": gender,
       "hair_color": hairColor,
       "haircut": haircut,
-      "input_image": inputImage,
       "output_format": outputFormat,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "flux-kontext-apps/change-haircut:e30b995ea7834dd440ee987205fffe1841ce28c638f2ec8d599972e904fe69f8", args);
@@ -6177,7 +6329,7 @@ replicate, ai`;
   @prop({ type: "enum", default: "none", values: ["none", "male", "female"], description: "The gender of the person" })
   declare gender: any;
 
-  @prop({ type: "str", default: "", description: "Image of the person to create a professional headshot for. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image of the person to create a professional headshot for. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
 
   @prop({ type: "enum", default: "png", values: ["jpg", "png"], description: "Output format for the generated image" })
@@ -6194,7 +6346,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
     const background = String(inputs.background ?? this.background ?? "neutral");
     const gender = String(inputs.gender ?? this.gender ?? "none");
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const safetyTolerance = Number(inputs.safety_tolerance ?? this.safety_tolerance ?? 2);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -6203,11 +6354,16 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "background": background,
       "gender": gender,
-      "input_image": inputImage,
       "output_format": outputFormat,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "flux-kontext-apps/professional-headshot:383e326b60ec0bd451af148f204579fc9dcc13c030df51ff2af628b2d2cdb21e", args);
@@ -6225,7 +6381,7 @@ replicate, ai`;
     output: "image"
   };
 
-  @prop({ type: "str", default: "", description: "Image to restore. Must be jpeg, png, gif, or webp." })
+  @prop({ type: "image", default: "", description: "Image to restore. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
 
   @prop({ type: "enum", default: "png", values: ["jpg", "png"], description: "Output format for the generated image" })
@@ -6239,17 +6395,21 @@ replicate, ai`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
     const safetyTolerance = Number(inputs.safety_tolerance ?? this.safety_tolerance ?? 2);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
 
     const args: Record<string, unknown> = {
-      "input_image": inputImage,
       "output_format": outputFormat,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "flux-kontext-apps/restore-image:da7613a13aac59a1a3231023f0f30cf27991695ee0fe7ef52959ec1e02311c25", args);
@@ -6270,16 +6430,16 @@ replicate, ai`;
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
 
-  @prop({ type: "str", default: "", description: "An image to use as a character reference." })
+  @prop({ type: "image", default: "", description: "An image to use as a character reference." })
   declare character_reference_image: any;
 
-  @prop({ type: "str", default: "", description: "An image file to use for inpainting. You must also use a mask." })
+  @prop({ type: "image", default: "", description: "An image file to use for inpainting. You must also use a mask." })
   declare image: any;
 
   @prop({ type: "enum", default: "Auto", values: ["Auto", "On", "Off"], description: "Magic Prompt will interpret your prompt and optimize it to maximize variety and quality of the images generated. You can also use it to write prompts in different languages." })
   declare magic_prompt_option: any;
 
-  @prop({ type: "str", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
+  @prop({ type: "image", default: "", description: "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size." })
   declare mask: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation" })
@@ -6300,10 +6460,7 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const characterReferenceImage = String(inputs.character_reference_image ?? this.character_reference_image ?? "");
-    const image = String(inputs.image ?? this.image ?? "");
     const magicPromptOption = String(inputs.magic_prompt_option ?? this.magic_prompt_option ?? "Auto");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const renderingSpeed = String(inputs.rendering_speed ?? this.rendering_speed ?? "Default");
     const resolution = String(inputs.resolution ?? this.resolution ?? "None");
@@ -6312,16 +6469,31 @@ replicate, ai`;
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
-      "character_reference_image": characterReferenceImage,
-      "image": image,
       "magic_prompt_option": magicPromptOption,
-      "mask": mask,
       "prompt": prompt,
       "rendering_speed": renderingSpeed,
       "resolution": resolution,
       "seed": seed,
       "style_type": styleType,
     };
+
+    const characterReferenceImageRef = inputs.character_reference_image as Record<string, unknown> | undefined;
+    if (isRefSet(characterReferenceImageRef)) {
+      const characterReferenceImageUrl = assetToUrl(characterReferenceImageRef!);
+      if (characterReferenceImageUrl) args["character_reference_image"] = characterReferenceImageUrl;
+    }
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-character:1f8e198263a0d8171b76c55907c294e933e1e7d55e2d0c54f319c0e4a42c723d", args);
@@ -6348,13 +6520,13 @@ replicate, ai`;
   @prop({ type: "int", default: 1024, description: "Height of output image" })
   declare height: any;
 
-  @prop({ type: "str", default: "", description: "Input image to edit" })
+  @prop({ type: "image", default: "", description: "Input image to edit" })
   declare image: any;
 
-  @prop({ type: "str", default: "", description: "Optional second input image for multi-image operations" })
+  @prop({ type: "image", default: "", description: "Optional second input image for multi-image operations" })
   declare image_2: any;
 
-  @prop({ type: "str", default: "", description: "Optional third input image for multi-image operations" })
+  @prop({ type: "image", default: "", description: "Optional third input image for multi-image operations" })
   declare image_3: any;
 
   @prop({ type: "float", default: 2, description: "Guidance scale for input image. Higher values increase consistency with input image" })
@@ -6392,9 +6564,6 @@ replicate, ai`;
     const cfgRangeEnd = Number(inputs.cfg_range_end ?? this.cfg_range_end ?? 1);
     const cfgRangeStart = Number(inputs.cfg_range_start ?? this.cfg_range_start ?? 0);
     const height = Number(inputs.height ?? this.height ?? 1024);
-    const image = String(inputs.image ?? this.image ?? "");
-    const image_2 = String(inputs.image_2 ?? this.image_2 ?? "");
-    const image_3 = String(inputs.image_3 ?? this.image_3 ?? "");
     const imageGuidanceScale = Number(inputs.image_guidance_scale ?? this.image_guidance_scale ?? 2);
     const maxInputImageSideLength = Number(inputs.max_input_image_side_length ?? this.max_input_image_side_length ?? 2048);
     const maxPixels = Number(inputs.max_pixels ?? this.max_pixels ?? 1048576);
@@ -6410,9 +6579,6 @@ replicate, ai`;
       "cfg_range_end": cfgRangeEnd,
       "cfg_range_start": cfgRangeStart,
       "height": height,
-      "image": image,
-      "image_2": image_2,
-      "image_3": image_3,
       "image_guidance_scale": imageGuidanceScale,
       "max_input_image_side_length": maxInputImageSideLength,
       "max_pixels": maxPixels,
@@ -6424,6 +6590,24 @@ replicate, ai`;
       "text_guidance_scale": textGuidanceScale,
       "width": width,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const image_2Ref = inputs.image_2 as Record<string, unknown> | undefined;
+    if (isRefSet(image_2Ref)) {
+      const image_2Url = assetToUrl(image_2Ref!);
+      if (image_2Url) args["image_2"] = image_2Url;
+    }
+
+    const image_3Ref = inputs.image_3 as Record<string, unknown> | undefined;
+    if (isRefSet(image_3Ref)) {
+      const image_3Url = assetToUrl(image_3Ref!);
+      if (image_3Url) args["image_3"] = image_3Url;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "lucataco/omnigen2:5b9ea1d0821a60be9c861ebfc3513d121ecd8cab1932d3aa8d703e517988502e", args);
@@ -6450,7 +6634,7 @@ replicate, ai`;
   @prop({ type: "int", default: 1024, description: "Base image size (longest side)" })
   declare image_size: any;
 
-  @prop({ type: "str", default: "", description: "Input image for image to image mode. The aspect ratio of your output will match this image" })
+  @prop({ type: "image", default: "", description: "Input image for image to image mode. The aspect ratio of your output will match this image" })
   declare img_cond_path: any;
 
   @prop({ type: "int", default: 30, description: "Number of inference steps" })
@@ -6476,7 +6660,6 @@ replicate, ai`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
     const guidance = Number(inputs.guidance ?? this.guidance ?? 3.5);
     const imageSize = Number(inputs.image_size ?? this.image_size ?? 1024);
-    const imgCondPath = String(inputs.img_cond_path ?? this.img_cond_path ?? "");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
     const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
@@ -6488,7 +6671,6 @@ replicate, ai`;
       "aspect_ratio": aspectRatio,
       "guidance": guidance,
       "image_size": imageSize,
-      "img_cond_path": imgCondPath,
       "num_inference_steps": numInferenceSteps,
       "output_format": outputFormat,
       "output_quality": outputQuality,
@@ -6496,6 +6678,12 @@ replicate, ai`;
       "seed": seed,
       "speed_mode": speedMode,
     };
+
+    const imgCondPathRef = inputs.img_cond_path as Record<string, unknown> | undefined;
+    if (isRefSet(imgCondPathRef)) {
+      const imgCondPathUrl = assetToUrl(imgCondPathRef!);
+      if (imgCondPathUrl) args["img_cond_path"] = imgCondPathUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "prunaai/flux-kontext-fast:6efb57153457f8c51fb813c6d15f45d896f1916dd7d732af49d6a4b09488e2a6", args);
@@ -6519,7 +6707,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images." })
   declare disable_safety_checker: any;
 
-  @prop({ type: "list[str]", default: [], description: "Images to use as a reference. For editing task, provide the main image as the first image." })
+  @prop({ type: "list[image]", default: [], description: "Images to use as a reference. For editing task, provide the main image as the first image." })
   declare images: any;
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation. Make sure to describe your edit task clearly. You can refer to the images as 'image 1' and 'image 2' and so on." })
@@ -6538,7 +6726,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
-    const images = String(inputs.images ?? this.images ?? []);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const replicateWeights = String(inputs.replicate_weights ?? this.replicate_weights ?? "default");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -6547,12 +6734,17 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "disable_safety_checker": disableSafetyChecker,
-      "images": images,
       "prompt": prompt,
       "replicate_weights": replicateWeights,
       "seed": seed,
       "turbo": turbo,
     };
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "prunaai/p-image-edit:21572612bd5577c2cddc926e177b7e50640a8fae9cd51a69677f0d29d37e3df5", args);
@@ -6642,7 +6834,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for image generation" })
   declare prompt: any;
 
-  @prop({ type: "list[str]", default: [], description: "Up to 3 reference images. Images must be between 0.5 and 2 aspect ratio." })
+  @prop({ type: "list[image]", default: [], description: "Up to 3 reference images. Images must be between 0.5 and 2 aspect ratio." })
   declare reference_images: any;
 
   @prop({ type: "list[str]", default: [], description: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters." })
@@ -6658,7 +6850,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImages = String(inputs.reference_images ?? this.reference_images ?? []);
     const referenceTags = String(inputs.reference_tags ?? this.reference_tags ?? []);
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -6666,11 +6857,16 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "prompt": prompt,
-      "reference_images": referenceImages,
       "reference_tags": referenceTags,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImagesRef)) {
+      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "runwayml/gen4-image:653987038aea936ca0991639ad92c07e5cbe5dfc646e89377009252a42375b46", args);
@@ -6694,7 +6890,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompt for image generation" })
   declare prompt: any;
 
-  @prop({ type: "list[str]", default: [], description: "You must give at least one reference image. Up to 3 reference images are supported. Images must be between 0.5 and 2 aspect ratio." })
+  @prop({ type: "list[image]", default: [], description: "You must give at least one reference image. Up to 3 reference images are supported. Images must be between 0.5 and 2 aspect ratio." })
   declare reference_images: any;
 
   @prop({ type: "list[str]", default: [], description: "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters." })
@@ -6710,7 +6906,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const referenceImages = String(inputs.reference_images ?? this.reference_images ?? []);
     const referenceTags = String(inputs.reference_tags ?? this.reference_tags ?? []);
     const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -6718,11 +6913,16 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
       "prompt": prompt,
-      "reference_images": referenceImages,
       "reference_tags": referenceTags,
       "resolution": resolution,
       "seed": seed,
     };
+
+    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImagesRef)) {
+      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "runwayml/gen4-image-turbo:d22ea0d0c36ad63c18519dda6fc42dca46f5b84b4864678fb070b2370fea5f59", args);
@@ -6743,7 +6943,7 @@ replicate, ai`;
   @prop({ type: "str", default: "best quality", description: "Additional text to be appended to the main prompt, enhancing image quality" })
   declare appended_prompt: any;
 
-  @prop({ type: "str", default: "", description: "The background image that will be used to relight the main foreground image" })
+  @prop({ type: "image", default: "", description: "The background image that will be used to relight the main foreground image" })
   declare background_image: any;
 
   @prop({ type: "float", default: 2, description: "Classifier-Free Guidance scale - higher values encourage adherence to prompt, lower values encourage more creative interpretation" })
@@ -6785,7 +6985,7 @@ replicate, ai`;
   @prop({ type: "int", default: 25, description: "The number of diffusion steps to perform during generation (more steps generally improves image quality but increases processing time)" })
   declare steps: any;
 
-  @prop({ type: "str", default: "", description: "The main foreground image to be relighted" })
+  @prop({ type: "image", default: "", description: "The main foreground image to be relighted" })
   declare subject_image: any;
 
   @prop({ type: "enum", default: 512, values: ["256", "320", "384", "448", "512", "576", "640", "704", "768", "832", "896", "960", "1024"], description: "The width of the generated images in pixels" })
@@ -6794,7 +6994,6 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const appendedPrompt = String(inputs.appended_prompt ?? this.appended_prompt ?? "best quality");
-    const backgroundImage = String(inputs.background_image ?? this.background_image ?? "");
     const cfg = Number(inputs.cfg ?? this.cfg ?? 2);
     const computeNormal = Boolean(inputs.compute_normal ?? this.compute_normal ?? false);
     const height = String(inputs.height ?? this.height ?? 640);
@@ -6808,12 +7007,10 @@ replicate, ai`;
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const steps = Number(inputs.steps ?? this.steps ?? 25);
-    const subjectImage = String(inputs.subject_image ?? this.subject_image ?? "");
     const width = String(inputs.width ?? this.width ?? 512);
 
     const args: Record<string, unknown> = {
       "appended_prompt": appendedPrompt,
-      "background_image": backgroundImage,
       "cfg": cfg,
       "compute_normal": computeNormal,
       "height": height,
@@ -6827,9 +7024,20 @@ replicate, ai`;
       "prompt": prompt,
       "seed": seed,
       "steps": steps,
-      "subject_image": subjectImage,
       "width": width,
     };
+
+    const backgroundImageRef = inputs.background_image as Record<string, unknown> | undefined;
+    if (isRefSet(backgroundImageRef)) {
+      const backgroundImageUrl = assetToUrl(backgroundImageRef!);
+      if (backgroundImageUrl) args["background_image"] = backgroundImageUrl;
+    }
+
+    const subjectImageRef = inputs.subject_image as Record<string, unknown> | undefined;
+    if (isRefSet(subjectImageRef)) {
+      const subjectImageUrl = assetToUrl(subjectImageRef!);
+      if (subjectImageUrl) args["subject_image"] = subjectImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "zsxkib/ic-light-background:60015df78a8a795470da6494822982140d57b150b9ef14354e79302ff89f69e3", args);
@@ -6906,13 +7114,13 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Apply automatic white balance to input image (before color transfer)" })
   declare fix_white_balance: any;
 
-  @prop({ type: "str", default: "", description: "The input image" })
+  @prop({ type: "image", default: "", description: "The input image" })
   declare input_image: any;
 
   @prop({ type: "enum", default: "mkl", values: ["mkl", "hm", "reinhard", "mvgd", "hm-mvgd-hm", "hm-mkl-hm"], description: "The method to use for color transfer" })
   declare method: any;
 
-  @prop({ type: "str", default: "", description: "The reference image. If not provided, only white balance fixes will be applied." })
+  @prop({ type: "image", default: "", description: "The reference image. If not provided, only white balance fixes will be applied." })
   declare reference_image: any;
 
   @prop({ type: "float", default: 1, description: "Strength of the color transfer effect (0.0 to 1.0)" })
@@ -6924,20 +7132,28 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const fixWhiteBalance = Boolean(inputs.fix_white_balance ?? this.fix_white_balance ?? false);
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
     const method = String(inputs.method ?? this.method ?? "mkl");
-    const referenceImage = String(inputs.reference_image ?? this.reference_image ?? "");
     const strength = Number(inputs.strength ?? this.strength ?? 1);
     const whiteBalancePercentile = Number(inputs.white_balance_percentile ?? this.white_balance_percentile ?? 95);
 
     const args: Record<string, unknown> = {
       "fix_white_balance": fixWhiteBalance,
-      "input_image": inputImage,
       "method": method,
-      "reference_image": referenceImage,
       "strength": strength,
       "white_balance_percentile": whiteBalancePercentile,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
+
+    const referenceImageRef = inputs.reference_image as Record<string, unknown> | undefined;
+    if (isRefSet(referenceImageRef)) {
+      const referenceImageUrl = assetToUrl(referenceImageRef!);
+      if (referenceImageUrl) args["reference_image"] = referenceImageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "fofr/color-matcher:9870c2ebd9f6f747c39c23815cb58489e8df129e0bace4d61cf8ba3ddd03cb26", args);
@@ -7092,7 +7308,7 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
   declare seed: any;
 
-  @prop({ type: "str", default: "", description: "Source image of body" })
+  @prop({ type: "image", default: "", description: "Source image of body" })
   declare source_image: any;
 
   @prop({ type: "float", default: 0.7, description: "mask strength" })
@@ -7104,7 +7320,6 @@ replicate, ai`;
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const sourceImage = String(inputs.source_image ?? this.source_image ?? "");
     const strength = Number(inputs.strength ?? this.strength ?? 0.7);
 
     const args: Record<string, unknown> = {
@@ -7112,7 +7327,6 @@ replicate, ai`;
       "num_outputs": numOutputs,
       "prompt": prompt,
       "seed": seed,
-      "source_image": sourceImage,
       "strength": strength,
     };
 
@@ -7120,6 +7334,12 @@ replicate, ai`;
     if (isRefSet(faceImageRef)) {
       const faceImageUrl = assetToUrl(faceImageRef!);
       if (faceImageUrl) args["face_image"] = faceImageUrl;
+    }
+
+    const sourceImageRef = inputs.source_image as Record<string, unknown> | undefined;
+    if (isRefSet(sourceImageRef)) {
+      const sourceImageUrl = assetToUrl(sourceImageRef!);
+      if (sourceImageUrl) args["source_image"] = sourceImageUrl;
     }
     removeNulls(args);
 

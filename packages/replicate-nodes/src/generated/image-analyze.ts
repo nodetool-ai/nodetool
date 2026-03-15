@@ -126,16 +126,19 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input image" })
+  @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const image = String(inputs.image ?? this.image ?? "");
-
     const args: Record<string, unknown> = {
-      "image": image,
     };
+
+    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = assetToUrl(imageRef!);
+      if (imageUrl) args["image"] = imageUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "falcons-ai/nsfw_image_detection:97116600cabd3037e5f22ca08ffcc33b92cfacebf7ccd3609e9c1d29e43d3a8d", args);
@@ -482,7 +485,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "User question/prompt for the image or video." })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "Optional input video file. If provided, frames will be sampled and used as multiple images." })
+  @prop({ type: "video", default: "", description: "Optional input video file. If provided, frames will be sampled and used as multiple images." })
   declare video: any;
 
   @prop({ type: "int", default: 8, description: "Maximum number of frames to sample from the video." })
@@ -491,12 +494,10 @@ replicate, ai`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const video = String(inputs.video ?? this.video ?? "");
     const videoMaxFrames = Number(inputs.video_max_frames ?? this.video_max_frames ?? 8);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "video": video,
       "video_max_frames": videoMaxFrames,
     };
 
@@ -504,6 +505,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = assetToUrl(videoRef!);
+      if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
 
@@ -695,10 +702,10 @@ replicate, ai`;
     output: "str"
   };
 
-  @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
+  @prop({ type: "audio", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
+  @prop({ type: "list[image]", default: [], description: "Input images to send with the prompt (max 10 images, each up to 7MB)" })
   declare images: any;
 
   @prop({ type: "int", default: 65535, description: "Maximum number of tokens to generate" })
@@ -719,32 +726,44 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass" })
   declare top_p: any;
 
-  @prop({ type: "list[str]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
+  @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getReplicateApiKey(inputs);
-    const audio = String(inputs.audio ?? this.audio ?? "");
-    const images = String(inputs.images ?? this.images ?? []);
     const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
     const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "");
     const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const videos = String(inputs.videos ?? this.videos ?? []);
 
     const args: Record<string, unknown> = {
-      "audio": audio,
-      "images": images,
       "max_output_tokens": maxOutputTokens,
       "prompt": prompt,
       "system_instruction": systemInstruction,
       "temperature": temperature,
       "thinking_level": thinkingLevel,
       "top_p": topP,
-      "videos": videos,
     };
+
+    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = assetToUrl(audioRef!);
+      if (audioUrl) args["audio"] = audioUrl;
+    }
+
+    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    if (isRefSet(imagesRef)) {
+      const imagesUrl = assetToUrl(imagesRef!);
+      if (imagesUrl) args["images"] = imagesUrl;
+    }
+
+    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    if (isRefSet(videosRef)) {
+      const videosUrl = assetToUrl(videosRef!);
+      if (videosUrl) args["videos"] = videosUrl;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "google/gemini-3-flash:12917939800a325e127c528db67c32fe8a23a51c0400690e68c8731c2508c553", args);

@@ -223,7 +223,7 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Retain original input image size, otherwise scale to 1MP" })
   declare original_quality: any;
 
-  @prop({ type: "str", default: "", description: "Reference image file for background generation" })
+  @prop({ type: "image", default: "", description: "Reference image file for background generation" })
   declare ref_image_file: any;
 
   @prop({ type: "str", default: "", description: "URL of reference image for background generation. Either bg_prompt or ref_image_url must be provided" })
@@ -248,7 +248,6 @@ replicate, ai`;
     const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const originalQuality = Boolean(inputs.original_quality ?? this.original_quality ?? false);
-    const refImageFile = String(inputs.ref_image_file ?? this.ref_image_file ?? "");
     const refImageUrl = String(inputs.ref_image_url ?? this.ref_image_url ?? "");
     const refinePrompt = Boolean(inputs.refine_prompt ?? this.refine_prompt ?? true);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -263,7 +262,6 @@ replicate, ai`;
       "image_url": imageUrl,
       "negative_prompt": negativePrompt,
       "original_quality": originalQuality,
-      "ref_image_file": refImageFile,
       "ref_image_url": refImageUrl,
       "refine_prompt": refinePrompt,
       "seed": seed,
@@ -274,6 +272,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const refImageFileRef = inputs.ref_image_file as Record<string, unknown> | undefined;
+    if (isRefSet(refImageFileRef)) {
+      const refImageFileUrl = assetToUrl(refImageFileRef!);
+      if (refImageFileUrl) args["ref_image_file"] = refImageFileUrl;
     }
     removeNulls(args);
 
@@ -376,7 +380,7 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text-based edit instruction (e.g., 'make the sky blue', 'add a cat')" })
   declare instruction: any;
 
-  @prop({ type: "str", default: "", description: "Mask file" })
+  @prop({ type: "image", default: "", description: "Mask file" })
   declare mask: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt for image generation" })
@@ -392,7 +396,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
     const instruction = String(inputs.instruction ?? this.instruction ?? "");
-    const mask = String(inputs.mask ?? this.mask ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const structuredInstruction = String(inputs.structured_instruction ?? this.structured_instruction ?? "");
@@ -400,7 +403,6 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "guidance_scale": guidanceScale,
       "instruction": instruction,
-      "mask": mask,
       "negative_prompt": negativePrompt,
       "seed": seed,
       "structured_instruction": structuredInstruction,
@@ -410,6 +412,12 @@ replicate, ai`;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
+    }
+
+    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    if (isRefSet(maskRef)) {
+      const maskUrl = assetToUrl(maskRef!);
+      if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
 

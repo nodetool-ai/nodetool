@@ -206,16 +206,16 @@ replicate, ai`;
   @prop({ type: "float", default: 5, description: "Guidance scale. A guidance scale of 1 corresponds to doing no classifier free guidance." })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "The input image, for example a photo of your face." })
+  @prop({ type: "image", default: "", description: "The input image, for example a photo of your face." })
   declare input_image: any;
 
-  @prop({ type: "str", default: "", description: "Additional input image (optional)" })
+  @prop({ type: "image", default: "", description: "Additional input image (optional)" })
   declare input_image2: any;
 
-  @prop({ type: "str", default: "", description: "Additional input image (optional)" })
+  @prop({ type: "image", default: "", description: "Additional input image (optional)" })
   declare input_image3: any;
 
-  @prop({ type: "str", default: "", description: "Additional input image (optional)" })
+  @prop({ type: "image", default: "", description: "Additional input image (optional)" })
   declare input_image4: any;
 
   @prop({ type: "str", default: "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry", description: "Negative Prompt. The negative prompt should NOT contain the trigger word." })
@@ -243,10 +243,6 @@ replicate, ai`;
     const apiKey = getReplicateApiKey(inputs);
     const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const inputImage = String(inputs.input_image ?? this.input_image ?? "");
-    const inputImage2 = String(inputs.input_image2 ?? this.input_image2 ?? "");
-    const inputImage3 = String(inputs.input_image3 ?? this.input_image3 ?? "");
-    const inputImage4 = String(inputs.input_image4 ?? this.input_image4 ?? "");
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry");
     const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
     const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 20);
@@ -258,10 +254,6 @@ replicate, ai`;
     const args: Record<string, unknown> = {
       "disable_safety_checker": disableSafetyChecker,
       "guidance_scale": guidanceScale,
-      "input_image": inputImage,
-      "input_image2": inputImage2,
-      "input_image3": inputImage3,
-      "input_image4": inputImage4,
       "negative_prompt": negativePrompt,
       "num_outputs": numOutputs,
       "num_steps": numSteps,
@@ -270,6 +262,30 @@ replicate, ai`;
       "style_name": styleName,
       "style_strength_ratio": styleStrengthRatio,
     };
+
+    const inputImageRef = inputs.input_image as Record<string, unknown> | undefined;
+    if (isRefSet(inputImageRef)) {
+      const inputImageUrl = assetToUrl(inputImageRef!);
+      if (inputImageUrl) args["input_image"] = inputImageUrl;
+    }
+
+    const inputImage2Ref = inputs.input_image2 as Record<string, unknown> | undefined;
+    if (isRefSet(inputImage2Ref)) {
+      const inputImage2Url = assetToUrl(inputImage2Ref!);
+      if (inputImage2Url) args["input_image2"] = inputImage2Url;
+    }
+
+    const inputImage3Ref = inputs.input_image3 as Record<string, unknown> | undefined;
+    if (isRefSet(inputImage3Ref)) {
+      const inputImage3Url = assetToUrl(inputImage3Ref!);
+      if (inputImage3Url) args["input_image3"] = inputImage3Url;
+    }
+
+    const inputImage4Ref = inputs.input_image4 as Record<string, unknown> | undefined;
+    if (isRefSet(inputImage4Ref)) {
+      const inputImage4Url = assetToUrl(inputImage4Ref!);
+      if (inputImage4Url) args["input_image4"] = inputImage4Url;
+    }
     removeNulls(args);
 
     const res = await replicateSubmit(apiKey, "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4", args);
