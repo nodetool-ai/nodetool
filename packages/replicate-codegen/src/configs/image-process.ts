@@ -20,7 +20,7 @@ export const imageProcessConfig: ModuleConfig = {
       className: "DD_Color",
       returnType: "image",
     },
-    "batouresearch/magic-style-transfer": {
+    "fermatresearch/magic-style-transfer": {
       className: "Magic_Style_Transfer",
       returnType: "image",
       fieldOverrides: {

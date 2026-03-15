@@ -23,7 +23,7 @@ export const imageUpscaleConfig: ModuleConfig = {
         image: { propType: "image" },
       },
     },
-    "batouresearch/magic-image-refiner": {
+    "fermatresearch/magic-image-refiner": {
       className: "MagicImageRefiner",
       returnType: "image",
       fieldOverrides: {
@@ -38,7 +38,7 @@ export const imageUpscaleConfig: ModuleConfig = {
         image: { propType: "image" },
       },
     },
-    "batouresearch/high-resolution-controlnet-tile": {
+    "fermatresearch/high-resolution-controlnet-tile": {
       className: "HighResolutionControlNetTile",
       returnType: "image",
       fieldOverrides: {

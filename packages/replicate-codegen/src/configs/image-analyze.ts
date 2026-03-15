@@ -23,7 +23,7 @@ export const imageAnalyzeConfig: ModuleConfig = {
         image: { propType: "image" },
       },
     },
-    "lucataco/nsfw_image_detection": {
+    "falcons-ai/nsfw_image_detection": {
       className: "NSFWImageDetection",
       returnType: "str",
     },

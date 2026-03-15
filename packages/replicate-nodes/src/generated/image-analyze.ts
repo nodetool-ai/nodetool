@@ -299,7 +299,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "lucataco/nsfw_image_detection", args);
+    const res = await replicateSubmit(apiKey, "falcons-ai/nsfw_image_detection", args);
     return { output: outputToString(res.output) };
   }
 }

@@ -155,7 +155,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "fofr/consistent-character", args);
+    const res = await replicateSubmit(apiKey, "sdxl-based/consistent-character", args);
     return { output: outputToImageRef(res.output) };
   }
 }
