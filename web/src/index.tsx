@@ -104,6 +104,9 @@ const StandaloneMiniApp = React.lazy(
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
+const LocalModelFitPage = React.lazy(
+  () => import("./components/local_model_fit/LocalModelFitPage")
+);
 const TabsNodeEditor = React.lazy(
   () => import("./components/editor/TabsNodeEditor")
 );
@@ -384,6 +387,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ModelListIndex />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "local-model-fit",
+      element: (
+        <ProtectedRoute>
+          <LocalModelFitPage />
         </ProtectedRoute>
       )
     }
