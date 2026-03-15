@@ -441,6 +441,10 @@ export class ProcessingContext {
   private _providers = new Map<string, BaseProvider>();
   /** In-context memory URI cache (memory:// key-value objects). */
   private _memory = new Map<string, unknown>();
+  /** Optional control event dispatcher (set by workflow runner). */
+  private _sendControlEvent:
+    | ((targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>)
+    | null = null;
   /** Total cost tracked for operations executed via this context. */
   private _totalCost = 0;
   /** Per-operation cost entries. */
@@ -503,6 +507,7 @@ export class ProcessingContext {
     });
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
+    next._sendControlEvent = this._sendControlEvent;
     next._providers = new Map(this._providers);
     next._totalCost = this._totalCost;
     next._operationCosts = this._operationCosts.map((c) => ({ ...c }));
@@ -521,6 +526,40 @@ export class ProcessingContext {
 
   setModelInterfaces(modelInterfaces: ProcessingContextModelInterfaces): void {
     this._modelInterfaces = modelInterfaces;
+  }
+
+  // -----------------------------------------------------------------------
+  // Control event dispatch
+  // -----------------------------------------------------------------------
+
+  /**
+   * Set the control event dispatcher (called by the workflow runner).
+   * This allows agent nodes to dispatch control events to controlled nodes
+   * and await their results.
+   */
+  setSendControlEvent(
+    fn: (targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>
+  ): void {
+    this._sendControlEvent = fn;
+  }
+
+  /**
+   * Dispatch a control event to a target node and await its output.
+   * Returns null if no control event dispatcher is configured.
+   */
+  async sendControlEvent(
+    targetNodeId: string,
+    properties: Record<string, unknown>
+  ): Promise<Record<string, unknown> | null> {
+    if (!this._sendControlEvent) return null;
+    return this._sendControlEvent(targetNodeId, properties);
+  }
+
+  /**
+   * Check if control event dispatch is available.
+   */
+  get hasControlEventSupport(): boolean {
+    return this._sendControlEvent !== null;
   }
 
   registerProvider(providerId: string, provider: BaseProvider): void {
