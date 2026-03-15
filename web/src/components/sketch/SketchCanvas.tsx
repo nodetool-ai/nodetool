@@ -38,12 +38,20 @@ const styles = (theme: Theme) =>
     height: "100%",
     overflow: "hidden",
     backgroundColor: theme.vars.palette.grey[900],
-    cursor: "crosshair",
     "& canvas": {
       position: "absolute",
       top: "50%",
       left: "50%",
       imageRendering: "pixelated"
+    },
+    "& .cursor-overlay": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+      zIndex: 10
     }
   });
 
@@ -104,12 +112,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const displayCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+    const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
     const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
     const isDrawingRef = useRef(false);
     const lastPointRef = useRef<Point | null>(null);
     const isPanningRef = useRef(false);
     const panStartRef = useRef<Point>({ x: 0, y: 0 });
     const panOffsetRef = useRef<Point>(pan);
+    const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
 
     // Shape tool state
     const shapeStartRef = useRef<Point | null>(null);
@@ -738,14 +748,86 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       transformOrigin: "center center"
     };
 
+    // ─── Cursor rendering ─────────────────────────────────────────────
+
+    const drawCursor = useCallback((screenX: number, screenY: number) => {
+      const cursorCanvas = cursorCanvasRef.current;
+      if (!cursorCanvas) { return; }
+      const ctx = cursorCanvas.getContext("2d");
+      if (!ctx) { return; }
+
+      const container = containerRef.current;
+      if (container) {
+        cursorCanvas.width = container.clientWidth;
+        cursorCanvas.height = container.clientHeight;
+      }
+
+      ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+
+      // Only show brush cursor for brush/eraser tools
+      if (activeTool !== "brush" && activeTool !== "eraser") {
+        return;
+      }
+
+      const size = activeTool === "brush"
+        ? doc.toolSettings.brush.size
+        : doc.toolSettings.eraser.size;
+
+      // Calculate the visual radius on screen (accounting for zoom)
+      const screenRadius = (size / 2) * zoom;
+
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Inner dark ring for contrast
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Center dot
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fill();
+    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.eraser.size, zoom]);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        mousePositionRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        drawCursor(mousePositionRef.current.x, mousePositionRef.current.y);
+      }
+    }, [drawCursor]);
+
+    const handleMouseLeave = useCallback(() => {
+      const cursorCanvas = cursorCanvasRef.current;
+      if (cursorCanvas) {
+        const ctx = cursorCanvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+        }
+      }
+    }, []);
+
+    // Determine cursor style based on tool
+    const cursorStyle = (activeTool === "brush" || activeTool === "eraser") ? "none" : "crosshair";
+
     return (
       <div
         ref={containerRef}
         css={styles(theme)}
+        style={{ cursor: cursorStyle }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onWheel={handleWheel}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <canvas
           ref={displayCanvasRef}
@@ -759,6 +841,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           width={doc.canvas.width}
           height={doc.canvas.height}
           style={{ ...canvasStyle, pointerEvents: "none" }}
+        />
+        {/* Cursor canvas for brush size preview */}
+        <canvas
+          ref={cursorCanvasRef}
+          className="cursor-overlay"
         />
       </div>
     );
