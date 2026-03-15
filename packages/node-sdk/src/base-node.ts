@@ -144,12 +144,22 @@ export abstract class BaseNode {
   ): Promise<Record<string, unknown>> {
     const ctor = this.constructor as typeof BaseNode;
     const required = ctor.requiredSettings;
-    if (!required || required.length === 0 || !context) return inputs;
+    if (!required || required.length === 0) {
+      return inputs;
+    }
+    if (!context) {
+      console.warn(`[_injectSecrets] No context for ${ctor.nodeType}, required: ${required.join(", ")}`);
+      return inputs;
+    }
 
     const secrets: Record<string, string> = {};
     for (const key of required) {
       const value = await context.getSecret(key);
-      if (value) secrets[key] = value;
+      if (value) {
+        secrets[key] = value;
+      } else {
+        console.warn(`[_injectSecrets] Secret "${key}" not found for ${ctor.nodeType}`);
+      }
     }
     if (Object.keys(secrets).length === 0) return inputs;
     return { ...inputs, _secrets: { ...secrets, ...((inputs._secrets as Record<string, string>) ?? {}) } };
