@@ -323,11 +323,13 @@ export class NodeGenerator {
     const assetFields = spec.inputFields.filter(
       (f) => !f.parentField && assetKind(f) !== "none",
     );
+    // Exclude internal template fields that break model behavior when sent with defaults
+    const EXCLUDED_FIELDS = new Set(["prompt_template"]);
     const scalarFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) === "none",
+      (f) => !f.parentField && assetKind(f) === "none" && !EXCLUDED_FIELDS.has(f.name),
     );
 
-    // 1. Extract scalar fields
+    // 1. Extract scalar fields from inputs or instance properties
     for (const field of scalarFields) {
       const varName = fieldToVarName(field.name);
       const defLit = defaultLiteral(field.default, field.propType);
@@ -355,7 +357,7 @@ export class NodeGenerator {
 
       lines.push(``);
       lines.push(
-        `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
+        `    const ${varName}Ref = (inputs.${field.name} ?? this.${field.name}) as Record<string, unknown> | undefined;`,
       );
       lines.push(`    if (isRefSet(${varName}Ref)) {`);
       lines.push(

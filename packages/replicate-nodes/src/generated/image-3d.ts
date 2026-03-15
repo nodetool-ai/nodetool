@@ -98,7 +98,7 @@ replicate, ai`;
       "texture_size": textureSize,
     };
 
-    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = assetToUrl(imagesRef!);
       if (imagesUrl) args["images"] = imagesUrl;
@@ -159,7 +159,7 @@ replicate, ai`;
       "save_mesh": saveMesh,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -195,7 +195,7 @@ replicate, ai`;
       "model": model,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;
@@ -261,7 +261,7 @@ replicate, ai`;
       "speed_mode": speedMode,
     };
 
-    const imagePathRef = inputs.image_path as Record<string, unknown> | undefined;
+    const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
       const imagePathUrl = assetToUrl(imagePathRef!);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
@@ -317,7 +317,7 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -402,25 +402,25 @@ replicate, ai`;
       "target_face_num": targetFaceNum,
     };
 
-    const backImageRef = inputs.back_image as Record<string, unknown> | undefined;
+    const backImageRef = (inputs.back_image ?? this.back_image) as Record<string, unknown> | undefined;
     if (isRefSet(backImageRef)) {
       const backImageUrl = assetToUrl(backImageRef!);
       if (backImageUrl) args["back_image"] = backImageUrl;
     }
 
-    const frontImageRef = inputs.front_image as Record<string, unknown> | undefined;
+    const frontImageRef = (inputs.front_image ?? this.front_image) as Record<string, unknown> | undefined;
     if (isRefSet(frontImageRef)) {
       const frontImageUrl = assetToUrl(frontImageRef!);
       if (frontImageUrl) args["front_image"] = frontImageUrl;
     }
 
-    const leftImageRef = inputs.left_image as Record<string, unknown> | undefined;
+    const leftImageRef = (inputs.left_image ?? this.left_image) as Record<string, unknown> | undefined;
     if (isRefSet(leftImageRef)) {
       const leftImageUrl = assetToUrl(leftImageRef!);
       if (leftImageUrl) args["left_image"] = leftImageUrl;
     }
 
-    const rightImageRef = inputs.right_image as Record<string, unknown> | undefined;
+    const rightImageRef = (inputs.right_image ?? this.right_image) as Record<string, unknown> | undefined;
     if (isRefSet(rightImageRef)) {
       const rightImageUrl = assetToUrl(rightImageRef!);
       if (rightImageUrl) args["right_image"] = rightImageUrl;
@@ -496,7 +496,7 @@ replicate, ai`;
       "sp_size": spSize,
     };
 
-    const mediaRef = inputs.media as Record<string, unknown> | undefined;
+    const mediaRef = (inputs.media ?? this.media) as Record<string, unknown> | undefined;
     if (isRefSet(mediaRef)) {
       const mediaUrl = assetToUrl(mediaRef!);
       if (mediaUrl) args["media"] = mediaUrl;

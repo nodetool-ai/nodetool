@@ -63,7 +63,7 @@ replicate, ai`;
       "timestamp": timestamp,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -109,7 +109,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = assetToUrl(audioFileRef!);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -200,7 +200,7 @@ replicate, ai`;
       "translate": translate,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -246,7 +246,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = assetToUrl(audioFileRef!);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -297,7 +297,7 @@ replicate, ai`;
       "only_text": onlyText,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -363,7 +363,7 @@ replicate, ai`;
       "translate": translate,
     };
 
-    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = assetToUrl(fileRef!);
       if (fileUrl) args["file"] = fileUrl;
@@ -393,7 +393,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = assetToUrl(audioFileRef!);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -423,7 +423,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -453,7 +453,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -489,7 +489,7 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -535,7 +535,7 @@ replicate, ai`;
       "num_speakers": numSpeakers,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;

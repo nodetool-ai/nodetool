@@ -32,7 +32,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -62,7 +62,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const imagePathRef = inputs.image_path as Record<string, unknown> | undefined;
+    const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
       const imagePathUrl = assetToUrl(imagePathRef!);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
@@ -113,7 +113,7 @@ replicate, ai`;
       "page_number": pageNumber,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -159,7 +159,7 @@ replicate, ai`;
       "task_type": taskType,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -215,7 +215,7 @@ replicate, ai`;
       "visualize": visualize,
     };
 
-    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = assetToUrl(fileRef!);
       if (fileUrl) args["file"] = fileUrl;
@@ -331,7 +331,7 @@ replicate, ai`;
       "use_llm": useLlm,
     };
 
-    const fileRef = inputs.file as Record<string, unknown> | undefined;
+    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = assetToUrl(fileRef!);
       if (fileUrl) args["file"] = fileUrl;

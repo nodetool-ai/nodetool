@@ -48,7 +48,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const inputFileRef = inputs.input_file as Record<string, unknown> | undefined;
+    const inputFileRef = (inputs.input_file ?? this.input_file) as Record<string, unknown> | undefined;
     if (isRefSet(inputFileRef)) {
       const inputFileUrl = assetToUrl(inputFileRef!);
       if (inputFileUrl) args["input_file"] = inputFileUrl;
