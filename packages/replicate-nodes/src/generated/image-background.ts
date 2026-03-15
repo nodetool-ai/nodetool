@@ -20,6 +20,9 @@ export class BackgroundRemover_851 extends ReplicateNode {
   static readonly description = `Remove backgrounds from images.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "rgba", description: "Background type: 'rgba', 'map', 'green', 'white', [R,G,B] array, 'blur', 'overlay', or path to an image." })
   declare background_type: any;
@@ -68,6 +71,9 @@ export class Bria_RemoveBackground extends ReplicateNode {
   static readonly description = `Bria AI's remove background model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Enable content moderation" })
   declare content_moderation: any;
@@ -116,6 +122,9 @@ export class Bria_Eraser extends ReplicateNode {
   static readonly description = `SOTA Object removal, enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Enable content moderation" })
   declare content_moderation: any;
@@ -183,6 +192,9 @@ export class Bria_GenerateBackground extends ReplicateNode {
   static readonly description = `Bria Background Generation allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Text description of the new scene or background. Either bg_prompt or ref_image_url must be provided" })
   declare bg_prompt: any;
@@ -276,6 +288,9 @@ export class Bria_GenFill extends ReplicateNode {
   static readonly description = `Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Enable content moderation" })
   declare content_moderation: any;
@@ -348,6 +363,9 @@ export class Bria_FiboEdit extends ReplicateNode {
   static readonly description = `FIBO-Edit brings the power of structured prompt generation to image editing
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "int", default: 0, description: "Guidance scale (1-10)" })
   declare guidance_scale: any;
@@ -406,6 +424,9 @@ export class BackgroundRemover_Codeplug extends ReplicateNode {
   static readonly description = `Remove background from image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -433,6 +454,9 @@ export class BiRefNet extends ReplicateNode {
   static readonly description = `Bilateral Reference for High-Resolution Dichotomous Image Segmentation (CAAI AIR 2024)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -466,6 +490,9 @@ export class RembgEnhance extends ReplicateNode {
   static readonly description = `A background removal model enhanced with better matting
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -493,6 +520,9 @@ export class RemoveBg extends ReplicateNode {
   static readonly description = `Best Human detection and Object Detection Background removal.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -520,6 +550,9 @@ export class RemoveBgLucataco extends ReplicateNode {
   static readonly description = `Remove background from an image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Remove background from this image" })
   declare image: any;
@@ -547,6 +580,9 @@ export class RembgVideo extends ReplicateNode {
   static readonly description = `Video Background Removal
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "#FFFFFF", description: "Background color in hex format (e.g., '#FFFFFF' for white)" })
   declare background_color: any;

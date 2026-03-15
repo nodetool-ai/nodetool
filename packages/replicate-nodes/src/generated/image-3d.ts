@@ -20,6 +20,9 @@ export class Trellis extends ReplicateNode {
   static readonly description = `A powerful 3D asset generation model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: true, description: "Generate color video render" })
   declare generate_color: any;
@@ -109,6 +112,9 @@ export class ShapE extends ReplicateNode {
   static readonly description = `Generating Conditional 3D Implicit Functions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "int", default: 1, description: "Number of output" })
   declare batch_size: any;
@@ -163,6 +169,9 @@ export class Deep3D extends ReplicateNode {
   static readonly description = `Deep3D: Real-Time end-to-end 2D-to-3D Video Conversion, based on deep learning
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "enum", default: "deep3d_v1.0_640x360", values: ["deep3d_v1.0_640x360", "deep3d_v1.0_1280x720"], description: "Model size" })
   declare model: any;
@@ -192,6 +201,9 @@ export class Hunyuan3D_2 extends ReplicateNode {
   static readonly description = `hunyuan3d-2 optimised with the pruna toolkit: https://github.com/PrunaAI/pruna
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "int", default: 40000, description: "Target number of faces for simplification" })
   declare face_count: any;
@@ -251,6 +263,9 @@ export class Tencent_Hunyuan3D_2 extends ReplicateNode {
   static readonly description = `Scaling Diffusion Models for High Resolution Textured 3D Assets Generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 5.5, description: "Guidance scale for generation" })
   declare guidance_scale: any;
@@ -304,6 +319,9 @@ export class Hunyuan3D_2MV extends ReplicateNode {
   static readonly description = `Hunyuan3D-2mv is finetuned from Hunyuan3D-2 to support multiview controlled shape generation.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Back view image" })
   declare back_image: any;
@@ -388,6 +406,9 @@ export class SeedVR2 extends ReplicateNode {
   static readonly description = `🔥 SeedVR2: one-step video & image restoration with 3B/7B hot‑swap and optional color fix 🎬✨
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Apply optional wavelet color correction (matches official demo)." })
   declare apply_color_fix: any;

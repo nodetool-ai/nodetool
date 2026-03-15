@@ -20,6 +20,9 @@ export class AudioSuperResolution extends ReplicateNode {
   static readonly description = `AudioSR: Versatile Audio Super-resolution at Scale
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "int", default: 50, description: "Number of inference steps" })
   declare ddim_steps: any;

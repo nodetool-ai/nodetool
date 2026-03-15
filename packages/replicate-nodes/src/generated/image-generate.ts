@@ -20,6 +20,9 @@ export class AdInpaint extends ReplicateNode {
   static readonly description = `Product advertising image generator
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "OpenAI api_key, enhance prompt with ChatGPT if provided" })
   declare api_key: any;
@@ -98,6 +101,9 @@ export class ConsistentCharacter extends ReplicateNode {
   static readonly description = `Create images of a given character in different poses
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images." })
   declare disable_safety_checker: any;
@@ -171,6 +177,9 @@ export class PulidBase extends ReplicateNode {
   static readonly description = `Use a face to make images. Uses SDXL fine-tuned checkpoints.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "general - dreamshaperXL_alpha2Xl10", values: ["general - albedobaseXL_v21", "general - dreamshaperXL_alpha2Xl10", "animated - starlightXLAnimated_v3", "animated - pixlAnimeCartoonComic_v10", "realistic - rundiffusionXL_beta", "realistic - RealVisXL_V4.0", "realistic - sdxlUnstableDiffusers_nihilmania", "cinematic - CinematicRedmond"], description: "Model to use for the generation" })
   declare checkpoint_model: any;
@@ -249,6 +258,9 @@ export class StableDiffusion extends ReplicateNode {
   static readonly description = `A latent text-to-image diffusion model capable of generating photo-realistic images given any text input
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 7.5, description: "Scale for classifier-free guidance" })
   declare guidance_scale: any;
@@ -313,6 +325,9 @@ export class StableDiffusion3_5_Medium extends ReplicateNode {
   static readonly description = `2.5 billion parameter image model with improved MMDiT-X architecture
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["16:9", "1:1", "21:9", "2:3", "3:2", "4:5", "5:4", "9:16", "9:21"], description: "The aspect ratio of your output image. This value is ignored if you are using an input image." })
   declare aspect_ratio: any;
@@ -376,6 +391,9 @@ export class StableDiffusion3_5_Large extends ReplicateNode {
   static readonly description = `A text-to-image model that generates high-resolution images with fine details. It supports various artistic styles and produces diverse outputs from the same prompt, thanks to Query-Key Normalization.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["16:9", "1:1", "21:9", "2:3", "3:2", "4:5", "5:4", "9:16", "9:21"], description: "The aspect ratio of your output image. This value is ignored if you are using an input image." })
   declare aspect_ratio: any;
@@ -439,6 +457,9 @@ export class StableDiffusion3_5_Large_Turbo extends ReplicateNode {
   static readonly description = `A text-to-image model that generates high-resolution images with fine details. It supports various artistic styles and produces diverse outputs from the same prompt, with a focus on fewer inference steps
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["16:9", "1:1", "21:9", "2:3", "3:2", "4:5", "5:4", "9:16", "9:21"], description: "The aspect ratio of your output image. This value is ignored if you are using an input image." })
   declare aspect_ratio: any;
@@ -502,6 +523,9 @@ export class Photon_Flash extends ReplicateNode {
   static readonly description = `Accelerated variant of Photon prioritizing speed while maintaining quality
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -588,6 +612,9 @@ export class StableDiffusionXL extends ReplicateNode {
   static readonly description = `A text-to-image generative AI model that creates beautiful images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -710,6 +737,9 @@ export class SDXL_Pixar extends ReplicateNode {
   static readonly description = `Create Pixar poster easily with SDXL Pixar.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -832,6 +862,9 @@ export class SDXL_Emoji extends ReplicateNode {
   static readonly description = `An SDXL fine-tune based on Apple Emojis
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -954,6 +987,9 @@ export class StableDiffusionInpainting extends ReplicateNode {
   static readonly description = `Fill in masked parts of images with Stable Diffusion
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)" })
   declare disable_safety_checker: any;
@@ -1041,6 +1077,9 @@ export class Kandinsky extends ReplicateNode {
   static readonly description = `multilingual text2image latent diffusion model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: 512, values: ["384", "512", "576", "640", "704", "768", "960", "1024", "1152", "1280", "1536", "1792", "2048"], description: "Height of output image. Lower the setting if hits memory limits." })
   declare height: any;
@@ -1105,6 +1144,9 @@ export class Flux_Schnell extends ReplicateNode {
   static readonly description = `The fastest image generation model tailored for local development and personal use
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1174,6 +1216,9 @@ export class Flux_Dev extends ReplicateNode {
   static readonly description = `A 12 billion parameter rectified flow transformer capable of generating images from text descriptions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1258,6 +1303,9 @@ export class Flux_Pro extends ReplicateNode {
   static readonly description = `State-of-the-art image generation with top of the line prompt following, visual quality, image detail and output diversity.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["custom", "1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1342,6 +1390,9 @@ export class Flux_1_1_Pro_Ultra extends ReplicateNode {
   static readonly description = `FLUX1.1 [pro] in ultra and raw modes. Images are up to 4 megapixels. Use raw mode for realism.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1401,6 +1452,9 @@ export class Flux_Dev_Lora extends ReplicateNode {
   static readonly description = `A version of flux-dev, a text to image model, that supports fast fine-tuned lora inference
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1519,6 +1573,9 @@ export class Flux_Schnell_Lora extends ReplicateNode {
   static readonly description = `The fastest image generation model tailored for fine-tuned use
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -1598,6 +1655,9 @@ export class Flux_Depth_Pro extends ReplicateNode {
   static readonly description = `Professional depth-aware image generation. Edit images while preserving spatial relationships.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image to use as control input. Must be jpeg, png, gif, or webp." })
   declare control_image: any;
@@ -1661,6 +1721,9 @@ export class Flux_Canny_Pro extends ReplicateNode {
   static readonly description = `Professional edge-guided image generation. Control structure and composition using Canny edge detection
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image to use as control input. Must be jpeg, png, gif, or webp." })
   declare control_image: any;
@@ -1724,6 +1787,9 @@ export class Flux_Fill_Pro extends ReplicateNode {
   static readonly description = `Professional inpainting and outpainting model with state-of-the-art performance. Edit or extend images with natural, seamless results.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 60, description: "Controls the balance between adherence to the text prompt and image quality/diversity. Higher values make the output more closely match the prompt but may reduce overall image quality. Lower values allow for more creative freedom but might produce results less relevant to the prompt." })
   declare guidance: any;
@@ -1793,6 +1859,9 @@ export class Flux_Depth_Dev extends ReplicateNode {
   static readonly description = `Open-weight depth-aware image generation. Edit images while preserving spatial relationships.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image used to control the generation. The depth map will be automatically generated." })
   declare control_image: any;
@@ -1866,6 +1935,9 @@ export class Hyper_Flux_8Step extends ReplicateNode {
   static readonly description = `Hyper FLUX 8-step by ByteDance
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21", "custom"], description: "Aspect ratio for the generated image. The size will always be 1 megapixel, i.e. 1024x1024 if aspect ratio is 1:1. To use arbitrary width and height, set aspect ratio to 'custom'." })
   declare aspect_ratio: any;
@@ -1940,6 +2012,9 @@ export class Flux_Mona_Lisa extends ReplicateNode {
   static readonly description = `Flux lora, use the term "MNALSA" to trigger generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21", "custom"], description: "Aspect ratio for the generated image. If custom is selected, uses height and width below & will run in bf16 mode" })
   declare aspect_ratio: any;
@@ -2072,6 +2147,9 @@ export class Flux_Cinestill extends ReplicateNode {
   static readonly description = `Flux lora, use "CNSTLL" to trigger
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21", "custom"], description: "Aspect ratio for the generated image. If custom is selected, uses height and width below & will run in bf16 mode" })
   declare aspect_ratio: any;
@@ -2204,6 +2282,9 @@ export class Flux_Black_Light extends ReplicateNode {
   static readonly description = `A flux lora fine-tuned on black light images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21", "custom"], description: "Aspect ratio for the generated image. If custom is selected, uses height and width below & will run in bf16 mode" })
   declare aspect_ratio: any;
@@ -2336,6 +2417,9 @@ export class Flux_360 extends ReplicateNode {
   static readonly description = `Generate 360 panorama images.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21", "custom"], description: "Aspect ratio for the generated image. If custom is selected, uses height and width below & will run in bf16 mode" })
   declare aspect_ratio: any;
@@ -2468,6 +2552,9 @@ export class Recraft_V3 extends ReplicateNode {
   static readonly description = `Recraft V3 (code-named red_panda) is a text-to-image model with the ability to generate long texts, and images in a wide list of styles. As of today, it is SOTA in image generation, proven by the Text-to-Image Benchmark by Artificial Analysis
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "7:5", "5:7", "4:5", "5:4", "3:5", "5:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -2507,6 +2594,9 @@ export class Recraft_20B extends ReplicateNode {
   static readonly description = `Affordable and fast images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "7:5", "5:7", "4:5", "5:4", "3:5", "5:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -2546,6 +2636,9 @@ export class Recraft_20B_SVG extends ReplicateNode {
   static readonly description = `Affordable and fast vector images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "7:5", "5:7", "4:5", "5:4", "3:5", "5:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -2585,6 +2678,9 @@ export class Recraft_V3_SVG extends ReplicateNode {
   static readonly description = `Recraft V3 SVG (code-named red_panda) is a text-to-image model with the ability to generate high quality SVG images including logotypes, and icons. The model supports a wide list of styles.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "7:5", "5:7", "4:5", "5:4", "3:5", "5:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -2624,6 +2720,9 @@ export class Flux_Canny_Dev extends ReplicateNode {
   static readonly description = `Open-weight edge-guided image generation. Control structure and composition using Canny edge detection.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image used to control the generation. The canny edge detection will be automatically generated." })
   declare control_image: any;
@@ -2697,6 +2796,9 @@ export class Flux_Fill_Dev extends ReplicateNode {
   static readonly description = `Open-weight inpainting model for editing and extending images. Guidance-distilled from FLUX.1 Fill [pro].
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images." })
   declare disable_safety_checker: any;
@@ -2781,6 +2883,9 @@ export class Flux_Redux_Schnell extends ReplicateNode {
   static readonly description = `Fast, efficient image variation model for rapid iteration and experimentation.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -2849,6 +2954,9 @@ export class Flux_Redux_Dev extends ReplicateNode {
   static readonly description = `Open-weight image variation model. Create new versions while preserving key elements of your original.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -2922,6 +3030,9 @@ export class SDXL_Controlnet extends ReplicateNode {
   static readonly description = `SDXL ControlNet - Canny
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.5, description: "controlnet conditioning scale for generalization" })
   declare condition_scale: any;
@@ -2975,6 +3086,9 @@ export class SDXL_Ad_Inpaint extends ReplicateNode {
   static readonly description = `Product advertising image generator using SDXL
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies the original product image to the final result" })
   declare apply_img: any;
@@ -3058,6 +3172,9 @@ export class StableDiffusionXLLightning extends ReplicateNode {
   static readonly description = `SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images" })
   declare disable_safety_checker: any;
@@ -3127,6 +3244,9 @@ export class PlaygroundV2 extends ReplicateNode {
   static readonly description = `Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -3220,6 +3340,9 @@ export class Proteus_V_02 extends ReplicateNode {
   static readonly description = `Proteus v0.2 shows subtle yet significant improvements over Version 0.1. It demonstrates enhanced prompt understanding that surpasses MJ6, while also approaching its stylistic capabilities.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -3317,6 +3440,9 @@ export class Proteus_V_03 extends ReplicateNode {
   static readonly description = `ProteusV0.3: The Anime Update
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -3414,6 +3540,9 @@ export class StickerMaker extends ReplicateNode {
   static readonly description = `Make stickers with AI. Generates graphics with transparent backgrounds.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "int", default: 1152 })
   declare height: any;
@@ -3478,6 +3607,9 @@ export class StyleTransfer extends ReplicateNode {
   static readonly description = `Transfer the style of one image to another
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "int", default: 1024, description: "Height of the output image (ignored if structure image given)" })
   declare height: any;
@@ -3570,6 +3702,9 @@ export class Illusions extends ReplicateNode {
   static readonly description = `Create illusions with img2img and masking support
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Control image" })
   declare control_image: any;
@@ -3681,6 +3816,9 @@ export class Ideogram_V2 extends ReplicateNode {
   static readonly description = `An excellent image model with state of the art inpainting, prompt comprehension and text rendering
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "16:10", "10:16", "3:1", "1:3"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -3753,6 +3891,9 @@ export class Ideogram_V2_Turbo extends ReplicateNode {
   static readonly description = `A fast image model with state of the art inpainting, prompt comprehension and text rendering.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "16:10", "10:16", "3:1", "1:3"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -3825,6 +3966,9 @@ export class Ideogram_V2A extends ReplicateNode {
   static readonly description = `Like Ideogram v2, but faster and cheaper
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "16:10", "10:16", "3:1", "1:3"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -3874,6 +4018,9 @@ export class Imagen_3 extends ReplicateNode {
   static readonly description = `Google's highest quality text-to-image model, capable of generating images with detail, rich lighting and beauty
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "9:16", "16:9", "3:4", "4:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -3913,6 +4060,9 @@ export class Qwen_Image extends ReplicateNode {
   static readonly description = `An image generation foundation model in the Qwen series that achieves significant advances in complex text rendering.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -4031,6 +4181,9 @@ export class Qwen_Image_Edit extends ReplicateNode {
   static readonly description = `Edit images using a prompt. This model extends Qwen-Image’s unique text rendering capabilities to image editing tasks, enabling precise text editing
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "match_input_image"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -4094,6 +4247,9 @@ export class Seedream_4 extends ReplicateNode {
   static readonly description = `Unified text-to-image generation and precise single-sentence editing at up to 4K resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"], description: "Image aspect ratio. Only used when size is not 'custom'. Use 'match_input_image' to automatically match the input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4158,6 +4314,9 @@ export class Minimax_Image_01 extends ReplicateNode {
   static readonly description = `Minimax's first image model, with character reference support
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "4:3", "3:2", "2:3", "3:4", "9:16", "21:9"], description: "Image aspect ratio" })
   declare aspect_ratio: any;
@@ -4202,6 +4361,9 @@ export class Flux_2_Pro extends ReplicateNode {
   static readonly description = `High-quality image generation and editing with support for eight reference images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["match_input_image", "custom", "1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"], description: "Aspect ratio for the generated image. Use 'match_input_image' to match the first input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4271,6 +4433,9 @@ export class Flux_2_Flex extends ReplicateNode {
   static readonly description = `Max-quality image generation and editing with support for ten reference images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["match_input_image", "custom", "1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"], description: "Aspect ratio for the generated image. Use 'match_input_image' to match the first input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4355,6 +4520,9 @@ export class GPT_Image_1_5 extends ReplicateNode {
   static readonly description = `OpenAI's latest image generation model with better instruction following and adherence to prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "3:2", "2:3"], description: "The aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4434,6 +4602,9 @@ export class Flux_2_Max extends ReplicateNode {
   static readonly description = `The highest fidelity image model from Black Forest Labs
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["match_input_image", "custom", "1:1", "16:9", "3:2", "2:3", "4:5", "5:4", "9:16", "3:4", "4:3"], description: "Aspect ratio for the generated image. Use 'match_input_image' to match the first input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4503,6 +4674,9 @@ export class Imagen_4_Fast extends ReplicateNode {
   static readonly description = `Use this fast version of Imagen 4 when speed and cost are more important than quality
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "9:16", "16:9", "3:4", "4:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4542,6 +4716,9 @@ export class Ideogram_V3_Turbo extends ReplicateNode {
   static readonly description = `Turbo is the fastest and cheapest Ideogram v3. v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -4619,6 +4796,9 @@ export class Flux_Kontext_Pro extends ReplicateNode {
   static readonly description = `A state-of-the-art text-based image editing model that delivers high-quality outputs with excellent prompt following and consistent results for transforming images through natural language
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
@@ -4673,6 +4853,9 @@ export class Seedream_4_5 extends ReplicateNode {
   static readonly description = `Seedream 4.5: Upgraded Bytedance image model with stronger spatial understanding and world knowledge
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"], description: "Image aspect ratio. Only used when size is not 'custom'. Use 'match_input_image' to automatically match the input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4732,6 +4915,9 @@ export class Seedream_5_Lite extends ReplicateNode {
   static readonly description = `Seedream 5.0 lite: image generation with built-in reasoning, example-based editing, and deep domain knowledge
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"], description: "Image aspect ratio. Use 'match_input_image' to automatically match the input image's aspect ratio." })
   declare aspect_ratio: any;
@@ -4786,6 +4972,9 @@ export class Seedream_3 extends ReplicateNode {
   static readonly description = `A text-to-image model with support for native high-resolution (2K) image generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9", "custom"], description: "Image aspect ratio. Set to 'custom' to specify width and height." })
   declare aspect_ratio: any;
@@ -4840,6 +5029,9 @@ export class Recraft_V4 extends ReplicateNode {
   static readonly description = `Recraft's latest image generation model, built around design taste. Strong prompt accuracy, art-directed composition, and integrated text rendering. Fast and cost-efficient at standard resolution.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "14:10", "10:14", "4:5", "5:4", "6:10"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4874,6 +5066,9 @@ export class Recraft_V4_SVG extends ReplicateNode {
   static readonly description = `Generate production-ready SVG vector images from text prompts. Recraft V4's design taste applied to vector output — clean geometry, structured layers, and editable paths.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "14:10", "10:14", "4:5", "5:4", "6:10"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4908,6 +5103,9 @@ export class Recraft_V4_Pro extends ReplicateNode {
   static readonly description = `Recraft's latest image generation model at ~2048px resolution. Same design taste and prompt accuracy as V4, with higher resolution for print-ready and large-scale work.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "4:5", "5:4", "6:10", "14:10", "10:14"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4942,6 +5140,9 @@ export class Recraft_V4_Pro_SVG extends ReplicateNode {
   static readonly description = `Generate detailed SVG vector graphics from text prompts. Recraft V4 Pro's design taste with more geometric detail and finer paths — clean layers, editable output, and scalable to any size.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Not set", values: ["Not set", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "1:2", "2:1", "4:5", "5:4", "6:10", "14:10", "10:14"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -4976,6 +5177,9 @@ export class Ideogram_V3_Balanced extends ReplicateNode {
   static readonly description = `Balance speed, quality and cost. Ideogram v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -5045,6 +5249,9 @@ export class Ideogram_V3_Quality extends ReplicateNode {
   static readonly description = `The highest quality Ideogram v3 model. v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -5114,6 +5321,9 @@ export class Ideogram_V2A_Turbo extends ReplicateNode {
   static readonly description = `Like Ideogram v2 turbo, but now faster and cheaper
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "16:10", "10:16", "3:1", "1:3"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -5163,6 +5373,9 @@ export class Imagen_4 extends ReplicateNode {
   static readonly description = `Google's Imagen 4 flagship model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "9:16", "16:9", "3:4", "4:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -5207,6 +5420,9 @@ export class Imagen_4_Ultra extends ReplicateNode {
   static readonly description = `Use this ultra version of Imagen 4 when quality matters more than speed and cost
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "9:16", "16:9", "3:4", "4:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -5251,6 +5467,9 @@ export class Imagen_3_Fast extends ReplicateNode {
   static readonly description = `A faster and cheaper Imagen 3 model, for when price or speed are more important than final image quality
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "9:16", "16:9", "3:4", "4:3"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -5290,6 +5509,9 @@ export class Nano_Banana_Pro extends ReplicateNode {
   static readonly description = `Google's state of the art image generation and editing model 🍌🍌
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Fallback to another model (currently bytedance/seedream-5) if Nano Banana Pro is at capacity." })
   declare allow_fallback_model: any;
@@ -5344,6 +5566,9 @@ export class Grok_Imagine_Image extends ReplicateNode {
   static readonly description = `SOTA image model from xAI
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2", "19.5:9", "9:19.5", "20:9", "9:20", "auto"], description: "Aspect ratio of the generated image. Ignored when editing an image." })
   declare aspect_ratio: any;
@@ -5378,6 +5603,9 @@ export class Fibo extends ReplicateNode {
   static readonly description = `SOTA Open source model trained on licensed data, transforming intent into structured control for precise, high-quality AI image generation in enterprise and agentic workflows.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"], description: "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0" })
   declare aspect_ratio: any;
@@ -5432,6 +5660,9 @@ export class Bria_Image_3_2 extends ReplicateNode {
   static readonly description = `Commercial-ready, trained entirely on licensed data, text-to-image model. With only 4B parameters provides exceptional aesthetics and text rendering. Evaluated to be on par to other leading models in the market
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"], description: "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0" })
   declare aspect_ratio: any;
@@ -5486,6 +5717,9 @@ export class Flux_2_Klein_4B extends ReplicateNode {
   static readonly description = `Very fast image generation and editing model. 4 steps distilled, sub-second inference for production and near real-time applications.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "9:16", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "21:9", "9:21", "match_input_image"], description: "Aspect ratio for the generated image. Use 'match_input_image' to match the aspect ratio of the first input image." })
   declare aspect_ratio: any;
@@ -5550,6 +5784,9 @@ export class Flux_Kontext_Max extends ReplicateNode {
   static readonly description = `A premium text-based image editing model that delivers maximum performance and improved typography generation for transforming images through natural language prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
@@ -5604,6 +5841,9 @@ export class Hunyuan_Image_3 extends ReplicateNode {
   static readonly description = `A powerful native multimodal model for image generation (PrunaAI squeezed)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -5658,6 +5898,9 @@ export class Flux_PuLID extends ReplicateNode {
   static readonly description = `⚡️FLUX PuLID: FLUX-dev based Pure and Lightning ID Customization via Contrastive Alignment🎭
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 4, description: "Set the guidance scale for text prompt influence (1.0-10.0)" })
   declare guidance_scale: any;
@@ -5752,6 +5995,9 @@ export class PuLID extends ReplicateNode {
   static readonly description = `📖 PuLID: Pure and Lightning ID Customization via Contrastive Alignment
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Additional ID image (auxiliary)" })
   declare auxiliary_face_image1: any;
@@ -5856,6 +6102,9 @@ export class Flux_Change_Haircut extends ReplicateNode {
   static readonly description = `Quickly change someone's hair style and hair color, powered by FLUX.1 Kontext [pro]
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
@@ -5915,6 +6164,9 @@ export class Flux_Professional_Headshot extends ReplicateNode {
   static readonly description = `Create a professional headshot photo from any single image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "2:1", "1:2"], description: "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image." })
   declare aspect_ratio: any;
@@ -5969,6 +6221,9 @@ export class Flux_Restore_Image extends ReplicateNode {
   static readonly description = `Use FLUX Kontext to restore, fix scratches and damage, and colorize old photos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Image to restore. Must be jpeg, png, gif, or webp." })
   declare input_image: any;
@@ -6008,6 +6263,9 @@ export class Ideogram_Character extends ReplicateNode {
   static readonly description = `Generate consistent characters from a single reference image. Outputs can be in many styles. You can also use inpainting to add your character to an existing image.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:3", "3:1", "1:2", "2:1", "9:16", "16:9", "10:16", "16:10", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "1:1"], description: "Aspect ratio. Ignored if a resolution or inpainting image is given." })
   declare aspect_ratio: any;
@@ -6077,6 +6335,9 @@ export class OmniGen2 extends ReplicateNode {
   static readonly description = `OmniGen2: a powerful and efficient unified multimodal model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 1, description: "CFG range end" })
   declare cfg_range_end: any;
@@ -6176,6 +6437,9 @@ export class Flux_Kontext_Fast extends ReplicateNode {
   static readonly description = `Ultra fast flux kontext endpoint
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "21:9", "3:2", "2:3", "4:5", "5:4", "3:4", "4:3", "9:16", "9:21"], description: "Aspect ratio of the output image" })
   declare aspect_ratio: any;
@@ -6245,6 +6509,9 @@ export class P_Image_Edit extends ReplicateNode {
   static readonly description = `A sub 1 second 0.01$ multi-image editing model built for production use cases. For image generation, check out p-image here: https://replicate.com/prunaai/p-image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], description: "Aspect ratio for the generated image. 'match_input_image' will match the aspect ratio of the first image." })
   declare aspect_ratio: any;
@@ -6299,6 +6566,9 @@ export class Qwen_Image_Edit_Plus extends ReplicateNode {
   static readonly description = `The latest Qwen-Image’s iteration with improved multi-image editing, single-image consistency, and native support for ControlNet
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["1:1", "16:9", "9:16", "4:3", "3:4", "match_input_image"], description: "Aspect ratio for the generated image" })
   declare aspect_ratio: any;
@@ -6362,6 +6632,9 @@ export class Gen4_Image extends ReplicateNode {
   static readonly description = `Runway's Gen-4 Image model with references. Use up to 3 reference images to create the exact image you need. Capture every angle.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Image aspect ratio" })
   declare aspect_ratio: any;
@@ -6411,6 +6684,9 @@ export class Gen4_Image_Turbo extends ReplicateNode {
   static readonly description = `Gen-4 Image Turbo is cheaper and 2.5x faster than Gen-4 Image. An image model with references, use up to 3 reference images to create the exact image you need. Capture every angle.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Image aspect ratio" })
   declare aspect_ratio: any;
@@ -6460,6 +6736,9 @@ export class IC_Light_Background extends ReplicateNode {
   static readonly description = `🖼️✨Background images + prompts to auto-magically relights your images (+normal maps🗺️)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "best quality", description: "Additional text to be appended to the main prompt, enhancing image quality" })
   declare appended_prompt: any;
@@ -6564,6 +6843,9 @@ export class Step1X_Edit extends ReplicateNode {
   static readonly description = `✍️Step1X-Edit by stepfun-ai, Edit an image using text prompt📸
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -6617,6 +6899,9 @@ export class Color_Matcher extends ReplicateNode {
   static readonly description = `Color match and white balance fixes for images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Apply automatic white balance to input image (before color transfer)" })
   declare fix_white_balance: any;
@@ -6666,6 +6951,9 @@ export class ControlNet_Tile extends ReplicateNode {
   static readonly description = `Controlnet v1.1 - Tile Version
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -6714,6 +7002,9 @@ export class IP_Adapter_FaceID extends ReplicateNode {
   static readonly description = `(Research only) IP-Adapter-FaceID can generate various style images conditioned on a face with only text prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "You must agree to use this model only for research. It is not for commercial use." })
   declare agree_to_research_only: any;
@@ -6782,6 +7073,9 @@ export class IP_Adapter_Face_Inpaint extends ReplicateNode {
   static readonly description = `A combination of ip_adapter SDv1.5 and mediapipe-face to inpaint a face
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0, description: "Blur to apply to mask to face" })
   declare blur_amount: any;
@@ -6840,6 +7134,9 @@ export class IP_Adapter_SDXL_Face extends ReplicateNode {
   static readonly description = `The image prompt adapter is designed to enable a pretrained text-to-image diffusion model to generate SDXL images with an image prompt
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input face image" })
   declare image: any;

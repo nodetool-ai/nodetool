@@ -20,6 +20,9 @@ export class Demucs extends ReplicateNode {
   static readonly description = `Demucs is an audio source separator created by Facebook Research.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "audio", default: "", description: "Upload the file to be processed here." })
   declare audio: any;

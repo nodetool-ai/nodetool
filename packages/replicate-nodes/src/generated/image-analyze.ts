@@ -20,6 +20,9 @@ export class SDXLClipInterrogator extends ReplicateNode {
   static readonly description = `CLIP Interrogator for SDXL optimizes text prompts to match a given image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -53,6 +56,9 @@ export class Img2Prompt extends ReplicateNode {
   static readonly description = `Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -80,6 +86,9 @@ export class Moondream2 extends ReplicateNode {
   static readonly description = `moondream2 is a small vision language model designed to run efficiently on edge devices
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -113,6 +122,9 @@ export class NSFWImageDetection extends ReplicateNode {
   static readonly description = `Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input image" })
   declare image: any;
@@ -137,6 +149,9 @@ export class Blip extends ReplicateNode {
   static readonly description = `Generate image captions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Type caption for the input image for image text matching task." })
   declare caption: any;
@@ -180,6 +195,9 @@ export class Blip2 extends ReplicateNode {
   static readonly description = `Answers questions about images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Select if you want to generate image captions instead of asking questions" })
   declare caption: any;
@@ -233,6 +251,9 @@ export class ClipInterrogator extends ReplicateNode {
   static readonly description = `The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "enum", default: "ViT-L-14/openai", values: ["ViT-L-14/openai", "ViT-H-14/laion2b_s32b_b79k", "ViT-bigG-14/laion2b_s39b_b160k"], description: "Choose ViT-L for Stable Diffusion 1, ViT-H for Stable Diffusion 2, or ViT-bigG for Stable Diffusion XL." })
   declare clip_model_name: any;
@@ -271,6 +292,9 @@ export class Llava13b extends ReplicateNode {
   static readonly description = `Visual instruction tuning towards large language and vision models with GPT-4 level capabilities
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -319,6 +343,9 @@ export class ClipFeatures extends ReplicateNode {
   static readonly description = `Return CLIP features for the clip-vit-large-patch14 model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "a\nb", description: "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://" })
   declare inputs: any;
@@ -343,6 +370,9 @@ export class Apollo_3B extends ReplicateNode {
   static readonly description = `Apollo 3B - An Exploration of Video Understanding in Large Multimodal Models
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "int", default: 256, description: "Maximum number of tokens to generate" })
   declare max_new_tokens: any;
@@ -391,6 +421,9 @@ export class Apollo_7B extends ReplicateNode {
   static readonly description = `Apollo 7B - An Exploration of Video Understanding in Large Multimodal Models
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "int", default: 256, description: "Maximum number of tokens to generate" })
   declare max_new_tokens: any;
@@ -439,6 +472,9 @@ export class MiniCPM_V4 extends ReplicateNode {
   static readonly description = `MiniCPM-V 4.0 has strong image and video understanding performance
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image file (RGB)." })
   declare image: any;
@@ -482,6 +518,9 @@ export class VideoLlama3_7B extends ReplicateNode {
   static readonly description = `VideoLLaMA 3: Frontier Multimodal Foundation Models for Video Understanding
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 1, description: "Frames per second to sample from video" })
   declare fps: any;
@@ -540,6 +579,9 @@ export class Llava_V1_6_Mistral extends ReplicateNode {
   static readonly description = `LLaVA v1.6: Large Language and Vision Assistant (Mistral-7B)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to." })
   declare history: any;
@@ -593,6 +635,9 @@ export class Llava_V1_6_Vicuna extends ReplicateNode {
   static readonly description = `LLaVA v1.6: Large Language and Vision Assistant (Vicuna-13B)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to." })
   declare history: any;
@@ -646,6 +691,9 @@ export class Gemini_3_Flash extends ReplicateNode {
   static readonly description = `Google's most intelligent model built for speed with frontier intelligence, superior search, and grounding
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;

@@ -20,6 +20,9 @@ export class TextExtractOCR extends ReplicateNode {
   static readonly description = `A simple OCR Model that can easily extract text from an image.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Image to process" })
   declare image: any;
@@ -47,6 +50,9 @@ export class LatexOCR extends ReplicateNode {
   static readonly description = `Optical character recognition to turn images of latex equations into latex format.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input image" })
   declare image_path: any;
@@ -71,6 +77,9 @@ export class OCR_Surya extends ReplicateNode {
   static readonly description = `Surya is a document OCR toolkit that does:
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "enum", default: "Run Text Detection", values: ["Run Text Detection", "Run OCR"], description: "Action" })
   declare action: any;
@@ -119,6 +128,9 @@ export class Deepseek_OCR extends ReplicateNode {
   static readonly description = `Convert documents to markdown, extract raw text, and locate specific content
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "image", default: "", description: "Input image to perform OCR on (supports documents, charts, tables, etc.)" })
   declare image: any;
@@ -162,6 +174,9 @@ export class Datalab_OCR extends ReplicateNode {
   static readonly description = `Detect and transcribe text in images with accurate bounding boxes, layout analysis, reding order, and table recognition, in 90 languages
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp" })
   declare file: any;
@@ -211,6 +226,9 @@ export class Marker extends ReplicateNode {
   static readonly description = `Convert PDF to markdown + JSON quickly with high accuracy
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Advanced configuration options as JSON string. Options include: 'disable_links' (remove hyperlinks), 'keep_pageheader_in_output' (preserve headers), 'keep_pagefooter_in_output' (preserve footers), 'filter_blank_pages' (skip empty pages), 'drop_repeated_text' (remove duplicates), and layout/table processing thresholds. Full list at: https://documentation.datalab.to/api-reference/marker" })
   declare additional_config: any;

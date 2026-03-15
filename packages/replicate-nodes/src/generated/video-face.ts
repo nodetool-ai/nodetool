@@ -20,6 +20,9 @@ export class LatentSync extends ReplicateNode {
   static readonly description = `LatentSync: generate high-quality lip sync animations
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Input audio to " })
   declare audio: any;
@@ -67,6 +70,9 @@ export class OmniHuman extends ReplicateNode {
   static readonly description = `Turns your audio/video/images into professional-quality animated videos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Input audio file (MP3, WAV, etc.). For the best quality outputs audio should be no longer than 15 seconds. After 15 seconds the video quality will begin to degrade. If you have a lot of audio you want to process, we recommend splitting it into 15 second chunks." })
   declare audio: any;
@@ -103,6 +109,9 @@ export class DreamActor_M2 extends ReplicateNode {
   static readonly description = `Animate any character, humans, cartoons, animals, even non-humans, from a single image + driving video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "bool", default: true, description: "Whether to crop the first second of the output video (removes the 1-second transition at the beginning)." })
   declare cut_first_second: any;
@@ -141,6 +150,9 @@ export class SadTalker extends ReplicateNode {
   static readonly description = `Stylized Audio-Driven Single Image Talking Face Animation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Upload the driven audio, accepts .wav and .mp4 file" })
   declare driven_audio: any;
@@ -218,6 +230,9 @@ export class AniPortrait extends ReplicateNode {
   static readonly description = `Audio-Driven Synthesis of Photorealistic Portrait Animations
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Input audio" })
   declare audio: any;
@@ -281,6 +296,9 @@ export class VideoRetalking extends ReplicateNode {
   static readonly description = `Audio-based Lip Synchronization for Talking Head Video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Input video file of a talking-head." })
   declare face: any;
@@ -310,6 +328,9 @@ export class Pixverse_Lipsync_V2 extends ReplicateNode {
   static readonly description = `Generate realistic lipsync animations from audio for high-quality synchronization
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file to upload to PixVerse as media" })
   declare audio: any;
@@ -346,6 +367,9 @@ export class MultiTalk extends ReplicateNode {
   static readonly description = `Audio-driven multi-person conversational video generation - Upload audio files and a reference image to create realistic conversations between multiple people
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "First audio file for driving the conversation" })
   declare first_audio: any;
@@ -409,6 +433,9 @@ export class Kling_Avatar_V2 extends ReplicateNode {
   static readonly description = `Create avatar videos with realistic humans, animals, cartoons, or stylized characters
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file for avatar. Supports .mp3/.wav/.m4a/.aac, max 5MB." })
   declare audio: any;
@@ -456,6 +483,9 @@ export class FaceFusion extends ReplicateNode {
   static readonly description = `Auto fuse a user's face onto the template image, with a similar appearance to the user
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Input body image" })
   declare template_image: any;
@@ -485,6 +515,9 @@ export class FaceSwap extends ReplicateNode {
   static readonly description = `Advance Face Swap powered by pixalto.app
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Target image" })
   declare input_image: any;
@@ -514,6 +547,9 @@ export class AdvancedFaceSwap extends ReplicateNode {
   static readonly description = `Face swap one or two people into a target image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "(Beta) Apply detailer to the image. Detailer will improve certain image details, but slightly increase generation time." })
   declare detailer: any;
@@ -577,6 +613,9 @@ export class FlashFace extends ReplicateNode {
   static readonly description = `FlashFace: Human Image Personalization with High-fidelity Identity Preservation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "blurry, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face", description: "Default negative prompt postfix" })
   declare default_negative_prompt: any;

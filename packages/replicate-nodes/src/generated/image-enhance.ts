@@ -20,6 +20,9 @@ export class CodeFormer extends ReplicateNode {
   static readonly description = `Robust face restoration algorithm for old photos/AI-generated faces
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Enhance background image with Real-ESRGAN" })
   declare background_enhance: any;
@@ -68,6 +71,9 @@ export class Night_Enhancement extends ReplicateNode {
   static readonly description = `Unsupervised Night Image Enhancement
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image." })
   declare image: any;
@@ -95,6 +101,9 @@ export class Supir_V0Q extends ReplicateNode {
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0Q model and does NOT use LLaVA-13b.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
   declare a_prompt: any;
@@ -203,6 +212,9 @@ export class Supir_V0F extends ReplicateNode {
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0F model and does NOT use LLaVA-13b.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
   declare a_prompt: any;
@@ -311,6 +323,9 @@ export class Maxim extends ReplicateNode {
   static readonly description = `Multi-Axis MLP for Image Processing
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image." })
   declare image: any;
@@ -344,6 +359,9 @@ export class OldPhotosRestoration extends ReplicateNode {
   static readonly description = `Bringing Old Photos Back to Life
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "whether the input image is high-resolution" })
   declare HR: any;
@@ -382,6 +400,9 @@ export class Deoldify_Image extends ReplicateNode {
   static readonly description = `Add colours to old images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Path to an image" })
   declare input_image: any;
@@ -416,6 +437,9 @@ export class BigColor extends ReplicateNode {
   static readonly description = `Colorization using a Generative Color Prior for Natural Images
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "88", description: "Specify classes for Multi-modal class vector c, separate the classes with space." })
   declare classes: any;
@@ -454,6 +478,9 @@ export class NAFNet extends ReplicateNode {
   static readonly description = `Nonlinear Activation Free Network for Image Restoration
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image. Stereo Image Super-Resolution, upload the left image here." })
   declare image: any;
@@ -492,6 +519,9 @@ export class InstructIR extends ReplicateNode {
   static readonly description = `High-Quality Image Restoration Following Human Instructions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image." })
   declare image: any;
@@ -530,6 +560,9 @@ export class AnimeSR extends ReplicateNode {
   static readonly description = `Real-World Super-Resolution Models for Animation Videos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Zip file of frames of a video. Ignored when video is provided." })
   declare frames: any;
@@ -559,6 +592,9 @@ export class VQFR extends ReplicateNode {
   static readonly description = `Blind Face Restoration with Vector-Quantized Dictionary and Parallel Decoder
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Input are aligned faces." })
   declare aligned: any;
@@ -592,6 +628,9 @@ export class Topaz_DustScratch_V2 extends ReplicateNode {
   static readonly description = `Remove dust and scratches from old photos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Apply film grain effect to the output" })
   declare grain: any;
@@ -650,6 +689,9 @@ export class Topaz_Colorization extends ReplicateNode {
   static readonly description = `Image colorization model from Topaz Labs
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Grayscale or faded image to colorize" })
   declare image: any;
@@ -688,6 +730,9 @@ export class GPEN extends ReplicateNode {
   static readonly description = `Blind Face Restoration in the Wild
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "whether the input image is broken, valid for Face Inpainting. When set to True, the output will be the 'fixed' image. When set to False, the image will randomly add brush strokes to simulate a broken image and the output will be broken + fixed image" })
   declare broken_image: any;
@@ -731,6 +776,9 @@ export class SUPIR extends ReplicateNode {
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This version uses LLaVA-13b for captioning.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.", description: "Additive positive prompt for the inputs." })
   declare a_prompt: any;

@@ -20,6 +20,9 @@ export class RealisticVoiceCloning extends ReplicateNode {
   static readonly description = `Create song covers with any RVC v2 trained AI voice from audio files.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0, description: "Control volume of backup AI vocals." })
   declare backup_vocals_volume_change: any;
@@ -138,6 +141,9 @@ export class TortoiseTTS extends ReplicateNode {
   static readonly description = `Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "audio", default: "", description: "(Optional) Create a custom voice based on an mp3 file of a speaker. Audio should be at least 15 seconds, only contain one speaker, and be in mp3 format. Overrides the 'voice_a' input." })
   declare custom_voice: any;
@@ -201,6 +207,9 @@ export class StyleTTS2 extends ReplicateNode {
   static readonly description = `Generates speech from text
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0.3, description: "Only used for long text inputs or in case of reference speaker,             determines the timbre of the speaker. Use lower values to sample style based             on previous or reference speech instead of text." })
   declare alpha: any;
@@ -264,6 +273,9 @@ export class Riffusion extends ReplicateNode {
   static readonly description = `Stable diffusion for real-time music generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0.5, description: "Interpolation alpha if using two prompts. A value of 0 uses prompt_a fully, a value of 1 uses prompt_b fully" })
   declare alpha: any;
@@ -313,6 +325,9 @@ export class MusicGen extends ReplicateNode {
   static readonly description = `Generate music from a prompt or melody
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "int", default: 3, description: "Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs." })
   declare classifier_free_guidance: any;
@@ -407,6 +422,9 @@ export class MMAudio extends ReplicateNode {
   static readonly description = `Add sound to video using the MMAudio V2 model. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 4.5, description: "Guidance strength (CFG)" })
   declare cfg_strength: any;
@@ -466,6 +484,9 @@ export class Lyria_2 extends ReplicateNode {
   static readonly description = `Lyria 2 is a music generation model that produces 48kHz stereo audio through text-based prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Description of what to exclude from the generated audio" })
   declare negative_prompt: any;
@@ -500,6 +521,9 @@ export class Speech_2_8_HD extends ReplicateNode {
   static readonly description = `Minimax Speech 2.8 HD focuses on high-fidelity audio generation with features like studio-grade quality, flexible emotion control, multilingual support, and voice cloning capabilities
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
