@@ -44,7 +44,7 @@ export interface NodeMetadata {
   layout?: string;
   properties: PropertyMetadata[];
   outputs: OutputSlotMetadata[];
-  the_model_info?: Record<string, unknown>;
+
   recommended_models?: unknown[];
   basic_fields?: string[];
   required_settings?: string[];

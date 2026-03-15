@@ -13,7 +13,7 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
   title: "Group",
   description: "Group Node",
   outputs: [],
-  the_model_info: {},
+
   layout: "default",
   recommended_models: [],
   basic_fields: [],
@@ -34,7 +34,7 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
   title: "Comment",
   description: "Comment",
   outputs: [],
-  the_model_info: {},
+
   layout: "comment",
   recommended_models: [],
   basic_fields: [],

@@ -424,7 +424,6 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
               type: { type: "str", optional: false, type_args: [] }
             }
           ],
-          the_model_info: {},
           recommended_models: [],
           expose_as_tool: false,
           supports_dynamic_outputs: false,
@@ -446,7 +445,6 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
             }
           ],
           outputs: [],
-          the_model_info: {},
           recommended_models: [],
           expose_as_tool: false,
           supports_dynamic_outputs: false,
@@ -488,7 +486,6 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
               type: { type: "image", optional: false, type_args: [] }
             }
           ],
-          the_model_info: {},
           recommended_models: [],
           expose_as_tool: false,
           supports_dynamic_outputs: false,
@@ -515,7 +512,6 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
               type: { type: "str", optional: false, type_args: [] }
             }
           ],
-          the_model_info: {},
           recommended_models: [],
           expose_as_tool: false,
           supports_dynamic_outputs: false,
@@ -547,7 +543,6 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
               type: { type: "str", optional: false, type_args: [] }
             }
           ],
-          the_model_info: {},
           recommended_models: [],
           expose_as_tool: false,
           supports_dynamic_outputs: false,
