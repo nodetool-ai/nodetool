@@ -17,14 +17,7 @@ import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
-  AnthropicProvider,
-  FakeProvider,
-  GeminiProvider,
-  OllamaProvider,
-  OpenAIProvider,
-  MistralProvider,
-  GroqProvider,
-  ReplicateProvider,
+  getProvider,
   setSecretResolver,
   PythonBridge,
   PythonNodeExecutor,
@@ -77,31 +70,9 @@ import {
 
 const log = createLogger("nodetool.websocket.server");
 
-/** Resolve a secret: encrypted DB first (user "1"), then env var. */
-async function resolveKey(key: string): Promise<string | undefined> {
-  return (await getSecret(key, "1")) ?? undefined;
-}
-
+/** Resolve a provider by ID using the runtime's single provider registry. */
 async function resolveProvider(providerId: string) {
-  switch (providerId.toLowerCase()) {
-    case "fake":
-      return new FakeProvider();
-    case "anthropic":
-      return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") });
-    case "openai":
-      return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") });
-    case "gemini":
-      return new GeminiProvider({ GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY") });
-    case "mistral":
-      return new MistralProvider({ MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY") });
-    case "groq":
-      return new GroqProvider({ GROQ_API_KEY: await resolveKey("GROQ_API_KEY") });
-    case "replicate":
-      return new ReplicateProvider({ REPLICATE_API_TOKEN: await resolveKey("REPLICATE_API_TOKEN") });
-    case "ollama":
-    default:
-      return new OllamaProvider({ OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL") });
-  }
+  return getProvider(providerId.toLowerCase());
 }
 
 // ---------------------------------------------------------------------------

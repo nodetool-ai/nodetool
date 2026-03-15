@@ -79,3 +79,31 @@ export function clearProviderCache(): number {
 export function listRegisteredProviderIds(): string[] {
   return Array.from(_PROVIDER_REGISTRY.keys());
 }
+
+/** Get the secret key name required by a provider (e.g. "OPENAI_API_KEY"), or null. */
+export function getProviderSecretKey(providerId: string): string | null {
+  const reg = _PROVIDER_REGISTRY.get(providerId);
+  if (!reg) return null;
+  // The kwargs keys are the secret names; find the first one that looks like a key/token
+  for (const key of Object.keys(reg.kwargs)) {
+    if (key.includes("KEY") || key.includes("TOKEN") || key.includes("SECRET")) {
+      return key;
+    }
+  }
+  // No secret — provider is local (ollama, llama_cpp, etc.)
+  return null;
+}
+
+/** Check if a provider has credentials available (DB, env, or is local). */
+export async function isProviderConfigured(providerId: string): Promise<boolean> {
+  const secretKey = getProviderSecretKey(providerId);
+  if (!secretKey) return true; // Local provider, always available
+
+  // Check via secret resolver (DB → env)
+  if (_secretResolver) {
+    const val = await _secretResolver(secretKey);
+    if (val) return true;
+  }
+  // Direct env check
+  return Boolean(process.env[secretKey]);
+}
