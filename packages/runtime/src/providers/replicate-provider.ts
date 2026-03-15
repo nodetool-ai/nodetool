@@ -166,6 +166,20 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
+  override async getAvailableASRModels(): Promise<{ id: string; name: string; provider: string }[]> {
+    return [
+      { id: "openai/gpt-4o-transcribe", name: "GPT-4o Transcribe", provider: "replicate" },
+      { id: "vaibhavs10/incredibly-fast-whisper", name: "Incredibly Fast Whisper", provider: "replicate" },
+      { id: "openai/whisper", name: "Whisper", provider: "replicate" },
+      { id: "daanelson/whisperx", name: "WhisperX", provider: "replicate" },
+      { id: "thomasmol/whisper-diarization", name: "Whisper Diarization", provider: "replicate" },
+    ];
+  }
+
+  override async getAvailableEmbeddingModels(): Promise<{ id: string; name: string; provider: string; dimensions?: number }[]> {
+    return [];
+  }
+
   // ---------------------------------------------------------------------------
   // Replicate prediction helper
   // ---------------------------------------------------------------------------
