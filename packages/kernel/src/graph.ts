@@ -119,6 +119,9 @@ export class Graph {
     this._outgoingEdges = new Map();
     this._outgoingByHandle = new Map();
     this._buildIndices();
+    // Auto-detect is_controlled from incoming control edges (Python parity:
+    // BaseNode.is_controlled() checks graph edges at runtime).
+    this._detectControlledNodes();
   }
 
   /**
@@ -352,6 +355,23 @@ export class Graph {
         byHandle.push(edge);
       } else {
         this._outgoingByHandle.set(handleKey, [edge]);
+      }
+    }
+  }
+
+  /**
+   * Auto-detect is_controlled from incoming control edges.
+   * In Python, BaseNode.is_controlled() is a runtime method that checks
+   * the graph context. In TS, we set the flag on the descriptor so that
+   * the actor knows to use _runControlled().
+   */
+  private _detectControlledNodes(): void {
+    for (const edge of this.edges) {
+      if (!isControlEdge(edge)) continue;
+      const target = this._nodeIndex.get(edge.target);
+      if (target && !target.is_controlled) {
+        // NodeDescriptor is readonly in the type, but we own the instances
+        (target as { is_controlled?: boolean }).is_controlled = true;
       }
     }
   }
