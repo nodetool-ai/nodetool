@@ -1,6 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,13 +41,13 @@ async function runWorkflow(
   return res.json() as Promise<RunResult>;
 }
 
-// ── Priority badge ─────────────────────────────────────────────────────────
+// ── Priority styling ────────────────────────────────────────────────────────
 
-const PRIORITY_STYLE: Record<string, { color: string; bg: string; border: string }> = {
-  Critical: { color: "#ef4444", bg: "#1f0a0a", border: "#ef4444" },
-  High:     { color: "#f97316", bg: "#1f1200", border: "#f97316" },
-  Medium:   { color: "#eab308", bg: "#1a1500", border: "#eab308" },
-  Low:      { color: "#22c55e", bg: "#0d2218", border: "#22c55e" },
+const PRIORITY_CLASSES: Record<string, { text: string; bg: string; border: string; glow: string }> = {
+  Critical: { text: "text-red-400", bg: "bg-red-950/80", border: "border-red-500/60", glow: "shadow-[0_0_15px_-3px_rgba(239,68,68,0.2)]" },
+  High:     { text: "text-orange-400", bg: "bg-orange-950/80", border: "border-orange-500/60", glow: "shadow-[0_0_15px_-3px_rgba(249,115,22,0.2)]" },
+  Medium:   { text: "text-yellow-400", bg: "bg-yellow-950/80", border: "border-yellow-500/60", glow: "shadow-[0_0_15px_-3px_rgba(234,179,8,0.2)]" },
+  Low:      { text: "text-green-400", bg: "bg-green-950/80", border: "border-green-500/60", glow: "shadow-[0_0_15px_-3px_rgba(34,197,94,0.2)]" },
 };
 
 const CATEGORY_ICON: Record<string, string> = {
@@ -47,7 +58,7 @@ const CATEGORY_ICON: Record<string, string> = {
   "General Inquiry": "💬",
 };
 
-// ── Support Triage Demo ────────────────────────────────────────────────────
+// ── Sample tickets ─────────────────────────────────────────────────────────
 
 const TRIAGE_SAMPLES = [
   {
@@ -68,14 +79,70 @@ const TRIAGE_SAMPLES = [
   },
 ];
 
-function SupportTriageDemo() {
+// ── Step indicator ─────────────────────────────────────────────────────────
+
+type Step = 1 | 2 | 3;
+
+const STEPS = [
+  { num: 1 as Step, label: "Input" },
+  { num: 2 as Step, label: "Analyze" },
+  { num: 3 as Step, label: "Result" },
+];
+
+function StepIndicator({ current }: { current: Step }) {
+  return (
+    <div className="flex items-center justify-center gap-0">
+      {STEPS.map((s, i) => {
+        const isActive = s.num === current;
+        const isDone = s.num < current;
+        return (
+          <div key={s.num} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                  isActive
+                    ? "bg-indigo-500 text-white shadow-[0_0_20px_-3px_rgba(99,102,241,0.5)]"
+                    : isDone
+                    ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                    : "bg-muted text-slate-500 border border-border"
+                }`}
+              >
+                {isDone ? "✓" : s.num}
+              </div>
+              <span
+                className={`text-[0.65rem] font-semibold uppercase tracking-wider ${
+                  isActive ? "text-indigo-300" : isDone ? "text-green-400" : "text-slate-600"
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={`w-16 h-px mx-3 mb-5 transition-colors duration-300 ${
+                  isDone ? "bg-green-500/50" : "bg-border"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main App ───────────────────────────────────────────────────────────────
+
+export default function Home() {
+  const [step, setStep] = useState<Step>(1);
   const [text, setText] = useState(TRIAGE_SAMPLES[0].text);
   const [category, setCategory] = useState<string | null>(null);
   const [priority, setPriority] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleRun = async () => {
+  const handleAnalyze = async () => {
+    setStep(2);
     setLoading(true);
     setCategory(null);
     setPriority(null);
@@ -85,613 +152,275 @@ function SupportTriageDemo() {
       if (res.status === "completed") {
         setCategory(String(res.outputs["category"]?.[0] ?? "Unknown"));
         setPriority(String(res.outputs["priority"]?.[0] ?? "Unknown"));
+        setStep(3);
       } else {
         setError(res.error ?? "Workflow failed");
+        setStep(1);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      setStep(1);
     } finally {
       setLoading(false);
     }
   };
 
-  const priStyle = priority ? (PRIORITY_STYLE[priority] ?? PRIORITY_STYLE["Low"]) : null;
-
-  return (
-    <section className="demo-card" data-testid="support-triage-demo">
-      <div className="demo-card-header">
-        <span className="demo-icon">🎫</span>
-        <div>
-          <h2>AI Support Ticket Triage</h2>
-          <p className="demo-description">
-            Two parallel <code>nodetool.agents.Classifier</code> nodes running on{" "}
-            <code>gpt-4o-mini</code> — instantly routes any customer message to the
-            right team with the right priority. Worth{" "}
-            <strong className="value-highlight">$50–500 / month</strong> per support seat.
-          </p>
-        </div>
-      </div>
-
-      <div className="sample-bar">
-        {TRIAGE_SAMPLES.map((s) => (
-          <button
-            key={s.label}
-            className={`sample-chip ${text === s.text ? "active" : ""}`}
-            onClick={() => setText(s.text)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="field-group">
-        <label className="field-label">Customer message</label>
-        <textarea
-          className="field-textarea"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          data-testid="triage-text-input"
-          rows={4}
-          placeholder="Paste a support message…"
-        />
-      </div>
-
-      <button
-        className="run-button"
-        onClick={handleRun}
-        disabled={loading || !text.trim()}
-        data-testid="run-support-triage"
-      >
-        {loading ? "Analyzing…" : "🤖 Triage with AI"}
-      </button>
-
-      {(category !== null || priority !== null) && (
-        <div className="triage-result" data-testid="support-triage-result">
-          {category !== null && (
-            <div className="triage-badge category-badge">
-              <span className="badge-icon">{CATEGORY_ICON[category] ?? "��"}</span>
-              <div>
-                <span className="badge-label">Category</span>
-                <span className="badge-value" data-testid="triage-category">{category}</span>
-              </div>
-            </div>
-          )}
-          {priority !== null && priStyle && (
-            <div
-              className="triage-badge priority-badge"
-              style={{
-                background: priStyle.bg,
-                borderColor: priStyle.border,
-                color: priStyle.color,
-              }}
-            >
-              <span className="badge-icon">⚡</span>
-              <div>
-                <span className="badge-label" style={{ color: "#94a3b8" }}>Priority</span>
-                <span className="badge-value" data-testid="triage-priority">{priority}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {error !== null && (
-        <div className="result-box error" data-testid="triage-error">
-          <span className="result-label">Error</span>
-          <span className="result-value">{error}</span>
-        </div>
-      )}
-
-      <div className="workflow-diagram">
-        <span className="wf-node input-node">Customer Message</span>
-        <span className="wf-arrow">→</span>
-        <div className="wf-parallel">
-          <div className="wf-branch">
-            <span className="wf-node ai-node">Classifier (Category)</span>
-            <span className="wf-arrow">→</span>
-            <span className="wf-node output-node">category</span>
-          </div>
-          <div className="wf-branch">
-            <span className="wf-node ai-node">Classifier (Priority)</span>
-            <span className="wf-arrow">→</span>
-            <span className="wf-node output-node">priority</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── Content Summarizer Demo ────────────────────────────────────────────────
-
-const SUMMARIZER_SAMPLES = [
-  {
-    label: "Blog post",
-    text: `Artificial intelligence is transforming the way businesses operate, from automating routine tasks to generating insights from massive datasets. In 2024, enterprise AI adoption grew by 35%, with companies reporting an average 22% reduction in operational costs. The technology is no longer limited to tech giants — SMBs are now using AI tools for customer service, marketing, and financial planning. However, experts warn that AI adoption without proper governance can introduce new risks, including bias, data privacy violations, and over-reliance on automated decisions. Successful AI integration requires clear ownership, ongoing model monitoring, and a culture of data literacy across all teams.`,
-  },
-  {
-    label: "Meeting notes",
-    text: `Q2 planning meeting — March 12. Attendees: Sarah (CPO), Marco (Eng lead), Priya (Design), Leo (Marketing). Main topics: roadmap prioritization for Q2, hiring plan, and GTM for the new enterprise tier. Sarah confirmed budget for 3 new hires: 2 senior engineers and 1 product designer. Marco flagged that the mobile app rewrite is 3 weeks behind schedule due to dependency issues with the auth library. Priya presented 3 UI concepts for the new dashboard — the team voted to move forward with option 2. Leo shared that the enterprise landing page is ready for review and will go live April 1st. Next sync is scheduled for March 26.`,
-  },
-  {
-    label: "Research abstract",
-    text: `This paper presents a novel approach to real-time anomaly detection in distributed systems using transformer-based architectures. Traditional threshold-based methods fail to capture complex temporal dependencies across microservices, leading to both false positives and missed incidents. Our method, AnomalyBERT, pre-trains on 18 months of system telemetry from 12 production services and fine-tunes on labeled incident data. In evaluation on the OpenTelemetry benchmark, AnomalyBERT achieves an F1 score of 0.94, outperforming the previous state-of-the-art by 11 percentage points while reducing mean time to detection by 40%. The model is open-sourced and integrates directly with Prometheus and Grafana.`,
-  },
-];
-
-function ContentSummarizerDemo() {
-  const [text, setText] = useState(SUMMARIZER_SAMPLES[0].text);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleRun = async () => {
-    setLoading(true);
-    setSummary(null);
+  const handleReset = () => {
+    setStep(1);
+    setCategory(null);
+    setPriority(null);
     setError(null);
-    try {
-      const res = await runWorkflow("content-summarizer", { text });
-      if (res.status === "completed") {
-        setSummary(String(res.outputs["result"]?.[0] ?? "(no output)"));
-      } else {
-        setError(res.error ?? "Workflow failed");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
   };
 
+  const priClasses = priority
+    ? (PRIORITY_CLASSES[priority] ?? PRIORITY_CLASSES["Low"])
+    : null;
+
   return (
-    <section className="demo-card" data-testid="content-summarizer-demo">
-      <div className="demo-card-header">
-        <span className="demo-icon">📝</span>
-        <div>
-          <h2>AI Content Summarizer</h2>
-          <p className="demo-description">
-            A <code>nodetool.agents.Summarizer</code> node powered by{" "}
-            <code>gpt-4o-mini</code> condenses any long-form content into a crisp
-            summary. The kind of feature teams embed in{" "}
-            <strong className="value-highlight">email clients, wikis, and CRMs</strong>.
-          </p>
-        </div>
-      </div>
-
-      <div className="sample-bar">
-        {SUMMARIZER_SAMPLES.map((s) => (
-          <button
-            key={s.label}
-            className={`sample-chip ${text === s.text ? "active" : ""}`}
-            onClick={() => setText(s.text)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="field-group">
-        <label className="field-label">Content to summarize</label>
-        <textarea
-          className="field-textarea"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          data-testid="summarizer-text-input"
-          rows={6}
-          placeholder="Paste any text…"
-        />
-      </div>
-
-      <button
-        className="run-button"
-        onClick={handleRun}
-        disabled={loading || !text.trim()}
-        data-testid="run-content-summarizer"
-      >
-        {loading ? "Summarizing…" : "🤖 Summarize with AI"}
-      </button>
-
-      {summary !== null && (
-        <div className="result-box success" data-testid="content-summarizer-result">
-          <span className="result-label">Summary</span>
-          <span className="result-value summary-text">{summary}</span>
-        </div>
-      )}
-      {error !== null && (
-        <div className="result-box error" data-testid="summarizer-error">
-          <span className="result-label">Error</span>
-          <span className="result-value">{error}</span>
-        </div>
-      )}
-
-      <div className="workflow-diagram">
-        <span className="wf-node input-node">Long Text</span>
-        <span className="wf-arrow">→</span>
-        <span className="wf-node ai-node">Summarizer (GPT-4o Mini)</span>
-        <span className="wf-arrow">→</span>
-        <span className="wf-node output-node">summary</span>
-      </div>
-    </section>
-  );
-}
-
-// ── Page ───────────────────────────────────────────────────────────────────
-
-export default function Home() {
-  return (
-    <main className="main">
-      <header className="hero">
-        <div className="hero-inner">
-          <h1 className="hero-title">
-            <span className="brand">NodeTool</span> AI Workflows
-          </h1>
-          <p className="hero-sub">
-            Production-ready AI pipelines running directly in Next.js via{" "}
-            <code>@nodetool/kernel</code> — no external server, no Python runtime.
-          </p>
-          <div className="badge-row">
-            <span className="badge">@nodetool/kernel</span>
-            <span className="badge">@nodetool/base-nodes</span>
-            <span className="badge">@nodetool/runtime</span>
-            <span className="badge">GPT-4o Mini</span>
-            <span className="badge">Next.js 15</span>
+    <main className="mx-auto max-w-[640px] px-6 pb-16 pt-8 min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="relative overflow-hidden text-center pt-10 pb-8">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.12),transparent_70%)]" />
+        <div className="relative">
+          <div className="flex items-center justify-center gap-2.5 mb-2">
+            <span className="text-3xl">🎫</span>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Support Triage
+            </h1>
           </div>
+          <p className="text-slate-500 text-sm">
+            AI-powered ticket classification using{" "}
+            <code className="rounded border border-border bg-muted px-1 py-0.5 text-xs text-indigo-300">
+              @nodetool/kernel
+            </code>
+          </p>
         </div>
       </header>
 
-      <div className="demos">
-        <SupportTriageDemo />
-        <ContentSummarizerDemo />
+      {/* Step indicator */}
+      <div className="mb-6">
+        <StepIndicator current={step} />
       </div>
 
-      <footer className="footer">
+      {/* Step content */}
+      <div className="flex-1" data-testid="support-triage-demo">
+        {/* ── Step 1: Input ──────────────────────────────────── */}
+        {step === 1 && (
+          <Card className="overflow-hidden transition-all duration-300 border-border/60">
+            <CardHeader className="relative pb-4">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+              <CardTitle className="text-base font-semibold">
+                Paste a customer message
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Choose a sample below or write your own. The AI will classify its
+                category and priority.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex flex-col gap-5">
+              {/* Sample chips */}
+              <div className="flex flex-wrap gap-2">
+                {TRIAGE_SAMPLES.map((s) => (
+                  <Badge
+                    key={s.label}
+                    variant="outline"
+                    className={`cursor-pointer transition-all hover:bg-indigo-500/5 hover:border-indigo-500 hover:text-slate-200 ${
+                      text === s.text
+                        ? "bg-indigo-500/10 border-indigo-400 text-indigo-200 shadow-[0_0_8px_-2px_rgba(99,102,241,0.3)]"
+                        : "text-slate-400"
+                    }`}
+                    onClick={() => setText(s.text)}
+                  >
+                    {s.label}
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Textarea */}
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                data-testid="triage-text-input"
+                rows={5}
+                placeholder="Paste a support message…"
+                className="resize-y focus:border-indigo-500/50 focus:shadow-[0_0_12px_-4px_rgba(99,102,241,0.2)]"
+              />
+
+              {/* Error from previous attempt */}
+              {error !== null && (
+                <Alert variant="destructive" data-testid="triage-error">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Next button */}
+              <Button
+                className="w-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-semibold shadow-[0_0_20px_-4px_rgba(99,102,241,0.4)] hover:opacity-90 hover:-translate-y-px hover:shadow-[0_0_25px_-4px_rgba(99,102,241,0.5)] transition-all"
+                onClick={handleAnalyze}
+                disabled={!text.trim()}
+                data-testid="run-support-triage"
+                size="lg"
+              >
+                Analyze with AI →
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Step 2: Analyzing ─────────────────────────────── */}
+        {step === 2 && loading && (
+          <Card className="overflow-hidden border-indigo-500/30 shadow-[0_0_40px_-8px_rgba(99,102,241,0.2)]">
+            <CardContent className="py-16 flex flex-col items-center gap-6">
+              {/* Spinner */}
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
+                <div className="absolute inset-3 rounded-full border-2 border-transparent border-t-violet-500 animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-slate-200 mb-1">
+                  Analyzing ticket...
+                </p>
+                <p className="text-sm text-slate-500">
+                  Running two classifiers in parallel via{" "}
+                  <code className="text-indigo-300 text-xs">gpt-5-mini</code>
+                </p>
+              </div>
+
+              {/* Workflow visualization */}
+              <div className="w-full mt-2 flex flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-black/20 backdrop-blur-sm px-4 py-3 text-xs">
+                <span className="rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1 font-mono text-slate-400 whitespace-nowrap">
+                  Message
+                </span>
+                <span className="text-slate-500 text-sm">→</span>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md border border-indigo-700 bg-indigo-950 px-2.5 py-1 font-mono text-indigo-300 whitespace-nowrap animate-pulse">
+                      Classifier (Category)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md border border-indigo-700 bg-indigo-950 px-2.5 py-1 font-mono text-indigo-300 whitespace-nowrap animate-pulse [animation-delay:300ms]">
+                      Classifier (Priority)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Step 3: Results ───────────────────────────────── */}
+        {step === 3 && category !== null && priority !== null && (
+          <div className="flex flex-col gap-5" data-testid="support-triage-result">
+            {/* Results card */}
+            <Card className="overflow-hidden border-green-500/20 shadow-[0_0_30px_-8px_rgba(34,197,94,0.1)]">
+              <CardHeader className="relative pb-3">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent" />
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  Classification Complete
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="flex flex-col gap-4">
+                {/* Category result */}
+                <div className="rounded-xl border border-green-500/40 bg-green-950/60 px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">
+                      {CATEGORY_ICON[category] ?? "📋"}
+                    </span>
+                    <div className="flex-1">
+                      <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                        Category
+                      </span>
+                      <span
+                        className="block text-xl font-bold text-green-400"
+                        data-testid="triage-category"
+                      >
+                        {category}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Priority result */}
+                {priClasses && (
+                  <div className={`rounded-xl border px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] ${priClasses.bg} ${priClasses.border} ${priClasses.glow}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">⚡</span>
+                      <div className="flex-1">
+                        <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                          Priority
+                        </span>
+                        <span
+                          className={`block text-xl font-bold ${priClasses.text}`}
+                          data-testid="triage-priority"
+                        >
+                          {priority}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Original message preview */}
+                <div className="rounded-lg border border-border bg-black/20 px-4 py-3">
+                  <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Original message
+                  </span>
+                  <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">
+                    {text}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleReset}
+                size="lg"
+              >
+                ← Triage another
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-semibold shadow-[0_0_20px_-4px_rgba(99,102,241,0.4)] hover:opacity-90 transition-all"
+                onClick={() => {
+                  setText("");
+                  handleReset();
+                }}
+                size="lg"
+              >
+                New ticket
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center mt-12 pt-6 border-t border-border/30 text-xs text-slate-600">
         <p>
-          Source:{" "}
+          Powered by{" "}
           <a
             href="https://github.com/nodetool-ai/nodetool"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-indigo-500 underline underline-offset-2"
           >
-            github.com/nodetool-ai/nodetool
+            NodeTool
           </a>
+          {" · "}
+          <code className="text-slate-500">@nodetool/kernel</code>
+          {" · "}
+          <code className="text-slate-500">gpt-5-mini</code>
         </p>
       </footer>
-
-      <style>{`
-        .main {
-          max-width: 920px;
-          margin: 0 auto;
-          padding: 2rem 1.5rem 4rem;
-        }
-
-        /* Hero */
-        .hero {
-          text-align: center;
-          padding: 3rem 0 2rem;
-        }
-        .hero-title {
-          font-size: 2.5rem;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          margin-bottom: 0.75rem;
-        }
-        .brand {
-          background: linear-gradient(135deg, #6366f1, #a855f7);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .hero-sub {
-          color: #94a3b8;
-          font-size: 1.05rem;
-          margin-bottom: 1.25rem;
-        }
-        .hero-sub code {
-          background: #1e1e2e;
-          border: 1px solid #2d2d3f;
-          border-radius: 4px;
-          padding: 1px 6px;
-          font-size: 0.9em;
-          color: #a5b4fc;
-        }
-        .badge-row {
-          display: flex;
-          gap: 0.5rem;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .badge {
-          background: #1e1e2e;
-          border: 1px solid #3b3b52;
-          border-radius: 999px;
-          padding: 3px 12px;
-          font-size: 0.8rem;
-          color: #a5b4fc;
-          font-family: monospace;
-        }
-
-        /* Demos layout */
-        .demos {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-          margin-top: 2rem;
-        }
-
-        /* Card */
-        .demo-card {
-          background: #161622;
-          border: 1px solid #2a2a3e;
-          border-radius: 16px;
-          padding: 1.75rem 2rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-        .demo-card-header {
-          display: flex;
-          align-items: flex-start;
-          gap: 1rem;
-        }
-        .demo-icon {
-          font-size: 2rem;
-          line-height: 1;
-          flex-shrink: 0;
-        }
-        .demo-card h2 {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 0.3rem;
-        }
-        .demo-description {
-          color: #94a3b8;
-          font-size: 0.9rem;
-          line-height: 1.6;
-        }
-        .demo-description code {
-          background: #1e1e2e;
-          border: 1px solid #2d2d3f;
-          border-radius: 4px;
-          padding: 1px 5px;
-          font-size: 0.85em;
-          color: #a5b4fc;
-        }
-        .value-highlight {
-          color: #a78bfa;
-          font-weight: 600;
-        }
-
-        /* Sample chips */
-        .sample-bar {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
-        .sample-chip {
-          background: #1e1e2e;
-          border: 1px solid #3b3b52;
-          border-radius: 999px;
-          color: #94a3b8;
-          cursor: pointer;
-          font-size: 0.8rem;
-          padding: 4px 12px;
-          transition: border-color 0.15s, color 0.15s;
-        }
-        .sample-chip:hover {
-          border-color: #6366f1;
-          color: #e2e8f0;
-        }
-        .sample-chip.active {
-          background: #1e1e2e;
-          border-color: #6366f1;
-          color: #a5b4fc;
-        }
-
-        /* Fields */
-        .field-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.4rem;
-          flex: 1;
-        }
-        .field-label {
-          font-size: 0.8rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #64748b;
-        }
-        .field-textarea {
-          background: #0f0f18;
-          border: 1px solid #2a2a3e;
-          border-radius: 8px;
-          color: #e2e8f0;
-          font-size: 0.9rem;
-          line-height: 1.6;
-          padding: 0.75rem 0.9rem;
-          resize: vertical;
-          transition: border-color 0.15s;
-          width: 100%;
-          font-family: inherit;
-        }
-        .field-textarea:focus {
-          outline: none;
-          border-color: #6366f1;
-        }
-
-        /* Run button */
-        .run-button {
-          align-self: flex-start;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          border: none;
-          border-radius: 8px;
-          color: #fff;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 600;
-          padding: 0.6rem 1.5rem;
-          transition: opacity 0.15s, transform 0.1s;
-        }
-        .run-button:hover:not(:disabled) {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-        .run-button:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
-        }
-
-        /* Triage result */
-        .triage-result {
-          display: flex;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-        .triage-badge {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: #0d2218;
-          border: 1px solid #16a34a;
-          border-radius: 12px;
-          padding: 0.85rem 1.25rem;
-          flex: 1;
-          min-width: 160px;
-        }
-        .badge-icon {
-          font-size: 1.5rem;
-          flex-shrink: 0;
-        }
-        .badge-label {
-          display: block;
-          font-size: 0.7rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: #64748b;
-        }
-        .badge-value {
-          display: block;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #4ade80;
-          margin-top: 2px;
-        }
-        .priority-badge .badge-value {
-          color: inherit;
-        }
-
-        /* Result box */
-        .result-box {
-          border-radius: 10px;
-          padding: 1rem 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
-        }
-        .result-box.success {
-          background: #0d2218;
-          border: 1px solid #16a34a;
-        }
-        .result-box.error {
-          background: #1f0a0a;
-          border: 1px solid #dc2626;
-        }
-        .result-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-          color: #64748b;
-        }
-        .result-value {
-          font-size: 1rem;
-          font-weight: 500;
-          word-break: break-word;
-          line-height: 1.6;
-        }
-        .result-box.success .result-value {
-          color: #4ade80;
-        }
-        .result-box.error .result-value {
-          color: #f87171;
-        }
-        .summary-text {
-          font-size: 0.95rem;
-          color: #86efac;
-        }
-
-        /* Workflow diagram */
-        .workflow-diagram {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-          padding: 0.75rem 1rem;
-          background: #0c0c15;
-          border: 1px dashed #2a2a3e;
-          border-radius: 8px;
-          font-size: 0.78rem;
-          overflow-x: auto;
-        }
-        .wf-node {
-          border-radius: 6px;
-          padding: 4px 10px;
-          font-family: monospace;
-          white-space: nowrap;
-        }
-        .input-node {
-          background: #1e293b;
-          border: 1px solid #334155;
-          color: #94a3b8;
-        }
-        .ai-node {
-          background: #1e1b4b;
-          border: 1px solid #4338ca;
-          color: #a5b4fc;
-        }
-        .output-node {
-          background: #052e16;
-          border: 1px solid #16a34a;
-          color: #4ade80;
-        }
-        .wf-arrow {
-          color: #475569;
-          font-size: 0.9rem;
-        }
-        .wf-parallel {
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
-        }
-        .wf-branch {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        /* Footer */
-        .footer {
-          text-align: center;
-          margin-top: 3rem;
-          color: #475569;
-          font-size: 0.85rem;
-        }
-        .footer a {
-          color: #6366f1;
-          text-decoration: underline;
-          text-underline-offset: 2px;
-        }
-
-        @media (max-width: 600px) {
-          .hero-title {
-            font-size: 1.8rem;
-          }
-          .triage-result {
-            flex-direction: column;
-          }
-        }
-      `}</style>
     </main>
   );
 }
