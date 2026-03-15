@@ -16,6 +16,7 @@ import {
   OpenAIProvider,
   OpenRouterProvider,
   PythonProvider,
+  ReplicateProvider,
   TogetherProvider,
   VLLMProvider,
   type ASRModel,
@@ -435,6 +436,10 @@ const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
     create: async () => new VLLMProvider({}, {
       baseURL: await resolveKey("VLLM_BASE_URL"),
     }),
+  },
+  replicate: {
+    secretKey: "REPLICATE_API_TOKEN",
+    create: async () => new ReplicateProvider({ REPLICATE_API_TOKEN: await resolveKey("REPLICATE_API_TOKEN") }),
   },
 };
 
