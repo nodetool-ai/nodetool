@@ -43,7 +43,7 @@ replicate, ai`;
       "scale": scale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -84,7 +84,7 @@ replicate, ai`;
       "version": version,
     };
 
-    const imgRef = inputs.img as Record<string, unknown> | undefined;
+    const imgRef = (inputs.img ?? this.img) as Record<string, unknown> | undefined;
     if (isRefSet(imgRef)) {
       const imgUrl = assetToUrl(imgRef!);
       if (imgUrl) args["img"] = imgUrl;
@@ -218,13 +218,13 @@ replicate, ai`;
       "tiling_width": tilingWidth,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = assetToUrl(maskRef!);
       if (maskUrl) args["mask"] = maskUrl;
@@ -313,13 +313,13 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = inputs.mask as Record<string, unknown> | undefined;
+    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = assetToUrl(maskRef!);
       if (maskUrl) args["mask"] = maskUrl;
@@ -355,7 +355,7 @@ replicate, ai`;
       "scale": scale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -456,7 +456,7 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -602,7 +602,7 @@ replicate, ai`;
       "use_controlnet_tile": useControlnetTile,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -648,7 +648,7 @@ replicate, ai`;
       "task_type": taskType,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -684,7 +684,7 @@ replicate, ai`;
       "task": task,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -725,7 +725,7 @@ replicate, ai`;
       "scale": scale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -781,7 +781,7 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -817,7 +817,7 @@ replicate, ai`;
       "upscale": upscale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -858,7 +858,7 @@ replicate, ai`;
       "upscale_factor": upscaleFactor,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -959,7 +959,7 @@ replicate, ai`;
       "view_batch_size": viewBatchSize,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1025,7 +1025,7 @@ replicate, ai`;
       "upsample_scale": upsampleScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1066,7 +1066,7 @@ replicate, ai`;
       "scale": scale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1107,7 +1107,7 @@ replicate, ai`;
       "scale": scale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1137,7 +1137,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1167,7 +1167,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1233,7 +1233,7 @@ replicate, ai`;
       "upscale_factor": upscaleFactor,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1263,7 +1263,7 @@ replicate, ai`;
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1304,7 +1304,7 @@ replicate, ai`;
       "scale_factor": scaleFactor,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1350,7 +1350,7 @@ replicate, ai`;
       "output_quality": outputQuality,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1386,7 +1386,7 @@ replicate, ai`;
       "scale_factor": scaleFactor,
     };
 
-    const inputFileRef = inputs.input_file as Record<string, unknown> | undefined;
+    const inputFileRef = (inputs.input_file ?? this.input_file) as Record<string, unknown> | undefined;
     if (isRefSet(inputFileRef)) {
       const inputFileUrl = assetToUrl(inputFileRef!);
       if (inputFileUrl) args["input_file"] = inputFileUrl;
@@ -1537,7 +1537,7 @@ replicate, ai`;
       "use_guidance": useGuidance,
     };
 
-    const inputRef = inputs.input as Record<string, unknown> | undefined;
+    const inputRef = (inputs.input ?? this.input) as Record<string, unknown> | undefined;
     if (isRefSet(inputRef)) {
       const inputUrl = assetToUrl(inputRef!);
       if (inputUrl) args["input"] = inputUrl;
@@ -1583,7 +1583,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const inPathRef = inputs.in_path as Record<string, unknown> | undefined;
+    const inPathRef = (inputs.in_path ?? this.in_path) as Record<string, unknown> | undefined;
     if (isRefSet(inPathRef)) {
       const inPathUrl = assetToUrl(inPathRef!);
       if (inPathUrl) args["in_path"] = inPathUrl;

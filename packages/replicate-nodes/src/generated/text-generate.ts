@@ -76,7 +76,6 @@ replicate, ai`;
     const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptTemplate = String(inputs.prompt_template ?? this.prompt_template ?? "{prompt}");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
@@ -92,7 +91,6 @@ replicate, ai`;
       "min_tokens": minTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
-      "prompt_template": promptTemplate,
       "seed": seed,
       "stop_sequences": stopSequences,
       "temperature": temperature,
@@ -171,7 +169,6 @@ replicate, ai`;
     const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptTemplate = String(inputs.prompt_template ?? this.prompt_template ?? "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant");
@@ -188,7 +185,6 @@ replicate, ai`;
       "min_tokens": minTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
-      "prompt_template": promptTemplate,
       "seed": seed,
       "stop_sequences": stopSequences,
       "system_prompt": systemPrompt,
@@ -265,7 +261,6 @@ replicate, ai`;
     const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptTemplate = String(inputs.prompt_template ?? this.prompt_template ?? "{prompt}");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
@@ -281,7 +276,6 @@ replicate, ai`;
       "min_tokens": minTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
-      "prompt_template": promptTemplate,
       "seed": seed,
       "stop_sequences": stopSequences,
       "temperature": temperature,
@@ -360,7 +354,6 @@ replicate, ai`;
     const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptTemplate = String(inputs.prompt_template ?? this.prompt_template ?? "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>");
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant");
@@ -377,7 +370,6 @@ replicate, ai`;
       "min_tokens": minTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
-      "prompt_template": promptTemplate,
       "seed": seed,
       "stop_sequences": stopSequences,
       "system_prompt": systemPrompt,
@@ -442,7 +434,6 @@ replicate, ai`;
     const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
     const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptTemplate = String(inputs.prompt_template ?? this.prompt_template ?? "");
     const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "");
     const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant.");
     const temperature = Number(inputs.temperature ?? this.temperature ?? 0.6);
@@ -455,7 +446,6 @@ replicate, ai`;
       "min_tokens": minTokens,
       "presence_penalty": presencePenalty,
       "prompt": prompt,
-      "prompt_template": promptTemplate,
       "stop_sequences": stopSequences,
       "system_prompt": systemPrompt,
       "temperature": temperature,
@@ -493,7 +483,7 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -658,7 +648,7 @@ replicate, ai`;
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -801,7 +791,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -862,7 +852,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -923,7 +913,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -984,7 +974,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1055,7 +1045,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1126,7 +1116,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1197,7 +1187,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1321,19 +1311,19 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = assetToUrl(imagesRef!);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = assetToUrl(videosRef!);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1402,13 +1392,13 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = assetToUrl(imagesRef!);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = assetToUrl(videosRef!);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1475,19 +1465,19 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imagesRef = inputs.images as Record<string, unknown> | undefined;
+    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = assetToUrl(imagesRef!);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = inputs.videos as Record<string, unknown> | undefined;
+    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = assetToUrl(videosRef!);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1538,7 +1528,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1589,7 +1579,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1640,7 +1630,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1701,7 +1691,7 @@ replicate, ai`;
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1762,7 +1752,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1818,7 +1808,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1874,7 +1864,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1945,7 +1935,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -2016,7 +2006,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = inputs.image_input as Record<string, unknown> | undefined;
+    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = assetToUrl(imageInputRef!);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -2233,7 +2223,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;

@@ -93,7 +93,7 @@ replicate, ai`;
       "wav_format": wavFormat,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;

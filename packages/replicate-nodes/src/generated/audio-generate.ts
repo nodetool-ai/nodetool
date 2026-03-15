@@ -123,7 +123,7 @@ replicate, ai`;
       "rvc_model": rvcModel,
     };
 
-    const songInputRef = inputs.song_input as Record<string, unknown> | undefined;
+    const songInputRef = (inputs.song_input ?? this.song_input) as Record<string, unknown> | undefined;
     if (isRefSet(songInputRef)) {
       const songInputUrl = assetToUrl(songInputRef!);
       if (songInputUrl) args["song_input"] = songInputUrl;
@@ -189,7 +189,7 @@ replicate, ai`;
       "voice_c": voiceC,
     };
 
-    const customVoiceRef = inputs.custom_voice as Record<string, unknown> | undefined;
+    const customVoiceRef = (inputs.custom_voice ?? this.custom_voice) as Record<string, unknown> | undefined;
     if (isRefSet(customVoiceRef)) {
       const customVoiceUrl = assetToUrl(customVoiceRef!);
       if (customVoiceUrl) args["custom_voice"] = customVoiceUrl;
@@ -255,7 +255,7 @@ replicate, ai`;
       "weights": weights,
     };
 
-    const referenceRef = inputs.reference as Record<string, unknown> | undefined;
+    const referenceRef = (inputs.reference ?? this.reference) as Record<string, unknown> | undefined;
     if (isRefSet(referenceRef)) {
       const referenceUrl = assetToUrl(referenceRef!);
       if (referenceUrl) args["reference"] = referenceUrl;
@@ -408,7 +408,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const inputAudioRef = inputs.input_audio as Record<string, unknown> | undefined;
+    const inputAudioRef = (inputs.input_audio ?? this.input_audio) as Record<string, unknown> | undefined;
     if (isRefSet(inputAudioRef)) {
       const inputAudioUrl = assetToUrl(inputAudioRef!);
       if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
@@ -472,13 +472,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;

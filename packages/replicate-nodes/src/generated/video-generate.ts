@@ -160,7 +160,7 @@ replicate, ai`;
       "width": width,
     };
 
-    const initVideoRef = inputs.init_video as Record<string, unknown> | undefined;
+    const initVideoRef = (inputs.init_video ?? this.init_video) as Record<string, unknown> | undefined;
     if (isRefSet(initVideoRef)) {
       const initVideoUrl = assetToUrl(initVideoRef!);
       if (initVideoUrl) args["init_video"] = initVideoUrl;
@@ -196,7 +196,7 @@ replicate, ai`;
       "output_type": outputType,
     };
 
-    const inputVideoRef = inputs.input_video as Record<string, unknown> | undefined;
+    const inputVideoRef = (inputs.input_video ?? this.input_video) as Record<string, unknown> | undefined;
     if (isRefSet(inputVideoRef)) {
       const inputVideoUrl = assetToUrl(inputVideoRef!);
       if (inputVideoUrl) args["input_video"] = inputVideoUrl;
@@ -257,7 +257,7 @@ replicate, ai`;
       "fg_alpha": fgAlpha,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -360,7 +360,7 @@ replicate, ai`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
@@ -404,13 +404,13 @@ replicate, ai`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
 
-    const subjectReferenceRef = inputs.subject_reference as Record<string, unknown> | undefined;
+    const subjectReferenceRef = (inputs.subject_reference ?? this.subject_reference) as Record<string, unknown> | undefined;
     if (isRefSet(subjectReferenceRef)) {
       const subjectReferenceUrl = assetToUrl(subjectReferenceRef!);
       if (subjectReferenceUrl) args["subject_reference"] = subjectReferenceUrl;
@@ -472,19 +472,19 @@ replicate, ai`;
       "voice_id": voiceId,
     };
 
-    const instrumentalFileRef = inputs.instrumental_file as Record<string, unknown> | undefined;
+    const instrumentalFileRef = (inputs.instrumental_file ?? this.instrumental_file) as Record<string, unknown> | undefined;
     if (isRefSet(instrumentalFileRef)) {
       const instrumentalFileUrl = assetToUrl(instrumentalFileRef!);
       if (instrumentalFileUrl) args["instrumental_file"] = instrumentalFileUrl;
     }
 
-    const songFileRef = inputs.song_file as Record<string, unknown> | undefined;
+    const songFileRef = (inputs.song_file ?? this.song_file) as Record<string, unknown> | undefined;
     if (isRefSet(songFileRef)) {
       const songFileUrl = assetToUrl(songFileRef!);
       if (songFileUrl) args["song_file"] = songFileUrl;
     }
 
-    const voiceFileRef = inputs.voice_file as Record<string, unknown> | undefined;
+    const voiceFileRef = (inputs.voice_file ?? this.voice_file) as Record<string, unknown> | undefined;
     if (isRefSet(voiceFileRef)) {
       const voiceFileUrl = assetToUrl(voiceFileRef!);
       if (voiceFileUrl) args["voice_file"] = voiceFileUrl;
@@ -565,7 +565,7 @@ replicate, ai`;
       "target_size": targetSize,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -651,7 +651,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -782,13 +782,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -839,7 +839,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -888,13 +888,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const referenceImageRef = inputs.reference_image as Record<string, unknown> | undefined;
+    const referenceImageRef = (inputs.reference_image ?? this.reference_image) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImageRef)) {
       const referenceImageUrl = assetToUrl(referenceImageRef!);
       if (referenceImageUrl) args["reference_image"] = referenceImageUrl;
     }
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;
@@ -948,13 +948,13 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -1010,7 +1010,7 @@ replicate, ai`;
       "voice_speed": voiceSpeed,
     };
 
-    const audioFileRef = inputs.audio_file as Record<string, unknown> | undefined;
+    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = assetToUrl(audioFileRef!);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -1064,13 +1064,13 @@ replicate, ai`;
       "resolution": resolution,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -1119,13 +1119,13 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;
@@ -1174,13 +1174,13 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;
@@ -1376,13 +1376,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastImageRef = inputs.last_image as Record<string, unknown> | undefined;
+    const lastImageRef = (inputs.last_image ?? this.last_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastImageRef)) {
       const lastImageUrl = assetToUrl(lastImageRef!);
       if (lastImageUrl) args["last_image"] = lastImageUrl;
@@ -1454,19 +1454,19 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameRef = inputs.last_frame as Record<string, unknown> | undefined;
+    const lastFrameRef = (inputs.last_frame ?? this.last_frame) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameRef)) {
       const lastFrameUrl = assetToUrl(lastFrameRef!);
       if (lastFrameUrl) args["last_frame"] = lastFrameUrl;
     }
 
-    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = (inputs.reference_images ?? this.reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = assetToUrl(referenceImagesRef!);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
@@ -1517,7 +1517,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1586,13 +1586,13 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -1672,25 +1672,25 @@ replicate, ai`;
       "video_reference_type": videoReferenceType,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = (inputs.reference_images ?? this.reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = assetToUrl(referenceImagesRef!);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
 
-    const referenceVideoRef = inputs.reference_video as Record<string, unknown> | undefined;
+    const referenceVideoRef = (inputs.reference_video ?? this.reference_video) as Record<string, unknown> | undefined;
     if (isRefSet(referenceVideoRef)) {
       const referenceVideoUrl = assetToUrl(referenceVideoRef!);
       if (referenceVideoUrl) args["reference_video"] = referenceVideoUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -1747,19 +1747,19 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -1815,7 +1815,7 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -1881,7 +1881,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1947,7 +1947,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -1998,7 +1998,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -2049,7 +2049,7 @@ replicate, ai`;
       "resolution": resolution,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
@@ -2100,7 +2100,7 @@ replicate, ai`;
       "resolution": resolution,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;
@@ -2174,13 +2174,13 @@ replicate, ai`;
       "thinking_type": thinkingType,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -2269,13 +2269,13 @@ replicate, ai`;
       "style": style,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -2364,13 +2364,13 @@ replicate, ai`;
       "style": style,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -2431,7 +2431,7 @@ replicate, ai`;
       "size": size,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -2492,7 +2492,7 @@ replicate, ai`;
       "size": size,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -2556,13 +2556,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -2626,13 +2626,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -2701,13 +2701,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
@@ -2779,19 +2779,19 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const lastFrameImageRef = inputs.last_frame_image as Record<string, unknown> | undefined;
+    const lastFrameImageRef = (inputs.last_frame_image ?? this.last_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameImageRef)) {
       const lastFrameImageUrl = assetToUrl(lastFrameImageRef!);
       if (lastFrameImageUrl) args["last_frame_image"] = lastFrameImageUrl;
     }
 
-    const referenceImagesRef = inputs.reference_images as Record<string, unknown> | undefined;
+    const referenceImagesRef = (inputs.reference_images ?? this.reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImagesRef)) {
       const referenceImagesUrl = assetToUrl(referenceImagesRef!);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
@@ -2857,7 +2857,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -2926,13 +2926,13 @@ replicate, ai`;
       "start_image_url": startImageUrl,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -3001,13 +3001,13 @@ replicate, ai`;
       "start_image_url": startImageUrl,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -3076,13 +3076,13 @@ replicate, ai`;
       "start_image_url": startImageUrl,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -3151,13 +3151,13 @@ replicate, ai`;
       "start_image_url": startImageUrl,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = (inputs.end_image ?? this.end_image) as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
       const endImageUrl = assetToUrl(endImageRef!);
       if (endImageUrl) args["end_image"] = endImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = (inputs.start_image ?? this.start_image) as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
       const startImageUrl = assetToUrl(startImageRef!);
       if (startImageUrl) args["start_image"] = startImageUrl;
@@ -3208,7 +3208,7 @@ replicate, ai`;
       "seconds": seconds,
     };
 
-    const inputReferenceRef = inputs.input_reference as Record<string, unknown> | undefined;
+    const inputReferenceRef = (inputs.input_reference ?? this.input_reference) as Record<string, unknown> | undefined;
     if (isRefSet(inputReferenceRef)) {
       const inputReferenceUrl = assetToUrl(inputReferenceRef!);
       if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
@@ -3264,7 +3264,7 @@ replicate, ai`;
       "seconds": seconds,
     };
 
-    const inputReferenceRef = inputs.input_reference as Record<string, unknown> | undefined;
+    const inputReferenceRef = (inputs.input_reference ?? this.input_reference) as Record<string, unknown> | undefined;
     if (isRefSet(inputReferenceRef)) {
       const inputReferenceUrl = assetToUrl(inputReferenceRef!);
       if (inputReferenceUrl) args["input_reference"] = inputReferenceUrl;
@@ -3305,7 +3305,7 @@ replicate, ai`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const firstFrameImageRef = inputs.first_frame_image as Record<string, unknown> | undefined;
+    const firstFrameImageRef = (inputs.first_frame_image ?? this.first_frame_image) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameImageRef)) {
       const firstFrameImageUrl = assetToUrl(firstFrameImageRef!);
       if (firstFrameImageUrl) args["first_frame_image"] = firstFrameImageUrl;

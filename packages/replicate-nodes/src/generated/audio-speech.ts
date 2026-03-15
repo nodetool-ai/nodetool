@@ -509,7 +509,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const speakerRef = inputs.speaker as Record<string, unknown> | undefined;
+    const speakerRef = (inputs.speaker ?? this.speaker) as Record<string, unknown> | undefined;
     if (isRefSet(speakerRef)) {
       const speakerUrl = assetToUrl(speakerRef!);
       if (speakerUrl) args["speaker"] = speakerUrl;
@@ -731,7 +731,7 @@ replicate, ai`;
       "whisperx_model": whisperxModel,
     };
 
-    const origAudioRef = inputs.orig_audio as Record<string, unknown> | undefined;
+    const origAudioRef = (inputs.orig_audio ?? this.orig_audio) as Record<string, unknown> | undefined;
     if (isRefSet(origAudioRef)) {
       const origAudioUrl = assetToUrl(origAudioRef!);
       if (origAudioUrl) args["orig_audio"] = origAudioUrl;
@@ -777,7 +777,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = assetToUrl(audioRef!);
       if (audioUrl) args["audio"] = audioUrl;
@@ -833,7 +833,7 @@ replicate, ai`;
       "speed": speed,
     };
 
-    const refAudioRef = inputs.ref_audio as Record<string, unknown> | undefined;
+    const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
       const refAudioUrl = assetToUrl(refAudioRef!);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
@@ -884,7 +884,7 @@ replicate, ai`;
       "remove_silence": removeSilence,
     };
 
-    const refAudioRef = inputs.ref_audio as Record<string, unknown> | undefined;
+    const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
       const refAudioUrl = assetToUrl(refAudioRef!);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
@@ -950,7 +950,7 @@ replicate, ai`;
       "voice_description": voiceDescription,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = assetToUrl(referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -1006,7 +1006,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioPromptRef = inputs.audio_prompt as Record<string, unknown> | undefined;
+    const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
       const audioPromptUrl = assetToUrl(audioPromptRef!);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
@@ -1067,7 +1067,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = assetToUrl(referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -1190,7 +1190,7 @@ replicate, ai`;
       "voice": voice,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = assetToUrl(referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -1676,7 +1676,7 @@ replicate, ai`;
       "need_volume_normalization": needVolumeNormalization,
     };
 
-    const voiceFileRef = inputs.voice_file as Record<string, unknown> | undefined;
+    const voiceFileRef = (inputs.voice_file ?? this.voice_file) as Record<string, unknown> | undefined;
     if (isRefSet(voiceFileRef)) {
       const voiceFileUrl = assetToUrl(voiceFileRef!);
       if (voiceFileUrl) args["voice_file"] = voiceFileUrl;
@@ -2060,7 +2060,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioChordsRef = inputs.audio_chords as Record<string, unknown> | undefined;
+    const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
       const audioChordsUrl = assetToUrl(audioChordsRef!);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
@@ -2161,7 +2161,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const musicInputRef = inputs.music_input as Record<string, unknown> | undefined;
+    const musicInputRef = (inputs.music_input ?? this.music_input) as Record<string, unknown> | undefined;
     if (isRefSet(musicInputRef)) {
       const musicInputUrl = assetToUrl(musicInputRef!);
       if (musicInputUrl) args["music_input"] = musicInputUrl;
@@ -2282,7 +2282,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioChordsRef = inputs.audio_chords as Record<string, unknown> | undefined;
+    const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
       const audioChordsUrl = assetToUrl(audioChordsRef!);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
@@ -2497,7 +2497,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioPromptRef = inputs.audio_prompt as Record<string, unknown> | undefined;
+    const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
       const audioPromptUrl = assetToUrl(audioPromptRef!);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
@@ -2553,7 +2553,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = assetToUrl(videoRef!);
       if (videoUrl) args["video"] = videoUrl;

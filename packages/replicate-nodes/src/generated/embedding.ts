@@ -139,7 +139,7 @@ replicate, ai`;
       "texts": texts,
     };
 
-    const pathRef = inputs.path as Record<string, unknown> | undefined;
+    const pathRef = (inputs.path ?? this.path) as Record<string, unknown> | undefined;
     if (isRefSet(pathRef)) {
       const pathUrl = assetToUrl(pathRef!);
       if (pathUrl) args["path"] = pathUrl;
@@ -249,7 +249,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
@@ -386,7 +386,7 @@ replicate, ai`;
       "text_input": textInput,
     };
 
-    const inputRef = inputs.input as Record<string, unknown> | undefined;
+    const inputRef = (inputs.input ?? this.input) as Record<string, unknown> | undefined;
     if (isRefSet(inputRef)) {
       const inputUrl = assetToUrl(inputRef!);
       if (inputUrl) args["input"] = inputUrl;
@@ -422,7 +422,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = assetToUrl(imageRef!);
       if (imageUrl) args["image"] = imageUrl;
