@@ -98,12 +98,7 @@ export class WorkflowRunner {
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
-  /**
-   * Control edges that have actually routed at least one event.
-   * Used to decide whether to send EOS for __control__ handles.
-   * Edges that never routed an event (e.g., when using manual
-   * dispatchControlEvent()) should NOT close the __control__ handle.
-   */
+  /** Control edges that have routed at least one event (used for diagnostics). */
   private _controlEdgesRouted = new Set<string>();
 
   /**
@@ -233,6 +228,15 @@ export class WorkflowRunner {
 
       // Dispatch input parameters
       await this._dispatchInputs(request.params ?? {});
+
+      // Bind sendControlEvent to processing context so agent nodes can dispatch
+      // control events to controlled nodes and await their results.
+      if (this._options.executionContext && typeof this._options.executionContext.setSendControlEvent === "function") {
+        this._options.executionContext.setSendControlEvent(
+          (targetNodeId: string, properties: Record<string, unknown>) =>
+            this.sendControlEvent(targetNodeId, properties)
+        );
+      }
 
       // Process graph (spawn actors)
       await this._processGraph();
@@ -512,6 +516,11 @@ export class WorkflowRunner {
         }
       }
 
+      // Build control context for controller nodes (Python parity:
+      // _is_controller / _build_control_context). This tells the node
+      // which downstream nodes it controls and their available properties.
+      const controlContext = this._buildControlContext(node.id);
+
       const actor = new NodeActor({
         node,
         inbox,
@@ -524,6 +533,7 @@ export class WorkflowRunner {
         },
         executionContext: this._options.executionContext,
         stickyHandles,
+        controlContext,
       });
 
       actorPromises.push(
@@ -578,12 +588,39 @@ export class WorkflowRunner {
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
         // Route control events from controller nodes to controlled nodes.
-        // The controller yields { __control__: ControlEvent } on its __control__ handle.
         const value = outputs[edge.sourceHandle];
         if (value === undefined) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
-        await targetInbox.put("__control__", value);
+
+        // Ensure the value is a proper ControlEvent with event_type.
+        // Controller nodes like ControlAgent output raw property dicts
+        // (e.g. {brightness: 5}) via __control_output__. These must be
+        // wrapped in a RunEvent so the controlled actor's _runControlled()
+        // recognises them. (Python parity: send_messages wraps
+        // __control_output__ in RunEvent.)
+        let controlEvent: ControlEvent;
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          "event_type" in value &&
+          typeof (value as Record<string, unknown>).event_type === "string"
+        ) {
+          controlEvent = value as ControlEvent;
+        } else if (typeof value === "object" && value !== null) {
+          // Raw property dict — wrap as RunEvent
+          const raw = value as Record<string, unknown>;
+          // Support nested {properties: {...}} shape from LLM output
+          const properties =
+            "properties" in raw && typeof raw.properties === "object" && raw.properties !== null
+              ? (raw.properties as Record<string, unknown>)
+              : raw;
+          controlEvent = { event_type: "run", properties };
+        } else {
+          continue; // skip non-object values
+        }
+
+        await targetInbox.put("__control__", controlEvent);
         // Track that this edge has routed at least one event
         const ctrlEdgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
         this._controlEdgesRouted.add(ctrlEdgeId);
@@ -636,16 +673,14 @@ export class WorkflowRunner {
     const outgoing = this._graph.findOutgoingEdges(nodeId);
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
-        // Only send EOS if we actually routed events through this edge.
-        // If no events were routed (e.g., manual dispatchControlEvent() is
-        // used instead), do not close the __control__ handle – the manual
-        // caller is responsible for sending a stop event.
-        const ctrlEdgeId = edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
-        if (this._controlEdgesRouted.has(ctrlEdgeId)) {
-          const targetInbox = this._inboxes.get(edge.target);
-          if (targetInbox) {
-            targetInbox.markSourceDone("__control__");
-          }
+        // Always mark __control__ source done when the controller finishes,
+        // matching Python parity (_mark_downstream_eos). This unblocks
+        // controlled nodes waiting on iterInput("__control__") regardless
+        // of whether events were routed through the edge or via the manual
+        // sendControlEvent() / dispatchControlEvent() APIs.
+        const targetInbox = this._inboxes.get(edge.target);
+        if (targetInbox) {
+          targetInbox.markSourceDone("__control__");
         }
         continue;
       }
@@ -705,12 +740,6 @@ export class WorkflowRunner {
     const inbox = this._inboxes.get(targetNodeId);
     if (!inbox) {
       throw new Error(`Target node not found or no inbox: ${targetNodeId}`);
-    }
-
-    // Ensure __control__ handle is registered so the controlled actor's
-    // iterAny() can receive events even without pre-existing control edges.
-    if (!inbox.isOpen("__control__") && !inbox.hasBuffered("__control__")) {
-      inbox.addUpstream("__control__", 1);
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
@@ -877,5 +906,105 @@ export class WorkflowRunner {
     return this._graph
       .inputNodes()
       .filter((node) => this._getExternalInputName(node) === inputName || node.id === inputName);
+  }
+
+  // -----------------------------------------------------------------------
+  // Control context builder (Python parity: _build_control_context)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Build control context for a controller node.
+   * Returns null if the node has no outgoing control edges.
+   *
+   * The control context maps controlled node IDs to their metadata
+   * (node_type, properties with current values, types, descriptions).
+   * This is injected as `_control_context` input so agent nodes can
+   * build ControlNodeTool instances for LLM tool-calling.
+   */
+  private _buildControlContext(nodeId: string): Record<string, unknown> | null {
+    const outgoingControlEdges = this._graph
+      .findOutgoingEdges(nodeId)
+      .filter(isControlEdge);
+
+    if (outgoingControlEdges.length === 0) return null;
+
+    const controlledNodeIds = new Set(outgoingControlEdges.map((e) => e.target));
+    const context: Record<string, unknown> = {};
+
+    for (const targetId of controlledNodeIds) {
+      const targetNode = this._graph.findNode(targetId);
+      if (!targetNode) continue;
+
+      const properties: Record<string, unknown> = {};
+
+      // Extract property info from the node descriptor
+      if (targetNode.properties && typeof targetNode.properties === "object") {
+        const props = targetNode.properties as Record<string, unknown>;
+        const propTypes = targetNode.propertyTypes ?? {};
+
+        for (const [propName, propValue] of Object.entries(props)) {
+          if (propName.startsWith("_")) continue; // skip private
+          properties[propName] = {
+            value: propValue,
+            type: (propTypes as Record<string, string>)[propName] ?? typeof propValue,
+          };
+        }
+      }
+
+      context[targetId] = {
+        node_id: targetId,
+        node_type: targetNode.type,
+        node_title: targetNode.name ?? targetId,
+        properties,
+        control_actions: {
+          run: {
+            properties: this._buildControlActionProperties(targetNode),
+          },
+        },
+      };
+    }
+
+    return Object.keys(context).length > 0 ? context : null;
+  }
+
+  /**
+   * Build the property schema for a controlled node's "run" action.
+   * Maps property names to JSON-schema-like descriptors for ControlNodeTool.
+   */
+  private _buildControlActionProperties(
+    node: NodeDescriptor
+  ): Record<string, Record<string, unknown>> {
+    const result: Record<string, Record<string, unknown>> = {};
+
+    if (!node.properties || typeof node.properties !== "object") return result;
+    const props = node.properties as Record<string, unknown>;
+    const propTypes = node.propertyTypes ?? {};
+
+    for (const [name, value] of Object.entries(props)) {
+      if (name.startsWith("_")) continue;
+
+      const declaredType = (propTypes as Record<string, string>)[name];
+      let jsonType = "string";
+      if (declaredType) {
+        const lower = declaredType.toLowerCase();
+        if (lower === "int" || lower === "integer") jsonType = "integer";
+        else if (lower === "float" || lower === "number") jsonType = "number";
+        else if (lower === "bool" || lower === "boolean") jsonType = "boolean";
+        else if (lower.startsWith("list") || lower === "array") jsonType = "array";
+        else if (lower.startsWith("dict") || lower === "object") jsonType = "object";
+      } else if (typeof value === "number") {
+        jsonType = Number.isInteger(value) ? "integer" : "number";
+      } else if (typeof value === "boolean") {
+        jsonType = "boolean";
+      }
+
+      result[name] = {
+        type: jsonType,
+        description: `Property '${name}' (${declaredType ?? jsonType})`,
+        default: value,
+      };
+    }
+
+    return result;
   }
 }

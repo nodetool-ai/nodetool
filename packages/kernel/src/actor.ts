@@ -66,6 +66,8 @@ export class NodeActor {
   private _emitMessage: (msg: unknown) => void;
   /** Optional execution context passed into node executors. */
   private _executionContext: ProcessingContext | undefined;
+  /** Control context for controller nodes (injected as _control_context input). */
+  private _controlContext: Record<string, unknown> | null;
 
   constructor(opts: {
     node: NodeDescriptor;
@@ -78,6 +80,7 @@ export class NodeActor {
     emitMessage: (msg: unknown) => void;
     executionContext?: ProcessingContext;
     stickyHandles?: Set<string>;
+    controlContext?: Record<string, unknown> | null;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -86,6 +89,7 @@ export class NodeActor {
     this._emitMessage = opts.emitMessage;
     this._executionContext = opts.executionContext;
     this._initialStickyHandles = opts.stickyHandles ?? new Set();
+    this._controlContext = opts.controlContext ?? null;
   }
 
   // -----------------------------------------------------------------------
@@ -211,6 +215,12 @@ export class NodeActor {
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
+    // Inject _control_context for controller nodes (Python parity:
+    // process_streaming_node_with_inputs / _is_controller / _build_control_context)
+    if (this._controlContext) {
+      inputs = { ...inputs, _control_context: this._controlContext };
+    }
+
     log.info("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,
@@ -243,30 +253,51 @@ export class NodeActor {
 
   /**
    * Controlled execution: wait for control events on __control__ handle.
+   *
+   * Unlike the generic iterAny() approach, this iterates ONLY the
+   * __control__ handle so that the loop terminates as soon as all
+   * controllers signal EOS (markSourceDone). Data inputs are drained
+   * from the inbox buffers before each execution and cached for replay.
    */
   private async _runControlled(): Promise<void> {
-    for await (const [handle, item] of this.inbox.iterAny()) {
-      if (handle === "__control__") {
-        const event = item as ControlEvent;
-        if (event.event_type === "stop") {
-          break;
-        }
-        if (event.event_type === "run") {
-          this._currentControlProperties = event.properties;
-          // Apply control properties as inputs override
-          const inputs = this._cachedInputs ?? {};
-          const merged = { ...inputs, ...this._currentControlProperties };
-          const outputs = await this._executor.process(
-            merged,
-            this._executionContext
-          );
-          this._latestResult = outputs;
-          await this._sendOutputs(this.node.id, outputs);
-        }
-      } else {
-        // Data input on a controlled node – cache for replay
+    for await (const item of this.inbox.iterInput("__control__")) {
+      const event = item as ControlEvent;
+      if (event.event_type === "stop") {
+        break;
+      }
+      if (event.event_type === "run") {
+        this._currentControlProperties = event.properties;
+        // Drain any buffered data inputs before processing (replay)
+        this._cacheBufferedDataInputs();
+        const inputs = this._cachedInputs ?? {};
+        const merged = { ...inputs, ...this._currentControlProperties };
+        const outputs = await this._executor.process(
+          merged,
+          this._executionContext
+        );
+        this._latestResult = outputs;
+        await this._sendOutputs(this.node.id, outputs);
+      }
+    }
+  }
+
+  /**
+   * Drain all buffered data (non-control) inputs and cache them.
+   * Called before each controlled execution to pick up any data that
+   * arrived while waiting for the next control event.
+   */
+  private _cacheBufferedDataInputs(): void {
+    const buffers = this.inbox["_buffers"] as Map<
+      string,
+      Array<{ data: unknown }>
+    >;
+    for (const [handle, buf] of buffers) {
+      if (handle === "__control__" || buf.length === 0) continue;
+      // Use the latest buffered value for each data handle
+      while (buf.length > 0) {
+        const envelope = buf.shift()!;
         if (!this._cachedInputs) this._cachedInputs = {};
-        this._cachedInputs[handle] = item;
+        this._cachedInputs[handle] = envelope.data;
       }
     }
   }
