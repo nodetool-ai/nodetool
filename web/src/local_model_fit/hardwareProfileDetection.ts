@@ -74,8 +74,11 @@ const probeWebGpu = async (): Promise<GpuProbe | null> => {
     const vramEstimateGb = maxBuf > 0 ? Math.floor(maxBuf / (1024 ** 3)) : 0;
 
     return { adapterName, vramEstimateGb };
-  } catch {
-    // WebGPU not available or blocked.
+  } catch (err) {
+    // WebGPU not available or blocked — fall back gracefully.
+    if (typeof console !== "undefined") {
+      console.debug("WebGPU probe failed:", err);
+    }
     return null;
   }
 };
