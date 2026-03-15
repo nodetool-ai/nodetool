@@ -170,6 +170,8 @@
 
 ### Cleaner Node UI/Preview
 - [x] Preview thumbnail updates on document change
+- [x] Brush/eraser size cursor preview (zoom-aware)
+- [x] Keyboard shortcut hints in toolbar
 - [ ] Canvas size indicator in node
 - [ ] Input/output status indicators
 
@@ -200,7 +202,7 @@
 |----------|--------|
 | **Phase 1 Core** | ~98% complete |
 | **Phase 1 Gaps** | Canvas auto-sizing from input image (deferred to Phase 2) |
-| **Phase 2** | ~40% complete (shapes, fill, swatches, blend modes, mirror done) |
+| **Phase 2** | ~50% complete (shapes, fill, swatches, blend modes, mirror, cursor preview, keyboard shortcuts done) |
 | **Phase 3** | Not started |
 | **Tests** | 76 passing |
 | **Type Safety** | Clean (no sketch-related type errors) |
