@@ -329,3 +329,47 @@ describe("CTRL-029: Multiple controllers → one controlled node", () => {
     expect(maxCounter).toBe(2);
   });
 });
+
+// ---------------------------------------------------------------------------
+// CTRL-030: ControlAgent-style __control_output__ routing
+// ---------------------------------------------------------------------------
+
+describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent", () => {
+  it("ControlAgent output properties reach the controlled node", async () => {
+    const { WorkflowRunner } = await import("../../src/runner.js");
+
+    const nodes: NodeDescriptor[] = [
+      { id: "agent", type: "test.ControlAgent" },
+      { id: "proc", type: "test.Processor", is_controlled: true, name: "proc" },
+    ];
+    const edges: Edge[] = [ce("agent", "proc")];
+
+    const calls: Array<Record<string, unknown>> = [];
+    const runner = new WorkflowRunner("ctrl-030", {
+      resolveExecutor: (node) => {
+        if (node.id === "agent") {
+          return {
+            async process() {
+              // ControlAgent outputs __control_output__ with raw properties
+              return { __control_output__: { brightness: 0.8, contrast: 1.2 } };
+            },
+          };
+        }
+        // Controlled processor records what it receives
+        return {
+          async process(inputs) {
+            calls.push({ ...inputs });
+            return { result: "ok" };
+          },
+        };
+      },
+    });
+
+    const result = await runner.run({ job_id: "ctrl-030" }, { nodes, edges });
+
+    expect(result.status).toBe("completed");
+    expect(calls.length).toBe(1);
+    expect(calls[0].brightness).toBe(0.8);
+    expect(calls[0].contrast).toBe(1.2);
+  });
+});

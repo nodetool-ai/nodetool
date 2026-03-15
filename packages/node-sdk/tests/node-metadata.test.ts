@@ -520,7 +520,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
     expect(valueProp!.description).toBe("Decorated value");
   });
 
-  it("returns Python metadata verbatim when mergePythonBackfill is enabled", () => {
+  it("uses TS metadata as source of truth with Python backfill when mergePythonBackfill is enabled", () => {
     const pythonMetadata: NodeMetadata = {
       title: "Python Title",
       description: "Python description",
@@ -558,10 +558,15 @@ describe("getNodeMetadata – decorator-based properties", () => {
       mergePythonBackfill: true,
     });
 
-    expect(meta).toEqual(pythonMetadata);
-    expect(meta).not.toBe(pythonMetadata);
-    expect(meta.properties).not.toBe(pythonMetadata.properties);
-    expect(meta.outputs).not.toBe(pythonMetadata.outputs);
+    // TS class is authoritative: title, description, properties come from TS
+    expect(meta.title).toBe("Add");
+    expect(meta.description).toBe("Adds two numbers");
+    expect(meta.node_type).toBe("nodetool.test.Add");
+    // TS properties are used (Add has a and b)
+    expect(meta.properties.map((p) => p.name)).toEqual(["a", "b"]);
+    // Python-only optional fields are backfilled
+    expect(meta.layout).toBe("default");
+    expect(meta.model_packs).toEqual([{ id: "pack-1" }]);
   });
 });
 

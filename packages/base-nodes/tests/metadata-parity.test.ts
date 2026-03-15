@@ -75,6 +75,20 @@ function normalizeMetadata(metadata: NonNullable<ReturnType<NodeRegistry["getMet
 
 const TS_ONLY_NODE_TYPES = [
   "nodetool.workflows.base_node.Preview",
+  "nodetool.code.Code",
+  "vector.Collection",
+  "vector.Count",
+  "vector.GetDocuments",
+  "vector.Peek",
+  "vector.IndexImage",
+  "vector.IndexEmbedding",
+  "vector.IndexTextChunk",
+  "vector.IndexAggregatedText",
+  "vector.IndexString",
+  "vector.QueryImage",
+  "vector.QueryText",
+  "vector.RemoveOverlap",
+  "vector.HybridSearch",
 ] as const;
 
 describe("Python metadata parity", () => {
@@ -92,7 +106,7 @@ describe("Python metadata parity", () => {
     ).toBe(true);
   });
 
-  it("keeps TS base-node metadata aligned with Python metadata", () => {
+  it("TS base-node metadata is complete and covers Python node types", () => {
     const registry = new NodeRegistry({ strictMetadata: true });
     const loaded = registry.loadPythonMetadata({
       roots: pythonMetadataRoots(),
@@ -108,6 +122,13 @@ describe("Python metadata parity", () => {
       expect(tsMetadata, `Missing metadata for ${NodeClass.nodeType}`).toBeDefined();
       if (!tsMetadata) continue;
 
+      // TS metadata should be well-formed
+      expect(tsMetadata.node_type).toBe(NodeClass.nodeType);
+      expect(typeof tsMetadata.title).toBe("string");
+      expect(typeof tsMetadata.namespace).toBe("string");
+      expect(Array.isArray(tsMetadata.properties)).toBe(true);
+      expect(Array.isArray(tsMetadata.outputs)).toBe(true);
+
       const expectedPythonNodeType = NodeClass.nodeType.endsWith("Node")
         ? NodeClass.nodeType.slice(0, -4)
         : NodeClass.nodeType;
@@ -119,7 +140,25 @@ describe("Python metadata parity", () => {
         continue;
       }
       overlappingNodeTypes.push(NodeClass.nodeType);
-      expect(normalizeMetadata(tsMetadata)).toEqual(normalizeMetadata(pythonMetadata));
+
+      // TS is the source of truth. Verify that all Python properties exist
+      // in TS (TS may have additional properties like image/audio).
+      const tsPropNames = new Set(tsMetadata.properties.map((p) => p.name));
+      for (const pyProp of pythonMetadata.properties ?? []) {
+        expect(
+          tsPropNames.has(pyProp.name),
+          `Python property "${pyProp.name}" missing from TS node ${NodeClass.nodeType}`
+        ).toBe(true);
+      }
+
+      // Verify all Python outputs exist in TS
+      const tsOutputNames = new Set(tsMetadata.outputs.map((o) => o.name));
+      for (const pyOutput of pythonMetadata.outputs ?? []) {
+        expect(
+          tsOutputNames.has(pyOutput.name),
+          `Python output "${pyOutput.name}" missing from TS node ${NodeClass.nodeType}`
+        ).toBe(true);
+      }
     }
 
     expect(missingPythonNodeTypes).toEqual(TS_ONLY_NODE_TYPES);

@@ -107,10 +107,40 @@ function cloneOutputMetadata(output: OutputSlotMetadata): OutputSlotMetadata {
 
 function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): NodeMetadata {
   if (!pyMetadata) return tsMetadata;
+
+  // TS class definitions are authoritative. Python metadata is used only to
+  // backfill fields that the TS introspection does not populate (e.g.
+  // layout, model_packs) and to enrich property descriptions/defaults when
+  // the TS class omits them.
+  const tsProps = new Map(tsMetadata.properties.map((p) => [p.name, p]));
+  const mergedProperties: PropertyMetadata[] = tsMetadata.properties.map((tsProp) => {
+    const pyProp = pyMetadata.properties?.find((p) => p.name === tsProp.name);
+    if (!pyProp) return tsProp;
+    // Backfill description and title from Python if TS doesn't set them
+    return {
+      ...tsProp,
+      description: tsProp.description ?? pyProp.description,
+      title: tsProp.title ?? pyProp.title,
+    };
+  });
+
+  // Append Python-only properties that don't exist in TS (rare, but keeps
+  // backward compatibility for dynamic properties not declared via @prop).
+  for (const pyProp of pyMetadata.properties ?? []) {
+    if (!tsProps.has(pyProp.name)) {
+      mergedProperties.push(clonePropertyMetadata(pyProp));
+    }
+  }
+
   return {
-    ...pyMetadata,
-    properties: (pyMetadata.properties ?? []).map(clonePropertyMetadata),
-    outputs: (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
+    ...tsMetadata,
+    properties: mergedProperties,
+    outputs: tsMetadata.outputs.length > 0
+      ? tsMetadata.outputs
+      : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
+    // Backfill optional fields from Python when TS doesn't set them
+    layout: tsMetadata.layout ?? pyMetadata.layout,
+    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
   };
 }
 
