@@ -31,6 +31,7 @@ import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -267,6 +268,7 @@ workflows
       const registry = new NodeRegistry();
       registerBaseNodes(registry);
       registerFalNodes(registry);
+      registerReplicateNodes(registry);
 
       // Create processing context with secret resolver
       const jobId = `job-${Date.now()}`;
