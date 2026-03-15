@@ -1,0 +1,156 @@
+{
+  "modelId": "zsxkib/flash-face",
+  "owner": "zsxkib",
+  "name": "flash-face",
+  "version": "edb17f54faec253ee86e58e0b5f18f24a89c4e31fe7fcefa970e13d8ad934117",
+  "description": "FlashFace: Human Image Personalization with High-fidelity Identity Preservation",
+  "inputSchema": {
+    "properties": {
+      "default_negative_prompt": {
+        "default": "blurry, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face",
+        "description": "Default negative prompt postfix",
+        "title": "Default Negative Prompt",
+        "type": "string",
+        "x-order": 15
+      },
+      "default_position_prompt": {
+        "default": "best quality, masterpiece,ultra-detailed, UHD 4K, photographic",
+        "description": "Default positive prompt postfix",
+        "title": "Default Position Prompt",
+        "type": "string",
+        "x-order": 14
+      },
+      "face_bounding_box": {
+        "default": "[0., 0., 0., 0.]",
+        "description": "Face position",
+        "title": "Face Bounding Box",
+        "type": "string",
+        "x-order": 3
+      },
+      "face_guidance": {
+        "default": 2.2,
+        "description": "Reference guidance strength",
+        "title": "Face Guidance",
+        "type": "number",
+        "x-order": 5
+      },
+      "lamda_feature": {
+        "default": 0.9,
+        "description": "Reference feature strength",
+        "title": "Lamda Feature",
+        "type": "number",
+        "x-order": 4
+      },
+      "negative_prompt": {
+        "default": "nsfw",
+        "description": "Negative prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_sample": {
+        "default": 1,
+        "description": "Number of generated images",
+        "title": "Num Sample",
+        "type": "integer",
+        "x-order": 6
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 16
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 1 is lowest quality.",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 17
+      },
+      "positive_prompt": {
+        "description": "Positive prompt",
+        "title": "Positive Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "reference_face_1": {
+        "description": "Reference face image 1",
+        "format": "uri",
+        "title": "Reference Face 1",
+        "type": "string",
+        "x-order": 10
+      },
+      "reference_face_2": {
+        "description": "Reference face image 2",
+        "format": "uri",
+        "title": "Reference Face 2",
+        "type": "string",
+        "x-order": 11
+      },
+      "reference_face_3": {
+        "description": "Reference face image 3",
+        "format": "uri",
+        "title": "Reference Face 3",
+        "type": "string",
+        "x-order": 12
+      },
+      "reference_face_4": {
+        "description": "Reference face image 4",
+        "format": "uri",
+        "title": "Reference Face 4",
+        "type": "string",
+        "x-order": 13
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "step_to_launch_face_guidance": {
+        "default": 600,
+        "description": "Step index to launch reference guidance",
+        "title": "Step To Launch Face Guidance",
+        "type": "integer",
+        "x-order": 9
+      },
+      "steps": {
+        "default": 35,
+        "description": "Number of steps",
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 2
+      },
+      "text_control_scale": {
+        "default": 7.5,
+        "description": "Text guidance strength",
+        "title": "Text Control Scale",
+        "type": "number",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "positive_prompt",
+      "reference_face_1"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

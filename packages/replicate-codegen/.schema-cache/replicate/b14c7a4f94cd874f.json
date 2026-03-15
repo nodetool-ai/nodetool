@@ -1,0 +1,64 @@
+{
+  "modelId": "xai/grok-4",
+  "owner": "xai",
+  "name": "grok-4",
+  "version": "56f17471947d6bed7b61ef0e0c4e796db2aa8276a6f534a06a1a0c1955fb0f01",
+  "description": "Grok 4 is xAI’s most advanced reasoning model. Excels at logical thinking and in-depth analysis. Ideal for insightful discussions and complex problem-solving.",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 4
+      },
+      "max_tokens": {
+        "default": 2048,
+        "description": "The maximum number of tokens the model should generate as output.",
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 1
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 3
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "temperature": {
+        "default": 0.1,
+        "description": "The value used to modulate the next token probabilities.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 2
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Top-p (nucleus) sampling",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "modelId": "wavespeedai/wan-2.1-i2v-480p",
+  "owner": "wavespeedai",
+  "name": "wan-2.1-i2v-480p",
+  "version": "e2870aa4965fd9ddfd87c16a3c8ab952c18e745e63f3f3b123c2dc8b538ad2b5",
+  "description": "Accelerated inference for Wan 2.1 14B image to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio of the output video.",
+        "enum": [
+          "16:9",
+          "9:16"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated videos",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "fast_mode": {
+        "default": "Balanced",
+        "description": "Speed up generation with different levels of acceleration. Faster modes may degrade quality somewhat. The speedup is dependent on the content, so different videos may see different speedups.",
+        "enum": [
+          "Off",
+          "Balanced",
+          "Fast"
+        ],
+        "title": "fast_mode",
+        "type": "string",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Image for use as the initial frame of the video.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 3
+      },
+      "lora_scale": {
+        "default": 1,
+        "description": "Determines how strongly the main LoRA should be applied. Sane results between 0 and 1 for base inference. You may still need to experiment to find the best value for your particular lora.",
+        "maximum": 4,
+        "minimum": 0,
+        "title": "Lora Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "lora_weights": {
+        "description": "Load LoRA weights. Supports HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet.",
+        "nullable": true,
+        "title": "Lora Weights",
+        "type": "string",
+        "x-order": 9
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Negative prompt to avoid certain elements",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "sample_guide_scale": {
+        "default": 5,
+        "description": "Guidance scale for generation",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Sample Guide Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "sample_shift": {
+        "default": 3,
+        "description": "Flow shift parameter for video generation",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Sample Shift",
+        "type": "integer",
+        "x-order": 8
+      },
+      "sample_steps": {
+        "default": 30,
+        "description": "Number of inference steps",
+        "maximum": 40,
+        "minimum": 1,
+        "title": "Sample Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt",
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

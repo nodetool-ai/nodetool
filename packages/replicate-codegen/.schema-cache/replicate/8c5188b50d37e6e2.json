@@ -1,0 +1,77 @@
+{
+  "modelId": "runwayml/gen4-image-turbo",
+  "owner": "runwayml",
+  "name": "gen4-image-turbo",
+  "version": "d22ea0d0c36ad63c18519dda6fc42dca46f5b84b4864678fb070b2370fea5f59",
+  "description": "Gen-4 Image Turbo is cheaper and 2.5x faster than Gen-4 Image. An image model with references, use up to 3 reference images to create the exact image you need. Capture every angle.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Image aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "1:1",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "reference_images": {
+        "default": [],
+        "description": "You must give at least one reference image. Up to 3 reference images are supported. Images must be between 0.5 and 2 aspect ratio.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Reference Images",
+        "type": "array"
+      },
+      "reference_tags": {
+        "default": [],
+        "description": "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters.",
+        "items": {
+          "type": "string"
+        },
+        "title": "Reference Tags",
+        "type": "array"
+      },
+      "resolution": {
+        "default": "1080p",
+        "description": "Image resolution",
+        "enum": [
+          "720p",
+          "1080p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

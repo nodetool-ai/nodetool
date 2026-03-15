@@ -1,0 +1,51 @@
+{
+  "modelId": "flux-kontext-apps/restore-image",
+  "owner": "flux-kontext-apps",
+  "name": "restore-image",
+  "version": "da7613a13aac59a1a3231023f0f30cf27991695ee0fe7ef52959ec1e02311c25",
+  "description": "Use FLUX Kontext to restore, fix scratches and damage, and colorize old photos",
+  "inputSchema": {
+    "properties": {
+      "input_image": {
+        "description": "Image to restore. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string"
+      },
+      "output_format": {
+        "default": "png",
+        "description": "Output format for the generated image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 2
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 0 is most strict and 2 is most permissive. 2 is currently the maximum allowed.",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "input_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

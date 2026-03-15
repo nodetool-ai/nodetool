@@ -1,0 +1,34 @@
+{
+  "modelId": "meta/llama-guard-3-11b-vision",
+  "owner": "meta",
+  "name": "llama-guard-3-11b-vision",
+  "version": "21d9a2579c40ab00a401cd487c6fab3b3053ef582eb5c9ca06920c1c76bdebf1",
+  "description": "A Llama-3.2-11B pretrained model, fine-tuned for content safety classification",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Image to moderate",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt": {
+        "default": "Which one should I buy?",
+        "description": "User message to moderate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

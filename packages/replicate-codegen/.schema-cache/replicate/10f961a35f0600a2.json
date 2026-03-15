@@ -1,0 +1,51 @@
+{
+  "modelId": "zsxkib/aura-sr",
+  "owner": "zsxkib",
+  "name": "aura-sr",
+  "version": "7231d40ac06e74c6d1bc287309c396fa4791e4cf4fdcb91fb4b191c6c485fc1c",
+  "description": "AuraSR: GAN-based Super-Resolution for real-world",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "The input image file to be upscaled.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "max_batch_size": {
+        "default": 1,
+        "description": "Controls the number of image tiles processed simultaneously. Higher values may increase speed but require more GPU memory. Lower values use less memory but may increase processing time. Default is 1 for broad compatibility. Adjust based on your GPU capabilities for optimal performance.",
+        "maximum": 8,
+        "minimum": 1,
+        "title": "Max Batch Size",
+        "type": "integer",
+        "x-order": 2
+      },
+      "scale_factor": {
+        "default": 4,
+        "description": "The factor by which to upscale the image (2, 4, 8, 16, or 32).",
+        "enum": [
+          2,
+          4,
+          8,
+          16,
+          32
+        ],
+        "title": "scale_factor",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

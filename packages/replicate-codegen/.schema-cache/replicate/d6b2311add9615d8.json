@@ -1,0 +1,61 @@
+{
+  "modelId": "runwayml/gen4-aleph",
+  "owner": "runwayml",
+  "name": "gen4-aleph",
+  "version": "68cabc3b111f47bd881cffaca63ad0b1e7834c77737e042cec6eca18962ce1d2",
+  "description": "A new way to edit, transform and generate video",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "1:1",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "reference_image": {
+        "description": "Reference image to influence the style or content of the output.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Reference Image",
+        "type": "string"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "video": {
+        "description": "Input video to generate from. Videos must be less than 16MB. Only 5s of the input video will be used.",
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt",
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

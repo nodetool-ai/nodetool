@@ -1,0 +1,27 @@
+{
+  "modelId": "nvidia/parakeet-rnnt-1.1b",
+  "owner": "nvidia",
+  "name": "parakeet-rnnt-1.1b",
+  "version": "73ddbebaef172a47c8dfdd79381f110bfdc7691bcc7a4edde82f0a39e380ce50",
+  "description": "🗣️ Nvidia + Suno.ai's speech-to-text conversion with high accuracy and efficiency 📝",
+  "inputSchema": {
+    "properties": {
+      "audio_file": {
+        "description": "Input audio file to be transcribed by the ASR model",
+        "format": "uri",
+        "title": "Audio File",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "audio_file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

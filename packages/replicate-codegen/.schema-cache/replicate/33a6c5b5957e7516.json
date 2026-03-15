@@ -1,0 +1,90 @@
+{
+  "modelId": "google/veo-3",
+  "owner": "google",
+  "name": "veo-3",
+  "version": "5e80c73750ffc5dfbe5cee2d694c6ed3da7706660d9132613e6736443b365464",
+  "description": "Sound on: Google’s flagship Veo 3 text to video model, with audio",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "duration": {
+        "default": 8,
+        "description": "Video duration in seconds",
+        "enum": [
+          4,
+          6,
+          8
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 2
+      },
+      "generate_audio": {
+        "default": true,
+        "description": "Generate audio with the video",
+        "title": "Generate Audio",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "description": "Description of what to exclude from the generated video",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "1080p",
+        "description": "Resolution of the generated video",
+        "enum": [
+          "720p",
+          "1080p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Random seed. Omit for random generations",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

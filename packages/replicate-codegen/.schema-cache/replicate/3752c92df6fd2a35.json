@@ -1,0 +1,79 @@
+{
+  "modelId": "minimax/voice-cloning",
+  "owner": "minimax",
+  "name": "voice-cloning",
+  "version": "fff8a670880f066d3742838515a88f7f0a3ae40a4f2e06dae0f7f70ba63582d7",
+  "description": "Clone voices to use with Minimax's speech-02-hd and speech-02-turbo",
+  "inputSchema": {
+    "properties": {
+      "accuracy": {
+        "default": 0.7,
+        "description": "Text validation accuracy threshold (0-1)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Accuracy",
+        "type": "number"
+      },
+      "model": {
+        "default": "speech-02-turbo",
+        "description": "The text-to-speech model to train",
+        "enum": [
+          "speech-2.6-turbo",
+          "speech-2.6-hd",
+          "speech-02-turbo",
+          "speech-02-hd"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 2
+      },
+      "need_noise_reduction": {
+        "default": false,
+        "description": "Enable noise reduction. Use this if the voice file has background noise.",
+        "title": "Need Noise Reduction",
+        "type": "boolean"
+      },
+      "need_volume_normalization": {
+        "default": false,
+        "description": "Enable volume normalization",
+        "title": "Need Volume Normalization",
+        "type": "boolean"
+      },
+      "voice_file": {
+        "description": "Voice file to clone. Must be MP3, M4A, or WAV format, 10s to 5min duration, and less than 20MB.",
+        "format": "uri",
+        "title": "Voice File",
+        "type": "string"
+      }
+    },
+    "required": [
+      "voice_file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "model": {
+        "title": "Model",
+        "type": "string"
+      },
+      "preview": {
+        "format": "uri",
+        "title": "Preview",
+        "type": "string"
+      },
+      "voice_id": {
+        "title": "Voice Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "voice_id",
+      "preview",
+      "model"
+    ],
+    "title": "VoiceCloningOutputs",
+    "type": "object"
+  }
+}

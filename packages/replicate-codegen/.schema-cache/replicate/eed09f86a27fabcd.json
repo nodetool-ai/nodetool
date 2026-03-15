@@ -1,0 +1,148 @@
+{
+  "modelId": "cjwbw/supir-v0q",
+  "owner": "cjwbw",
+  "name": "supir-v0q",
+  "version": "ede69f6a5ae7d09f769d683347325b08d2f83a93d136ed89747941205e0a71da",
+  "description": "Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0Q model and does NOT use LLaVA-13b.",
+  "inputSchema": {
+    "properties": {
+      "a_prompt": {
+        "default": "Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, skin pore detailing, hyper sharpness, perfect without deformations.",
+        "description": "Additive positive prompt for the inputs.",
+        "title": "A Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "color_fix_type": {
+        "default": "Wavelet",
+        "description": "Color Fixing Type..",
+        "enum": [
+          "None",
+          "AdaIn",
+          "Wavelet"
+        ],
+        "title": "color_fix_type",
+        "type": "string",
+        "x-order": 6
+      },
+      "edm_steps": {
+        "default": 50,
+        "description": "Number of steps for EDM Sampling Schedule.",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Edm Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Low quality input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "linear_CFG": {
+        "default": false,
+        "description": "Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg.",
+        "title": "Linear Cfg",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "linear_s_stage2": {
+        "default": false,
+        "description": "Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2.",
+        "title": "Linear S Stage2",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "min_size": {
+        "default": 1024,
+        "description": "Minimum resolution of output images.",
+        "title": "Min Size",
+        "type": "number",
+        "x-order": 2
+      },
+      "n_prompt": {
+        "default": "painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth",
+        "description": "Negative prompt for the inputs.",
+        "title": "N Prompt",
+        "type": "string",
+        "x-order": 5
+      },
+      "s_cfg": {
+        "default": 7.5,
+        "description": " Classifier-free guidance scale for prompts.",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "S Cfg",
+        "type": "number",
+        "x-order": 10
+      },
+      "s_churn": {
+        "default": 5,
+        "description": "Original churn hy-param of EDM.",
+        "title": "S Churn",
+        "type": "number",
+        "x-order": 8
+      },
+      "s_noise": {
+        "default": 1.003,
+        "description": "Original noise hy-param of EDM.",
+        "title": "S Noise",
+        "type": "number",
+        "x-order": 9
+      },
+      "s_stage1": {
+        "default": -1,
+        "description": "Control Strength of Stage1 (negative means invalid).",
+        "title": "S Stage1",
+        "type": "integer",
+        "x-order": 7
+      },
+      "s_stage2": {
+        "default": 1,
+        "description": "Control Strength of Stage2.",
+        "title": "S Stage2",
+        "type": "number",
+        "x-order": 11
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 16
+      },
+      "spt_linear_CFG": {
+        "default": 1,
+        "description": "Start point of linearly increasing CFG.",
+        "title": "Spt Linear Cfg",
+        "type": "number",
+        "x-order": 14
+      },
+      "spt_linear_s_stage2": {
+        "default": 0,
+        "description": "Start point of linearly increasing s_stage2.",
+        "title": "Spt Linear S Stage2",
+        "type": "number",
+        "x-order": 15
+      },
+      "upscale": {
+        "default": 1,
+        "description": "Upsampling ratio of given inputs.",
+        "title": "Upscale",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

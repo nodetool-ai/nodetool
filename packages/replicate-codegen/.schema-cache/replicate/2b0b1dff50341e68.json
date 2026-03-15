@@ -1,0 +1,40 @@
+{
+  "modelId": "cjwbw/rudalle-sr",
+  "owner": "cjwbw",
+  "name": "rudalle-sr",
+  "version": "32fdb2231d00a10d33754cc2ba794a2dfec94216579770785849ce6f149dbc69",
+  "description": "Real-ESRGAN super-resolution model from ruDALL-E",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "scale": {
+        "default": 4,
+        "description": "Choose up-scaling factor",
+        "enum": [
+          2,
+          4,
+          8
+        ],
+        "title": "scale",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

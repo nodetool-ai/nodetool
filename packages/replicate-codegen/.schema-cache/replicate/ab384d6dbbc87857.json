@@ -1,0 +1,172 @@
+{
+  "modelId": "qwen/qwen-image",
+  "owner": "qwen",
+  "name": "qwen-image",
+  "version": "0bba9e70f78437359725e0989ead45ca8b09e6c12a070dfe9a09e6856b43a44d",
+  "description": "An image generation foundation model in the Qwen series that achieves significant advances in complex text rendering.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio for the generated image",
+        "enum": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 10
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean"
+      },
+      "enhance_prompt": {
+        "default": false,
+        "description": "Enhance the prompt with positive magic.",
+        "title": "Enhance Prompt",
+        "type": "boolean"
+      },
+      "extra_lora_scale": {
+        "description": "Scales for additional LoRAs as an array of numbers (e.g., [0.5, 0.7]). Must match the number of weights in extra_lora_weights.",
+        "items": {
+          "type": "number"
+        },
+        "nullable": true,
+        "title": "Extra Lora Scale",
+        "type": "array"
+      },
+      "extra_lora_weights": {
+        "description": "Additional LoRA weights as an array of URLs. Same formats supported as lora_weights (e.g., ['https://huggingface.co/flymy-ai/qwen-image-lora/resolve/main/pytorch_lora_weights.safetensors', 'https://huggingface.co/flymy-ai/qwen-image-realism-lora/resolve/main/flymy_realism.safetensors'])",
+        "items": {
+          "type": "string"
+        },
+        "nullable": true,
+        "title": "Extra Lora Weights",
+        "type": "array"
+      },
+      "go_fast": {
+        "default": true,
+        "description": "Run faster predictions with additional optimizations.",
+        "title": "Go Fast",
+        "type": "boolean"
+      },
+      "guidance": {
+        "default": 3,
+        "description": "Guidance for generated image. Lower values can give more realistic images. Good values to try are 2, 2.5, 3 and 3.5",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Guidance",
+        "type": "number"
+      },
+      "image": {
+        "description": "Input image for img2img pipeline",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "image_size": {
+        "default": "optimize_for_quality",
+        "description": "Image size for the generated image",
+        "enum": [
+          "optimize_for_quality",
+          "optimize_for_speed"
+        ],
+        "title": "image_size",
+        "type": "string",
+        "x-order": 11
+      },
+      "lora_scale": {
+        "default": 1,
+        "description": "Determines how strongly the main LoRA should be applied.",
+        "title": "Lora Scale",
+        "type": "number"
+      },
+      "lora_weights": {
+        "description": "Load LoRA weights. Only works with text to image pipeline. Supports arbitrary .safetensors URLs, tar files, and zip files from the Internet (for example, 'https://huggingface.co/flymy-ai/qwen-image-lora/resolve/main/pytorch_lora_weights.safetensors', 'https://example.com/lora_weights.tar.gz', or 'https://example.com/lora_weights.zip')",
+        "nullable": true,
+        "title": "Lora Weights",
+        "type": "string"
+      },
+      "negative_prompt": {
+        "default": " ",
+        "description": "Negative prompt for generated image",
+        "title": "Negative Prompt",
+        "type": "string"
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps. Recommended range is 28-50, and lower number of steps produce lower quality outputs, faster.",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer"
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 16
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Prompt for generated image",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "replicate_weights": {
+        "description": "Load LoRA weights from Replicate training. Only works with text to image pipeline. Supports arbitrary .safetensors URLs, tar files, and zip files from the Internet.",
+        "nullable": true,
+        "title": "Replicate Weights",
+        "type": "string"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "strength": {
+        "default": 0.9,
+        "description": "Strength for img2img pipeline",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Strength",
+        "type": "number"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "modelId": "pharmapsychotic/clip-interrogator",
+  "owner": "pharmapsychotic",
+  "name": "clip-interrogator",
+  "version": "8151e1c9f47e696fa316146a2e35812ccf79cfc9eba05b11c7f450155102af70",
+  "description": "The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!",
+  "inputSchema": {
+    "properties": {
+      "clip_model_name": {
+        "default": "ViT-L-14/openai",
+        "description": "Choose ViT-L for Stable Diffusion 1, ViT-H for Stable Diffusion 2, or ViT-bigG for Stable Diffusion XL.",
+        "enum": [
+          "ViT-L-14/openai",
+          "ViT-H-14/laion2b_s32b_b79k",
+          "ViT-bigG-14/laion2b_s39b_b160k"
+        ],
+        "title": "clip_model_name",
+        "type": "string",
+        "x-order": 1
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mode": {
+        "default": "best",
+        "description": "Prompt mode (best takes 10-20 seconds, fast takes 1-2 seconds).",
+        "enum": [
+          "best",
+          "classic",
+          "fast",
+          "negative"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

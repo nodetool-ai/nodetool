@@ -1,0 +1,147 @@
+{
+  "modelId": "fofr/illusions",
+  "owner": "fofr",
+  "name": "illusions",
+  "version": "579b32db82b24584c3c6155fe3ae12e8fce50ba28b575c23e8a1f5f3a5e99ed8",
+  "description": "Create illusions with img2img and masking support",
+  "inputSchema": {
+    "properties": {
+      "control_image": {
+        "description": "Control image",
+        "format": "uri",
+        "title": "Control Image",
+        "type": "string",
+        "x-order": 9
+      },
+      "controlnet_conditioning_scale": {
+        "default": 0.75,
+        "description": "How strong the controlnet conditioning is",
+        "maximum": 4,
+        "minimum": 0,
+        "title": "Controlnet Conditioning Scale",
+        "type": "number",
+        "x-order": 13
+      },
+      "controlnet_end": {
+        "default": 1,
+        "description": "When controlnet conditioning ends",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Controlnet End",
+        "type": "number",
+        "x-order": 15
+      },
+      "controlnet_start": {
+        "default": 0,
+        "description": "When controlnet conditioning starts",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Controlnet Start",
+        "type": "number",
+        "x-order": 14
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 30,
+        "minimum": 0.1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "height": {
+        "default": 768,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Optional img2img",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 10
+      },
+      "mask_image": {
+        "description": "Optional mask for inpainting",
+        "format": "uri",
+        "title": "Mask Image",
+        "type": "string",
+        "x-order": 11
+      },
+      "negative_prompt": {
+        "default": "ugly, disfigured, low quality, blurry, nsfw",
+        "description": "The negative prompt to guide image generation.",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_inference_steps": {
+        "default": 40,
+        "description": "Number of diffusion steps",
+        "maximum": 100,
+        "minimum": 20,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 2
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of outputs",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 8
+      },
+      "prompt": {
+        "default": "a painting of a 19th century town",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_strength": {
+        "default": 0.8,
+        "description": "Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 12
+      },
+      "seed": {
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      },
+      "sizing_strategy": {
+        "default": "width/height",
+        "description": "Decide how to resize images – use width/height, resize based on input image or control image",
+        "enum": [
+          "width/height",
+          "input_image",
+          "control_image"
+        ],
+        "title": "sizing_strategy",
+        "type": "string",
+        "x-order": 7
+      },
+      "width": {
+        "default": 768,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

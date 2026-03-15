@@ -1,0 +1,78 @@
+{
+  "modelId": "minimax/music-01",
+  "owner": "minimax",
+  "name": "music-01",
+  "version": "0254c7e2f54315b667dbae03da7c155822ba29ffe0457be5bc246d564be486bd",
+  "description": "Quickly generate up to 1 minute of music with lyrics and vocals in the style of a reference track",
+  "inputSchema": {
+    "properties": {
+      "bitrate": {
+        "default": 256000,
+        "description": "Bitrate for the generated music",
+        "enum": [
+          32000,
+          64000,
+          128000,
+          256000
+        ],
+        "title": "bitrate",
+        "type": "integer",
+        "x-order": 7
+      },
+      "instrumental_file": {
+        "description": "Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated.",
+        "format": "uri",
+        "title": "Instrumental File",
+        "type": "string"
+      },
+      "instrumental_id": {
+        "description": "Reuse a previously uploaded instrumental ID",
+        "title": "Instrumental Id",
+        "type": "string"
+      },
+      "lyrics": {
+        "default": "",
+        "description": "Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment. Maximum 350 to 400 characters.",
+        "title": "Lyrics",
+        "type": "string"
+      },
+      "sample_rate": {
+        "default": 44100,
+        "description": "Sample rate for the generated music",
+        "enum": [
+          16000,
+          24000,
+          32000,
+          44100
+        ],
+        "title": "sample_rate",
+        "type": "integer",
+        "x-order": 6
+      },
+      "song_file": {
+        "description": "Reference song, should contain music and vocals. Must be a .wav or .mp3 file longer than 15 seconds.",
+        "format": "uri",
+        "title": "Song File",
+        "type": "string"
+      },
+      "voice_file": {
+        "description": "Voice reference. Must be a .wav or .mp3 file longer than 15 seconds. If only a voice reference is given, an a cappella vocal hum will be generated.",
+        "format": "uri",
+        "title": "Voice File",
+        "type": "string"
+      },
+      "voice_id": {
+        "description": "Reuse a previously uploaded voice ID",
+        "title": "Voice Id",
+        "type": "string"
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}
