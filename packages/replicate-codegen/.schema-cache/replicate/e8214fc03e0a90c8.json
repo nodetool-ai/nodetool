@@ -1,0 +1,27 @@
+{
+  "modelId": "lucataco/snowflake-arctic-embed-l",
+  "owner": "lucataco",
+  "name": "snowflake-arctic-embed-l",
+  "version": "38f2c666dd6a9f96c50eca69bbb0029ed03cba002a289983dc0b487a93cfb1b4",
+  "description": "snowflake-arctic-embed is a suite of text embedding models that focuses on creating high-quality retrieval models optimized for performance",
+  "inputSchema": {
+    "properties": {
+      "prompt": {
+        "default": "Snowflake is the Data Cloud!",
+        "description": "Prompt to generate a vector embedding for",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "number"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

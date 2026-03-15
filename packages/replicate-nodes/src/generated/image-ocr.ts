@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class TextExtractOCR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.TextExtractOCR";
+  static readonly nodeType = "replicate.image.ocr.TextExtractOCR";
   static readonly title = "Text Extract O C R";
   static readonly description = `A simple OCR Model that can easily extract text from an image.
 replicate, ai`;
@@ -45,7 +45,7 @@ replicate, ai`;
 }
 
 export class LatexOCR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.LatexOCR";
+  static readonly nodeType = "replicate.image.ocr.LatexOCR";
   static readonly title = "Latex O C R";
   static readonly description = `Optical character recognition to turn images of latex equations into latex format.
 replicate, ai`;
@@ -72,7 +72,7 @@ replicate, ai`;
 }
 
 export class OCR_Surya extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.OCR_Surya";
+  static readonly nodeType = "replicate.image.ocr.OCR_Surya";
   static readonly title = "O C R_ Surya";
   static readonly description = `Surya is a document OCR toolkit that does:
 replicate, ai`;
@@ -123,7 +123,7 @@ replicate, ai`;
 }
 
 export class Deepseek_OCR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.Deepseek_OCR";
+  static readonly nodeType = "replicate.image.ocr.Deepseek_OCR";
   static readonly title = "Deepseek_ O C R";
   static readonly description = `Convert documents to markdown, extract raw text, and locate specific content
 replicate, ai`;
@@ -169,7 +169,7 @@ replicate, ai`;
 }
 
 export class Datalab_OCR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.Datalab_OCR";
+  static readonly nodeType = "replicate.image.ocr.Datalab_OCR";
   static readonly title = "Datalab_ O C R";
   static readonly description = `Detect and transcribe text in images with accurate bounding boxes, layout analysis, reding order, and table recognition, in 90 languages
 replicate, ai`;
@@ -221,7 +221,7 @@ replicate, ai`;
 }
 
 export class Marker extends ReplicateNode {
-  static readonly nodeType = "replicate.image_ocr.Marker";
+  static readonly nodeType = "replicate.image.ocr.Marker";
   static readonly title = "Marker";
   static readonly description = `Convert PDF to markdown + JSON quickly with high accuracy
 replicate, ai`;

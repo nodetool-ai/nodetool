@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class RemoveBackground extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.RemoveBackground";
+  static readonly nodeType = "replicate.image.process.RemoveBackground";
   static readonly title = "Remove Background";
   static readonly description = `Remove images background
 replicate, ai`;
@@ -45,7 +45,7 @@ replicate, ai`;
 }
 
 export class ModNet extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.ModNet";
+  static readonly nodeType = "replicate.image.process.ModNet";
   static readonly title = "Mod Net";
   static readonly description = `A deep learning approach to remove background & adding new background image
 replicate, ai`;
@@ -75,7 +75,7 @@ replicate, ai`;
 }
 
 export class DD_Color extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.DD_Color";
+  static readonly nodeType = "replicate.image.process.DD_Color";
   static readonly title = "D D_ Color";
   static readonly description = `Towards Photo-Realistic Image Colorization via Dual Decoders
 replicate, ai`;
@@ -107,7 +107,7 @@ replicate, ai`;
 }
 
 export class Magic_Style_Transfer extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.Magic_Style_Transfer";
+  static readonly nodeType = "replicate.image.process.Magic_Style_Transfer";
   static readonly title = "Magic_ Style_ Transfer";
   static readonly description = `Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI
 replicate, ai`;
@@ -227,7 +227,7 @@ replicate, ai`;
 }
 
 export class ObjectRemover extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.ObjectRemover";
+  static readonly nodeType = "replicate.image.process.ObjectRemover";
   static readonly title = "Object Remover";
   static readonly description = `ObjectRemover node
 replicate, ai`;
@@ -266,7 +266,7 @@ replicate, ai`;
 }
 
 export class Nano_Banana extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.Nano_Banana";
+  static readonly nodeType = "replicate.image.process.Nano_Banana";
   static readonly title = "Nano_ Banana";
   static readonly description = `Google's latest image editing model in Gemini 2.5
 replicate, ai`;
@@ -308,7 +308,7 @@ replicate, ai`;
 }
 
 export class Expand_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_process.Expand_Image";
+  static readonly nodeType = "replicate.image.process.Expand_Image";
   static readonly title = "Expand_ Image";
   static readonly description = `Bria Expand expands images beyond their borders in high quality. Resizing the image by generating new pixels to expand to the desired aspect ratio. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;

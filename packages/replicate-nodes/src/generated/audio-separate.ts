@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class Demucs extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_separate.Demucs";
+  static readonly nodeType = "replicate.audio.separate.Demucs";
   static readonly title = "Demucs";
   static readonly description = `Demucs is an audio source separator created by Facebook Research.
 replicate, ai`;

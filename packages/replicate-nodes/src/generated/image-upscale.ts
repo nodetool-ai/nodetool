@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class RealEsrGan extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.RealEsrGan";
+  static readonly nodeType = "replicate.image.upscale.RealEsrGan";
   static readonly title = "Real Esr Gan";
   static readonly description = `Real-ESRGAN for image upscaling on an A100
 replicate, ai`;
@@ -56,7 +56,7 @@ replicate, ai`;
 }
 
 export class GFPGAN extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.GFPGAN";
+  static readonly nodeType = "replicate.image.upscale.GFPGAN";
   static readonly title = "G F P G A N";
   static readonly description = `Practical face restoration algorithm for *old photos* or *AI-generated faces*
 replicate, ai`;
@@ -97,7 +97,7 @@ replicate, ai`;
 }
 
 export class ClarityUpscaler extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.ClarityUpscaler";
+  static readonly nodeType = "replicate.image.upscale.ClarityUpscaler";
   static readonly title = "Clarity Upscaler";
   static readonly description = `High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x
 replicate, ai`;
@@ -233,7 +233,7 @@ replicate, ai`;
 }
 
 export class MagicImageRefiner extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.MagicImageRefiner";
+  static readonly nodeType = "replicate.image.upscale.MagicImageRefiner";
   static readonly title = "Magic Image Refiner";
   static readonly description = `A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.
 replicate, ai`;
@@ -328,7 +328,7 @@ replicate, ai`;
 }
 
 export class ruDallE_SR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.ruDallE_SR";
+  static readonly nodeType = "replicate.image.upscale.ruDallE_SR";
   static readonly title = "ru Dall E_ S R";
   static readonly description = `Real-ESRGAN super-resolution model from ruDALL-E
 replicate, ai`;
@@ -364,7 +364,7 @@ replicate, ai`;
 }
 
 export class HighResolutionControlNetTile extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.HighResolutionControlNetTile";
+  static readonly nodeType = "replicate.image.upscale.HighResolutionControlNetTile";
   static readonly title = "High Resolution Control Net Tile";
   static readonly description = `UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
 replicate, ai`;
@@ -465,7 +465,7 @@ replicate, ai`;
 }
 
 export class UltimateSDUpscale extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.UltimateSDUpscale";
+  static readonly nodeType = "replicate.image.upscale.UltimateSDUpscale";
   static readonly title = "Ultimate S D Upscale";
   static readonly description = `Ultimate SD Upscale with ControlNet Tile
 replicate, ai`;
@@ -611,7 +611,7 @@ replicate, ai`;
 }
 
 export class SwinIR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.SwinIR";
+  static readonly nodeType = "replicate.image.upscale.SwinIR";
   static readonly title = "Swin I R";
   static readonly description = `Image Restoration Using Swin Transformer
 replicate, ai`;
@@ -657,7 +657,7 @@ replicate, ai`;
 }
 
 export class Swin2SR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Swin2SR";
+  static readonly nodeType = "replicate.image.upscale.Swin2SR";
   static readonly title = "Swin2 S R";
   static readonly description = `3.5 Million Runs! AI Photorealistic Image Super-Resolution and Restoration
 replicate, ai`;
@@ -693,7 +693,7 @@ replicate, ai`;
 }
 
 export class Alexgenovese_Upscaler extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Alexgenovese_Upscaler";
+  static readonly nodeType = "replicate.image.upscale.Alexgenovese_Upscaler";
   static readonly title = "Alexgenovese_ Upscaler";
   static readonly description = `GFPGAN aims at developing Practical Algorithms for Real-world Face and Object Restoration
 replicate, ai`;
@@ -734,7 +734,7 @@ replicate, ai`;
 }
 
 export class Bria_IncreaseResolution extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Bria_IncreaseResolution";
+  static readonly nodeType = "replicate.image.upscale.Bria_IncreaseResolution";
   static readonly title = "Bria_ Increase Resolution";
   static readonly description = `Bria Increase resolution upscales the resolution of any image. It increases resolution using a dedicated upscaling method that preserves the original image content without regeneration.
 replicate, ai`;
@@ -790,7 +790,7 @@ replicate, ai`;
 }
 
 export class CjwbwRealEsrGan extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.CjwbwRealEsrGan";
+  static readonly nodeType = "replicate.image.upscale.CjwbwRealEsrGan";
   static readonly title = "Cjwbw Real Esr Gan";
   static readonly description = `Real-ESRGAN: Real-World Blind Super-Resolution
 replicate, ai`;
@@ -826,7 +826,7 @@ replicate, ai`;
 }
 
 export class Google_Upscaler extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Google_Upscaler";
+  static readonly nodeType = "replicate.image.upscale.Google_Upscaler";
   static readonly title = "Google_ Upscaler";
   static readonly description = `Upscale images 2x or 4x times
 replicate, ai`;
@@ -867,7 +867,7 @@ replicate, ai`;
 }
 
 export class DemofusionEnhance extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.DemofusionEnhance";
+  static readonly nodeType = "replicate.image.upscale.DemofusionEnhance";
   static readonly title = "Demofusion Enhance";
   static readonly description = `Image to Image enhancer using DemoFusion
 replicate, ai`;
@@ -968,7 +968,7 @@ replicate, ai`;
 }
 
 export class PASD_Magnify extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.PASD_Magnify";
+  static readonly nodeType = "replicate.image.upscale.PASD_Magnify";
   static readonly title = "P A S D_ Magnify";
   static readonly description = `(Academic and Non-commercial use only) Pixel-Aware Stable Diffusion for Realistic Image Super-resolution and Personalized Stylization
 replicate, ai`;
@@ -1034,7 +1034,7 @@ replicate, ai`;
 }
 
 export class SD_X4_Upscaler extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.SD_X4_Upscaler";
+  static readonly nodeType = "replicate.image.upscale.SD_X4_Upscaler";
   static readonly title = "S D_ X4_ Upscaler";
   static readonly description = `Stable Diffusion x4 upscaler model
 replicate, ai`;
@@ -1075,7 +1075,7 @@ replicate, ai`;
 }
 
 export class NightmareAI_RealEsrGan extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.NightmareAI_RealEsrGan";
+  static readonly nodeType = "replicate.image.upscale.NightmareAI_RealEsrGan";
   static readonly title = "Nightmare A I_ Real Esr Gan";
   static readonly description = `Real-ESRGAN with optional face correction and adjustable upscale
 replicate, ai`;
@@ -1116,7 +1116,7 @@ replicate, ai`;
 }
 
 export class Recraft_Creative_Upscale extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Recraft_Creative_Upscale";
+  static readonly nodeType = "replicate.image.upscale.Recraft_Creative_Upscale";
   static readonly title = "Recraft_ Creative_ Upscale";
   static readonly description = `Creative Upscale focuses on enhancing details and refining complex elements in the image. It doesn’t just increase resolution but adds depth by improving textures, fine details, and facial features.
 replicate, ai`;
@@ -1146,7 +1146,7 @@ replicate, ai`;
 }
 
 export class Recraft_Crisp_Upscale extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Recraft_Crisp_Upscale";
+  static readonly nodeType = "replicate.image.upscale.Recraft_Crisp_Upscale";
   static readonly title = "Recraft_ Crisp_ Upscale";
   static readonly description = `Designed to make images sharper and cleaner, Crisp Upscale increases overall quality, making visuals suitable for web use or print-ready materials.
 replicate, ai`;
@@ -1176,7 +1176,7 @@ replicate, ai`;
 }
 
 export class Topaz_Image_Upscale extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Topaz_Image_Upscale";
+  static readonly nodeType = "replicate.image.upscale.Topaz_Image_Upscale";
   static readonly title = "Topaz_ Image_ Upscale";
   static readonly description = `Professional-grade image upscaling, from Topaz Labs
 replicate, ai`;
@@ -1242,7 +1242,7 @@ replicate, ai`;
 }
 
 export class ESRGAN extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.ESRGAN";
+  static readonly nodeType = "replicate.image.upscale.ESRGAN";
   static readonly title = "E S R G A N";
   static readonly description = `Image 4x super-resolution
 replicate, ai`;
@@ -1272,7 +1272,7 @@ replicate, ai`;
 }
 
 export class Aura_SR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Aura_SR";
+  static readonly nodeType = "replicate.image.upscale.Aura_SR";
   static readonly title = "Aura_ S R";
   static readonly description = `AuraSR: GAN-based Super-Resolution for real-world
 replicate, ai`;
@@ -1313,7 +1313,7 @@ replicate, ai`;
 }
 
 export class Aura_SR_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.Aura_SR_V2";
+  static readonly nodeType = "replicate.image.upscale.Aura_SR_V2";
   static readonly title = "Aura_ S R_ V2";
   static readonly description = `AuraSR v2: Second-gen GAN-based Super-Resolution for real-world applications
 replicate, ai`;
@@ -1359,7 +1359,7 @@ replicate, ai`;
 }
 
 export class BSRGAN extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.BSRGAN";
+  static readonly nodeType = "replicate.image.upscale.BSRGAN";
   static readonly title = "B S R G A N";
   static readonly description = `Upscale videos + images with BSRGAN
 replicate, ai`;
@@ -1391,7 +1391,7 @@ replicate, ai`;
 }
 
 export class DiffBIR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.DiffBIR";
+  static readonly nodeType = "replicate.image.upscale.DiffBIR";
   static readonly title = "Diff B I R";
   static readonly description = `✨DiffBIR: Towards Blind Image Restoration with Generative Diffusion Prior
 replicate, ai`;
@@ -1538,7 +1538,7 @@ replicate, ai`;
 }
 
 export class InvSR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_upscale.InvSR";
+  static readonly nodeType = "replicate.image.upscale.InvSR";
   static readonly title = "Inv S R";
   static readonly description = `Arbitrary-steps Image Super-resolution via Diffusion Inversion
 replicate, ai`;

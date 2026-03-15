@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class SDXLClipInterrogator extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.SDXLClipInterrogator";
+  static readonly nodeType = "replicate.image.analyze.SDXLClipInterrogator";
   static readonly title = "S D X L Clip Interrogator";
   static readonly description = `CLIP Interrogator for SDXL optimizes text prompts to match a given image
 replicate, ai`;
@@ -51,7 +51,7 @@ replicate, ai`;
 }
 
 export class Img2Prompt extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Img2Prompt";
+  static readonly nodeType = "replicate.image.analyze.Img2Prompt";
   static readonly title = "Img2 Prompt";
   static readonly description = `Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))
 replicate, ai`;
@@ -81,7 +81,7 @@ replicate, ai`;
 }
 
 export class Moondream2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Moondream2";
+  static readonly nodeType = "replicate.image.analyze.Moondream2";
   static readonly title = "Moondream2";
   static readonly description = `moondream2 is a small vision language model designed to run efficiently on edge devices
 replicate, ai`;
@@ -117,7 +117,7 @@ replicate, ai`;
 }
 
 export class NSFWImageDetection extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.NSFWImageDetection";
+  static readonly nodeType = "replicate.image.analyze.NSFWImageDetection";
   static readonly title = "N S F W Image Detection";
   static readonly description = `Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification
 replicate, ai`;
@@ -144,7 +144,7 @@ replicate, ai`;
 }
 
 export class Blip extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Blip";
+  static readonly nodeType = "replicate.image.analyze.Blip";
   static readonly title = "Blip";
   static readonly description = `Generate image captions
 replicate, ai`;
@@ -190,7 +190,7 @@ replicate, ai`;
 }
 
 export class Blip2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Blip2";
+  static readonly nodeType = "replicate.image.analyze.Blip2";
   static readonly title = "Blip2";
   static readonly description = `Answers questions about images
 replicate, ai`;
@@ -246,7 +246,7 @@ replicate, ai`;
 }
 
 export class ClipInterrogator extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.ClipInterrogator";
+  static readonly nodeType = "replicate.image.analyze.ClipInterrogator";
   static readonly title = "Clip Interrogator";
   static readonly description = `The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!
 replicate, ai`;
@@ -287,7 +287,7 @@ replicate, ai`;
 }
 
 export class Llava13b extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Llava13b";
+  static readonly nodeType = "replicate.image.analyze.Llava13b";
   static readonly title = "Llava13b";
   static readonly description = `Visual instruction tuning towards large language and vision models with GPT-4 level capabilities
 replicate, ai`;
@@ -338,7 +338,7 @@ replicate, ai`;
 }
 
 export class ClipFeatures extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.ClipFeatures";
+  static readonly nodeType = "replicate.image.analyze.ClipFeatures";
   static readonly title = "Clip Features";
   static readonly description = `Return CLIP features for the clip-vit-large-patch14 model
 replicate, ai`;
@@ -365,7 +365,7 @@ replicate, ai`;
 }
 
 export class Apollo_3B extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Apollo_3B";
+  static readonly nodeType = "replicate.image.analyze.Apollo_3B";
   static readonly title = "Apollo_3 B";
   static readonly description = `Apollo 3B - An Exploration of Video Understanding in Large Multimodal Models
 replicate, ai`;
@@ -416,7 +416,7 @@ replicate, ai`;
 }
 
 export class Apollo_7B extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Apollo_7B";
+  static readonly nodeType = "replicate.image.analyze.Apollo_7B";
   static readonly title = "Apollo_7 B";
   static readonly description = `Apollo 7B - An Exploration of Video Understanding in Large Multimodal Models
 replicate, ai`;
@@ -467,7 +467,7 @@ replicate, ai`;
 }
 
 export class MiniCPM_V4 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.MiniCPM_V4";
+  static readonly nodeType = "replicate.image.analyze.MiniCPM_V4";
   static readonly title = "Mini C P M_ V4";
   static readonly description = `MiniCPM-V 4.0 has strong image and video understanding performance
 replicate, ai`;
@@ -513,7 +513,7 @@ replicate, ai`;
 }
 
 export class VideoLlama3_7B extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.VideoLlama3_7B";
+  static readonly nodeType = "replicate.image.analyze.VideoLlama3_7B";
   static readonly title = "Video Llama3_7 B";
   static readonly description = `VideoLLaMA 3: Frontier Multimodal Foundation Models for Video Understanding
 replicate, ai`;
@@ -574,7 +574,7 @@ replicate, ai`;
 }
 
 export class Llava_V1_6_Mistral extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Llava_V1_6_Mistral";
+  static readonly nodeType = "replicate.image.analyze.Llava_V1_6_Mistral";
   static readonly title = "Llava_ V1_6_ Mistral";
   static readonly description = `LLaVA v1.6: Large Language and Vision Assistant (Mistral-7B)
 replicate, ai`;
@@ -630,7 +630,7 @@ replicate, ai`;
 }
 
 export class Llava_V1_6_Vicuna extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Llava_V1_6_Vicuna";
+  static readonly nodeType = "replicate.image.analyze.Llava_V1_6_Vicuna";
   static readonly title = "Llava_ V1_6_ Vicuna";
   static readonly description = `LLaVA v1.6: Large Language and Vision Assistant (Vicuna-13B)
 replicate, ai`;
@@ -686,7 +686,7 @@ replicate, ai`;
 }
 
 export class Gemini_3_Flash extends ReplicateNode {
-  static readonly nodeType = "replicate.image_analyze.Gemini_3_Flash";
+  static readonly nodeType = "replicate.image.analyze.Gemini_3_Flash";
   static readonly title = "Gemini_3_ Flash";
   static readonly description = `Google's most intelligent model built for speed with frontier intelligence, superior search, and grounding
 replicate, ai`;

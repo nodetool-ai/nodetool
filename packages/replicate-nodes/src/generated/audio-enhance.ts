@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class AudioSuperResolution extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_enhance.AudioSuperResolution";
+  static readonly nodeType = "replicate.audio.enhance.AudioSuperResolution";
   static readonly title = "Audio Super Resolution";
   static readonly description = `AudioSR: Versatile Audio Super-resolution at Scale
 replicate, ai`;

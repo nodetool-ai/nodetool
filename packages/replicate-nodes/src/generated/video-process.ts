@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class Modify_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.Modify_Video";
+  static readonly nodeType = "replicate.video.process.Modify_Video";
   static readonly title = "Modify_ Video";
   static readonly description = `Modify a video with style transfer and prompt-based editing
 replicate, ai`;
@@ -71,7 +71,7 @@ replicate, ai`;
 }
 
 export class Reframe_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.Reframe_Video";
+  static readonly nodeType = "replicate.video.process.Reframe_Video";
   static readonly title = "Reframe_ Video";
   static readonly description = `Change the aspect ratio of any video up to 30 seconds long, outputs will be 720p
 replicate, ai`;
@@ -147,7 +147,7 @@ replicate, ai`;
 }
 
 export class RealBasicVSR extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.RealBasicVSR";
+  static readonly nodeType = "replicate.video.process.RealBasicVSR";
   static readonly title = "Real Basic V S R";
   static readonly description = `RealBasicVSR: Investigating Tradeoffs in Real-World Video Super-Resolution
 replicate, ai`;
@@ -177,7 +177,7 @@ replicate, ai`;
 }
 
 export class Crystal_Video_Upscaler extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.Crystal_Video_Upscaler";
+  static readonly nodeType = "replicate.video.process.Crystal_Video_Upscaler";
   static readonly title = "Crystal_ Video_ Upscaler";
   static readonly description = `High-precision video upscaler optimized for portraits, faces and products. One of the upscale modes powered by Clarity AI. X:https://x.com/philz1337x
 replicate, ai`;
@@ -213,7 +213,7 @@ replicate, ai`;
 }
 
 export class RealEsrGan_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.RealEsrGan_Video";
+  static readonly nodeType = "replicate.video.process.RealEsrGan_Video";
   static readonly title = "Real Esr Gan_ Video";
   static readonly description = `Real-ESRGAN Video Upscaler
 replicate, ai`;
@@ -250,7 +250,7 @@ replicate, ai`;
 }
 
 export class StableVideoFaceRestoration extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.StableVideoFaceRestoration";
+  static readonly nodeType = "replicate.video.process.StableVideoFaceRestoration";
   static readonly title = "Stable Video Face Restoration";
   static readonly description = `SVFR: A Unified Framework for Generalized Video Face Restoration
 replicate, ai`;
@@ -331,7 +331,7 @@ replicate, ai`;
 }
 
 export class Deoldify_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.Deoldify_Video";
+  static readonly nodeType = "replicate.video.process.Deoldify_Video";
   static readonly title = "Deoldify_ Video";
   static readonly description = `Add colours to old video footage.
 replicate, ai`;
@@ -363,7 +363,7 @@ replicate, ai`;
 }
 
 export class AutoCaption extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.AutoCaption";
+  static readonly nodeType = "replicate.video.process.AutoCaption";
   static readonly title = "Auto Caption";
   static readonly description = `Automatically add captions to a video
 replicate, ai`;
@@ -465,7 +465,7 @@ replicate, ai`;
 }
 
 export class Wan_2_2_S2V extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.Wan_2_2_S2V";
+  static readonly nodeType = "replicate.video.process.Wan_2_2_S2V";
   static readonly title = "Wan_2_2_ S2 V";
   static readonly description = `Generate a video from an audio clip and a reference image
 replicate, ai`;
@@ -517,7 +517,7 @@ replicate, ai`;
 }
 
 export class VEED_Fabric extends ReplicateNode {
-  static readonly nodeType = "replicate.video_process.VEED_Fabric";
+  static readonly nodeType = "replicate.video.process.VEED_Fabric";
   static readonly title = "V E E D_ Fabric";
   static readonly description = `VEED Fabric 1.0 is an image-to-video API that turns any image into a talking video
 replicate, ai`;

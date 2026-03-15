@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class CodeFormer extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.CodeFormer";
+  static readonly nodeType = "replicate.image.enhance.CodeFormer";
   static readonly title = "Code Former";
   static readonly description = `Robust face restoration algorithm for old photos/AI-generated faces
 replicate, ai`;
@@ -66,7 +66,7 @@ replicate, ai`;
 }
 
 export class Night_Enhancement extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Night_Enhancement";
+  static readonly nodeType = "replicate.image.enhance.Night_Enhancement";
   static readonly title = "Night_ Enhancement";
   static readonly description = `Unsupervised Night Image Enhancement
 replicate, ai`;
@@ -96,7 +96,7 @@ replicate, ai`;
 }
 
 export class Supir_V0Q extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Supir_V0Q";
+  static readonly nodeType = "replicate.image.enhance.Supir_V0Q";
   static readonly title = "Supir_ V0 Q";
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0Q model and does NOT use LLaVA-13b.
 replicate, ai`;
@@ -207,7 +207,7 @@ replicate, ai`;
 }
 
 export class Supir_V0F extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Supir_V0F";
+  static readonly nodeType = "replicate.image.enhance.Supir_V0F";
   static readonly title = "Supir_ V0 F";
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0F model and does NOT use LLaVA-13b.
 replicate, ai`;
@@ -318,7 +318,7 @@ replicate, ai`;
 }
 
 export class Maxim extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Maxim";
+  static readonly nodeType = "replicate.image.enhance.Maxim";
   static readonly title = "Maxim";
   static readonly description = `Multi-Axis MLP for Image Processing
 replicate, ai`;
@@ -354,7 +354,7 @@ replicate, ai`;
 }
 
 export class OldPhotosRestoration extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.OldPhotosRestoration";
+  static readonly nodeType = "replicate.image.enhance.OldPhotosRestoration";
   static readonly title = "Old Photos Restoration";
   static readonly description = `Bringing Old Photos Back to Life
 replicate, ai`;
@@ -395,7 +395,7 @@ replicate, ai`;
 }
 
 export class Deoldify_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Deoldify_Image";
+  static readonly nodeType = "replicate.image.enhance.Deoldify_Image";
   static readonly title = "Deoldify_ Image";
   static readonly description = `Add colours to old images
 replicate, ai`;
@@ -432,7 +432,7 @@ replicate, ai`;
 }
 
 export class BigColor extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.BigColor";
+  static readonly nodeType = "replicate.image.enhance.BigColor";
   static readonly title = "Big Color";
   static readonly description = `Colorization using a Generative Color Prior for Natural Images
 replicate, ai`;
@@ -473,7 +473,7 @@ replicate, ai`;
 }
 
 export class NAFNet extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.NAFNet";
+  static readonly nodeType = "replicate.image.enhance.NAFNet";
   static readonly title = "N A F Net";
   static readonly description = `Nonlinear Activation Free Network for Image Restoration
 replicate, ai`;
@@ -514,7 +514,7 @@ replicate, ai`;
 }
 
 export class InstructIR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.InstructIR";
+  static readonly nodeType = "replicate.image.enhance.InstructIR";
   static readonly title = "Instruct I R";
   static readonly description = `High-Quality Image Restoration Following Human Instructions
 replicate, ai`;
@@ -555,7 +555,7 @@ replicate, ai`;
 }
 
 export class AnimeSR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.AnimeSR";
+  static readonly nodeType = "replicate.image.enhance.AnimeSR";
   static readonly title = "Anime S R";
   static readonly description = `Real-World Super-Resolution Models for Animation Videos
 replicate, ai`;
@@ -587,7 +587,7 @@ replicate, ai`;
 }
 
 export class VQFR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.VQFR";
+  static readonly nodeType = "replicate.image.enhance.VQFR";
   static readonly title = "V Q F R";
   static readonly description = `Blind Face Restoration with Vector-Quantized Dictionary and Parallel Decoder
 replicate, ai`;
@@ -623,7 +623,7 @@ replicate, ai`;
 }
 
 export class Topaz_DustScratch_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Topaz_DustScratch_V2";
+  static readonly nodeType = "replicate.image.enhance.Topaz_DustScratch_V2";
   static readonly title = "Topaz_ Dust Scratch_ V2";
   static readonly description = `Remove dust and scratches from old photos
 replicate, ai`;
@@ -684,7 +684,7 @@ replicate, ai`;
 }
 
 export class Topaz_Colorization extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.Topaz_Colorization";
+  static readonly nodeType = "replicate.image.enhance.Topaz_Colorization";
   static readonly title = "Topaz_ Colorization";
   static readonly description = `Image colorization model from Topaz Labs
 replicate, ai`;
@@ -725,7 +725,7 @@ replicate, ai`;
 }
 
 export class GPEN extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.GPEN";
+  static readonly nodeType = "replicate.image.enhance.GPEN";
   static readonly title = "G P E N";
   static readonly description = `Blind Face Restoration in the Wild
 replicate, ai`;
@@ -771,7 +771,7 @@ replicate, ai`;
 }
 
 export class SUPIR extends ReplicateNode {
-  static readonly nodeType = "replicate.image_enhance.SUPIR";
+  static readonly nodeType = "replicate.image.enhance.SUPIR";
   static readonly title = "S U P I R";
   static readonly description = `Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This version uses LLaVA-13b for captioning.
 replicate, ai`;

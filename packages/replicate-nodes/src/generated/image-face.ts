@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class FaceToMany extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.FaceToMany";
+  static readonly nodeType = "replicate.image.face.FaceToMany";
   static readonly title = "Face To Many";
   static readonly description = `Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 replicate, ai`;
@@ -96,7 +96,7 @@ replicate, ai`;
 }
 
 export class BecomeImage extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.BecomeImage";
+  static readonly nodeType = "replicate.image.face.BecomeImage";
   static readonly title = "Become Image";
   static readonly description = `Adapt any picture of a face into another image
 replicate, ai`;
@@ -191,7 +191,7 @@ replicate, ai`;
 }
 
 export class PhotoMaker extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.PhotoMaker";
+  static readonly nodeType = "replicate.image.face.PhotoMaker";
   static readonly title = "Photo Maker";
   static readonly description = `Create photos, paintings and avatars for anyone in any style within seconds.
 replicate, ai`;
@@ -278,7 +278,7 @@ replicate, ai`;
 }
 
 export class PhotoMakerStyle extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.PhotoMakerStyle";
+  static readonly nodeType = "replicate.image.face.PhotoMakerStyle";
   static readonly title = "Photo Maker Style";
   static readonly description = `Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)
 replicate, ai`;
@@ -381,7 +381,7 @@ replicate, ai`;
 }
 
 export class FaceToSticker extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.FaceToSticker";
+  static readonly nodeType = "replicate.image.face.FaceToSticker";
   static readonly title = "Face To Sticker";
   static readonly description = `Turn a face into a sticker
 replicate, ai`;
@@ -472,7 +472,7 @@ replicate, ai`;
 }
 
 export class InstantId extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.InstantId";
+  static readonly nodeType = "replicate.image.face.InstantId";
   static readonly title = "Instant Id";
   static readonly description = `Make realistic images of real people instantly
 replicate, ai`;
@@ -637,7 +637,7 @@ replicate, ai`;
 }
 
 export class Instant_ID_Photorealistic extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.Instant_ID_Photorealistic";
+  static readonly nodeType = "replicate.image.face.Instant_ID_Photorealistic";
   static readonly title = "Instant_ I D_ Photorealistic";
   static readonly description = `InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Juggernaut-XL v8 as the base model to encourage photorealism
 replicate, ai`;
@@ -708,7 +708,7 @@ replicate, ai`;
 }
 
 export class Instant_ID_Artistic extends ReplicateNode {
-  static readonly nodeType = "replicate.image_face.Instant_ID_Artistic";
+  static readonly nodeType = "replicate.image.face.Instant_ID_Artistic";
   static readonly title = "Instant_ I D_ Artistic";
   static readonly description = `InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations
 replicate, ai`;

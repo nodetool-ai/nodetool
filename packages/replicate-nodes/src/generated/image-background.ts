@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class BackgroundRemover_851 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.BackgroundRemover_851";
+  static readonly nodeType = "replicate.image.background.BackgroundRemover_851";
   static readonly title = "Background Remover_851";
   static readonly description = `Remove backgrounds from images.
 replicate, ai`;
@@ -66,7 +66,7 @@ replicate, ai`;
 }
 
 export class Bria_RemoveBackground extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.Bria_RemoveBackground";
+  static readonly nodeType = "replicate.image.background.Bria_RemoveBackground";
   static readonly title = "Bria_ Remove Background";
   static readonly description = `Bria AI's remove background model
 replicate, ai`;
@@ -117,7 +117,7 @@ replicate, ai`;
 }
 
 export class Bria_Eraser extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.Bria_Eraser";
+  static readonly nodeType = "replicate.image.background.Bria_Eraser";
   static readonly title = "Bria_ Eraser";
   static readonly description = `SOTA Object removal, enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;
@@ -187,7 +187,7 @@ replicate, ai`;
 }
 
 export class Bria_GenerateBackground extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.Bria_GenerateBackground";
+  static readonly nodeType = "replicate.image.background.Bria_GenerateBackground";
   static readonly title = "Bria_ Generate Background";
   static readonly description = `Bria Background Generation allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;
@@ -283,7 +283,7 @@ replicate, ai`;
 }
 
 export class Bria_GenFill extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.Bria_GenFill";
+  static readonly nodeType = "replicate.image.background.Bria_GenFill";
   static readonly title = "Bria_ Gen Fill";
   static readonly description = `Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use.
 replicate, ai`;
@@ -358,7 +358,7 @@ replicate, ai`;
 }
 
 export class Bria_FiboEdit extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.Bria_FiboEdit";
+  static readonly nodeType = "replicate.image.background.Bria_FiboEdit";
   static readonly title = "Bria_ Fibo Edit";
   static readonly description = `FIBO-Edit brings the power of structured prompt generation to image editing
 replicate, ai`;
@@ -419,7 +419,7 @@ replicate, ai`;
 }
 
 export class BackgroundRemover_Codeplug extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.BackgroundRemover_Codeplug";
+  static readonly nodeType = "replicate.image.background.BackgroundRemover_Codeplug";
   static readonly title = "Background Remover_ Codeplug";
   static readonly description = `Remove background from image
 replicate, ai`;
@@ -449,7 +449,7 @@ replicate, ai`;
 }
 
 export class BiRefNet extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.BiRefNet";
+  static readonly nodeType = "replicate.image.background.BiRefNet";
   static readonly title = "Bi Ref Net";
   static readonly description = `Bilateral Reference for High-Resolution Dichotomous Image Segmentation (CAAI AIR 2024)
 replicate, ai`;
@@ -485,7 +485,7 @@ replicate, ai`;
 }
 
 export class RembgEnhance extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.RembgEnhance";
+  static readonly nodeType = "replicate.image.background.RembgEnhance";
   static readonly title = "Rembg Enhance";
   static readonly description = `A background removal model enhanced with better matting
 replicate, ai`;
@@ -515,7 +515,7 @@ replicate, ai`;
 }
 
 export class RemoveBg extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.RemoveBg";
+  static readonly nodeType = "replicate.image.background.RemoveBg";
   static readonly title = "Remove Bg";
   static readonly description = `Best Human detection and Object Detection Background removal.
 replicate, ai`;
@@ -545,7 +545,7 @@ replicate, ai`;
 }
 
 export class RemoveBgLucataco extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.RemoveBgLucataco";
+  static readonly nodeType = "replicate.image.background.RemoveBgLucataco";
   static readonly title = "Remove Bg Lucataco";
   static readonly description = `Remove background from an image
 replicate, ai`;
@@ -575,7 +575,7 @@ replicate, ai`;
 }
 
 export class RembgVideo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_background.RembgVideo";
+  static readonly nodeType = "replicate.image.background.RembgVideo";
   static readonly title = "Rembg Video";
   static readonly description = `Video Background Removal
 replicate, ai`;

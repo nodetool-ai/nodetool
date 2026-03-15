@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class IncrediblyFastWhisper extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.IncrediblyFastWhisper";
+  static readonly nodeType = "replicate.audio.transcribe.IncrediblyFastWhisper";
   static readonly title = "Incredibly Fast Whisper";
   static readonly description = `whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 replicate, ai`;
@@ -76,7 +76,7 @@ replicate, ai`;
 }
 
 export class GPT4o_Transcribe extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.GPT4o_Transcribe";
+  static readonly nodeType = "replicate.audio.transcribe.GPT4o_Transcribe";
   static readonly title = "G P T4o_ Transcribe";
   static readonly description = `A speech-to-text model that uses GPT-4o to transcribe audio
 replicate, ai`;
@@ -118,7 +118,7 @@ replicate, ai`;
 }
 
 export class Whisper extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Whisper";
+  static readonly nodeType = "replicate.audio.transcribe.Whisper";
   static readonly title = "Whisper";
   static readonly description = `Convert speech in audio to text
 replicate, ai`;
@@ -209,7 +209,7 @@ replicate, ai`;
 }
 
 export class GPT4o_Mini_Transcribe extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.GPT4o_Mini_Transcribe";
+  static readonly nodeType = "replicate.audio.transcribe.GPT4o_Mini_Transcribe";
   static readonly title = "G P T4o_ Mini_ Transcribe";
   static readonly description = `A speech-to-text model that uses GPT-4o mini to transcribe audio
 replicate, ai`;
@@ -251,7 +251,7 @@ replicate, ai`;
 }
 
 export class WhisperX extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.WhisperX";
+  static readonly nodeType = "replicate.audio.transcribe.WhisperX";
   static readonly title = "Whisper X";
   static readonly description = `Accelerated transcription of audio using WhisperX
 replicate, ai`;
@@ -302,7 +302,7 @@ replicate, ai`;
 }
 
 export class Whisper_Diarization extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Whisper_Diarization";
+  static readonly nodeType = "replicate.audio.transcribe.Whisper_Diarization";
   static readonly title = "Whisper_ Diarization";
   static readonly description = `⚡️ Blazing fast audio transcription with speaker diarization | Whisper Large V3 Turbo | word & sentence level timestamps | prompt
 replicate, ai`;
@@ -364,7 +364,7 @@ replicate, ai`;
 }
 
 export class Parakeet_RNNT extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Parakeet_RNNT";
+  static readonly nodeType = "replicate.audio.transcribe.Parakeet_RNNT";
   static readonly title = "Parakeet_ R N N T";
   static readonly description = `🗣️ Nvidia + Suno.ai's speech-to-text conversion with high accuracy and efficiency 📝
 replicate, ai`;
@@ -391,7 +391,7 @@ replicate, ai`;
 }
 
 export class Speaker_Diarization extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Speaker_Diarization";
+  static readonly nodeType = "replicate.audio.transcribe.Speaker_Diarization";
   static readonly title = "Speaker_ Diarization";
   static readonly description = `Segments an audio recording based on who is speaking (on A100)
 replicate, ai`;
@@ -421,7 +421,7 @@ replicate, ai`;
 }
 
 export class Meronym_Speaker_Diarization extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Meronym_Speaker_Diarization";
+  static readonly nodeType = "replicate.audio.transcribe.Meronym_Speaker_Diarization";
   static readonly title = "Meronym_ Speaker_ Diarization";
   static readonly description = `Segments an audio recording based on who is speaking
 replicate, ai`;
@@ -451,7 +451,7 @@ replicate, ai`;
 }
 
 export class Speaker_Transcription extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Speaker_Transcription";
+  static readonly nodeType = "replicate.audio.transcribe.Speaker_Transcription";
   static readonly title = "Speaker_ Transcription";
   static readonly description = `Whisper transcription plus speaker diarization
 replicate, ai`;
@@ -487,7 +487,7 @@ replicate, ai`;
 }
 
 export class Speaker_Diarization_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_transcribe.Speaker_Diarization_3";
+  static readonly nodeType = "replicate.audio.transcribe.Speaker_Diarization_3";
   static readonly title = "Speaker_ Diarization_3";
   static readonly description = `Segments an audio recording based on who is speaking
 replicate, ai`;

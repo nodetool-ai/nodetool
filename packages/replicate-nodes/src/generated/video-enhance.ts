@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class Topaz_Video_Upscale extends ReplicateNode {
-  static readonly nodeType = "replicate.video_enhance.Topaz_Video_Upscale";
+  static readonly nodeType = "replicate.video.enhance.Topaz_Video_Upscale";
   static readonly title = "Topaz_ Video_ Upscale";
   static readonly description = `Video Upscaling from Topaz Labs
 replicate, ai`;
