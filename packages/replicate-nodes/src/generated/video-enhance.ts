@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -37,7 +36,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("runwayml/upscale-v1").version, args);
+    const res = await replicateSubmit(apiKey, "runwayml/upscale-v1", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -75,7 +74,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("topazlabs/video-upscale").version, args);
+    const res = await replicateSubmit(apiKey, "topazlabs/video-upscale", args);
     return { output: outputToVideoRef(res.output) };
   }
 }

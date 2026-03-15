@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -54,7 +53,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("anthropic/claude-3.7-sonnet").version, args);
+    const res = await replicateSubmit(apiKey, "anthropic/claude-3.7-sonnet", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -103,7 +102,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("deepseek-ai/deepseek-r1").version, args);
+    const res = await replicateSubmit(apiKey, "deepseek-ai/deepseek-r1", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -157,7 +156,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("deepseek-ai/deepseek-v3.1").version, args);
+    const res = await replicateSubmit(apiKey, "deepseek-ai/deepseek-v3.1", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -221,7 +220,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-4.1").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-4.1", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -285,7 +284,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-4.1-mini").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-4.1-mini", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -349,7 +348,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-4.1-nano").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-4.1-nano", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -403,7 +402,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-5").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-5", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -457,7 +456,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-5-mini").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-5-mini", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -511,7 +510,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-5-nano").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-5-nano", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -595,7 +594,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-5-structured").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-5-structured", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -669,7 +668,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/meta-llama-3.1-405b-instruct").version, args);
+    const res = await replicateSubmit(apiKey, "meta/meta-llama-3.1-405b-instruct", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -733,7 +732,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/meta-llama-3-70b").version, args);
+    const res = await replicateSubmit(apiKey, "meta/meta-llama-3-70b", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -797,7 +796,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/meta-llama-3-70b-instruct").version, args);
+    const res = await replicateSubmit(apiKey, "meta/meta-llama-3-70b-instruct", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -861,7 +860,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/meta-llama-3-8b").version, args);
+    const res = await replicateSubmit(apiKey, "meta/meta-llama-3-8b", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -925,7 +924,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/meta-llama-3-8b-instruct").version, args);
+    const res = await replicateSubmit(apiKey, "meta/meta-llama-3-8b-instruct", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -954,7 +953,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/llama-guard-3-11b-vision").version, args);
+    const res = await replicateSubmit(apiKey, "meta/llama-guard-3-11b-vision", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -983,7 +982,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/llama-guard-3-8b").version, args);
+    const res = await replicateSubmit(apiKey, "meta/llama-guard-3-8b", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -1012,7 +1011,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("snowflake/snowflake-arctic-instruct").version, args);
+    const res = await replicateSubmit(apiKey, "snowflake/snowflake-arctic-instruct", args);
     return { output: outputToString(res.output) };
   }
 }

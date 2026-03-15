@@ -151,6 +151,11 @@ async function generateFromMetadata(
         ? generator.applyConfig(spec, nodeConfig)
         : spec;
 
+      // Deduplicate by className (Python metadata can have multiple entries
+      // for the same model, e.g. Kandinsky and Kandinsky_2_2 both map to
+      // ai-forever/kandinsky-2.2 with className "Kandinsky")
+      if (finalSpecs.some((s) => s.className === applied.className)) continue;
+
       console.log(`  ${applied.className} (${modelId})`);
       finalSpecs.push(applied);
     }

@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -68,7 +67,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/audio-to-waveform").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/audio-to-waveform", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -112,7 +111,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("runwayml/gen4-aleph").version, args);
+    const res = await replicateSubmit(apiKey, "runwayml/gen4-aleph", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -156,7 +155,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("runwayml/gen4-turbo").version, args);
+    const res = await replicateSubmit(apiKey, "runwayml/gen4-turbo", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -205,7 +204,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("minimax/hailuo-02").version, args);
+    const res = await replicateSubmit(apiKey, "minimax/hailuo-02", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -264,7 +263,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/hotshot-xl").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/hotshot-xl", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -323,7 +322,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("tencent/hunyuan-video").version, args);
+    const res = await replicateSubmit(apiKey, "tencent/hunyuan-video", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -372,7 +371,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("kwaivgi/kling-lip-sync").version, args);
+    const res = await replicateSubmit(apiKey, "kwaivgi/kling-lip-sync", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -421,7 +420,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("kwaivgi/kling-v2.1").version, args);
+    const res = await replicateSubmit(apiKey, "kwaivgi/kling-v2.1", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -499,7 +498,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lightricks/ltx-video").version, args);
+    const res = await replicateSubmit(apiKey, "lightricks/ltx-video", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -551,7 +550,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("sync/lipsync-2").version, args);
+    const res = await replicateSubmit(apiKey, "sync/lipsync-2", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -603,7 +602,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("sync/lipsync-2-pro").version, args);
+    const res = await replicateSubmit(apiKey, "sync/lipsync-2-pro", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -670,7 +669,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("minimax/music-01").version, args);
+    const res = await replicateSubmit(apiKey, "minimax/music-01", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -734,7 +733,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("pixverse/pixverse-v5").version, args);
+    const res = await replicateSubmit(apiKey, "pixverse/pixverse-v5", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -806,7 +805,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("luma/ray").version, args);
+    const res = await replicateSubmit(apiKey, "luma/ray", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -839,7 +838,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("arielreplicate/robust_video_matting").version, args);
+    const res = await replicateSubmit(apiKey, "arielreplicate/robust_video_matting", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -908,7 +907,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google/veo-3.1").version, args);
+    const res = await replicateSubmit(apiKey, "google/veo-3.1", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -947,7 +946,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("minimax/video-01").version, args);
+    const res = await replicateSubmit(apiKey, "minimax/video-01", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -981,7 +980,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("minimax/video-01-live").version, args);
+    const res = await replicateSubmit(apiKey, "minimax/video-01-live", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1040,7 +1039,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("wan-video/wan-2.1-1.3b").version, args);
+    const res = await replicateSubmit(apiKey, "wan-video/wan-2.1-1.3b", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1123,7 +1122,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("wavespeedai/wan-2.1-i2v-480p").version, args);
+    const res = await replicateSubmit(apiKey, "wavespeedai/wan-2.1-i2v-480p", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1221,7 +1220,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("wan-video/wan-2.2-i2v-fast").version, args);
+    const res = await replicateSubmit(apiKey, "wan-video/wan-2.2-i2v-fast", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1315,7 +1314,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("wan-video/wan-2.2-t2v-fast").version, args);
+    const res = await replicateSubmit(apiKey, "wan-video/wan-2.2-t2v-fast", args);
     return { output: outputToVideoRef(res.output) };
   }
 }
@@ -1404,7 +1403,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("anotherjesse/zeroscope-v2-xl").version, args);
+    const res = await replicateSubmit(apiKey, "anotherjesse/zeroscope-v2-xl", args);
     return { output: outputToVideoRef(res.output) };
   }
 }

@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -34,7 +33,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("mickeybeurskens/latex-ocr").version, args);
+    const res = await replicateSubmit(apiKey, "mickeybeurskens/latex-ocr", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -61,7 +60,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("abiruyt/text-extract-ocr").version, args);
+    const res = await replicateSubmit(apiKey, "abiruyt/text-extract-ocr", args);
     return { output: outputToString(res.output) };
   }
 }

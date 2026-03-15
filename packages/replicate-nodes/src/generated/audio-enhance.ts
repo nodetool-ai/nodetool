@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -53,7 +52,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("nateraw/audio-super-resolution").version, args);
+    const res = await replicateSubmit(apiKey, "nateraw/audio-super-resolution", args);
     return { output: outputToAudioRef(res.output) };
   }
 }

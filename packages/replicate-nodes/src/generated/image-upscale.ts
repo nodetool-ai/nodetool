@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -143,7 +142,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("philz1337x/clarity-upscaler").version, args);
+    const res = await replicateSubmit(apiKey, "philz1337x/clarity-upscaler", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -181,7 +180,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("tencentarc/gfpgan").version, args);
+    const res = await replicateSubmit(apiKey, "tencentarc/gfpgan", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -279,7 +278,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("batouresearch/high-resolution-controlnet-tile").version, args);
+    const res = await replicateSubmit(apiKey, "batouresearch/high-resolution-controlnet-tile", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -371,7 +370,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("batouresearch/magic-image-refiner").version, args);
+    const res = await replicateSubmit(apiKey, "batouresearch/magic-image-refiner", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -409,7 +408,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("daanelson/real-esrgan-a100").version, args);
+    const res = await replicateSubmit(apiKey, "daanelson/real-esrgan-a100", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -442,7 +441,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("mv-lab/swin2sr").version, args);
+    const res = await replicateSubmit(apiKey, "mv-lab/swin2sr", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -485,7 +484,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("jingyunliang/swinir").version, args);
+    const res = await replicateSubmit(apiKey, "jingyunliang/swinir", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -628,7 +627,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fewjative/ultimate-sd-upscale").version, args);
+    const res = await replicateSubmit(apiKey, "fewjative/ultimate-sd-upscale", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -661,7 +660,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("cjwbw/rudalle-sr").version, args);
+    const res = await replicateSubmit(apiKey, "cjwbw/rudalle-sr", args);
     return { output: outputToImageRef(res.output) };
   }
 }

@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -83,7 +82,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("logerzhu/ad-inpaint").version, args);
+    const res = await replicateSubmit(apiKey, "logerzhu/ad-inpaint", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -156,7 +155,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/consistent-character").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/consistent-character", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -215,7 +214,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-1.1-pro-ultra").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-1.1-pro-ultra", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -299,7 +298,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-2-flex").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-flex", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -368,7 +367,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-2-max").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-max", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -437,7 +436,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-2-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-2-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -569,7 +568,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("igorriti/flux-360").version, args);
+    const res = await replicateSubmit(apiKey, "igorriti/flux-360", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -701,7 +700,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/flux-black-light").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/flux-black-light", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -774,7 +773,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-canny-dev").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-canny-dev", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -837,7 +836,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-canny-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-canny-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -969,7 +968,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("adirik/flux-cinestill").version, args);
+    const res = await replicateSubmit(apiKey, "adirik/flux-cinestill", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1042,7 +1041,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-depth-dev").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-depth-dev", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1105,7 +1104,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-depth-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-depth-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1189,7 +1188,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-dev").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-dev", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1307,7 +1306,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-dev-lora").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-dev-lora", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1391,7 +1390,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-fill-dev").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-fill-dev", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1460,7 +1459,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-fill-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-fill-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1514,7 +1513,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-kontext-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-kontext-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1646,7 +1645,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/flux-mona-lisa").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/flux-mona-lisa", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1730,7 +1729,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-pro").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-pro", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1803,7 +1802,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-redux-dev").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-redux-dev", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1871,7 +1870,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-redux-schnell").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-redux-schnell", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -1940,7 +1939,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-schnell").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-schnell", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2019,7 +2018,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("black-forest-labs/flux-schnell-lora").version, args);
+    const res = await replicateSubmit(apiKey, "black-forest-labs/flux-schnell-lora", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2098,7 +2097,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-image-1.5").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-image-1.5", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2172,7 +2171,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("bytedance/hyper-flux-8step").version, args);
+    const res = await replicateSubmit(apiKey, "bytedance/hyper-flux-8step", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2244,7 +2243,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ideogram-ai/ideogram-v2").version, args);
+    const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v2", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2293,7 +2292,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ideogram-ai/ideogram-v2a").version, args);
+    const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v2a", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2365,7 +2364,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ideogram-ai/ideogram-v2-turbo").version, args);
+    const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v2-turbo", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2442,7 +2441,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ideogram-ai/ideogram-v3-turbo").version, args);
+    const res = await replicateSubmit(apiKey, "ideogram-ai/ideogram-v3-turbo", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2553,7 +2552,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/illusions").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/illusions", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2592,7 +2591,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google/imagen-3").version, args);
+    const res = await replicateSubmit(apiKey, "google/imagen-3", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2631,7 +2630,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google/imagen-4-fast").version, args);
+    const res = await replicateSubmit(apiKey, "google/imagen-4-fast", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2695,7 +2694,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ai-forever/kandinsky-2.2").version, args);
+    const res = await replicateSubmit(apiKey, "ai-forever/kandinsky-2.2", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2739,7 +2738,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("minimax/image-01").version, args);
+    const res = await replicateSubmit(apiKey, "minimax/image-01", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2825,7 +2824,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("luma/photon-flash").version, args);
+    const res = await replicateSubmit(apiKey, "luma/photon-flash", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -2918,7 +2917,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("playgroundai/playground-v2.5-1024px-aesthetic").version, args);
+    const res = await replicateSubmit(apiKey, "playgroundai/playground-v2.5-1024px-aesthetic", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3015,7 +3014,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("datacte/proteus-v0.2").version, args);
+    const res = await replicateSubmit(apiKey, "datacte/proteus-v0.2", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3112,7 +3111,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("datacte/proteus-v0.3").version, args);
+    const res = await replicateSubmit(apiKey, "datacte/proteus-v0.3", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3190,7 +3189,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/pulid-base").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/pulid-base", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3298,7 +3297,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("qwen/qwen-image").version, args);
+    const res = await replicateSubmit(apiKey, "qwen/qwen-image", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3356,7 +3355,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("qwen/qwen-image-edit").version, args);
+    const res = await replicateSubmit(apiKey, "qwen/qwen-image-edit", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3395,7 +3394,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("recraft-ai/recraft-20b").version, args);
+    const res = await replicateSubmit(apiKey, "recraft-ai/recraft-20b", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3434,7 +3433,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("recraft-ai/recraft-20b-svg").version, args);
+    const res = await replicateSubmit(apiKey, "recraft-ai/recraft-20b-svg", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3473,7 +3472,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("recraft-ai/recraft-v3").version, args);
+    const res = await replicateSubmit(apiKey, "recraft-ai/recraft-v3", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3512,7 +3511,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("recraft-ai/recraft-v3-svg").version, args);
+    const res = await replicateSubmit(apiKey, "recraft-ai/recraft-v3-svg", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3595,7 +3594,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("catacolabs/sdxl-ad-inpaint").version, args);
+    const res = await replicateSubmit(apiKey, "catacolabs/sdxl-ad-inpaint", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3648,7 +3647,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/sdxl-controlnet").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/sdxl-controlnet", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3770,7 +3769,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/sdxl-emoji").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/sdxl-emoji", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3892,7 +3891,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("swartype/sdxl-pixar").version, args);
+    const res = await replicateSubmit(apiKey, "swartype/sdxl-pixar", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -3956,7 +3955,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("bytedance/seedream-4").version, args);
+    const res = await replicateSubmit(apiKey, "bytedance/seedream-4", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4020,7 +4019,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/stable-diffusion").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/stable-diffusion", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4083,7 +4082,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/stable-diffusion-3.5-large").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/stable-diffusion-3.5-large", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4146,7 +4145,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/stable-diffusion-3.5-large-turbo").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/stable-diffusion-3.5-large-turbo", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4209,7 +4208,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/stable-diffusion-3.5-medium").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/stable-diffusion-3.5-medium", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4296,7 +4295,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/stable-diffusion-inpainting").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/stable-diffusion-inpainting", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4418,7 +4417,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("stability-ai/sdxl").version, args);
+    const res = await replicateSubmit(apiKey, "stability-ai/sdxl", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4487,7 +4486,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("bytedance/sdxl-lightning-4step").version, args);
+    const res = await replicateSubmit(apiKey, "bytedance/sdxl-lightning-4step", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4551,7 +4550,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/sticker-maker").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/sticker-maker", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -4643,7 +4642,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/style-transfer").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/style-transfer", args);
     return { output: outputToImageRef(res.output) };
   }
 }
