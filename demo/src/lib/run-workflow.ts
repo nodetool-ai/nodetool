@@ -69,8 +69,8 @@ const AI_NODE_TYPES = new Set([
 const OPENAI_MODEL = {
   type: "language_model",
   provider: "openai",
-  id: "gpt-4o-mini",
-  name: "GPT-4o Mini",
+  id: "gpt-5-mini",
+  name: "GPT-5 Mini",
   path: null,
   supported_tasks: ["generate_message"],
 };
