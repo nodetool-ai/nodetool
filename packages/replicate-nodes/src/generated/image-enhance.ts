@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -58,7 +57,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/codeformer").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/codeformer", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -91,7 +90,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google-research/maxim").version, args);
+    const res = await replicateSubmit(apiKey, "google-research/maxim", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -118,7 +117,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("cjwbw/night-enhancement").version, args);
+    const res = await replicateSubmit(apiKey, "cjwbw/night-enhancement", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -156,7 +155,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("microsoft/bringing-old-photos-back-to-life").version, args);
+    const res = await replicateSubmit(apiKey, "microsoft/bringing-old-photos-back-to-life", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -264,7 +263,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("cjwbw/supir-v0f").version, args);
+    const res = await replicateSubmit(apiKey, "cjwbw/supir-v0f", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -372,7 +371,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("cjwbw/supir-v0q").version, args);
+    const res = await replicateSubmit(apiKey, "cjwbw/supir-v0q", args);
     return { output: outputToImageRef(res.output) };
   }
 }

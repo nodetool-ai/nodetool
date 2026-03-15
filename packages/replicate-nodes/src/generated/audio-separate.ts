@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -98,7 +97,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("ryan5453/demucs").version, args);
+    const res = await replicateSubmit(apiKey, "ryan5453/demucs", args);
     return { output: outputToAudioRef(res.output) };
   }
 }

@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -39,7 +38,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("piddnad/ddcolor").version, args);
+    const res = await replicateSubmit(apiKey, "piddnad/ddcolor", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -122,7 +121,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("bria/expand-image").version, args);
+    const res = await replicateSubmit(apiKey, "bria/expand-image", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -239,7 +238,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("batouresearch/magic-style-transfer").version, args);
+    const res = await replicateSubmit(apiKey, "batouresearch/magic-style-transfer", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -266,7 +265,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("pollinations/modnet").version, args);
+    const res = await replicateSubmit(apiKey, "pollinations/modnet", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -305,7 +304,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google/nano-banana").version, args);
+    const res = await replicateSubmit(apiKey, "google/nano-banana", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -341,7 +340,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("codeplugtech/object_remover").version, args);
+    const res = await replicateSubmit(apiKey, "codeplugtech/object_remover", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -368,7 +367,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("cjwbw/rembg").version, args);
+    const res = await replicateSubmit(apiKey, "cjwbw/rembg", args);
     return { output: outputToImageRef(res.output) };
   }
 }

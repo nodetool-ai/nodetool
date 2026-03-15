@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -102,7 +101,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/become-image").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/become-image", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -180,7 +179,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/face-to-many").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/face-to-many", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -268,7 +267,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("fofr/face-to-sticker").version, args);
+    const res = await replicateSubmit(apiKey, "fofr/face-to-sticker", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -430,7 +429,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("zsxkib/instant-id").version, args);
+    const res = await replicateSubmit(apiKey, "zsxkib/instant-id", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -498,7 +497,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("grandlineai/instant-id-artistic").version, args);
+    const res = await replicateSubmit(apiKey, "grandlineai/instant-id-artistic", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -566,7 +565,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("grandlineai/instant-id-photorealistic").version, args);
+    const res = await replicateSubmit(apiKey, "grandlineai/instant-id-photorealistic", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -650,7 +649,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("tencentarc/photomaker").version, args);
+    const res = await replicateSubmit(apiKey, "tencentarc/photomaker", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -750,7 +749,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("tencentarc/photomaker-style").version, args);
+    const res = await replicateSubmit(apiKey, "tencentarc/photomaker-style", args);
     return { output: outputToImageRef(res.output) };
   }
 }

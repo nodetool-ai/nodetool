@@ -137,7 +137,6 @@ export class NodeGenerator {
       `import {`,
       `  getReplicateApiKey,`,
       `  replicateSubmit,`,
-      `  extractVersion,`,
       `  removeNulls,`,
       `  isRefSet,`,
       `  assetToUrl,`,
@@ -362,7 +361,7 @@ export class NodeGenerator {
 
     // Submit to Replicate
     lines.push(
-      `    const res = await replicateSubmit(apiKey, extractVersion(${JSON.stringify(spec.endpointId)}).version, args);`,
+      `    const res = await replicateSubmit(apiKey, ${JSON.stringify(spec.endpointId)}, args);`,
     );
 
     // Output handling based on returnType / outputType

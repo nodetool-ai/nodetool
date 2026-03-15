@@ -127,7 +127,11 @@ export class MetadataParser {
         specs = [];
         modules.set(moduleName, specs);
       }
-      specs.push(spec);
+      // Deduplicate by className within a module (Python metadata can have
+      // duplicate entries for the same model, e.g. kandinsky-2.2)
+      if (!specs.some((s) => s.className === spec.className)) {
+        specs.push(spec);
+      }
     }
 
     return modules;

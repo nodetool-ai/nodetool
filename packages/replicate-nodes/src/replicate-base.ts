@@ -113,9 +113,18 @@ function isTerminal(status: string): boolean {
 
 export async function replicateSubmit(
   apiKey: string,
-  modelVersion: string,
+  modelId: string,
   input: Record<string, unknown>
 ): Promise<ReplicatePrediction> {
+  // Replicate accepts either {version: "hash"} for pinned versions
+  // or {model: "owner/name"} for latest version.
+  const body: Record<string, unknown> = { input };
+  if (modelId.includes(":")) {
+    body.version = modelId.split(":")[1];
+  } else {
+    body.model = modelId;
+  }
+
   const res = await fetch(`${REPLICATE_API_BASE}/predictions`, {
     method: "POST",
     headers: {
@@ -123,7 +132,7 @@ export async function replicateSubmit(
       "Content-Type": "application/json",
       Prefer: "wait",
     },
-    body: JSON.stringify({ version: modelVersion, input }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

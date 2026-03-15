@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -49,7 +48,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("openai/gpt-4o-transcribe").version, args);
+    const res = await replicateSubmit(apiKey, "openai/gpt-4o-transcribe", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -107,7 +106,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("vaibhavs10/incredibly-fast-whisper").version, args);
+    const res = await replicateSubmit(apiKey, "vaibhavs10/incredibly-fast-whisper", args);
     return { output: outputToString(res.output) };
   }
 }

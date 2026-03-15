@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -53,7 +52,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("salesforce/blip").version, args);
+    const res = await replicateSubmit(apiKey, "salesforce/blip", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -106,7 +105,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("andreasjansson/blip-2").version, args);
+    const res = await replicateSubmit(apiKey, "andreasjansson/blip-2", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -130,7 +129,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("andreasjansson/clip-features").version, args);
+    const res = await replicateSubmit(apiKey, "andreasjansson/clip-features", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -168,7 +167,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("pharmapsychotic/clip-interrogator").version, args);
+    const res = await replicateSubmit(apiKey, "pharmapsychotic/clip-interrogator", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -195,7 +194,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("methexis-inc/img2prompt").version, args);
+    const res = await replicateSubmit(apiKey, "methexis-inc/img2prompt", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -243,7 +242,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("yorickvp/llava-13b").version, args);
+    const res = await replicateSubmit(apiKey, "yorickvp/llava-13b", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -276,7 +275,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/moondream2").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/moondream2", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -300,7 +299,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/nsfw_image_detection").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/nsfw_image_detection", args);
     return { output: outputToString(res.output) };
   }
 }
@@ -333,7 +332,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("lucataco/sdxl-clip-interrogator").version, args);
+    const res = await replicateSubmit(apiKey, "lucataco/sdxl-clip-interrogator", args);
     return { output: outputToString(res.output) };
   }
 }

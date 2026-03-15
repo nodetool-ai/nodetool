@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool/node-sdk";
 import {
   getReplicateApiKey,
   replicateSubmit,
-  extractVersion,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -44,7 +43,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("google/lyria-2").version, args);
+    const res = await replicateSubmit(apiKey, "google/lyria-2", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -103,7 +102,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("zsxkib/mmaudio").version, args);
+    const res = await replicateSubmit(apiKey, "zsxkib/mmaudio", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -197,7 +196,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("meta/musicgen").version, args);
+    const res = await replicateSubmit(apiKey, "meta/musicgen", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -315,7 +314,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("zsxkib/realistic-voice-cloning").version, args);
+    const res = await replicateSubmit(apiKey, "zsxkib/realistic-voice-cloning", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -364,7 +363,7 @@ replicate, ai`;
     };
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("riffusion/riffusion").version, args);
+    const res = await replicateSubmit(apiKey, "riffusion/riffusion", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -427,7 +426,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("adirik/styletts2").version, args);
+    const res = await replicateSubmit(apiKey, "adirik/styletts2", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
@@ -490,7 +489,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, extractVersion("afiaka87/tortoise-tts").version, args);
+    const res = await replicateSubmit(apiKey, "afiaka87/tortoise-tts", args);
     return { output: outputToAudioRef(res.output) };
   }
 }
