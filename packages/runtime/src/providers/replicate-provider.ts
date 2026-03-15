@@ -3,6 +3,7 @@ import { createLogger } from "@nodetool/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import type {
   ImageModel,
+  ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
   TextToImageParams,
@@ -265,6 +266,23 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.scheduler) input.scheduler = params.scheduler;
 
     log.debug("textToImage", { model: params.model.id });
+    const output = await this._runPrediction(params.model.id, input);
+    return this._fetchOutputBytes(output);
+  }
+
+  override async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
+    const base64 = Buffer.from(image).toString("base64");
+    const dataUri = `data:image/png;base64,${base64}`;
+
+    const input: Record<string, unknown> = { image: dataUri };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null) input.num_inference_steps = params.numInferenceSteps;
+    if (params.strength != null) input.strength = params.strength;
+    if (params.seed != null) input.seed = params.seed;
+
+    log.debug("imageToImage", { model: params.model.id });
     const output = await this._runPrediction(params.model.id, input);
     return this._fetchOutputBytes(output);
   }
