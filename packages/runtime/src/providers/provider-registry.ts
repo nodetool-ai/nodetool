@@ -46,19 +46,21 @@ export async function getProvider(providerId: string): Promise<BaseProvider> {
     throw new Error(`No provider registered for "${providerId}"`);
   }
 
-  // Re-resolve any undefined/empty values from process.env or secret resolver
+  // Re-resolve any undefined/empty values via secret resolver (DB → env)
+  // or direct env var lookup as final fallback
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (!value) {
-      // Try process.env first (may have been set after module load)
-      const envVal = process.env[key];
-      if (envVal) {
-        kwargs[key] = envVal;
-      } else if (_secretResolver) {
+      if (_secretResolver) {
         const resolved = await _secretResolver(key);
         if (resolved) {
           kwargs[key] = resolved;
+          continue;
         }
+      }
+      const envVal = process.env[key];
+      if (envVal) {
+        kwargs[key] = envVal;
       }
     }
   }

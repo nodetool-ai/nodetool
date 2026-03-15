@@ -24,6 +24,7 @@ import {
   OpenAIProvider,
   MistralProvider,
   GroqProvider,
+  ReplicateProvider,
   setSecretResolver,
   PythonBridge,
   PythonNodeExecutor,
@@ -95,6 +96,8 @@ async function resolveProvider(providerId: string) {
       return new MistralProvider({ MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY") });
     case "groq":
       return new GroqProvider({ GROQ_API_KEY: await resolveKey("GROQ_API_KEY") });
+    case "replicate":
+      return new ReplicateProvider({ REPLICATE_API_TOKEN: await resolveKey("REPLICATE_API_TOKEN") });
     case "ollama":
     default:
       return new OllamaProvider({ OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL") });

@@ -215,17 +215,18 @@ async function handleGetSettings(userId: string): Promise<Response> {
     });
   }
 
-  // Secrets: query DB; "****" if configured, null otherwise
+  // Secrets: query DB then env; "****" if configured, null otherwise
   for (const def of registry) {
     if (!def.isSecret) continue;
     const secret = await Secret.find(userId, def.envVar);
+    const hasEnvVar = Boolean(process.env[def.envVar]);
     result.push({
       package_name: def.packageName,
       env_var: def.envVar,
       group: def.group,
       description: def.description,
       enum: null,
-      value: secret ? "****" : null,
+      value: (secret || hasEnvVar) ? "****" : null,
       is_secret: true,
     });
   }

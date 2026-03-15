@@ -19,6 +19,7 @@ import { audioSeparateConfig } from "./audio-separate.js";
 import { audioTranscribeConfig } from "./audio-transcribe.js";
 import { audioSpeechConfig } from "./audio-speech.js";
 import { textGenerateConfig } from "./text-generate.js";
+import { embeddingConfig } from "./embedding.js";
 
 export {
   imageGenerateConfig,
@@ -40,6 +41,7 @@ export {
   audioTranscribeConfig,
   audioSpeechConfig,
   textGenerateConfig,
+  embeddingConfig,
 };
 
 export const allConfigs: Record<string, ModuleConfig> = {
@@ -62,4 +64,5 @@ export const allConfigs: Record<string, ModuleConfig> = {
   "audio.transcribe": audioTranscribeConfig,
   "audio.speech": audioSpeechConfig,
   "text.generate": textGenerateConfig,
+  "embedding": embeddingConfig,
 };
