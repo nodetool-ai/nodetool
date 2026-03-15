@@ -20,6 +20,9 @@ export class Modify_Video extends ReplicateNode {
   static readonly description = `Modify a video with style transfer and prompt-based editing
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "An optional first frame of the video to modify. This should be a modified version of the original first frame, it will be used to guide the video modification." })
   declare first_frame: any;
@@ -73,6 +76,9 @@ export class Reframe_Video extends ReplicateNode {
   static readonly description = `Change the aspect ratio of any video up to 30 seconds long, outputs will be 720p
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the output" })
   declare aspect_ratio: any;
@@ -146,6 +152,9 @@ export class RealBasicVSR extends ReplicateNode {
   static readonly description = `RealBasicVSR: Investigating Tradeoffs in Real-World Video Super-Resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "video", default: "", description: "input video" })
   declare video: any;
@@ -173,6 +182,9 @@ export class Crystal_Video_Upscaler extends ReplicateNode {
   static readonly description = `High-precision video upscaler optimized for portraits, faces and products. One of the upscale modes powered by Clarity AI. X:https://x.com/philz1337x
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "float", default: 2, description: "Scale factor for upscaling (will be capped if output will exceed 4K)" })
   declare scale_factor: any;
@@ -206,6 +218,9 @@ export class RealEsrGan_Video extends ReplicateNode {
   static readonly description = `Real-ESRGAN Video Upscaler
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "RealESRGAN_x4plus", values: ["RealESRGAN_x4plus", "RealESRGAN_x4plus_anime_6B", "realesr-animevideov3"], description: "Upscaling model" })
   declare model: any;
@@ -240,6 +255,9 @@ export class StableVideoFaceRestoration extends ReplicateNode {
   static readonly description = `SVFR: A Unified Framework for Generalized Video Face Restoration
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "int", default: 16, description: "Chunk size for decoding long videos." })
   declare decode_chunk_size: any;
@@ -318,6 +336,9 @@ export class Deoldify_Video extends ReplicateNode {
   static readonly description = `Add colours to old video footage.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Path to a video" })
   declare input_video: any;
@@ -347,6 +368,9 @@ export class AutoCaption extends ReplicateNode {
   static readonly description = `Automatically add captions to a video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "int", default: 20, description: "Max characters space for subtitles. 20 is good for videos, 10 is good for reels" })
   declare MaxChars: any;
@@ -446,6 +470,9 @@ export class Wan_2_2_S2V extends ReplicateNode {
   static readonly description = `Generate a video from an audio clip and a reference image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file to synchronize the video with" })
   declare audio: any;
@@ -495,6 +522,9 @@ export class VEED_Fabric extends ReplicateNode {
   static readonly description = `VEED Fabric 1.0 is an image-to-video API that turns any image into a talking video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio to generate video from" })
   declare audio: any;

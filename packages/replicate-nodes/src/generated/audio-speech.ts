@@ -20,6 +20,9 @@ export class ElevenLabs_Flash_V2_5 extends ReplicateNode {
   static readonly description = `ElevenLabs's fastest speech synthesis model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "en", description: "Language code (e.g., 'en', 'es', 'fr')" })
   declare language_code: any;
@@ -84,6 +87,9 @@ export class ElevenLabs_Turbo_V2_5 extends ReplicateNode {
   static readonly description = `High quality, low latency text to speech in 32 languages
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "en", description: "Language code (e.g., 'en', 'es', 'fr')" })
   declare language_code: any;
@@ -148,6 +154,9 @@ export class ElevenLabs_V2_Multilingual extends ReplicateNode {
   static readonly description = `Generate multilingual text-to-speech audio in over 30 languages
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "en", description: "Language code (e.g., 'en', 'es', 'fr')" })
   declare language_code: any;
@@ -212,6 +221,9 @@ export class ElevenLabs_V3 extends ReplicateNode {
   static readonly description = `The most expressive Text to Speech model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "en", description: "Language code (e.g., 'en', 'es', 'fr')" })
   declare language_code: any;
@@ -276,6 +288,9 @@ export class ElevenLabs_Music extends ReplicateNode {
   static readonly description = `Compose a song from a prompt or a composition plan
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "bool", default: true, description: "If true, removes vocal elements from the generated music" })
   declare force_instrumental: any;
@@ -315,6 +330,9 @@ export class Inworld_TTS_Max extends ReplicateNode {
   static readonly description = `Highest-quality text-to-speech with <200ms latency, emotion control, and 15-language support
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "ogg_opus", "flac"], description: "Output audio format." })
   declare audio_format: any;
@@ -369,6 +387,9 @@ export class Inworld_TTS_Mini extends ReplicateNode {
   static readonly description = `Ultra-fast, cost-efficient text-to-speech with ~120ms latency and 15-language support
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "ogg_opus", "flac"], description: "Output audio format." })
   declare audio_format: any;
@@ -423,6 +444,9 @@ export class Kokoro_82M extends ReplicateNode {
   static readonly description = `Kokoro v1.0 - text-to-speech (82M params, based on StyleTTS2)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 1, description: "Speech speed multiplier (0.5 = half speed, 2.0 = double speed)" })
   declare speed: any;
@@ -457,6 +481,9 @@ export class XTTS_V2 extends ReplicateNode {
   static readonly description = `Coqui XTTS-v2: Multilingual Text To Speech Voice Cloning
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "bool", default: false, description: "Whether to apply denoising to the speaker audio (microphone recordings)" })
   declare cleanup_voice: any;
@@ -496,6 +523,9 @@ export class Orpheus_3B extends ReplicateNode {
   static readonly description = `Orpheus 3B - high quality, emotive Text to Speech
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "int", default: 1200, description: "Maximum number of tokens to generate" })
   declare max_new_tokens: any;
@@ -545,6 +575,9 @@ export class CSM_1B extends ReplicateNode {
   static readonly description = `CSM (Conversational Speech Model) is a speech generation model from Sesame that generates RVQ audio codes from text and audio inputs
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "int", default: 10000, description: "Maximum audio length in milliseconds" })
   declare max_audio_length_ms: any;
@@ -579,6 +612,9 @@ export class Parler_TTS extends ReplicateNode {
   static readonly description = `lightweight text-to-speech (TTS) model, trained on 10.5K hours of audio data
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "A female speaker with a slightly low-pitched voice delivers her words quite expressively, in a very confined sounding environment with clear audio quality. She speaks very fast.", description: "Provide description of the output audio" })
   declare description: any;
@@ -608,6 +644,9 @@ export class VoiceCraft extends ReplicateNode {
   static readonly description = `Zero-Shot Speech Editing and Text-to-Speech in the Wild
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 3.01, description: "Only used for for zero-shot text-to-speech task. The first seconds of the original audio that are used for zero-shot text-to-speech. 3 sec of reference is generally enough for high quality voice cloning, but longer is generally better, try e.g. 3~6 sec" })
   declare cut_off_sec: any;
@@ -702,6 +741,9 @@ export class OpenVoice extends ReplicateNode {
   static readonly description = `Updated to OpenVoice v2: Versatile Instant Voice Cloning
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Input reference audio" })
   declare audio: any;
@@ -741,6 +783,9 @@ export class F5_TTS extends ReplicateNode {
   static readonly description = `F5-TTS, the new state-of-the-art in open source voice cloning
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Custom split words, comma separated" })
   declare custom_split_words: any;
@@ -790,6 +835,9 @@ export class Spanish_F5_TTS extends ReplicateNode {
   static readonly description = `A F5-TTS fine-tuned for Spanish
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Custom split words, comma separated" })
   declare custom_split_words: any;
@@ -834,6 +882,9 @@ export class Qwen3_TTS extends ReplicateNode {
   static readonly description = `A unified Text-to-Speech demo featuring three powerful modes: Voice, Clone and Design
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "auto", values: ["auto", "Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish", "Portuguese", "Russian"], description: "Language of the text (use 'auto' for automatic detection)" })
   declare language: any;
@@ -893,6 +944,9 @@ export class Chatterbox extends ReplicateNode {
   static readonly description = `Generate expressive, natural speech. Features unique emotion control, instant voice cloning from short audio, and built-in watermarking.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Path to the reference audio file (Optional)" })
   declare audio_prompt: any;
@@ -942,6 +996,9 @@ export class Chatterbox_Multilingual extends ReplicateNode {
   static readonly description = `Generate expressive, natural speech in 23 languages. Features instant voice cloning from short audio, emotion control, and seamless cross-language voice transfer.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0.5, description: "CFG/Pace weight controlling generation guidance (0.2-1.0). Use 0.5 for balanced results, 0 for language transfer" })
   declare cfg_weight: any;
@@ -996,6 +1053,9 @@ export class Chatterbox_Pro extends ReplicateNode {
   static readonly description = `Generate expressive, natural speech with Resemble AI's Chatterbox.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "The uuid of the voice to use (this overrides the voice selection)" })
   declare custom_voice: any;
@@ -1050,6 +1110,9 @@ export class Chatterbox_Turbo extends ReplicateNode {
   static readonly description = `The fastest open source TTS model without sacrificing quality.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Reference audio file for voice cloning (optional). Must be longer than 5 seconds. If provided, overrides the voice selection." })
   declare reference_audio: any;
@@ -1109,6 +1172,9 @@ export class Speech_02_HD extends ReplicateNode {
   static readonly description = `Text-to-Audio (T2A) that offers voice synthesis, emotional expression, and multilingual capabilities. Optimized for high-fidelity applications like voiceovers and audiobooks.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
@@ -1193,6 +1259,9 @@ export class Speech_02_Turbo extends ReplicateNode {
   static readonly description = `Text-to-Audio (T2A) that offers voice synthesis, emotional expression, and multilingual capabilities. Designed for real-time applications with low latency
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
@@ -1277,6 +1346,9 @@ export class Speech_2_6_HD extends ReplicateNode {
   static readonly description = `MiniMax Speech 2.6 HD delivers studio-quality multilingual text-to-audio on Replicate with nuanced prosody, subtitle export, and premium voices
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
@@ -1361,6 +1433,9 @@ export class Speech_2_6_Turbo extends ReplicateNode {
   static readonly description = `Low‑latency MiniMax Speech 2.6 Turbo brings multilingual, emotional text-to-speech to Replicate with 300+ voices and real-time friendly pricing
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
@@ -1445,6 +1520,9 @@ export class Speech_2_8_Turbo extends ReplicateNode {
   static readonly description = `Minimax Speech 2.8 Turbo: Turn text into natural, expressive speech with voice cloning, emotion control, and support for 40+ languages
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "flac", "pcm"], description: "File format for the generated audio. Choose mp3 for general use, wav/flac for lossless, or pcm for raw bytes." })
   declare audio_format: any;
@@ -1529,6 +1607,9 @@ export class Voice_Cloning extends ReplicateNode {
   static readonly description = `Clone voices to use with Minimax's speech-02-hd and speech-02-turbo
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0.7, description: "Text validation accuracy threshold (0-1)" })
   declare accuracy: any;
@@ -1573,6 +1654,9 @@ export class Music_1_5 extends ReplicateNode {
   static readonly description = `Music-1.5: Full-length songs (up to 4 mins) with natural vocals & rich instrumentation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "pcm"], description: "Audio format" })
   declare audio_format: any;
@@ -1617,6 +1701,9 @@ export class Stable_Audio_2_5 extends ReplicateNode {
   static readonly description = `Generate high-quality music and sound from text prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 1, description: "Classifier-free guidance scale (higher = more prompt adherence)" })
   declare cfg_scale: any;
@@ -1661,6 +1748,9 @@ export class AceStep extends ReplicateNode {
   static readonly description = `A Step Towards Music Generation Foundation Model text2music
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 60, description: "Duration of the generated audio in seconds. -1 means a random duration between 30 and 240 seconds." })
   declare duration: any;
@@ -1750,6 +1840,9 @@ export class MAGNeT extends ReplicateNode {
   static readonly description = `MAGNeT: Masked Audio Generation using a Single Non-Autoregressive Transformer
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "int", default: 20, description: "Number of decoding steps for stage 1" })
   declare decoding_steps_stage_1: any;
@@ -1829,6 +1922,9 @@ export class MusicGen_Chord extends ReplicateNode {
   static readonly description = `Generate music restricted to chord sequences and tempo
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
   declare audio_chords: any;
@@ -1938,6 +2034,9 @@ export class MusicGen_Remixer extends ReplicateNode {
   static readonly description = `Remix the music into another styles with MusicGen Chord
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 0, description: "When beat syncing, if the gap between generated downbeat timing and input audio downbeat timing is larger than 'beat_sync_threshold', consider the beats are not corresponding. If 'None' or '-1', '1.1/(bpm/60)' will be used as the value. 0.75 is a good value to set." })
   declare beat_sync_threshold: any;
@@ -2032,6 +2131,9 @@ export class MusicGen_Stereo_Chord extends ReplicateNode {
   static readonly description = `Generate music in stereo, restricted to chord sequences and tempo
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "An audio file that will condition the chord progression. You must choose only one among 'audio_chords' or 'text_chords' above." })
   declare audio_chords: any;
@@ -2146,6 +2248,9 @@ export class MusicGen_Looper extends ReplicateNode {
   static readonly description = `Generate fixed-bpm loops from text prompts
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 140, description: "Tempo in beats per minute" })
   declare bpm: any;
@@ -2220,6 +2325,9 @@ export class Flux_Music extends ReplicateNode {
   static readonly description = `🎼FluxMusic Text-to-Music Generation with Rectified Flow Transformer🎶
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "float", default: 7, description: "Classifier-free guidance scale" })
   declare guidance_scale: any;
@@ -2274,6 +2382,9 @@ export class Dia extends ReplicateNode {
   static readonly description = `Dia 1.6B by Nari Labs, Generates realistic dialogue audio from text, including non-verbal cues and voice cloning
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Optional audio file (.wav/.mp3/.flac) for voice cloning. The model will attempt to mimic this voice style." })
   declare audio_prompt: any;
@@ -2348,6 +2459,9 @@ export class ThinkSound extends ReplicateNode {
   static readonly description = `Generate contextual audio from video using step-by-step reasoning🎶
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "str", default: "", description: "Caption/title describing the video content (optional)" })
   declare caption: any;

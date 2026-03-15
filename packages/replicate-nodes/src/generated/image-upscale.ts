@@ -20,6 +20,9 @@ export class RealEsrGan extends ReplicateNode {
   static readonly description = `Real-ESRGAN for image upscaling on an A100
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Run GFPGAN face enhancement along with upscaling" })
   declare face_enhance: any;
@@ -58,6 +61,9 @@ export class GFPGAN extends ReplicateNode {
   static readonly description = `Practical face restoration algorithm for *old photos* or *AI-generated faces*
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input" })
   declare img: any;
@@ -96,6 +102,9 @@ export class ClarityUpscaler extends ReplicateNode {
   static readonly description = `High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.35, description: "Creativity, try from 0.3 - 0.9" })
   declare creativity: any;
@@ -229,6 +238,9 @@ export class MagicImageRefiner extends ReplicateNode {
   static readonly description = `A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.25, description: "Denoising strength. 1 means total destruction of the original image" })
   declare creativity: any;
@@ -321,6 +333,9 @@ export class ruDallE_SR extends ReplicateNode {
   static readonly description = `Real-ESRGAN super-resolution model from ruDALL-E
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -354,6 +369,9 @@ export class HighResolutionControlNetTile extends ReplicateNode {
   static readonly description = `UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.35, description: "Denoising strength. 1 means total destruction of the original image" })
   declare creativity: any;
@@ -452,6 +470,9 @@ export class UltimateSDUpscale extends ReplicateNode {
   static readonly description = `Ultimate SD Upscale with ControlNet Tile
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 8, description: "CFG" })
   declare cfg: any;
@@ -595,6 +616,9 @@ export class SwinIR extends ReplicateNode {
   static readonly description = `Image Restoration Using Swin Transformer
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "input image" })
   declare image: any;
@@ -638,6 +662,9 @@ export class Swin2SR extends ReplicateNode {
   static readonly description = `3.5 Million Runs! AI Photorealistic Image Super-Resolution and Restoration
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -671,6 +698,9 @@ export class Alexgenovese_Upscaler extends ReplicateNode {
   static readonly description = `GFPGAN aims at developing Practical Algorithms for Real-world Face and Object Restoration
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Face enhance" })
   declare face_enhance: any;
@@ -709,6 +739,9 @@ export class Bria_IncreaseResolution extends ReplicateNode {
   static readonly description = `Bria Increase resolution upscales the resolution of any image. It increases resolution using a dedicated upscaling method that preserves the original image content without regeneration.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Enable content moderation" })
   declare content_moderation: any;
@@ -762,6 +795,9 @@ export class CjwbwRealEsrGan extends ReplicateNode {
   static readonly description = `Real-ESRGAN: Real-World Blind Super-Resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -795,6 +831,9 @@ export class Google_Upscaler extends ReplicateNode {
   static readonly description = `Upscale images 2x or 4x times
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "int", default: 80, description: "Compression quality for output (1-100)" })
   declare compression_quality: any;
@@ -833,6 +872,9 @@ export class DemofusionEnhance extends ReplicateNode {
   static readonly description = `Image to Image enhancer using DemoFusion
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Select to use auto-generated CLIP prompt instead of using the above custom prompt" })
   declare auto_prompt: any;
@@ -931,6 +973,9 @@ export class PASD_Magnify extends ReplicateNode {
   static readonly description = `(Academic and Non-commercial use only) Pixel-Aware Stable Diffusion for Realistic Image Super-resolution and Personalized Stylization
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 1.1, description: "Conditioning Scale" })
   declare conditioning_scale: any;
@@ -994,6 +1039,9 @@ export class SD_X4_Upscaler extends ReplicateNode {
   static readonly description = `Stable Diffusion x4 upscaler model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Grayscale input image" })
   declare image: any;
@@ -1032,6 +1080,9 @@ export class NightmareAI_RealEsrGan extends ReplicateNode {
   static readonly description = `Real-ESRGAN with optional face correction and adjustable upscale
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Run GFPGAN face enhancement along with upscaling" })
   declare face_enhance: any;
@@ -1070,6 +1121,9 @@ export class Recraft_Creative_Upscale extends ReplicateNode {
   static readonly description = `Creative Upscale focuses on enhancing details and refining complex elements in the image. It doesn’t just increase resolution but adds depth by improving textures, fine details, and facial features.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image to upscale" })
   declare image: any;
@@ -1097,6 +1151,9 @@ export class Recraft_Crisp_Upscale extends ReplicateNode {
   static readonly description = `Designed to make images sharper and cleaner, Crisp Upscale increases overall quality, making visuals suitable for web use or print-ready materials.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Image to upscale" })
   declare image: any;
@@ -1124,6 +1181,9 @@ export class Topaz_Image_Upscale extends ReplicateNode {
   static readonly description = `Professional-grade image upscaling, from Topaz Labs
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "Standard V2", values: ["Standard V2", "Low Resolution V2", "CGI", "High Fidelity V2", "Text Refine"], description: "Model to use: Standard V2 (general purpose), Low Resolution V2 (for low-res images), CGI (for digital art), High Fidelity V2 (preserves details), Text Refine (optimized for text)" })
   declare enhance_model: any;
@@ -1187,6 +1247,9 @@ export class ESRGAN extends ReplicateNode {
   static readonly description = `Image 4x super-resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Low-resolution input image" })
   declare image: any;
@@ -1214,6 +1277,9 @@ export class Aura_SR extends ReplicateNode {
   static readonly description = `AuraSR: GAN-based Super-Resolution for real-world
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "The input image file to be upscaled." })
   declare image: any;
@@ -1252,6 +1318,9 @@ export class Aura_SR_V2 extends ReplicateNode {
   static readonly description = `AuraSR v2: Second-gen GAN-based Super-Resolution for real-world applications
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image to upscale" })
   declare image: any;
@@ -1295,6 +1364,9 @@ export class BSRGAN extends ReplicateNode {
   static readonly description = `Upscale videos + images with BSRGAN
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Input image or video file" })
   declare input_file: any;
@@ -1324,6 +1396,9 @@ export class DiffBIR extends ReplicateNode {
   static readonly description = `✨DiffBIR: Towards Blind Image Restoration with Generative Diffusion Prior
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "RealESRGAN", values: ["DiffBIR", "RealESRGAN"], description: "For 'faces' mode: Model used to upscale the background in images where the primary subject is a face." })
   declare background_upsampler: any;
@@ -1468,6 +1543,9 @@ export class InvSR extends ReplicateNode {
   static readonly description = `Arbitrary-steps Image Super-resolution via Diffusion Inversion
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: 128, values: ["128", "256", "512"], description: "Chopping resolution" })
   declare chopping_size: any;

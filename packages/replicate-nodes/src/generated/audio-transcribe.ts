@@ -20,6 +20,9 @@ export class IncrediblyFastWhisper extends ReplicateNode {
   static readonly description = `whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
@@ -78,6 +81,9 @@ export class GPT4o_Transcribe extends ReplicateNode {
   static readonly description = `A speech-to-text model that uses GPT-4o to transcribe audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
   declare audio_file: any;
@@ -117,6 +123,9 @@ export class Whisper extends ReplicateNode {
   static readonly description = `Convert speech in audio to text
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
@@ -205,6 +214,9 @@ export class GPT4o_Mini_Transcribe extends ReplicateNode {
   static readonly description = `A speech-to-text model that uses GPT-4o mini to transcribe audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm" })
   declare audio_file: any;
@@ -244,6 +256,9 @@ export class WhisperX extends ReplicateNode {
   static readonly description = `Accelerated transcription of audio using WhisperX
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Use if you need word-level timing and not just batched transcription. Only works for English atm" })
   declare align_output: any;
@@ -292,6 +307,9 @@ export class Whisper_Diarization extends ReplicateNode {
   static readonly description = `⚡️ Blazing fast audio transcription with speaker diarization | Whisper Large V3 Turbo | word & sentence level timestamps | prompt
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Or an audio file" })
   declare file: any;
@@ -351,6 +369,9 @@ export class Parakeet_RNNT extends ReplicateNode {
   static readonly description = `🗣️ Nvidia + Suno.ai's speech-to-text conversion with high accuracy and efficiency 📝
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input audio file to be transcribed by the ASR model" })
   declare audio_file: any;
@@ -375,6 +396,9 @@ export class Speaker_Diarization extends ReplicateNode {
   static readonly description = `Segments an audio recording based on who is speaking (on A100)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3", description: "Audio file" })
   declare audio: any;
@@ -402,6 +426,9 @@ export class Meronym_Speaker_Diarization extends ReplicateNode {
   static readonly description = `Segments an audio recording based on who is speaking
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3", description: "Audio file" })
   declare audio: any;
@@ -429,6 +456,9 @@ export class Speaker_Transcription extends ReplicateNode {
   static readonly description = `Whisper transcription plus speaker diarization
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
@@ -462,6 +492,9 @@ export class Speaker_Diarization_3 extends ReplicateNode {
   static readonly description = `Segments an audio recording based on who is speaking
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "audio", default: "https://replicate.delivery/pbxt/IZjTvet2ZGiyiYaMEEPrzn0xY1UDNsh0NfcO9qeTlpwCo7ig/lex-levin-4min.mp3", description: "Audio file or url" })
   declare audio: any;

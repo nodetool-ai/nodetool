@@ -20,6 +20,9 @@ export class HotshotXL extends ReplicateNode {
   static readonly description = `😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: 384, values: ["256", "320", "384", "448", "512", "576", "640", "672", "704", "768", "832", "896", "960", "1024"], description: "Height of the output" })
   declare height: any;
@@ -79,6 +82,9 @@ export class Zeroscope_V2_XL extends ReplicateNode {
   static readonly description = `Zeroscope V2 XL & 576w
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "int", default: 1, description: "Batch size" })
   declare batch_size: any;
@@ -168,6 +174,9 @@ export class RobustVideoMatting extends ReplicateNode {
   static readonly description = `extract foreground of a video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "video", default: "", description: "Video to segment." })
   declare input_video: any;
@@ -201,6 +210,9 @@ export class AudioToWaveform extends ReplicateNode {
   static readonly description = `Create a waveform video from audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "audio", default: "", description: "Audio file to create waveform from" })
   declare audio: any;
@@ -259,6 +271,9 @@ export class Hunyuan_Video extends ReplicateNode {
   static readonly description = `A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "float", default: 6, description: "Guidance scale" })
   declare embedded_guidance_scale: any;
@@ -318,6 +333,9 @@ export class Video_01_Live extends ReplicateNode {
   static readonly description = `An image-to-video (I2V) model specifically trained for Live2D and general animation use cases
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
@@ -352,6 +370,9 @@ export class Video_01 extends ReplicateNode {
   static readonly description = `Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;
@@ -391,6 +412,9 @@ export class Music_01 extends ReplicateNode {
   static readonly description = `Quickly generate up to 1 minute of music with lyrics and vocals in the style of a reference track
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "audio"
+  };
 
   @prop({ type: "enum", default: 256000, values: ["32000", "64000", "128000", "256000"], description: "Bitrate for the generated music" })
   declare bitrate: any;
@@ -458,6 +482,9 @@ export class LTX_Video extends ReplicateNode {
   static readonly description = `LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "3:2", values: ["1:1", "1:2", "2:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the output video. Ignored if an image is provided." })
   declare aspect_ratio: any;
@@ -536,6 +563,9 @@ export class Wan_2_1_I2V_480p extends ReplicateNode {
   static readonly description = `Accelerated inference for Wan 2.1 14B image to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Aspect ratio of the output video." })
   declare aspect_ratio: any;
@@ -619,6 +649,9 @@ export class Wan_2_1_1_3B extends ReplicateNode {
   static readonly description = `Generate 5s 480p videos. Wan is an advanced and powerful visual generation model developed by Tongyi Lab of Alibaba Group
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -678,6 +711,9 @@ export class Pixverse_V5 extends ReplicateNode {
   static readonly description = `Create 5s-8s videos with enhanced character movement, visual effects, and exclusive 1080p-8s support. Optimized for anime characters and complex actions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
   declare aspect_ratio: any;
@@ -742,6 +778,9 @@ export class Gen4_Turbo extends ReplicateNode {
   static readonly description = `Generate 5s and 10s 720p videos fast
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -786,6 +825,9 @@ export class Gen4_Aleph extends ReplicateNode {
   static readonly description = `A new way to edit, transform and generate video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -830,6 +872,9 @@ export class Kling_V2_1 extends ReplicateNode {
   static readonly description = `Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: 5, values: ["5", "10"], description: "Duration of the video in seconds" })
   declare duration: any;
@@ -879,6 +924,9 @@ export class Kling_Lip_Sync extends ReplicateNode {
   static readonly description = `Add lip-sync to any video with an audio file or text
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file for lip sync. Must be .mp3, .wav, .m4a, or .aac and less than 5MB." })
   declare audio_file: any;
@@ -928,6 +976,9 @@ export class Hailuo_02 extends ReplicateNode {
   static readonly description = `Hailuo 2 is a text-to-video and image-to-video model that can make 6s or 10s videos at 768p (standard) or 1080p (pro). It excels at real world physics.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
@@ -977,6 +1028,9 @@ export class Lipsync_2 extends ReplicateNode {
   static readonly description = `Generate realistic lipsyncs with Sync Labs' 2.0 model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "bool", default: false, description: "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)" })
   declare active_speaker: any;
@@ -1029,6 +1083,9 @@ export class Lipsync_2_Pro extends ReplicateNode {
   static readonly description = `Studio-grade lipsync in minutes, not weeks
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "bool", default: false, description: "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)" })
   declare active_speaker: any;
@@ -1081,6 +1138,9 @@ export class Wan_2_2_T2V_Fast extends ReplicateNode {
   static readonly description = `A very fast and cheap PrunaAI optimized version of Wan 2.2 A14B text-to-video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Aspect ratio of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px" })
   declare aspect_ratio: any;
@@ -1175,6 +1235,9 @@ export class Wan_2_2_I2V_Fast extends ReplicateNode {
   static readonly description = `A very fast and cheap PrunaAI optimized version of Wan 2.2 A14B image-to-video
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated video." })
   declare disable_safety_checker: any;
@@ -1273,6 +1336,9 @@ export class Veo_3_1 extends ReplicateNode {
   static readonly description = `New and improved version of Veo 3, with higher-fidelity video, context-aware audio, reference image and last frame support
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -1342,6 +1408,9 @@ export class Gen4_5 extends ReplicateNode {
   static readonly description = `State-of-the-art video motion quality, prompt adherence and visual fidelity
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -1386,6 +1455,9 @@ export class Kling_V3_Video extends ReplicateNode {
   static readonly description = `Kling Video 3.0: Generate cinematic videos up to 15 seconds with multi-shot control, native audio, and improved consistency
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio. Ignored when start_image is provided." })
   declare aspect_ratio: any;
@@ -1450,6 +1522,9 @@ export class Kling_V3_Omni_Video extends ReplicateNode {
   static readonly description = `Kling Video 3.0 Omni: Unified multimodal video generation with reference images, video editing, native audio, and multi-shot control
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio. Required when not using start frame or video editing." })
   declare aspect_ratio: any;
@@ -1529,6 +1604,9 @@ export class Kling_V2_5_Turbo_Pro extends ReplicateNode {
   static readonly description = `Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video. Ignored if start_image is provided." })
   declare aspect_ratio: any;
@@ -1583,6 +1661,9 @@ export class Kling_V2_6 extends ReplicateNode {
   static readonly description = `Kling 2.6 Pro: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video. Ignored if start_image is provided." })
   declare aspect_ratio: any;
@@ -1632,6 +1713,9 @@ export class Veo_3 extends ReplicateNode {
   static readonly description = `Sound on: Google’s flagship Veo 3 text to video model, with audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -1691,6 +1775,9 @@ export class Veo_3_Fast extends ReplicateNode {
   static readonly description = `A faster and cheaper version of Google’s Veo 3 video model, with audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -1750,6 +1837,9 @@ export class Veo_2 extends ReplicateNode {
   static readonly description = `State of the art video generation model. Veo 2 can faithfully follow simple and complex instructions, and convincingly simulates real-world physics as well as a wide range of visual styles.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "Video aspect ratio" })
   declare aspect_ratio: any;
@@ -1794,6 +1884,9 @@ export class Hailuo_2_3 extends ReplicateNode {
   static readonly description = `A high-fidelity video generation model optimized for realistic human motion, cinematic VFX, expressive characters, and strong prompt and style adherence across both text-to-video and image-to-video workflows
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
@@ -1838,6 +1931,9 @@ export class Hailuo_2_3_Fast extends ReplicateNode {
   static readonly description = `A lower-latency image-to-video version of Hailuo 2.3 that preserves core motion quality, visual consistency, and stylization performance while enabling faster iteration cycles.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: 6, values: ["6", "10"], description: "Duration of the video in seconds. 10 seconds is only available for 768p resolution." })
   declare duration: any;
@@ -1882,6 +1978,9 @@ export class Pixverse_V5_6 extends ReplicateNode {
   static readonly description = `Latest video model from Pixverse with astonishing physics
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
   declare aspect_ratio: any;
@@ -1951,6 +2050,9 @@ export class Pixverse_V4 extends ReplicateNode {
   static readonly description = `Quickly generate smooth 5s or 8s videos at 540p, 720p or 1080p
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
   declare aspect_ratio: any;
@@ -2035,6 +2137,9 @@ export class Pixverse_V4_5 extends ReplicateNode {
   static readonly description = `Quickly make 5s or 8s videos at 540p, 720p or 1080p. It has enhanced motion, prompt coherence and handles complex actions well.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the video" })
   declare aspect_ratio: any;
@@ -2119,6 +2224,9 @@ export class Wan_2_5_T2V extends ReplicateNode {
   static readonly description = `Alibaba Wan 2.5 text to video generation model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
@@ -2173,6 +2281,9 @@ export class Wan_2_5_T2V_Fast extends ReplicateNode {
   static readonly description = `Wan 2.5 text-to-video, optimized for speed
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
@@ -2227,6 +2338,9 @@ export class Wan_2_5_I2V extends ReplicateNode {
   static readonly description = `Alibaba Wan 2.5 Image to video generation with background audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
@@ -2290,6 +2404,9 @@ export class Wan_2_5_I2V_Fast extends ReplicateNode {
   static readonly description = `Wan 2.5 image-to-video, optimized for speed
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization" })
   declare audio: any;
@@ -2353,6 +2470,9 @@ export class Seedance_1_Pro extends ReplicateNode {
   static readonly description = `A pro version of Seedance that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 1080p resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
   declare aspect_ratio: any;
@@ -2417,6 +2537,9 @@ export class Seedance_1_Lite extends ReplicateNode {
   static readonly description = `A video generation model that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 720p resolution
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
   declare aspect_ratio: any;
@@ -2486,6 +2609,9 @@ export class Seedance_1_Pro_Fast extends ReplicateNode {
   static readonly description = `A faster and cheaper version of Seedance 1 Pro
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21"], description: "Video aspect ratio. Ignored if an image is used." })
   declare aspect_ratio: any;
@@ -2545,6 +2671,9 @@ export class Ray_2_540p extends ReplicateNode {
   static readonly description = `Generate 5s and 9s 540p videos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
   declare aspect_ratio: any;
@@ -2609,6 +2738,9 @@ export class Ray_2_720p extends ReplicateNode {
   static readonly description = `Generate 5s and 9s 720p videos
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
   declare aspect_ratio: any;
@@ -2673,6 +2805,9 @@ export class Ray_Flash_2_720p extends ReplicateNode {
   static readonly description = `Generate 5s and 9s 720p videos, faster and cheaper than Ray 2
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
   declare aspect_ratio: any;
@@ -2737,6 +2872,9 @@ export class Ray_Flash_2_540p extends ReplicateNode {
   static readonly description = `Generate 5s and 9s 540p videos, faster and cheaper than Ray 2
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "16:9", values: ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"], description: "Aspect ratio of the generated video" })
   declare aspect_ratio: any;
@@ -2801,6 +2939,9 @@ export class Sora_2 extends ReplicateNode {
   static readonly description = `OpenAI's Flagship video generation with synced audio
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
   declare aspect_ratio: any;
@@ -2845,6 +2986,9 @@ export class Sora_2_Pro extends ReplicateNode {
   static readonly description = `OpenAI's Most advanced synced-audio video generation
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "enum", default: "portrait", values: ["portrait", "landscape"], description: "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720" })
   declare aspect_ratio: any;
@@ -2894,6 +3038,9 @@ export class Video_01_Director extends ReplicateNode {
   static readonly description = `Generate videos with specific camera movements
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "str", default: "", description: "First frame image for video generation. The output video will have the same aspect ratio as this image." })
   declare first_frame_image: any;

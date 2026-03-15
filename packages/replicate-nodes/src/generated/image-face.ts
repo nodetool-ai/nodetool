@@ -20,6 +20,9 @@ export class FaceToMany extends ReplicateNode {
   static readonly description = `Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.8, description: "Strength of depth controlnet. The bigger this is, the more controlnet affects the output." })
   declare control_depth_strength: any;
@@ -98,6 +101,9 @@ export class BecomeImage extends ReplicateNode {
   static readonly description = `Adapt any picture of a face into another image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.8, description: "Strength of depth controlnet. The bigger this is, the more controlnet affects the output." })
   declare control_depth_strength: any;
@@ -190,6 +196,9 @@ export class PhotoMaker extends ReplicateNode {
   static readonly description = `Create photos, paintings and avatars for anyone in any style within seconds.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images." })
   declare disable_safety_checker: any;
@@ -274,6 +283,9 @@ export class PhotoMakerStyle extends ReplicateNode {
   static readonly description = `Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: false, description: "Disable safety checker for generated images." })
   declare disable_safety_checker: any;
@@ -374,6 +386,9 @@ export class FaceToSticker extends ReplicateNode {
   static readonly description = `Turn a face into a sticker
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "int", default: 1024 })
   declare height: any;
@@ -462,6 +477,9 @@ export class InstantId extends ReplicateNode {
   static readonly description = `Make realistic images of real people instantly
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.3, description: "Canny ControlNet strength, effective only if 'enable_canny_controlnet' is true" })
   declare canny_strength: any;
@@ -624,6 +642,9 @@ export class Instant_ID_Photorealistic extends ReplicateNode {
   static readonly description = `InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Juggernaut-XL v8 as the base model to encourage photorealism
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.8, description: "Scale for ControlNet conditioning" })
   declare controlnet_conditioning_scale: any;
@@ -692,6 +713,9 @@ export class Instant_ID_Artistic extends ReplicateNode {
   static readonly description = `InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "float", default: 0.8, description: "Scale for ControlNet conditioning" })
   declare controlnet_conditioning_scale: any;

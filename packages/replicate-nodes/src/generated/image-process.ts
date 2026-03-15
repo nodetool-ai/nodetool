@@ -20,6 +20,9 @@ export class RemoveBackground extends ReplicateNode {
   static readonly description = `Remove images background
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
@@ -47,6 +50,9 @@ export class ModNet extends ReplicateNode {
   static readonly description = `A deep learning approach to remove background & adding new background image
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "input image" })
   declare image: any;
@@ -74,6 +80,9 @@ export class DD_Color extends ReplicateNode {
   static readonly description = `Towards Photo-Realistic Image Colorization via Dual Decoders
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "str", default: "", description: "Grayscale input image." })
   declare image: any;
@@ -103,6 +112,9 @@ export class Magic_Style_Transfer extends ReplicateNode {
   static readonly description = `Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "bool", default: true, description: "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking." })
   declare apply_watermark: any;
@@ -220,6 +232,9 @@ export class ObjectRemover extends ReplicateNode {
   static readonly description = `ObjectRemover node
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "image", default: "", description: "Mask image" })
   declare mask_image: any;
@@ -256,6 +271,9 @@ export class Nano_Banana extends ReplicateNode {
   static readonly description = `Google's latest image editing model in Gemini 2.5
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "match_input_image", values: ["match_input_image", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"], description: "Aspect ratio of the generated image" })
   declare aspect_ratio: any;
@@ -295,6 +313,9 @@ export class Expand_Image extends ReplicateNode {
   static readonly description = `Bria Expand expands images beyond their borders in high quality. Resizing the image by generating new pixels to expand to the desired aspect ratio. Trained exclusively on licensed data for safe and risk-free commercial use
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
 
   @prop({ type: "enum", default: "1:1", values: ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"], description: "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0" })
   declare aspect_ratio: any;

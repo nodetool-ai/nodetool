@@ -278,6 +278,17 @@ export class NodeGenerator {
     lines.push(
       `  static readonly requiredSettings = ["REPLICATE_API_TOKEN"];`,
     );
+
+    // Output type declaration based on returnType
+    const returnType = config?.returnType ?? spec.outputType;
+    const outputTypeStr = returnType === "image" ? "image"
+      : returnType === "video" ? "video"
+      : returnType === "audio" ? "audio"
+      : returnType === "str" ? "str"
+      : "any";
+    lines.push(`  static readonly metadataOutputTypes = {`);
+    lines.push(`    output: ${JSON.stringify(outputTypeStr)}`);
+    lines.push(`  };`);
     lines.push(``);
 
     // Field declarations

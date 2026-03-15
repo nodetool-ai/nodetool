@@ -20,6 +20,9 @@ export class Llama3_8B extends ReplicateNode {
   static readonly description = `Base version of Llama 3, an 8 billion parameter language model from Meta.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 1, description: "A parameter that controls how long the outputs are. If < 1, the model will tend to generate shorter outputs, and > 1 will tend to generate longer outputs." })
   declare length_penalty: any;
@@ -109,6 +112,9 @@ export class Llama3_8B_Instruct extends ReplicateNode {
   static readonly description = `An 8 billion parameter language model from Meta, fine tuned for chat completions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 1, description: "A parameter that controls how long the outputs are. If < 1, the model will tend to generate shorter outputs, and > 1 will tend to generate longer outputs." })
   declare length_penalty: any;
@@ -203,6 +209,9 @@ export class Llama3_70B extends ReplicateNode {
   static readonly description = `Base version of Llama 3, a 70 billion parameter language model from Meta.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 1, description: "A parameter that controls how long the outputs are. If < 1, the model will tend to generate shorter outputs, and > 1 will tend to generate longer outputs." })
   declare length_penalty: any;
@@ -292,6 +301,9 @@ export class Llama3_70B_Instruct extends ReplicateNode {
   static readonly description = `A 70 billion parameter language model from Meta, fine tuned for chat completions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 1, description: "A parameter that controls how long the outputs are. If < 1, the model will tend to generate shorter outputs, and > 1 will tend to generate longer outputs." })
   declare length_penalty: any;
@@ -386,6 +398,9 @@ export class Llama3_1_405B_Instruct extends ReplicateNode {
   static readonly description = `Meta's flagship 405 billion parameter language model, fine-tuned for chat completions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -460,6 +475,9 @@ export class LlamaGuard_3_11B_Vision extends ReplicateNode {
   static readonly description = `A Llama-3.2-11B pretrained model, fine-tuned for content safety classification
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Image to moderate" })
   declare image: any;
@@ -489,6 +507,9 @@ export class LlamaGuard_3_8B extends ReplicateNode {
   static readonly description = `A Llama-3.1-8B pretrained model, fine-tuned for content safety classification
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Assistant response to classify" })
   declare assistant: any;
@@ -518,6 +539,9 @@ export class Snowflake_Arctic_Instruct extends ReplicateNode {
   static readonly description = `An efficient, intelligent, and truly open-source language model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0.2, description: "Deprecated. This input no longer has any effect." })
   declare frequency_penalty: any;
@@ -587,6 +611,9 @@ export class Claude_3_7_Sonnet extends ReplicateNode {
   static readonly description = `The most intelligent Claude model and the first hybrid reasoning model on the market (claude-3-7-sonnet-20250219)
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Whether to enable extended thinking mode (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare extended_thinking: any;
@@ -641,6 +668,9 @@ export class Deepseek_R1 extends ReplicateNode {
   static readonly description = `A reasoning model trained with reinforcement learning, on par with OpenAI o1
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -690,6 +720,9 @@ export class GPT_5_Structured extends ReplicateNode {
   static readonly description = `GPT-5 with support for structured outputs, web search and custom tools
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Allow GPT-5 to use web search for the response." })
   declare enable_web_search: any;
@@ -774,6 +807,9 @@ export class GPT_5 extends ReplicateNode {
   static readonly description = `OpenAI's new model excelling at coding, writing, and reasoning.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -828,6 +864,9 @@ export class GPT_5_Mini extends ReplicateNode {
   static readonly description = `Faster version of OpenAI's flagship GPT-5 model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -882,6 +921,9 @@ export class GPT_5_Nano extends ReplicateNode {
   static readonly description = `Fastest, most cost-effective GPT-5 model from OpenAI
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -936,6 +978,9 @@ export class GPT_4_1 extends ReplicateNode {
   static readonly description = `OpenAI's Flagship GPT model for complex tasks.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
@@ -1000,6 +1045,9 @@ export class GPT_4_1_Mini extends ReplicateNode {
   static readonly description = `Fast, affordable version of GPT-4.1
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
@@ -1064,6 +1112,9 @@ export class GPT_4_1_Nano extends ReplicateNode {
   static readonly description = `Fastest, most cost-effective GPT-4.1 model from OpenAI
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
@@ -1128,6 +1179,9 @@ export class Deepseek_V3_1 extends ReplicateNode {
   static readonly description = `Latest hybrid thinking model from Deepseek
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -1182,6 +1236,9 @@ export class Gemini_3_1_Pro extends ReplicateNode {
   static readonly description = `Google's most intelligent model, with improved reasoning and a new medium thinking level
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;
@@ -1246,6 +1303,9 @@ export class Gemini_2_5_Flash extends ReplicateNode {
   static readonly description = `Google’s hybrid “thinking” AI model optimized for speed and cost-efficiency
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Enable dynamic thinking - the model will adjust the thinking budget based on the complexity of the request (overrides thinking_budget parameter)" })
   declare dynamic_thinking: any;
@@ -1310,6 +1370,9 @@ export class Gemini_3_Pro extends ReplicateNode {
   static readonly description = `Google's most advanced reasoning Gemini model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)" })
   declare audio: any;
@@ -1374,6 +1437,9 @@ export class Claude_Opus_4_6 extends ReplicateNode {
   static readonly description = `Anthropic's most intelligent model with state-of-the-art coding, reasoning, and agentic capabilities
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
@@ -1418,6 +1484,9 @@ export class Claude_4_5_Sonnet extends ReplicateNode {
   static readonly description = `Claude Sonnet 4.5 is the best coding model to date, with significant improvements across the entire development lifecycle
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
@@ -1462,6 +1531,9 @@ export class Claude_4_5_Haiku extends ReplicateNode {
   static readonly description = `Claude Haiku 4.5 gives you similar levels of coding performance but at one-third the cost and more than twice the speed
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "str", default: "", description: "Optional input image. Images are priced as (width px * height px)/750 input tokens" })
   declare image: any;
@@ -1506,6 +1578,9 @@ export class Claude_4_Sonnet extends ReplicateNode {
   static readonly description = `Claude Sonnet 4 is a significant upgrade to 3.7, delivering superior coding and reasoning while responding more precisely to your instructions
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "bool", default: false, description: "Whether to enable extended thinking mode (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare extended_thinking: any;
@@ -1560,6 +1635,9 @@ export class GPT_5_2 extends ReplicateNode {
   static readonly description = `The best model for coding and agentic tasks across industries
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -1614,6 +1692,9 @@ export class O4_Mini extends ReplicateNode {
   static readonly description = `OpenAI's fast, lightweight reasoning model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -1663,6 +1744,9 @@ export class O1 extends ReplicateNode {
   static readonly description = `OpenAI's first o-series reasoning model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "list[str]", default: [], description: "List of images to send to the model" })
   declare image_input: any;
@@ -1712,6 +1796,9 @@ export class GPT_4o extends ReplicateNode {
   static readonly description = `OpenAI's high-intelligence chat model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
@@ -1776,6 +1863,9 @@ export class GPT_4o_Mini extends ReplicateNode {
   static readonly description = `Low latency, low cost version of OpenAI's GPT-4o model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty parameter - positive values penalize the repetition of tokens." })
   declare frequency_penalty: any;
@@ -1840,6 +1930,9 @@ export class Grok_4 extends ReplicateNode {
   static readonly description = `Grok 4 is xAI’s most advanced reasoning model. Excels at logical thinking and in-depth analysis. Ideal for insightful discussions and complex problem-solving.
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -1889,6 +1982,9 @@ export class Deepseek_V3 extends ReplicateNode {
   static readonly description = `DeepSeek-V3-0324 is the leading non-reasoning model, a milestone for open source
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -1938,6 +2034,9 @@ export class Qwen3_235B extends ReplicateNode {
   static readonly description = `Updated Qwen3 model for instruction following
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;
@@ -1987,6 +2086,9 @@ export class Kimi_K2_5 extends ReplicateNode {
   static readonly description = `Moonshot AI's latest open model. It unifies vision and text, thinking and non-thinking modes, and single-agent and multi-agent execution into one model
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
 
   @prop({ type: "float", default: 0, description: "Frequency penalty" })
   declare frequency_penalty: any;

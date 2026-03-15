@@ -20,6 +20,9 @@ export class Topaz_Video_Upscale extends ReplicateNode {
   static readonly description = `Video Upscaling from Topaz Labs
 replicate, ai`;
   static readonly requiredSettings = ["REPLICATE_API_TOKEN"];
+  static readonly metadataOutputTypes = {
+    output: "video"
+  };
 
   @prop({ type: "int", default: 30, description: "Target FPS (choose from 15-60fps)" })
   declare target_fps: any;
