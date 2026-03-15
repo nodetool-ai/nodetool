@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class RealisticVoiceCloning extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.RealisticVoiceCloning";
+  static readonly nodeType = "replicate.audio.generate.RealisticVoiceCloning";
   static readonly title = "Realistic Voice Cloning";
   static readonly description = `Create song covers with any RVC v2 trained AI voice from audio files.
 replicate, ai`;
@@ -136,7 +136,7 @@ replicate, ai`;
 }
 
 export class TortoiseTTS extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.TortoiseTTS";
+  static readonly nodeType = "replicate.audio.generate.TortoiseTTS";
   static readonly title = "Tortoise T T S";
   static readonly description = `Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
 replicate, ai`;
@@ -202,7 +202,7 @@ replicate, ai`;
 }
 
 export class StyleTTS2 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.StyleTTS2";
+  static readonly nodeType = "replicate.audio.generate.StyleTTS2";
   static readonly title = "Style T T S2";
   static readonly description = `Generates speech from text
 replicate, ai`;
@@ -268,7 +268,7 @@ replicate, ai`;
 }
 
 export class Riffusion extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.Riffusion";
+  static readonly nodeType = "replicate.audio.generate.Riffusion";
   static readonly title = "Riffusion";
   static readonly description = `Stable diffusion for real-time music generation
 replicate, ai`;
@@ -320,7 +320,7 @@ replicate, ai`;
 }
 
 export class MusicGen extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.MusicGen";
+  static readonly nodeType = "replicate.audio.generate.MusicGen";
   static readonly title = "Music Gen";
   static readonly description = `Generate music from a prompt or melody
 replicate, ai`;
@@ -417,7 +417,7 @@ replicate, ai`;
 }
 
 export class MMAudio extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.MMAudio";
+  static readonly nodeType = "replicate.audio.generate.MMAudio";
   static readonly title = "M M Audio";
   static readonly description = `Add sound to video using the MMAudio V2 model. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.
 replicate, ai`;
@@ -479,7 +479,7 @@ replicate, ai`;
 }
 
 export class Lyria_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.Lyria_2";
+  static readonly nodeType = "replicate.audio.generate.Lyria_2";
   static readonly title = "Lyria_2";
   static readonly description = `Lyria 2 is a music generation model that produces 48kHz stereo audio through text-based prompts
 replicate, ai`;
@@ -516,7 +516,7 @@ replicate, ai`;
 }
 
 export class Speech_2_8_HD extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_generate.Speech_2_8_HD";
+  static readonly nodeType = "replicate.audio.generate.Speech_2_8_HD";
   static readonly title = "Speech_2_8_ H D";
   static readonly description = `Minimax Speech 2.8 HD focuses on high-fidelity audio generation with features like studio-grade quality, flexible emotion control, multilingual support, and voice cloning capabilities
 replicate, ai`;

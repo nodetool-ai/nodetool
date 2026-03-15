@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class Trellis extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.Trellis";
+  static readonly nodeType = "replicate.image.3d.Trellis";
   static readonly title = "Trellis";
   static readonly description = `A powerful 3D asset generation model
 replicate, ai`;
@@ -107,7 +107,7 @@ replicate, ai`;
 }
 
 export class ShapE extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.ShapE";
+  static readonly nodeType = "replicate.image.3d.ShapE";
   static readonly title = "Shap E";
   static readonly description = `Generating Conditional 3D Implicit Functions
 replicate, ai`;
@@ -164,7 +164,7 @@ replicate, ai`;
 }
 
 export class Deep3D extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.Deep3D";
+  static readonly nodeType = "replicate.image.3d.Deep3D";
   static readonly title = "Deep3 D";
   static readonly description = `Deep3D: Real-Time end-to-end 2D-to-3D Video Conversion, based on deep learning
 replicate, ai`;
@@ -196,7 +196,7 @@ replicate, ai`;
 }
 
 export class Hunyuan3D_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.Hunyuan3D_2";
+  static readonly nodeType = "replicate.image.3d.Hunyuan3D_2";
   static readonly title = "Hunyuan3 D_2";
   static readonly description = `hunyuan3d-2 optimised with the pruna toolkit: https://github.com/PrunaAI/pruna
 replicate, ai`;
@@ -258,7 +258,7 @@ replicate, ai`;
 }
 
 export class Tencent_Hunyuan3D_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.Tencent_Hunyuan3D_2";
+  static readonly nodeType = "replicate.image.3d.Tencent_Hunyuan3D_2";
   static readonly title = "Tencent_ Hunyuan3 D_2";
   static readonly description = `Scaling Diffusion Models for High Resolution Textured 3D Assets Generation
 replicate, ai`;
@@ -314,7 +314,7 @@ replicate, ai`;
 }
 
 export class Hunyuan3D_2MV extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.Hunyuan3D_2MV";
+  static readonly nodeType = "replicate.image.3d.Hunyuan3D_2MV";
   static readonly title = "Hunyuan3 D_2 M V";
   static readonly description = `Hunyuan3D-2mv is finetuned from Hunyuan3D-2 to support multiview controlled shape generation.
 replicate, ai`;
@@ -401,7 +401,7 @@ replicate, ai`;
 }
 
 export class SeedVR2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_3d.SeedVR2";
+  static readonly nodeType = "replicate.image.3d.SeedVR2";
   static readonly title = "Seed V R2";
   static readonly description = `🔥 SeedVR2: one-step video & image restoration with 3B/7B hot‑swap and optional color fix 🎬✨
 replicate, ai`;

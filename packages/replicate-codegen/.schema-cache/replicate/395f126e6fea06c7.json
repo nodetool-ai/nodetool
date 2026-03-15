@@ -1,0 +1,63 @@
+{
+  "modelId": "zsxkib/jina-clip-v2",
+  "owner": "zsxkib",
+  "name": "jina-clip-v2",
+  "version": "5050c3108bab23981802011a3c76ee327cc0dbfdd31a2f4ef1ee8ef0d3f0b448",
+  "description": "Jina-CLIP v2: 0.9B multimodal embedding model with 89-language multilingual support, 512x512 image resolution, and Matryoshka representations",
+  "inputSchema": {
+    "properties": {
+      "embedding_dim": {
+        "default": 64,
+        "description": "Matryoshka dimension - output embedding dimension (64-1024)",
+        "maximum": 1024,
+        "minimum": 64,
+        "title": "Embedding Dim",
+        "type": "integer",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Image file to embed (optimal size: 512x512). If both text and image provided, image embedding will be second in returned list.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "base64",
+        "description": "Format to use in outputs",
+        "enum": [
+          "base64",
+          "array"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "text": {
+        "description": "Text content to embed (up to 8192 tokens). If both text and image provided, text embedding will be first in returned list.",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -21,9 +21,9 @@ function toTitle(className: string): string {
   return className.replace(/([A-Z])/g, " $1").trim();
 }
 
-/** module name used in nodeType: dashes -> underscores */
+/** module name used in nodeType: dashes -> dots (matches Python namespace convention) */
 function moduleNameToId(moduleName: string): string {
-  return moduleName.replace(/-/g, "_");
+  return moduleName.replace(/-/g, ".");
 }
 
 /** Reserved names that collide with process() parameters or JS keywords */
@@ -162,8 +162,8 @@ export class NodeGenerator {
       classNames.push(finalSpec.className);
     }
 
-    // Export array
-    const moduleUpper = moduleNameToId(moduleName).toUpperCase();
+    // Export array (use underscores for valid JS identifier)
+    const moduleUpper = moduleName.replace(/[-. ]/g, "_").toUpperCase();
     lines.push(
       `export const REPLICATE_${moduleUpper}_NODES: readonly NodeClass[] = [`,
       ...classNames.map((n) => `  ${n},`),

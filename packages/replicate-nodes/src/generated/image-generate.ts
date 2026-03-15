@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class AdInpaint extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.AdInpaint";
+  static readonly nodeType = "replicate.image.generate.AdInpaint";
   static readonly title = "Ad Inpaint";
   static readonly description = `Product advertising image generator
 replicate, ai`;
@@ -96,7 +96,7 @@ replicate, ai`;
 }
 
 export class ConsistentCharacter extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.ConsistentCharacter";
+  static readonly nodeType = "replicate.image.generate.ConsistentCharacter";
   static readonly title = "Consistent Character";
   static readonly description = `Create images of a given character in different poses
 replicate, ai`;
@@ -172,7 +172,7 @@ replicate, ai`;
 }
 
 export class PulidBase extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.PulidBase";
+  static readonly nodeType = "replicate.image.generate.PulidBase";
   static readonly title = "Pulid Base";
   static readonly description = `Use a face to make images. Uses SDXL fine-tuned checkpoints.
 replicate, ai`;
@@ -253,7 +253,7 @@ replicate, ai`;
 }
 
 export class StableDiffusion extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusion";
+  static readonly nodeType = "replicate.image.generate.StableDiffusion";
   static readonly title = "Stable Diffusion";
   static readonly description = `A latent text-to-image diffusion model capable of generating photo-realistic images given any text input
 replicate, ai`;
@@ -320,7 +320,7 @@ replicate, ai`;
 }
 
 export class StableDiffusion3_5_Medium extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusion3_5_Medium";
+  static readonly nodeType = "replicate.image.generate.StableDiffusion3_5_Medium";
   static readonly title = "Stable Diffusion3_5_ Medium";
   static readonly description = `2.5 billion parameter image model with improved MMDiT-X architecture
 replicate, ai`;
@@ -386,7 +386,7 @@ replicate, ai`;
 }
 
 export class StableDiffusion3_5_Large extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusion3_5_Large";
+  static readonly nodeType = "replicate.image.generate.StableDiffusion3_5_Large";
   static readonly title = "Stable Diffusion3_5_ Large";
   static readonly description = `A text-to-image model that generates high-resolution images with fine details. It supports various artistic styles and produces diverse outputs from the same prompt, thanks to Query-Key Normalization.
 replicate, ai`;
@@ -452,7 +452,7 @@ replicate, ai`;
 }
 
 export class StableDiffusion3_5_Large_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusion3_5_Large_Turbo";
+  static readonly nodeType = "replicate.image.generate.StableDiffusion3_5_Large_Turbo";
   static readonly title = "Stable Diffusion3_5_ Large_ Turbo";
   static readonly description = `A text-to-image model that generates high-resolution images with fine details. It supports various artistic styles and produces diverse outputs from the same prompt, with a focus on fewer inference steps
 replicate, ai`;
@@ -518,7 +518,7 @@ replicate, ai`;
 }
 
 export class Photon_Flash extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Photon_Flash";
+  static readonly nodeType = "replicate.image.generate.Photon_Flash";
   static readonly title = "Photon_ Flash";
   static readonly description = `Accelerated variant of Photon prioritizing speed while maintaining quality
 replicate, ai`;
@@ -607,7 +607,7 @@ replicate, ai`;
 }
 
 export class StableDiffusionXL extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusionXL";
+  static readonly nodeType = "replicate.image.generate.StableDiffusionXL";
   static readonly title = "Stable Diffusion X L";
   static readonly description = `A text-to-image generative AI model that creates beautiful images
 replicate, ai`;
@@ -732,7 +732,7 @@ replicate, ai`;
 }
 
 export class SDXL_Pixar extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.SDXL_Pixar";
+  static readonly nodeType = "replicate.image.generate.SDXL_Pixar";
   static readonly title = "S D X L_ Pixar";
   static readonly description = `Create Pixar poster easily with SDXL Pixar.
 replicate, ai`;
@@ -857,7 +857,7 @@ replicate, ai`;
 }
 
 export class SDXL_Emoji extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.SDXL_Emoji";
+  static readonly nodeType = "replicate.image.generate.SDXL_Emoji";
   static readonly title = "S D X L_ Emoji";
   static readonly description = `An SDXL fine-tune based on Apple Emojis
 replicate, ai`;
@@ -982,7 +982,7 @@ replicate, ai`;
 }
 
 export class StableDiffusionInpainting extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusionInpainting";
+  static readonly nodeType = "replicate.image.generate.StableDiffusionInpainting";
   static readonly title = "Stable Diffusion Inpainting";
   static readonly description = `Fill in masked parts of images with Stable Diffusion
 replicate, ai`;
@@ -1072,7 +1072,7 @@ replicate, ai`;
 }
 
 export class Kandinsky extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Kandinsky";
+  static readonly nodeType = "replicate.image.generate.Kandinsky";
   static readonly title = "Kandinsky";
   static readonly description = `multilingual text2image latent diffusion model
 replicate, ai`;
@@ -1139,7 +1139,7 @@ replicate, ai`;
 }
 
 export class Flux_Schnell extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Schnell";
+  static readonly nodeType = "replicate.image.generate.Flux_Schnell";
   static readonly title = "Flux_ Schnell";
   static readonly description = `The fastest image generation model tailored for local development and personal use
 replicate, ai`;
@@ -1211,7 +1211,7 @@ replicate, ai`;
 }
 
 export class Flux_Dev extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Dev";
+  static readonly nodeType = "replicate.image.generate.Flux_Dev";
   static readonly title = "Flux_ Dev";
   static readonly description = `A 12 billion parameter rectified flow transformer capable of generating images from text descriptions
 replicate, ai`;
@@ -1298,7 +1298,7 @@ replicate, ai`;
 }
 
 export class Flux_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_Pro";
   static readonly title = "Flux_ Pro";
   static readonly description = `State-of-the-art image generation with top of the line prompt following, visual quality, image detail and output diversity.
 replicate, ai`;
@@ -1385,7 +1385,7 @@ replicate, ai`;
 }
 
 export class Flux_1_1_Pro_Ultra extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_1_1_Pro_Ultra";
+  static readonly nodeType = "replicate.image.generate.Flux_1_1_Pro_Ultra";
   static readonly title = "Flux_1_1_ Pro_ Ultra";
   static readonly description = `FLUX1.1 [pro] in ultra and raw modes. Images are up to 4 megapixels. Use raw mode for realism.
 replicate, ai`;
@@ -1447,7 +1447,7 @@ replicate, ai`;
 }
 
 export class Flux_Dev_Lora extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Dev_Lora";
+  static readonly nodeType = "replicate.image.generate.Flux_Dev_Lora";
   static readonly title = "Flux_ Dev_ Lora";
   static readonly description = `A version of flux-dev, a text to image model, that supports fast fine-tuned lora inference
 replicate, ai`;
@@ -1568,7 +1568,7 @@ replicate, ai`;
 }
 
 export class Flux_Schnell_Lora extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Schnell_Lora";
+  static readonly nodeType = "replicate.image.generate.Flux_Schnell_Lora";
   static readonly title = "Flux_ Schnell_ Lora";
   static readonly description = `The fastest image generation model tailored for fine-tuned use
 replicate, ai`;
@@ -1650,7 +1650,7 @@ replicate, ai`;
 }
 
 export class Flux_Depth_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Depth_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_Depth_Pro";
   static readonly title = "Flux_ Depth_ Pro";
   static readonly description = `Professional depth-aware image generation. Edit images while preserving spatial relationships.
 replicate, ai`;
@@ -1716,7 +1716,7 @@ replicate, ai`;
 }
 
 export class Flux_Canny_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Canny_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_Canny_Pro";
   static readonly title = "Flux_ Canny_ Pro";
   static readonly description = `Professional edge-guided image generation. Control structure and composition using Canny edge detection
 replicate, ai`;
@@ -1782,7 +1782,7 @@ replicate, ai`;
 }
 
 export class Flux_Fill_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Fill_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_Fill_Pro";
   static readonly title = "Flux_ Fill_ Pro";
   static readonly description = `Professional inpainting and outpainting model with state-of-the-art performance. Edit or extend images with natural, seamless results.
 replicate, ai`;
@@ -1854,7 +1854,7 @@ replicate, ai`;
 }
 
 export class Flux_Depth_Dev extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Depth_Dev";
+  static readonly nodeType = "replicate.image.generate.Flux_Depth_Dev";
   static readonly title = "Flux_ Depth_ Dev";
   static readonly description = `Open-weight depth-aware image generation. Edit images while preserving spatial relationships.
 replicate, ai`;
@@ -1930,7 +1930,7 @@ replicate, ai`;
 }
 
 export class Hyper_Flux_8Step extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Hyper_Flux_8Step";
+  static readonly nodeType = "replicate.image.generate.Hyper_Flux_8Step";
   static readonly title = "Hyper_ Flux_8 Step";
   static readonly description = `Hyper FLUX 8-step by ByteDance
 replicate, ai`;
@@ -2007,7 +2007,7 @@ replicate, ai`;
 }
 
 export class Flux_Mona_Lisa extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Mona_Lisa";
+  static readonly nodeType = "replicate.image.generate.Flux_Mona_Lisa";
   static readonly title = "Flux_ Mona_ Lisa";
   static readonly description = `Flux lora, use the term "MNALSA" to trigger generation
 replicate, ai`;
@@ -2142,7 +2142,7 @@ replicate, ai`;
 }
 
 export class Flux_Cinestill extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Cinestill";
+  static readonly nodeType = "replicate.image.generate.Flux_Cinestill";
   static readonly title = "Flux_ Cinestill";
   static readonly description = `Flux lora, use "CNSTLL" to trigger
 replicate, ai`;
@@ -2277,7 +2277,7 @@ replicate, ai`;
 }
 
 export class Flux_Black_Light extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Black_Light";
+  static readonly nodeType = "replicate.image.generate.Flux_Black_Light";
   static readonly title = "Flux_ Black_ Light";
   static readonly description = `A flux lora fine-tuned on black light images
 replicate, ai`;
@@ -2412,7 +2412,7 @@ replicate, ai`;
 }
 
 export class Flux_360 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_360";
+  static readonly nodeType = "replicate.image.generate.Flux_360";
   static readonly title = "Flux_360";
   static readonly description = `Generate 360 panorama images.
 replicate, ai`;
@@ -2547,7 +2547,7 @@ replicate, ai`;
 }
 
 export class Recraft_V3 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V3";
+  static readonly nodeType = "replicate.image.generate.Recraft_V3";
   static readonly title = "Recraft_ V3";
   static readonly description = `Recraft V3 (code-named red_panda) is a text-to-image model with the ability to generate long texts, and images in a wide list of styles. As of today, it is SOTA in image generation, proven by the Text-to-Image Benchmark by Artificial Analysis
 replicate, ai`;
@@ -2589,7 +2589,7 @@ replicate, ai`;
 }
 
 export class Recraft_20B extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_20B";
+  static readonly nodeType = "replicate.image.generate.Recraft_20B";
   static readonly title = "Recraft_20 B";
   static readonly description = `Affordable and fast images
 replicate, ai`;
@@ -2631,7 +2631,7 @@ replicate, ai`;
 }
 
 export class Recraft_20B_SVG extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_20B_SVG";
+  static readonly nodeType = "replicate.image.generate.Recraft_20B_SVG";
   static readonly title = "Recraft_20 B_ S V G";
   static readonly description = `Affordable and fast vector images
 replicate, ai`;
@@ -2673,7 +2673,7 @@ replicate, ai`;
 }
 
 export class Recraft_V3_SVG extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V3_SVG";
+  static readonly nodeType = "replicate.image.generate.Recraft_V3_SVG";
   static readonly title = "Recraft_ V3_ S V G";
   static readonly description = `Recraft V3 SVG (code-named red_panda) is a text-to-image model with the ability to generate high quality SVG images including logotypes, and icons. The model supports a wide list of styles.
 replicate, ai`;
@@ -2715,7 +2715,7 @@ replicate, ai`;
 }
 
 export class Flux_Canny_Dev extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Canny_Dev";
+  static readonly nodeType = "replicate.image.generate.Flux_Canny_Dev";
   static readonly title = "Flux_ Canny_ Dev";
   static readonly description = `Open-weight edge-guided image generation. Control structure and composition using Canny edge detection.
 replicate, ai`;
@@ -2791,7 +2791,7 @@ replicate, ai`;
 }
 
 export class Flux_Fill_Dev extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Fill_Dev";
+  static readonly nodeType = "replicate.image.generate.Flux_Fill_Dev";
   static readonly title = "Flux_ Fill_ Dev";
   static readonly description = `Open-weight inpainting model for editing and extending images. Guidance-distilled from FLUX.1 Fill [pro].
 replicate, ai`;
@@ -2878,7 +2878,7 @@ replicate, ai`;
 }
 
 export class Flux_Redux_Schnell extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Redux_Schnell";
+  static readonly nodeType = "replicate.image.generate.Flux_Redux_Schnell";
   static readonly title = "Flux_ Redux_ Schnell";
   static readonly description = `Fast, efficient image variation model for rapid iteration and experimentation.
 replicate, ai`;
@@ -2949,7 +2949,7 @@ replicate, ai`;
 }
 
 export class Flux_Redux_Dev extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Redux_Dev";
+  static readonly nodeType = "replicate.image.generate.Flux_Redux_Dev";
   static readonly title = "Flux_ Redux_ Dev";
   static readonly description = `Open-weight image variation model. Create new versions while preserving key elements of your original.
 replicate, ai`;
@@ -3025,7 +3025,7 @@ replicate, ai`;
 }
 
 export class SDXL_Controlnet extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.SDXL_Controlnet";
+  static readonly nodeType = "replicate.image.generate.SDXL_Controlnet";
   static readonly title = "S D X L_ Controlnet";
   static readonly description = `SDXL ControlNet - Canny
 replicate, ai`;
@@ -3081,7 +3081,7 @@ replicate, ai`;
 }
 
 export class SDXL_Ad_Inpaint extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.SDXL_Ad_Inpaint";
+  static readonly nodeType = "replicate.image.generate.SDXL_Ad_Inpaint";
   static readonly title = "S D X L_ Ad_ Inpaint";
   static readonly description = `Product advertising image generator using SDXL
 replicate, ai`;
@@ -3167,7 +3167,7 @@ replicate, ai`;
 }
 
 export class StableDiffusionXLLightning extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StableDiffusionXLLightning";
+  static readonly nodeType = "replicate.image.generate.StableDiffusionXLLightning";
   static readonly title = "Stable Diffusion X L Lightning";
   static readonly description = `SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps
 replicate, ai`;
@@ -3239,7 +3239,7 @@ replicate, ai`;
 }
 
 export class PlaygroundV2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.PlaygroundV2";
+  static readonly nodeType = "replicate.image.generate.PlaygroundV2";
   static readonly title = "Playground V2";
   static readonly description = `Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 replicate, ai`;
@@ -3335,7 +3335,7 @@ replicate, ai`;
 }
 
 export class Proteus_V_02 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Proteus_V_02";
+  static readonly nodeType = "replicate.image.generate.Proteus_V_02";
   static readonly title = "Proteus_ V_02";
   static readonly description = `Proteus v0.2 shows subtle yet significant improvements over Version 0.1. It demonstrates enhanced prompt understanding that surpasses MJ6, while also approaching its stylistic capabilities.
 replicate, ai`;
@@ -3435,7 +3435,7 @@ replicate, ai`;
 }
 
 export class Proteus_V_03 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Proteus_V_03";
+  static readonly nodeType = "replicate.image.generate.Proteus_V_03";
   static readonly title = "Proteus_ V_03";
   static readonly description = `ProteusV0.3: The Anime Update
 replicate, ai`;
@@ -3535,7 +3535,7 @@ replicate, ai`;
 }
 
 export class StickerMaker extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StickerMaker";
+  static readonly nodeType = "replicate.image.generate.StickerMaker";
   static readonly title = "Sticker Maker";
   static readonly description = `Make stickers with AI. Generates graphics with transparent backgrounds.
 replicate, ai`;
@@ -3602,7 +3602,7 @@ replicate, ai`;
 }
 
 export class StyleTransfer extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.StyleTransfer";
+  static readonly nodeType = "replicate.image.generate.StyleTransfer";
   static readonly title = "Style Transfer";
   static readonly description = `Transfer the style of one image to another
 replicate, ai`;
@@ -3697,7 +3697,7 @@ replicate, ai`;
 }
 
 export class Illusions extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Illusions";
+  static readonly nodeType = "replicate.image.generate.Illusions";
   static readonly title = "Illusions";
   static readonly description = `Create illusions with img2img and masking support
 replicate, ai`;
@@ -3811,7 +3811,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V2";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V2";
   static readonly title = "Ideogram_ V2";
   static readonly description = `An excellent image model with state of the art inpainting, prompt comprehension and text rendering
 replicate, ai`;
@@ -3886,7 +3886,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V2_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V2_Turbo";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V2_Turbo";
   static readonly title = "Ideogram_ V2_ Turbo";
   static readonly description = `A fast image model with state of the art inpainting, prompt comprehension and text rendering.
 replicate, ai`;
@@ -3961,7 +3961,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V2A extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V2A";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V2A";
   static readonly title = "Ideogram_ V2 A";
   static readonly description = `Like Ideogram v2, but faster and cheaper
 replicate, ai`;
@@ -4013,7 +4013,7 @@ replicate, ai`;
 }
 
 export class Imagen_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Imagen_3";
+  static readonly nodeType = "replicate.image.generate.Imagen_3";
   static readonly title = "Imagen_3";
   static readonly description = `Google's highest quality text-to-image model, capable of generating images with detail, rich lighting and beauty
 replicate, ai`;
@@ -4055,7 +4055,7 @@ replicate, ai`;
 }
 
 export class Qwen_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Qwen_Image";
+  static readonly nodeType = "replicate.image.generate.Qwen_Image";
   static readonly title = "Qwen_ Image";
   static readonly description = `An image generation foundation model in the Qwen series that achieves significant advances in complex text rendering.
 replicate, ai`;
@@ -4176,7 +4176,7 @@ replicate, ai`;
 }
 
 export class Qwen_Image_Edit extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Qwen_Image_Edit";
+  static readonly nodeType = "replicate.image.generate.Qwen_Image_Edit";
   static readonly title = "Qwen_ Image_ Edit";
   static readonly description = `Edit images using a prompt. This model extends Qwen-Image’s unique text rendering capabilities to image editing tasks, enabling precise text editing
 replicate, ai`;
@@ -4242,7 +4242,7 @@ replicate, ai`;
 }
 
 export class Seedream_4 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Seedream_4";
+  static readonly nodeType = "replicate.image.generate.Seedream_4";
   static readonly title = "Seedream_4";
   static readonly description = `Unified text-to-image generation and precise single-sentence editing at up to 4K resolution
 replicate, ai`;
@@ -4309,7 +4309,7 @@ replicate, ai`;
 }
 
 export class Minimax_Image_01 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Minimax_Image_01";
+  static readonly nodeType = "replicate.image.generate.Minimax_Image_01";
   static readonly title = "Minimax_ Image_01";
   static readonly description = `Minimax's first image model, with character reference support
 replicate, ai`;
@@ -4356,7 +4356,7 @@ replicate, ai`;
 }
 
 export class Flux_2_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_2_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_2_Pro";
   static readonly title = "Flux_2_ Pro";
   static readonly description = `High-quality image generation and editing with support for eight reference images
 replicate, ai`;
@@ -4428,7 +4428,7 @@ replicate, ai`;
 }
 
 export class Flux_2_Flex extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_2_Flex";
+  static readonly nodeType = "replicate.image.generate.Flux_2_Flex";
   static readonly title = "Flux_2_ Flex";
   static readonly description = `Max-quality image generation and editing with support for ten reference images
 replicate, ai`;
@@ -4515,7 +4515,7 @@ replicate, ai`;
 }
 
 export class GPT_Image_1_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.GPT_Image_1_5";
+  static readonly nodeType = "replicate.image.generate.GPT_Image_1_5";
   static readonly title = "G P T_ Image_1_5";
   static readonly description = `OpenAI's latest image generation model with better instruction following and adherence to prompts
 replicate, ai`;
@@ -4597,7 +4597,7 @@ replicate, ai`;
 }
 
 export class Flux_2_Max extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_2_Max";
+  static readonly nodeType = "replicate.image.generate.Flux_2_Max";
   static readonly title = "Flux_2_ Max";
   static readonly description = `The highest fidelity image model from Black Forest Labs
 replicate, ai`;
@@ -4669,7 +4669,7 @@ replicate, ai`;
 }
 
 export class Imagen_4_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Imagen_4_Fast";
+  static readonly nodeType = "replicate.image.generate.Imagen_4_Fast";
   static readonly title = "Imagen_4_ Fast";
   static readonly description = `Use this fast version of Imagen 4 when speed and cost are more important than quality
 replicate, ai`;
@@ -4711,7 +4711,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V3_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V3_Turbo";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V3_Turbo";
   static readonly title = "Ideogram_ V3_ Turbo";
   static readonly description = `Turbo is the fastest and cheapest Ideogram v3. v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
@@ -4791,7 +4791,7 @@ replicate, ai`;
 }
 
 export class Flux_Kontext_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Kontext_Pro";
+  static readonly nodeType = "replicate.image.generate.Flux_Kontext_Pro";
   static readonly title = "Flux_ Kontext_ Pro";
   static readonly description = `A state-of-the-art text-based image editing model that delivers high-quality outputs with excellent prompt following and consistent results for transforming images through natural language
 replicate, ai`;
@@ -4848,7 +4848,7 @@ replicate, ai`;
 }
 
 export class Seedream_4_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Seedream_4_5";
+  static readonly nodeType = "replicate.image.generate.Seedream_4_5";
   static readonly title = "Seedream_4_5";
   static readonly description = `Seedream 4.5: Upgraded Bytedance image model with stronger spatial understanding and world knowledge
 replicate, ai`;
@@ -4910,7 +4910,7 @@ replicate, ai`;
 }
 
 export class Seedream_5_Lite extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Seedream_5_Lite";
+  static readonly nodeType = "replicate.image.generate.Seedream_5_Lite";
   static readonly title = "Seedream_5_ Lite";
   static readonly description = `Seedream 5.0 lite: image generation with built-in reasoning, example-based editing, and deep domain knowledge
 replicate, ai`;
@@ -4967,7 +4967,7 @@ replicate, ai`;
 }
 
 export class Seedream_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Seedream_3";
+  static readonly nodeType = "replicate.image.generate.Seedream_3";
   static readonly title = "Seedream_3";
   static readonly description = `A text-to-image model with support for native high-resolution (2K) image generation
 replicate, ai`;
@@ -5024,7 +5024,7 @@ replicate, ai`;
 }
 
 export class Recraft_V4 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V4";
+  static readonly nodeType = "replicate.image.generate.Recraft_V4";
   static readonly title = "Recraft_ V4";
   static readonly description = `Recraft's latest image generation model, built around design taste. Strong prompt accuracy, art-directed composition, and integrated text rendering. Fast and cost-efficient at standard resolution.
 replicate, ai`;
@@ -5061,7 +5061,7 @@ replicate, ai`;
 }
 
 export class Recraft_V4_SVG extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V4_SVG";
+  static readonly nodeType = "replicate.image.generate.Recraft_V4_SVG";
   static readonly title = "Recraft_ V4_ S V G";
   static readonly description = `Generate production-ready SVG vector images from text prompts. Recraft V4's design taste applied to vector output — clean geometry, structured layers, and editable paths.
 replicate, ai`;
@@ -5098,7 +5098,7 @@ replicate, ai`;
 }
 
 export class Recraft_V4_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V4_Pro";
+  static readonly nodeType = "replicate.image.generate.Recraft_V4_Pro";
   static readonly title = "Recraft_ V4_ Pro";
   static readonly description = `Recraft's latest image generation model at ~2048px resolution. Same design taste and prompt accuracy as V4, with higher resolution for print-ready and large-scale work.
 replicate, ai`;
@@ -5135,7 +5135,7 @@ replicate, ai`;
 }
 
 export class Recraft_V4_Pro_SVG extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Recraft_V4_Pro_SVG";
+  static readonly nodeType = "replicate.image.generate.Recraft_V4_Pro_SVG";
   static readonly title = "Recraft_ V4_ Pro_ S V G";
   static readonly description = `Generate detailed SVG vector graphics from text prompts. Recraft V4 Pro's design taste with more geometric detail and finer paths — clean layers, editable output, and scalable to any size.
 replicate, ai`;
@@ -5172,7 +5172,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V3_Balanced extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V3_Balanced";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V3_Balanced";
   static readonly title = "Ideogram_ V3_ Balanced";
   static readonly description = `Balance speed, quality and cost. Ideogram v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
@@ -5244,7 +5244,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V3_Quality extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V3_Quality";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V3_Quality";
   static readonly title = "Ideogram_ V3_ Quality";
   static readonly description = `The highest quality Ideogram v3 model. v3 creates images with stunning realism, creative designs, and consistent styles
 replicate, ai`;
@@ -5316,7 +5316,7 @@ replicate, ai`;
 }
 
 export class Ideogram_V2A_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_V2A_Turbo";
+  static readonly nodeType = "replicate.image.generate.Ideogram_V2A_Turbo";
   static readonly title = "Ideogram_ V2 A_ Turbo";
   static readonly description = `Like Ideogram v2 turbo, but now faster and cheaper
 replicate, ai`;
@@ -5368,7 +5368,7 @@ replicate, ai`;
 }
 
 export class Imagen_4 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Imagen_4";
+  static readonly nodeType = "replicate.image.generate.Imagen_4";
   static readonly title = "Imagen_4";
   static readonly description = `Google's Imagen 4 flagship model
 replicate, ai`;
@@ -5415,7 +5415,7 @@ replicate, ai`;
 }
 
 export class Imagen_4_Ultra extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Imagen_4_Ultra";
+  static readonly nodeType = "replicate.image.generate.Imagen_4_Ultra";
   static readonly title = "Imagen_4_ Ultra";
   static readonly description = `Use this ultra version of Imagen 4 when quality matters more than speed and cost
 replicate, ai`;
@@ -5462,7 +5462,7 @@ replicate, ai`;
 }
 
 export class Imagen_3_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Imagen_3_Fast";
+  static readonly nodeType = "replicate.image.generate.Imagen_3_Fast";
   static readonly title = "Imagen_3_ Fast";
   static readonly description = `A faster and cheaper Imagen 3 model, for when price or speed are more important than final image quality
 replicate, ai`;
@@ -5504,7 +5504,7 @@ replicate, ai`;
 }
 
 export class Nano_Banana_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Nano_Banana_Pro";
+  static readonly nodeType = "replicate.image.generate.Nano_Banana_Pro";
   static readonly title = "Nano_ Banana_ Pro";
   static readonly description = `Google's state of the art image generation and editing model 🍌🍌
 replicate, ai`;
@@ -5561,7 +5561,7 @@ replicate, ai`;
 }
 
 export class Grok_Imagine_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Grok_Imagine_Image";
+  static readonly nodeType = "replicate.image.generate.Grok_Imagine_Image";
   static readonly title = "Grok_ Imagine_ Image";
   static readonly description = `SOTA image model from xAI
 replicate, ai`;
@@ -5598,7 +5598,7 @@ replicate, ai`;
 }
 
 export class Fibo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Fibo";
+  static readonly nodeType = "replicate.image.generate.Fibo";
   static readonly title = "Fibo";
   static readonly description = `SOTA Open source model trained on licensed data, transforming intent into structured control for precise, high-quality AI image generation in enterprise and agentic workflows.
 replicate, ai`;
@@ -5655,7 +5655,7 @@ replicate, ai`;
 }
 
 export class Bria_Image_3_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Bria_Image_3_2";
+  static readonly nodeType = "replicate.image.generate.Bria_Image_3_2";
   static readonly title = "Bria_ Image_3_2";
   static readonly description = `Commercial-ready, trained entirely on licensed data, text-to-image model. With only 4B parameters provides exceptional aesthetics and text rendering. Evaluated to be on par to other leading models in the market
 replicate, ai`;
@@ -5712,7 +5712,7 @@ replicate, ai`;
 }
 
 export class Flux_2_Klein_4B extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_2_Klein_4B";
+  static readonly nodeType = "replicate.image.generate.Flux_2_Klein_4B";
   static readonly title = "Flux_2_ Klein_4 B";
   static readonly description = `Very fast image generation and editing model. 4 steps distilled, sub-second inference for production and near real-time applications.
 replicate, ai`;
@@ -5779,7 +5779,7 @@ replicate, ai`;
 }
 
 export class Flux_Kontext_Max extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Kontext_Max";
+  static readonly nodeType = "replicate.image.generate.Flux_Kontext_Max";
   static readonly title = "Flux_ Kontext_ Max";
   static readonly description = `A premium text-based image editing model that delivers maximum performance and improved typography generation for transforming images through natural language prompts
 replicate, ai`;
@@ -5836,7 +5836,7 @@ replicate, ai`;
 }
 
 export class Hunyuan_Image_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Hunyuan_Image_3";
+  static readonly nodeType = "replicate.image.generate.Hunyuan_Image_3";
   static readonly title = "Hunyuan_ Image_3";
   static readonly description = `A powerful native multimodal model for image generation (PrunaAI squeezed)
 replicate, ai`;
@@ -5893,7 +5893,7 @@ replicate, ai`;
 }
 
 export class Flux_PuLID extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_PuLID";
+  static readonly nodeType = "replicate.image.generate.Flux_PuLID";
   static readonly title = "Flux_ Pu L I D";
   static readonly description = `⚡️FLUX PuLID: FLUX-dev based Pure and Lightning ID Customization via Contrastive Alignment🎭
 replicate, ai`;
@@ -5990,7 +5990,7 @@ replicate, ai`;
 }
 
 export class PuLID extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.PuLID";
+  static readonly nodeType = "replicate.image.generate.PuLID";
   static readonly title = "Pu L I D";
   static readonly description = `📖 PuLID: Pure and Lightning ID Customization via Contrastive Alignment
 replicate, ai`;
@@ -6097,7 +6097,7 @@ replicate, ai`;
 }
 
 export class Flux_Change_Haircut extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Change_Haircut";
+  static readonly nodeType = "replicate.image.generate.Flux_Change_Haircut";
   static readonly title = "Flux_ Change_ Haircut";
   static readonly description = `Quickly change someone's hair style and hair color, powered by FLUX.1 Kontext [pro]
 replicate, ai`;
@@ -6159,7 +6159,7 @@ replicate, ai`;
 }
 
 export class Flux_Professional_Headshot extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Professional_Headshot";
+  static readonly nodeType = "replicate.image.generate.Flux_Professional_Headshot";
   static readonly title = "Flux_ Professional_ Headshot";
   static readonly description = `Create a professional headshot photo from any single image
 replicate, ai`;
@@ -6216,7 +6216,7 @@ replicate, ai`;
 }
 
 export class Flux_Restore_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Restore_Image";
+  static readonly nodeType = "replicate.image.generate.Flux_Restore_Image";
   static readonly title = "Flux_ Restore_ Image";
   static readonly description = `Use FLUX Kontext to restore, fix scratches and damage, and colorize old photos
 replicate, ai`;
@@ -6258,7 +6258,7 @@ replicate, ai`;
 }
 
 export class Ideogram_Character extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Ideogram_Character";
+  static readonly nodeType = "replicate.image.generate.Ideogram_Character";
   static readonly title = "Ideogram_ Character";
   static readonly description = `Generate consistent characters from a single reference image. Outputs can be in many styles. You can also use inpainting to add your character to an existing image.
 replicate, ai`;
@@ -6330,7 +6330,7 @@ replicate, ai`;
 }
 
 export class OmniGen2 extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.OmniGen2";
+  static readonly nodeType = "replicate.image.generate.OmniGen2";
   static readonly title = "Omni Gen2";
   static readonly description = `OmniGen2: a powerful and efficient unified multimodal model
 replicate, ai`;
@@ -6432,7 +6432,7 @@ replicate, ai`;
 }
 
 export class Flux_Kontext_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Flux_Kontext_Fast";
+  static readonly nodeType = "replicate.image.generate.Flux_Kontext_Fast";
   static readonly title = "Flux_ Kontext_ Fast";
   static readonly description = `Ultra fast flux kontext endpoint
 replicate, ai`;
@@ -6504,7 +6504,7 @@ replicate, ai`;
 }
 
 export class P_Image_Edit extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.P_Image_Edit";
+  static readonly nodeType = "replicate.image.generate.P_Image_Edit";
   static readonly title = "P_ Image_ Edit";
   static readonly description = `A sub 1 second 0.01$ multi-image editing model built for production use cases. For image generation, check out p-image here: https://replicate.com/prunaai/p-image
 replicate, ai`;
@@ -6561,7 +6561,7 @@ replicate, ai`;
 }
 
 export class Qwen_Image_Edit_Plus extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Qwen_Image_Edit_Plus";
+  static readonly nodeType = "replicate.image.generate.Qwen_Image_Edit_Plus";
   static readonly title = "Qwen_ Image_ Edit_ Plus";
   static readonly description = `The latest Qwen-Image’s iteration with improved multi-image editing, single-image consistency, and native support for ControlNet
 replicate, ai`;
@@ -6627,7 +6627,7 @@ replicate, ai`;
 }
 
 export class Gen4_Image extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Gen4_Image";
+  static readonly nodeType = "replicate.image.generate.Gen4_Image";
   static readonly title = "Gen4_ Image";
   static readonly description = `Runway's Gen-4 Image model with references. Use up to 3 reference images to create the exact image you need. Capture every angle.
 replicate, ai`;
@@ -6679,7 +6679,7 @@ replicate, ai`;
 }
 
 export class Gen4_Image_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Gen4_Image_Turbo";
+  static readonly nodeType = "replicate.image.generate.Gen4_Image_Turbo";
   static readonly title = "Gen4_ Image_ Turbo";
   static readonly description = `Gen-4 Image Turbo is cheaper and 2.5x faster than Gen-4 Image. An image model with references, use up to 3 reference images to create the exact image you need. Capture every angle.
 replicate, ai`;
@@ -6731,7 +6731,7 @@ replicate, ai`;
 }
 
 export class IC_Light_Background extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.IC_Light_Background";
+  static readonly nodeType = "replicate.image.generate.IC_Light_Background";
   static readonly title = "I C_ Light_ Background";
   static readonly description = `🖼️✨Background images + prompts to auto-magically relights your images (+normal maps🗺️)
 replicate, ai`;
@@ -6838,7 +6838,7 @@ replicate, ai`;
 }
 
 export class Step1X_Edit extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Step1X_Edit";
+  static readonly nodeType = "replicate.image.generate.Step1X_Edit";
   static readonly title = "Step1 X_ Edit";
   static readonly description = `✍️Step1X-Edit by stepfun-ai, Edit an image using text prompt📸
 replicate, ai`;
@@ -6894,7 +6894,7 @@ replicate, ai`;
 }
 
 export class Color_Matcher extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.Color_Matcher";
+  static readonly nodeType = "replicate.image.generate.Color_Matcher";
   static readonly title = "Color_ Matcher";
   static readonly description = `Color match and white balance fixes for images
 replicate, ai`;
@@ -6946,7 +6946,7 @@ replicate, ai`;
 }
 
 export class ControlNet_Tile extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.ControlNet_Tile";
+  static readonly nodeType = "replicate.image.generate.ControlNet_Tile";
   static readonly title = "Control Net_ Tile";
   static readonly description = `Controlnet v1.1 - Tile Version
 replicate, ai`;
@@ -6997,7 +6997,7 @@ replicate, ai`;
 }
 
 export class IP_Adapter_FaceID extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.IP_Adapter_FaceID";
+  static readonly nodeType = "replicate.image.generate.IP_Adapter_FaceID";
   static readonly title = "I P_ Adapter_ Face I D";
   static readonly description = `(Research only) IP-Adapter-FaceID can generate various style images conditioned on a face with only text prompts
 replicate, ai`;
@@ -7068,7 +7068,7 @@ replicate, ai`;
 }
 
 export class IP_Adapter_Face_Inpaint extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.IP_Adapter_Face_Inpaint";
+  static readonly nodeType = "replicate.image.generate.IP_Adapter_Face_Inpaint";
   static readonly title = "I P_ Adapter_ Face_ Inpaint";
   static readonly description = `A combination of ip_adapter SDv1.5 and mediapipe-face to inpaint a face
 replicate, ai`;
@@ -7129,7 +7129,7 @@ replicate, ai`;
 }
 
 export class IP_Adapter_SDXL_Face extends ReplicateNode {
-  static readonly nodeType = "replicate.image_generate.IP_Adapter_SDXL_Face";
+  static readonly nodeType = "replicate.image.generate.IP_Adapter_SDXL_Face";
   static readonly title = "I P_ Adapter_ S D X L_ Face";
   static readonly description = `The image prompt adapter is designed to enable a pretrained text-to-image diffusion model to generate SDXL images with an image prompt
 replicate, ai`;

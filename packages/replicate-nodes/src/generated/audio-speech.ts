@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class ElevenLabs_Flash_V2_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ElevenLabs_Flash_V2_5";
+  static readonly nodeType = "replicate.audio.speech.ElevenLabs_Flash_V2_5";
   static readonly title = "Eleven Labs_ Flash_ V2_5";
   static readonly description = `ElevenLabs's fastest speech synthesis model
 replicate, ai`;
@@ -82,7 +82,7 @@ replicate, ai`;
 }
 
 export class ElevenLabs_Turbo_V2_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ElevenLabs_Turbo_V2_5";
+  static readonly nodeType = "replicate.audio.speech.ElevenLabs_Turbo_V2_5";
   static readonly title = "Eleven Labs_ Turbo_ V2_5";
   static readonly description = `High quality, low latency text to speech in 32 languages
 replicate, ai`;
@@ -149,7 +149,7 @@ replicate, ai`;
 }
 
 export class ElevenLabs_V2_Multilingual extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ElevenLabs_V2_Multilingual";
+  static readonly nodeType = "replicate.audio.speech.ElevenLabs_V2_Multilingual";
   static readonly title = "Eleven Labs_ V2_ Multilingual";
   static readonly description = `Generate multilingual text-to-speech audio in over 30 languages
 replicate, ai`;
@@ -216,7 +216,7 @@ replicate, ai`;
 }
 
 export class ElevenLabs_V3 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ElevenLabs_V3";
+  static readonly nodeType = "replicate.audio.speech.ElevenLabs_V3";
   static readonly title = "Eleven Labs_ V3";
   static readonly description = `The most expressive Text to Speech model
 replicate, ai`;
@@ -283,7 +283,7 @@ replicate, ai`;
 }
 
 export class ElevenLabs_Music extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ElevenLabs_Music";
+  static readonly nodeType = "replicate.audio.speech.ElevenLabs_Music";
   static readonly title = "Eleven Labs_ Music";
   static readonly description = `Compose a song from a prompt or a composition plan
 replicate, ai`;
@@ -325,7 +325,7 @@ replicate, ai`;
 }
 
 export class Inworld_TTS_Max extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Inworld_TTS_Max";
+  static readonly nodeType = "replicate.audio.speech.Inworld_TTS_Max";
   static readonly title = "Inworld_ T T S_ Max";
   static readonly description = `Highest-quality text-to-speech with <200ms latency, emotion control, and 15-language support
 replicate, ai`;
@@ -382,7 +382,7 @@ replicate, ai`;
 }
 
 export class Inworld_TTS_Mini extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Inworld_TTS_Mini";
+  static readonly nodeType = "replicate.audio.speech.Inworld_TTS_Mini";
   static readonly title = "Inworld_ T T S_ Mini";
   static readonly description = `Ultra-fast, cost-efficient text-to-speech with ~120ms latency and 15-language support
 replicate, ai`;
@@ -439,7 +439,7 @@ replicate, ai`;
 }
 
 export class Kokoro_82M extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Kokoro_82M";
+  static readonly nodeType = "replicate.audio.speech.Kokoro_82M";
   static readonly title = "Kokoro_82 M";
   static readonly description = `Kokoro v1.0 - text-to-speech (82M params, based on StyleTTS2)
 replicate, ai`;
@@ -476,7 +476,7 @@ replicate, ai`;
 }
 
 export class XTTS_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.XTTS_V2";
+  static readonly nodeType = "replicate.audio.speech.XTTS_V2";
   static readonly title = "X T T S_ V2";
   static readonly description = `Coqui XTTS-v2: Multilingual Text To Speech Voice Cloning
 replicate, ai`;
@@ -518,7 +518,7 @@ replicate, ai`;
 }
 
 export class Orpheus_3B extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Orpheus_3B";
+  static readonly nodeType = "replicate.audio.speech.Orpheus_3B";
   static readonly title = "Orpheus_3 B";
   static readonly description = `Orpheus 3B - high quality, emotive Text to Speech
 replicate, ai`;
@@ -570,7 +570,7 @@ replicate, ai`;
 }
 
 export class CSM_1B extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.CSM_1B";
+  static readonly nodeType = "replicate.audio.speech.CSM_1B";
   static readonly title = "C S M_1 B";
   static readonly description = `CSM (Conversational Speech Model) is a speech generation model from Sesame that generates RVQ audio codes from text and audio inputs
 replicate, ai`;
@@ -607,7 +607,7 @@ replicate, ai`;
 }
 
 export class Parler_TTS extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Parler_TTS";
+  static readonly nodeType = "replicate.audio.speech.Parler_TTS";
   static readonly title = "Parler_ T T S";
   static readonly description = `lightweight text-to-speech (TTS) model, trained on 10.5K hours of audio data
 replicate, ai`;
@@ -639,7 +639,7 @@ replicate, ai`;
 }
 
 export class VoiceCraft extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.VoiceCraft";
+  static readonly nodeType = "replicate.audio.speech.VoiceCraft";
   static readonly title = "Voice Craft";
   static readonly description = `Zero-Shot Speech Editing and Text-to-Speech in the Wild
 replicate, ai`;
@@ -736,7 +736,7 @@ replicate, ai`;
 }
 
 export class OpenVoice extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.OpenVoice";
+  static readonly nodeType = "replicate.audio.speech.OpenVoice";
   static readonly title = "Open Voice";
   static readonly description = `Updated to OpenVoice v2: Versatile Instant Voice Cloning
 replicate, ai`;
@@ -778,7 +778,7 @@ replicate, ai`;
 }
 
 export class F5_TTS extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.F5_TTS";
+  static readonly nodeType = "replicate.audio.speech.F5_TTS";
   static readonly title = "F5_ T T S";
   static readonly description = `F5-TTS, the new state-of-the-art in open source voice cloning
 replicate, ai`;
@@ -830,7 +830,7 @@ replicate, ai`;
 }
 
 export class Spanish_F5_TTS extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Spanish_F5_TTS";
+  static readonly nodeType = "replicate.audio.speech.Spanish_F5_TTS";
   static readonly title = "Spanish_ F5_ T T S";
   static readonly description = `A F5-TTS fine-tuned for Spanish
 replicate, ai`;
@@ -877,7 +877,7 @@ replicate, ai`;
 }
 
 export class Qwen3_TTS extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Qwen3_TTS";
+  static readonly nodeType = "replicate.audio.speech.Qwen3_TTS";
   static readonly title = "Qwen3_ T T S";
   static readonly description = `A unified Text-to-Speech demo featuring three powerful modes: Voice, Clone and Design
 replicate, ai`;
@@ -939,7 +939,7 @@ replicate, ai`;
 }
 
 export class Chatterbox extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Chatterbox";
+  static readonly nodeType = "replicate.audio.speech.Chatterbox";
   static readonly title = "Chatterbox";
   static readonly description = `Generate expressive, natural speech. Features unique emotion control, instant voice cloning from short audio, and built-in watermarking.
 replicate, ai`;
@@ -991,7 +991,7 @@ replicate, ai`;
 }
 
 export class Chatterbox_Multilingual extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Chatterbox_Multilingual";
+  static readonly nodeType = "replicate.audio.speech.Chatterbox_Multilingual";
   static readonly title = "Chatterbox_ Multilingual";
   static readonly description = `Generate expressive, natural speech in 23 languages. Features instant voice cloning from short audio, emotion control, and seamless cross-language voice transfer.
 replicate, ai`;
@@ -1048,7 +1048,7 @@ replicate, ai`;
 }
 
 export class Chatterbox_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Chatterbox_Pro";
+  static readonly nodeType = "replicate.audio.speech.Chatterbox_Pro";
   static readonly title = "Chatterbox_ Pro";
   static readonly description = `Generate expressive, natural speech with Resemble AI's Chatterbox.
 replicate, ai`;
@@ -1105,7 +1105,7 @@ replicate, ai`;
 }
 
 export class Chatterbox_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Chatterbox_Turbo";
+  static readonly nodeType = "replicate.audio.speech.Chatterbox_Turbo";
   static readonly title = "Chatterbox_ Turbo";
   static readonly description = `The fastest open source TTS model without sacrificing quality.
 replicate, ai`;
@@ -1167,7 +1167,7 @@ replicate, ai`;
 }
 
 export class Speech_02_HD extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Speech_02_HD";
+  static readonly nodeType = "replicate.audio.speech.Speech_02_HD";
   static readonly title = "Speech_02_ H D";
   static readonly description = `Text-to-Audio (T2A) that offers voice synthesis, emotional expression, and multilingual capabilities. Optimized for high-fidelity applications like voiceovers and audiobooks.
 replicate, ai`;
@@ -1254,7 +1254,7 @@ replicate, ai`;
 }
 
 export class Speech_02_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Speech_02_Turbo";
+  static readonly nodeType = "replicate.audio.speech.Speech_02_Turbo";
   static readonly title = "Speech_02_ Turbo";
   static readonly description = `Text-to-Audio (T2A) that offers voice synthesis, emotional expression, and multilingual capabilities. Designed for real-time applications with low latency
 replicate, ai`;
@@ -1341,7 +1341,7 @@ replicate, ai`;
 }
 
 export class Speech_2_6_HD extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Speech_2_6_HD";
+  static readonly nodeType = "replicate.audio.speech.Speech_2_6_HD";
   static readonly title = "Speech_2_6_ H D";
   static readonly description = `MiniMax Speech 2.6 HD delivers studio-quality multilingual text-to-audio on Replicate with nuanced prosody, subtitle export, and premium voices
 replicate, ai`;
@@ -1428,7 +1428,7 @@ replicate, ai`;
 }
 
 export class Speech_2_6_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Speech_2_6_Turbo";
+  static readonly nodeType = "replicate.audio.speech.Speech_2_6_Turbo";
   static readonly title = "Speech_2_6_ Turbo";
   static readonly description = `Low‑latency MiniMax Speech 2.6 Turbo brings multilingual, emotional text-to-speech to Replicate with 300+ voices and real-time friendly pricing
 replicate, ai`;
@@ -1515,7 +1515,7 @@ replicate, ai`;
 }
 
 export class Speech_2_8_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Speech_2_8_Turbo";
+  static readonly nodeType = "replicate.audio.speech.Speech_2_8_Turbo";
   static readonly title = "Speech_2_8_ Turbo";
   static readonly description = `Minimax Speech 2.8 Turbo: Turn text into natural, expressive speech with voice cloning, emotion control, and support for 40+ languages
 replicate, ai`;
@@ -1602,7 +1602,7 @@ replicate, ai`;
 }
 
 export class Voice_Cloning extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Voice_Cloning";
+  static readonly nodeType = "replicate.audio.speech.Voice_Cloning";
   static readonly title = "Voice_ Cloning";
   static readonly description = `Clone voices to use with Minimax's speech-02-hd and speech-02-turbo
 replicate, ai`;
@@ -1649,7 +1649,7 @@ replicate, ai`;
 }
 
 export class Music_1_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Music_1_5";
+  static readonly nodeType = "replicate.audio.speech.Music_1_5";
   static readonly title = "Music_1_5";
   static readonly description = `Music-1.5: Full-length songs (up to 4 mins) with natural vocals & rich instrumentation
 replicate, ai`;
@@ -1696,7 +1696,7 @@ replicate, ai`;
 }
 
 export class Stable_Audio_2_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Stable_Audio_2_5";
+  static readonly nodeType = "replicate.audio.speech.Stable_Audio_2_5";
   static readonly title = "Stable_ Audio_2_5";
   static readonly description = `Generate high-quality music and sound from text prompts
 replicate, ai`;
@@ -1743,7 +1743,7 @@ replicate, ai`;
 }
 
 export class AceStep extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.AceStep";
+  static readonly nodeType = "replicate.audio.speech.AceStep";
   static readonly title = "Ace Step";
   static readonly description = `A Step Towards Music Generation Foundation Model text2music
 replicate, ai`;
@@ -1835,7 +1835,7 @@ replicate, ai`;
 }
 
 export class MAGNeT extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.MAGNeT";
+  static readonly nodeType = "replicate.audio.speech.MAGNeT";
   static readonly title = "M A G Ne T";
   static readonly description = `MAGNeT: Masked Audio Generation using a Single Non-Autoregressive Transformer
 replicate, ai`;
@@ -1917,7 +1917,7 @@ replicate, ai`;
 }
 
 export class MusicGen_Chord extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.MusicGen_Chord";
+  static readonly nodeType = "replicate.audio.speech.MusicGen_Chord";
   static readonly title = "Music Gen_ Chord";
   static readonly description = `Generate music restricted to chord sequences and tempo
 replicate, ai`;
@@ -2029,7 +2029,7 @@ replicate, ai`;
 }
 
 export class MusicGen_Remixer extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.MusicGen_Remixer";
+  static readonly nodeType = "replicate.audio.speech.MusicGen_Remixer";
   static readonly title = "Music Gen_ Remixer";
   static readonly description = `Remix the music into another styles with MusicGen Chord
 replicate, ai`;
@@ -2126,7 +2126,7 @@ replicate, ai`;
 }
 
 export class MusicGen_Stereo_Chord extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.MusicGen_Stereo_Chord";
+  static readonly nodeType = "replicate.audio.speech.MusicGen_Stereo_Chord";
   static readonly title = "Music Gen_ Stereo_ Chord";
   static readonly description = `Generate music in stereo, restricted to chord sequences and tempo
 replicate, ai`;
@@ -2243,7 +2243,7 @@ replicate, ai`;
 }
 
 export class MusicGen_Looper extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.MusicGen_Looper";
+  static readonly nodeType = "replicate.audio.speech.MusicGen_Looper";
   static readonly title = "Music Gen_ Looper";
   static readonly description = `Generate fixed-bpm loops from text prompts
 replicate, ai`;
@@ -2320,7 +2320,7 @@ replicate, ai`;
 }
 
 export class Flux_Music extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Flux_Music";
+  static readonly nodeType = "replicate.audio.speech.Flux_Music";
   static readonly title = "Flux_ Music";
   static readonly description = `🎼FluxMusic Text-to-Music Generation with Rectified Flow Transformer🎶
 replicate, ai`;
@@ -2377,7 +2377,7 @@ replicate, ai`;
 }
 
 export class Dia extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.Dia";
+  static readonly nodeType = "replicate.audio.speech.Dia";
   static readonly title = "Dia";
   static readonly description = `Dia 1.6B by Nari Labs, Generates realistic dialogue audio from text, including non-verbal cues and voice cloning
 replicate, ai`;
@@ -2454,7 +2454,7 @@ replicate, ai`;
 }
 
 export class ThinkSound extends ReplicateNode {
-  static readonly nodeType = "replicate.audio_speech.ThinkSound";
+  static readonly nodeType = "replicate.audio.speech.ThinkSound";
   static readonly title = "Think Sound";
   static readonly description = `Generate contextual audio from video using step-by-step reasoning🎶
 replicate, ai`;

@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class LatentSync extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.LatentSync";
+  static readonly nodeType = "replicate.video.face.LatentSync";
   static readonly title = "Latent Sync";
   static readonly description = `LatentSync: generate high-quality lip sync animations
 replicate, ai`;
@@ -65,7 +65,7 @@ replicate, ai`;
 }
 
 export class OmniHuman extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.OmniHuman";
+  static readonly nodeType = "replicate.video.face.OmniHuman";
   static readonly title = "Omni Human";
   static readonly description = `Turns your audio/video/images into professional-quality animated videos
 replicate, ai`;
@@ -104,7 +104,7 @@ replicate, ai`;
 }
 
 export class DreamActor_M2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.DreamActor_M2";
+  static readonly nodeType = "replicate.video.face.DreamActor_M2";
   static readonly title = "Dream Actor_ M2";
   static readonly description = `Animate any character, humans, cartoons, animals, even non-humans, from a single image + driving video
 replicate, ai`;
@@ -145,7 +145,7 @@ replicate, ai`;
 }
 
 export class SadTalker extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.SadTalker";
+  static readonly nodeType = "replicate.video.face.SadTalker";
   static readonly title = "Sad Talker";
   static readonly description = `Stylized Audio-Driven Single Image Talking Face Animation
 replicate, ai`;
@@ -225,7 +225,7 @@ replicate, ai`;
 }
 
 export class AniPortrait extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.AniPortrait";
+  static readonly nodeType = "replicate.video.face.AniPortrait";
   static readonly title = "Ani Portrait";
   static readonly description = `Audio-Driven Synthesis of Photorealistic Portrait Animations
 replicate, ai`;
@@ -291,7 +291,7 @@ replicate, ai`;
 }
 
 export class VideoRetalking extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.VideoRetalking";
+  static readonly nodeType = "replicate.video.face.VideoRetalking";
   static readonly title = "Video Retalking";
   static readonly description = `Audio-based Lip Synchronization for Talking Head Video
 replicate, ai`;
@@ -323,7 +323,7 @@ replicate, ai`;
 }
 
 export class Pixverse_Lipsync_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.Pixverse_Lipsync_V2";
+  static readonly nodeType = "replicate.video.face.Pixverse_Lipsync_V2";
   static readonly title = "Pixverse_ Lipsync_ V2";
   static readonly description = `Generate realistic lipsync animations from audio for high-quality synchronization
 replicate, ai`;
@@ -362,7 +362,7 @@ replicate, ai`;
 }
 
 export class MultiTalk extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.MultiTalk";
+  static readonly nodeType = "replicate.video.face.MultiTalk";
   static readonly title = "Multi Talk";
   static readonly description = `Audio-driven multi-person conversational video generation - Upload audio files and a reference image to create realistic conversations between multiple people
 replicate, ai`;
@@ -428,7 +428,7 @@ replicate, ai`;
 }
 
 export class Kling_Avatar_V2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.Kling_Avatar_V2";
+  static readonly nodeType = "replicate.video.face.Kling_Avatar_V2";
   static readonly title = "Kling_ Avatar_ V2";
   static readonly description = `Create avatar videos with realistic humans, animals, cartoons, or stylized characters
 replicate, ai`;
@@ -478,7 +478,7 @@ replicate, ai`;
 }
 
 export class FaceFusion extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.FaceFusion";
+  static readonly nodeType = "replicate.video.face.FaceFusion";
   static readonly title = "Face Fusion";
   static readonly description = `Auto fuse a user's face onto the template image, with a similar appearance to the user
 replicate, ai`;
@@ -510,7 +510,7 @@ replicate, ai`;
 }
 
 export class FaceSwap extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.FaceSwap";
+  static readonly nodeType = "replicate.video.face.FaceSwap";
   static readonly title = "Face Swap";
   static readonly description = `Advance Face Swap powered by pixalto.app
 replicate, ai`;
@@ -542,7 +542,7 @@ replicate, ai`;
 }
 
 export class AdvancedFaceSwap extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.AdvancedFaceSwap";
+  static readonly nodeType = "replicate.video.face.AdvancedFaceSwap";
   static readonly title = "Advanced Face Swap";
   static readonly description = `Face swap one or two people into a target image
 replicate, ai`;
@@ -608,7 +608,7 @@ replicate, ai`;
 }
 
 export class FlashFace extends ReplicateNode {
-  static readonly nodeType = "replicate.video_face.FlashFace";
+  static readonly nodeType = "replicate.video.face.FlashFace";
   static readonly title = "Flash Face";
   static readonly description = `FlashFace: Human Image Personalization with High-fidelity Identity Preservation
 replicate, ai`;

@@ -62,7 +62,7 @@ async function generateModule(
   if (specs.length === 0) return 0;
 
   const moduleCode = generator.generateModule(
-    moduleName.replace(/-/g, "_"),
+    moduleName,
     specs.map((s) => s.spec),
     config,
   );
@@ -163,7 +163,7 @@ async function generateFromMetadata(
     if (finalSpecs.length === 0) continue;
 
     const moduleCode = generator.generateModule(
-      dashName.replace(/-/g, "_"),
+      dashName,
       finalSpecs,
       moduleConfig,
     );

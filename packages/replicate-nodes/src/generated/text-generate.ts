@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class Llama3_8B extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Llama3_8B";
+  static readonly nodeType = "replicate.text.generate.Llama3_8B";
   static readonly title = "Llama3_8 B";
   static readonly description = `Base version of Llama 3, an 8 billion parameter language model from Meta.
 replicate, ai`;
@@ -107,7 +107,7 @@ replicate, ai`;
 }
 
 export class Llama3_8B_Instruct extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Llama3_8B_Instruct";
+  static readonly nodeType = "replicate.text.generate.Llama3_8B_Instruct";
   static readonly title = "Llama3_8 B_ Instruct";
   static readonly description = `An 8 billion parameter language model from Meta, fine tuned for chat completions
 replicate, ai`;
@@ -204,7 +204,7 @@ replicate, ai`;
 }
 
 export class Llama3_70B extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Llama3_70B";
+  static readonly nodeType = "replicate.text.generate.Llama3_70B";
   static readonly title = "Llama3_70 B";
   static readonly description = `Base version of Llama 3, a 70 billion parameter language model from Meta.
 replicate, ai`;
@@ -296,7 +296,7 @@ replicate, ai`;
 }
 
 export class Llama3_70B_Instruct extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Llama3_70B_Instruct";
+  static readonly nodeType = "replicate.text.generate.Llama3_70B_Instruct";
   static readonly title = "Llama3_70 B_ Instruct";
   static readonly description = `A 70 billion parameter language model from Meta, fine tuned for chat completions
 replicate, ai`;
@@ -393,7 +393,7 @@ replicate, ai`;
 }
 
 export class Llama3_1_405B_Instruct extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Llama3_1_405B_Instruct";
+  static readonly nodeType = "replicate.text.generate.Llama3_1_405B_Instruct";
   static readonly title = "Llama3_1_405 B_ Instruct";
   static readonly description = `Meta's flagship 405 billion parameter language model, fine-tuned for chat completions
 replicate, ai`;
@@ -470,7 +470,7 @@ replicate, ai`;
 }
 
 export class LlamaGuard_3_11B_Vision extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.LlamaGuard_3_11B_Vision";
+  static readonly nodeType = "replicate.text.generate.LlamaGuard_3_11B_Vision";
   static readonly title = "Llama Guard_3_11 B_ Vision";
   static readonly description = `A Llama-3.2-11B pretrained model, fine-tuned for content safety classification
 replicate, ai`;
@@ -502,7 +502,7 @@ replicate, ai`;
 }
 
 export class LlamaGuard_3_8B extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.LlamaGuard_3_8B";
+  static readonly nodeType = "replicate.text.generate.LlamaGuard_3_8B";
   static readonly title = "Llama Guard_3_8 B";
   static readonly description = `A Llama-3.1-8B pretrained model, fine-tuned for content safety classification
 replicate, ai`;
@@ -534,7 +534,7 @@ replicate, ai`;
 }
 
 export class Snowflake_Arctic_Instruct extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Snowflake_Arctic_Instruct";
+  static readonly nodeType = "replicate.text.generate.Snowflake_Arctic_Instruct";
   static readonly title = "Snowflake_ Arctic_ Instruct";
   static readonly description = `An efficient, intelligent, and truly open-source language model
 replicate, ai`;
@@ -606,7 +606,7 @@ replicate, ai`;
 }
 
 export class Claude_3_7_Sonnet extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Claude_3_7_Sonnet";
+  static readonly nodeType = "replicate.text.generate.Claude_3_7_Sonnet";
   static readonly title = "Claude_3_7_ Sonnet";
   static readonly description = `The most intelligent Claude model and the first hybrid reasoning model on the market (claude-3-7-sonnet-20250219)
 replicate, ai`;
@@ -663,7 +663,7 @@ replicate, ai`;
 }
 
 export class Deepseek_R1 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Deepseek_R1";
+  static readonly nodeType = "replicate.text.generate.Deepseek_R1";
   static readonly title = "Deepseek_ R1";
   static readonly description = `A reasoning model trained with reinforcement learning, on par with OpenAI o1
 replicate, ai`;
@@ -715,7 +715,7 @@ replicate, ai`;
 }
 
 export class GPT_5_Structured extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_5_Structured";
+  static readonly nodeType = "replicate.text.generate.GPT_5_Structured";
   static readonly title = "G P T_5_ Structured";
   static readonly description = `GPT-5 with support for structured outputs, web search and custom tools
 replicate, ai`;
@@ -802,7 +802,7 @@ replicate, ai`;
 }
 
 export class GPT_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_5";
+  static readonly nodeType = "replicate.text.generate.GPT_5";
   static readonly title = "G P T_5";
   static readonly description = `OpenAI's new model excelling at coding, writing, and reasoning.
 replicate, ai`;
@@ -859,7 +859,7 @@ replicate, ai`;
 }
 
 export class GPT_5_Mini extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_5_Mini";
+  static readonly nodeType = "replicate.text.generate.GPT_5_Mini";
   static readonly title = "G P T_5_ Mini";
   static readonly description = `Faster version of OpenAI's flagship GPT-5 model
 replicate, ai`;
@@ -916,7 +916,7 @@ replicate, ai`;
 }
 
 export class GPT_5_Nano extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_5_Nano";
+  static readonly nodeType = "replicate.text.generate.GPT_5_Nano";
   static readonly title = "G P T_5_ Nano";
   static readonly description = `Fastest, most cost-effective GPT-5 model from OpenAI
 replicate, ai`;
@@ -973,7 +973,7 @@ replicate, ai`;
 }
 
 export class GPT_4_1 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_4_1";
+  static readonly nodeType = "replicate.text.generate.GPT_4_1";
   static readonly title = "G P T_4_1";
   static readonly description = `OpenAI's Flagship GPT model for complex tasks.
 replicate, ai`;
@@ -1040,7 +1040,7 @@ replicate, ai`;
 }
 
 export class GPT_4_1_Mini extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_4_1_Mini";
+  static readonly nodeType = "replicate.text.generate.GPT_4_1_Mini";
   static readonly title = "G P T_4_1_ Mini";
   static readonly description = `Fast, affordable version of GPT-4.1
 replicate, ai`;
@@ -1107,7 +1107,7 @@ replicate, ai`;
 }
 
 export class GPT_4_1_Nano extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_4_1_Nano";
+  static readonly nodeType = "replicate.text.generate.GPT_4_1_Nano";
   static readonly title = "G P T_4_1_ Nano";
   static readonly description = `Fastest, most cost-effective GPT-4.1 model from OpenAI
 replicate, ai`;
@@ -1174,7 +1174,7 @@ replicate, ai`;
 }
 
 export class Deepseek_V3_1 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Deepseek_V3_1";
+  static readonly nodeType = "replicate.text.generate.Deepseek_V3_1";
   static readonly title = "Deepseek_ V3_1";
   static readonly description = `Latest hybrid thinking model from Deepseek
 replicate, ai`;
@@ -1231,7 +1231,7 @@ replicate, ai`;
 }
 
 export class Gemini_3_1_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Gemini_3_1_Pro";
+  static readonly nodeType = "replicate.text.generate.Gemini_3_1_Pro";
   static readonly title = "Gemini_3_1_ Pro";
   static readonly description = `Google's most intelligent model, with improved reasoning and a new medium thinking level
 replicate, ai`;
@@ -1298,7 +1298,7 @@ replicate, ai`;
 }
 
 export class Gemini_2_5_Flash extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Gemini_2_5_Flash";
+  static readonly nodeType = "replicate.text.generate.Gemini_2_5_Flash";
   static readonly title = "Gemini_2_5_ Flash";
   static readonly description = `Google’s hybrid “thinking” AI model optimized for speed and cost-efficiency
 replicate, ai`;
@@ -1365,7 +1365,7 @@ replicate, ai`;
 }
 
 export class Gemini_3_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Gemini_3_Pro";
+  static readonly nodeType = "replicate.text.generate.Gemini_3_Pro";
   static readonly title = "Gemini_3_ Pro";
   static readonly description = `Google's most advanced reasoning Gemini model
 replicate, ai`;
@@ -1432,7 +1432,7 @@ replicate, ai`;
 }
 
 export class Claude_Opus_4_6 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Claude_Opus_4_6";
+  static readonly nodeType = "replicate.text.generate.Claude_Opus_4_6";
   static readonly title = "Claude_ Opus_4_6";
   static readonly description = `Anthropic's most intelligent model with state-of-the-art coding, reasoning, and agentic capabilities
 replicate, ai`;
@@ -1479,7 +1479,7 @@ replicate, ai`;
 }
 
 export class Claude_4_5_Sonnet extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Claude_4_5_Sonnet";
+  static readonly nodeType = "replicate.text.generate.Claude_4_5_Sonnet";
   static readonly title = "Claude_4_5_ Sonnet";
   static readonly description = `Claude Sonnet 4.5 is the best coding model to date, with significant improvements across the entire development lifecycle
 replicate, ai`;
@@ -1526,7 +1526,7 @@ replicate, ai`;
 }
 
 export class Claude_4_5_Haiku extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Claude_4_5_Haiku";
+  static readonly nodeType = "replicate.text.generate.Claude_4_5_Haiku";
   static readonly title = "Claude_4_5_ Haiku";
   static readonly description = `Claude Haiku 4.5 gives you similar levels of coding performance but at one-third the cost and more than twice the speed
 replicate, ai`;
@@ -1573,7 +1573,7 @@ replicate, ai`;
 }
 
 export class Claude_4_Sonnet extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Claude_4_Sonnet";
+  static readonly nodeType = "replicate.text.generate.Claude_4_Sonnet";
   static readonly title = "Claude_4_ Sonnet";
   static readonly description = `Claude Sonnet 4 is a significant upgrade to 3.7, delivering superior coding and reasoning while responding more precisely to your instructions
 replicate, ai`;
@@ -1630,7 +1630,7 @@ replicate, ai`;
 }
 
 export class GPT_5_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_5_2";
+  static readonly nodeType = "replicate.text.generate.GPT_5_2";
   static readonly title = "G P T_5_2";
   static readonly description = `The best model for coding and agentic tasks across industries
 replicate, ai`;
@@ -1687,7 +1687,7 @@ replicate, ai`;
 }
 
 export class O4_Mini extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.O4_Mini";
+  static readonly nodeType = "replicate.text.generate.O4_Mini";
   static readonly title = "O4_ Mini";
   static readonly description = `OpenAI's fast, lightweight reasoning model
 replicate, ai`;
@@ -1739,7 +1739,7 @@ replicate, ai`;
 }
 
 export class O1 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.O1";
+  static readonly nodeType = "replicate.text.generate.O1";
   static readonly title = "O1";
   static readonly description = `OpenAI's first o-series reasoning model
 replicate, ai`;
@@ -1791,7 +1791,7 @@ replicate, ai`;
 }
 
 export class GPT_4o extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_4o";
+  static readonly nodeType = "replicate.text.generate.GPT_4o";
   static readonly title = "G P T_4o";
   static readonly description = `OpenAI's high-intelligence chat model
 replicate, ai`;
@@ -1858,7 +1858,7 @@ replicate, ai`;
 }
 
 export class GPT_4o_Mini extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.GPT_4o_Mini";
+  static readonly nodeType = "replicate.text.generate.GPT_4o_Mini";
   static readonly title = "G P T_4o_ Mini";
   static readonly description = `Low latency, low cost version of OpenAI's GPT-4o model
 replicate, ai`;
@@ -1925,7 +1925,7 @@ replicate, ai`;
 }
 
 export class Grok_4 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Grok_4";
+  static readonly nodeType = "replicate.text.generate.Grok_4";
   static readonly title = "Grok_4";
   static readonly description = `Grok 4 is xAI’s most advanced reasoning model. Excels at logical thinking and in-depth analysis. Ideal for insightful discussions and complex problem-solving.
 replicate, ai`;
@@ -1977,7 +1977,7 @@ replicate, ai`;
 }
 
 export class Deepseek_V3 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Deepseek_V3";
+  static readonly nodeType = "replicate.text.generate.Deepseek_V3";
   static readonly title = "Deepseek_ V3";
   static readonly description = `DeepSeek-V3-0324 is the leading non-reasoning model, a milestone for open source
 replicate, ai`;
@@ -2029,7 +2029,7 @@ replicate, ai`;
 }
 
 export class Qwen3_235B extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Qwen3_235B";
+  static readonly nodeType = "replicate.text.generate.Qwen3_235B";
   static readonly title = "Qwen3_235 B";
   static readonly description = `Updated Qwen3 model for instruction following
 replicate, ai`;
@@ -2081,7 +2081,7 @@ replicate, ai`;
 }
 
 export class Kimi_K2_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.text_generate.Kimi_K2_5";
+  static readonly nodeType = "replicate.text.generate.Kimi_K2_5";
   static readonly title = "Kimi_ K2_5";
   static readonly description = `Moonshot AI's latest open model. It unifies vision and text, thinking and non-thinking modes, and single-agent and multi-agent execution into one model
 replicate, ai`;

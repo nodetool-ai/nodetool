@@ -15,7 +15,7 @@ import {
 const ReplicateNode = BaseNode;
 
 export class HotshotXL extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.HotshotXL";
+  static readonly nodeType = "replicate.video.generate.HotshotXL";
   static readonly title = "Hotshot X L";
   static readonly description = `😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
 replicate, ai`;
@@ -77,7 +77,7 @@ replicate, ai`;
 }
 
 export class Zeroscope_V2_XL extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Zeroscope_V2_XL";
+  static readonly nodeType = "replicate.video.generate.Zeroscope_V2_XL";
   static readonly title = "Zeroscope_ V2_ X L";
   static readonly description = `Zeroscope V2 XL & 576w
 replicate, ai`;
@@ -169,7 +169,7 @@ replicate, ai`;
 }
 
 export class RobustVideoMatting extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.RobustVideoMatting";
+  static readonly nodeType = "replicate.video.generate.RobustVideoMatting";
   static readonly title = "Robust Video Matting";
   static readonly description = `extract foreground of a video
 replicate, ai`;
@@ -205,7 +205,7 @@ replicate, ai`;
 }
 
 export class AudioToWaveform extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.AudioToWaveform";
+  static readonly nodeType = "replicate.video.generate.AudioToWaveform";
   static readonly title = "Audio To Waveform";
   static readonly description = `Create a waveform video from audio
 replicate, ai`;
@@ -266,7 +266,7 @@ replicate, ai`;
 }
 
 export class Hunyuan_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Hunyuan_Video";
+  static readonly nodeType = "replicate.video.generate.Hunyuan_Video";
   static readonly title = "Hunyuan_ Video";
   static readonly description = `A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions
 replicate, ai`;
@@ -328,7 +328,7 @@ replicate, ai`;
 }
 
 export class Video_01_Live extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Video_01_Live";
+  static readonly nodeType = "replicate.video.generate.Video_01_Live";
   static readonly title = "Video_01_ Live";
   static readonly description = `An image-to-video (I2V) model specifically trained for Live2D and general animation use cases
 replicate, ai`;
@@ -365,7 +365,7 @@ replicate, ai`;
 }
 
 export class Video_01 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Video_01";
+  static readonly nodeType = "replicate.video.generate.Video_01";
   static readonly title = "Video_01";
   static readonly description = `Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.
 replicate, ai`;
@@ -407,7 +407,7 @@ replicate, ai`;
 }
 
 export class Music_01 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Music_01";
+  static readonly nodeType = "replicate.video.generate.Music_01";
   static readonly title = "Music_01";
   static readonly description = `Quickly generate up to 1 minute of music with lyrics and vocals in the style of a reference track
 replicate, ai`;
@@ -477,7 +477,7 @@ replicate, ai`;
 }
 
 export class LTX_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.LTX_Video";
+  static readonly nodeType = "replicate.video.generate.LTX_Video";
   static readonly title = "L T X_ Video";
   static readonly description = `LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.
 replicate, ai`;
@@ -558,7 +558,7 @@ replicate, ai`;
 }
 
 export class Wan_2_1_I2V_480p extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_1_I2V_480p";
+  static readonly nodeType = "replicate.video.generate.Wan_2_1_I2V_480p";
   static readonly title = "Wan_2_1_ I2 V_480p";
   static readonly description = `Accelerated inference for Wan 2.1 14B image to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 replicate, ai`;
@@ -644,7 +644,7 @@ replicate, ai`;
 }
 
 export class Wan_2_1_1_3B extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_1_1_3B";
+  static readonly nodeType = "replicate.video.generate.Wan_2_1_1_3B";
   static readonly title = "Wan_2_1_1_3 B";
   static readonly description = `Generate 5s 480p videos. Wan is an advanced and powerful visual generation model developed by Tongyi Lab of Alibaba Group
 replicate, ai`;
@@ -706,7 +706,7 @@ replicate, ai`;
 }
 
 export class Pixverse_V5 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Pixverse_V5";
+  static readonly nodeType = "replicate.video.generate.Pixverse_V5";
   static readonly title = "Pixverse_ V5";
   static readonly description = `Create 5s-8s videos with enhanced character movement, visual effects, and exclusive 1080p-8s support. Optimized for anime characters and complex actions
 replicate, ai`;
@@ -773,7 +773,7 @@ replicate, ai`;
 }
 
 export class Gen4_Turbo extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Gen4_Turbo";
+  static readonly nodeType = "replicate.video.generate.Gen4_Turbo";
   static readonly title = "Gen4_ Turbo";
   static readonly description = `Generate 5s and 10s 720p videos fast
 replicate, ai`;
@@ -820,7 +820,7 @@ replicate, ai`;
 }
 
 export class Gen4_Aleph extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Gen4_Aleph";
+  static readonly nodeType = "replicate.video.generate.Gen4_Aleph";
   static readonly title = "Gen4_ Aleph";
   static readonly description = `A new way to edit, transform and generate video
 replicate, ai`;
@@ -867,7 +867,7 @@ replicate, ai`;
 }
 
 export class Kling_V2_1 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_V2_1";
+  static readonly nodeType = "replicate.video.generate.Kling_V2_1";
   static readonly title = "Kling_ V2_1";
   static readonly description = `Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)
 replicate, ai`;
@@ -919,7 +919,7 @@ replicate, ai`;
 }
 
 export class Kling_Lip_Sync extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_Lip_Sync";
+  static readonly nodeType = "replicate.video.generate.Kling_Lip_Sync";
   static readonly title = "Kling_ Lip_ Sync";
   static readonly description = `Add lip-sync to any video with an audio file or text
 replicate, ai`;
@@ -971,7 +971,7 @@ replicate, ai`;
 }
 
 export class Hailuo_02 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Hailuo_02";
+  static readonly nodeType = "replicate.video.generate.Hailuo_02";
   static readonly title = "Hailuo_02";
   static readonly description = `Hailuo 2 is a text-to-video and image-to-video model that can make 6s or 10s videos at 768p (standard) or 1080p (pro). It excels at real world physics.
 replicate, ai`;
@@ -1023,7 +1023,7 @@ replicate, ai`;
 }
 
 export class Lipsync_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Lipsync_2";
+  static readonly nodeType = "replicate.video.generate.Lipsync_2";
   static readonly title = "Lipsync_2";
   static readonly description = `Generate realistic lipsyncs with Sync Labs' 2.0 model
 replicate, ai`;
@@ -1078,7 +1078,7 @@ replicate, ai`;
 }
 
 export class Lipsync_2_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Lipsync_2_Pro";
+  static readonly nodeType = "replicate.video.generate.Lipsync_2_Pro";
   static readonly title = "Lipsync_2_ Pro";
   static readonly description = `Studio-grade lipsync in minutes, not weeks
 replicate, ai`;
@@ -1133,7 +1133,7 @@ replicate, ai`;
 }
 
 export class Wan_2_2_T2V_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_2_T2V_Fast";
+  static readonly nodeType = "replicate.video.generate.Wan_2_2_T2V_Fast";
   static readonly title = "Wan_2_2_ T2 V_ Fast";
   static readonly description = `A very fast and cheap PrunaAI optimized version of Wan 2.2 A14B text-to-video
 replicate, ai`;
@@ -1230,7 +1230,7 @@ replicate, ai`;
 }
 
 export class Wan_2_2_I2V_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_2_I2V_Fast";
+  static readonly nodeType = "replicate.video.generate.Wan_2_2_I2V_Fast";
   static readonly title = "Wan_2_2_ I2 V_ Fast";
   static readonly description = `A very fast and cheap PrunaAI optimized version of Wan 2.2 A14B image-to-video
 replicate, ai`;
@@ -1331,7 +1331,7 @@ replicate, ai`;
 }
 
 export class Veo_3_1 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Veo_3_1";
+  static readonly nodeType = "replicate.video.generate.Veo_3_1";
   static readonly title = "Veo_3_1";
   static readonly description = `New and improved version of Veo 3, with higher-fidelity video, context-aware audio, reference image and last frame support
 replicate, ai`;
@@ -1403,7 +1403,7 @@ replicate, ai`;
 }
 
 export class Gen4_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Gen4_5";
+  static readonly nodeType = "replicate.video.generate.Gen4_5";
   static readonly title = "Gen4_5";
   static readonly description = `State-of-the-art video motion quality, prompt adherence and visual fidelity
 replicate, ai`;
@@ -1450,7 +1450,7 @@ replicate, ai`;
 }
 
 export class Kling_V3_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_V3_Video";
+  static readonly nodeType = "replicate.video.generate.Kling_V3_Video";
   static readonly title = "Kling_ V3_ Video";
   static readonly description = `Kling Video 3.0: Generate cinematic videos up to 15 seconds with multi-shot control, native audio, and improved consistency
 replicate, ai`;
@@ -1517,7 +1517,7 @@ replicate, ai`;
 }
 
 export class Kling_V3_Omni_Video extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_V3_Omni_Video";
+  static readonly nodeType = "replicate.video.generate.Kling_V3_Omni_Video";
   static readonly title = "Kling_ V3_ Omni_ Video";
   static readonly description = `Kling Video 3.0 Omni: Unified multimodal video generation with reference images, video editing, native audio, and multi-shot control
 replicate, ai`;
@@ -1599,7 +1599,7 @@ replicate, ai`;
 }
 
 export class Kling_V2_5_Turbo_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_V2_5_Turbo_Pro";
+  static readonly nodeType = "replicate.video.generate.Kling_V2_5_Turbo_Pro";
   static readonly title = "Kling_ V2_5_ Turbo_ Pro";
   static readonly description = `Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.
 replicate, ai`;
@@ -1656,7 +1656,7 @@ replicate, ai`;
 }
 
 export class Kling_V2_6 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Kling_V2_6";
+  static readonly nodeType = "replicate.video.generate.Kling_V2_6";
   static readonly title = "Kling_ V2_6";
   static readonly description = `Kling 2.6 Pro: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation
 replicate, ai`;
@@ -1708,7 +1708,7 @@ replicate, ai`;
 }
 
 export class Veo_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Veo_3";
+  static readonly nodeType = "replicate.video.generate.Veo_3";
   static readonly title = "Veo_3";
   static readonly description = `Sound on: Google’s flagship Veo 3 text to video model, with audio
 replicate, ai`;
@@ -1770,7 +1770,7 @@ replicate, ai`;
 }
 
 export class Veo_3_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Veo_3_Fast";
+  static readonly nodeType = "replicate.video.generate.Veo_3_Fast";
   static readonly title = "Veo_3_ Fast";
   static readonly description = `A faster and cheaper version of Google’s Veo 3 video model, with audio
 replicate, ai`;
@@ -1832,7 +1832,7 @@ replicate, ai`;
 }
 
 export class Veo_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Veo_2";
+  static readonly nodeType = "replicate.video.generate.Veo_2";
   static readonly title = "Veo_2";
   static readonly description = `State of the art video generation model. Veo 2 can faithfully follow simple and complex instructions, and convincingly simulates real-world physics as well as a wide range of visual styles.
 replicate, ai`;
@@ -1879,7 +1879,7 @@ replicate, ai`;
 }
 
 export class Hailuo_2_3 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Hailuo_2_3";
+  static readonly nodeType = "replicate.video.generate.Hailuo_2_3";
   static readonly title = "Hailuo_2_3";
   static readonly description = `A high-fidelity video generation model optimized for realistic human motion, cinematic VFX, expressive characters, and strong prompt and style adherence across both text-to-video and image-to-video workflows
 replicate, ai`;
@@ -1926,7 +1926,7 @@ replicate, ai`;
 }
 
 export class Hailuo_2_3_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Hailuo_2_3_Fast";
+  static readonly nodeType = "replicate.video.generate.Hailuo_2_3_Fast";
   static readonly title = "Hailuo_2_3_ Fast";
   static readonly description = `A lower-latency image-to-video version of Hailuo 2.3 that preserves core motion quality, visual consistency, and stylization performance while enabling faster iteration cycles.
 replicate, ai`;
@@ -1973,7 +1973,7 @@ replicate, ai`;
 }
 
 export class Pixverse_V5_6 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Pixverse_V5_6";
+  static readonly nodeType = "replicate.video.generate.Pixverse_V5_6";
   static readonly title = "Pixverse_ V5_6";
   static readonly description = `Latest video model from Pixverse with astonishing physics
 replicate, ai`;
@@ -2045,7 +2045,7 @@ replicate, ai`;
 }
 
 export class Pixverse_V4 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Pixverse_V4";
+  static readonly nodeType = "replicate.video.generate.Pixverse_V4";
   static readonly title = "Pixverse_ V4";
   static readonly description = `Quickly generate smooth 5s or 8s videos at 540p, 720p or 1080p
 replicate, ai`;
@@ -2132,7 +2132,7 @@ replicate, ai`;
 }
 
 export class Pixverse_V4_5 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Pixverse_V4_5";
+  static readonly nodeType = "replicate.video.generate.Pixverse_V4_5";
   static readonly title = "Pixverse_ V4_5";
   static readonly description = `Quickly make 5s or 8s videos at 540p, 720p or 1080p. It has enhanced motion, prompt coherence and handles complex actions well.
 replicate, ai`;
@@ -2219,7 +2219,7 @@ replicate, ai`;
 }
 
 export class Wan_2_5_T2V extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_5_T2V";
+  static readonly nodeType = "replicate.video.generate.Wan_2_5_T2V";
   static readonly title = "Wan_2_5_ T2 V";
   static readonly description = `Alibaba Wan 2.5 text to video generation model
 replicate, ai`;
@@ -2276,7 +2276,7 @@ replicate, ai`;
 }
 
 export class Wan_2_5_T2V_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_5_T2V_Fast";
+  static readonly nodeType = "replicate.video.generate.Wan_2_5_T2V_Fast";
   static readonly title = "Wan_2_5_ T2 V_ Fast";
   static readonly description = `Wan 2.5 text-to-video, optimized for speed
 replicate, ai`;
@@ -2333,7 +2333,7 @@ replicate, ai`;
 }
 
 export class Wan_2_5_I2V extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_5_I2V";
+  static readonly nodeType = "replicate.video.generate.Wan_2_5_I2V";
   static readonly title = "Wan_2_5_ I2 V";
   static readonly description = `Alibaba Wan 2.5 Image to video generation with background audio
 replicate, ai`;
@@ -2399,7 +2399,7 @@ replicate, ai`;
 }
 
 export class Wan_2_5_I2V_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Wan_2_5_I2V_Fast";
+  static readonly nodeType = "replicate.video.generate.Wan_2_5_I2V_Fast";
   static readonly title = "Wan_2_5_ I2 V_ Fast";
   static readonly description = `Wan 2.5 image-to-video, optimized for speed
 replicate, ai`;
@@ -2465,7 +2465,7 @@ replicate, ai`;
 }
 
 export class Seedance_1_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Seedance_1_Pro";
+  static readonly nodeType = "replicate.video.generate.Seedance_1_Pro";
   static readonly title = "Seedance_1_ Pro";
   static readonly description = `A pro version of Seedance that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 1080p resolution
 replicate, ai`;
@@ -2532,7 +2532,7 @@ replicate, ai`;
 }
 
 export class Seedance_1_Lite extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Seedance_1_Lite";
+  static readonly nodeType = "replicate.video.generate.Seedance_1_Lite";
   static readonly title = "Seedance_1_ Lite";
   static readonly description = `A video generation model that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 720p resolution
 replicate, ai`;
@@ -2604,7 +2604,7 @@ replicate, ai`;
 }
 
 export class Seedance_1_Pro_Fast extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Seedance_1_Pro_Fast";
+  static readonly nodeType = "replicate.video.generate.Seedance_1_Pro_Fast";
   static readonly title = "Seedance_1_ Pro_ Fast";
   static readonly description = `A faster and cheaper version of Seedance 1 Pro
 replicate, ai`;
@@ -2666,7 +2666,7 @@ replicate, ai`;
 }
 
 export class Ray_2_540p extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Ray_2_540p";
+  static readonly nodeType = "replicate.video.generate.Ray_2_540p";
   static readonly title = "Ray_2_540p";
   static readonly description = `Generate 5s and 9s 540p videos
 replicate, ai`;
@@ -2733,7 +2733,7 @@ replicate, ai`;
 }
 
 export class Ray_2_720p extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Ray_2_720p";
+  static readonly nodeType = "replicate.video.generate.Ray_2_720p";
   static readonly title = "Ray_2_720p";
   static readonly description = `Generate 5s and 9s 720p videos
 replicate, ai`;
@@ -2800,7 +2800,7 @@ replicate, ai`;
 }
 
 export class Ray_Flash_2_720p extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Ray_Flash_2_720p";
+  static readonly nodeType = "replicate.video.generate.Ray_Flash_2_720p";
   static readonly title = "Ray_ Flash_2_720p";
   static readonly description = `Generate 5s and 9s 720p videos, faster and cheaper than Ray 2
 replicate, ai`;
@@ -2867,7 +2867,7 @@ replicate, ai`;
 }
 
 export class Ray_Flash_2_540p extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Ray_Flash_2_540p";
+  static readonly nodeType = "replicate.video.generate.Ray_Flash_2_540p";
   static readonly title = "Ray_ Flash_2_540p";
   static readonly description = `Generate 5s and 9s 540p videos, faster and cheaper than Ray 2
 replicate, ai`;
@@ -2934,7 +2934,7 @@ replicate, ai`;
 }
 
 export class Sora_2 extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Sora_2";
+  static readonly nodeType = "replicate.video.generate.Sora_2";
   static readonly title = "Sora_2";
   static readonly description = `OpenAI's Flagship video generation with synced audio
 replicate, ai`;
@@ -2981,7 +2981,7 @@ replicate, ai`;
 }
 
 export class Sora_2_Pro extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Sora_2_Pro";
+  static readonly nodeType = "replicate.video.generate.Sora_2_Pro";
   static readonly title = "Sora_2_ Pro";
   static readonly description = `OpenAI's Most advanced synced-audio video generation
 replicate, ai`;
@@ -3033,7 +3033,7 @@ replicate, ai`;
 }
 
 export class Video_01_Director extends ReplicateNode {
-  static readonly nodeType = "replicate.video_generate.Video_01_Director";
+  static readonly nodeType = "replicate.video.generate.Video_01_Director";
   static readonly title = "Video_01_ Director";
   static readonly description = `Generate videos with specific camera movements
 replicate, ai`;
