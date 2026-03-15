@@ -133,5 +133,119 @@ export const videoGenerateConfig: ModuleConfig = {
       className: "Veo_3_1",
       returnType: "video",
     },
+    "runwayml/gen-4.5": {
+      className: "Gen4_5",
+      returnType: "video",
+    },
+    "kwaivgi/kling-v3-video": {
+      className: "Kling_V3_Video",
+      returnType: "video",
+    },
+    "kwaivgi/kling-v3-omni-video": {
+      className: "Kling_V3_Omni_Video",
+      returnType: "video",
+    },
+    "kwaivgi/kling-v2.5-turbo-pro": {
+      className: "Kling_V2_5_Turbo_Pro",
+      returnType: "video",
+    },
+    "kwaivgi/kling-v2.6": {
+      className: "Kling_V2_6",
+      returnType: "video",
+    },
+    "google/veo-3": {
+      className: "Veo_3",
+      returnType: "video",
+    },
+    "google/veo-3-fast": {
+      className: "Veo_3_Fast",
+      returnType: "video",
+    },
+    "google/veo-2": {
+      className: "Veo_2",
+      returnType: "video",
+    },
+    "minimax/hailuo-2.3": {
+      className: "Hailuo_2_3",
+      returnType: "video",
+    },
+    "minimax/hailuo-2.3-fast": {
+      className: "Hailuo_2_3_Fast",
+      returnType: "video",
+    },
+    "pixverse/pixverse-v5.6": {
+      className: "Pixverse_V5_6",
+      returnType: "video",
+    },
+    "pixverse/pixverse-v4": {
+      className: "Pixverse_V4",
+      returnType: "video",
+    },
+    "pixverse/pixverse-v4.5": {
+      className: "Pixverse_V4_5",
+      returnType: "video",
+    },
+    "wan-video/wan-2.5-t2v": {
+      className: "Wan_2_5_T2V",
+      returnType: "video",
+    },
+    "wan-video/wan-2.5-t2v-fast": {
+      className: "Wan_2_5_T2V_Fast",
+      returnType: "video",
+    },
+    "wan-video/wan-2.5-i2v": {
+      className: "Wan_2_5_I2V",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+      },
+    },
+    "wan-video/wan-2.5-i2v-fast": {
+      className: "Wan_2_5_I2V_Fast",
+      returnType: "video",
+      fieldOverrides: {
+        image: { propType: "image" },
+      },
+    },
+    "bytedance/seedance-1-pro": {
+      className: "Seedance_1_Pro",
+      returnType: "video",
+    },
+    "bytedance/seedance-1-lite": {
+      className: "Seedance_1_Lite",
+      returnType: "video",
+    },
+    "bytedance/seedance-1-pro-fast": {
+      className: "Seedance_1_Pro_Fast",
+      returnType: "video",
+    },
+    "luma/ray-2-540p": {
+      className: "Ray_2_540p",
+      returnType: "video",
+    },
+    "luma/ray-2-720p": {
+      className: "Ray_2_720p",
+      returnType: "video",
+    },
+    "luma/ray-flash-2-720p": {
+      className: "Ray_Flash_2_720p",
+      returnType: "video",
+    },
+    "luma/ray-flash-2-540p": {
+      className: "Ray_Flash_2_540p",
+      returnType: "video",
+    },
+    "openai/sora-2": {
+      className: "Sora_2",
+      returnType: "video",
+    },
+    "openai/sora-2-pro": {
+      className: "Sora_2_Pro",
+      returnType: "video",
+    },
+    "minimax/video-01-director": {
+      className: "Video_01_Director",
+      returnType: "video",
+    },
   },
 };
