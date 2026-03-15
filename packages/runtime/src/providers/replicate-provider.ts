@@ -177,7 +177,18 @@ export class ReplicateProvider extends OpenAIProvider {
   }
 
   override async getAvailableEmbeddingModels(): Promise<{ id: string; name: string; provider: string; dimensions?: number }[]> {
-    return [];
+    return [
+      { id: "replicate/all-mpnet-base-v2", name: "All MPNet Base V2", provider: "replicate", dimensions: 768 },
+      { id: "lucataco/snowflake-arctic-embed-l", name: "Snowflake Arctic Embed L", provider: "replicate", dimensions: 1024 },
+      { id: "lucataco/nomic-embed-text-v1", name: "Nomic Embed Text V1", provider: "replicate", dimensions: 768 },
+      { id: "nateraw/bge-large-en-v1.5", name: "BGE Large EN v1.5", provider: "replicate", dimensions: 1024 },
+      { id: "ibm-granite/granite-embedding-278m-multilingual", name: "Granite Embedding 278M Multilingual", provider: "replicate", dimensions: 768 },
+      { id: "beautyyuyanli/multilingual-e5-large", name: "Multilingual E5 Large", provider: "replicate", dimensions: 1024 },
+      { id: "zsxkib/jina-clip-v2", name: "Jina CLIP V2", provider: "replicate", dimensions: 1024 },
+      { id: "cuuupid/gte-qwen2-7b-instruct", name: "GTE Qwen2 7B Instruct", provider: "replicate", dimensions: 3584 },
+      { id: "andreasjansson/clip-features", name: "CLIP Features", provider: "replicate", dimensions: 512 },
+      { id: "daanelson/imagebind", name: "ImageBind", provider: "replicate", dimensions: 1024 },
+    ];
   }
 
   // ---------------------------------------------------------------------------
