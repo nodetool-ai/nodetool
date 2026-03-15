@@ -23,6 +23,7 @@ import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
+import { ReplicateProvider } from "./replicate-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { GeminiProvider };
@@ -38,6 +39,7 @@ export { LMStudioProvider };
 export { VLLMProvider };
 export { HuggingFaceProvider };
 export { PythonProvider };
+export { ReplicateProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -105,4 +107,7 @@ registerBuiltinProvider("groq", GroqProvider, {
 });
 registerBuiltinProvider("mistral", MistralProvider, {
   MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"],
+});
+registerBuiltinProvider("replicate", ReplicateProvider, {
+  REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"],
 });
