@@ -9,7 +9,7 @@ export const imageGenerateConfig: ModuleConfig = {
         image_path: { propType: "image" },
       },
     },
-    "fofr/consistent-character": {
+    "sdxl-based/consistent-character": {
       className: "ConsistentCharacter",
       returnType: "image",
       fieldOverrides: {

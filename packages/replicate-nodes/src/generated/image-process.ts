@@ -238,7 +238,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "batouresearch/magic-style-transfer", args);
+    const res = await replicateSubmit(apiKey, "fermatresearch/magic-style-transfer", args);
     return { output: outputToImageRef(res.output) };
   }
 }

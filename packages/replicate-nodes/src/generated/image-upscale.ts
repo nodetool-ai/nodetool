@@ -278,7 +278,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "batouresearch/high-resolution-controlnet-tile", args);
+    const res = await replicateSubmit(apiKey, "fermatresearch/high-resolution-controlnet-tile", args);
     return { output: outputToImageRef(res.output) };
   }
 }
@@ -370,7 +370,7 @@ replicate, ai`;
     }
     removeNulls(args);
 
-    const res = await replicateSubmit(apiKey, "batouresearch/magic-image-refiner", args);
+    const res = await replicateSubmit(apiKey, "fermatresearch/magic-image-refiner", args);
     return { output: outputToImageRef(res.output) };
   }
 }
