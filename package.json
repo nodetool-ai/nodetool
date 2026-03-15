@@ -11,6 +11,7 @@
     "packages/code-runners",
     "packages/fal-codegen",
     "packages/fal-nodes",
+    "packages/replicate-nodes",
     "packages/websocket",
     "packages/agents",
     "packages/chat",

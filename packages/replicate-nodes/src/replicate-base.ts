@@ -1,0 +1,244 @@
+/**
+ * Shared Replicate API utilities.
+ * Uses plain fetch() — no SDK dependency.
+ */
+
+const REPLICATE_API_BASE = "https://api.replicate.com/v1";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ReplicatePrediction {
+  id: string;
+  version: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  input: Record<string, unknown>;
+  output: unknown;
+  error: string | null;
+  urls: { get: string; cancel: string };
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  metrics?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// API Key extraction
+// ---------------------------------------------------------------------------
+
+export function getReplicateApiKey(inputs: Record<string, unknown>): string {
+  const key =
+    (inputs._secrets as Record<string, string>)?.REPLICATE_API_TOKEN ||
+    process.env.REPLICATE_API_TOKEN ||
+    "";
+  if (!key) throw new Error("REPLICATE_API_TOKEN is not configured");
+  return key;
+}
+
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+
+/** Recursively delete null/undefined keys from an object. */
+export function removeNulls(obj: Record<string, unknown>): void {
+  for (const k of Object.keys(obj)) {
+    if (obj[k] == null || obj[k] === "") {
+      delete obj[k];
+    } else if (
+      typeof obj[k] === "object" &&
+      !Array.isArray(obj[k])
+    ) {
+      removeNulls(obj[k] as Record<string, unknown>);
+    }
+  }
+}
+
+/** Check if an asset ref has meaningful content (uri or data). */
+export function isRefSet(ref: unknown): boolean {
+  if (!ref || typeof ref !== "object") return false;
+  const r = ref as Record<string, unknown>;
+  return Boolean(r.data || r.uri || r.asset_id);
+}
+
+/** Convert an asset ref to a URL string suitable for Replicate input. */
+export function assetToUrl(ref: Record<string, unknown>): string | null {
+  const uri = ref.uri as string | undefined;
+  if (uri) return uri;
+  const data = ref.data as string | undefined;
+  if (data) {
+    const mime = inferMime(ref);
+    return `data:${mime};base64,${data}`;
+  }
+  return null;
+}
+
+/** Extract version hash from "owner/name:version" model identifier. */
+export function extractVersion(modelId: string): {
+  owner: string;
+  name: string;
+  version: string;
+} {
+  const colonIdx = modelId.lastIndexOf(":");
+  if (colonIdx === -1) {
+    throw new Error(
+      `Invalid model identifier "${modelId}": expected "owner/name:version"`
+    );
+  }
+  const ownerName = modelId.slice(0, colonIdx);
+  const version = modelId.slice(colonIdx + 1);
+  const slashIdx = ownerName.indexOf("/");
+  if (slashIdx === -1) {
+    throw new Error(
+      `Invalid model identifier "${modelId}": expected "owner/name:version"`
+    );
+  }
+  return {
+    owner: ownerName.slice(0, slashIdx),
+    name: ownerName.slice(slashIdx + 1),
+    version,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Submit + poll
+// ---------------------------------------------------------------------------
+
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_ITERATIONS = 900; // 900 * 2s = 30 min
+
+function isTerminal(status: string): boolean {
+  return status === "succeeded" || status === "failed" || status === "canceled";
+}
+
+export async function replicateSubmit(
+  apiKey: string,
+  modelVersion: string,
+  input: Record<string, unknown>
+): Promise<ReplicatePrediction> {
+  const res = await fetch(`${REPLICATE_API_BASE}/predictions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Prefer: "wait",
+    },
+    body: JSON.stringify({ version: modelVersion, input }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Replicate API error ${res.status}: ${body}`);
+  }
+
+  let prediction: ReplicatePrediction = await res.json();
+
+  if (isTerminal(prediction.status)) {
+    if (prediction.status === "failed") {
+      throw new Error(`Replicate prediction failed: ${prediction.error}`);
+    }
+    return prediction;
+  }
+
+  // Poll until terminal
+  for (let i = 0; i < MAX_POLL_ITERATIONS; i++) {
+    await sleep(POLL_INTERVAL_MS);
+
+    const pollRes = await fetch(
+      `${REPLICATE_API_BASE}/predictions/${prediction.id}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      }
+    );
+
+    if (!pollRes.ok) {
+      const body = await pollRes.text();
+      throw new Error(`Replicate poll error ${pollRes.status}: ${body}`);
+    }
+
+    prediction = await pollRes.json();
+
+    if (isTerminal(prediction.status)) {
+      if (prediction.status === "failed") {
+        throw new Error(`Replicate prediction failed: ${prediction.error}`);
+      }
+      return prediction;
+    }
+  }
+
+  throw new Error(
+    `Replicate prediction ${prediction.id} timed out after ${MAX_POLL_ITERATIONS * POLL_INTERVAL_MS / 1000}s`
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Output converters
+// ---------------------------------------------------------------------------
+
+/** Extract the first URL from Replicate output (may be string, array, or object). */
+function extractUrl(output: unknown): string | null {
+  if (typeof output === "string") return output;
+  if (Array.isArray(output)) {
+    for (const item of output) {
+      if (typeof item === "string") return item;
+      if (typeof item === "object" && item !== null) {
+        const url = (item as Record<string, unknown>).url as string | undefined;
+        if (url) return url;
+      }
+    }
+    return null;
+  }
+  if (typeof output === "object" && output !== null) {
+    const o = output as Record<string, unknown>;
+    if (typeof o.url === "string") return o.url;
+    if (typeof o.output === "string") return o.output;
+  }
+  return null;
+}
+
+export function outputToImageRef(output: unknown): Record<string, unknown> {
+  const url = extractUrl(output);
+  if (!url) return { type: "image" };
+  return { type: "image", uri: url };
+}
+
+export function outputToVideoRef(output: unknown): Record<string, unknown> {
+  const url = extractUrl(output);
+  if (!url) return { type: "video" };
+  return { type: "video", uri: url };
+}
+
+export function outputToAudioRef(output: unknown): Record<string, unknown> {
+  const url = extractUrl(output);
+  if (!url) return { type: "audio" };
+  return { type: "audio", uri: url };
+}
+
+export function outputToString(output: unknown): string {
+  if (typeof output === "string") return output;
+  if (Array.isArray(output)) return output.join("");
+  if (output == null) return "";
+  return JSON.stringify(output);
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function inferMime(ref: Record<string, unknown>): string {
+  const t = ref.type as string | undefined;
+  switch (t) {
+    case "image":
+      return "image/png";
+    case "video":
+      return "video/mp4";
+    case "audio":
+      return "audio/wav";
+    default:
+      return "application/octet-stream";
+  }
+}
