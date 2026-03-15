@@ -136,9 +136,9 @@
 - [x] Tool selection (B, E, I, G, L, R, O, A)
 - [x] Undo/Redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
 - [x] Mirror toggle (M)
-- [ ] Brush size ([ / ])
-- [ ] Zoom (+ / -)
-- [ ] Canvas fit (Ctrl+0)
+- [x] Brush size ([ / ])
+- [x] Zoom (+ / -)
+- [x] Canvas fit (Ctrl+0)
 
 ### Mirror Drawing
 - [x] Horizontal mirror mode toggle

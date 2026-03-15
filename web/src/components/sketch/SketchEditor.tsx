@@ -166,8 +166,12 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           e.preventDefault();
           handleRedo();
         }
+        if (e.key === "0") {
+          e.preventDefault();
+          handleZoomReset();
+        }
       } else {
-        switch (e.key.toLowerCase()) {
+        switch (e.key) {
           case "b": setActiveTool("brush"); break;
           case "e": setActiveTool("eraser"); break;
           case "i": setActiveTool("eyedropper"); break;
@@ -177,6 +181,39 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "o": setActiveTool("ellipse"); break;
           case "a": setActiveTool("arrow"); break;
           case "m": setMirrorX((prev) => !prev); break;
+          case "[": {
+            // Decrease brush/eraser size
+            const store = useSketchStore.getState();
+            const tool = store.activeTool;
+            if (tool === "brush") {
+              const newSize = Math.max(1, store.document.toolSettings.brush.size - 5);
+              setBrushSettings({ size: newSize });
+            } else if (tool === "eraser") {
+              const newSize = Math.max(1, store.document.toolSettings.eraser.size - 5);
+              setEraserSettings({ size: newSize });
+            }
+            break;
+          }
+          case "]": {
+            // Increase brush/eraser size
+            const store = useSketchStore.getState();
+            const tool = store.activeTool;
+            if (tool === "brush") {
+              const newSize = Math.min(200, store.document.toolSettings.brush.size + 5);
+              setBrushSettings({ size: newSize });
+            } else if (tool === "eraser") {
+              const newSize = Math.min(200, store.document.toolSettings.eraser.size + 5);
+              setEraserSettings({ size: newSize });
+            }
+            break;
+          }
+          case "=":
+          case "+":
+            handleZoomIn();
+            break;
+          case "-":
+            handleZoomOut();
+            break;
         }
       }
     };

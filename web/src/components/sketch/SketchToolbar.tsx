@@ -451,7 +451,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       {/* Zoom */}
       <Typography className="section-label">View</Typography>
       <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-        <Tooltip title="Zoom Out">
+        <Tooltip title="Zoom Out (−)">
           <IconButton size="small" onClick={onZoomOut}>
             <ZoomOutIcon fontSize="small" />
           </IconButton>
@@ -461,17 +461,26 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         >
           {Math.round(zoom * 100)}%
         </Typography>
-        <Tooltip title="Zoom In">
+        <Tooltip title="Zoom In (+)">
           <IconButton size="small" onClick={onZoomIn}>
             <ZoomInIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Fit to View">
+        <Tooltip title="Reset View (Ctrl+0)">
           <IconButton size="small" onClick={onZoomReset}>
             <FitScreenIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
+
+      {/* Keyboard Shortcuts Reference */}
+      <Divider />
+      <Typography className="section-label">Shortcuts</Typography>
+      <Typography sx={{ fontSize: "0.6rem", color: "grey.500", lineHeight: 1.6 }}>
+        [ / ] — Brush size<br />
+        + / − — Zoom<br />
+        Ctrl+0 — Reset view
+      </Typography>
     </Box>
   );
 };
