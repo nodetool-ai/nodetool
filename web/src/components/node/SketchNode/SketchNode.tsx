@@ -4,6 +4,11 @@
  * Custom ReactFlow node for the sketch editor.
  * Displays a sketch canvas preview with input/output handles
  * and opens the full editor in a modal on click.
+ *
+ * Features:
+ * - Loads connected input_image into editor as base layer
+ * - Exports flattened image and mask as node properties for downstream consumption
+ * - Persists sketch document state for reopen/edit/continue
  */
 
 /** @jsxImportSource @emotion/react */
@@ -26,12 +31,16 @@ import { SketchModal } from "../../sketch";
 import {
   SketchDocument,
   createDefaultDocument,
+  createDefaultLayer,
   deserializeDocument,
   serializeDocument,
   flattenDocument,
-  canvasToDataUrl
+  exportMask,
+  canvasToDataUrl,
+  loadImageToLayerData
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
+import useResultsStore from "../../../stores/ResultsStore";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -156,7 +165,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const documentRef = useRef<SketchDocument | null>(null);
+  const inputImageLoadedRef = useRef<string | null>(null);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
+
+  // Watch for upstream input_image results
+  const upstreamResult = useResultsStore((state) =>
+    state.getResult(props.data.workflow_id, props.id)
+  );
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
@@ -172,13 +187,109 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return createDefaultDocument();
   }, [props.data.properties?.sketch_data]);
 
-  // Generate preview
+  // ─── Resolve input_image from upstream connections ────────────────
+  const inputImageUri = useMemo((): string | null => {
+    // Check upstream result first (from workflow execution)
+    if (upstreamResult && typeof upstreamResult === "object") {
+      const resultObj = upstreamResult as Record<string, unknown>;
+      // Result might have input_image property from edge resolution
+      const inputImg = resultObj.input_image;
+      if (inputImg && typeof inputImg === "object") {
+        const imgRef = inputImg as { uri?: string; data?: unknown };
+        if (imgRef.uri) {
+          return imgRef.uri;
+        }
+      }
+    }
+
+    // Fallback: check dynamic_properties (set by edge connections)
+    const dynInputImage = props.data.dynamic_properties?.input_image;
+    if (dynInputImage && typeof dynInputImage === "object") {
+      const imgRef = dynInputImage as { uri?: string; data?: unknown };
+      if (imgRef.uri) {
+        return imgRef.uri;
+      }
+    }
+
+    // Fallback: check static properties
+    const staticInputImage = props.data.properties?.input_image;
+    if (staticInputImage && typeof staticInputImage === "object") {
+      const imgRef = staticInputImage as { uri?: string; data?: unknown };
+      if (imgRef.uri) {
+        return imgRef.uri;
+      }
+    }
+
+    return null;
+  }, [upstreamResult, props.data.dynamic_properties, props.data.properties]);
+
+  // ─── Load input_image into sketch document when it changes ────────
+  useEffect(() => {
+    if (!inputImageUri || inputImageUri === inputImageLoadedRef.current) {
+      return;
+    }
+
+    inputImageLoadedRef.current = inputImageUri;
+
+    // Load the image into a new base layer
+    const doc = documentRef.current || sketchDoc;
+    loadImageToLayerData(inputImageUri, doc.canvas.width, doc.canvas.height)
+      .then((layerData) => {
+        // Create an updated document with the input image as the base layer
+        const inputLayer = createDefaultLayer("Input Image", "raster");
+        inputLayer.data = layerData;
+        inputLayer.locked = true;
+
+        // Insert input layer at the bottom (index 0) if not already present
+        const existingInputIdx = doc.layers.findIndex((l) => l.name === "Input Image");
+        let updatedLayers;
+        if (existingInputIdx >= 0) {
+          // Replace existing input layer
+          updatedLayers = [...doc.layers];
+          updatedLayers[existingInputIdx] = { ...updatedLayers[existingInputIdx], data: layerData };
+        } else {
+          // Add input layer at the bottom
+          updatedLayers = [inputLayer, ...doc.layers];
+        }
+
+        const updatedDoc: SketchDocument = {
+          ...doc,
+          layers: updatedLayers,
+          metadata: { ...doc.metadata, updatedAt: new Date().toISOString() }
+        };
+
+        documentRef.current = updatedDoc;
+        const serialized = serializeDocument(updatedDoc);
+        updateNodeProperties(props.id, { sketch_data: serialized });
+      })
+      .catch(() => {
+        // Image loading failed - silently ignore
+      });
+  }, [inputImageUri, sketchDoc, props.id, updateNodeProperties]);
+
+  // ─── Generate preview and update output properties ────────────────
   useEffect(() => {
     const hasData = sketchDoc.layers.some((l) => l.data !== null);
     if (hasData) {
+      // Generate flattened image for preview and output
       flattenDocument(sketchDoc)
-        .then((canvas) => {
-          setPreviewUrl(canvasToDataUrl(canvas));
+        .then(async (canvas) => {
+          const imageDataUrl = canvasToDataUrl(canvas);
+          setPreviewUrl(imageDataUrl);
+
+          // Store flattened image as output property for downstream nodes
+          updateNodeProperties(props.id, {
+            image: { type: "image", uri: imageDataUrl, asset_id: null, data: null }
+          });
+
+          // Export mask if designated
+          const maskCanvas = await exportMask(sketchDoc);
+          if (maskCanvas) {
+            const maskDataUrl = canvasToDataUrl(maskCanvas);
+            updateNodeProperties(props.id, {
+              mask: { type: "image", uri: maskDataUrl, asset_id: null, data: null }
+            });
+          }
         })
         .catch(() => {
           // Preview generation failed
@@ -186,7 +297,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     } else {
       setPreviewUrl(null);
     }
-  }, [sketchDoc]);
+  }, [sketchDoc, props.id, updateNodeProperties]);
 
   const handleOpenEditor = useCallback(() => {
     documentRef.current = sketchDoc;
@@ -212,6 +323,27 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       if (currentDoc) {
         const serialized = serializeDocument(currentDoc);
         updateNodeProperties(props.id, { sketch_data: serialized });
+      }
+    },
+    [props.id, updateNodeProperties]
+  );
+
+  // ─── Export callbacks for real-time output updates during editing ──
+  const handleExportImage = useCallback(
+    (dataUrl: string) => {
+      updateNodeProperties(props.id, {
+        image: { type: "image", uri: dataUrl, asset_id: null, data: null }
+      });
+    },
+    [props.id, updateNodeProperties]
+  );
+
+  const handleExportMask = useCallback(
+    (dataUrl: string | null) => {
+      if (dataUrl) {
+        updateNodeProperties(props.id, {
+          mask: { type: "image", uri: dataUrl, asset_id: null, data: null }
+        });
       }
     },
     [props.id, updateNodeProperties]
@@ -315,6 +447,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         onClose={handleCloseEditor}
         onSave={handleSave}
         onDocumentChange={handleDocumentChange}
+        onExportImage={handleExportImage}
+        onExportMask={handleExportMask}
       />
     </Box>
   );

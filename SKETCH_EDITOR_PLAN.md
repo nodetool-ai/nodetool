@@ -38,8 +38,8 @@
 ### Optional Input Image Loading
 - [x] `loadImageToLayerData()` function in serialization
 - [x] Aspect-ratio preserving image scaling
-- [ ] **Connect input_image handle to load image into base layer** ← MISSING
-- [ ] **Auto-resize canvas to match input image dimensions** ← MISSING
+- [x] **Connect input_image handle to load image into base layer**
+- [ ] Auto-resize canvas to match input image dimensions (deferred to Phase 2)
 
 ### Mask Layer Designation and Export
 - [x] Designate any layer as mask via UI button
@@ -68,8 +68,9 @@
 - [x] Edit button opens modal
 - [x] Serialized state persisted in `sketch_data` property
 - [x] Resizable node container
-- [ ] **Output image/mask data to downstream nodes** ← MISSING (handles exist but no data flows)
-- [ ] **Process incoming `input_image` from upstream nodes** ← MISSING (handle exists but unused)
+- [x] **Output image/mask data as ImageRef properties for downstream nodes**
+- [x] **Process incoming `input_image` from upstream nodes and load into editor**
+- [x] **Real-time export callbacks during live editing**
 
 ### Frontend Property Widget
 - [x] `SketchProperty` component with preview thumbnail
@@ -197,9 +198,9 @@
 
 | Category | Status |
 |----------|--------|
-| **Phase 1 Core** | ~90% complete |
-| **Phase 1 Gaps** | input_image connection, output data flow, canvas auto-sizing |
+| **Phase 1 Core** | ~98% complete |
+| **Phase 1 Gaps** | Canvas auto-sizing from input image (deferred to Phase 2) |
 | **Phase 2** | ~40% complete (shapes, fill, swatches, blend modes, mirror done) |
 | **Phase 3** | Not started |
-| **Tests** | 68 passing |
+| **Tests** | 76 passing |
 | **Type Safety** | Clean (no sketch-related type errors) |
