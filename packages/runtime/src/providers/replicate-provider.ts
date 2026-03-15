@@ -3,6 +3,7 @@ import { createLogger } from "@nodetool/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import type {
   ImageModel,
+  ImageToVideoParams,
   LanguageModel,
   TextToImageParams,
   TTSModel,
@@ -279,6 +280,24 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("textToVideo", { model: params.model.id });
+    const output = await this._runPrediction(params.model.id, input, 10 * 60 * 1000);
+    return this._fetchOutputBytes(output);
+  }
+
+  override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+    // Upload image to a data URI for the Replicate API
+    const base64 = Buffer.from(image).toString("base64");
+    const dataUri = `data:image/png;base64,${base64}`;
+
+    const input: Record<string, unknown> = { image: dataUri };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    if (params.numFrames) input.num_frames = params.numFrames;
+    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
+    if (params.seed != null) input.seed = params.seed;
+
+    log.debug("imageToVideo", { model: params.model.id });
     const output = await this._runPrediction(params.model.id, input, 10 * 60 * 1000);
     return this._fetchOutputBytes(output);
   }
