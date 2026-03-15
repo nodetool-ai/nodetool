@@ -91,6 +91,16 @@ export async function assetToUrl(
         return uri;
       }
     }
+    // Local/relative paths (e.g. /api/storage/...): resolve via local server and upload
+    if (apiKey && uri.startsWith("/")) {
+      const port = process.env.PORT ?? "7777";
+      const localUrl = `http://127.0.0.1:${port}${uri}`;
+      try {
+        return await uploadToReplicate(apiKey, localUrl);
+      } catch {
+        return uri;
+      }
+    }
     return uri;
   }
   const data = ref.data as string | undefined;
