@@ -58,13 +58,13 @@ replicate, ai`;
 
     const firstFrameRef = (inputs.first_frame ?? this.first_frame) as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameRef)) {
-      const firstFrameUrl = assetToUrl(firstFrameRef!);
+      const firstFrameUrl = await assetToUrl(firstFrameRef!, apiKey);
       if (firstFrameUrl) args["first_frame"] = firstFrameUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -140,7 +140,7 @@ replicate, ai`;
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -170,7 +170,7 @@ replicate, ai`;
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -206,7 +206,7 @@ replicate, ai`;
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -247,7 +247,7 @@ replicate, ai`;
 
     const videoPathRef = (inputs.video_path ?? this.video_path) as Record<string, unknown> | undefined;
     if (isRefSet(videoPathRef)) {
-      const videoPathUrl = assetToUrl(videoPathRef!);
+      const videoPathUrl = await assetToUrl(videoPathRef!, apiKey);
       if (videoPathUrl) args["video_path"] = videoPathUrl;
     }
     removeNulls(args);
@@ -326,13 +326,13 @@ replicate, ai`;
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -368,7 +368,7 @@ replicate, ai`;
 
     const inputVideoRef = (inputs.input_video ?? this.input_video) as Record<string, unknown> | undefined;
     if (isRefSet(inputVideoRef)) {
-      const inputVideoUrl = assetToUrl(inputVideoRef!);
+      const inputVideoUrl = await assetToUrl(inputVideoRef!, apiKey);
       if (inputVideoUrl) args["input_video"] = inputVideoUrl;
     }
     removeNulls(args);
@@ -472,13 +472,13 @@ replicate, ai`;
 
     const transcriptFileInputRef = (inputs.transcript_file_input ?? this.transcript_file_input) as Record<string, unknown> | undefined;
     if (isRefSet(transcriptFileInputRef)) {
-      const transcriptFileInputUrl = assetToUrl(transcriptFileInputRef!);
+      const transcriptFileInputUrl = await assetToUrl(transcriptFileInputRef!, apiKey);
       if (transcriptFileInputUrl) args["transcript_file_input"] = transcriptFileInputUrl;
     }
 
     const videoFileInputRef = (inputs.video_file_input ?? this.video_file_input) as Record<string, unknown> | undefined;
     if (isRefSet(videoFileInputRef)) {
-      const videoFileInputUrl = assetToUrl(videoFileInputRef!);
+      const videoFileInputUrl = await assetToUrl(videoFileInputRef!, apiKey);
       if (videoFileInputUrl) args["video_file_input"] = videoFileInputUrl;
     }
     removeNulls(args);
@@ -532,13 +532,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -577,13 +577,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);

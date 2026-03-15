@@ -50,7 +50,7 @@ replicate, ai`;
 
     const inputFileRef = (inputs.input_file ?? this.input_file) as Record<string, unknown> | undefined;
     if (isRefSet(inputFileRef)) {
-      const inputFileUrl = assetToUrl(inputFileRef!);
+      const inputFileUrl = await assetToUrl(inputFileRef!, apiKey);
       if (inputFileUrl) args["input_file"] = inputFileUrl;
     }
     removeNulls(args);

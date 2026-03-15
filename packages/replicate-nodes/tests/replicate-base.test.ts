@@ -184,26 +184,36 @@ describe("isRefSet", () => {
 /* ================================================================== */
 
 describe("assetToUrl", () => {
-  it("returns uri when present", () => {
-    expect(assetToUrl({ uri: "https://example.com/img.png" })).toBe(
+  it("returns uri when present", async () => {
+    expect(await assetToUrl({ uri: "https://example.com/img.png" })).toBe(
       "https://example.com/img.png"
     );
   });
 
-  it("returns data URL when data is present", () => {
+  it("returns data URL when data is present", async () => {
     const b64 = Buffer.from("fake-image").toString("base64");
-    const url = assetToUrl({ data: b64, type: "image" });
+    const url = await assetToUrl({ data: b64, type: "image" });
     expect(url).toBe(`data:image/png;base64,${b64}`);
   });
 
-  it("returns null when no uri and no data", () => {
-    expect(assetToUrl({})).toBeNull();
+  it("returns null when no uri and no data", async () => {
+    expect(await assetToUrl({})).toBeNull();
   });
 
-  it("prefers uri over data", () => {
+  it("prefers uri over data", async () => {
     expect(
-      assetToUrl({ uri: "https://x.com/a.png", data: "abc" })
+      await assetToUrl({ uri: "https://x.com/a.png", data: "abc" })
     ).toBe("https://x.com/a.png");
+  });
+
+  it("passes through replicate delivery URLs", async () => {
+    const url = "https://replicate.delivery/xezq/abc/img.webp";
+    expect(await assetToUrl({ uri: url })).toBe(url);
+  });
+
+  it("passes through data URIs", async () => {
+    const dataUri = "data:image/png;base64,abc123";
+    expect(await assetToUrl({ uri: dataUri })).toBe(dataUri);
   });
 });
 

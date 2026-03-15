@@ -361,7 +361,7 @@ export class NodeGenerator {
       );
       lines.push(`    if (isRefSet(${varName}Ref)) {`);
       lines.push(
-        `      const ${varName}Url = assetToUrl(${varName}Ref!);`,
+        `      const ${varName}Url = await assetToUrl(${varName}Ref!, apiKey);`,
       );
       lines.push(
         `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`,

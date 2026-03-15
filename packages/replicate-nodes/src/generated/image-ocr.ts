@@ -34,7 +34,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -64,7 +64,7 @@ replicate, ai`;
 
     const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
-      const imagePathUrl = assetToUrl(imagePathRef!);
+      const imagePathUrl = await assetToUrl(imagePathRef!, apiKey);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
     }
     removeNulls(args);
@@ -115,7 +115,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -161,7 +161,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -217,7 +217,7 @@ replicate, ai`;
 
     const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
-      const fileUrl = assetToUrl(fileRef!);
+      const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;
     }
     removeNulls(args);
@@ -333,7 +333,7 @@ replicate, ai`;
 
     const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
-      const fileUrl = assetToUrl(fileRef!);
+      const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;
     }
     removeNulls(args);

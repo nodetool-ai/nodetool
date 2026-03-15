@@ -125,7 +125,7 @@ replicate, ai`;
 
     const songInputRef = (inputs.song_input ?? this.song_input) as Record<string, unknown> | undefined;
     if (isRefSet(songInputRef)) {
-      const songInputUrl = assetToUrl(songInputRef!);
+      const songInputUrl = await assetToUrl(songInputRef!, apiKey);
       if (songInputUrl) args["song_input"] = songInputUrl;
     }
     removeNulls(args);
@@ -191,7 +191,7 @@ replicate, ai`;
 
     const customVoiceRef = (inputs.custom_voice ?? this.custom_voice) as Record<string, unknown> | undefined;
     if (isRefSet(customVoiceRef)) {
-      const customVoiceUrl = assetToUrl(customVoiceRef!);
+      const customVoiceUrl = await assetToUrl(customVoiceRef!, apiKey);
       if (customVoiceUrl) args["custom_voice"] = customVoiceUrl;
     }
     removeNulls(args);
@@ -257,7 +257,7 @@ replicate, ai`;
 
     const referenceRef = (inputs.reference ?? this.reference) as Record<string, unknown> | undefined;
     if (isRefSet(referenceRef)) {
-      const referenceUrl = assetToUrl(referenceRef!);
+      const referenceUrl = await assetToUrl(referenceRef!, apiKey);
       if (referenceUrl) args["reference"] = referenceUrl;
     }
     removeNulls(args);
@@ -410,7 +410,7 @@ replicate, ai`;
 
     const inputAudioRef = (inputs.input_audio ?? this.input_audio) as Record<string, unknown> | undefined;
     if (isRefSet(inputAudioRef)) {
-      const inputAudioUrl = assetToUrl(inputAudioRef!);
+      const inputAudioUrl = await assetToUrl(inputAudioRef!, apiKey);
       if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
     }
     removeNulls(args);
@@ -474,13 +474,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);

@@ -61,16 +61,73 @@ export function isRefSet(ref: unknown): boolean {
   return Boolean(r.data || r.uri || r.asset_id);
 }
 
-/** Convert an asset ref to a URL string suitable for Replicate input. */
-export function assetToUrl(ref: Record<string, unknown>): string | null {
+/**
+ * Convert an asset ref to a Replicate-accessible URL.
+ *
+ * External URLs (non-Replicate) are fetched and re-uploaded to
+ * Replicate's files API so the model can access them. Data URIs
+ * and Replicate-hosted URLs are passed through directly.
+ */
+export async function assetToUrl(
+  ref: Record<string, unknown>,
+  apiKey?: string
+): Promise<string | null> {
   const uri = ref.uri as string | undefined;
-  if (uri) return uri;
+  if (uri) {
+    // Replicate-hosted URLs can be used directly
+    if (uri.startsWith("https://replicate.delivery/") || uri.startsWith("https://api.replicate.com/")) {
+      return uri;
+    }
+    // Data URIs can be used directly
+    if (uri.startsWith("data:")) {
+      return uri;
+    }
+    // External URLs: fetch and upload to Replicate
+    if (apiKey && (uri.startsWith("http://") || uri.startsWith("https://"))) {
+      try {
+        return await uploadToReplicate(apiKey, uri);
+      } catch {
+        // Fall back to direct URL if upload fails
+        return uri;
+      }
+    }
+    return uri;
+  }
   const data = ref.data as string | undefined;
   if (data) {
     const mime = inferMime(ref);
     return `data:${mime};base64,${data}`;
   }
   return null;
+}
+
+/**
+ * Fetch a URL and upload the content to Replicate's files API.
+ * Returns the Replicate-hosted URL that models can access.
+ */
+async function uploadToReplicate(apiKey: string, sourceUrl: string): Promise<string> {
+  const res = await fetch(sourceUrl);
+  if (!res.ok) throw new Error(`Failed to fetch ${sourceUrl}: ${res.status}`);
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const contentType = res.headers.get("content-type") || "application/octet-stream";
+  const ext = contentType.split("/")[1]?.split(";")[0] || "bin";
+
+  const formData = new FormData();
+  formData.append("content", new Blob([bytes], { type: contentType }), `upload.${ext}`);
+
+  const uploadRes = await fetch(`${REPLICATE_API_BASE}/files`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: formData,
+  });
+
+  if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
+
+  const data = (await uploadRes.json()) as { urls?: { get?: string }; id?: string };
+  const replicateUrl = data.urls?.get;
+  if (!replicateUrl) throw new Error("No URL in upload response");
+  return replicateUrl;
 }
 
 /** Extract version hash from "owner/name:version" model identifier. */

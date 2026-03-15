@@ -45,7 +45,7 @@ replicate, ai`;
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);

@@ -48,13 +48,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -87,13 +87,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -132,13 +132,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -212,13 +212,13 @@ replicate, ai`;
 
     const drivenAudioRef = (inputs.driven_audio ?? this.driven_audio) as Record<string, unknown> | undefined;
     if (isRefSet(drivenAudioRef)) {
-      const drivenAudioUrl = assetToUrl(drivenAudioRef!);
+      const drivenAudioUrl = await assetToUrl(drivenAudioRef!, apiKey);
       if (drivenAudioUrl) args["driven_audio"] = drivenAudioUrl;
     }
 
     const sourceImageRef = (inputs.source_image ?? this.source_image) as Record<string, unknown> | undefined;
     if (isRefSet(sourceImageRef)) {
-      const sourceImageUrl = assetToUrl(sourceImageRef!);
+      const sourceImageUrl = await assetToUrl(sourceImageRef!, apiKey);
       if (sourceImageUrl) args["source_image"] = sourceImageUrl;
     }
     removeNulls(args);
@@ -282,13 +282,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -321,13 +321,13 @@ replicate, ai`;
 
     const faceRef = (inputs.face ?? this.face) as Record<string, unknown> | undefined;
     if (isRefSet(faceRef)) {
-      const faceUrl = assetToUrl(faceRef!);
+      const faceUrl = await assetToUrl(faceRef!, apiKey);
       if (faceUrl) args["face"] = faceUrl;
     }
 
     const inputAudioRef = (inputs.input_audio ?? this.input_audio) as Record<string, unknown> | undefined;
     if (isRefSet(inputAudioRef)) {
-      const inputAudioUrl = assetToUrl(inputAudioRef!);
+      const inputAudioUrl = await assetToUrl(inputAudioRef!, apiKey);
       if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
     }
     removeNulls(args);
@@ -360,13 +360,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
-      const videoUrl = assetToUrl(videoRef!);
+      const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
     }
     removeNulls(args);
@@ -428,19 +428,19 @@ replicate, ai`;
 
     const firstAudioRef = (inputs.first_audio ?? this.first_audio) as Record<string, unknown> | undefined;
     if (isRefSet(firstAudioRef)) {
-      const firstAudioUrl = assetToUrl(firstAudioRef!);
+      const firstAudioUrl = await assetToUrl(firstAudioRef!, apiKey);
       if (firstAudioUrl) args["first_audio"] = firstAudioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const secondAudioRef = (inputs.second_audio ?? this.second_audio) as Record<string, unknown> | undefined;
     if (isRefSet(secondAudioRef)) {
-      const secondAudioUrl = assetToUrl(secondAudioRef!);
+      const secondAudioUrl = await assetToUrl(secondAudioRef!, apiKey);
       if (secondAudioUrl) args["second_audio"] = secondAudioUrl;
     }
     removeNulls(args);
@@ -484,13 +484,13 @@ replicate, ai`;
 
     const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
-      const audioUrl = assetToUrl(audioRef!);
+      const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -523,13 +523,13 @@ replicate, ai`;
 
     const templateImageRef = (inputs.template_image ?? this.template_image) as Record<string, unknown> | undefined;
     if (isRefSet(templateImageRef)) {
-      const templateImageUrl = assetToUrl(templateImageRef!);
+      const templateImageUrl = await assetToUrl(templateImageRef!, apiKey);
       if (templateImageUrl) args["template_image"] = templateImageUrl;
     }
 
     const userImageRef = (inputs.user_image ?? this.user_image) as Record<string, unknown> | undefined;
     if (isRefSet(userImageRef)) {
-      const userImageUrl = assetToUrl(userImageRef!);
+      const userImageUrl = await assetToUrl(userImageRef!, apiKey);
       if (userImageUrl) args["user_image"] = userImageUrl;
     }
     removeNulls(args);
@@ -562,13 +562,13 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
 
     const swapImageRef = (inputs.swap_image ?? this.swap_image) as Record<string, unknown> | undefined;
     if (isRefSet(swapImageRef)) {
-      const swapImageUrl = assetToUrl(swapImageRef!);
+      const swapImageUrl = await assetToUrl(swapImageRef!, apiKey);
       if (swapImageUrl) args["swap_image"] = swapImageUrl;
     }
     removeNulls(args);
@@ -630,19 +630,19 @@ replicate, ai`;
 
     const swapImageRef = (inputs.swap_image ?? this.swap_image) as Record<string, unknown> | undefined;
     if (isRefSet(swapImageRef)) {
-      const swapImageUrl = assetToUrl(swapImageRef!);
+      const swapImageUrl = await assetToUrl(swapImageRef!, apiKey);
       if (swapImageUrl) args["swap_image"] = swapImageUrl;
     }
 
     const swapImageBRef = (inputs.swap_image_b ?? this.swap_image_b) as Record<string, unknown> | undefined;
     if (isRefSet(swapImageBRef)) {
-      const swapImageBUrl = assetToUrl(swapImageBRef!);
+      const swapImageBUrl = await assetToUrl(swapImageBRef!, apiKey);
       if (swapImageBUrl) args["swap_image_b"] = swapImageBUrl;
     }
 
     const targetImageRef = (inputs.target_image ?? this.target_image) as Record<string, unknown> | undefined;
     if (isRefSet(targetImageRef)) {
-      const targetImageUrl = assetToUrl(targetImageRef!);
+      const targetImageUrl = await assetToUrl(targetImageRef!, apiKey);
       if (targetImageUrl) args["target_image"] = targetImageUrl;
     }
     removeNulls(args);
@@ -752,25 +752,25 @@ replicate, ai`;
 
     const referenceFace_1Ref = (inputs.reference_face_1 ?? this.reference_face_1) as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_1Ref)) {
-      const referenceFace_1Url = assetToUrl(referenceFace_1Ref!);
+      const referenceFace_1Url = await assetToUrl(referenceFace_1Ref!, apiKey);
       if (referenceFace_1Url) args["reference_face_1"] = referenceFace_1Url;
     }
 
     const referenceFace_2Ref = (inputs.reference_face_2 ?? this.reference_face_2) as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_2Ref)) {
-      const referenceFace_2Url = assetToUrl(referenceFace_2Ref!);
+      const referenceFace_2Url = await assetToUrl(referenceFace_2Ref!, apiKey);
       if (referenceFace_2Url) args["reference_face_2"] = referenceFace_2Url;
     }
 
     const referenceFace_3Ref = (inputs.reference_face_3 ?? this.reference_face_3) as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_3Ref)) {
-      const referenceFace_3Url = assetToUrl(referenceFace_3Ref!);
+      const referenceFace_3Url = await assetToUrl(referenceFace_3Ref!, apiKey);
       if (referenceFace_3Url) args["reference_face_3"] = referenceFace_3Url;
     }
 
     const referenceFace_4Ref = (inputs.reference_face_4 ?? this.reference_face_4) as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_4Ref)) {
-      const referenceFace_4Url = assetToUrl(referenceFace_4Ref!);
+      const referenceFace_4Url = await assetToUrl(referenceFace_4Ref!, apiKey);
       if (referenceFace_4Url) args["reference_face_4"] = referenceFace_4Url;
     }
     removeNulls(args);

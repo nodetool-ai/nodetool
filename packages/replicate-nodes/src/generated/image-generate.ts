@@ -85,7 +85,7 @@ replicate, ai`;
 
     const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
-      const imagePathUrl = assetToUrl(imagePathRef!);
+      const imagePathUrl = await assetToUrl(imagePathRef!, apiKey);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
     }
     removeNulls(args);
@@ -161,7 +161,7 @@ replicate, ai`;
 
     const subjectRef = (inputs.subject ?? this.subject) as Record<string, unknown> | undefined;
     if (isRefSet(subjectRef)) {
-      const subjectUrl = assetToUrl(subjectRef!);
+      const subjectUrl = await assetToUrl(subjectRef!, apiKey);
       if (subjectUrl) args["subject"] = subjectUrl;
     }
     removeNulls(args);
@@ -242,7 +242,7 @@ replicate, ai`;
 
     const faceImageRef = (inputs.face_image ?? this.face_image) as Record<string, unknown> | undefined;
     if (isRefSet(faceImageRef)) {
-      const faceImageUrl = assetToUrl(faceImageRef!);
+      const faceImageUrl = await assetToUrl(faceImageRef!, apiKey);
       if (faceImageUrl) args["face_image"] = faceImageUrl;
     }
     removeNulls(args);
@@ -375,7 +375,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -441,7 +441,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -507,7 +507,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -578,37 +578,37 @@ replicate, ai`;
 
     const characterReferenceRef = (inputs.character_reference ?? this.character_reference) as Record<string, unknown> | undefined;
     if (isRefSet(characterReferenceRef)) {
-      const characterReferenceUrl = assetToUrl(characterReferenceRef!);
+      const characterReferenceUrl = await assetToUrl(characterReferenceRef!, apiKey);
       if (characterReferenceUrl) args["character_reference"] = characterReferenceUrl;
     }
 
     const characterReferenceUrlRef = (inputs.character_reference_url ?? this.character_reference_url) as Record<string, unknown> | undefined;
     if (isRefSet(characterReferenceUrlRef)) {
-      const characterReferenceUrlUrl = assetToUrl(characterReferenceUrlRef!);
+      const characterReferenceUrlUrl = await assetToUrl(characterReferenceUrlRef!, apiKey);
       if (characterReferenceUrlUrl) args["character_reference_url"] = characterReferenceUrlUrl;
     }
 
     const imageReferenceRef = (inputs.image_reference ?? this.image_reference) as Record<string, unknown> | undefined;
     if (isRefSet(imageReferenceRef)) {
-      const imageReferenceUrl = assetToUrl(imageReferenceRef!);
+      const imageReferenceUrl = await assetToUrl(imageReferenceRef!, apiKey);
       if (imageReferenceUrl) args["image_reference"] = imageReferenceUrl;
     }
 
     const imageReferenceUrlRef = (inputs.image_reference_url ?? this.image_reference_url) as Record<string, unknown> | undefined;
     if (isRefSet(imageReferenceUrlRef)) {
-      const imageReferenceUrlUrl = assetToUrl(imageReferenceUrlRef!);
+      const imageReferenceUrlUrl = await assetToUrl(imageReferenceUrlRef!, apiKey);
       if (imageReferenceUrlUrl) args["image_reference_url"] = imageReferenceUrlUrl;
     }
 
     const styleReferenceRef = (inputs.style_reference ?? this.style_reference) as Record<string, unknown> | undefined;
     if (isRefSet(styleReferenceRef)) {
-      const styleReferenceUrl = assetToUrl(styleReferenceRef!);
+      const styleReferenceUrl = await assetToUrl(styleReferenceRef!, apiKey);
       if (styleReferenceUrl) args["style_reference"] = styleReferenceUrl;
     }
 
     const styleReferenceUrlRef = (inputs.style_reference_url ?? this.style_reference_url) as Record<string, unknown> | undefined;
     if (isRefSet(styleReferenceUrlRef)) {
-      const styleReferenceUrlUrl = assetToUrl(styleReferenceUrlRef!);
+      const styleReferenceUrlUrl = await assetToUrl(styleReferenceUrlRef!, apiKey);
       if (styleReferenceUrlUrl) args["style_reference_url"] = styleReferenceUrlUrl;
     }
     removeNulls(args);
@@ -727,13 +727,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -852,13 +852,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -977,13 +977,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -1067,13 +1067,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -1303,7 +1303,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -1394,7 +1394,7 @@ replicate, ai`;
 
     const imagePromptRef = (inputs.image_prompt ?? this.image_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(imagePromptRef)) {
-      const imagePromptUrl = assetToUrl(imagePromptRef!);
+      const imagePromptUrl = await assetToUrl(imagePromptRef!, apiKey);
       if (imagePromptUrl) args["image_prompt"] = imagePromptUrl;
     }
     removeNulls(args);
@@ -1460,7 +1460,7 @@ replicate, ai`;
 
     const imagePromptRef = (inputs.image_prompt ?? this.image_prompt) as Record<string, unknown> | undefined;
     if (isRefSet(imagePromptRef)) {
-      const imagePromptUrl = assetToUrl(imagePromptRef!);
+      const imagePromptUrl = await assetToUrl(imagePromptRef!, apiKey);
       if (imagePromptUrl) args["image_prompt"] = imagePromptUrl;
     }
     removeNulls(args);
@@ -1581,7 +1581,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -1729,7 +1729,7 @@ replicate, ai`;
 
     const controlImageRef = (inputs.control_image ?? this.control_image) as Record<string, unknown> | undefined;
     if (isRefSet(controlImageRef)) {
-      const controlImageUrl = assetToUrl(controlImageRef!);
+      const controlImageUrl = await assetToUrl(controlImageRef!, apiKey);
       if (controlImageUrl) args["control_image"] = controlImageUrl;
     }
     removeNulls(args);
@@ -1795,7 +1795,7 @@ replicate, ai`;
 
     const controlImageRef = (inputs.control_image ?? this.control_image) as Record<string, unknown> | undefined;
     if (isRefSet(controlImageRef)) {
-      const controlImageUrl = assetToUrl(controlImageRef!);
+      const controlImageUrl = await assetToUrl(controlImageRef!, apiKey);
       if (controlImageUrl) args["control_image"] = controlImageUrl;
     }
     removeNulls(args);
@@ -1869,13 +1869,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -1951,7 +1951,7 @@ replicate, ai`;
 
     const controlImageRef = (inputs.control_image ?? this.control_image) as Record<string, unknown> | undefined;
     if (isRefSet(controlImageRef)) {
-      const controlImageUrl = assetToUrl(controlImageRef!);
+      const controlImageUrl = await assetToUrl(controlImageRef!, apiKey);
       if (controlImageUrl) args["control_image"] = controlImageUrl;
     }
     removeNulls(args);
@@ -2157,13 +2157,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -2292,13 +2292,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -2427,13 +2427,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -2562,13 +2562,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -2812,7 +2812,7 @@ replicate, ai`;
 
     const controlImageRef = (inputs.control_image ?? this.control_image) as Record<string, unknown> | undefined;
     if (isRefSet(controlImageRef)) {
-      const controlImageUrl = assetToUrl(controlImageRef!);
+      const controlImageUrl = await assetToUrl(controlImageRef!, apiKey);
       if (controlImageUrl) args["control_image"] = controlImageUrl;
     }
     removeNulls(args);
@@ -2901,13 +2901,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -2978,7 +2978,7 @@ replicate, ai`;
 
     const reduxImageRef = (inputs.redux_image ?? this.redux_image) as Record<string, unknown> | undefined;
     if (isRefSet(reduxImageRef)) {
-      const reduxImageUrl = assetToUrl(reduxImageRef!);
+      const reduxImageUrl = await assetToUrl(reduxImageRef!, apiKey);
       if (reduxImageUrl) args["redux_image"] = reduxImageUrl;
     }
     removeNulls(args);
@@ -3054,7 +3054,7 @@ replicate, ai`;
 
     const reduxImageRef = (inputs.redux_image ?? this.redux_image) as Record<string, unknown> | undefined;
     if (isRefSet(reduxImageRef)) {
-      const reduxImageUrl = assetToUrl(reduxImageRef!);
+      const reduxImageUrl = await assetToUrl(reduxImageRef!, apiKey);
       if (reduxImageUrl) args["redux_image"] = reduxImageUrl;
     }
     removeNulls(args);
@@ -3110,7 +3110,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -3196,7 +3196,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -3362,13 +3362,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -3462,13 +3462,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -3562,13 +3562,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -3724,13 +3724,13 @@ replicate, ai`;
 
     const structureImageRef = (inputs.structure_image ?? this.structure_image) as Record<string, unknown> | undefined;
     if (isRefSet(structureImageRef)) {
-      const structureImageUrl = assetToUrl(structureImageRef!);
+      const structureImageUrl = await assetToUrl(structureImageRef!, apiKey);
       if (structureImageUrl) args["structure_image"] = structureImageUrl;
     }
 
     const styleImageRef = (inputs.style_image ?? this.style_image) as Record<string, unknown> | undefined;
     if (isRefSet(styleImageRef)) {
-      const styleImageUrl = assetToUrl(styleImageRef!);
+      const styleImageUrl = await assetToUrl(styleImageRef!, apiKey);
       if (styleImageUrl) args["style_image"] = styleImageUrl;
     }
     removeNulls(args);
@@ -3832,19 +3832,19 @@ replicate, ai`;
 
     const controlImageRef = (inputs.control_image ?? this.control_image) as Record<string, unknown> | undefined;
     if (isRefSet(controlImageRef)) {
-      const controlImageUrl = assetToUrl(controlImageRef!);
+      const controlImageUrl = await assetToUrl(controlImageRef!, apiKey);
       if (controlImageUrl) args["control_image"] = controlImageUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskImageRef = (inputs.mask_image ?? this.mask_image) as Record<string, unknown> | undefined;
     if (isRefSet(maskImageRef)) {
-      const maskImageUrl = assetToUrl(maskImageRef!);
+      const maskImageUrl = await assetToUrl(maskImageRef!, apiKey);
       if (maskImageUrl) args["mask_image"] = maskImageUrl;
     }
     removeNulls(args);
@@ -3913,13 +3913,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -3988,13 +3988,13 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -4209,7 +4209,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -4275,7 +4275,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -4346,7 +4346,7 @@ replicate, ai`;
 
     const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
-      const imageInputUrl = assetToUrl(imageInputRef!);
+      const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
     }
     removeNulls(args);
@@ -4397,7 +4397,7 @@ replicate, ai`;
 
     const subjectReferenceRef = (inputs.subject_reference ?? this.subject_reference) as Record<string, unknown> | undefined;
     if (isRefSet(subjectReferenceRef)) {
-      const subjectReferenceUrl = assetToUrl(subjectReferenceRef!);
+      const subjectReferenceUrl = await assetToUrl(subjectReferenceRef!, apiKey);
       if (subjectReferenceUrl) args["subject_reference"] = subjectReferenceUrl;
     }
     removeNulls(args);
@@ -4473,7 +4473,7 @@ replicate, ai`;
 
     const inputImagesRef = (inputs.input_images ?? this.input_images) as Record<string, unknown> | undefined;
     if (isRefSet(inputImagesRef)) {
-      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      const inputImagesUrl = await assetToUrl(inputImagesRef!, apiKey);
       if (inputImagesUrl) args["input_images"] = inputImagesUrl;
     }
     removeNulls(args);
@@ -4564,7 +4564,7 @@ replicate, ai`;
 
     const inputImagesRef = (inputs.input_images ?? this.input_images) as Record<string, unknown> | undefined;
     if (isRefSet(inputImagesRef)) {
-      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      const inputImagesUrl = await assetToUrl(inputImagesRef!, apiKey);
       if (inputImagesUrl) args["input_images"] = inputImagesUrl;
     }
     removeNulls(args);
@@ -4650,7 +4650,7 @@ replicate, ai`;
 
     const inputImagesRef = (inputs.input_images ?? this.input_images) as Record<string, unknown> | undefined;
     if (isRefSet(inputImagesRef)) {
-      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      const inputImagesUrl = await assetToUrl(inputImagesRef!, apiKey);
       if (inputImagesUrl) args["input_images"] = inputImagesUrl;
     }
     removeNulls(args);
@@ -4726,7 +4726,7 @@ replicate, ai`;
 
     const inputImagesRef = (inputs.input_images ?? this.input_images) as Record<string, unknown> | undefined;
     if (isRefSet(inputImagesRef)) {
-      const inputImagesUrl = assetToUrl(inputImagesRef!);
+      const inputImagesUrl = await assetToUrl(inputImagesRef!, apiKey);
       if (inputImagesUrl) args["input_images"] = inputImagesUrl;
     }
     removeNulls(args);
@@ -4840,19 +4840,19 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
 
     const styleReferenceImagesRef = (inputs.style_reference_images ?? this.style_reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(styleReferenceImagesRef)) {
-      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      const styleReferenceImagesUrl = await assetToUrl(styleReferenceImagesRef!, apiKey);
       if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
     }
     removeNulls(args);
@@ -4913,7 +4913,7 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
@@ -4979,7 +4979,7 @@ replicate, ai`;
 
     const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
-      const imageInputUrl = assetToUrl(imageInputRef!);
+      const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
     }
     removeNulls(args);
@@ -5040,7 +5040,7 @@ replicate, ai`;
 
     const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
-      const imageInputUrl = assetToUrl(imageInputRef!);
+      const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
     }
     removeNulls(args);
@@ -5317,19 +5317,19 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
 
     const styleReferenceImagesRef = (inputs.style_reference_images ?? this.style_reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(styleReferenceImagesRef)) {
-      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      const styleReferenceImagesUrl = await assetToUrl(styleReferenceImagesRef!, apiKey);
       if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
     }
     removeNulls(args);
@@ -5401,19 +5401,19 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
 
     const styleReferenceImagesRef = (inputs.style_reference_images ?? this.style_reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(styleReferenceImagesRef)) {
-      const styleReferenceImagesUrl = assetToUrl(styleReferenceImagesRef!);
+      const styleReferenceImagesUrl = await assetToUrl(styleReferenceImagesRef!, apiKey);
       if (styleReferenceImagesUrl) args["style_reference_images"] = styleReferenceImagesUrl;
     }
     removeNulls(args);
@@ -5662,7 +5662,7 @@ replicate, ai`;
 
     const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
-      const imageInputUrl = assetToUrl(imageInputRef!);
+      const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
     }
     removeNulls(args);
@@ -5703,7 +5703,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -5764,7 +5764,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -5892,7 +5892,7 @@ replicate, ai`;
 
     const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
-      const imagesUrl = assetToUrl(imagesRef!);
+      const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
     removeNulls(args);
@@ -5953,7 +5953,7 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
@@ -6111,7 +6111,7 @@ replicate, ai`;
 
     const mainFaceImageRef = (inputs.main_face_image ?? this.main_face_image) as Record<string, unknown> | undefined;
     if (isRefSet(mainFaceImageRef)) {
-      const mainFaceImageUrl = assetToUrl(mainFaceImageRef!);
+      const mainFaceImageUrl = await assetToUrl(mainFaceImageRef!, apiKey);
       if (mainFaceImageUrl) args["main_face_image"] = mainFaceImageUrl;
     }
     removeNulls(args);
@@ -6216,25 +6216,25 @@ replicate, ai`;
 
     const auxiliaryFaceImage1Ref = (inputs.auxiliary_face_image1 ?? this.auxiliary_face_image1) as Record<string, unknown> | undefined;
     if (isRefSet(auxiliaryFaceImage1Ref)) {
-      const auxiliaryFaceImage1Url = assetToUrl(auxiliaryFaceImage1Ref!);
+      const auxiliaryFaceImage1Url = await assetToUrl(auxiliaryFaceImage1Ref!, apiKey);
       if (auxiliaryFaceImage1Url) args["auxiliary_face_image1"] = auxiliaryFaceImage1Url;
     }
 
     const auxiliaryFaceImage2Ref = (inputs.auxiliary_face_image2 ?? this.auxiliary_face_image2) as Record<string, unknown> | undefined;
     if (isRefSet(auxiliaryFaceImage2Ref)) {
-      const auxiliaryFaceImage2Url = assetToUrl(auxiliaryFaceImage2Ref!);
+      const auxiliaryFaceImage2Url = await assetToUrl(auxiliaryFaceImage2Ref!, apiKey);
       if (auxiliaryFaceImage2Url) args["auxiliary_face_image2"] = auxiliaryFaceImage2Url;
     }
 
     const auxiliaryFaceImage3Ref = (inputs.auxiliary_face_image3 ?? this.auxiliary_face_image3) as Record<string, unknown> | undefined;
     if (isRefSet(auxiliaryFaceImage3Ref)) {
-      const auxiliaryFaceImage3Url = assetToUrl(auxiliaryFaceImage3Ref!);
+      const auxiliaryFaceImage3Url = await assetToUrl(auxiliaryFaceImage3Ref!, apiKey);
       if (auxiliaryFaceImage3Url) args["auxiliary_face_image3"] = auxiliaryFaceImage3Url;
     }
 
     const mainFaceImageRef = (inputs.main_face_image ?? this.main_face_image) as Record<string, unknown> | undefined;
     if (isRefSet(mainFaceImageRef)) {
-      const mainFaceImageUrl = assetToUrl(mainFaceImageRef!);
+      const mainFaceImageUrl = await assetToUrl(mainFaceImageRef!, apiKey);
       if (mainFaceImageUrl) args["main_face_image"] = mainFaceImageUrl;
     }
     removeNulls(args);
@@ -6300,7 +6300,7 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
@@ -6361,7 +6361,7 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
@@ -6407,7 +6407,7 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
     removeNulls(args);
@@ -6479,19 +6479,19 @@ replicate, ai`;
 
     const characterReferenceImageRef = (inputs.character_reference_image ?? this.character_reference_image) as Record<string, unknown> | undefined;
     if (isRefSet(characterReferenceImageRef)) {
-      const characterReferenceImageUrl = assetToUrl(characterReferenceImageRef!);
+      const characterReferenceImageUrl = await assetToUrl(characterReferenceImageRef!, apiKey);
       if (characterReferenceImageUrl) args["character_reference_image"] = characterReferenceImageUrl;
     }
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
-      const maskUrl = assetToUrl(maskRef!);
+      const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
     removeNulls(args);
@@ -6593,19 +6593,19 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
     const image_2Ref = (inputs.image_2 ?? this.image_2) as Record<string, unknown> | undefined;
     if (isRefSet(image_2Ref)) {
-      const image_2Url = assetToUrl(image_2Ref!);
+      const image_2Url = await assetToUrl(image_2Ref!, apiKey);
       if (image_2Url) args["image_2"] = image_2Url;
     }
 
     const image_3Ref = (inputs.image_3 ?? this.image_3) as Record<string, unknown> | undefined;
     if (isRefSet(image_3Ref)) {
-      const image_3Url = assetToUrl(image_3Ref!);
+      const image_3Url = await assetToUrl(image_3Ref!, apiKey);
       if (image_3Url) args["image_3"] = image_3Url;
     }
     removeNulls(args);
@@ -6681,7 +6681,7 @@ replicate, ai`;
 
     const imgCondPathRef = (inputs.img_cond_path ?? this.img_cond_path) as Record<string, unknown> | undefined;
     if (isRefSet(imgCondPathRef)) {
-      const imgCondPathUrl = assetToUrl(imgCondPathRef!);
+      const imgCondPathUrl = await assetToUrl(imgCondPathRef!, apiKey);
       if (imgCondPathUrl) args["img_cond_path"] = imgCondPathUrl;
     }
     removeNulls(args);
@@ -6742,7 +6742,7 @@ replicate, ai`;
 
     const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
-      const imagesUrl = assetToUrl(imagesRef!);
+      const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
     removeNulls(args);
@@ -6808,7 +6808,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -6864,7 +6864,7 @@ replicate, ai`;
 
     const referenceImagesRef = (inputs.reference_images ?? this.reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImagesRef)) {
-      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      const referenceImagesUrl = await assetToUrl(referenceImagesRef!, apiKey);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
     removeNulls(args);
@@ -6920,7 +6920,7 @@ replicate, ai`;
 
     const referenceImagesRef = (inputs.reference_images ?? this.reference_images) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImagesRef)) {
-      const referenceImagesUrl = assetToUrl(referenceImagesRef!);
+      const referenceImagesUrl = await assetToUrl(referenceImagesRef!, apiKey);
       if (referenceImagesUrl) args["reference_images"] = referenceImagesUrl;
     }
     removeNulls(args);
@@ -7029,13 +7029,13 @@ replicate, ai`;
 
     const backgroundImageRef = (inputs.background_image ?? this.background_image) as Record<string, unknown> | undefined;
     if (isRefSet(backgroundImageRef)) {
-      const backgroundImageUrl = assetToUrl(backgroundImageRef!);
+      const backgroundImageUrl = await assetToUrl(backgroundImageRef!, apiKey);
       if (backgroundImageUrl) args["background_image"] = backgroundImageUrl;
     }
 
     const subjectImageRef = (inputs.subject_image ?? this.subject_image) as Record<string, unknown> | undefined;
     if (isRefSet(subjectImageRef)) {
-      const subjectImageUrl = assetToUrl(subjectImageRef!);
+      const subjectImageUrl = await assetToUrl(subjectImageRef!, apiKey);
       if (subjectImageUrl) args["subject_image"] = subjectImageUrl;
     }
     removeNulls(args);
@@ -7091,7 +7091,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -7145,13 +7145,13 @@ replicate, ai`;
 
     const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
-      const inputImageUrl = assetToUrl(inputImageRef!);
+      const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
 
     const referenceImageRef = (inputs.reference_image ?? this.reference_image) as Record<string, unknown> | undefined;
     if (isRefSet(referenceImageRef)) {
-      const referenceImageUrl = assetToUrl(referenceImageRef!);
+      const referenceImageUrl = await assetToUrl(referenceImageRef!, apiKey);
       if (referenceImageUrl) args["reference_image"] = referenceImageUrl;
     }
     removeNulls(args);
@@ -7202,7 +7202,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
@@ -7273,7 +7273,7 @@ replicate, ai`;
 
     const faceImageRef = (inputs.face_image ?? this.face_image) as Record<string, unknown> | undefined;
     if (isRefSet(faceImageRef)) {
-      const faceImageUrl = assetToUrl(faceImageRef!);
+      const faceImageUrl = await assetToUrl(faceImageRef!, apiKey);
       if (faceImageUrl) args["face_image"] = faceImageUrl;
     }
     removeNulls(args);
@@ -7332,13 +7332,13 @@ replicate, ai`;
 
     const faceImageRef = (inputs.face_image ?? this.face_image) as Record<string, unknown> | undefined;
     if (isRefSet(faceImageRef)) {
-      const faceImageUrl = assetToUrl(faceImageRef!);
+      const faceImageUrl = await assetToUrl(faceImageRef!, apiKey);
       if (faceImageUrl) args["face_image"] = faceImageUrl;
     }
 
     const sourceImageRef = (inputs.source_image ?? this.source_image) as Record<string, unknown> | undefined;
     if (isRefSet(sourceImageRef)) {
-      const sourceImageUrl = assetToUrl(sourceImageRef!);
+      const sourceImageUrl = await assetToUrl(sourceImageRef!, apiKey);
       if (sourceImageUrl) args["source_image"] = sourceImageUrl;
     }
     removeNulls(args);
@@ -7399,7 +7399,7 @@ replicate, ai`;
 
     const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = assetToUrl(imageRef!);
+      const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
     removeNulls(args);
