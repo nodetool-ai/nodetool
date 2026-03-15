@@ -19,6 +19,7 @@
     "@nodetool/agents": "*",
     "@nodetool/base-nodes": "*",
     "@nodetool/fal-nodes": "*",
+    "@nodetool/replicate-nodes": "*",
     "@nodetool/kernel": "*",
     "@nodetool/models": "*",
     "@nodetool/node-sdk": "*",

@@ -40,10 +40,10 @@ export function getReplicateApiKey(inputs: Record<string, unknown>): string {
 // Utility helpers
 // ---------------------------------------------------------------------------
 
-/** Recursively delete null/undefined keys from an object. */
+/** Recursively delete null/undefined/empty/zero keys from an object. */
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null || obj[k] === "") {
+    if (obj[k] == null || obj[k] === "" || obj[k] === 0) {
       delete obj[k];
     } else if (
       typeof obj[k] === "object" &&
