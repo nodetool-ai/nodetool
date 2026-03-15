@@ -21,6 +21,7 @@
     "@nodetool/auth": "*",
     "@nodetool/base-nodes": "*",
     "@nodetool/fal-nodes": "*",
+    "@nodetool/replicate-nodes": "*",
     "@nodetool/config": "*",
     "@nodetool/huggingface": "*",
     "@nodetool/vectorstore": "*",
