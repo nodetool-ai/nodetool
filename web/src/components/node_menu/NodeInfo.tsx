@@ -198,7 +198,11 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       if (error) {
         return "unknown";
       }
-      return data;
+      // API returns {configured: boolean} — extract the status string
+      const configured = data && typeof data === "object" && "configured" in data
+        ? (data as { configured: boolean }).configured
+        : false;
+      return configured ? "online" : "offline";
     }
     return "unknown";
   }, [nodeMetadata]);
