@@ -1,4 +1,3 @@
-import log from "loglevel";
 import React from "react";
 import { createPortal } from "react-dom";
 import log from "loglevel";
