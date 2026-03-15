@@ -62,6 +62,8 @@ export {
   registerProvider,
   getRegisteredProvider,
   getProvider,
+  getProviderSecretKey,
+  isProviderConfigured,
   clearProviderCache,
   listRegisteredProviderIds,
   setSecretResolver,
