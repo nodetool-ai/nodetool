@@ -52,7 +52,6 @@ Save this in a Python file. NodeTool automatically discovers the node.
 
 ### Programmatic Workflows
 
-- [Python DSL Guide](dsl-guide.md) – Define NodeTool workflows programmatically using Python
 - [TypeScript DSL Guide](ts-dsl-guide.md) – Type-safe workflow definitions with auto-generated factory functions
 - [Gradio Conversion Guide](gradio-conversion.md) – Convert NodeTool workflows to Gradio applications
 
