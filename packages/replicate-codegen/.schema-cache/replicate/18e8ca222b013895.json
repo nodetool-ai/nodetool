@@ -1,0 +1,72 @@
+{
+  "modelId": "bria/fibo-edit",
+  "owner": "bria",
+  "name": "fibo-edit",
+  "version": "588e6015f0020eedbd2a685ba273e47c8a21a52e3c623376cc7f136c8c6f8673",
+  "description": "FIBO-Edit brings the power of structured prompt generation to image editing",
+  "inputSchema": {
+    "properties": {
+      "guidance_scale": {
+        "description": "Guidance scale (1-10)",
+        "maximum": 5,
+        "minimum": 3,
+        "nullable": true,
+        "title": "Guidance Scale",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "instruction": {
+        "description": "Text-based edit instruction (e.g., 'make the sky blue', 'add a cat')",
+        "nullable": true,
+        "title": "Instruction",
+        "type": "string",
+        "x-order": 0
+      },
+      "mask": {
+        "description": "Mask file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Mask",
+        "type": "string",
+        "x-order": 2
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "structured_instruction": {
+        "default": "",
+        "description": "A string containing the structured edit instruction in JSON format. Use this instead of instruction for precise, programmatic control.",
+        "nullable": true,
+        "title": "Structured Instruction",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

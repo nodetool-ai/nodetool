@@ -1,0 +1,43 @@
+{
+  "modelId": "mark3labs/embeddings-gte-base",
+  "owner": "mark3labs",
+  "name": "embeddings-gte-base",
+  "version": "d619cff29338b9a37c3d06605042e1ff0594a8c3eff0175fd6967f5643fc4d47",
+  "description": "General Text Embeddings (GTE) model.",
+  "inputSchema": {
+    "properties": {
+      "text": {
+        "description": "Text string to embed",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "text": {
+        "title": "Text",
+        "type": "string"
+      },
+      "vectors": {
+        "items": {
+          "type": "number"
+        },
+        "title": "Vectors",
+        "type": "array"
+      }
+    },
+    "required": [
+      "vectors",
+      "text"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

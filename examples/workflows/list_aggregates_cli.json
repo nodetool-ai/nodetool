@@ -1,0 +1,29 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "values", "type": "test.Input", "name": "values" },
+      { "id": "sum", "type": "nodetool.list.Sum" },
+      { "id": "avg", "type": "nodetool.list.Average" },
+      { "id": "min", "type": "nodetool.list.Minimum" },
+      { "id": "max", "type": "nodetool.list.Maximum" },
+      { "id": "sum_sink", "type": "nodetool.control.Reroute", "name": "sum" },
+      { "id": "avg_sink", "type": "nodetool.control.Reroute", "name": "average" },
+      { "id": "min_sink", "type": "nodetool.control.Reroute", "name": "min" },
+      { "id": "max_sink", "type": "nodetool.control.Reroute", "name": "max" }
+    ],
+    "edges": [
+      { "source": "values", "sourceHandle": "value", "target": "sum", "targetHandle": "values" },
+      { "source": "values", "sourceHandle": "value", "target": "avg", "targetHandle": "values" },
+      { "source": "values", "sourceHandle": "value", "target": "min", "targetHandle": "values" },
+      { "source": "values", "sourceHandle": "value", "target": "max", "targetHandle": "values" },
+      { "source": "sum", "sourceHandle": "output", "target": "sum_sink", "targetHandle": "input_value" },
+      { "source": "avg", "sourceHandle": "output", "target": "avg_sink", "targetHandle": "input_value" },
+      { "source": "min", "sourceHandle": "output", "target": "min_sink", "targetHandle": "input_value" },
+      { "source": "max", "sourceHandle": "output", "target": "max_sink", "targetHandle": "input_value" }
+    ]
+  },
+  "params": {
+    "values": [3, 6, 9, 12]
+  }
+}
+

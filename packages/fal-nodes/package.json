@@ -1,0 +1,23 @@
+{
+  "name": "@nodetool/fal-nodes",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "FAL AI nodes for nodetool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.9.4",
+    "@nodetool/node-sdk": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

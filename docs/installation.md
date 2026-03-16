@@ -120,11 +120,11 @@ NodeTool automatically sets up everything it needs to run. Here's what happens b
 
 ### Core Components
 
-- **Python Environment** – Self-contained Python installation (doesn't affect your system Python)
-- **AI Engines** – Tools for running AI models locally:
-  - **Ollama** – For language models
-  - **llama.cpp** – Optimized inference (GPU-accelerated where available)
-- **Dependencies** – All required libraries and packages
+- **Node.js Runtime** -- Self-contained Node.js installation (does not affect your system Node.js)
+- **AI Engines** -- Tools for running AI models locally:
+  - **Ollama** -- For language models
+  - **llama.cpp** -- Optimized inference (GPU-accelerated where available)
+- **Dependencies** -- All required libraries and packages
 
 ### Why 20 GB?
 
@@ -132,7 +132,7 @@ NodeTool itself is small, but AI models can be large:
 
 | Component | Typical Size |
 |-----------|--------------|
-| NodeTool + Python environment | 2-4 GB |
+| NodeTool + Node.js runtime | 2-4 GB |
 | GPT-OSS (recommended LLM) | ~4 GB |
 | Flux (image generation) | ~12 GB |
 | **Total with recommended models** | ~20 GB |
@@ -271,12 +271,9 @@ You should see your GPU model and driver version. NodeTool requires:
 - If multiple versions exist, ensure your PATH points to the correct one
 - NodeTool's bundled environment usually handles this, but system conflicts can occur
 
-**"torch.cuda.is_available() returns False"**
-- Your PyTorch installation may not have CUDA support
-- NodeTool includes its own PyTorch; if using custom Python, install the CUDA version:
-  ```bash
-  pip install torch --index-url https://download.pytorch.org/whl/cu121
-  ```
+**GPU acceleration unavailable**
+- NodeTool delegates GPU workloads to external engines (Ollama, llama.cpp, ComfyUI). Ensure those engines have CUDA/Metal support enabled.
+- Verify your GPU driver version with `nvidia-smi`.
 
 #### Windows-Specific CUDA Issues
 
@@ -311,7 +308,7 @@ Security software can interfere with NodeTool's local server and AI model execut
 **Norton, McAfee, Bitdefender, etc.**
 - Add NodeTool to your antivirus's trusted/excluded programs list
 - Temporarily disable real-time scanning during installation
-- Some AV software blocks Python processes – whitelist `python.exe` in NodeTool's folder
+- Some AV software blocks Node.js processes -- whitelist `node.exe` in NodeTool's folder
 
 #### Firewall Configuration
 
@@ -335,35 +332,28 @@ sudo ufw allow 7777/tcp
 
 ---
 
-### Python Environment Issues
+### Runtime Environment Issues
 
-NodeTool includes its own Python environment, but system Python can sometimes conflict.
+NodeTool includes its own Node.js runtime, but system-level conflicts can occasionally occur.
 
-#### "Python not found" or "Module not found"
+#### "Module not found" or startup errors
 
-- NodeTool uses a bundled Python – this error usually means installation incomplete
+- NodeTool uses a bundled runtime -- this error usually means installation is incomplete
 - Try reinstalling NodeTool, ensuring the installer completes fully
-- Check that you're launching NodeTool from the correct location
+- Check that you are launching NodeTool from the correct location
 
-#### Conflicting Python Environments
-
-If you have Anaconda, Miniconda, or other Python distributions:
-
-- **Don't activate conda** before running NodeTool – it uses its own Python
-- If issues persist, temporarily rename or move your conda installation to test
-- Check your PATH doesn't override NodeTool's Python
-
-#### Virtual Environment Issues (for developers)
+#### Development Setup (for contributors)
 
 If running NodeTool from source:
 ```bash
-# Create fresh environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
-
 # Install dependencies
-pip install -e .
+npm install
+
+# Build all packages
+npm run build
+
+# Start the development server
+npm run dev
 ```
 
 ---

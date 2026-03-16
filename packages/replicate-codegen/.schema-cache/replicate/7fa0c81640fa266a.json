@@ -1,0 +1,79 @@
+{
+  "modelId": "lucataco/videollama3-7b",
+  "owner": "lucataco",
+  "name": "videollama3-7b",
+  "version": "34a1f45f7068f7121a5b47c91f2d7e06c298850767f76f96660450a0a3bd5bbe",
+  "description": "VideoLLaMA 3: Frontier Multimodal Foundation Models for Video Understanding",
+  "inputSchema": {
+    "properties": {
+      "fps": {
+        "default": 1,
+        "description": "Frames per second to sample from video",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Fps",
+        "type": "number",
+        "x-order": 2
+      },
+      "max_frames": {
+        "default": 180,
+        "description": "Maximum number of frames to process",
+        "maximum": 256,
+        "minimum": 0,
+        "title": "Max Frames",
+        "type": "integer",
+        "x-order": 3
+      },
+      "max_new_tokens": {
+        "default": 2048,
+        "description": "Maximum number of tokens to generate",
+        "maximum": 4096,
+        "minimum": 0,
+        "title": "Max New Tokens",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "description": "Text prompt to guide the model's response",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.2,
+        "description": "Sampling temperature",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 4
+      },
+      "top_p": {
+        "default": 0.9,
+        "description": "Top-p sampling",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      },
+      "video": {
+        "description": "Input video file",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video",
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

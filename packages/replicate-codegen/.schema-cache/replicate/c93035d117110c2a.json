@@ -1,0 +1,61 @@
+{
+  "modelId": "zsyoaoa/invsr",
+  "owner": "zsyoaoa",
+  "name": "invsr",
+  "version": "37eebabfb6cdc4be2892b884b96b361d6fedc9f6a934d2fa3c1a2f85f004b0f0",
+  "description": "Arbitrary-steps Image Super-resolution via Diffusion Inversion",
+  "inputSchema": {
+    "properties": {
+      "chopping_size": {
+        "default": 128,
+        "description": "Chopping resolution",
+        "enum": [
+          128,
+          256,
+          512
+        ],
+        "title": "chopping_size",
+        "type": "integer",
+        "x-order": 2
+      },
+      "in_path": {
+        "description": "Input low-quality image",
+        "format": "uri",
+        "title": "In Path",
+        "type": "string",
+        "x-order": 0
+      },
+      "num_steps": {
+        "default": 1,
+        "description": "Number of sampling steps.",
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "title": "num_steps",
+        "type": "integer",
+        "x-order": 1
+      },
+      "seed": {
+        "default": 12345,
+        "description": "Random seed. Leave blank to randomize the seed.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "in_path"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

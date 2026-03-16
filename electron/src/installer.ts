@@ -3,7 +3,6 @@ import type { Stats } from "fs";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
-  updateCondaEnvironment,
   runCommand,
 } from "./python";
 
@@ -12,7 +11,6 @@ import path from "path";
 import {
   readSettings,
   updateSettings,
-  updateSetting,
   getModelServiceStartupDefaults,
 } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
@@ -20,11 +18,9 @@ import os from "os";
 import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
-import { getCondaLockFilePath, getPythonPath } from "./config";
-import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
+import { getCondaLockFilePath } from "./config";
+import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
-import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
-import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";
@@ -35,7 +31,6 @@ const MICROMAMBA_BIN_DIR_NAME = "bin";
 const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
-const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
 const MODEL_BACKEND_SETTING_KEY = "MODEL_BACKEND";
 const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
@@ -43,7 +38,6 @@ const DEFAULT_MAMBA_HOME_DIR = ".mamba";
 
 interface InstallationPreferences {
   location: string;
-  packages: PythonPackages;
   modelBackend: ModelBackend;
 }
 
@@ -52,19 +46,6 @@ interface InstallationSelection extends InstallationPreferences {
   installLlamaCpp?: boolean;
   startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
-}
-
-function sanitizePackageSelection(packages: unknown): PythonPackages {
-  if (!Array.isArray(packages)) {
-    return [];
-  }
-
-  const sanitized = packages
-    .filter((pkg): pkg is string => typeof pkg === "string")
-    .map((pkg) => pkg.trim())
-    .filter((pkg) => pkg.length > 0);
-
-  return Array.from(new Set(sanitized));
 }
 
 function normalizeModelBackend(backend: unknown): ModelBackend {
@@ -84,7 +65,6 @@ function normalizeInstallLocation(location: unknown): string {
 
 function persistInstallationPreferences(
   location: unknown,
-  packages: unknown,
   modelBackend: unknown,
   startupSettings?: {
     startOllamaOnStartup?: unknown;
@@ -92,7 +72,6 @@ function persistInstallationPreferences(
   }
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
-  const sanitizedPackages = sanitizePackageSelection(packages);
   const normalizedBackend = normalizeModelBackend(modelBackend);
   const startupDefaults = getModelServiceStartupDefaults(normalizedBackend);
   const startOllamaOnStartup =
@@ -107,15 +86,12 @@ function persistInstallationPreferences(
   try {
     updateSettings({
       CONDA_ENV: normalizedLocation,
-      [PYTHON_PACKAGES_SETTING_KEY]: sanitizedPackages,
       [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
       START_OLLAMA_ON_STARTUP: startOllamaOnStartup,
       START_LLAMA_CPP_ON_STARTUP: startLlamaCppOnStartup,
     });
     logMessage(
-      `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}, packages=${
-        sanitizedPackages.join(", ") || "none"
-      }`
+      `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}`
     );
   } catch (error) {
     logMessage(
@@ -128,7 +104,6 @@ function persistInstallationPreferences(
 
   return {
     location: normalizedLocation,
-    packages: sanitizedPackages,
     modelBackend: normalizedBackend,
   };
 }
@@ -137,13 +112,10 @@ function readInstallationPreferences(): InstallationPreferences {
   try {
     const settings = readSettings();
     const location = normalizeInstallLocation(settings["CONDA_ENV"]);
-    const packages = sanitizePackageSelection(
-      settings[PYTHON_PACKAGES_SETTING_KEY as keyof typeof settings]
-    );
     const modelBackend = normalizeModelBackend(
       settings[MODEL_BACKEND_SETTING_KEY as keyof typeof settings]
     );
-    return { location, packages, modelBackend };
+    return { location, modelBackend };
   } catch (error) {
     logMessage(
       `Unable to read installer preferences, using defaults: ${
@@ -153,7 +125,6 @@ function readInstallationPreferences(): InstallationPreferences {
     );
     return {
       location: getDefaultInstallLocation(),
-      packages: [],
       modelBackend: "ollama",
     };
   }
@@ -167,7 +138,6 @@ async function promptForInstallLocation(
   defaults?: InstallationPreferences
 ): Promise<InstallationSelection> {
   const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
-  const defaultPackages = defaults?.packages ?? [];
   // Use defaultBackend if you want to pass it to the renderer
   const defaultBackend = defaults?.modelBackend ?? "ollama";
 
@@ -178,7 +148,6 @@ async function promptForInstallLocation(
         _event,
         {
           location,
-          packages,
           modelBackend,
           installOllama,
           installLlamaCpp,
@@ -188,7 +157,6 @@ async function promptForInstallLocation(
       ) => {
         const preferences = persistInstallationPreferences(
           location,
-          packages,
           modelBackend,
           {
             startOllamaOnStartup,
@@ -213,7 +181,7 @@ async function promptForInstallLocation(
 
     // Send the prompt data to the renderer process
     let mainWindow = BrowserWindow.getFocusedWindow();
-    
+
     if (!mainWindow) {
       const allWindows = BrowserWindow.getAllWindows();
       if (allWindows.length > 0) {
@@ -228,8 +196,6 @@ async function promptForInstallLocation(
 
     mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
       defaultPath: defaultLocation,
-      packages: defaultPackages,
-      // Pass backend if/when frontend supports it
     });
   });
 }
@@ -651,9 +617,8 @@ async function createEnvironmentWithMicromamba(
   );
 }
 
-async function provisionPythonEnvironment(
+async function provisionCondaEnvironment(
   location: string,
-  packages: PythonPackages,
   modelBackend: ModelBackend,
   options?: {
     bootMessage?: string;
@@ -662,10 +627,10 @@ async function provisionPythonEnvironment(
   }
 ): Promise<void> {
   const bootMessage =
-    options?.bootMessage ?? "Setting up Python environment...";
+    options?.bootMessage ?? "Setting up conda environment...";
 
   emitBootMessage(bootMessage);
-  logMessage(`Setting up Python environment at: ${location} (Backend: ${modelBackend})`);
+  logMessage(`Setting up conda environment at: ${location} (Backend: ${modelBackend})`);
 
   const lockFilePath = getCondaLockFilePath();
   logMessage(`Using micromamba lock file at: ${lockFilePath}`);
@@ -678,75 +643,43 @@ async function provisionPythonEnvironment(
     location
   );
 
-  // Detect GPU platform with torchruntime (detection only, torch will be installed via uv pip)
-  let torchPlatformResult: TorchruntimeDetectionResult;
-  try {
-    torchPlatformResult = await detectTorchPlatform();
-    logMessage(`Torch platform detection result: ${JSON.stringify(torchPlatformResult)}`);
-    
-    // Save detected platform to settings for later use by uv pip install
-    saveTorchPlatform(torchPlatformResult);
-  } catch (error: any) {
-    logMessage(`Failed to detect GPU platform: ${error.message}`, "error");
-    // Fallback to CPU
-    torchPlatformResult = {
-      platform: "cpu",
-      indexUrl: "https://download.pytorch.org/whl/cpu",
-      error: error.message,
-    };
-    saveTorchPlatform(torchPlatformResult);
-  }
-
-  // PyTorch and other packages will be installed via uv pip with the correct index URL
-  await updateCondaEnvironment(packages);
-
   const condaEnvPath = location;
   await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
     installOllama: options?.installOllama,
     installLlamaCpp: options?.installLlamaCpp,
   });
-  
+
   const shouldInstallLlamaCpp =
     options?.installLlamaCpp ?? modelBackend === "llama_cpp";
   if (shouldInstallLlamaCpp) {
     await ensureLlamaCppInstalled(condaEnvPath);
   }
 
-  logMessage("Python environment installation completed successfully");
-  emitBootMessage("Python environment is ready");
+  logMessage("Conda environment installation completed successfully");
+  emitBootMessage("Conda environment is ready");
 }
 
 /**
- * Python Environment Installer Module
+ * Conda Environment Installer Module
  *
- * This module handles the installation and updating of the Python environment for Nodetool.
+ * This module handles the installation of the conda environment for Nodetool.
  * It provisions a Conda environment using micromamba and a checked-in lock file to guarantee
  * reproducible dependency resolution across platforms.
  *
  * Key Features:
- * - Creates the Python environment directly from a micromamba lock manifest
+ * - Creates the conda environment directly from a micromamba lock manifest
  * - Provides interactive installation location selection
  * - Streams micromamba output for visibility into long-running operations
  * - Handles environment initialization and required dependency installation
- * - Manages Python package updates through pip
  *
  * Installation Process:
  * 1. `promptForInstallLocation()` prompts the user for an installation directory
  * 2. `createEnvironmentWithMicromamba()` builds the environment from `environment.lock.yml`
-   * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
-   * 4. `installTorchWithUvs()` installs PyTorch with automatic GPU detection
-   * 5. `updateCondaEnvironment()` installs/upgrades required Python packages via uv pip
- *
- * Update Process:
- * - Checks for package updates using pip
- * - Updates packages while maintaining version compatibility
- * - Shows progress during package installation
- * - Handles update failures gracefully
+ * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
  *
  * Configuration:
  * - Lock manifest path is resolved through getCondaLockFilePath()
  * - Default install location is determined by getDefaultInstallLocation()
- * - Package versions are managed through PYTHON_PACKAGES settings
  */
 
 /**
@@ -756,9 +689,9 @@ async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, packages, modelBackend, installOllama, installLlamaCpp } =
+    const { location, modelBackend, installOllama, installLlamaCpp } =
       await promptForInstallLocation(persistedPreferences);
-    await provisionPythonEnvironment(location, packages, modelBackend, {
+    await provisionCondaEnvironment(location, modelBackend, {
       installOllama,
       installLlamaCpp,
     });

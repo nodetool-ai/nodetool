@@ -1,0 +1,165 @@
+{
+  "modelId": "bytedance/pulid",
+  "owner": "bytedance",
+  "name": "pulid",
+  "version": "43d309c37ab4e62361e5e29b8e9e867fb2dcbcec77ae91206a8d95ac5dd451a0",
+  "description": "📖 PuLID: Pure and Lightning ID Customization via Contrastive Alignment",
+  "inputSchema": {
+    "properties": {
+      "auxiliary_face_image1": {
+        "description": "Additional ID image (auxiliary)",
+        "format": "uri",
+        "title": "Auxiliary Face Image1",
+        "type": "string",
+        "x-order": 1
+      },
+      "auxiliary_face_image2": {
+        "description": "Additional ID image (auxiliary)",
+        "format": "uri",
+        "title": "Auxiliary Face Image2",
+        "type": "string",
+        "x-order": 2
+      },
+      "auxiliary_face_image3": {
+        "description": "Additional ID image (auxiliary)",
+        "format": "uri",
+        "title": "Auxiliary Face Image3",
+        "type": "string",
+        "x-order": 3
+      },
+      "cfg_scale": {
+        "default": 1.2,
+        "description": "CFG, recommend value range [1, 1.5], 1 will be faster",
+        "maximum": 1.5,
+        "minimum": 1,
+        "title": "Cfg Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "generation_mode": {
+        "default": "fidelity",
+        "description": "mode",
+        "enum": [
+          "fidelity",
+          "extremely style"
+        ],
+        "title": "generation_mode",
+        "type": "string",
+        "x-order": 11
+      },
+      "identity_scale": {
+        "default": 0.8,
+        "description": "ID scale",
+        "maximum": 5,
+        "minimum": 0,
+        "title": "Identity Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "image_height": {
+        "default": 1024,
+        "description": "Height",
+        "maximum": 2024,
+        "minimum": 512,
+        "title": "Image Height",
+        "type": "integer",
+        "x-order": 8
+      },
+      "image_width": {
+        "default": 768,
+        "description": "Width",
+        "maximum": 2024,
+        "minimum": 512,
+        "title": "Image Width",
+        "type": "integer",
+        "x-order": 9
+      },
+      "main_face_image": {
+        "description": "ID image (main)",
+        "format": "uri",
+        "title": "Main Face Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mix_identities": {
+        "default": false,
+        "description": "ID Mix (if you want to mix two ID image, please turn this on, otherwise, turn this off)",
+        "title": "Mix Identities",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "negative_prompt": {
+        "default": "flaws in the eyes, flaws in the face, flaws, lowres, non-HDRi, low quality, worst quality,artifacts noise, text, watermark, glitch, deformed, mutated, ugly, disfigured, hands, low resolution, partially rendered objects,  deformed or partially rendered eyes, deformed, deformed eyeballs, cross-eyed,blurry",
+        "description": "Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 5
+      },
+      "num_samples": {
+        "default": 4,
+        "description": "Num samples",
+        "maximum": 8,
+        "minimum": 1,
+        "title": "Num Samples",
+        "type": "integer",
+        "x-order": 14
+      },
+      "num_steps": {
+        "default": 4,
+        "description": "Steps",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 15
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 16
+      },
+      "prompt": {
+        "default": "portrait,color,cinematic,in garden,soft light,detailed face",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 13
+      }
+    },
+    "required": [
+      "main_face_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

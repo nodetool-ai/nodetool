@@ -1,0 +1,89 @@
+{
+  "modelId": "openai/gpt-5-nano",
+  "owner": "openai",
+  "name": "gpt-5-nano",
+  "version": "034fc01c1d162ba028187fc496eb079e6c1329c1c8f686d971eba9d01e7ffb96",
+  "description": "Fastest, most cost-effective GPT-5 model from OpenAI",
+  "inputSchema": {
+    "properties": {
+      "image_input": {
+        "default": [],
+        "description": "List of images to send to the model",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 3
+      },
+      "max_completion_tokens": {
+        "description": "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).",
+        "nullable": true,
+        "title": "Max Completion Tokens",
+        "type": "integer",
+        "x-order": 6
+      },
+      "messages": {
+        "default": [],
+        "description": "A JSON string representing a list of messages. For example: [{\"role\": \"user\", \"content\": \"Hello, how are you?\"}]. If provided, prompt and system_prompt are ignored.",
+        "items": {
+          "type": "object"
+        },
+        "title": "Messages",
+        "type": "array",
+        "x-order": 2
+      },
+      "prompt": {
+        "description": "The prompt to send to the model. Do not use if using messages.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "reasoning_effort": {
+        "default": "minimal",
+        "description": "Constrains effort on reasoning for GPT-5 models. Currently supported values are minimal, low, medium, and high. The minimal value gets answers back faster without extensive reasoning first. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).",
+        "enum": [
+          "minimal",
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "reasoning_effort",
+        "type": "string",
+        "x-order": 4
+      },
+      "system_prompt": {
+        "description": "System prompt to set the assistant's behavior",
+        "nullable": true,
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "verbosity": {
+        "default": "medium",
+        "description": "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive.",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "verbosity",
+        "type": "string",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

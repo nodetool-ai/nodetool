@@ -24,7 +24,6 @@ jest.mock("../../../utils/nodeUtils", () => ({
     title: "Group",
     description: "Group Node",
     outputs: [],
-    the_model_info: {},
     layout: "default",
     recommended_models: [],
     basic_fields: [],

@@ -1,0 +1,58 @@
+{
+  "modelId": "anthropic/claude-4.5-haiku",
+  "owner": "anthropic",
+  "name": "claude-4.5-haiku",
+  "version": "1ad171f62532e2099a3ed7d8d80327911f5f8d332e83cf4c8959da0be9a8bf3e",
+  "description": "Claude Haiku 4.5 gives you similar levels of coding performance but at one-third the cost and more than twice the speed",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Optional input image. Images are priced as (width px * height px)/750 input tokens",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "max_image_resolution": {
+        "default": 0.5,
+        "description": "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money.",
+        "maximum": 2,
+        "minimum": 0.001,
+        "title": "Max Image Resolution",
+        "type": "number"
+      },
+      "max_tokens": {
+        "default": 8192,
+        "description": "Maximum number of output tokens",
+        "maximum": 64000,
+        "minimum": 1024,
+        "title": "Max Tokens",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "system_prompt": {
+        "default": "",
+        "description": "System prompt",
+        "title": "System Prompt",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

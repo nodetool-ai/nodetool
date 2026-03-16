@@ -58,13 +58,33 @@ describe("ErrorStore", () => {
       expect(errors["workflow1:node1"]).toEqual(errorObj);
     });
 
-    it("handles null as error value", () => {
+    it("drops null instead of storing it as an error", () => {
       act(() => {
         useErrorStore.getState().setError("workflow1", "node1", null);
       });
 
       const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeNull();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+    });
+
+    it('drops the string "null" instead of storing it as an error', () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "null");
+      });
+
+      const { errors } = useErrorStore.getState();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+    });
+
+    it('drops blank and "undefined" string errors', () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "   ");
+        useErrorStore.getState().setError("workflow1", "node2", "undefined");
+      });
+
+      const { errors } = useErrorStore.getState();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+      expect(errors["workflow1:node2"]).toBeUndefined();
     });
   });
 

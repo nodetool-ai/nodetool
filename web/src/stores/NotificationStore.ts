@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
 import log from "loglevel";
+import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 export type NotificationType =
   | "info"
   | "debug"
@@ -58,10 +59,16 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   lastDisplayedTimestamp: null,
 
   addNotification: (notification) => {
+    const sanitizedNotification = {
+      ...notification,
+      content: sanitizeDisplayText(notification.content),
+    };
+
     // Deduplicate: skip if an identical notification was added recently
     const now = new Date();
     const key =
-      notification.dedupeKey ?? `${notification.type}:${notification.content}`;
+      sanitizedNotification.dedupeKey ??
+      `${sanitizedNotification.type}:${sanitizedNotification.content}`;
     const isDuplicate = get().notifications.some((existing) => {
       const existingKey =
         existing.dedupeKey ?? `${existing.type}:${existing.content}`;
@@ -71,22 +78,22 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       );
     });
 
-    if (isDuplicate && !notification.replaceExisting) {
-      log.debug("NOTIFICATION suppressed (duplicate):", notification);
+    if (isDuplicate && !sanitizedNotification.replaceExisting) {
+      log.debug("NOTIFICATION suppressed (duplicate):", sanitizedNotification);
       return;
     }
 
-    if (notification.type === "warning") {
-      log.warn("NOTIFICATION:", notification);
-    } else if (notification.type === "error") {
-      log.error("NOTIFICATION:", notification);
+    if (sanitizedNotification.type === "warning") {
+      log.warn("NOTIFICATION:", sanitizedNotification);
+    } else if (sanitizedNotification.type === "error") {
+      log.error("NOTIFICATION:", sanitizedNotification);
     } else {
-      log.info("NOTIFICATION:", notification);
+      log.info("NOTIFICATION:", sanitizedNotification);
     }
 
     set((state) => {
       // When replaceExisting is true, remove previous notifications with the same key
-      const base = notification.replaceExisting
+      const base = sanitizedNotification.replaceExisting
         ? state.notifications.filter((existing) => {
             const existingKey =
               existing.dedupeKey ?? `${existing.type}:${existing.content}`;
@@ -97,7 +104,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       return {
         notifications: [
           ...base,
-          { ...notification, id: uuidv4(), timestamp: now }
+          { ...sanitizedNotification, id: uuidv4(), timestamp: now }
         ]
       };
     });

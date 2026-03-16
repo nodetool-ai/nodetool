@@ -9,7 +9,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
 import type { Graph } from "../../stores/ApiTypes";
-import log from "loglevel";
 
 const WorkflowGenerator: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
@@ -62,7 +61,7 @@ const WorkflowGenerator: React.FC = memo(() => {
           setEdges(edges);
         }
       } catch (err) {
-        log.error("Error creating workflow:", err);
+        console.error("Error creating workflow:", err);
       } finally {
         setIsLoading(false);
       }

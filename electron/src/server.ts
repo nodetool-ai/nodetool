@@ -2,16 +2,29 @@ import { spawn, ChildProcess } from "child_process";
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getPythonPath,
+  getNodePath,
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
+  getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
   getCondaEnvPath,
 } from "./config";
+
+/**
+ * Resolves the path to the Node.js-based backend server entry point.
+ * In packaged mode: resources/packages/websocket/dist/server.js
+ * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
+ */
+function getNodeBackendPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "packages", "websocket", "dist", "server.js");
+  }
+  return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
+}
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import { getServerUrl, getServerPort } from "./utils";
@@ -415,8 +428,8 @@ async function killExistingServer(): Promise<void> {
 }
 
 /**
- * Starts the NodeTool backend server process
- * Configures and spawns the Python-based server process with necessary arguments
+ * Starts the NodeTool backend server process.
+ * Spawns the Node.js-based TypeScript backend (packages/websocket/dist/server.js).
  */
 async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
@@ -424,20 +437,17 @@ async function startServer(): Promise<void> {
   serverState.error = undefined;
   serverState.isStarted = false;
 
-  let pythonExecutablePath: string;
+  // Resolve Node.js backend entry point
+  const backendEntryPoint = getNodeBackendPath();
+  logMessage(`Resolved Node.js backend entry point: ${backendEntryPoint}`);
+
   try {
-    pythonExecutablePath = getPythonPath();
-    logMessage(`Resolved Python executable: ${pythonExecutablePath}`);
-  } catch (error) {
-    logMessage(
-      `Could not resolve Python executable path. Ensure environment is installed. Error: ${error}`,
-      "error"
-    );
-    dialog.showErrorBox(
-      "Python Environment Missing",
-      "The Python environment could not be found. Please reinstall the Python environment from the installer prompt."
-    );
-    throw error;
+    await fs.access(backendEntryPoint);
+  } catch {
+    const message = `Node.js backend not found at ${backendEntryPoint}. Run 'npm run build:packages' first.`;
+    logMessage(message, "error");
+    dialog.showErrorBox("Backend Not Found", message);
+    throw new Error(message);
   }
 
   // Determine managed local model services startup policy
@@ -502,28 +512,27 @@ async function startServer(): Promise<void> {
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);
 
+  // Use the conda env's Node.js binary to run the TS backend server
+  const nodeExecutable = getNodePath();
   const args = [
-    "-m",
-    "nodetool.cli",
-    "serve",
-    "--port",
-    String(selectedPort),
-    "--mcp",
-    "--static-folder",
-    webPath,
+    backendEntryPoint,
   ];
 
-  logMessage(`Starting backend server with command: ${pythonExecutablePath} ${args.join(" ")}`);
+  logMessage(`Starting backend server with command: node ${args.join(" ")}`);
   emitBootMessage("Starting backend server...");
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
-    command: pythonExecutablePath,
+    command: nodeExecutable,
     args,
     env: {
       ...getProcessEnv(),
+      PORT: String(selectedPort),
+      STATIC_FOLDER: webPath,
+      NODETOOL_PYTHON: getPythonPath(),
       OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
       LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
+      NODE_ENV: "production",
     },
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
@@ -542,7 +551,7 @@ async function startServer(): Promise<void> {
       "error"
     );
     logMessage(`Error stack: ${(error as Error).stack}`, "error");
-    
+
     backendWatchdog = null;
     throw error;
   }

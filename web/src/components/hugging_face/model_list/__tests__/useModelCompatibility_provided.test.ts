@@ -43,7 +43,6 @@ const createMockNode = (
   is_streaming_output: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  the_model_info: {},
   required_settings: [],
 });
 

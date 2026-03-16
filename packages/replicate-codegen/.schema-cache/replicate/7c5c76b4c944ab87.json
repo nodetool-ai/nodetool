@@ -1,0 +1,59 @@
+{
+  "modelId": "lucataco/deepseek-ocr",
+  "owner": "lucataco",
+  "name": "deepseek-ocr",
+  "version": "cb3b474fbfc56b1664c8c7841550bccecbe7b74c30e45ce938ffca1180b4dff5",
+  "description": "Convert documents to markdown, extract raw text, and locate specific content",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image to perform OCR on (supports documents, charts, tables, etc.)",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "reference_text": {
+        "default": "",
+        "description": "Reference text to locate in the image (only used for 'Locate Object by Reference' task). Example: 'the teacher', '20-10', 'a red car'",
+        "title": "Reference Text",
+        "type": "string"
+      },
+      "resolution_size": {
+        "default": "Gundam (Recommended)",
+        "description": "Model resolution size - affects speed and accuracy trade-off",
+        "enum": [
+          "Gundam (Recommended)",
+          "Tiny",
+          "Small",
+          "Base",
+          "Large"
+        ],
+        "title": "resolution_size",
+        "type": "string",
+        "x-order": 1
+      },
+      "task_type": {
+        "default": "Convert to Markdown",
+        "description": "Type of OCR task to perform",
+        "enum": [
+          "Convert to Markdown",
+          "Free OCR",
+          "Parse Figure",
+          "Locate Object by Reference"
+        ],
+        "title": "task_type",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

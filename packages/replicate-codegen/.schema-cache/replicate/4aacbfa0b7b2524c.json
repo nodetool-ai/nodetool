@@ -1,0 +1,74 @@
+{
+  "modelId": "recraft-ai/recraft-v4-svg",
+  "owner": "recraft-ai",
+  "name": "recraft-v4-svg",
+  "version": "93cbef8f201b974654d36b1247314072205583f6ff489a1582126f34f2f93635",
+  "description": "Generate production-ready SVG vector images from text prompts. Recraft V4's design taste applied to vector output — clean geometry, structured layers, and editable paths.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "14:10",
+          "10:14",
+          "4:5",
+          "5:4",
+          "6:10"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation (up to 10,000 characters)",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "size": {
+        "default": "1024x1024",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "enum": [
+          "1024x1024",
+          "1536x768",
+          "768x1536",
+          "1280x832",
+          "832x1280",
+          "1216x896",
+          "896x1216",
+          "1152x896",
+          "896x1152",
+          "832x1344",
+          "1280x896",
+          "896x1280",
+          "1344x768",
+          "768x1344"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

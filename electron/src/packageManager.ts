@@ -1,7 +1,16 @@
 import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getUVPath, getPythonPath } from "./config";
+import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
+import * as path from "path";
+
+// TODO: Package manager needs to be rewritten for npm packages.
+// This is a temporary stub — uv/pip is no longer installed in the conda env.
+function getUVPath(): string {
+  return process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
+    : path.join(getCondaEnvPath(), "bin", "uv");
+}
 import { emitServerLog, emitBootMessage } from "./events";
 import {
   PackageInfo,

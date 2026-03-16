@@ -1,0 +1,26 @@
+{
+  "modelId": "cjwbw/rembg",
+  "owner": "cjwbw",
+  "name": "rembg",
+  "version": "fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
+  "description": "Remove images background",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "default": "",
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

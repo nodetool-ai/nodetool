@@ -1,0 +1,47 @@
+{
+  "modelId": "veed/fabric-1.0",
+  "owner": "veed",
+  "name": "fabric-1.0",
+  "version": "739bbce4edc07b0b1bd055998983324fe9a8ea18d854b5979423c5d6f62e5b78",
+  "description": "VEED Fabric 1.0 is an image-to-video API that turns any image into a talking video",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio to generate video from",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "image": {
+        "description": "Image to generate video from",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "720p",
+        "description": "Resolution of the generated video",
+        "enum": [
+          "480p",
+          "720p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

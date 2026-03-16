@@ -1,0 +1,45 @@
+{
+  "modelId": "lucataco/csm-1b",
+  "owner": "lucataco",
+  "name": "csm-1b",
+  "version": "3e59b10a9894c54ae5f2fc0347e3a2f5c82f0574407e53a7d9f76ec7c502ad03",
+  "description": "CSM (Conversational Speech Model) is a speech generation model from Sesame that generates RVQ audio codes from text and audio inputs",
+  "inputSchema": {
+    "properties": {
+      "max_audio_length_ms": {
+        "default": 10000,
+        "description": "Maximum audio length in milliseconds",
+        "maximum": 30000,
+        "minimum": 1000,
+        "title": "Max Audio Length Ms",
+        "type": "integer",
+        "x-order": 2
+      },
+      "speaker": {
+        "default": 0,
+        "description": "Speaker ID (0 or 1)",
+        "enum": [
+          0,
+          1
+        ],
+        "title": "speaker",
+        "type": "integer",
+        "x-order": 1
+      },
+      "text": {
+        "default": "Hello from Sesame.",
+        "description": "Text to convert to speech",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

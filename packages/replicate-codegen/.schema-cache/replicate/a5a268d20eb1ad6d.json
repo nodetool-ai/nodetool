@@ -1,0 +1,42 @@
+{
+  "modelId": "krthr/clip-embeddings",
+  "owner": "krthr",
+  "name": "clip-embeddings",
+  "version": "1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4",
+  "description": "Generate CLIP (clip-vit-large-patch14) text & image embeddings",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "text": {
+        "description": "Input text",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "embedding": {
+        "items": {
+          "type": "number"
+        },
+        "title": "Embedding",
+        "type": "array"
+      }
+    },
+    "required": [
+      "embedding"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}
