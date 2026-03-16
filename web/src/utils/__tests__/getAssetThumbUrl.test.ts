@@ -1,3 +1,4 @@
+import log from "loglevel";
 /**
  * @jest-environment node
  */
@@ -102,7 +103,7 @@ describe('getAssetThumbUrl', () => {
         data: new Uint8Array([1, 2, 3]),
       } as AssetRef;
 
-      const logSpy = jest.spyOn(require('loglevel'), 'error').mockImplementation();
+      const logSpy = jest.spyOn(log, 'error').mockImplementation();
 
       const result = getAssetThumbUrl(asset);
       

@@ -1,3 +1,4 @@
+import log from "loglevel";
 /**
  * Tests for useChatService.ts
  * Tests unified chat interface combining GlobalChatStore operations with navigation
@@ -279,7 +280,7 @@ describe("useChatService", () => {
 
     it("should not send message if no model selected", async () => {
       const consoleErrorSpy = jest
-        .spyOn(require('loglevel'), 'error')
+        .spyOn(log, 'error')
         .mockImplementation(() => {});
 
       const { result } = renderHook(() => useChatService(null), {
@@ -300,7 +301,7 @@ describe("useChatService", () => {
 
     it("should handle errors when sending message", async () => {
       const consoleErrorSpy = jest
-        .spyOn(require('loglevel'), 'error')
+        .spyOn(log, 'error')
         .mockImplementation(() => {});
 
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
@@ -365,7 +366,7 @@ describe("useChatService", () => {
 
     it("should handle errors when creating new thread", async () => {
       const consoleErrorSpy = jest
-        .spyOn(require('loglevel'), 'error')
+        .spyOn(log, 'error')
         .mockImplementation(() => {});
 
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));

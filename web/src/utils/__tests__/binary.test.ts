@@ -1,3 +1,4 @@
+import log from "loglevel";
 /**
  * @jest-environment node
  */
@@ -24,7 +25,7 @@ describe("binary utilities", () => {
     });
 
     it("returns fallback image when base64 conversion fails", () => {
-      const logSpy = jest.spyOn(require('loglevel'), "error").mockImplementation();
+      const logSpy = jest.spyOn(log, "error").mockImplementation();
       const originalBtoa = global.btoa;
       (global as any).btoa = () => {
         throw new Error("fail");
@@ -63,7 +64,7 @@ describe("binary utilities", () => {
     });
 
     it("handles conversion failures gracefully", () => {
-      const logSpy = jest.spyOn(require('loglevel'), "error").mockImplementation();
+      const logSpy = jest.spyOn(log, "error").mockImplementation();
       const originalBtoa = global.btoa;
       (global as any).btoa = () => {
         throw new Error("fail");
