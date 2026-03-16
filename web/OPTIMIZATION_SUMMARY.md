@@ -118,3 +118,24 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: Optimize Zustand Store Record Filtering
+
+## 💡 What
+Replaced expensive `Object.fromEntries(Object.entries(record).filter(...))` patterns in Zustand stores (`ErrorStore`, `ExecutionTimeStore`, and `VibeCodingStore` persistence) with highly performant `for...in` loops and shallow-copy-and-delete operations. Updated the `ZUSTAND_BEST_PRACTICES.md` to establish this as the standard pattern.
+
+## 🎯 Why
+During frequent state updates, filtering records using `Object.entries().filter()` creates multiple intermediate array allocations (`[key, value]` pairs, the filtered array) before finally reconstructing the object. For stores like `ErrorStore` and `ExecutionTimeStore` which may hold hundreds of entries during long workflow executions, these O(N) allocations happen on the main thread and contribute to garbage collection pressure, leading to UI jank. A simple `for...in` loop avoids these allocations entirely.
+
+## 📊 Impact
+- **Eliminates Intermediate Allocations:** Removes unnecessary arrays and closures created by `Object.entries()`, `.filter()`, and `Object.fromEntries()`.
+- **Improved Performance:** Modifying and filtering records inside `set()` callbacks is now significantly faster and uses less memory.
+- **Reduces GC Pauses:** Less memory allocation means fewer and shorter Garbage Collection cycles.
+
+## 🔬 Measurement
+Verify by checking the implementation of `clearErrors` in `ErrorStore.ts` or `clearTimings` in `ExecutionTimeStore.ts`. Profiling during workflow execution and cleanup will show reduced "Scripting" time and memory allocation compared to the old `Object.entries` pattern.
+
+## 🧪 Testing
+- Ran `cd web && pnpm test src/stores/__tests__/ErrorStore.test.ts src/stores/__tests__/ExecutionTimeStore.test.ts`: Passed.
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
