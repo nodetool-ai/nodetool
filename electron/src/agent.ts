@@ -1107,21 +1107,17 @@ let sessionCounter = 0;
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 const DEFAULT_CLAUDE_MODELS: AgentModelDescriptor[] = [
   {
-    id: "claude-sonnet-4-20250514",
-    label: "Claude Sonnet 4",
+    id: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
     isDefault: true,
   },
   {
-    id: "claude-3-7-sonnet-20250219",
-    label: "Claude 3.7 Sonnet",
+    id: "claude-opus-4-6",
+    label: "Claude Opus 4.6",
   },
   {
-    id: "claude-3-5-sonnet-20241022",
-    label: "Claude 3.5 Sonnet",
-  },
-  {
-    id: "claude-3-5-haiku-20241022",
-    label: "Claude 3.5 Haiku",
+    id: "claude-haiku-4-5",
+    label: "Claude Haiku 4.5",
   },
 ];
 
