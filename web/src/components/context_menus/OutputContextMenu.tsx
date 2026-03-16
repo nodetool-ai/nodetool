@@ -420,7 +420,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-reroute-node"
           IconComponent={<AltRouteIcon />}
         />
-        {saveNodeMetadata != null && (
+        {saveNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateSaveNode}
             label={`Create Save${

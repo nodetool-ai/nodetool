@@ -1,0 +1,66 @@
+{
+  "modelId": "wan-video/wan-2.2-s2v",
+  "owner": "wan-video",
+  "name": "wan-2.2-s2v",
+  "version": "09607e6e761d2f015b0d740f938ec59199f54aa623384465a5054b230405acf4",
+  "description": "Generate a video from an audio clip and a reference image",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio file to synchronize the video with",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 2
+      },
+      "image": {
+        "description": "First frame image to start the video from",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "interpolate": {
+        "default": false,
+        "description": "Whether to interpolate video to higher frame rate (25fps)",
+        "title": "Interpolate",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "num_frames_per_chunk": {
+        "default": 81,
+        "description": "Number of frames per video chunk",
+        "maximum": 121,
+        "minimum": 1,
+        "title": "Num Frames Per Chunk",
+        "type": "integer",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Leave blank for random",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt",
+      "image",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "modelId": "lucataco/sdxl-clip-interrogator",
+  "owner": "lucataco",
+  "name": "sdxl-clip-interrogator",
+  "version": "b8dd624ad312d215250b362af0ecff05d7ad4f8270f9beb034c483d70682e7b3",
+  "description": "CLIP Interrogator for SDXL optimizes text prompts to match a given image",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mode": {
+        "default": "best",
+        "description": "Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds.",
+        "enum": [
+          "best",
+          "fast"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "modelId": "fermatresearch/high-resolution-controlnet-tile",
+  "owner": "fermatresearch",
+  "name": "high-resolution-controlnet-tile",
+  "version": "8e6a54d7b2848c48dc741a109d3fb0ea2a7f554eb4becd39a25cc532536ea975",
+  "description": "UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.",
+  "inputSchema": {
+    "properties": {
+      "creativity": {
+        "default": 0.35,
+        "description": "Denoising strength. 1 means total destruction of the original image",
+        "maximum": 1,
+        "minimum": 0.1,
+        "title": "Creativity",
+        "type": "number",
+        "x-order": 4
+      },
+      "format": {
+        "default": "jpg",
+        "description": "Format of the output.",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "format",
+        "type": "string",
+        "x-order": 14
+      },
+      "guess_mode": {
+        "default": false,
+        "description": "In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts.",
+        "title": "Guess Mode",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "guidance_scale": {
+        "default": 0,
+        "description": "Scale for classifier-free guidance, should be 0.",
+        "maximum": 30,
+        "minimum": 0,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "hdr": {
+        "default": 0,
+        "description": "HDR improvement over the original image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Hdr",
+        "type": "number",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Control image for scribble controlnet",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "lora_details_strength": {
+        "default": 1,
+        "description": "Strength of the image's details",
+        "maximum": 3,
+        "minimum": -5,
+        "title": "Lora Details Strength",
+        "type": "number",
+        "x-order": 13
+      },
+      "lora_sharpness_strength": {
+        "default": 1.25,
+        "description": "Strength of the image's sharpness. We don't recommend values above 2.",
+        "maximum": 10,
+        "minimum": -5,
+        "title": "Lora Sharpness Strength",
+        "type": "number",
+        "x-order": 12
+      },
+      "negative_prompt": {
+        "default": "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant",
+        "description": "Negative prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 10
+      },
+      "prompt": {
+        "description": "Prompt for the model",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resemblance": {
+        "default": 0.85,
+        "description": "Conditioning scale for controlnet",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Resemblance",
+        "type": "number",
+        "x-order": 3
+      },
+      "resolution": {
+        "default": 2560,
+        "description": "Image resolution",
+        "enum": [
+          2048,
+          2560,
+          4096
+        ],
+        "title": "resolution",
+        "type": "integer",
+        "x-order": 2
+      },
+      "scheduler": {
+        "default": "DDIM",
+        "description": "Choose a scheduler.",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "K_EULER_ANCESTRAL",
+          "K_EULER"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 6
+      },
+      "seed": {
+        "description": "Seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 9
+      },
+      "steps": {
+        "default": 8,
+        "description": "Steps",
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 7
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

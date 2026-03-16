@@ -1,0 +1,121 @@
+{
+  "modelId": "lucataco/magnet",
+  "owner": "lucataco",
+  "name": "magnet",
+  "version": "e8e2ecd4a1dabb58924aa8300b668290cafae166dd36baf65dad9875877de50e",
+  "description": "MAGNeT: Masked Audio Generation using a Single Non-Autoregressive Transformer",
+  "inputSchema": {
+    "properties": {
+      "decoding_steps_stage_1": {
+        "default": 20,
+        "description": "Number of decoding steps for stage 1",
+        "title": "Decoding Steps Stage 1",
+        "type": "integer",
+        "x-order": 8
+      },
+      "decoding_steps_stage_2": {
+        "default": 10,
+        "description": "Number of decoding steps for stage 2",
+        "title": "Decoding Steps Stage 2",
+        "type": "integer",
+        "x-order": 9
+      },
+      "decoding_steps_stage_3": {
+        "default": 10,
+        "description": "Number of decoding steps for stage 3",
+        "title": "Decoding Steps Stage 3",
+        "type": "integer",
+        "x-order": 10
+      },
+      "decoding_steps_stage_4": {
+        "default": 10,
+        "description": "Number of decoding steps for stage 4",
+        "title": "Decoding Steps Stage 4",
+        "type": "integer",
+        "x-order": 11
+      },
+      "max_cfg": {
+        "default": 10,
+        "description": "Max CFG coefficient",
+        "title": "Max Cfg",
+        "type": "number",
+        "x-order": 6
+      },
+      "min_cfg": {
+        "default": 1,
+        "description": "Min CFG coefficient",
+        "title": "Min Cfg",
+        "type": "number",
+        "x-order": 7
+      },
+      "model": {
+        "default": "facebook/magnet-small-10secs",
+        "description": "Model to use",
+        "enum": [
+          "facebook/magnet-small-10secs",
+          "facebook/magnet-medium-10secs",
+          "facebook/magnet-small-30secs",
+          "facebook/magnet-medium-30secs",
+          "facebook/audio-magnet-small",
+          "facebook/audio-magnet-medium"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "80s electronic track with melodic synthesizers, catchy beat and groovy bass",
+        "description": "Input Text",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "span_score": {
+        "default": "prod-stride1",
+        "description": "An enumeration.",
+        "enum": [
+          "max-nonoverlap",
+          "prod-stride1"
+        ],
+        "title": "span_score",
+        "type": "string",
+        "x-order": 3
+      },
+      "temperature": {
+        "default": 3,
+        "description": "Temperature for sampling",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 4
+      },
+      "top_p": {
+        "default": 0.9,
+        "description": "Top p for sampling",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      },
+      "variations": {
+        "default": 3,
+        "description": "Number of variations to generate",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Variations",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

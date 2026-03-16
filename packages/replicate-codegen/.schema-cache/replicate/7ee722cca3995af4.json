@@ -1,0 +1,78 @@
+{
+  "modelId": "tencent/hunyuan3d-2",
+  "owner": "tencent",
+  "name": "hunyuan3d-2",
+  "version": "b1b9449a1277e10402781c5d41eb30c0a0683504fb23fab591ca9dfc2aabe1cb",
+  "description": "Scaling Diffusion Models for High Resolution Textured 3D Assets Generation",
+  "inputSchema": {
+    "properties": {
+      "guidance_scale": {
+        "default": 5.5,
+        "description": "Guidance scale for generation",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Input image for generating 3D shape",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "octree_resolution": {
+        "default": 256,
+        "description": "Octree resolution for mesh generation",
+        "enum": [
+          256,
+          384,
+          512
+        ],
+        "title": "octree_resolution",
+        "type": "integer",
+        "x-order": 4
+      },
+      "remove_background": {
+        "default": true,
+        "description": "Whether to remove background from input image",
+        "title": "Remove Background",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "seed": {
+        "default": 1234,
+        "description": "Random seed for generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 3
+      },
+      "steps": {
+        "default": 50,
+        "description": "Number of inference steps",
+        "maximum": 50,
+        "minimum": 20,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "mesh": {
+        "format": "uri",
+        "title": "Mesh",
+        "type": "string"
+      }
+    },
+    "required": [
+      "mesh"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

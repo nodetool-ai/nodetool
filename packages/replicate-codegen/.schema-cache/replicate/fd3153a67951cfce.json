@@ -1,0 +1,65 @@
+{
+  "modelId": "luma/modify-video",
+  "owner": "luma",
+  "name": "modify-video",
+  "version": "de2d85dcc392377a811cf6cda8f2b2b862548954363551b9cf27383ba04aed94",
+  "description": "Modify a video with style transfer and prompt-based editing",
+  "inputSchema": {
+    "properties": {
+      "first_frame": {
+        "description": "An optional first frame of the video to modify. This should be a modified version of the original first frame, it will be used to guide the video modification.",
+        "format": "uri",
+        "title": "First Frame",
+        "type": "string"
+      },
+      "first_frame_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use first_frame instead.",
+        "title": "First Frame Url",
+        "type": "string"
+      },
+      "mode": {
+        "default": "adhere_1",
+        "description": "How closely the output should follow the source video. Adhere: very close, for subtle enhancements. Flex: allows more stylistic change while keeping recognizable elements. Reimagine: loosely follows the source, for dramatic or transformative changes.",
+        "enum": [
+          "adhere_1",
+          "adhere_2",
+          "adhere_3",
+          "flex_1",
+          "flex_2",
+          "flex_3",
+          "reimagine_1",
+          "reimagine_2",
+          "reimagine_3"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "A prompt to guide the video modification",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "video": {
+        "description": "The video to modify. Maximum video size is 100mb. Maximum video duration is 30 seconds.",
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      },
+      "video_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use video instead.",
+        "title": "Video Url",
+        "type": "string"
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

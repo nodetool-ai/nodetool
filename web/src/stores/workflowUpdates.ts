@@ -16,10 +16,12 @@ import {
   Message,
   Chunk
 } from "./ApiTypes";
+import useTraceStore, { traceEventId } from "./TraceStore";
+import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore from "./ErrorStore";
+import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -30,6 +32,7 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
+import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 
 export type { NodeStore };
 
@@ -52,7 +55,6 @@ const formatJobDurationSeconds = (
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
-
 export const setGetNodeStore = (
   fn: (workflowId: string) => NodeStore | undefined
 ): void => {
@@ -205,6 +207,19 @@ export const handleUpdate = (
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
   const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
+
+  const traceAppend = useTraceStore.getState().append;
+  const traceStart = useTraceStore.getState().startRun;
+  const traceRunStart = useTraceStore.getState().runStartTime;
+
+  const relativeMs = (ts?: string): number => {
+    if (!traceRunStart) return 0;
+    const start = new Date(traceRunStart).getTime();
+    const now = ts ? new Date(ts).getTime() : Date.now();
+    return Math.max(0, now - start);
+  };
+
+  const now = new Date().toISOString();
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -399,11 +414,13 @@ export const handleUpdate = (
         clearTimings(workflow.id);
         break;
       case "failed":
-      case "timed_out":
+      case "timed_out": {
+        const sanitizedJobError =
+          typeof job.error === "string" ? sanitizeDisplayText(job.error) : "";
         runner.addNotification({
           type: "error",
           alert: true,
-          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+          content: `Job ${job.status}${sanitizedJobError ? ` ${sanitizedJobError}` : ""}`,
           timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
         });
         clearStatuses(workflow.id);
@@ -412,6 +429,7 @@ export const handleUpdate = (
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "queued":
         runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
@@ -476,33 +494,40 @@ export const handleUpdate = (
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
     const currentState = runnerStore.getState().state;
+    const normalizedNodeError = normalizeNodeError(update.error);
 
     // Don't update node status if workflow is cancelled
     if (currentState === "cancelled") {
       return;
     }
 
-    if (update.error) {
-      log.error("WorkflowRunner update error", update.error);
+    if (normalizedNodeError) {
+      const sanitizedError = sanitizeDisplayText(
+        typeof normalizedNodeError === "string"
+          ? normalizedNodeError
+          : String(normalizedNodeError)
+      );
+      log.error("WorkflowRunner update error", sanitizedError);
       runner.addNotification({
         type: "error",
         alert: true,
-        content: update.error
+        content: sanitizedError
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
       setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, update.error);
+      setError(workflow.id, update.node_id, sanitizedError);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
         nodeId: update.node_id,
         nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} error: ${update.error}`,
+        content: `${update.node_name || update.node_id} error: ${sanitizedError}`,
         severity: "error",
         timestamp: Date.now()
       });
     } else {
+      setError(workflow.id, update.node_id, null);
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
@@ -584,6 +609,116 @@ export const handleUpdate = (
           dynamic_properties: nextDynamic
         });
       }
+    }
+  }
+
+  // --- Trace event capture ---
+  if (data.type === "job_update") {
+    const ju = data as JobUpdate;
+    if (ju.status === "running") {
+      traceStart(now);
+    } else if (["completed", "failed", "cancelled", "error"].includes(ju.status)) {
+      useTraceStore.setState({ isRecording: false });
+    }
+  }
+
+  if (data.type === "node_update") {
+    const nu = data as NodeUpdate;
+    let traceType: TraceEventType | null = null;
+    let summary = "";
+    if (nu.status === "running") {
+      traceType = "node_start";
+      summary = `${nu.node_name || nu.node_id} started`;
+    } else if (nu.status === "completed") {
+      traceType = "node_complete";
+      summary = `${nu.node_name || nu.node_id} completed`;
+    } else if (nu.status === "error" || nu.status === "failed") {
+      traceType = "node_error";
+      summary = `${nu.node_name || nu.node_id} error: ${nu.error || "unknown"}`;
+    }
+    if (traceType) {
+      traceAppend({
+        id: traceEventId(),
+        timestamp: now,
+        relativeMs: relativeMs(),
+        type: traceType,
+        nodeId: nu.node_id,
+        nodeName: nu.node_name ?? undefined,
+        nodeType: nu.node_type ?? undefined,
+        summary,
+        detail: nu,
+      });
+    }
+  }
+
+  if ((data as any).type === "llm_call") {
+    const lc = data as any;
+    const tokens = lc.tokens_output ? `${lc.tokens_output} tokens` : "";
+    const dur = lc.duration_ms ? `${lc.duration_ms}ms` : "";
+    const cost = lc.cost ? `$${lc.cost.toFixed(4)}` : "";
+    const parts = [tokens, dur, cost].filter(Boolean).join(", ");
+    traceAppend({
+      id: traceEventId(),
+      timestamp: lc.timestamp || now,
+      relativeMs: relativeMs(lc.timestamp),
+      type: "llm_call",
+      nodeId: lc.node_id ?? undefined,
+      nodeName: lc.node_name ?? undefined,
+      summary: `${lc.provider}/${lc.model}${parts ? ` → ${parts}` : ""}`,
+      detail: lc,
+    });
+  }
+
+  if (data.type === "tool_call_update") {
+    const tc = data as ToolCallUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "tool_call",
+      nodeId: tc.node_id ?? undefined,
+      summary: `Tool call: ${tc.name}`,
+      detail: tc,
+    });
+  }
+
+  if (data.type === "tool_result_update") {
+    const tr = data as ToolResultUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "tool_result",
+      nodeId: tr.node_id,
+      summary: `Tool result`,
+      detail: tr,
+    });
+  }
+
+  if (data.type === "output_update") {
+    const ou = data as OutputUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "output",
+      nodeId: ou.node_id,
+      summary: `Output: ${ou.output_name}`,
+      detail: ou,
+    });
+  }
+
+  if (data.type === "edge_update") {
+    const eu = data as EdgeUpdate;
+    if (eu.status === "active") {
+      traceAppend({
+        id: traceEventId(),
+        timestamp: now,
+        relativeMs: relativeMs(),
+        type: "edge_active",
+        summary: `Edge active: ${eu.edge_id}`,
+        detail: eu,
+      });
     }
   }
 };

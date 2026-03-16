@@ -1,0 +1,28 @@
+{
+  "modelId": "recraft-ai/recraft-crisp-upscale",
+  "owner": "recraft-ai",
+  "name": "recraft-crisp-upscale",
+  "version": "2177c1e3a177f5a76c632e467c32b413e424c23d84e43f7b036a965e305f6557",
+  "description": "Designed to make images sharper and cleaner, Crisp Upscale increases overall quality, making visuals suitable for web use or print-ready materials.",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Image to upscale",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

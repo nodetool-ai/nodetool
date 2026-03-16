@@ -1,0 +1,84 @@
+{
+  "modelId": "lucataco/pasd-magnify",
+  "owner": "lucataco",
+  "name": "pasd-magnify",
+  "version": "d59e83ee13c42b137aee558c483e3acc0a8ecdacb1444a7be48152f008dcc195",
+  "description": "(Academic and Non-commercial use only) Pixel-Aware Stable Diffusion for Realistic Image Super-resolution and Personalized Stylization",
+  "inputSchema": {
+    "properties": {
+      "conditioning_scale": {
+        "default": 1.1,
+        "description": "Conditioning Scale",
+        "maximum": 1.5,
+        "minimum": 0.5,
+        "title": "Conditioning Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "denoise_steps": {
+        "default": 20,
+        "description": "Denoise Steps",
+        "maximum": 50,
+        "minimum": 10,
+        "title": "Denoise Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Guidance Scale",
+        "maximum": 10,
+        "minimum": 0.5,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "n_prompt": {
+        "default": "dotted, noise, blur, lowres, oversmooth, longbody, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality",
+        "description": "Negative Prompt",
+        "title": "N Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt": {
+        "default": "Frog, clean, high-resolution, 8k, best quality, masterpiece",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "upsample_scale": {
+        "default": 2,
+        "description": "Upsample Scale",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Upsample Scale",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

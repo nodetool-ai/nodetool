@@ -183,9 +183,9 @@ const TOOLS: Tool[] = [
     icon: <MailOutline />
   },
   {
-    id: "chroma_hybrid_search",
+    id: "vector_hybrid_search",
     name: "Document Search",
-    description: "Search documents in Chroma database",
+    description: "Search documents in vector database",
     category: "Search",
     icon: <ManageSearch />
   },

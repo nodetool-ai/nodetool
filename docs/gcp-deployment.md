@@ -3,7 +3,7 @@ layout: page
 title: "Google Cloud Run Deployment"
 ---
 
-`src/nodetool/deploy/deploy_to_gcp.py` and `src/nodetool/deploy/google_cloud_run_api.py` manage Cloud Run deployment:
+`@nodetool/deploy` (`deploy-to-gcp.ts` and `google-cloud-run-api.ts`) manages Cloud Run deployment:
 
 1. Validate gcloud authentication, project, and APIs
 2. Build and push the image to Artifact Registry or GCR

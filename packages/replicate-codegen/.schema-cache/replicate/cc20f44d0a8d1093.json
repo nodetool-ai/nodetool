@@ -1,0 +1,91 @@
+{
+  "modelId": "prunaai/hunyuan3d-2",
+  "owner": "prunaai",
+  "name": "hunyuan3d-2",
+  "version": "6dd3e3e1f8a29a38807e8f23aaf8953a0051996ccc8c1861f709a5b1ee6826b5",
+  "description": "hunyuan3d-2 optimised with the pruna toolkit: https://github.com/PrunaAI/pruna",
+  "inputSchema": {
+    "properties": {
+      "face_count": {
+        "default": 40000,
+        "description": "Target number of faces for simplification",
+        "title": "Face Count",
+        "type": "integer",
+        "x-order": 6
+      },
+      "file_type": {
+        "default": "glb",
+        "description": "File type",
+        "enum": [
+          "glb",
+          "obj"
+        ],
+        "title": "file_type",
+        "type": "string",
+        "x-order": 7
+      },
+      "generator_seed": {
+        "default": 12345,
+        "description": "Seed for random generator",
+        "title": "Generator Seed",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image_path": {
+        "description": "Input image for hunyuan3d control",
+        "format": "uri",
+        "title": "Image Path",
+        "type": "string",
+        "x-order": 0
+      },
+      "num_chunks": {
+        "default": 20000,
+        "description": "Number of chunks",
+        "title": "Num Chunks",
+        "type": "integer",
+        "x-order": 4
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of inference steps",
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 2
+      },
+      "octree_resolution": {
+        "default": 200,
+        "description": "Octree resolution",
+        "title": "Octree Resolution",
+        "type": "integer",
+        "x-order": 3
+      },
+      "speed_mode": {
+        "default": "Juiced 🔥 (fast)",
+        "description": "Speed optimization level",
+        "enum": [
+          "Unsqueezed 🍋 (highest quality)",
+          "Juiced 🔥 (fast)"
+        ],
+        "title": "speed_mode",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "mesh_paint": {
+        "format": "uri",
+        "title": "Mesh Paint",
+        "type": "string"
+      }
+    },
+    "required": [
+      "mesh_paint"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

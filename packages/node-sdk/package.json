@@ -1,0 +1,25 @@
+{
+  "name": "@nodetool/node-sdk",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Node SDK: BaseNode, NodeRegistry, and example nodes",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:metadata": "vitest run tests/metadata.test.ts",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/kernel": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

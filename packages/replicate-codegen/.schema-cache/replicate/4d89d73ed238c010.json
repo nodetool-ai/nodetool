@@ -1,0 +1,132 @@
+{
+  "modelId": "stability-ai/stable-diffusion",
+  "owner": "stability-ai",
+  "name": "stable-diffusion",
+  "version": "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+  "description": "A latent text-to-image diffusion model capable of generating photo-realistic images given any text input",
+  "inputSchema": {
+    "properties": {
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "height": {
+        "default": 768,
+        "description": "Height of generated image in pixels. Needs to be a multiple of 64",
+        "enum": [
+          64,
+          128,
+          192,
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "height",
+        "type": "integer",
+        "x-order": 1
+      },
+      "negative_prompt": {
+        "description": "Specify things to not see in the output",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to generate.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "a vision of paradise. unreal engine",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "scheduler": {
+        "default": "DPMSolverMultistep",
+        "description": "Choose a scheduler.",
+        "enum": [
+          "DDIM",
+          "K_EULER",
+          "DPMSolverMultistep",
+          "K_EULER_ANCESTRAL",
+          "PNDM",
+          "KLMS"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "width": {
+        "default": 768,
+        "description": "Width of generated image in pixels. Needs to be a multiple of 64",
+        "enum": [
+          64,
+          128,
+          192,
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "width",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

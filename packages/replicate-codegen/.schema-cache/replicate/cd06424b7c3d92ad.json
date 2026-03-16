@@ -1,0 +1,28 @@
+{
+  "modelId": "pollinations/real-basicvsr-video-superresolution",
+  "owner": "pollinations",
+  "name": "real-basicvsr-video-superresolution",
+  "version": "005b4db1d719c1672c522b220db3bc899a81889986b5adc7a01b4f4cfb34e4a7",
+  "description": "RealBasicVSR: Investigating Tradeoffs in Real-World Video Super-Resolution",
+  "inputSchema": {
+    "properties": {
+      "video": {
+        "description": "input video",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

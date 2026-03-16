@@ -125,7 +125,7 @@ export const createWorkflowRunnerStore = (
     state: "idle",
     statusMessage: null,
     messageHandler: (_workflow: WorkflowAttributes, _data: MsgpackData) => {
-      log.warn("No message handler set");
+      console.warn("No message handler set");
     },
     setMessageHandler: (handler: MessageHandler) => {
       set({ messageHandler: handler });

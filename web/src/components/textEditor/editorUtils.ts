@@ -1,4 +1,3 @@
-import log from "loglevel";
 // Utility functions for converting between different editor formats
 // (Slate.js, Markdown, and Lexical)
 
@@ -44,7 +43,7 @@ export const convertSlateToLexical = (slateData: any): string => {
       });
     }
   } catch (e) {
-    log.error("Error converting Slate to Lexical:", e);
+    console.error("Error converting Slate to Lexical:", e);
   }
 
   // Return a default empty state if conversion fails

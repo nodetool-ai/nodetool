@@ -6,7 +6,6 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../nodes/useSelect";
-import log from "loglevel";
 
 /**
  * Configuration options for usePaneEvents hook.
@@ -95,7 +94,7 @@ export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel
         event.stopPropagation();
         const metadata = getMetadata(pendingNodeType);
         if (!metadata) {
-          log.warn(
+          console.warn(
             `Metadata not found while placing node type: ${pendingNodeType}`
           );
           cancelPlacement();

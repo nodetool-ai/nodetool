@@ -1,0 +1,88 @@
+{
+  "modelId": "bria/genfill",
+  "owner": "bria",
+  "name": "genfill",
+  "version": "e3811980fa5e3066d176f363a8fbc4961061ad041e635ac73542f2c0c5eb4f63",
+  "description": "Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use.",
+  "inputSchema": {
+    "properties": {
+      "content_moderation": {
+        "default": false,
+        "description": "Enable content moderation",
+        "title": "Content Moderation",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mask": {
+        "description": "Mask file",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 1
+      },
+      "mask_type": {
+        "default": "manual",
+        "description": "[DEPRECATED] Type of mask: manual or automatic. No longer used in V2 API.",
+        "enum": [
+          "manual",
+          "automatic"
+        ],
+        "title": "mask_type",
+        "type": "string",
+        "x-order": 7
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "preserve_alpha": {
+        "default": true,
+        "description": "Preserve alpha channel in output. When true, maintains original transparency. When false, output is fully opaque.",
+        "title": "Preserve Alpha",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      },
+      "sync": {
+        "default": true,
+        "description": "Synchronous response mode",
+        "title": "Sync",
+        "type": "boolean",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

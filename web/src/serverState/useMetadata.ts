@@ -4,7 +4,6 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
-import log from "loglevel";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
@@ -39,7 +38,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
         stream: false
       }
     ],
-    the_model_info: {},
+
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: false,
@@ -57,7 +56,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     is_dynamic: true,
     properties: [],
     outputs: [],
-    the_model_info: {},
+
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: true,
@@ -69,7 +68,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
 export const loadMetadata = async () => {
   const { data, error } = await client.GET("/api/nodes/metadata", {});
   if (error) {
-    log.error(error);
+    console.error(error);
     return "error";
   }
 

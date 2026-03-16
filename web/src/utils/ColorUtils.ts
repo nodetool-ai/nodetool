@@ -1,5 +1,4 @@
 import chroma from "chroma-js";
-import log from "loglevel";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
 function isCssVar(color: string): boolean {
@@ -26,7 +25,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   } catch (err) {
     // Fallback: if chroma cannot parse the color, just return the original
     // string unchanged to avoid runtime errors.
-    log.error("hexToRgba: unable to parse color", hex, err);
+    console.error("hexToRgba: unable to parse color", hex, err);
     return hex;
   }
 }

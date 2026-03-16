@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
-import log from "loglevel";
+import { normalizeOutputType } from "./types";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -103,7 +103,7 @@ export function useVideoSrc(value: unknown) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const videoValue = value as VideoValue | null;
-    if (videoValue?.type === "video" && videoRef.current) {
+    if (videoValue?.type && normalizeOutputType(videoValue.type) === "video" && videoRef.current) {
       if (videoValue.data) {
         const blob = new Blob([videoValue.data]);
         const url = URL.createObjectURL(blob);
@@ -123,7 +123,8 @@ export function useImageAssets(value: unknown) {
     if (
       !Array.isArray(imageValues) ||
       imageValues.length === 0 ||
-      imageValues[0]?.type !== "image"
+      !imageValues[0]?.type ||
+      normalizeOutputType(imageValues[0].type) !== "image"
     ) {
       return { assets: [] as Asset[], urls: [] as string[] };
     }
@@ -179,7 +180,7 @@ export function useRevokeBlobUrls(urls: string[]) {
             URL.revokeObjectURL(u);
           }
         } catch {
-          log.error("Error revoking blob URL", u);
+          console.error("Error revoking blob URL", u);
         }
       });
     };

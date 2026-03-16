@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
-import log from "loglevel";
 
 // Define a type for the expected error structure from the API
 interface ApiErrorDetail {
@@ -114,7 +113,7 @@ export const useCollectionDragAndDrop = () => {
               });
             }
           } catch (err: unknown) {
-            log.error(`Failed to index file ${file.name}:`, err);
+            console.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
               error: err instanceof Error ? err.message : String(err)

@@ -1,0 +1,95 @@
+{
+  "modelId": "wan-video/wan-2.1-1.3b",
+  "owner": "wan-video",
+  "name": "wan-2.1-1.3b",
+  "version": "121bbb762bf449889f090d36e3598c72c50c7a8cc2ce250433bc521a562aae61",
+  "description": "Generate 5s 480p videos. Wan is an advanced and powerful visual generation model developed by Tongyi Lab of Alibaba Group",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "frame_num": {
+        "default": 81,
+        "description": "Video duration in frames (based on standard 16fps playback)",
+        "enum": [
+          17,
+          33,
+          49,
+          65,
+          81
+        ],
+        "title": "frame_num",
+        "type": "integer",
+        "x-order": 2
+      },
+      "prompt": {
+        "description": "Text prompt describing what you want to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "480p",
+        "description": "Video resolution",
+        "enum": [
+          "480p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "sample_guide_scale": {
+        "default": 6,
+        "description": "Classifier free guidance scale (higher values strengthen prompt adherence)",
+        "maximum": 20,
+        "minimum": 0,
+        "title": "Sample Guide Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "sample_shift": {
+        "default": 8,
+        "description": "Sampling shift factor for flow matching (recommended range: 8-12)",
+        "maximum": 20,
+        "minimum": 0,
+        "title": "Sample Shift",
+        "type": "number",
+        "x-order": 6
+      },
+      "sample_steps": {
+        "default": 30,
+        "description": "Number of sampling steps (higher = better quality but slower)",
+        "maximum": 50,
+        "minimum": 10,
+        "title": "Sample Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed for reproducible results (leave blank for random)",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

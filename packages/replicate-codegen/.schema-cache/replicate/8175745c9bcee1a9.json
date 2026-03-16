@@ -1,0 +1,91 @@
+{
+  "modelId": "luma/ray-2-540p",
+  "owner": "luma",
+  "name": "ray-2-540p",
+  "version": "838565ddabd524ed2b1ab8011d811956b954b8f3716c7a15853fd326e826b6c7",
+  "description": "Generate 5s and 9s 540p videos",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio of the generated video",
+        "enum": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "9:21",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "concepts": {
+        "description": "List of camera concepts to apply to the video generation. Concepts include: truck_left, pan_right, pedestal_down, low_angle, pedestal_up, selfie, pan_left, roll_right, zoom_in, over_the_shoulder, orbit_right, orbit_left, static, tiny_planet, high_angle, bolt_cam, dolly_zoom, overhead, zoom_out, handheld, roll_left, pov, aerial_drone, push_in, crane_down, truck_right, tilt_down, elevator_doors, tilt_up, ground_level, pull_out, aerial, crane_up, eye_level",
+        "items": {
+          "type": "string"
+        },
+        "title": "Concepts",
+        "type": "array"
+      },
+      "duration": {
+        "default": 5,
+        "description": "Duration of the video in seconds",
+        "enum": [
+          5,
+          9
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 3
+      },
+      "end_image": {
+        "description": "An optional last frame of the video to use as the ending frame.",
+        "format": "uri",
+        "title": "End Image",
+        "type": "string"
+      },
+      "end_image_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use end_image instead",
+        "title": "End Image Url",
+        "type": "string"
+      },
+      "loop": {
+        "default": false,
+        "description": "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback.",
+        "title": "Loop",
+        "type": "boolean"
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "start_image": {
+        "description": "An optional first frame of the video to use as the starting frame.",
+        "format": "uri",
+        "title": "Start Image",
+        "type": "string"
+      },
+      "start_image_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use start_image instead",
+        "title": "Start Image Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

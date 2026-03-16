@@ -9,19 +9,19 @@ title: "API Reference"
 
 NodeTool exposes three closely related API surfaces:
 
-- **Editor API (NodeTool application / desktop)**  
-  - Served by `nodetool serve` (`src/nodetool/api/server.py`).  
-  - Used by the NodeTool desktop app and local web UI to manage workflows, assets, jobs, and settings.  
-  - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.  
+- **Editor API (NodeTool application / desktop)**
+  - Served by `nodetool serve` (`@nodetool/websocket` -- `server.ts`).
+  - Used by the NodeTool desktop app and local web UI to manage workflows, assets, jobs, and settings.
+  - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.
   - Intended to run on a trusted local machine, not as a public internet API.
 
-- **Server API (deployable instance)**  
-  - Served by `nodetool serve --mode private` (`src/nodetool/api/run_server.py`).  
-  - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.  
+- **Server API (deployable instance)**
+  - Served by `nodetool serve --mode private` (`@nodetool/websocket` -- `http-api.ts`).
+  - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.
   - Designed for self-hosted, RunPod, Cloud Run, and other remote deployments; all non-health endpoints sit behind Bearer auth and TLS.
 
-- **Chat Server API (chat-only runtime)**  
-  - Served by `nodetool chat-server` (`src/nodetool/chat/server.py`).  
+- **Chat Server API (chat-only runtime)**
+  - Served by `nodetool chat-server` (`@nodetool/chat` -- `server.ts`).
   - Minimal OpenAI-compatible `/v1/chat/completions` and `/v1/models` plus `/health` for environments where you only need chat, not workflows or admin routes.
 
 This split exists because:
@@ -271,76 +271,7 @@ nodetool run workflow_abc123 --jsonl
 echo '{"workflow_id": "abc123", "params": {"prompt": "test"}}' | nodetool run --stdin
 ```
 
-### Python Client Example
-
-```python
-import requests
-
-# Configuration
-BASE_URL = "http://localhost:7777"
-TOKEN = "your_token_here"
-HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
-
-# Run a workflow
-def run_workflow(workflow_id: str, params: dict) -> dict:
-    response = requests.post(
-        f"{BASE_URL}/api/workflows/{workflow_id}/run",
-        headers=HEADERS,
-        json={"params": params}
-    )
-    response.raise_for_status()
-    return response.json()
-
-# Stream workflow execution
-def stream_workflow(workflow_id: str, params: dict):
-    response = requests.post(
-        f"{BASE_URL}/workflows/{workflow_id}/run/stream",
-        headers={**HEADERS, "Accept": "text/event-stream"},
-        json={"params": params},
-        stream=True
-    )
-    
-    for line in response.iter_lines():
-        if line:
-            line = line.decode('utf-8')
-            if line.startswith('data: '):
-                data = line[6:]  # Remove 'data: ' prefix
-                if data != '[DONE]':
-                    import json
-                    event = json.loads(data)
-                    print(f"Event: {event['type']}")
-                    if event.get('status') == 'completed':
-                        return event.get('result')
-
-# Using OpenAI client (works with NodeTool!)
-from openai import OpenAI
-
-client = OpenAI(
-    api_key=TOKEN,
-    base_url=f"{BASE_URL}/v1"
-)
-
-# Chat completion
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-print(response.choices[0].message.content)
-
-# Streaming
-for chunk in client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Tell me a story"}],
-    stream=True
-):
-    if chunk.choices[0].delta.content:
-        print(chunk.choices[0].delta.content, end="")
-```
-
-### JavaScript/Node.js Example
+### TypeScript / Node.js Client Example
 
 ```javascript
 const BASE_URL = 'http://localhost:7777';

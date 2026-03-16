@@ -1,0 +1,73 @@
+{
+  "modelId": "cjwbw/shap-e",
+  "owner": "cjwbw",
+  "name": "shap-e",
+  "version": "5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c",
+  "description": "Generating Conditional 3D Implicit Functions",
+  "inputSchema": {
+    "properties": {
+      "batch_size": {
+        "default": 1,
+        "description": "Number of output",
+        "title": "Batch Size",
+        "type": "integer",
+        "x-order": 3
+      },
+      "guidance_scale": {
+        "default": 15,
+        "description": "Set the scale for guidanece",
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "image": {
+        "description": "A synthetic view image for generating the 3D modeld. To get the best result, remove background from the input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for generating the 3D model, ignored if an image is provide below",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "render_mode": {
+        "default": "nerf",
+        "description": "Choose a render mode",
+        "enum": [
+          "nerf",
+          "stf"
+        ],
+        "title": "render_mode",
+        "type": "string",
+        "x-order": 4
+      },
+      "render_size": {
+        "default": 128,
+        "description": "Set the size of the a renderer, higher values take longer to render",
+        "title": "Render Size",
+        "type": "integer",
+        "x-order": 5
+      },
+      "save_mesh": {
+        "default": false,
+        "description": "Save the latents as meshes.",
+        "title": "Save Mesh",
+        "type": "boolean",
+        "x-order": 6
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

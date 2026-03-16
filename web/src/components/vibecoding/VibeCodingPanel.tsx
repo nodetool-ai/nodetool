@@ -24,7 +24,6 @@ import { client } from "../../stores/ApiClient";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 
 const createStyles = (theme: Theme) =>
   css({
@@ -155,7 +154,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      log.error("Failed to save:", error);
+      console.error("Failed to save:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to save app";
       setSnackbar({
@@ -189,7 +188,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      log.error("Failed to clear:", error);
+      console.error("Failed to clear:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to clear app";
       setSnackbar({

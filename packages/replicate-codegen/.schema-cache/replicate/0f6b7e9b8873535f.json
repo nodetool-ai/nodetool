@@ -1,0 +1,123 @@
+{
+  "modelId": "bria/expand-image",
+  "owner": "bria",
+  "name": "expand-image",
+  "version": "0d8d951a482d1f94125a7adbde188d7aa280a13fe0a444b9e786fce905e2af9a",
+  "description": "Bria Expand expands images beyond their borders in high quality. Resizing the image by generating new pixels to expand to the desired aspect ratio. Trained exclusively on licensed data for safe and risk-free commercial use",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0",
+        "enum": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "canvas_size": {
+        "description": "Desired output canvas dimensions [width, height]. Default [1000, 1000]. Max 5000x5000 pixels.",
+        "items": {
+          "type": "integer"
+        },
+        "nullable": true,
+        "title": "Canvas Size",
+        "type": "array",
+        "x-order": 3
+      },
+      "content_moderation": {
+        "default": false,
+        "description": "Enable content moderation",
+        "title": "Content Moderation",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "image_url": {
+        "description": "Image URL",
+        "nullable": true,
+        "title": "Image Url",
+        "type": "string",
+        "x-order": 1
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 7
+      },
+      "original_image_location": {
+        "description": "Position of original image in canvas [x, y]",
+        "items": {
+          "type": "integer"
+        },
+        "nullable": true,
+        "title": "Original Image Location",
+        "type": "array",
+        "x-order": 5
+      },
+      "original_image_size": {
+        "description": "Size of original image in canvas [width, height]",
+        "items": {
+          "type": "integer"
+        },
+        "nullable": true,
+        "title": "Original Image Size",
+        "type": "array",
+        "x-order": 4
+      },
+      "preserve_alpha": {
+        "default": true,
+        "description": "Preserve alpha channel in output. When true, maintains original transparency. When false, output is fully opaque.",
+        "title": "Preserve Alpha",
+        "type": "boolean",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 6
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "sync": {
+        "default": true,
+        "description": "Synchronous response mode",
+        "title": "Sync",
+        "type": "boolean",
+        "x-order": 10
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

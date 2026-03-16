@@ -1,0 +1,23 @@
+{
+  "name": "@nodetool/code-runners",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.4"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.34",
+    "@types/node": "^25.3.3",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

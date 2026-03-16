@@ -15,7 +15,6 @@ import {
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
-import log from "loglevel";
 
 const styles = (_theme: Theme) =>
   css({
@@ -166,7 +165,7 @@ const ChatView = ({
           workflow_target: graph ? "workflow" : undefined
         });
       } catch (error) {
-        log.error("Error sending message:", error);
+        console.error("Error sending message:", error);
       }
     },
     [

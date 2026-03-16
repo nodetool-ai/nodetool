@@ -1,0 +1,56 @@
+{
+  "modelId": "fermatresearch/spanish-f5-tts",
+  "owner": "fermatresearch",
+  "name": "spanish-f5-tts",
+  "version": "f26405b801a0b0945679fb3adf9bbca7ab8559c7fd9cf7cd2a68067c3aab83f7",
+  "description": "A F5-TTS fine-tuned for Spanish",
+  "inputSchema": {
+    "properties": {
+      "custom_split_words": {
+        "default": "",
+        "description": "Custom split words, comma separated",
+        "title": "Custom Split Words",
+        "type": "string",
+        "x-order": 4
+      },
+      "gen_text": {
+        "description": "Text to Generate",
+        "title": "Gen Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "ref_audio": {
+        "description": "Reference audio for voice cloning",
+        "format": "uri",
+        "title": "Ref Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "ref_text": {
+        "description": "Reference Text",
+        "title": "Ref Text",
+        "type": "string",
+        "x-order": 2
+      },
+      "remove_silence": {
+        "default": true,
+        "description": "Automatically remove silences?",
+        "title": "Remove Silence",
+        "type": "boolean",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "gen_text",
+      "ref_audio",
+      "ref_text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "modelId": "lucataco/deep3d",
+  "owner": "lucataco",
+  "name": "deep3d",
+  "version": "108b6cc8629f25abea20f56446a34e9d676dd1d7218f1ecefdd52239166903e3",
+  "description": "Deep3D: Real-Time end-to-end 2D-to-3D Video Conversion, based on deep learning",
+  "inputSchema": {
+    "properties": {
+      "model": {
+        "default": "deep3d_v1.0_640x360",
+        "description": "Model size",
+        "enum": [
+          "deep3d_v1.0_640x360",
+          "deep3d_v1.0_1280x720"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 1
+      },
+      "video": {
+        "description": "Input video",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

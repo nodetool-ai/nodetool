@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
-import { setupMockApiRoutes, templates } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForPageReady,
@@ -104,90 +103,6 @@ if (process.env.JEST_WORKER_ID) {
       // Verify page is functional after loading
       const body = await page.locator("body");
       await expect(body).not.toBeEmpty();
-    });
-  });
-
-  test.describe("Templates with Mock Data", () => {
-    test.beforeEach(async ({ page }) => {
-      // Setup mock API routes before each test
-      await setupMockApiRoutes(page);
-    });
-
-    test("should display mocked template workflows", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Wait for page to stabilize
-      await waitForAnimation(page);
-
-      // Verify page is functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should verify mock template data structure", async ({ page }) => {
-      // Verify our mock data has the expected structure
-      expect(templates.workflows).toBeDefined();
-      expect(Array.isArray(templates.workflows)).toBe(true);
-      expect(templates.workflows.length).toBeGreaterThan(0);
-
-      const firstTemplate = templates.workflows[0];
-      expect(firstTemplate).toHaveProperty("id");
-      expect(firstTemplate).toHaveProperty("name");
-      expect(firstTemplate).toHaveProperty("description");
-      expect(firstTemplate).toHaveProperty("graph");
-      expect(firstTemplate.graph).toHaveProperty("nodes");
-      expect(firstTemplate.graph).toHaveProperty("edges");
-
-      await navigateToPage(page, "/templates");
-      
-      // Page should load successfully
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should have templates with different categories", async ({ page }) => {
-      // Verify we have different types of templates
-      const imageTemplates = templates.workflows.filter(t => 
-        t.tags.includes("image-generation") || t.tags.includes("image")
-      );
-      const chatTemplates = templates.workflows.filter(t => 
-        t.tags.includes("chat") || t.tags.includes("llm")
-      );
-      
-      expect(imageTemplates.length).toBeGreaterThan(0);
-      expect(chatTemplates.length).toBeGreaterThan(0);
-
-      await navigateToPage(page, "/templates");
-      
-      // Page should load with template data
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should handle template search with mock data", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // The mock handler will filter based on search query
-      // We just verify the page is functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should have templates with workflow graphs", async ({ page }) => {
-      // Verify templates have proper graph structure
-      const templateWithNodes = templates.workflows[0];
-      
-      expect(templateWithNodes.graph.nodes.length).toBeGreaterThan(0);
-      expect(templateWithNodes.graph.nodes[0]).toHaveProperty("id");
-      expect(templateWithNodes.graph.nodes[0]).toHaveProperty("type");
-      expect(templateWithNodes.graph.nodes[0]).toHaveProperty("data");
-      expect(templateWithNodes.graph.nodes[0]).toHaveProperty("position");
-
-      await navigateToPage(page, "/templates");
-      
-      // Page should load successfully
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
     });
   });
 

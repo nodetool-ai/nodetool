@@ -3,7 +3,7 @@ layout: page
 title: "End-to-End Deployment Guide"
 ---
 
-This guide is a practical runbook for deploying NodeTool end-to-end with the unified server entrypoint (`python -m nodetool.api.run_server`).
+This guide is a practical runbook for deploying NodeTool end-to-end with the unified server entrypoint (`nodetool serve`).
 
 It covers three production scenarios:
 
@@ -16,10 +16,10 @@ It covers three production scenarios:
 The server entrypoint is:
 
 ```bash
-python -m nodetool.api.run_server --host 0.0.0.0 --port 7777
+nodetool serve --host 0.0.0.0 --port 7777
 ```
 
-`run_server` CLI itself only accepts `--host`, `--port`, and `--reload`. Use environment variables (or `nodetool serve` flags) to control mode/auth/features.
+`nodetool serve` accepts `--host`, `--port`, and `--reload`. Use environment variables (or additional `nodetool serve` flags) to control mode/auth/features.
 
 Important runtime behavior:
 
@@ -30,7 +30,7 @@ Important runtime behavior:
 
 ## Prerequisites
 
-- Python environment with `nodetool-core` installed.
+- NodeTool CLI installed (`@nodetool/cli`).
 - Container runtime:
   - Docker or
   - Podman
@@ -64,7 +64,7 @@ export AUTH_PROVIDER=local
 export ENV=development
 export DB_PATH=/path/to/workspace/nodetool.db
 export HF_HOME=/path/to/hf-cache
-python -m nodetool.api.run_server --host 127.0.0.1 --port 7777
+nodetool serve --host 127.0.0.1 --port 7777
 ```
 
 Verify:
@@ -88,7 +88,7 @@ export SECRETS_MASTER_KEY=<strong-random-secret>
 export ADMIN_TOKEN=<admin-token>
 export DB_PATH=/workspace/nodetool.db
 export HF_HOME=/hf-cache
-python -m nodetool.api.run_server --host 0.0.0.0 --port 7777
+nodetool serve --host 0.0.0.0 --port 7777
 ```
 
 Verify:
@@ -126,7 +126,7 @@ export SECRETS_MASTER_KEY=<strong-random-secret>
 export ADMIN_TOKEN=<admin-token>
 export DB_PATH=/workspace/nodetool.db
 export HF_HOME=/hf-cache
-python -m nodetool.api.run_server --host 0.0.0.0 --port 7777
+nodetool serve --host 0.0.0.0 --port 7777
 ```
 
 Call APIs:
@@ -223,7 +223,7 @@ curl -s -X POST http://<host>:7777/workflows/<workflow-id>/run \
 Check `SECRETS_MASTER_KEY`:
 
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+openssl rand -base64 32
 ```
 
 ### `/admin/*` returns 403 in production

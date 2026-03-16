@@ -1,0 +1,27 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "command", "type": "test.Input", "name": "command" },
+      { "id": "run", "type": "nodetool.code.RunShellCommand" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "stdout" }
+    ],
+    "edges": [
+      {
+        "source": "command",
+        "sourceHandle": "value",
+        "target": "run",
+        "targetHandle": "command"
+      },
+      {
+        "source": "run",
+        "sourceHandle": "output",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "command": "echo ts-workflow-cli"
+  }
+}
+

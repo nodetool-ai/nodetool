@@ -14,10 +14,7 @@ import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
-  onDragStart: (
-    node: NodeMetadata,
-    event: React.DragEvent<HTMLDivElement>
-  ) => void;
+  onDragStart: (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd?: () => void;
   onClick: (node: NodeMetadata) => void;
   isKeyboardSelected?: boolean;
@@ -243,12 +240,9 @@ const SearchResultItem = memo(
         // No longer auto-collapse on leave
       }, []);
 
-      const handleDragStart = useCallback(
-        (event: React.DragEvent<HTMLDivElement>) => {
-          onDragStart(node, event);
-        },
-        [onDragStart, node]
-      );
+      const handleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+        onDragStart(node, event);
+      }, [onDragStart, node]);
 
       return (
         <div

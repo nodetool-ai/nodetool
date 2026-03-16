@@ -1,0 +1,106 @@
+{
+  "modelId": "google/gemini-3-pro",
+  "owner": "google",
+  "name": "gemini-3-pro",
+  "version": "6c727b6aa9d5663b515ff4d6d36520213d9991d5078adeafce44e6e49ed6f6ac",
+  "description": "Google's most advanced reasoning Gemini model",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Input audio to send with the prompt (max 1 audio file, up to 8.4 hours)",
+        "format": "uri",
+        "nullable": true,
+        "title": "Audio",
+        "type": "string",
+        "x-order": 3
+      },
+      "images": {
+        "default": [],
+        "description": "Input images to send with the prompt (max 10 images, each up to 7MB)",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Images",
+        "type": "array",
+        "x-order": 1
+      },
+      "max_output_tokens": {
+        "default": 65535,
+        "description": "Maximum number of tokens to generate",
+        "maximum": 65535,
+        "minimum": 1,
+        "title": "Max Output Tokens",
+        "type": "integer",
+        "x-order": 8
+      },
+      "prompt": {
+        "description": "The text prompt to send to the model",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "system_instruction": {
+        "description": "System instruction to guide the model's behavior",
+        "nullable": true,
+        "title": "System Instruction",
+        "type": "string",
+        "x-order": 4
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Sampling temperature between 0 and 2",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 6
+      },
+      "thinking_level": {
+        "description": "Thinking level for reasoning (low or high). Replaces thinking_budget for Gemini 3 models.",
+        "enum": [
+          "low",
+          "high"
+        ],
+        "nullable": true,
+        "title": "thinking_level",
+        "type": "string",
+        "x-order": 5
+      },
+      "top_p": {
+        "default": 0.95,
+        "description": "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 7
+      },
+      "videos": {
+        "default": [],
+        "description": "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Videos",
+        "type": "array",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

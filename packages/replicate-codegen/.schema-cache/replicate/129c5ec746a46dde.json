@@ -1,0 +1,119 @@
+{
+  "modelId": "elevenlabs/turbo-v2.5",
+  "owner": "elevenlabs",
+  "name": "turbo-v2.5",
+  "version": "bdab64445fa0fb0ade1c2ae20d00f3024104afe3ff8b4572fc487de30fb24bf0",
+  "description": "High quality, low latency text to speech in 32 languages",
+  "inputSchema": {
+    "properties": {
+      "language_code": {
+        "default": "en",
+        "description": "Language code (e.g., 'en', 'es', 'fr')",
+        "title": "Language Code",
+        "type": "string",
+        "x-order": 8
+      },
+      "next_text": {
+        "default": "",
+        "description": "Next text for context",
+        "title": "Next Text",
+        "type": "string",
+        "x-order": 7
+      },
+      "previous_text": {
+        "default": "",
+        "description": "Previous text for context",
+        "title": "Previous Text",
+        "type": "string",
+        "x-order": 6
+      },
+      "prompt": {
+        "description": "The text to convert to speech",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "similarity_boost": {
+        "default": 0.75,
+        "description": "Similarity boost setting (0.0 to 1.0)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Similarity Boost",
+        "type": "number",
+        "x-order": 3
+      },
+      "speed": {
+        "default": 1,
+        "description": "Speed of speech (0.25 to 4.0)",
+        "maximum": 1.2,
+        "minimum": 0.7,
+        "title": "Speed",
+        "type": "number",
+        "x-order": 5
+      },
+      "stability": {
+        "default": 0.5,
+        "description": "Stability setting for voice generation (0.0 to 1.0)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Stability",
+        "type": "number",
+        "x-order": 2
+      },
+      "style": {
+        "default": 0,
+        "description": "Style exaggeration (0.0 to 1.0)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Style",
+        "type": "number",
+        "x-order": 4
+      },
+      "voice": {
+        "default": "Rachel",
+        "description": "Voice choice for speech generation",
+        "enum": [
+          "Rachel",
+          "Drew",
+          "Clyde",
+          "Paul",
+          "Aria",
+          "Domi",
+          "Dave",
+          "Roger",
+          "Fin",
+          "Sarah",
+          "James",
+          "Jane",
+          "Juniper",
+          "Arabella",
+          "Hope",
+          "Bradford",
+          "Reginald",
+          "Gaming",
+          "Austin",
+          "Kuon",
+          "Blondie",
+          "Priyanka",
+          "Alexandra",
+          "Monika",
+          "Mark",
+          "Grimblewood"
+        ],
+        "title": "voice",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}
