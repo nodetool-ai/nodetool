@@ -32,35 +32,31 @@ This is useful for:
 
 The simplest way to add suspension to a workflow is using the `WaitNode`:
 
-```python
-from nodetool.nodes.nodetool.triggers import WaitNode
+```typescript
+import { WaitNode } from "@nodetool/base-nodes/nodes/triggers";
 
-# Create a wait node that suspends the workflow
-wait_node = WaitNode(
-    wait_reason="Waiting for manager approval",
-    timeout_seconds=3600,  # Optional: timeout in seconds (0 = wait forever)
-    metadata={"request_id": "REQ-123", "approver": "admin@example.com"}
-)
+// Create a wait node that suspends the workflow
+const waitNode = new WaitNode();
+waitNode.timeout_seconds = 3600;  // Optional: timeout in seconds (0 = wait forever)
+waitNode.input = { request_id: "REQ-123", approver: "admin@example.com" };
 ```
 
 ### WaitNode Properties
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `wait_reason` | `str` | "Waiting for external input" | Human-readable reason for the wait |
-| `timeout_seconds` | `int` | `0` | Timeout in seconds (0 = wait indefinitely) |
-| `metadata` | `dict` | `{}` | Additional metadata to include with suspension |
+| `timeout_seconds` | `number` | `0` | Timeout in seconds (0 = wait indefinitely) |
+| `input` | `any` | `""` | Input data to pass through to the output when resumed |
 
 ### WaitNode Output
 
 When resumed, the WaitNode outputs:
 
-```python
+```typescript
 {
-    "data": {...},           # Data provided during resume
-    "resumed_at": "...",     # ISO timestamp of resumption
-    "waited_seconds": 30.5,  # How long the workflow was suspended
-    "reason": "..."          # The wait reason
+  data: { /* input data passed through */ },
+  resumed_at: "2026-03-16T12:00:00.000Z",  // ISO timestamp of resumption
+  waited_seconds: 30.5                       // How long the workflow was suspended
 }
 ```
 
@@ -70,47 +66,54 @@ When resumed, the WaitNode outputs:
 
 For more control, create your own suspendable node by extending `SuspendableNode`:
 
-```python
-from nodetool.workflows.suspendable_node import SuspendableNode
-from nodetool.workflows.processing_context import ProcessingContext
+```typescript
+import { SuspendableState } from "@nodetool/kernel/suspendable";
+import { BaseNode, prop } from "@nodetool/node-sdk";
 
-class ApprovalNode(SuspendableNode):
-    """Node that waits for external approval."""
-    
-    document_id: str = ""
-    
-    async def process(self, context: ProcessingContext) -> dict:
-        # Check if resuming from suspension
-        if self.is_resuming():
-            saved_state = await self.get_saved_state()
-            
-            if saved_state.get('approved'):
-                return {
-                    'status': 'approved',
-                    'approved_by': saved_state.get('approved_by'),
-                    'approved_at': saved_state.get('approved_at'),
-                }
-            else:
-                return {
-                    'status': 'rejected',
-                    'reason': saved_state.get('rejection_reason'),
-                }
-        
-        # First execution - suspend and wait for approval
-        await self.suspend_workflow(
-            reason=f"Waiting for approval of document {self.document_id}",
-            state={
-                'document_id': self.document_id,
-                'submitted_at': datetime.now().isoformat(),
-            },
-            metadata={
-                'approver_email': 'admin@example.com',
-                'timeout_hours': 24,
-            }
-        )
-        
-        # Execution never reaches here on first run
-        # The suspend_workflow() call raises an exception
+class ApprovalNode extends BaseNode {
+  static readonly nodeType = "custom.ApprovalNode";
+
+  @prop({ type: "str", default: "" })
+  declare document_id: string;
+
+  // Compose a SuspendableState helper for this node
+  private _suspend = new SuspendableState(ApprovalNode.nodeType);
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    // Check if resuming from suspension
+    if (this._suspend.isResuming()) {
+      const savedState = this._suspend.getSavedState();
+
+      if (savedState.approved) {
+        return {
+          status: "approved",
+          approved_by: savedState.approved_by,
+          approved_at: savedState.approved_at,
+        };
+      } else {
+        return {
+          status: "rejected",
+          reason: savedState.rejection_reason,
+        };
+      }
+    }
+
+    // First execution — suspend and wait for approval
+    this._suspend.suspendWorkflow(
+      `Waiting for approval of document ${this.document_id}`,
+      {
+        document_id: this.document_id,
+        submitted_at: new Date().toISOString(),
+      },
+      {
+        approver_email: "admin@example.com",
+        timeout_hours: 24,
+      },
+    );
+    // Execution never reaches here on first run.
+    // suspendWorkflow() throws WorkflowSuspendedError.
+  }
+}
 ```
 
 ---
@@ -119,51 +122,52 @@ class ApprovalNode(SuspendableNode):
 
 ### SuspendableNode Methods
 
-#### `is_suspendable() -> bool`
+#### `isSuspendable(): boolean`
 
-Returns `True` to indicate this node supports suspension.
+Returns `true` to indicate this node supports suspension.
 
-#### `is_resuming() -> bool`
+#### `isResuming(): boolean`
 
 Check if the node is resuming from a previous suspension.
 
-```python
-if self.is_resuming():
-    # Resumption path - get saved state
-    saved = await self.get_saved_state()
-else:
-    # First execution path - suspend
-    await self.suspend_workflow(...)
+```typescript
+if (this._suspend.isResuming()) {
+  // Resumption path — get saved state
+  const saved = this._suspend.getSavedState();
+} else {
+  // First execution path — suspend
+  this._suspend.suspendWorkflow(reason, state);
+}
 ```
 
-#### `async get_saved_state() -> dict`
+#### `getSavedState(): Record<string, unknown>`
 
 Get the state that was saved when workflow suspended.
 
-```python
-saved_state = await self.get_saved_state()
-approval_status = saved_state.get('approved', False)
+```typescript
+const savedState = this._suspend.getSavedState();
+const approvalStatus = savedState.approved ?? false;
 ```
 
-Raises `ValueError` if called when not resuming.
+Throws `Error` if called when not resuming.
 
-#### `async suspend_workflow(reason, state, metadata=None)`
+#### `suspendWorkflow(reason: string, state: Record<string, unknown>, metadata?: Record<string, unknown>): never`
 
 Suspend workflow execution and save state.
 
-```python
-await self.suspend_workflow(
-    reason="Waiting for user input",
-    state={'partial_result': computed_value},
-    metadata={'timeout': 3600}
-)
+```typescript
+this._suspend.suspendWorkflow(
+  "Waiting for user input",
+  { partial_result: computedValue },
+  { timeout: 3600 },
+);
 ```
 
 This method:
 
 - Logs `NodeSuspended` event with state
 - Logs `RunSuspended` event
-- Raises `WorkflowSuspendedException` to exit execution
+- Throws `WorkflowSuspendedError` to exit execution
 - Never returns (workflow is suspended)
 
 ---
@@ -175,8 +179,8 @@ This method:
 ```
 WorkflowRunner.run()
   ├─> NodeActor executes node
-  ├─> node.process() calls suspend_workflow()
-  ├─> WorkflowSuspendedException raised
+  ├─> node.process() calls suspendWorkflow()
+  ├─> WorkflowSuspendedError thrown
   ├─> Runner catches exception
   ├─> Logs NodeSuspended event (with state)
   ├─> Logs RunSuspended event
@@ -191,7 +195,7 @@ User clicks Resume button OR API call to resume endpoint
   ├─> WorkflowRecoveryService.resume_workflow()
   ├─> Loads saved state from event log
   ├─> Logs NodeResumed event
-  ├─> Sets node._set_resuming_state()
+  ├─> Sets node.setResumingState()
   └─> WorkflowRunner.run() continues
 ```
 
@@ -199,8 +203,8 @@ User clicks Resume button OR API call to resume endpoint
 
 ```
 NodeActor executes node (resuming=True)
-  ├─> node.is_resuming() returns True
-  ├─> node.get_saved_state() returns saved state
+  ├─> node.isResuming() returns true
+  ├─> node.getSavedState() returns saved state
   ├─> node.process() continues from saved state
   └─> Workflow completes normally
 ```
@@ -228,7 +232,7 @@ When user clicks Resume:
 
 ## Best Practices
 
-1. **Always check `is_resuming()`** - Handle both first execution and resumption paths
+1. **Always check `isResuming()`** - Handle both first execution and resumption paths
 2. **Save minimal state** - Only save what's needed to resume
 3. **Use descriptive reasons** - Make suspension reason clear for users
 4. **Add metadata** - Include context like timeout, approver email, etc.
@@ -239,29 +243,38 @@ When user clicks Resume:
 
 ## Example: Webhook Callback
 
-```python
-class WebhookWaitNode(SuspendableNode):
-    """Wait for a webhook callback before continuing."""
-    
-    callback_url: str = ""
-    
-    async def process(self, context: ProcessingContext) -> dict:
-        if self.is_resuming():
-            state = await self.get_saved_state()
-            return {
-                'webhook_id': state['webhook_id'],
-                'callback_data': state.get('callback_data', {}),
-            }
-        
-        # Register webhook and get ID
-        webhook_id = await register_webhook(self.callback_url)
-        
-        # Suspend until webhook is called
-        await self.suspend_workflow(
-            reason=f"Waiting for webhook callback",
-            state={'webhook_id': webhook_id, 'callback_url': self.callback_url},
-            metadata={'external_service': True}
-        )
+```typescript
+import { SuspendableState } from "@nodetool/kernel/suspendable";
+import { BaseNode, prop } from "@nodetool/node-sdk";
+
+class WebhookWaitNode extends BaseNode {
+  static readonly nodeType = "custom.WebhookWaitNode";
+
+  @prop({ type: "str", default: "" })
+  declare callback_url: string;
+
+  private _suspend = new SuspendableState(WebhookWaitNode.nodeType);
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (this._suspend.isResuming()) {
+      const state = this._suspend.getSavedState();
+      return {
+        webhook_id: state.webhook_id,
+        callback_data: state.callback_data ?? {},
+      };
+    }
+
+    // Register webhook and get ID
+    const webhookId = await registerWebhook(this.callback_url);
+
+    // Suspend until webhook is called
+    this._suspend.suspendWorkflow(
+      "Waiting for webhook callback",
+      { webhook_id: webhookId, callback_url: this.callback_url },
+      { external_service: true },
+    );
+  }
+}
 ```
 
 ---

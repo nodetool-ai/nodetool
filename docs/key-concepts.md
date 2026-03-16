@@ -107,12 +107,12 @@ When you click **Run**:
 
 ## For Developers: Technical Details
 
-If you're building custom nodes or using the Python API, here are the technical components:
+If you're building custom nodes or using the TypeScript API, here are the technical components:
 
 - **Graph** – A collection of nodes and their connections. Use `graph()` to build graphs and `run_graph()` to execute them.
 - **DSL** – NodeTool provides a [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool/dsl`) for building workflows programmatically with type-safe factory functions and full IDE autocompletion.
 - **WorkflowRunner** – The engine that executes graphs. It handles parallel execution, GPU management and progress updates.
-- **ProcessingContext** – Holds runtime information like user data and authentication tokens.
+- **ProcessingContext** – Holds runtime information like user data, authentication tokens, asset storage, and cache adapters. Defined in `@nodetool/runtime`.
 
 ### Node Type Resolution
 
