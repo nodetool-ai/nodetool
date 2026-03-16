@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import { Box, IconButton, Tooltip, Typography, Chip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -217,6 +218,11 @@ const TracePanel: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [exportJSON]);
 
+  const handleCopy = useCallback(() => {
+    const json = exportJSON();
+    navigator.clipboard.writeText(json);
+  }, [exportJSON]);
+
   return (
     <div css={styles(theme)}>
       <div className="trace-toolbar">
@@ -227,6 +233,11 @@ const TracePanel: React.FC = () => {
           <Chip label={events.length} size="small" variant="outlined" />
         </Box>
         <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Tooltip title="Copy to clipboard" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton size="small" onClick={handleCopy} disabled={events.length === 0}>
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Export as JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton size="small" onClick={handleExport} disabled={events.length === 0}>
               <FileDownloadIcon fontSize="small" />
