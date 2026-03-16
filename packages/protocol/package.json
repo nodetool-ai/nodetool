@@ -2,10 +2,11 @@
   "name": "@nodetool/protocol",
   "version": "0.1.0",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\" && tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
