@@ -27,6 +27,15 @@ const log = createLogger("nodetool.runtime.provider");
 export abstract class BaseProvider {
   readonly provider: ProviderId;
   private _cost = 0;
+  private _emitMessage: ((msg: unknown) => void) | null = null;
+
+  setMessageEmitter(fn: (msg: unknown) => void): void {
+    this._emitMessage = fn;
+  }
+
+  protected emitMessage(msg: unknown): void {
+    if (this._emitMessage) this._emitMessage(msg);
+  }
 
   protected constructor(provider: ProviderId) {
     this.provider = provider;
@@ -139,48 +148,123 @@ export abstract class BaseProvider {
 
   /** Traced wrapper around generateMessage. Use this instead of calling generateMessage directly. */
   async generateMessageTraced(args: Parameters<this["generateMessage"]>[0]): Promise<Message> {
+    const startTime = Date.now();
     const tracer = getTracer();
-    if (!tracer) {
-      return this.generateMessage(args);
-    }
-    return tracer.startActiveSpan(`llm.chat ${this.provider}/${args.model}`, async (span) => {
-      span.setAttributes({
-        "llm.provider": this.provider,
-        "llm.model": args.model,
-        "llm.request.message_count": args.messages.length,
-        "llm.request.tools_count": args.tools?.length ?? 0,
-        "llm.request.max_tokens": args.maxTokens ?? 0,
-        "llm.request.stream": false,
-      });
-      try {
-        const result = await this.generateMessage(args);
-        const content = typeof result.content === "string" ? result.content : JSON.stringify(result.content);
+
+    const doCall = async (): Promise<Message> => {
+      if (!tracer) return this.generateMessage(args);
+      return tracer.startActiveSpan(`llm.chat ${this.provider}/${args.model}`, async (span) => {
         span.setAttributes({
-          "llm.response.role": result.role,
-          "llm.response.content": content.slice(0, 2000),
-          "llm.response.tool_calls_count": result.toolCalls?.length ?? 0,
+          "llm.provider": this.provider,
+          "llm.model": args.model,
+          "llm.request.message_count": args.messages.length,
+          "llm.request.tools_count": args.tools?.length ?? 0,
+          "llm.request.max_tokens": args.maxTokens ?? 0,
+          "llm.request.stream": false,
         });
-        span.setStatus({ code: SpanStatusCode.OK });
-        return result;
-      } catch (err) {
-        span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
-        span.recordException(err as Error);
-        throw err;
-      } finally {
-        span.end();
-      }
-    });
+        try {
+          const result = await this.generateMessage(args);
+          const content = typeof result.content === "string" ? result.content : JSON.stringify(result.content);
+          span.setAttributes({
+            "llm.response.role": result.role,
+            "llm.response.content": content.slice(0, 2000),
+            "llm.response.tool_calls_count": result.toolCalls?.length ?? 0,
+          });
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (err) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+          span.recordException(err as Error);
+          throw err;
+        } finally {
+          span.end();
+        }
+      });
+    };
+
+    let result: Message | undefined;
+    let error: string | undefined;
+    try {
+      result = await doCall();
+      return result;
+    } catch (err) {
+      error = String(err);
+      throw err;
+    } finally {
+      this.emitMessage({
+        type: "llm_call",
+        node_id: "",
+        provider: this.provider,
+        model: args.model,
+        messages: args.messages.map((m) => ({ role: m.role, content: m.content })),
+        response: result?.content ?? null,
+        tool_calls: result?.toolCalls?.map((tc) => ({ id: tc.id, name: tc.name, args: tc.args })) ?? null,
+        tokens_input: null,
+        tokens_output: null,
+        cost: null,
+        duration_ms: Date.now() - startTime,
+        error: error ?? null,
+        timestamp: new Date(startTime).toISOString(),
+      });
+    }
   }
 
   /** Traced wrapper around generateMessages. Use this instead of calling generateMessages directly. */
   async *generateMessagesTraced(args: Parameters<this["generateMessages"]>[0]): AsyncGenerator<ProviderStreamItem> {
+    const startTime = Date.now();
     log.debug("LLM call", { provider: this.provider, model: args.model });
     const tracer = getTracer();
-    if (!tracer) {
-      yield* this.generateMessages(args);
+
+    let fullResponse = "";
+    let collectedToolCalls: Array<{ id: string; name: string; args: unknown }> = [];
+    let error: string | undefined;
+
+    try {
+      const source = tracer
+        ? this._tracedStream(args, tracer)
+        : this.generateMessages(args);
+
+      for await (const item of source) {
+        // Accumulate text content from chunks
+        if ("type" in item && (item as { type: string }).type === "chunk") {
+          const chunk = item as { content?: string };
+          if (chunk.content) fullResponse += chunk.content;
+        }
+        // Collect tool calls
+        if ("id" in item && "name" in item && "args" in item) {
+          const tc = item as { id: string; name: string; args: unknown };
+          collectedToolCalls.push({ id: tc.id, name: tc.name, args: tc.args });
+        }
+        yield item;
+      }
       log.debug("LLM call complete", { provider: this.provider, model: args.model });
-      return;
+    } catch (err) {
+      error = String(err);
+      throw err;
+    } finally {
+      this.emitMessage({
+        type: "llm_call",
+        node_id: "",
+        provider: this.provider,
+        model: args.model,
+        messages: args.messages.map((m) => ({ role: m.role, content: m.content })),
+        response: fullResponse || null,
+        tool_calls: collectedToolCalls.length > 0 ? collectedToolCalls : null,
+        tokens_input: null,
+        tokens_output: null,
+        cost: null,
+        duration_ms: Date.now() - startTime,
+        error: error ?? null,
+        timestamp: new Date(startTime).toISOString(),
+      });
     }
+  }
+
+  /** Internal: wrap generateMessages with OTel span */
+  private async *_tracedStream(
+    args: Parameters<this["generateMessages"]>[0],
+    tracer: ReturnType<typeof getTracer> & object,
+  ): AsyncGenerator<ProviderStreamItem> {
     const span = tracer.startSpan(`llm.stream ${this.provider}/${args.model}`);
     span.setAttributes({
       "llm.provider": this.provider,
@@ -198,7 +282,6 @@ export abstract class BaseProvider {
       }
       span.setAttributes({ "llm.response.chunk_count": chunkCount });
       span.setStatus({ code: SpanStatusCode.OK });
-      log.debug("LLM call complete", { provider: this.provider, model: args.model });
     } catch (err) {
       span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
       span.recordException(err as Error);

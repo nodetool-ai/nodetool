@@ -597,11 +597,13 @@ export class ProcessingContext {
       }
       const resolved = new reg.cls(kwargs);
       this._providers.set(providerId, resolved);
+      resolved.setMessageEmitter((msg) => this.postMessage(msg as ProcessingMessage));
       return resolved;
     }
 
     const resolved = await this._providerResolver(providerId);
     this._providers.set(providerId, resolved);
+    resolved.setMessageEmitter((msg) => this.postMessage(msg as ProcessingMessage));
     return resolved;
   }
 

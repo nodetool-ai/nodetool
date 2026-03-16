@@ -16,6 +16,8 @@ import {
   Message,
   Chunk
 } from "./ApiTypes";
+import useTraceStore, { traceEventId } from "./TraceStore";
+import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -205,6 +207,19 @@ export const handleUpdate = (
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
   const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
+
+  const traceAppend = useTraceStore.getState().append;
+  const traceStart = useTraceStore.getState().startRun;
+  const traceRunStart = useTraceStore.getState().runStartTime;
+
+  const relativeMs = (ts?: string): number => {
+    if (!traceRunStart) return 0;
+    const start = new Date(traceRunStart).getTime();
+    const now = ts ? new Date(ts).getTime() : Date.now();
+    return Math.max(0, now - start);
+  };
+
+  const now = new Date().toISOString();
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -594,6 +609,116 @@ export const handleUpdate = (
           dynamic_properties: nextDynamic
         });
       }
+    }
+  }
+
+  // --- Trace event capture ---
+  if (data.type === "job_update") {
+    const ju = data as JobUpdate;
+    if (ju.status === "running") {
+      traceStart(now);
+    } else if (["completed", "failed", "cancelled", "error"].includes(ju.status)) {
+      useTraceStore.setState({ isRecording: false });
+    }
+  }
+
+  if (data.type === "node_update") {
+    const nu = data as NodeUpdate;
+    let traceType: TraceEventType | null = null;
+    let summary = "";
+    if (nu.status === "running") {
+      traceType = "node_start";
+      summary = `${nu.node_name || nu.node_id} started`;
+    } else if (nu.status === "completed") {
+      traceType = "node_complete";
+      summary = `${nu.node_name || nu.node_id} completed`;
+    } else if (nu.status === "error" || nu.status === "failed") {
+      traceType = "node_error";
+      summary = `${nu.node_name || nu.node_id} error: ${nu.error || "unknown"}`;
+    }
+    if (traceType) {
+      traceAppend({
+        id: traceEventId(),
+        timestamp: now,
+        relativeMs: relativeMs(),
+        type: traceType,
+        nodeId: nu.node_id,
+        nodeName: nu.node_name ?? undefined,
+        nodeType: nu.node_type ?? undefined,
+        summary,
+        detail: nu,
+      });
+    }
+  }
+
+  if ((data as any).type === "llm_call") {
+    const lc = data as any;
+    const tokens = lc.tokens_output ? `${lc.tokens_output} tokens` : "";
+    const dur = lc.duration_ms ? `${lc.duration_ms}ms` : "";
+    const cost = lc.cost ? `$${lc.cost.toFixed(4)}` : "";
+    const parts = [tokens, dur, cost].filter(Boolean).join(", ");
+    traceAppend({
+      id: traceEventId(),
+      timestamp: lc.timestamp || now,
+      relativeMs: relativeMs(lc.timestamp),
+      type: "llm_call",
+      nodeId: lc.node_id ?? undefined,
+      nodeName: lc.node_name ?? undefined,
+      summary: `${lc.provider}/${lc.model}${parts ? ` → ${parts}` : ""}`,
+      detail: lc,
+    });
+  }
+
+  if (data.type === "tool_call_update") {
+    const tc = data as ToolCallUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "tool_call",
+      nodeId: tc.node_id ?? undefined,
+      summary: `Tool call: ${tc.name}`,
+      detail: tc,
+    });
+  }
+
+  if (data.type === "tool_result_update") {
+    const tr = data as ToolResultUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "tool_result",
+      nodeId: tr.node_id,
+      summary: `Tool result`,
+      detail: tr,
+    });
+  }
+
+  if (data.type === "output_update") {
+    const ou = data as OutputUpdate;
+    traceAppend({
+      id: traceEventId(),
+      timestamp: now,
+      relativeMs: relativeMs(),
+      type: "output",
+      nodeId: ou.node_id,
+      summary: `Output: ${ou.output_name}`,
+      detail: ou,
+    });
+  }
+
+  if (data.type === "edge_update") {
+    const eu = data as EdgeUpdate;
+    if (eu.status === "active") {
+      traceAppend({
+        id: traceEventId(),
+        timestamp: now,
+        relativeMs: relativeMs(),
+        type: "edge_active",
+        summary: `Edge active: ${eu.edge_id}`,
+        detail: eu,
+      });
     }
   }
 };
