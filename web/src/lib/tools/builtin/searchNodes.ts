@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { uiSearchNodesParams } from "@nodetool/protocol";
 import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
 
@@ -33,13 +34,10 @@ FrontendToolRegistry.register({
   description:
     "Search available node types from metadata store by query/type filters.",
   parameters: z.object({
-    query: z.string(),
-    input_type: z.string().optional(),
-    output_type: z.string().optional(),
+    ...uiSearchNodesParams,
     strict_match: booleanLikeOptional,
     include_properties: booleanLikeOptional,
     include_outputs: booleanLikeOptional,
-    limit: z.number().min(1).max(100).optional()
   }),
   async execute(args: SearchNodesArgs, ctx) {
     const state = ctx.getState();

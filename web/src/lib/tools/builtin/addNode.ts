@@ -1,16 +1,8 @@
 import { z } from "zod";
+import { uiAddNodeParams, positionInputSchema, nodePropertySchema } from "@nodetool/protocol";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
-
-const nodePropertySchema = z.record(z.string(), z.any());
-
-const xyPositionSchema = z.object({
-  x: z.number(),
-  y: z.number()
-});
-
-const positionInputSchema = z.union([xyPositionSchema, z.string()]);
+import { resolveWorkflowId } from "./workflow";
 
 const nodeInputSchema = z.object({
   id: z.string(),
@@ -23,12 +15,7 @@ const nodeInputSchema = z.object({
 const addNodeParametersSchema = z
   .object({
     node: nodeInputSchema.optional(),
-    id: z.string().optional(),
-    type: z.string().optional(),
-    node_type: z.string().optional(),
-    position: positionInputSchema.optional(),
-    properties: nodePropertySchema.optional(),
-    workflow_id: optionalWorkflowIdSchema
+    ...uiAddNodeParams
   })
   .refine(
     (data) => {

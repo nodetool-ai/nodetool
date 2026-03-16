@@ -1,18 +1,13 @@
 import { z } from "zod";
+import { uiSetNodeSyncModeParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
-
-const syncModeSchema = z.enum(["on_any", "zip_all"]);
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_set_node_sync_mode",
   description:
     "Set a node's input processing mode. 'on_any' processes immediately when any input arrives; 'zip_all' waits for all inputs and processes them in matching pairs.",
-  parameters: z.object({
-    node_id: z.string(),
-    mode: syncModeSchema,
-    workflow_id: optionalWorkflowIdSchema
-  }),
+  parameters: z.object(uiSetNodeSyncModeParams),
   async execute({ node_id, mode, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
