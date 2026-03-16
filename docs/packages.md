@@ -92,9 +92,11 @@ Installed packages automatically register nodes with the runtime:
 
 - Node metadata is merged during startup so workflows referencing `package.namespace.Node` resolve without manual imports.
 - `nodetool codegen` regenerates DSL helpers for newly-installed packages, making them available from the Python DSL.
+- For the TypeScript DSL, run `npm run codegen --workspace=packages/dsl` to regenerate typed factory functions from node metadata.
 
 ## Related Documentation
 
-- [CLI Reference](cli.md) – package subcommands.  
-- [Configuration Guide](configuration.md) – where package metadata is cached.  
-- [DSL Guide](developer/dsl-guide.md) – creating new nodes and generating DSL wrappers.
+- [CLI Reference](cli.md) – package subcommands.
+- [Configuration Guide](configuration.md) – where package metadata is cached.
+- [Python DSL Guide](developer/dsl-guide.md) – creating workflows with the Python DSL.
+- [TypeScript DSL Guide](developer/ts-dsl-guide.md) – type-safe workflow definitions with `@nodetool/dsl`.
