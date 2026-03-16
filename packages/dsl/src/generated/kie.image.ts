@@ -327,7 +327,7 @@ export interface GPTImage4oTextToImageInputs {
   is_enhance?: Connectable<boolean>;
 }
 
-export function gPTImage4oTextToImage(inputs: GPTImage4oTextToImageInputs): DslNode<SingleOutput<ImageRef>> {
+export function gptImage4oTextToImage(inputs: GPTImage4oTextToImageInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("kie.image.GPTImage4oTextToImage", inputs as Record<string, unknown>);
 }
 
@@ -340,7 +340,7 @@ export interface GPTImage4oImageToImageInputs {
   n_variants?: Connectable<number>;
 }
 
-export function gPTImage4oImageToImage(inputs: GPTImage4oImageToImageInputs): DslNode<SingleOutput<ImageRef>> {
+export function gptImage4oImageToImage(inputs: GPTImage4oImageToImageInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("kie.image.GPTImage4oImageToImage", inputs as Record<string, unknown>);
 }
 
@@ -352,7 +352,7 @@ export interface GPTImage15TextToImageInputs {
   quality?: Connectable<unknown>;
 }
 
-export function gPTImage15TextToImage(inputs: GPTImage15TextToImageInputs): DslNode<SingleOutput<ImageRef>> {
+export function gptImage15TextToImage(inputs: GPTImage15TextToImageInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("kie.image.GPTImage15TextToImage", inputs as Record<string, unknown>);
 }
 
@@ -365,7 +365,7 @@ export interface GPTImage15ImageToImageInputs {
   quality?: Connectable<unknown>;
 }
 
-export function gPTImage15ImageToImage(inputs: GPTImage15ImageToImageInputs): DslNode<SingleOutput<ImageRef>> {
+export function gptImage15ImageToImage(inputs: GPTImage15ImageToImageInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("kie.image.GPTImage15ImageToImage", inputs as Record<string, unknown>);
 }
 

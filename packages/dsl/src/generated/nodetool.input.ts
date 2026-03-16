@@ -161,7 +161,7 @@ export interface TTSModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function tTSModelInput(inputs: TTSModelInputInputs): DslNode<SingleOutput<unknown>> {
+export function ttsModelInput(inputs: TTSModelInputInputs): DslNode<SingleOutput<unknown>> {
   return createNode("nodetool.input.TTSModelInput", inputs as Record<string, unknown>);
 }
 
@@ -172,7 +172,7 @@ export interface ASRModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function aSRModelInput(inputs: ASRModelInputInputs): DslNode<SingleOutput<unknown>> {
+export function asrModelInput(inputs: ASRModelInputInputs): DslNode<SingleOutput<unknown>> {
   return createNode("nodetool.input.ASRModelInput", inputs as Record<string, unknown>);
 }
 

@@ -23,7 +23,7 @@ export function arrayToList(inputs: ArrayToListInputs): DslNode<SingleOutput<unk
 
 // Scalar To Array — lib.numpy.conversion.ScalarToArray
 export interface ScalarToArrayInputs {
-  value?: Connectable<number | number>;
+  value?: Connectable<number>;
 }
 
 export function scalarToArray(inputs: ScalarToArrayInputs): DslNode<SingleOutput<unknown>> {
@@ -35,7 +35,7 @@ export interface ArrayToScalarInputs {
   values?: Connectable<unknown>;
 }
 
-export function arrayToScalar(inputs: ArrayToScalarInputs): DslNode<SingleOutput<number | number>> {
+export function arrayToScalar(inputs: ArrayToScalarInputs): DslNode<SingleOutput<number>> {
   return createNode("lib.numpy.conversion.ArrayToScalar", inputs as Record<string, unknown>);
 }
 

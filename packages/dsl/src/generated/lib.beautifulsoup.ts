@@ -91,7 +91,7 @@ export interface HTMLToTextInputs {
   preserve_linebreaks?: Connectable<boolean>;
 }
 
-export function hTMLToText(inputs: HTMLToTextInputs): DslNode<SingleOutput<string>> {
+export function htmlToText(inputs: HTMLToTextInputs): DslNode<SingleOutput<string>> {
   return createNode("lib.beautifulsoup.HTMLToText", inputs as Record<string, unknown>);
 }
 

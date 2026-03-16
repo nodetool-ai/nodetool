@@ -108,7 +108,8 @@ export function createNode<TOutputs>(
   const outProxy = new Proxy(
     {} as any,
     {
-      get(_target, prop: string) {
+      get(_target, prop: string | symbol) {
+        if (typeof prop === "symbol") return undefined;
         const handle: OutputHandle<any> = Object.freeze({
           __brand: "OutputHandle" as const,
           nodeId,

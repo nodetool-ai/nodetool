@@ -142,7 +142,7 @@ export interface SVGToImageInputs {
   scale?: Connectable<number>;
 }
 
-export function sVGToImage(inputs: SVGToImageInputs): DslNode<SingleOutput<ImageRef>> {
+export function svgToImage(inputs: SVGToImageInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("lib.svg.SVGToImage", inputs as Record<string, unknown>);
 }
 

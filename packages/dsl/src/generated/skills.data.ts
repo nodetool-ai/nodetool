@@ -19,7 +19,7 @@ export interface SQLiteSkillOutputs {
   dataframe: OutputHandle<DataframeRef>;
 }
 
-export function sQLiteSkill(inputs: SQLiteSkillInputs): DslNode<SQLiteSkillOutputs> {
+export function sqLiteSkill(inputs: SQLiteSkillInputs): DslNode<SQLiteSkillOutputs> {
   return createNode("skills.data.SQLiteSkill", inputs as Record<string, unknown>, { multiOutput: true });
 }
 

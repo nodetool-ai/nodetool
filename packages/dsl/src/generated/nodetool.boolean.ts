@@ -35,8 +35,8 @@ export function not(inputs: NotInputs): DslNode<SingleOutput<boolean>> {
 
 // Compare — nodetool.boolean.Compare
 export interface CompareInputs {
-  a?: Connectable<number | number>;
-  b?: Connectable<number | number>;
+  a?: Connectable<number>;
+  b?: Connectable<number>;
   comparison?: Connectable<unknown>;
 }
 
