@@ -20,20 +20,20 @@ Install and manage packs directly from the desktop app.
 
 ### Installing or removing packs
 
-- Click **Install** to add a pack. The pack will be installed as a pip package.
+- Click **Install** to add a pack. The pack will be installed as an npm package.
 - Use **Uninstall** to remove a pack you no longer need.
 - Packs can also be updated from the same screen when new versions are released.
 
 Packs can include:
-– new node definitions
-– python dependencies
-– workflow templates
-– tools accessible from Global Chat
+-- new node definitions
+-- npm dependencies
+-- workflow templates
+-- tools accessible from Global Chat
 
 ### Command line alternative
 
 If you prefer the terminal, run `nodetool package list -a` to see every pack. Install one with
-`pip install git+https://github.com/nodetool-ai/<pack-name>`. Advanced users can manage versions this way.
+`npm install @nodetool/<pack-name>`. Advanced users can manage versions this way.
 
 ### Publishing your own pack
 

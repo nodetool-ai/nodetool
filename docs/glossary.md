@@ -113,7 +113,7 @@ The background process that actually runs your workflows. Servers connect to the
 ### API Server
 The backend service that handles requests, manages workflows, and coordinates servers.
 
-*Technical: FastAPI server handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
+*Technical: Node.js HTTP server (via `@nodetool/websocket`) handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
 
 ### Proxy
 An optional service that sits in front of NodeTool to handle security, routing, and SSL certificates for production deployments.
@@ -146,7 +146,7 @@ A special database that stores text as mathematical vectors, enabling semantic s
 The technical name for how workflows are structured. "Directed" means data flows one way; "Acyclic" means no loops. NodeTool handles this automatically – you just connect nodes.
 
 ### DSL (Domain Specific Language)
-NodeTool's Python API for building workflows in code rather than the visual editor. Useful for automation and custom integrations.
+NodeTool's TypeScript API (`@nodetool/dsl`) for building workflows in code rather than the visual editor. Useful for automation and custom integrations.
 
 ### Node Pack
 A collection of related nodes bundled together. Install node packs to add new capabilities to NodeTool.

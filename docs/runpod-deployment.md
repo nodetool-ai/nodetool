@@ -3,7 +3,7 @@ layout: page
 title: "RunPod Deployment"
 ---
 
-The RunPod deployer (`src/nodetool/deploy/deploy_to_runpod.py`) builds an AMD64 Docker image, pushes it to your registry, and can create/update RunPod templates and endpoints via GraphQL.
+The RunPod deployer (`@nodetool/deploy` `deploy-to-runpod.ts`) builds an AMD64 Docker image, pushes it to your registry, and can create/update RunPod templates and endpoints via GraphQL.
 
 ## Requirements
 

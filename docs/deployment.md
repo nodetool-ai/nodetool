@@ -109,7 +109,7 @@ See [Supabase Deployment Integration](supabase-deployment.md) for full details.
    nodetool deploy add <name> --type docker
    ```  
 
-   These commands scaffold `deployment.yaml` using the schema defined in `src/nodetool/config/deployment.py`. Each entry specifies a `type` (`self-hosted`, `runpod`, or `gcp`), container image details, environment variables, and target-specific options.
+   These commands scaffold `deployment.yaml` using the schema defined in `@nodetool/deploy` (`deployment-config.ts`). Each entry specifies a `type` (`self-hosted`, `runpod`, or `gcp`), container image details, environment variables, and target-specific options.
 
 2. **Review & plan**  
 
@@ -130,11 +130,11 @@ See [Supabase Deployment Integration](supabase-deployment.md) for full details.
    nodetool deploy destroy <name>
    ```  
 
-   `apply` builds/pushes container images, provisions infrastructure, updates proxy configuration, and records deployment state in the local cache (`src/nodetool/deploy/state.py`). Status and logs surface the remote service health.
+   `apply` builds/pushes container images, provisions infrastructure, updates proxy configuration, and records deployment state in the local cache (`@nodetool/deploy` `state.ts`). Status and logs surface the remote service health.
 
 ### Deployment Configuration
 
-`deployment.yaml` accepts the following top-level keys (see `SelfHostedDeployment`, `RunPodDeployment`, and `GCPDeployment` in `src/nodetool/config/deployment.py`):
+`deployment.yaml` accepts the following top-level keys (see `SelfHostedDeployment`, `RunPodDeployment`, and `GCPDeployment` in `@nodetool/deploy` `deployment-config.ts`):
 
 - `type` – target platform (`self-hosted`, `runpod`, `gcp`)
 - `image` – container image name/tag/registry
