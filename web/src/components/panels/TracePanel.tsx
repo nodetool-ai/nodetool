@@ -1,0 +1,265 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { memo, useCallback, useState } from "react";
+import { Box, IconButton, Tooltip, Typography, Chip } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import BuildIcon from "@mui/icons-material/Build";
+import OutputIcon from "@mui/icons-material/Output";
+import CallSplitIcon from "@mui/icons-material/CallSplit";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import useTraceStore from "../../stores/TraceStore";
+import type { TraceEvent, TraceEventType } from "../../stores/TraceStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
+const EVENT_ICONS: Record<TraceEventType, React.ReactNode> = {
+  node_start: <PlayArrowIcon sx={{ fontSize: 14, color: "info.main" }} />,
+  node_complete: <CheckCircleIcon sx={{ fontSize: 14, color: "success.main" }} />,
+  node_error: <ErrorIcon sx={{ fontSize: 14, color: "error.main" }} />,
+  llm_call: <AutoAwesomeIcon sx={{ fontSize: 14, color: "warning.main" }} />,
+  tool_call: <BuildIcon sx={{ fontSize: 14, color: "secondary.main" }} />,
+  tool_result: <BuildIcon sx={{ fontSize: 14, color: "secondary.light" }} />,
+  edge_active: <CallSplitIcon sx={{ fontSize: 14, color: "text.disabled" }} />,
+  output: <OutputIcon sx={{ fontSize: 14, color: "primary.main" }} />,
+};
+
+const styles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    overflow: "hidden",
+    ".trace-toolbar": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "4px 12px",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      minHeight: 36,
+    },
+    ".trace-list": {
+      flex: 1,
+      overflow: "auto",
+      fontFamily: "monospace",
+      fontSize: "0.8rem",
+    },
+    ".trace-row": {
+      display: "flex",
+      alignItems: "flex-start",
+      padding: "3px 12px",
+      gap: 8,
+      borderBottom: `1px solid ${theme.vars.palette.divider}22`,
+      cursor: "pointer",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+      },
+    },
+    ".trace-row.expanded": {
+      backgroundColor: theme.vars.palette.action.selected,
+    },
+    ".trace-time": {
+      color: theme.vars.palette.text.disabled,
+      minWidth: 60,
+      flexShrink: 0,
+    },
+    ".trace-icon": {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      marginTop: 1,
+    },
+    ".trace-summary": {
+      flex: 1,
+      color: theme.vars.palette.text.primary,
+      wordBreak: "break-word",
+    },
+    ".trace-detail": {
+      padding: "8px 12px 8px 80px",
+      backgroundColor: `${theme.vars.palette.background.paper}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}44`,
+      "& pre": {
+        margin: 0,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        fontSize: "0.75rem",
+        maxHeight: 400,
+        overflow: "auto",
+        color: theme.vars.palette.text.secondary,
+      },
+    },
+    ".llm-section": {
+      marginBottom: 8,
+      "& .llm-label": {
+        fontWeight: 600,
+        color: theme.vars.palette.text.primary,
+        fontSize: "0.75rem",
+        marginBottom: 2,
+      },
+    },
+  });
+
+function formatRelativeTime(ms: number): string {
+  if (ms < 1000) return `+${ms}ms`;
+  return `+${(ms / 1000).toFixed(1)}s`;
+}
+
+function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
+  return (
+    <div>
+      {detail.messages && (
+        <div className="llm-section">
+          <div className="llm-label">Request ({(detail.messages as unknown[]).length} messages)</div>
+          <pre>{JSON.stringify(detail.messages, null, 2)}</pre>
+        </div>
+      )}
+      {detail.response && (
+        <div className="llm-section">
+          <div className="llm-label">Response</div>
+          <pre>{typeof detail.response === "string" ? detail.response : JSON.stringify(detail.response, null, 2)}</pre>
+        </div>
+      )}
+      {detail.tool_calls && (detail.tool_calls as unknown[]).length > 0 && (
+        <div className="llm-section">
+          <div className="llm-label">Tool Calls</div>
+          <pre>{JSON.stringify(detail.tool_calls, null, 2)}</pre>
+        </div>
+      )}
+      <div className="llm-section">
+        <div className="llm-label">
+          {[
+            detail.tokens_input && `In: ${detail.tokens_input}`,
+            detail.tokens_output && `Out: ${detail.tokens_output}`,
+            detail.cost && `Cost: $${(detail.cost as number).toFixed(4)}`,
+            detail.duration_ms && `Duration: ${detail.duration_ms}ms`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </div>
+      </div>
+      {detail.error && (
+        <div className="llm-section">
+          <div className="llm-label" style={{ color: "var(--palette-error-main)" }}>Error</div>
+          <pre>{String(detail.error)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const TraceRow = memo(function TraceRow({
+  event,
+  expanded,
+  onToggle,
+}: {
+  event: TraceEvent;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      <div
+        className={`trace-row ${expanded ? "expanded" : ""}`}
+        onClick={onToggle}
+      >
+        <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
+        <span className="trace-icon">{EVENT_ICONS[event.type]}</span>
+        <span className="trace-summary">{event.summary}</span>
+        {expanded ? (
+          <ExpandLessIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+        ) : (
+          <ExpandMoreIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+        )}
+      </div>
+      {expanded && (
+        <div className="trace-detail">
+          {event.type === "llm_call" ? (
+            <LLMDetail detail={event.detail as Record<string, unknown>} />
+          ) : (
+            <pre>{JSON.stringify(event.detail, null, 2)}</pre>
+          )}
+        </div>
+      )}
+    </>
+  );
+});
+
+const TracePanel: React.FC = () => {
+  const theme = useTheme();
+  const events = useTraceStore((s) => s.events);
+  const clear = useTraceStore((s) => s.clear);
+  const exportJSON = useTraceStore((s) => s.exportJSON);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const handleToggle = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleExport = useCallback(() => {
+    const json = exportJSON();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `trace-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [exportJSON]);
+
+  return (
+    <div css={styles(theme)}>
+      <div className="trace-toolbar">
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Trace
+          </Typography>
+          <Chip label={events.length} size="small" variant="outlined" />
+        </Box>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Tooltip title="Export as JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton size="small" onClick={handleExport} disabled={events.length === 0}>
+              <FileDownloadIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Clear trace" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton size="small" onClick={clear}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </div>
+      <div className="trace-list">
+        {events.length === 0 ? (
+          <Typography
+            variant="body2"
+            sx={{ textAlign: "center", color: "text.disabled", py: 4 }}
+          >
+            Run a workflow to see the execution trace
+          </Typography>
+        ) : (
+          events.map((event) => (
+            <TraceRow
+              key={event.id}
+              event={event}
+              expanded={expandedIds.has(event.id)}
+              onToggle={() => handleToggle(event.id)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default memo(TracePanel);
