@@ -1,6 +1,13 @@
 import sharp from "sharp";
+import type { ProcessingContext } from "@nodetool/runtime";
 
-export type ImageRefLike = { data?: string | Uint8Array; uri?: string; [k: string]: unknown };
+export type ImageRefLike = {
+  data?: string | Uint8Array;
+  uri?: string;
+  asset_id?: string | null;
+  type?: string;
+  [k: string]: unknown;
+};
 
 export type FloatRGBResult = {
   data: Float32Array;
@@ -9,12 +16,43 @@ export type FloatRGBResult = {
   alpha?: Uint8Array;
 };
 
-export function decodeImage(ref: unknown): Buffer | null {
+const ASSET_EXTENSIONS: Record<string, string[]> = {
+  image: ["png", "jpg", "jpeg", "webp"],
+  audio: ["mp3", "wav", "ogg"],
+  video: ["mp4", "webm"],
+};
+
+export async function decodeImage(
+  ref: unknown,
+  context?: ProcessingContext
+): Promise<Buffer | null> {
   if (!ref || typeof ref !== "object") return null;
-  const data = (ref as ImageRefLike).data;
-  if (!data) return null;
-  if (data instanceof Uint8Array) return Buffer.from(data);
-  if (typeof data === "string") return Buffer.from(data, "base64");
+  const r = ref as ImageRefLike;
+
+  // Inline data (base64 or Uint8Array)
+  if (r.data) {
+    if (r.data instanceof Uint8Array) return Buffer.from(r.data);
+    if (typeof r.data === "string") return Buffer.from(r.data, "base64");
+  }
+
+  // Resolve from storage via asset_id or uri
+  if (context?.storage) {
+    const candidates: string[] = [];
+    if (r.uri) candidates.push(r.uri);
+    if (r.asset_id) {
+      const exts = ASSET_EXTENSIONS[(r.type ?? "image").toLowerCase()] ?? ["png"];
+      for (const ext of exts) {
+        candidates.push(`/api/storage/${r.asset_id}.${ext}`);
+      }
+    }
+    for (const candidate of candidates) {
+      const stored = await context.storage.retrieve(candidate);
+      if (stored !== null) {
+        return Buffer.from(stored);
+      }
+    }
+  }
+
   return null;
 }
 
