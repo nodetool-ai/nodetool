@@ -124,7 +124,7 @@ export interface JSONTemplateInputs {
   values?: Connectable<Record<string, unknown>>;
 }
 
-export function jSONTemplate(inputs: JSONTemplateInputs): DslNode<SingleOutput<Record<string, unknown>>> {
+export function jsonTemplate(inputs: JSONTemplateInputs): DslNode<SingleOutput<Record<string, unknown>>> {
   return createNode("lib.json.JSONTemplate", inputs as Record<string, unknown>);
 }
 

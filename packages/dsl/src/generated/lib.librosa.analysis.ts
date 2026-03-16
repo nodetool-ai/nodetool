@@ -17,7 +17,7 @@ export interface DBToAmplitudeInputs {
   tensor?: Connectable<unknown>;
 }
 
-export function dBToAmplitude(inputs: DBToAmplitudeInputs): DslNode<SingleOutput<unknown>> {
+export function dbToAmplitude(inputs: DBToAmplitudeInputs): DslNode<SingleOutput<unknown>> {
   return createNode("lib.librosa.analysis.DBToAmplitude", inputs as Record<string, unknown>);
 }
 
@@ -26,7 +26,7 @@ export interface DBToPowerInputs {
   tensor?: Connectable<unknown>;
 }
 
-export function dBToPower(inputs: DBToPowerInputs): DslNode<SingleOutput<unknown>> {
+export function dbToPower(inputs: DBToPowerInputs): DslNode<SingleOutput<unknown>> {
   return createNode("lib.librosa.analysis.DBToPower", inputs as Record<string, unknown>);
 }
 
@@ -59,7 +59,7 @@ export interface STFTInputs {
   center?: Connectable<boolean>;
 }
 
-export function sTFT(inputs: STFTInputs): DslNode<SingleOutput<unknown>> {
+export function stft(inputs: STFTInputs): DslNode<SingleOutput<unknown>> {
   return createNode("lib.librosa.analysis.STFT", inputs as Record<string, unknown>);
 }
 
@@ -87,7 +87,7 @@ export interface MFCCInputs {
   fmax?: Connectable<number>;
 }
 
-export function mFCC(inputs: MFCCInputs): DslNode<SingleOutput<unknown>> {
+export function mfcc(inputs: MFCCInputs): DslNode<SingleOutput<unknown>> {
   return createNode("lib.librosa.analysis.MFCC", inputs as Record<string, unknown>);
 }
 

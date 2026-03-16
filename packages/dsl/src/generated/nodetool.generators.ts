@@ -73,6 +73,6 @@ export interface SVGGeneratorInputs {
   max_tokens?: Connectable<number>;
 }
 
-export function sVGGenerator(inputs: SVGGeneratorInputs): DslNode<SingleOutput<unknown[]>> {
+export function svgGenerator(inputs: SVGGeneratorInputs): DslNode<SingleOutput<unknown[]>> {
   return createNode("nodetool.generators.SVGGenerator", inputs as Record<string, unknown>);
 }

@@ -68,6 +68,6 @@ export interface RPCInputs {
   to_dataframe?: Connectable<boolean>;
 }
 
-export function rPC(inputs: RPCInputs): DslNode<SingleOutput<unknown>> {
+export function rpc(inputs: RPCInputs): DslNode<SingleOutput<unknown>> {
   return createNode("lib.supabase.RPC", inputs as Record<string, unknown>);
 }

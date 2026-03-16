@@ -115,7 +115,7 @@ export interface JSONInputs {
   value?: Connectable<unknown>;
 }
 
-export function jSON(inputs: JSONInputs): DslNode<SingleOutput<unknown>> {
+export function json(inputs: JSONInputs): DslNode<SingleOutput<unknown>> {
   return createNode("nodetool.constant.JSON", inputs as Record<string, unknown>);
 }
 
@@ -223,7 +223,7 @@ export interface ASRModelConstantInputs {
   value?: Connectable<unknown>;
 }
 
-export function aSRModelConstant(inputs: ASRModelConstantInputs): DslNode<SingleOutput<unknown>> {
+export function asrModelConstant(inputs: ASRModelConstantInputs): DslNode<SingleOutput<unknown>> {
   return createNode("nodetool.constant.ASRModelConstant", inputs as Record<string, unknown>);
 }
 
@@ -259,7 +259,7 @@ export interface TTSModelConstantInputs {
   value?: Connectable<unknown>;
 }
 
-export function tTSModelConstant(inputs: TTSModelConstantInputs): DslNode<SingleOutput<unknown>> {
+export function ttsModelConstant(inputs: TTSModelConstantInputs): DslNode<SingleOutput<unknown>> {
   return createNode("nodetool.constant.TTSModelConstant", inputs as Record<string, unknown>);
 }
 

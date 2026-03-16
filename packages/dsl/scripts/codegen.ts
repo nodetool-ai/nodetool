@@ -38,6 +38,18 @@ const JS_RESERVED = new Set([
   "protected", "public", "static", "yield", "await", "async",
 ]);
 
+/** Built-in names that shadow Object.prototype or TS keywords when used as identifiers. */
+const BUILTIN_NAMES = new Set([
+  "toString", "valueOf", "constructor", "hasOwnProperty", "isPrototypeOf",
+  "propertyIsEnumerable", "toLocaleString",
+]);
+
+/** TypeScript type keywords that shouldn't be used as barrel export names. */
+const TS_TYPE_KEYWORDS = new Set([
+  "string", "number", "boolean", "any", "void", "never", "unknown",
+  "object", "symbol", "bigint",
+]);
+
 // ---------------------------------------------------------------------------
 // Type mapping
 // ---------------------------------------------------------------------------
@@ -77,9 +89,10 @@ function mapType(tm: TypeMetadata): string {
     return "unknown | undefined";
   }
 
-  // Union
+  // Union (deduplicate mapped types, e.g. int|float both map to number)
   if (t === "union" && tm.type_args && tm.type_args.length > 0) {
-    return tm.type_args.map(mapType).join(" | ");
+    const mapped = [...new Set(tm.type_args.map(mapType))];
+    return mapped.join(" | ");
   }
 
   // List
@@ -140,7 +153,16 @@ function extractClassName(nodeType: string): string {
 
 function toCamelCase(s: string): string {
   if (s.length === 0) return s;
-  return s[0].toLowerCase() + s.slice(1);
+  // Handle leading uppercase runs (acronyms): "JSON" → "json", "ASRModel" → "asrModel"
+  let i = 0;
+  while (i < s.length && s[i] === s[i].toUpperCase() && s[i] !== s[i].toLowerCase()) {
+    i++;
+  }
+  if (i === 0) return s;
+  if (i === s.length) return s.toLowerCase(); // All caps: "JSON" → "json"
+  if (i === 1) return s[0].toLowerCase() + s.slice(1); // Normal: "Add" → "add"
+  // Acronym prefix: "ASRModel" → "asrModel" (lowercase all but last uppercase char)
+  return s.slice(0, i - 1).toLowerCase() + s.slice(i - 1);
 }
 
 function isValidIdentifier(name: string): boolean {
@@ -155,9 +177,14 @@ function barrelName(namespace: string): string {
   }
   // camelCase dots: "kie.image" → "kieImage"
   const parts = ns.split(".");
-  return parts
+  let name = parts
     .map((p, i) => (i === 0 ? p : p[0].toUpperCase() + p.slice(1)))
     .join("");
+  // Avoid TS type keywords as export names (e.g., "boolean", "number")
+  if (TS_TYPE_KEYWORDS.has(name)) {
+    name = name + "_";
+  }
+  return name;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,8 +263,8 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
       }
     }
 
-    // Avoid JS reserved words
-    if (JS_RESERVED.has(factoryName)) {
+    // Avoid JS reserved words and built-in name shadows
+    if (JS_RESERVED.has(factoryName) || BUILTIN_NAMES.has(factoryName)) {
       factoryName = factoryName + "_";
     }
 

@@ -156,7 +156,7 @@ export interface JSONPostRequestInputs {
   data?: Connectable<Record<string, unknown>>;
 }
 
-export function jSONPostRequest(inputs: JSONPostRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
+export function jsonPostRequest(inputs: JSONPostRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
   return createNode("lib.http.JSONPostRequest", inputs as Record<string, unknown>);
 }
 
@@ -166,7 +166,7 @@ export interface JSONPutRequestInputs {
   data?: Connectable<Record<string, unknown>>;
 }
 
-export function jSONPutRequest(inputs: JSONPutRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
+export function jsonPutRequest(inputs: JSONPutRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
   return createNode("lib.http.JSONPutRequest", inputs as Record<string, unknown>);
 }
 
@@ -176,7 +176,7 @@ export interface JSONPatchRequestInputs {
   data?: Connectable<Record<string, unknown>>;
 }
 
-export function jSONPatchRequest(inputs: JSONPatchRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
+export function jsonPatchRequest(inputs: JSONPatchRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
   return createNode("lib.http.JSONPatchRequest", inputs as Record<string, unknown>);
 }
 
@@ -185,6 +185,6 @@ export interface JSONGetRequestInputs {
   url?: Connectable<string>;
 }
 
-export function jSONGetRequest(inputs: JSONGetRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
+export function jsonGetRequest(inputs: JSONGetRequestInputs): DslNode<SingleOutput<Record<string, unknown>>> {
   return createNode("lib.http.JSONGetRequest", inputs as Record<string, unknown>);
 }

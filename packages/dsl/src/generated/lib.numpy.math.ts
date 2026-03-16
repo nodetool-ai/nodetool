@@ -13,7 +13,7 @@ export function absArray(inputs: AbsArrayInputs): DslNode<SingleOutput<unknown>>
 
 // Sine Array — lib.numpy.math.SineArray
 export interface SineArrayInputs {
-  angle_rad?: Connectable<number | number | unknown>;
+  angle_rad?: Connectable<number | unknown>;
 }
 
 export function sineArray(inputs: SineArrayInputs): DslNode<SingleOutput<number | unknown>> {
@@ -22,7 +22,7 @@ export function sineArray(inputs: SineArrayInputs): DslNode<SingleOutput<number 
 
 // Cosine Array — lib.numpy.math.CosineArray
 export interface CosineArrayInputs {
-  angle_rad?: Connectable<number | number | unknown>;
+  angle_rad?: Connectable<number | unknown>;
 }
 
 export function cosineArray(inputs: CosineArrayInputs): DslNode<SingleOutput<number | unknown>> {
@@ -34,7 +34,7 @@ export interface ExpArrayInputs {
   values?: Connectable<unknown>;
 }
 
-export function expArray(inputs: ExpArrayInputs): DslNode<SingleOutput<number | number | unknown>> {
+export function expArray(inputs: ExpArrayInputs): DslNode<SingleOutput<number | unknown>> {
   return createNode("lib.numpy.math.ExpArray", inputs as Record<string, unknown>);
 }
 
@@ -43,7 +43,7 @@ export interface LogArrayInputs {
   values?: Connectable<unknown>;
 }
 
-export function logArray(inputs: LogArrayInputs): DslNode<SingleOutput<number | number | unknown>> {
+export function logArray(inputs: LogArrayInputs): DslNode<SingleOutput<number | unknown>> {
   return createNode("lib.numpy.math.LogArray", inputs as Record<string, unknown>);
 }
 
@@ -52,16 +52,16 @@ export interface SqrtArrayInputs {
   values?: Connectable<unknown>;
 }
 
-export function sqrtArray(inputs: SqrtArrayInputs): DslNode<SingleOutput<number | number | unknown>> {
+export function sqrtArray(inputs: SqrtArrayInputs): DslNode<SingleOutput<number | unknown>> {
   return createNode("lib.numpy.math.SqrtArray", inputs as Record<string, unknown>);
 }
 
 // Power Array — lib.numpy.math.PowerArray
 export interface PowerArrayInputs {
-  base?: Connectable<number | number | unknown>;
-  exponent?: Connectable<number | number | unknown>;
+  base?: Connectable<number | unknown>;
+  exponent?: Connectable<number | unknown>;
 }
 
-export function powerArray(inputs: PowerArrayInputs): DslNode<SingleOutput<number | number | unknown>> {
+export function powerArray(inputs: PowerArrayInputs): DslNode<SingleOutput<number | unknown>> {
   return createNode("lib.numpy.math.PowerArray", inputs as Record<string, unknown>);
 }

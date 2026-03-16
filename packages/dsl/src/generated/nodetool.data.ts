@@ -85,7 +85,7 @@ export interface JSONToDataframeInputs {
   text?: Connectable<string>;
 }
 
-export function jSONToDataframe(inputs: JSONToDataframeInputs): DslNode<SingleOutput<DataframeRef>> {
+export function jsonToDataframe(inputs: JSONToDataframeInputs): DslNode<SingleOutput<DataframeRef>> {
   return createNode("nodetool.data.JSONToDataframe", inputs as Record<string, unknown>);
 }
 

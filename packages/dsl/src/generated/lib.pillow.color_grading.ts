@@ -18,7 +18,7 @@ export interface CDLInputs {
   saturation?: Connectable<number>;
 }
 
-export function cDL(inputs: CDLInputs): DslNode<SingleOutput<ImageRef>> {
+export function cdl(inputs: CDLInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("lib.pillow.color_grading.CDL", inputs as Record<string, unknown>);
 }
 
@@ -85,7 +85,7 @@ export interface HSLAdjustInputs {
   luminance?: Connectable<number>;
 }
 
-export function hSLAdjust(inputs: HSLAdjustInputs): DslNode<SingleOutput<ImageRef>> {
+export function hslAdjust(inputs: HSLAdjustInputs): DslNode<SingleOutput<ImageRef>> {
   return createNode("lib.pillow.color_grading.HSLAdjust", inputs as Record<string, unknown>);
 }
 

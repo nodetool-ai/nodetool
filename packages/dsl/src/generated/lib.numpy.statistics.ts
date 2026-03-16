@@ -8,7 +8,7 @@ export interface SumArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function sumArray(inputs: SumArrayInputs): DslNode<SingleOutput<unknown | number | number>> {
+export function sumArray(inputs: SumArrayInputs): DslNode<SingleOutput<unknown | number>> {
   return createNode("lib.numpy.statistics.SumArray", inputs as Record<string, unknown>);
 }
 
@@ -18,7 +18,7 @@ export interface MeanArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function meanArray(inputs: MeanArrayInputs): DslNode<SingleOutput<unknown | number | number>> {
+export function meanArray(inputs: MeanArrayInputs): DslNode<SingleOutput<unknown | number>> {
   return createNode("lib.numpy.statistics.MeanArray", inputs as Record<string, unknown>);
 }
 
@@ -28,7 +28,7 @@ export interface MinArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function minArray(inputs: MinArrayInputs): DslNode<SingleOutput<unknown | number | number>> {
+export function minArray(inputs: MinArrayInputs): DslNode<SingleOutput<unknown | number>> {
   return createNode("lib.numpy.statistics.MinArray", inputs as Record<string, unknown>);
 }
 
@@ -38,7 +38,7 @@ export interface MaxArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function maxArray(inputs: MaxArrayInputs): DslNode<SingleOutput<unknown | number | number>> {
+export function maxArray(inputs: MaxArrayInputs): DslNode<SingleOutput<unknown | number>> {
   return createNode("lib.numpy.statistics.MaxArray", inputs as Record<string, unknown>);
 }
 

@@ -22,6 +22,6 @@ export interface OCRInputs {
   model?: Connectable<unknown>;
 }
 
-export function oCR(inputs: OCRInputs): DslNode<SingleOutput<string>> {
+export function ocr(inputs: OCRInputs): DslNode<SingleOutput<string>> {
   return createNode("mistral.vision.OCR", inputs as Record<string, unknown>);
 }

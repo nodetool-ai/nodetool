@@ -27,7 +27,7 @@ export function autoContrast(inputs: AutoContrastInputs): DslNode<SingleOutput<I
 // Brightness — lib.pillow.enhance.Brightness
 export interface BrightnessInputs {
   image?: Connectable<ImageRef>;
-  factor?: Connectable<number | number>;
+  factor?: Connectable<number>;
 }
 
 export function brightness(inputs: BrightnessInputs): DslNode<SingleOutput<ImageRef>> {

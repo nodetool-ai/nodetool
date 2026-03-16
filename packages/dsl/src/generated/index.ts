@@ -60,7 +60,7 @@ export * as mistralText from "./mistral.text.js";
 export * as mistralVision from "./mistral.vision.js";
 export * as agents from "./nodetool.agents.js";
 export * as audio from "./nodetool.audio.js";
-export * as boolean from "./nodetool.boolean.js";
+export * as boolean_ from "./nodetool.boolean.js";
 export * as code from "./nodetool.code.js";
 export * as compare from "./nodetool.compare.js";
 export * as constant from "./nodetool.constant.js";

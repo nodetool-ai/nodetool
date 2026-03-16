@@ -9,7 +9,7 @@ export interface ToStringInputs {
   mode?: Connectable<unknown>;
 }
 
-export function toString(inputs: ToStringInputs): DslNode<SingleOutput<string>> {
+export function toString_(inputs: ToStringInputs): DslNode<SingleOutput<string>> {
   return createNode("nodetool.text.ToString", inputs as Record<string, unknown>);
 }
 
