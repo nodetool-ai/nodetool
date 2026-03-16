@@ -1,18 +1,12 @@
 import { z } from "zod";
+import { uiMoveNodeParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_move_node",
   description: "Move a node to an absolute canvas position.",
-  parameters: z.object({
-    node_id: z.string(),
-    position: z.object({
-      x: z.number(),
-      y: z.number()
-    }),
-    workflow_id: optionalWorkflowIdSchema
-  }),
+  parameters: z.object(uiMoveNodeParams),
   async execute({ node_id, position, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
