@@ -39,7 +39,7 @@
 - [x] `loadImageToLayerData()` function in serialization
 - [x] Aspect-ratio preserving image scaling
 - [x] **Connect input_image handle to load image into base layer**
-- [ ] Auto-resize canvas to match input image dimensions (deferred to Phase 2)
+- [x] Auto-resize canvas to match input image dimensions (deferred to Phase 2)
 
 ### Mask Layer Designation and Export
 - [x] Designate any layer as mask via UI button
@@ -143,7 +143,7 @@
 ### Mirror Drawing
 - [x] Horizontal mirror mode toggle
 - [x] Mirror indicator in toolbar
-- [ ] Vertical mirror mode
+- [x] Vertical mirror mode
 - [ ] Both axes mirror
 
 ### Palettes/Swatches
@@ -200,9 +200,8 @@
 
 | Category | Status |
 |----------|--------|
-| **Phase 1 Core** | ~98% complete |
-| **Phase 1 Gaps** | Canvas auto-sizing from input image (deferred to Phase 2) |
-| **Phase 2** | ~60% complete (shapes, fill, pencil, swatches, 12 blend modes, mirror, cursor preview, keyboard shortcuts done) |
+| **Phase 1 Core** | 100% complete |
+| **Phase 2** | ~65% complete (shapes, fill, pencil, swatches, 12 blend modes, H+V mirror, canvas auto-resize, cursor preview, shortcuts) |
 | **Phase 3** | Not started |
 | **Tests** | 79 passing |
 | **Type Safety** | Clean (no sketch-related type errors) |

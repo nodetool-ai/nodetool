@@ -56,5 +56,10 @@ export {
   exportMask,
   canvasToDataUrl,
   canvasToBlob,
-  loadImageToLayerData
+  loadImageToLayerData,
+  loadImageWithDimensions
+} from "./serialization";
+
+export type {
+  ImageLoadResult
 } from "./serialization";

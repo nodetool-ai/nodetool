@@ -74,6 +74,7 @@ export interface SketchCanvasProps {
   zoom: number;
   pan: Point;
   mirrorX: boolean;
+  mirrorY: boolean;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -109,6 +110,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       zoom,
       pan,
       mirrorX,
+      mirrorY,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -483,8 +485,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const mirroredTo = { x: cw - to.x, y: to.y };
           drawFn(mirroredFrom, mirroredTo, ctx);
         }
+        if (mirrorY) {
+          const ch = doc.canvas.height;
+          const mirroredFrom = { x: from.x, y: ch - from.y };
+          const mirroredTo = { x: to.x, y: ch - to.y };
+          drawFn(mirroredFrom, mirroredTo, ctx);
+        }
+        if (mirrorX && mirrorY) {
+          const cw = doc.canvas.width;
+          const ch = doc.canvas.height;
+          const mirroredFrom = { x: cw - from.x, y: ch - from.y };
+          const mirroredTo = { x: cw - to.x, y: ch - to.y };
+          drawFn(mirroredFrom, mirroredTo, ctx);
+        }
       },
-      [mirrorX, doc.canvas.width]
+      [mirrorX, mirrorY, doc.canvas.width, doc.canvas.height]
     );
 
     // ─── Pointer Events ──────────────────────────────────────────────

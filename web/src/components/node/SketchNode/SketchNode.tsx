@@ -37,7 +37,7 @@ import {
   flattenDocument,
   exportMask,
   canvasToDataUrl,
-  loadImageToLayerData
+  loadImageWithDimensions
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -231,14 +231,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
     inputImageLoadedRef.current = inputImageUri;
 
-    // Load the image into a new base layer
+    // Load the image and get its natural dimensions for auto-resize
     const doc = documentRef.current || sketchDoc;
-    loadImageToLayerData(inputImageUri, doc.canvas.width, doc.canvas.height)
-      .then((layerData) => {
+    loadImageWithDimensions(inputImageUri)
+      .then(({ data: layerData, naturalWidth, naturalHeight }) => {
         // Create an updated document with the input image as the base layer
         const inputLayer = createDefaultLayer("Input Image", "raster");
         inputLayer.data = layerData;
         inputLayer.locked = true;
+
+        // Auto-resize canvas to match input image dimensions
+        const canvasWidth = naturalWidth > 0 ? naturalWidth : doc.canvas.width;
+        const canvasHeight = naturalHeight > 0 ? naturalHeight : doc.canvas.height;
 
         // Insert input layer at the bottom (index 0) if not already present
         const existingInputIdx = doc.layers.findIndex((l) => l.name === "Input Image");
@@ -254,6 +258,11 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
         const updatedDoc: SketchDocument = {
           ...doc,
+          canvas: {
+            ...doc.canvas,
+            width: canvasWidth,
+            height: canvasHeight
+          },
           layers: updatedLayers,
           metadata: { ...doc.metadata, updatedAt: new Date().toISOString() }
         };

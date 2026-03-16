@@ -182,3 +182,44 @@ export function loadImageToLayerData(
     img.src = imageUrl;
   });
 }
+
+/**
+ * Result type for loadImageWithDimensions.
+ */
+export interface ImageLoadResult {
+  data: string;
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
+/**
+ * Load an external image and return the layer data along with the
+ * natural image dimensions. Uses the image's own dimensions as the
+ * canvas size so no scaling/centering is needed.
+ */
+export function loadImageWithDimensions(
+  imageUrl: string
+): Promise<ImageLoadResult> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve({
+        data: canvas.toDataURL("image/png"),
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      });
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = imageUrl;
+  });
+}

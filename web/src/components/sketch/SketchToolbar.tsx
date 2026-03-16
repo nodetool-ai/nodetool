@@ -127,6 +127,7 @@ export interface SketchToolbarProps {
   fillSettings: FillSettings;
   zoom: number;
   mirrorX: boolean;
+  mirrorY: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onToolChange: (tool: SketchTool) => void;
@@ -136,6 +137,7 @@ export interface SketchToolbarProps {
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
   onMirrorXChange: (mirrorX: boolean) => void;
+  onMirrorYChange: (mirrorY: boolean) => void;
   onUndo: () => void;
   onRedo: () => void;
   onZoomIn: () => void;
@@ -152,6 +154,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   fillSettings,
   zoom,
   mirrorX,
+  mirrorY,
   canUndo,
   canRedo,
   onToolChange,
@@ -161,6 +164,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onShapeSettingsChange,
   onFillSettingsChange,
   onMirrorXChange,
+  onMirrorYChange,
   onUndo,
   onRedo,
   onZoomIn,
@@ -284,13 +288,22 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Mirror Drawing (M)">
+        <Tooltip title="Mirror Horizontal (M)">
           <IconButton
             size="small"
             onClick={() => onMirrorXChange(!mirrorX)}
             color={mirrorX ? "primary" : "default"}
           >
             <FlipIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Mirror Vertical (V)">
+          <IconButton
+            size="small"
+            onClick={() => onMirrorYChange(!mirrorY)}
+            color={mirrorY ? "primary" : "default"}
+          >
+            <FlipIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
           </IconButton>
         </Tooltip>
       </Box>

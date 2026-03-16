@@ -42,6 +42,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
   const [mirrorX, setMirrorX] = useState(false);
+  const [mirrorY, setMirrorY] = useState(false);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -183,6 +184,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "o": setActiveTool("ellipse"); break;
           case "a": setActiveTool("arrow"); break;
           case "m": setMirrorX((prev) => !prev); break;
+          case "v": setMirrorY((prev) => !prev); break;
           case "[": {
             // Decrease brush/pencil/eraser size
             const store = useSketchStore.getState();
@@ -268,6 +270,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         fillSettings={document.toolSettings.fill}
         zoom={zoom}
         mirrorX={mirrorX}
+        mirrorY={mirrorY}
         canUndo={canUndo()}
         canRedo={canRedo()}
         onToolChange={setActiveTool}
@@ -277,6 +280,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         onShapeSettingsChange={setShapeSettings}
         onFillSettingsChange={setFillSettings}
         onMirrorXChange={setMirrorX}
+        onMirrorYChange={setMirrorY}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onZoomIn={handleZoomIn}
@@ -292,6 +296,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           zoom={zoom}
           pan={pan}
           mirrorX={mirrorX}
+          mirrorY={mirrorY}
           onZoomChange={setZoom}
           onPanChange={setPan}
           onStrokeStart={handleStrokeStart}
