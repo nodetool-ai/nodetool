@@ -119,7 +119,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 | **Realtime Processing** | Build voice interfaces; live transcription; interactive audio applications | `/docs/cookbook.md:381-409`, `/docs/workflows/realtime-agent.md` |
 | **Data Visualization (Plotly)** | Auto-generate charts from data; visual reporting in workflows | `/docs/cookbook.md:485-517` |
 | **Custom Node Development** | Extend with Python; publish as Node Packs; share with community | `/docs/developer/index.md`, `/docs/node-packs.md` |
-| **Python DSL** | Define workflows programmatically; version control; automate generation | `/docs/developer/dsl-guide.md` |
+| **TypeScript DSL** | Define workflows programmatically with type-safe factory functions; version control; automate generation | `/docs/developer/ts-dsl-guide.md` |
 | **WebSocket & Streaming APIs** | Real-time updates; cancel jobs; efficient binary protocol | `/docs/workflow-api.md:126-168`, `/docs/architecture.md:6-28` |
 | **Supabase Integration** | Sync workflows across devices; cloud storage for assets; authentication | `/docs/deployment.md:122-152`, `/docs/getting-started.md:38-41` |
 

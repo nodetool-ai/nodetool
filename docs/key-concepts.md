@@ -110,7 +110,7 @@ When you click **Run**:
 If you're building custom nodes or using the Python API, here are the technical components:
 
 - **Graph** – A collection of nodes and their connections. Use `graph()` to build graphs and `run_graph()` to execute them.
-- **DSL** – NodeTool provides domain-specific languages for building workflows programmatically. The [Python DSL](developer/dsl-guide.md) uses class instantiation, while the [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool/dsl`) provides type-safe factory functions with full IDE autocompletion.
+- **DSL** – NodeTool provides a [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool/dsl`) for building workflows programmatically with type-safe factory functions and full IDE autocompletion.
 - **WorkflowRunner** – The engine that executes graphs. It handles parallel execution, GPU management and progress updates.
 - **ProcessingContext** – Holds runtime information like user data and authentication tokens.
 
