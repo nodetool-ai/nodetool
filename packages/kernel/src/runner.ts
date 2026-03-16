@@ -992,9 +992,15 @@ export class WorkflowRunner {
 
         for (const [propName, propValue] of Object.entries(props)) {
           if (propName.startsWith("_")) continue; // skip private
+          const meta = targetNode.propertyMeta?.[propName] as
+            | { description?: string; min?: number; max?: number }
+            | undefined;
           properties[propName] = {
             value: propValue,
             type: (propTypes as Record<string, string>)[propName] ?? typeof propValue,
+            ...(meta?.description ? { description: meta.description } : {}),
+            ...(meta?.min != null ? { min: meta.min } : {}),
+            ...(meta?.max != null ? { max: meta.max } : {}),
           };
         }
       }
@@ -1046,10 +1052,15 @@ export class WorkflowRunner {
         jsonType = "boolean";
       }
 
+      const meta = node.propertyMeta?.[name] as
+        | { description?: string; min?: number; max?: number }
+        | undefined;
       result[name] = {
         type: jsonType,
-        description: `Property '${name}' (${declaredType ?? jsonType})`,
+        description: meta?.description ?? `Property '${name}' (${declaredType ?? jsonType})`,
         default: value,
+        ...(meta?.min != null ? { minimum: meta.min } : {}),
+        ...(meta?.max != null ? { maximum: meta.max } : {}),
       };
     }
 
