@@ -36,6 +36,19 @@ jest.mock("../logger", () => ({
   logMessage: jest.fn(),
 }));
 
+jest.mock("@anthropic-ai/claude-agent-sdk", () => ({
+  query: jest.fn(),
+  tool: jest.fn(),
+  createSdkMcpServer: jest.fn(),
+}));
+
+jest.mock("@nodetool/protocol", () => ({
+  uiToolSchemas: {},
+}));
+
+// Force CLI session path for existing tests that test the CLI-pipe behavior
+process.env.NODETOOL_AGENT_USE_CLI = "1";
+
 import {
   createAgentSession,
   sendAgentMessage,

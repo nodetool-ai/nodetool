@@ -35,5 +35,5 @@ export default {
     '/dist-electron/',
     '/dist-web/',
     '/tests/e2e/',
-  ]
+  ],
 }
