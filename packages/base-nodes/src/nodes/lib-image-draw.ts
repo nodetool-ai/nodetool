@@ -1,5 +1,6 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import sharp from "sharp";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
 
@@ -20,7 +21,7 @@ function createDrawNode(desc: Desc): NodeClass {
     static readonly basicFields = desc.basicFields;
     static readonly metadataOutputTypes = desc.outputs;
 
-    async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
 
       if (t === "lib.pillow.draw.Background") {
@@ -39,7 +40,7 @@ function createDrawNode(desc: Desc): NodeClass {
       }
 
       const baseObj = pickImage(inputs, (this as unknown as { serialize(): Record<string, unknown> }).serialize());
-      const baseBytes = decodeImage(baseObj);
+      const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
       }
@@ -47,7 +48,7 @@ function createDrawNode(desc: Desc): NodeClass {
       let img = sharp(baseBytes, { failOn: "none" });
 
       if (t === "lib.pillow.__init__.Blend") {
-        const other = decodeImage(inputs.image2 ?? (this as unknown as Record<string, unknown>).image2);
+        const other = await decodeImage(inputs.image2 ?? (this as unknown as Record<string, unknown>).image2, context);
         if (other) {
           const alpha = Number(inputs.alpha ?? (this as unknown as Record<string, unknown>).alpha ?? 0.5);
           const adjusted = await sharp(other)
@@ -63,11 +64,12 @@ function createDrawNode(desc: Desc): NodeClass {
       }
 
       if (t === "lib.pillow.__init__.Composite") {
-        const fg = decodeImage(
+        const fg = await decodeImage(
           inputs.foreground ??
           (this as unknown as Record<string, unknown>).foreground ??
           inputs.image1 ??
-          (this as unknown as Record<string, unknown>).image1
+          (this as unknown as Record<string, unknown>).image1,
+          context
         );
         if (fg) {
           const mixed = await sharp(baseBytes).composite([{ input: fg, blend: "over" }]).png().toBuffer();

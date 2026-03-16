@@ -1,5 +1,6 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import sharp from "sharp";
 import { decodeImage, toRef, pickImage, toFloatRGB, fromFloatRGB, clamp, getLuminance, rgbToHsv, hsvToRgb } from "./lib-image-utils.js";
 
@@ -20,12 +21,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
     static readonly basicFields = desc.basicFields;
     static readonly metadataOutputTypes = desc.outputs;
 
-    async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
       const self = this as unknown as Record<string, unknown>;
 
       const baseObj = pickImage(inputs, this.serialize());
-      const baseBytes = decodeImage(baseObj);
+      const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
       }
