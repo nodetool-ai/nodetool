@@ -693,7 +693,6 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ControlAgentNode,
   ResearchAgentNode,
 } from "../src/nodes/agents.js";
 
@@ -967,53 +966,6 @@ describe("agents nodes", () => {
         { getProvider: vi.fn().mockResolvedValue(secondProvider) } as any
       );
       expect(result.text).toBe("reply-2");
-    });
-  });
-
-  describe("ControlAgentNode", () => {
-    it("returns inferred properties from context", async () => {
-      const node = new ControlAgentNode();
-      const result = await node.process({
-        _control_context: { properties: { temp: { value: 0.5 } } },
-      });
-      expect(result.__control_output__).toEqual({ temp: 0.5 });
-    });
-
-    it("returns context directly when no properties", async () => {
-      const node = new ControlAgentNode();
-      const result = await node.process({
-        _control_context: { key: "value" },
-      });
-      expect(result.__control_output__).toEqual({ key: "value" });
-    });
-
-    it("returns empty for non-object context", async () => {
-      const node = new ControlAgentNode();
-      const result = await node.process({ _control_context: "string" });
-      expect(result.__control_output__).toEqual({});
-    });
-
-    it("returns empty for null context", async () => {
-      const node = new ControlAgentNode();
-      const result = await node.process({ _control_context: null });
-      expect(result.__control_output__).toEqual({});
-    });
-
-    it("uses provider output when configured", async () => {
-      const node = new ControlAgentNode();
-      const result = await node.process(
-        {
-          _control_context: { properties: { mode: { default: "slow" } } },
-          model: { provider: "test", id: "model" },
-        },
-        {
-          getProvider: vi.fn().mockResolvedValue({
-            generateMessage: vi.fn().mockResolvedValue({ content: '{"properties":{"mode":"fast"}}' }),
-            async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-          }),
-        } as any
-      );
-      expect(result.__control_output__).toEqual({ mode: "fast" });
     });
   });
 

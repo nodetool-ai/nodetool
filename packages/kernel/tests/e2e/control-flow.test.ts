@@ -331,15 +331,15 @@ describe("CTRL-029: Multiple controllers → one controlled node", () => {
 });
 
 // ---------------------------------------------------------------------------
-// CTRL-030: ControlAgent-style __control_output__ routing
+// CTRL-030: __control_output__ routing
 // ---------------------------------------------------------------------------
 
 describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent", () => {
-  it("ControlAgent output properties reach the controlled node", async () => {
+  it("__control_output__ properties reach the controlled node", async () => {
     const { WorkflowRunner } = await import("../../src/runner.js");
 
     const nodes: NodeDescriptor[] = [
-      { id: "agent", type: "test.ControlAgent" },
+      { id: "agent", type: "test.Controller" },
       { id: "proc", type: "test.Processor", is_controlled: true, name: "proc" },
     ];
     const edges: Edge[] = [ce("agent", "proc")];
@@ -350,7 +350,7 @@ describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent
         if (node.id === "agent") {
           return {
             async process() {
-              // ControlAgent outputs __control_output__ with raw properties
+              // Controller outputs __control_output__ with raw properties
               return { __control_output__: { brightness: 0.8, contrast: 1.2 } };
             },
           };

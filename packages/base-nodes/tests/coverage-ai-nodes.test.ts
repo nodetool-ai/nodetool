@@ -6,7 +6,6 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ControlAgentNode,
   ResearchAgentNode,
   AGENT_NODES,
   StructuredOutputGeneratorNode,
@@ -37,13 +36,12 @@ function expectMetadataDefaults(NodeCls: any) {
 
 describe("AGENT_NODES export", () => {
   it("contains all 7 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(7);
+    expect(AGENT_NODES).toHaveLength(6);
     expect(AGENT_NODES).toContain(SummarizerNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
     expect(AGENT_NODES).toContain(AgentNode);
-    expect(AGENT_NODES).toContain(ControlAgentNode);
     expect(AGENT_NODES).toContain(ResearchAgentNode);
   });
 });
@@ -680,82 +678,6 @@ describe("AgentNode", () => {
   });
 });
 
-// ---- ControlAgentNode ----
-describe("ControlAgentNode", () => {
-  it("has correct static metadata", () => {
-    expect(ControlAgentNode.nodeType).toBe("nodetool.agents.ControlAgent");
-  });
-
-  it("defaults", () => {
-    expectMetadataDefaults(ControlAgentNode);
-  });
-
-  it("returns empty object for null context", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({ _control_context: null });
-    expect(result.__control_output__).toEqual({});
-  });
-
-  it("returns empty object for non-object context", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({ _control_context: "string value" });
-    expect(result.__control_output__).toEqual({});
-  });
-
-  it("infers property values from property descriptors without a provider", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({
-      _control_context: {
-        properties: {
-          speed: { value: 5, default: 1 },
-          direction: { default: "north" },
-        },
-      },
-    });
-    expect(result.__control_output__).toEqual({ speed: 5, direction: "north" });
-  });
-
-  it("returns inferred context values when no properties field", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({
-      _control_context: { key: "value", num: 42 },
-    });
-    expect(result.__control_output__).toEqual({ key: "value", num: 42 });
-  });
-
-  it("returns context when properties is null", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({
-      _control_context: { properties: null, extra: 1 },
-    });
-    expect(result.__control_output__).toEqual({ properties: null, extra: 1 });
-  });
-
-  it("returns context when properties is not an object", async () => {
-    const n = new (ControlAgentNode as any)();
-    const result = await n.process({
-      _control_context: { properties: "not-object" },
-    });
-    // properties is string, not object -> returns full context
-    expect(result.__control_output__).toEqual({ properties: "not-object" });
-  });
-
-  it("parses provider output into control params", async () => {
-    const n = new (ControlAgentNode as any)();
-    const mockProvider = {
-      generateMessage: async () => ({ content: '{"result":{"temperature":0.7}}' }),
-      async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
-    };
-    const result = await n.process(
-      {
-        _control_context: { properties: { temperature: { default: 0.2 } } },
-        model: { provider: "test", id: "m1" },
-      },
-      { getProvider: async () => mockProvider } as any
-    );
-    expect(result.__control_output__).toEqual({ temperature: 0.7 });
-  });
-});
 
 // ---- ResearchAgentNode ----
 describe("ResearchAgentNode", () => {

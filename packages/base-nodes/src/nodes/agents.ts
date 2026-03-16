@@ -38,10 +38,6 @@ const CLASSIFIER_SYSTEM_PROMPT = [
 ].join(" ");
 const SUMMARIZER_SYSTEM_PROMPT =
   "You are an expert summarizer. Produce a concise, accurate summary.";
-const CONTROL_AGENT_SYSTEM_PROMPT = [
-  "You are a control flow agent that determines parameter values for downstream nodes.",
-  "Return only a JSON object containing parameter names and values.",
-].join(" ");
 const RESEARCH_AGENT_SYSTEM_PROMPT = [
   "You are a research assistant.",
   "Synthesize a concise answer and key findings from the objective.",
@@ -744,69 +740,7 @@ function hasContentType(message: Message | undefined, type: MessageContent["type
     : false;
 }
 
-function inferControlValue(value: unknown): unknown {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const record = value as Record<string, unknown>;
-  if ("value" in record && record.value !== undefined) return record.value;
-  if ("default" in record && record.default !== undefined) return record.default;
-  return value;
-}
 
-function inferControlParams(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const record = value as Record<string, unknown>;
-  const properties =
-    "properties" in record && record.properties && typeof record.properties === "object"
-      ? (record.properties as Record<string, unknown>)
-      : record;
-
-  const entries = Object.entries(properties).map(([key, propValue]) => [
-    key,
-    inferControlValue(propValue),
-  ]);
-  return Object.fromEntries(entries);
-}
-
-function parseControlOutput(raw: string): Record<string, unknown> {
-  const parsed = extractJson(raw);
-  if (!parsed) return {};
-
-  // Unwrap common wrapper keys if the LLM wraps the output in
-  // "result", "output", "json", "data", "properties", or "response"
-  if (Object.keys(parsed).length === 1) {
-    const [key] = Object.keys(parsed);
-    const value = parsed[key];
-    if (
-      ["result", "output", "json", "data", "properties", "response"].includes(
-        key.toLowerCase()
-      ) &&
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value)
-    ) {
-      return value as Record<string, unknown>;
-    }
-  }
-
-  // Extract properties if LLM included metadata fields alongside them.
-  // LLMs sometimes return: {"node_id": "...", "node_type": "...", "properties": {...}}
-  // We only want the actual properties to apply to the controlled node.
-  if (
-    "properties" in parsed &&
-    parsed.properties &&
-    typeof parsed.properties === "object" &&
-    !Array.isArray(parsed.properties)
-  ) {
-    const metadataKeys = new Set(["node_id", "node_type", "analysis"]);
-    const hasMetadata = Object.keys(parsed).some((k) => metadataKeys.has(k));
-    if (hasMetadata) {
-      return parsed.properties as Record<string, unknown>;
-    }
-  }
-
-  if (typeof parsed !== "object" || Array.isArray(parsed)) return {};
-  return parsed;
-}
 
 function parseResearchOutput(raw: string, query: string): {
   text: string;
@@ -2395,127 +2329,6 @@ export class AgentNode extends BaseNode {
   }
 }
 
-export class ControlAgentNode extends BaseNode {
-  static readonly nodeType = "nodetool.agents.ControlAgent";
-            static readonly title = "Control Agent";
-            static readonly description = "Agent that analyzes context and outputs control parameters for downstream nodes via control edges.\n    control, agent, flow-control, parameters, automation, decision-making\n\n    This agent receives _control_context as an auto-injected input when it has outgoing\n    control edges. It uses an LLM to analyze the context and controlled node properties,\n    then outputs control parameters that are routed to other nodes via control edges.\n    Control edges override normal data inputs, enabling dynamic workflow behavior.\n\n    The _control_context is automatically injected by the system and contains information\n    about which nodes this agent controls and their available properties.\n\n    Use cases:\n    - Dynamic parameter setting based on content analysis\n    - Conditional workflow routing based on LLM reasoning\n    - Adaptive processing based on input characteristics\n    - Context-aware parameter optimization";
-        static readonly metadataOutputTypes = {
-    __control_output__: "dict[str, any]"
-  };
-          static readonly recommendedModels = [
-    {
-      "id": "qwen3:4b",
-      "type": "llama_model",
-      "name": "Qwen3 - 4B",
-      "repo_id": "qwen3:4b",
-      "description": "Fast and efficient for control decisions with strong JSON output.",
-      "size_on_disk": 2684354560
-    },
-    {
-      "id": "gemma3:4b",
-      "type": "llama_model",
-      "name": "Gemma3 - 4B",
-      "repo_id": "gemma3:4b",
-      "description": "Compact model suitable for control flow decisions.",
-      "size_on_disk": 3543348019
-    },
-    {
-      "id": "llama3.2:3b",
-      "type": "llama_model",
-      "name": "Llama 3.2 - 3B",
-      "repo_id": "llama3.2:3b",
-      "description": "Lightweight Llama variant for fast control decisions.",
-      "size_on_disk": 2040109465
-    }
-  ];
-  
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model to use for control decisions" })
-  declare model: any;
-
-  @prop({ type: "str", default: "You are a control flow agent that analyzes context and determines parameters for downstream nodes.\n\nYour task is to:\n1. Analyze the provided context (text, data, or previous results)\n2. Review the controlled nodes and their available properties (provided in _control_context)\n3. Reason about what parameter values should be set for each controlled node\n4. Output a JSON object with property names as keys and their values\n\nThe _control_context will tell you:\n- Which nodes you control (by node_id)\n- Each node's type and available properties\n- Current property values, types, descriptions, and defaults\n\nExample _control_context:\n{\n  \"target_node_id\": {\n    \"node_id\": \"target_node_id\",\n    \"node_type\": \"nodetool.processing.SomeNode\",\n    \"properties\": {\n      \"threshold\": {\n        \"value\": 0.5,\n        \"type\": \"float\",\n        \"description\": \"Processing threshold\",\n        \"default\": 0.5\n      }\n    }\n  }\n}\n\nExample output format:\n{\n  \"threshold\": 0.95,\n  \"mode\": \"turbo\"\n}\n\nGuidelines:\n- Output ONLY properties that exist in the controlled nodes' schemas\n- Use appropriate data types matching the property types (strings, numbers, booleans)\n- Be concise and precise in your parameter choices\n- Control parameters override normal data edge inputs\n- If multiple controlled nodes exist, return parameters for the relevant node(s)\n", title: "System", description: "The system prompt for the control agent" })
-  declare system: any;
-
-  @prop({ type: "str", default: "", title: "Context", description: "Legacy free-form context used to infer control parameters." })
-  declare context: any;
-
-  @prop({ type: "str", default: "", title: "Schema Description", description: "Legacy schema hint (e.g. 'brightness: int, contrast: int')." })
-  declare schema_description: any;
-
-  @prop({ type: "int", default: 2048, title: "Max Tokens", min: 1, max: 100000 })
-  declare max_tokens: any;
-
-  @prop({ type: "image", default: {
-  "type": "image",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Image", description: "Optional image for visual context in control decisions" })
-  declare image: any;
-
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "Optional audio for audio-based control decisions" })
-  declare audio: any;
-
-  async process(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
-    const controlContext = inputs._control_context;
-    const legacyContext = asText(inputs.context ?? this.context ?? "");
-    const schemaDescription = asText(
-      inputs.schema_description ?? this.schema_description ?? ""
-    );
-    const systemPrompt = asText(inputs.system ?? this.system ?? CONTROL_AGENT_SYSTEM_PROMPT);
-    const image = inputs.image ?? this.image;
-    const audio = inputs.audio ?? this.audio;
-
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
-
-    // Validate model selection (Python parity: raise ValueError on empty provider)
-    if (!providerId || providerId === "empty") {
-      throw new Error("Select a model");
-    }
-
-    // Build user prompt based on available context
-    let userPrompt: string;
-    if (controlContext && typeof controlContext === "object" && Object.keys(controlContext as Record<string, unknown>).length > 0) {
-      userPrompt = `_control_context (nodes and properties you control):\n\n\`\`\`json\n${JSON.stringify(controlContext, null, 2)}\n\`\`\`\n\nBased on the above control context, analyze the controlled nodes and their properties.\nOutput a JSON object with property names as keys and appropriate values.`;
-    } else if (legacyContext.trim() || schemaDescription.trim()) {
-      userPrompt = `Context:\n${legacyContext}\n\nSchema description:\n${schemaDescription}\n\nInfer the control parameters from the context and return ONLY a JSON object.`;
-    } else {
-      log.warn("No _control_context provided to ControlAgent, returning empty control params");
-      return { __control_output__: {} };
-    }
-
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context!.getProvider(providerId);
-      const raw = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 2048),
-        responseFormat: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          buildUserMessage(userPrompt, image, audio),
-        ],
-      });
-      return { __control_output__: parseControlOutput(raw) };
-    }
-    return { __control_output__: inferControlParams(controlContext) };
-  }
-}
 
 export class ResearchAgentNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.ResearchAgent";
@@ -2714,6 +2527,5 @@ export const AGENT_NODES = [
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ControlAgentNode,
   ResearchAgentNode,
 ] as const;
