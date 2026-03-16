@@ -86,24 +86,6 @@ export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
   return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
 }
 
-// Control Agent — nodetool.agents.ControlAgent
-export interface ControlAgentInputs {
-  model?: Connectable<unknown>;
-  system?: Connectable<string>;
-  context?: Connectable<string>;
-  schema_description?: Connectable<string>;
-  max_tokens?: Connectable<number>;
-  image?: Connectable<ImageRef>;
-  audio?: Connectable<AudioRef>;
-}
-
-export interface ControlAgentOutputs {
-  __control_output__: OutputHandle<Record<string, unknown>>;
-}
-
-export function controlAgent(inputs: ControlAgentInputs): DslNode<ControlAgentOutputs> {
-  return createNode("nodetool.agents.ControlAgent", inputs as Record<string, unknown>, { multiOutput: true });
-}
 
 // Research Agent — nodetool.agents.ResearchAgent
 export interface ResearchAgentInputs {

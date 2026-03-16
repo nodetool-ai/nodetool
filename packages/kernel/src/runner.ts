@@ -583,7 +583,7 @@ export class WorkflowRunner {
   ): Promise<void> {
     if (this._cancelled) return;
 
-    // Handle __control_output__ from ControlAgent nodes (Python parity:
+    // Handle __control_output__ from controller nodes (Python parity:
     // send_messages wraps __control_output__ in RunEvent and routes to
     // all controlled nodes via control edges).
     if ("__control_output__" in outputs) {
@@ -603,7 +603,7 @@ export class WorkflowRunner {
         if (!targetInbox) continue;
 
         // Ensure the value is a proper ControlEvent with event_type.
-        // Controller nodes like ControlAgent output raw property dicts
+        // Controller nodes output raw property dicts
         // (e.g. {brightness: 5}) via __control_output__. These must be
         // wrapped in a RunEvent so the controlled actor's _runControlled()
         // recognises them. (Python parity: send_messages wraps
@@ -709,7 +709,7 @@ export class WorkflowRunner {
   }
 
   /**
-   * Route __control_output__ from ControlAgent-style nodes to all controlled
+   * Route __control_output__ from controller nodes to all controlled
    * nodes via control edges. Wraps raw property dicts in a RunEvent.
    * (Python parity: send_messages special handling of __control_output__.)
    */
