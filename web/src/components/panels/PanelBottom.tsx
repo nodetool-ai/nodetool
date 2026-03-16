@@ -145,9 +145,9 @@ const PanelBottom: React.FC = () => {
           className: `panel panel-bottom ${isDragging ? "dragging" : ""}`,
           style: {
             height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED,
-            left: "50px",
-            right: "50px",
-            width: "calc(100% - 100px)",
+            left: 0,
+            right: 0,
+            width: "100%",
             borderWidth: isVisible ? "1px" : "0px",
             borderTop: isVisible
               ? `1px solid ${theme.vars.palette.grey[800]}`
