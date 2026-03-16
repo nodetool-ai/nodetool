@@ -1431,10 +1431,9 @@ describe("lib.pillow — uncovered operations", () => {
     const cls = LIB_PILLOW_NODES.find(
       (n) => n.nodeType === "lib.pillow.filter.GetChannel"
     )!;
-    // Blue channel (idx=2) fails with current sharp + toColourspace('b-w') ordering
-    await expect(
-      new cls().process({ image: img, channel: "blue" })
-    ).rejects.toThrow("Cannot extract channel");
+    // Blue channel extraction now works correctly without toColourspace
+    const result = await new cls().process({ image: img, channel: "blue" });
+    expect(result.output).toBeDefined();
   });
 
   it("RenderText with empty text does nothing", async () => {

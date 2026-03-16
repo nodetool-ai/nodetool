@@ -159,6 +159,15 @@ export function createGraphNodeTypeResolver(
       const propertyTypes = Object.fromEntries(
         (metadata.properties ?? []).map((prop) => [prop.name, typeMetadataToString(prop.type)]),
       );
+      const propertyMeta = Object.fromEntries(
+        (metadata.properties ?? [])
+          .filter((p) => p.description || p.min != null || p.max != null)
+          .map((p) => [p.name, {
+            ...(p.description ? { description: p.description } : {}),
+            ...(p.min != null ? { min: p.min } : {}),
+            ...(p.max != null ? { max: p.max } : {}),
+          }]),
+      );
       const outputs = Object.fromEntries(
         (metadata.outputs ?? []).map((output) => [output.name, typeMetadataToString(output.type)]),
       );
@@ -172,6 +181,7 @@ export function createGraphNodeTypeResolver(
           name: metadata.title,
           is_streaming_output: metadata.is_streaming_output ?? false,
           sync_mode: NodeClass?.syncMode,
+          propertyMeta,
         },
       };
     },
