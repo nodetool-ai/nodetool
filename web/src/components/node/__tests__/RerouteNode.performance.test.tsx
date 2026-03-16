@@ -9,11 +9,9 @@ jest.mock('../../node_types/PlaceholderNode', () => function Placeholder() { ret
 
 // Mock dependencies BEFORE imports
 jest.mock('../../../stores/MetadataStore', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { create } = require('zustand');
   return {
   __esModule: true,
-  default: create(() => ({
+  default: jest.requireActual('zustand').create(() => ({
     metadata: {
       'test.node': {
         node_type: 'test.node',
