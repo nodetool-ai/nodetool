@@ -13,6 +13,7 @@ import {
   HistoryEntry,
   Point,
   BrushSettings,
+  PencilSettings,
   EraserSettings,
   ShapeSettings,
   FillSettings,
@@ -42,6 +43,7 @@ export interface SketchStore {
   // ─── Tool Actions ─────────────────────────────────────────────────────────
   setActiveTool: (tool: SketchTool) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
+  setPencilSettings: (settings: Partial<PencilSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
   setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setFillSettings: (settings: Partial<FillSettings>) => void;
@@ -111,6 +113,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           brush: { ...state.document.toolSettings.brush, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setPencilSettings: (settings: Partial<PencilSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          pencil: { ...state.document.toolSettings.pencil, ...settings }
         },
         metadata: {
           ...state.document.metadata,

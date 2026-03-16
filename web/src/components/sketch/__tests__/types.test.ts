@@ -8,6 +8,7 @@ import {
   createDefaultLayer,
   generateLayerId,
   DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
   DEFAULT_SHAPE_SETTINGS,
   DEFAULT_FILL_SETTINGS,
@@ -119,6 +120,14 @@ describe("Sketch Types", () => {
       expect(DEFAULT_BRUSH_SETTINGS.color).toMatch(/^#[0-9a-fA-F]{6}$/);
     });
 
+    it("has valid pencil defaults", () => {
+      expect(DEFAULT_PENCIL_SETTINGS.size).toBeGreaterThan(0);
+      expect(DEFAULT_PENCIL_SETTINGS.size).toBeLessThanOrEqual(10);
+      expect(DEFAULT_PENCIL_SETTINGS.opacity).toBeGreaterThan(0);
+      expect(DEFAULT_PENCIL_SETTINGS.opacity).toBeLessThanOrEqual(1);
+      expect(DEFAULT_PENCIL_SETTINGS.color).toMatch(/^#[0-9a-fA-F]{6}$/);
+    });
+
     it("has valid eraser defaults", () => {
       expect(DEFAULT_ERASER_SETTINGS.size).toBeGreaterThan(0);
       expect(DEFAULT_ERASER_SETTINGS.opacity).toBeGreaterThan(0);
@@ -140,6 +149,7 @@ describe("Sketch Types", () => {
 
     it("has all tool settings in DEFAULT_TOOL_SETTINGS", () => {
       expect(DEFAULT_TOOL_SETTINGS.brush).toBeDefined();
+      expect(DEFAULT_TOOL_SETTINGS.pencil).toBeDefined();
       expect(DEFAULT_TOOL_SETTINGS.eraser).toBeDefined();
       expect(DEFAULT_TOOL_SETTINGS.shape).toBeDefined();
       expect(DEFAULT_TOOL_SETTINGS.fill).toBeDefined();
@@ -167,6 +177,7 @@ describe("Sketch Types", () => {
 
     it("returns false for non-shape tools", () => {
       expect(isShapeTool("brush")).toBe(false);
+      expect(isShapeTool("pencil")).toBe(false);
       expect(isShapeTool("eraser")).toBe(false);
       expect(isShapeTool("eyedropper")).toBe(false);
       expect(isShapeTool("fill")).toBe(false);

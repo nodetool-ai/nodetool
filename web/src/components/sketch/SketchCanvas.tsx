@@ -21,6 +21,7 @@ import {
   SketchDocument,
   SketchTool,
   BrushSettings,
+  PencilSettings,
   EraserSettings,
   ShapeSettings,
   FillSettings,
@@ -88,6 +89,12 @@ function blendModeToComposite(mode: BlendMode): GlobalCompositeOperation {
     case "overlay": return "overlay";
     case "darken": return "darken";
     case "lighten": return "lighten";
+    case "color-dodge": return "color-dodge";
+    case "color-burn": return "color-burn";
+    case "hard-light": return "hard-light";
+    case "soft-light": return "soft-light";
+    case "difference": return "difference";
+    case "exclusion": return "exclusion";
     default: return "source-over";
   }
 }
@@ -249,6 +256,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        ctx.restore();
+      },
+      []
+    );
+
+    const drawPencilStroke = useCallback(
+      (from: Point, to: Point, settings: PencilSettings, ctx: CanvasRenderingContext2D) => {
+        ctx.save();
+        ctx.globalAlpha = settings.opacity;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = settings.color;
+        ctx.lineWidth = settings.size;
+        ctx.lineCap = "square";
+        ctx.lineJoin = "miter";
+        ctx.imageSmoothingEnabled = false;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(from.x), Math.round(from.y));
+        ctx.lineTo(Math.round(to.x), Math.round(to.y));
         ctx.stroke();
         ctx.restore();
       },
@@ -537,6 +563,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
               pt, pt
             );
+          } else if (activeTool === "pencil") {
+            withMirror(
+              ctx,
+              (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+              pt, pt
+            );
           } else if (activeTool === "eraser") {
             withMirror(
               ctx,
@@ -551,7 +583,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       },
       [
         doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd,
-        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke,
+        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke,
         floodFill, redraw, withMirror
       ]
     );
@@ -599,6 +631,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
             lastPointRef.current, pt
           );
+        } else if (activeTool === "pencil") {
+          withMirror(
+            ctx,
+            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+            lastPointRef.current, pt
+          );
         } else if (activeTool === "eraser") {
           withMirror(
             ctx,
@@ -612,7 +650,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       },
       [
         doc, activeTool, screenToCanvas, onPanChange,
-        getOrCreateLayerCanvas, drawBrushStroke, drawEraserStroke,
+        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke,
         drawOverlayShape, redraw, withMirror
       ]
     );
@@ -764,14 +802,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for brush/eraser tools
-      if (activeTool !== "brush" && activeTool !== "eraser") {
+      // Only show brush cursor for brush/pencil/eraser tools
+      if (activeTool !== "brush" && activeTool !== "pencil" && activeTool !== "eraser") {
         return;
       }
 
-      const size = activeTool === "brush"
-        ? doc.toolSettings.brush.size
-        : doc.toolSettings.eraser.size;
+      let size: number;
+      if (activeTool === "brush") {
+        size = doc.toolSettings.brush.size;
+      } else if (activeTool === "pencil") {
+        size = doc.toolSettings.pencil.size;
+      } else {
+        size = doc.toolSettings.eraser.size;
+      }
 
       // Calculate the visual radius on screen (accounting for zoom)
       const screenRadius = (size / 2) * zoom;
@@ -794,7 +837,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       ctx.fill();
-    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.eraser.size, zoom]);
+    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.pencil.size, doc.toolSettings.eraser.size, zoom]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -815,7 +858,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     }, []);
 
     // Determine cursor style based on tool
-    const cursorStyle = (activeTool === "brush" || activeTool === "eraser") ? "none" : "crosshair";
+    const cursorStyle = (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser") ? "none" : "crosshair";
 
     return (
       <div

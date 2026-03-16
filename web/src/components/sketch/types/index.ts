@@ -32,6 +32,7 @@ export interface Color {
 
 export type SketchTool =
   | "brush"
+  | "pencil"
   | "eraser"
   | "eyedropper"
   | "fill"
@@ -46,6 +47,12 @@ export interface BrushSettings {
   size: number;
   opacity: number;
   hardness: number;
+  color: string;
+}
+
+export interface PencilSettings {
+  size: number;
+  opacity: number;
   color: string;
 }
 
@@ -69,6 +76,7 @@ export interface FillSettings {
 
 export interface ToolSettings {
   brush: BrushSettings;
+  pencil: PencilSettings;
   eraser: EraserSettings;
   shape: ShapeSettings;
   fill: FillSettings;
@@ -84,7 +92,13 @@ export type BlendMode =
   | "screen"
   | "overlay"
   | "darken"
-  | "lighten";
+  | "lighten"
+  | "color-dodge"
+  | "color-burn"
+  | "hard-light"
+  | "soft-light"
+  | "difference"
+  | "exclusion";
 
 export interface Layer {
   id: string;
@@ -158,6 +172,12 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   color: "#ffffff"
 };
 
+export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
+  size: 1,
+  opacity: 1,
+  color: "#ffffff"
+};
+
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
   size: 20,
   opacity: 1,
@@ -178,6 +198,7 @@ export const DEFAULT_FILL_SETTINGS: FillSettings = {
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
+  pencil: DEFAULT_PENCIL_SETTINGS,
   eraser: DEFAULT_ERASER_SETTINGS,
   shape: DEFAULT_SHAPE_SETTINGS,
   fill: DEFAULT_FILL_SETTINGS

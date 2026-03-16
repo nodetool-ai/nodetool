@@ -331,6 +331,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <MenuItem value="overlay">Overlay</MenuItem>
               <MenuItem value="darken">Darken</MenuItem>
               <MenuItem value="lighten">Lighten</MenuItem>
+              <MenuItem value="color-dodge">Color Dodge</MenuItem>
+              <MenuItem value="color-burn">Color Burn</MenuItem>
+              <MenuItem value="hard-light">Hard Light</MenuItem>
+              <MenuItem value="soft-light">Soft Light</MenuItem>
+              <MenuItem value="difference">Difference</MenuItem>
+              <MenuItem value="exclusion">Exclusion</MenuItem>
             </Select>
           </FormControl>
         </>

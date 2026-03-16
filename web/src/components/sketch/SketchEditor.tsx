@@ -51,6 +51,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setDocument = useSketchStore((s) => s.setDocument);
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
+  const setPencilSettings = useSketchStore((s) => s.setPencilSettings);
   const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
   const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
   const setFillSettings = useSketchStore((s) => s.setFillSettings);
@@ -173,6 +174,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       } else {
         switch (e.key) {
           case "b": setActiveTool("brush"); break;
+          case "p": setActiveTool("pencil"); break;
           case "e": setActiveTool("eraser"); break;
           case "i": setActiveTool("eyedropper"); break;
           case "g": setActiveTool("fill"); break;
@@ -182,12 +184,15 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "a": setActiveTool("arrow"); break;
           case "m": setMirrorX((prev) => !prev); break;
           case "[": {
-            // Decrease brush/eraser size
+            // Decrease brush/pencil/eraser size
             const store = useSketchStore.getState();
             const tool = store.activeTool;
             if (tool === "brush") {
               const newSize = Math.max(1, store.document.toolSettings.brush.size - 5);
               setBrushSettings({ size: newSize });
+            } else if (tool === "pencil") {
+              const newSize = Math.max(1, store.document.toolSettings.pencil.size - 1);
+              setPencilSettings({ size: newSize });
             } else if (tool === "eraser") {
               const newSize = Math.max(1, store.document.toolSettings.eraser.size - 5);
               setEraserSettings({ size: newSize });
@@ -195,12 +200,15 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             break;
           }
           case "]": {
-            // Increase brush/eraser size
+            // Increase brush/pencil/eraser size
             const store = useSketchStore.getState();
             const tool = store.activeTool;
             if (tool === "brush") {
               const newSize = Math.min(200, store.document.toolSettings.brush.size + 5);
               setBrushSettings({ size: newSize });
+            } else if (tool === "pencil") {
+              const newSize = Math.min(10, store.document.toolSettings.pencil.size + 1);
+              setPencilSettings({ size: newSize });
             } else if (tool === "eraser") {
               const newSize = Math.min(200, store.document.toolSettings.eraser.size + 5);
               setEraserSettings({ size: newSize });
@@ -254,6 +262,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       <SketchToolbar
         activeTool={activeTool}
         brushSettings={document.toolSettings.brush}
+        pencilSettings={document.toolSettings.pencil}
         eraserSettings={document.toolSettings.eraser}
         shapeSettings={document.toolSettings.shape}
         fillSettings={document.toolSettings.fill}
@@ -263,6 +272,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         canRedo={canRedo()}
         onToolChange={setActiveTool}
         onBrushSettingsChange={setBrushSettings}
+        onPencilSettingsChange={setPencilSettings}
         onEraserSettingsChange={setEraserSettings}
         onShapeSettingsChange={setShapeSettings}
         onFillSettingsChange={setFillSettings}

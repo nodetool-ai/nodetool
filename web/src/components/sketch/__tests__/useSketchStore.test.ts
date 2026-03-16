@@ -53,6 +53,15 @@ describe("useSketchStore", () => {
       expect(brush.color).toBe("#ff0000");
     });
 
+    it("sets pencil settings", () => {
+      act(() => {
+        useSketchStore.getState().setPencilSettings({ size: 3, color: "#00ff00" });
+      });
+      const pencil = useSketchStore.getState().document.toolSettings.pencil;
+      expect(pencil.size).toBe(3);
+      expect(pencil.color).toBe("#00ff00");
+    });
+
     it("sets eraser settings", () => {
       act(() => {
         useSketchStore.getState().setEraserSettings({ size: 30 });
@@ -344,7 +353,10 @@ describe("useSketchStore", () => {
 
     it("sets different blend modes", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
-      const modes = ["normal", "multiply", "screen", "overlay", "darken", "lighten"] as const;
+      const modes = [
+        "normal", "multiply", "screen", "overlay", "darken", "lighten",
+        "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion"
+      ] as const;
       for (const mode of modes) {
         act(() => {
           useSketchStore.getState().setLayerBlendMode(layerId, mode);
@@ -364,6 +376,13 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setActiveTool("fill");
       });
       expect(useSketchStore.getState().activeTool).toBe("fill");
+    });
+
+    it("sets pencil tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("pencil");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("pencil");
     });
 
     it("sets shape tools", () => {

@@ -21,6 +21,7 @@ export type {
   LayerType,
   BlendMode,
   BrushSettings,
+  PencilSettings,
   EraserSettings,
   ShapeSettings,
   FillSettings,
@@ -35,6 +36,7 @@ export type {
 export {
   SKETCH_FORMAT_VERSION,
   DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
   DEFAULT_SHAPE_SETTINGS,
   DEFAULT_FILL_SETTINGS,

@@ -23,6 +23,7 @@ import {
   FormControlLabel
 } from "@mui/material";
 import BrushIcon from "@mui/icons-material/Brush";
+import CreateIcon from "@mui/icons-material/Create";
 import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
@@ -39,6 +40,7 @@ import FlipIcon from "@mui/icons-material/Flip";
 import {
   SketchTool,
   BrushSettings,
+  PencilSettings,
   EraserSettings,
   ShapeSettings,
   FillSettings,
@@ -119,6 +121,7 @@ const styles = (theme: Theme) =>
 export interface SketchToolbarProps {
   activeTool: SketchTool;
   brushSettings: BrushSettings;
+  pencilSettings: PencilSettings;
   eraserSettings: EraserSettings;
   shapeSettings: ShapeSettings;
   fillSettings: FillSettings;
@@ -128,6 +131,7 @@ export interface SketchToolbarProps {
   canRedo: boolean;
   onToolChange: (tool: SketchTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
+  onPencilSettingsChange: (settings: Partial<PencilSettings>) => void;
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
@@ -142,6 +146,7 @@ export interface SketchToolbarProps {
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
   activeTool,
   brushSettings,
+  pencilSettings,
   eraserSettings,
   shapeSettings,
   fillSettings,
@@ -151,6 +156,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   canRedo,
   onToolChange,
   onBrushSettingsChange,
+  onPencilSettingsChange,
   onEraserSettingsChange,
   onShapeSettingsChange,
   onFillSettingsChange,
@@ -176,6 +182,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     (color: string) => {
       if (activeTool === "brush") {
         onBrushSettingsChange({ color });
+      } else if (activeTool === "pencil") {
+        onPencilSettingsChange({ color });
       } else if (activeTool === "fill") {
         onFillSettingsChange({ color });
       } else if (isShapeTool(activeTool)) {
@@ -185,7 +193,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         onBrushSettingsChange({ color });
       }
     },
-    [activeTool, onBrushSettingsChange, onFillSettingsChange, onShapeSettingsChange]
+    [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange]
   );
 
   return (
@@ -202,6 +210,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="brush" aria-label="Brush">
           <Tooltip title="Brush (B)">
             <BrushIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="pencil" aria-label="Pencil">
+          <Tooltip title="Pencil (P)">
+            <CreateIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
         <ToggleButton value="eraser" aria-label="Eraser">
@@ -326,6 +339,41 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             />
             <Typography className="setting-value">
               {Math.round(brushSettings.hardness * 100)}%
+            </Typography>
+          </Box>
+        </>
+      )}
+
+      {activeTool === "pencil" && (
+        <>
+          <Typography className="section-label">Pencil</Typography>
+          <Box className="setting-row">
+            <Typography className="setting-label">Color</Typography>
+            <input
+              type="color"
+              className="color-input"
+              value={pencilSettings.color}
+              onChange={(e) => onPencilSettingsChange({ color: e.target.value })}
+            />
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Size</Typography>
+            <Slider
+              size="small" min={1} max={10}
+              value={pencilSettings.size}
+              onChange={(_, v) => onPencilSettingsChange({ size: v as number })}
+            />
+            <Typography className="setting-value">{pencilSettings.size}</Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Opacity</Typography>
+            <Slider
+              size="small" min={0} max={1} step={0.01}
+              value={pencilSettings.opacity}
+              onChange={(_, v) => onPencilSettingsChange({ opacity: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(pencilSettings.opacity * 100)}%
             </Typography>
           </Box>
         </>

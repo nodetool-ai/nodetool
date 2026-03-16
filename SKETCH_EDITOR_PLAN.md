@@ -97,7 +97,7 @@
 ### Multiple Brush Types
 - [x] Brush with size/opacity/hardness/color
 - [x] Eraser with size/opacity
-- [ ] Pencil (hard edge, 1px aliased)
+- [x] Pencil (hard edge, 1px aliased)
 - [ ] Airbrush / soft brush
 - [ ] Custom brush shapes/textures
 
@@ -155,7 +155,7 @@
 ### Layer Opacity and Blend Modes
 - [x] Per-layer opacity slider (0–1)
 - [x] Blend modes: normal, multiply, screen, overlay, darken, lighten
-- [ ] Additional blend modes (color-dodge, color-burn, hard-light, soft-light, difference, exclusion)
+- [x] Additional blend modes (color-dodge, color-burn, hard-light, soft-light, difference, exclusion)
 
 ### Group/Folder Layers
 - [ ] Layer groups/folders
@@ -202,7 +202,8 @@
 |----------|--------|
 | **Phase 1 Core** | ~98% complete |
 | **Phase 1 Gaps** | Canvas auto-sizing from input image (deferred to Phase 2) |
-| **Phase 2** | ~50% complete (shapes, fill, swatches, blend modes, mirror, cursor preview, keyboard shortcuts done) |
+| **Phase 2** | ~60% complete (shapes, fill, pencil, swatches, 12 blend modes, mirror, cursor preview, keyboard shortcuts done) |
 | **Phase 3** | Not started |
-| **Tests** | 76 passing |
+| **Tests** | 79 passing |
 | **Type Safety** | Clean (no sketch-related type errors) |
+| **Base Branch** | `feat/ts-backend-migration` |
