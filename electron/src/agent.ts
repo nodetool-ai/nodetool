@@ -22,6 +22,9 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
+import { uiToolSchemas } from "@nodetool/protocol";
 
 /** Default path to Claude Code executable in the user's local install */
 function getClaudeCodeExecutablePath(): string {
@@ -304,15 +307,266 @@ const CLAUDE_DISALLOWED_TOOLS = [
   "TaskOutput",
 ];
 
+function buildMcpServer(
+  webContents: WebContents,
+  sessionId: string,
+): ReturnType<typeof createSdkMcpServer> {
+  const mcpTools = Object.entries(uiToolSchemas).map(([name, schema]) =>
+    tool(name, schema.description, schema.parameters, async (args) => {
+      const result = await executeFrontendTool(
+        webContents,
+        sessionId,
+        randomUUID(),
+        name,
+        args,
+      );
+      const text =
+        typeof result === "string" ? result : JSON.stringify(result ?? null);
+      return { content: [{ type: "text" as const, text }] };
+    }),
+  );
+
+  return createSdkMcpServer({ name: "nodetool-ui", version: "1.0.0", tools: mcpTools });
+}
+
+function convertSdkMessage(
+  msg: { type: string; [key: string]: unknown },
+  sessionId: string,
+): AgentMessage | null {
+  const uuid = randomUUID();
+
+  if (msg.type === "assistant") {
+    const message = msg.message as Record<string, unknown> | undefined;
+    const content = message?.content;
+    if (!Array.isArray(content)) return null;
+
+    const textBlocks: Array<{ type: string; text: string }> = [];
+    const toolCalls: AgentMessage["tool_calls"] = [];
+
+    for (const block of content) {
+      if (!block || typeof block !== "object") continue;
+      const b = block as Record<string, unknown>;
+      if (b.type === "text" && typeof b.text === "string") {
+        textBlocks.push({ type: "text", text: b.text });
+      } else if (
+        b.type === "tool_use" &&
+        typeof b.id === "string" &&
+        typeof b.name === "string"
+      ) {
+        toolCalls.push({
+          id: b.id,
+          type: "function",
+          function: {
+            name: b.name,
+            arguments: JSON.stringify(b.input ?? {}),
+          },
+        });
+      }
+    }
+
+    if (textBlocks.length === 0 && toolCalls.length === 0) return null;
+
+    return {
+      type: "assistant",
+      uuid,
+      session_id: sessionId,
+      content: textBlocks.length > 0 ? textBlocks : undefined,
+      tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+    };
+  }
+
+  if (msg.type === "result") {
+    const subtype = msg.subtype as string | undefined;
+    if (subtype === "success") {
+      return {
+        type: "result",
+        uuid,
+        session_id: sessionId,
+        subtype: "success",
+        text: typeof msg.result === "string" ? msg.result : undefined,
+      };
+    }
+    return {
+      type: "result",
+      uuid,
+      session_id: sessionId,
+      subtype: subtype ?? "error",
+      is_error: true,
+      errors: Array.isArray(msg.errors)
+        ? (msg.errors as string[])
+        : [String(msg.result ?? "Unknown error")],
+    };
+  }
+
+  if (msg.type === "system") return null;
+
+  if (msg.type === "stream_event") {
+    const event = msg as Record<string, unknown>;
+    const partial = event.message as Record<string, unknown> | undefined;
+    const content = partial?.content;
+    if (Array.isArray(content)) {
+      const textBlocks: Array<{ type: string; text: string }> = [];
+      for (const block of content) {
+        if (block && typeof block === "object") {
+          const b = block as Record<string, unknown>;
+          if (b.type === "text" && typeof b.text === "string") {
+            textBlocks.push({ type: "text", text: b.text });
+          }
+        }
+      }
+      if (textBlocks.length > 0) {
+        return {
+          type: "assistant",
+          uuid,
+          session_id: sessionId,
+          content: textBlocks,
+        };
+      }
+    }
+    return null;
+  }
+
+  return null;
+}
+
+class ClaudeAgentSession implements AgentQuerySession {
+  private closed = false;
+  private readonly model: string;
+  private readonly workspacePath: string;
+  private readonly systemPrompt: string;
+  private resolvedSessionId: string | null;
+  private inFlight = false;
+  private activeQuery: Query | null = null;
+
+  constructor(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+  }) {
+    this.model = options.model;
+    this.workspacePath = options.workspacePath;
+    this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
+    this.resolvedSessionId = options.resumeSessionId ?? null;
+  }
+
+  async send(
+    message: string,
+    webContents: WebContents | null,
+    sessionId: string,
+    _manifest: FrontendToolManifest[],
+    onMessage?: (message: AgentMessage) => void,
+  ): Promise<AgentMessage[]> {
+    if (this.closed) {
+      throw new Error("Cannot send to a closed session");
+    }
+    if (this.inFlight) {
+      throw new Error("A request is already in progress for this session");
+    }
+
+    this.inFlight = true;
+
+    try {
+      const mcpServer = webContents
+        ? buildMcpServer(webContents, sessionId)
+        : undefined;
+
+      const allowedTools = mcpServer
+        ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
+        : [];
+
+      const queryHandle = query({
+        prompt: message,
+        options: {
+          model: this.model,
+          cwd: this.workspacePath,
+          systemPrompt: {
+            type: "preset",
+            preset: "claude_code",
+            append: this.systemPrompt,
+          },
+          permissionMode: "bypassPermissions",
+          allowDangerouslySkipPermissions: true,
+          disallowedTools: CLAUDE_DISALLOWED_TOOLS,
+          allowedTools,
+          maxTurns: 50,
+          ...(mcpServer && { mcpServers: { "nodetool-ui": mcpServer } }),
+          ...(this.resolvedSessionId && { resume: this.resolvedSessionId }),
+        },
+      });
+      this.activeQuery = queryHandle;
+
+      const outputMessages: AgentMessage[] = [];
+      for await (const msg of queryHandle) {
+        if (
+          msg.type === "system" &&
+          (msg as Record<string, unknown>).subtype === "init"
+        ) {
+          this.resolvedSessionId =
+            (msg as Record<string, unknown>).session_id as string;
+        }
+
+        const agentMsg = convertSdkMessage(
+          msg as { type: string; [key: string]: unknown },
+          this.resolvedSessionId ?? sessionId,
+        );
+        if (!agentMsg) continue;
+
+        outputMessages.push(agentMsg);
+        if (onMessage) {
+          onMessage(agentMsg);
+        }
+      }
+
+      return outputMessages;
+    } catch (error) {
+      const errorMsg: AgentMessage = {
+        type: "result",
+        uuid: randomUUID(),
+        session_id: this.resolvedSessionId ?? sessionId,
+        subtype: "error",
+        is_error: true,
+        errors: [error instanceof Error ? error.message : String(error)],
+      };
+      if (onMessage) {
+        onMessage(errorMsg);
+      }
+      return [errorMsg];
+    } finally {
+      this.activeQuery = null;
+      this.inFlight = false;
+    }
+  }
+
+  async interrupt(): Promise<void> {
+    if (this.activeQuery) {
+      this.activeQuery.interrupt();
+    }
+  }
+
+  close(): void {
+    if (this.closed) {
+      return;
+    }
+    this.closed = true;
+    if (this.activeQuery) {
+      this.activeQuery.close();
+      this.activeQuery = null;
+    }
+  }
+}
 
 
 
 
 
 
-
-
-class ClaudeQuerySession {
+/**
+ * Legacy Claude session using CLI pipe approach.
+ * Kept behind NODETOOL_AGENT_USE_CLI=1 for rollback.
+ * Will be removed after SDK migration is validated.
+ */
+class ClaudeCliSession {
   private closed = false;
   private resolvedSessionId: string | null;
   private readonly model: string;
@@ -1023,6 +1277,8 @@ export async function createAgentSession(
     `${sessionMode} ${provider} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
   );
 
+  const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
+
   const session: AgentQuerySession =
     provider === "codex"
       ? new CodexQuerySession({
@@ -1031,15 +1287,25 @@ export async function createAgentSession(
           resumeSessionId: options.resumeSessionId,
           systemPrompt: CODEX_SYSTEM_PROMPT,
         })
-      : new ClaudeQuerySession({
-          model: options.model,
-          workspacePath: options.workspacePath,
-          resumeSessionId: options.resumeSessionId,
-          systemPrompt:
-            process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-              ? HELP_SYSTEM_PROMPT
-              : FAST_WORKFLOW_SYSTEM_PROMPT,
-        });
+      : useCliAgent
+        ? new ClaudeCliSession({
+            model: options.model,
+            workspacePath: options.workspacePath,
+            resumeSessionId: options.resumeSessionId,
+            systemPrompt:
+              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+                ? HELP_SYSTEM_PROMPT
+                : FAST_WORKFLOW_SYSTEM_PROMPT,
+          })
+        : new ClaudeAgentSession({
+            model: options.model,
+            workspacePath: options.workspacePath,
+            resumeSessionId: options.resumeSessionId,
+            systemPrompt:
+              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+                ? HELP_SYSTEM_PROMPT
+                : FAST_WORKFLOW_SYSTEM_PROMPT,
+          });
 
   activeSessions.set(tempId, session);
   logMessage(`${provider} agent session created: ${tempId}`);
