@@ -17,7 +17,6 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
-import log from "loglevel";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -148,7 +147,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
             }
           });
           if (error) {
-            log.error(`Error fetching image models for provider ${providerValue}:`, error);
+            console.error(`Error fetching image models for provider ${providerValue}:`, error);
             throw error;
           }
           return {
@@ -156,7 +155,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
             models: (data || []) as ImageModel[]
           };
         } catch (err) {
-          log.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
+          console.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
           // Return empty array for this provider instead of failing completely
           return {
             provider: String(provider.provider),

@@ -267,7 +267,7 @@ export const autoLayout = async (
 
       processedGroups[groupId] = groupUpdatedNodes;
     } catch (error) {
-      log.error(`Error in ELK layout for group ${groupId}:`, error);
+      console.error(`Error in ELK layout for group ${groupId}:`, error);
     }
   }
 

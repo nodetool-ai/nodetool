@@ -3,7 +3,6 @@ import { Node } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useFitView } from "./useFitView";
 import { NodeData } from "../stores/NodeData";
-import log from "loglevel";
 
 /**
  * Hook to listen for custom "nodetool:fit-node" events and fit the view to the specified node.
@@ -23,7 +22,7 @@ export const useFitNodeEvent = () => {
         | Node<NodeData>
         | undefined;
       if (!node) {
-        log.error("[useFitNodeEvent] node not found", { nodeId });
+        console.error("[useFitNodeEvent] node not found", { nodeId });
         return;
       }
 

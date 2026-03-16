@@ -11,7 +11,6 @@ import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow } from "../ui_primitives";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -157,7 +156,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         const workflow = await createNewWorkflow();
         navigate(`/editor/${workflow.id}`);
       } catch (error) {
-        log.error("Failed to create new workflow:", error);
+        console.error("Failed to create new workflow:", error);
       }
     }
   }, [navigate, currentWorkflowId, createNewWorkflow]);

@@ -399,7 +399,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
         );
         if (error) {
-          log.error(
+          console.error(
             "[WorkflowManagerStore] searchTemplates error:",
             error
           );
@@ -529,7 +529,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       addWorkflow: (workflow: Workflow) => {
         const existingStore = get().getNodeStore(workflow.id);
         if (existingStore) {
-          log.warn(
+          console.warn(
             `[WorkflowManager] A store for workflow ${workflow.id} already exists. Skipping creation.`
           );
           return;
@@ -670,7 +670,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           await hydrateWorkflowResultsFromAssets(data.id);
           return data;
         } catch (e) {
-          log.error(
+          console.error(
             `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
             e
           );

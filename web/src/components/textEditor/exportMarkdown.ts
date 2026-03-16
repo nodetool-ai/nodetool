@@ -1,6 +1,5 @@
 import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { LexicalEditor } from "lexical";
-import log from "loglevel";
 
 /**
  * Export the current editor content as markdown
@@ -24,7 +23,7 @@ export async function copyAsMarkdown(editor: LexicalEditor): Promise<boolean> {
     await navigator.clipboard.writeText(markdown);
     return true;
   } catch (error) {
-    log.error("Failed to copy markdown:", error);
+    console.error("Failed to copy markdown:", error);
     return false;
   }
 }
