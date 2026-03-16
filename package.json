@@ -8,6 +8,7 @@
     "packages/models",
     "packages/node-sdk",
     "packages/base-nodes",
+    "packages/dsl",
     "packages/code-runners",
     "packages/fal-codegen",
     "packages/fal-nodes",
