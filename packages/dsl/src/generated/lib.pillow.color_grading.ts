@@ -1,0 +1,149 @@
+// Auto-generated — do not edit manually
+
+import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import type { ImageRef } from "../types.js";
+
+// CDL — lib.pillow.color_grading.CDL
+export interface CDLInputs {
+  image?: Connectable<ImageRef>;
+  slope_r?: Connectable<number>;
+  slope_g?: Connectable<number>;
+  slope_b?: Connectable<number>;
+  offset_r?: Connectable<number>;
+  offset_g?: Connectable<number>;
+  offset_b?: Connectable<number>;
+  power_r?: Connectable<number>;
+  power_g?: Connectable<number>;
+  power_b?: Connectable<number>;
+  saturation?: Connectable<number>;
+}
+
+export function cDL(inputs: CDLInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.CDL", inputs as Record<string, unknown>);
+}
+
+// Color Balance — lib.pillow.color_grading.ColorBalance
+export interface ColorBalanceInputs {
+  image?: Connectable<ImageRef>;
+  temperature?: Connectable<number>;
+  tint?: Connectable<number>;
+}
+
+export function colorBalance(inputs: ColorBalanceInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.ColorBalance", inputs as Record<string, unknown>);
+}
+
+// Curves — lib.pillow.color_grading.Curves
+export interface CurvesInputs {
+  image?: Connectable<ImageRef>;
+  black_point?: Connectable<number>;
+  white_point?: Connectable<number>;
+  shadows?: Connectable<number>;
+  midtones?: Connectable<number>;
+  highlights?: Connectable<number>;
+  red_midtones?: Connectable<number>;
+  green_midtones?: Connectable<number>;
+  blue_midtones?: Connectable<number>;
+}
+
+export function curves(inputs: CurvesInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.Curves", inputs as Record<string, unknown>);
+}
+
+// Exposure — lib.pillow.color_grading.Exposure
+export interface ExposureInputs {
+  image?: Connectable<ImageRef>;
+  exposure?: Connectable<number>;
+  contrast?: Connectable<number>;
+  highlights?: Connectable<number>;
+  shadows?: Connectable<number>;
+  whites?: Connectable<number>;
+  blacks?: Connectable<number>;
+}
+
+export function exposure(inputs: ExposureInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.Exposure", inputs as Record<string, unknown>);
+}
+
+// Film Look — lib.pillow.color_grading.FilmLook
+export interface FilmLookInputs {
+  image?: Connectable<ImageRef>;
+  preset?: Connectable<unknown>;
+  intensity?: Connectable<number>;
+}
+
+export function filmLook(inputs: FilmLookInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.FilmLook", inputs as Record<string, unknown>);
+}
+
+// HSLAdjust — lib.pillow.color_grading.HSLAdjust
+export interface HSLAdjustInputs {
+  image?: Connectable<ImageRef>;
+  color_range?: Connectable<unknown>;
+  hue_shift?: Connectable<number>;
+  saturation?: Connectable<number>;
+  luminance?: Connectable<number>;
+}
+
+export function hSLAdjust(inputs: HSLAdjustInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.HSLAdjust", inputs as Record<string, unknown>);
+}
+
+// Lift Gamma Gain — lib.pillow.color_grading.LiftGammaGain
+export interface LiftGammaGainInputs {
+  image?: Connectable<ImageRef>;
+  lift_r?: Connectable<number>;
+  lift_g?: Connectable<number>;
+  lift_b?: Connectable<number>;
+  lift_master?: Connectable<number>;
+  gamma_r?: Connectable<number>;
+  gamma_g?: Connectable<number>;
+  gamma_b?: Connectable<number>;
+  gamma_master?: Connectable<number>;
+  gain_r?: Connectable<number>;
+  gain_g?: Connectable<number>;
+  gain_b?: Connectable<number>;
+  gain_master?: Connectable<number>;
+}
+
+export function liftGammaGain(inputs: LiftGammaGainInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.LiftGammaGain", inputs as Record<string, unknown>);
+}
+
+// Saturation Vibrance — lib.pillow.color_grading.SaturationVibrance
+export interface SaturationVibranceInputs {
+  image?: Connectable<ImageRef>;
+  saturation?: Connectable<number>;
+  vibrance?: Connectable<number>;
+}
+
+export function saturationVibrance(inputs: SaturationVibranceInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.SaturationVibrance", inputs as Record<string, unknown>);
+}
+
+// Split Toning — lib.pillow.color_grading.SplitToning
+export interface SplitToningInputs {
+  image?: Connectable<ImageRef>;
+  shadow_hue?: Connectable<number>;
+  shadow_saturation?: Connectable<number>;
+  highlight_hue?: Connectable<number>;
+  highlight_saturation?: Connectable<number>;
+  balance?: Connectable<number>;
+}
+
+export function splitToning(inputs: SplitToningInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.SplitToning", inputs as Record<string, unknown>);
+}
+
+// Vignette — lib.pillow.color_grading.Vignette
+export interface VignetteInputs {
+  image?: Connectable<ImageRef>;
+  amount?: Connectable<number>;
+  midpoint?: Connectable<number>;
+  roundness?: Connectable<number>;
+  feather?: Connectable<number>;
+}
+
+export function vignette(inputs: VignetteInputs): DslNode<SingleOutput<ImageRef>> {
+  return createNode("lib.pillow.color_grading.Vignette", inputs as Record<string, unknown>);
+}

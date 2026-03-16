@@ -249,8 +249,6 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
 // run() / runGraph() — execution helpers
 // ---------------------------------------------------------------------------
 
-import type { RunResult } from "@nodetool/kernel";
-
 export type RunOptions = {
   userId?: string;
   authToken?: string;
@@ -259,7 +257,7 @@ export type RunOptions = {
 export type WorkflowResult = Record<string, unknown>;
 
 export async function run(
-  wf: Workflow,
+  _wf: Workflow,
   _opts?: RunOptions
 ): Promise<WorkflowResult> {
   // Placeholder — actual integration with WorkflowRunner deferred
