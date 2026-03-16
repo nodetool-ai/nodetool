@@ -102,13 +102,16 @@ describe('getAssetThumbUrl', () => {
         data: new Uint8Array([1, 2, 3]),
       } as AssetRef;
 
+      const logSpy = jest.spyOn(require('loglevel'), 'error').mockImplementation();
+
       const result = getAssetThumbUrl(asset);
       
-      expect(console.error).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         'Failed to create thumbnail URL from binary data:',
         expect.any(Error)
       );
       expect(result).toBe('/images/placeholder.png');
+      logSpy.mockRestore();
     });
 
     it('should return fallback URL when data conversion fails', () => {

@@ -25,17 +25,19 @@ jest.mock('@xyflow/react', () => ({
 describe('ConnectionLine', () => {
   it('renders bezier path and class', () => {
     const { container } = render(
-      <ConnectionLine
-        {...({
-          fromX: 0,
-          fromY: 0,
+      <svg>
+        <ConnectionLine
+          {...({
+            fromX: 0,
+            fromY: 0,
           toX: 10,
           toY: 10,
           fromPosition: 'left',
-          toPosition: 'right',
-          connectionLineType: ConnectionLineType.Bezier,
-        } as any)}
-      />
+            toPosition: 'right',
+            connectionLineType: ConnectionLineType.Bezier,
+          } as any)}
+        />
+      </svg>
     );
     const path = container.querySelector('path');
     expect(path?.getAttribute('d')).toBe('M-bezier');

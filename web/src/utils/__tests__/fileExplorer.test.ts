@@ -20,8 +20,8 @@ describe("fileExplorer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "warn").mockImplementation(() => {});
-    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(require('loglevel'), "warn").mockImplementation(() => {});
+    jest.spyOn(require('loglevel'), "error").mockImplementation(() => {});
     (useNotificationStore.setState as any)((state: any) => ({
       ...state,
       addNotification
@@ -123,14 +123,14 @@ describe("fileExplorer", () => {
       await openInExplorer("/home/user/documents");
 
       expect(mockApi.openModelPath).toHaveBeenCalledWith("/home/user/documents");
-      expect(console.warn).not.toHaveBeenCalled();
-      expect(console.error).not.toHaveBeenCalled();
+      expect(require('loglevel').warn).not.toHaveBeenCalled();
+      expect(require('loglevel').error).not.toHaveBeenCalled();
     });
 
     it("should warn and return early for empty paths", async () => {
       await openInExplorer("");
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(console.warn).toHaveBeenCalledWith(
+      expect(require('loglevel').warn).toHaveBeenCalledWith(
         "[fileExplorer] Tried to open an empty path in explorer."
       );
     });
@@ -139,7 +139,7 @@ describe("fileExplorer", () => {
       await openInExplorer("../etc/passwd");
 
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(console.warn).toHaveBeenCalledWith(
+      expect(require('loglevel').warn).toHaveBeenCalledWith(
         "[fileExplorer] Invalid path supplied, refusing to open explorer:",
         "../etc/passwd"
       );
@@ -152,7 +152,7 @@ describe("fileExplorer", () => {
       await openInExplorer("/home/user/documents");
 
       expect(mockApi.openModelPath).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith(
+      expect(require('loglevel').error).toHaveBeenCalledWith(
         "[fileExplorer] Failed to open path in explorer:",
         error
       );
@@ -185,7 +185,7 @@ describe("fileExplorer", () => {
       await openInExplorer(undefined as any);
 
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(console.warn).toHaveBeenCalledTimes(2);
+      expect(require('loglevel').warn).toHaveBeenCalledTimes(2);
     });
 
     it("should notify when bridge unavailable", async () => {

@@ -350,7 +350,7 @@ describe("ChatView", () => {
 
     it("handles sendMessage errors gracefully", async () => {
       const consoleSpy = jest
-        .spyOn(console, "error")
+        .spyOn(require('loglevel'), 'error')
         .mockImplementation(() => {});
       mockSendMessage.mockRejectedValueOnce(new Error("Send failed"));
 

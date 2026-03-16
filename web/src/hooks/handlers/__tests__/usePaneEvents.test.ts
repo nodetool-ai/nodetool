@@ -195,7 +195,7 @@ describe("usePaneEvents", () => {
 
     it("cancels placement and logs warning when metadata not found", () => {
       mockGetMetadata.mockReturnValue(null);
-      const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const consoleWarn = jest.spyOn(require('loglevel'), 'warn').mockImplementation(() => {});
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.MissingNode",
