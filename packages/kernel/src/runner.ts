@@ -449,9 +449,11 @@ export class WorkflowRunner {
       const hasRuntimeParam = Object.prototype.hasOwnProperty.call(params, inputName);
       const hasDefaultValue = Object.prototype.hasOwnProperty.call(properties, "value");
 
-      // Non-streaming workflow inputs should emit once even when no runtime param
-      // was supplied, using the node's configured default value from properties.
-      if (!hasRuntimeParam && (node.is_streaming_input || !hasDefaultValue)) {
+      // Streaming output input nodes (e.g. RealtimeAudioInput) should NOT
+      // push empty defaults — real data will arrive later via pushInputValue().
+      // Non-streaming inputs must push their default so downstream nodes can run.
+      // (Python parity: checks is_streaming_output.)
+      if (!hasRuntimeParam && (node.is_streaming_output || !hasDefaultValue)) {
         continue;
       }
 
@@ -465,7 +467,13 @@ export class WorkflowRunner {
         this._incrementEdgeCounter(edge);
       }
 
-      if (!node.is_streaming_input) {
+      // Streaming output input nodes (e.g. RealtimeAudioInput) keep their
+      // downstream inboxes open so that future pushInputValue() calls can
+      // deliver more data.  Non-streaming input nodes signal EOS immediately
+      // since they produce exactly one value.
+      // (Python parity: _dispatch_inputs checks is_streaming_output, not
+      // is_streaming_input.)
+      if (!node.is_streaming_output) {
         for (const edge of outgoing) {
           const targetInbox = this._inboxes.get(edge.target);
           if (targetInbox) {
@@ -591,6 +599,18 @@ export class WorkflowRunner {
     }
 
     const outgoing = this._graph.findOutgoingEdges(sourceNodeId);
+    const outputKeys = Object.keys(outputs).filter(k => outputs[k] !== undefined);
+    log.debug("_sendMessages", {
+      sourceNodeId,
+      outputKeys,
+      outgoingEdgeCount: outgoing.length,
+      outgoingEdges: outgoing.map(e => ({
+        sourceHandle: e.sourceHandle,
+        target: e.target,
+        targetHandle: e.targetHandle,
+        isControl: isControlEdge(e),
+      })),
+    });
 
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
@@ -637,11 +657,27 @@ export class WorkflowRunner {
       }
 
       const value = outputs[edge.sourceHandle];
-      if (value === undefined) continue;
+      if (value === undefined) {
+        log.debug("_sendMessages skip edge (no matching output)", {
+          sourceNodeId,
+          sourceHandle: edge.sourceHandle,
+          availableKeys: outputKeys,
+        });
+        continue;
+      }
 
       const targetInbox = this._inboxes.get(edge.target);
-      if (!targetInbox) continue;
+      if (!targetInbox) {
+        log.debug("_sendMessages skip edge (no target inbox)", { target: edge.target });
+        continue;
+      }
 
+      log.debug("_sendMessages delivering", {
+        sourceNodeId,
+        sourceHandle: edge.sourceHandle,
+        target: edge.target,
+        targetHandle: edge.targetHandle,
+      });
       await targetInbox.put(edge.targetHandle, value);
       this._incrementEdgeCounter(edge);
     }
@@ -899,6 +935,7 @@ export class WorkflowRunner {
   edgeStreams(edge: Edge): boolean {
     return this._streamingEdges.get(this._edgeKey(edge)) ?? false;
   }
+
 
   // -----------------------------------------------------------------------
   // Pending work detection
