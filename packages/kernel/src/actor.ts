@@ -260,6 +260,19 @@ export class NodeActor {
    * from the inbox buffers before each execution and cached for replay.
    */
   private async _runControlled(): Promise<void> {
+    // Identify data handles (non-control) that need to be populated
+    const dataHandles = [...this.inbox["_buffers"].keys()].filter(
+      (h) => h !== "__control__"
+    );
+
+    // Wait for all data handles to have at least one value before
+    // processing the first control event. This ensures that when an
+    // upstream node feeds data into the controlled node, the data
+    // arrives before we try to execute.
+    if (dataHandles.length > 0 && !this._cachedInputs) {
+      await this._waitForDataInputs(dataHandles);
+    }
+
     for await (const item of this.inbox.iterInput("__control__")) {
       const event = item as ControlEvent;
       if (event.event_type === "stop") {
@@ -278,6 +291,47 @@ export class NodeActor {
         this._latestResult = outputs;
         await this._sendOutputs(this.node.id, outputs);
       }
+    }
+  }
+
+  /**
+   * Wait until every data handle has at least one buffered value.
+   * Drains items from the inbox as they arrive, caching them, until
+   * all required handles are satisfied.
+   */
+  private async _waitForDataInputs(dataHandles: string[]): Promise<void> {
+    const pending = new Set(dataHandles);
+
+    // Check what's already buffered
+    for (const handle of dataHandles) {
+      if (this.inbox.hasBuffered(handle)) {
+        pending.delete(handle);
+      }
+    }
+    if (pending.size === 0) {
+      this._cacheBufferedDataInputs();
+      return;
+    }
+
+    // Drain items until all data handles have at least one value
+    for await (const [handle, item] of this.inbox.iterAny()) {
+      if (handle === "__control__") {
+        // Push control events back – they'll be consumed by iterInput later
+        this.inbox.prepend(
+          "__control__",
+          {
+            data: item,
+            metadata: {},
+            timestamp: Date.now(),
+            event_id: "",
+          }
+        );
+        continue;
+      }
+      if (!this._cachedInputs) this._cachedInputs = {};
+      this._cachedInputs[handle] = item;
+      pending.delete(handle);
+      if (pending.size === 0) break;
     }
   }
 
