@@ -20,6 +20,7 @@ import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
 import { NodeInbox } from "./inbox.js";
+import { NodeInputs, NodeOutputs } from "./io.js";
 
 export type { NodeExecutor };
 
@@ -112,12 +113,23 @@ export class NodeActor {
 
       // Determine execution mode
       if (this.node.is_streaming_input) {
-        // Streaming input mode: the node itself drains the inbox.
-        // We just call process() once with an empty input map;
-        // the node uses iter_input / iter_any internally.
-        const outputs = await this._executor.process({}, this._executionContext);
-        this._latestResult = outputs;
-        await this._sendOutputs(this.node.id, outputs);
+        if (this._executor.run) {
+          // Streaming input mode with run(): node drains inbox via
+          // NodeInputs and pushes outputs via NodeOutputs.
+          const nodeInputs = new NodeInputs(this.inbox);
+          const nodeOutputs = new NodeOutputs({
+            sendFn: async (slot: string, value: unknown) => {
+              await this._sendOutputs(this.node.id, { [slot]: value });
+            },
+          });
+          await this._executor.run(nodeInputs, nodeOutputs, this._executionContext);
+          this._latestResult = nodeOutputs.collected();
+        } else {
+          // Legacy fallback: call process() once with empty inputs.
+          const outputs = await this._executor.process({}, this._executionContext);
+          this._latestResult = outputs;
+          await this._sendOutputs(this.node.id, outputs);
+        }
       } else if (this.node.is_controlled) {
         // Controlled mode: wait for control events from inbox
         await this._runControlled();

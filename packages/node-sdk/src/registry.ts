@@ -179,7 +179,9 @@ export function createGraphNodeTypeResolver(
         isDynamic: metadata.is_dynamic ?? false,
         descriptorDefaults: {
           name: metadata.title,
+          is_streaming_input: metadata.is_streaming_input ?? false,
           is_streaming_output: metadata.is_streaming_output ?? false,
+          is_controlled: metadata.is_controlled ?? false,
           sync_mode: NodeClass?.syncMode,
           propertyMeta,
         },
