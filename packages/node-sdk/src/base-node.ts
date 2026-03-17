@@ -1,6 +1,10 @@
 import type { NodeDescriptor, SyncMode } from "@nodetool/protocol";
 import type { NodeExecutor } from "@nodetool/kernel";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type {
+  ProcessingContext,
+  StreamingInputs,
+  StreamingOutputs,
+} from "@nodetool/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
 
 export interface DeclaredOutputTypes {
@@ -135,6 +139,18 @@ export abstract class BaseNode {
   }
 
   /**
+   * Streaming input+output processing.
+   * Override this for nodes with isStreamingInput=true.
+   * Drain inputs via `inputs.stream()` / `inputs.any()` and
+   * push results via `outputs.emit()`.
+   */
+  async run?(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void>;
+
+  /**
    * Resolve requiredSettings from the context's secret store and inject
    * them as `inputs._secrets` so node process() can access API keys.
    */
@@ -166,7 +182,7 @@ export abstract class BaseNode {
   }
 
   toExecutor(): NodeExecutor {
-    return {
+    const executor: NodeExecutor = {
       process: async (inputs: Record<string, unknown>, context?: ProcessingContext) =>
         this.process(await this._injectSecrets(inputs, context), context),
       genProcess: async function* (this: BaseNode, inputs: Record<string, unknown>, context?: ProcessingContext) {
@@ -176,6 +192,14 @@ export abstract class BaseNode {
       finalize: () => this.finalize(),
       initialize: () => this.initialize(),
     };
+    if (this.run) {
+      executor.run = async (
+        inputs: StreamingInputs,
+        outputs: StreamingOutputs,
+        context?: ProcessingContext
+      ) => this.run!(inputs, outputs, context);
+    }
+    return executor;
   }
 
   static toDescriptor(id?: string): NodeDescriptor {

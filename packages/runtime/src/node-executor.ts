@@ -9,6 +9,34 @@
 import type { ProcessingContext } from "./context.js";
 
 // ---------------------------------------------------------------------------
+// Streaming I/O interfaces (implemented by NodeInputs / NodeOutputs in kernel)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read-side interface for streaming input nodes.
+ * Nodes call stream() or any() to consume incoming data.
+ */
+export interface StreamingInputs {
+  /** Yield items for a single handle until EOS. */
+  stream(name: string): AsyncGenerator<unknown>;
+  /** Yield [handle, item] tuples in arrival order across all handles. */
+  any(): AsyncGenerator<[string, unknown]>;
+  /** Return the first available item for a handle, or default if EOS. */
+  first(name: string, defaultValue?: unknown): Promise<unknown>;
+}
+
+/**
+ * Write-side interface for streaming output from within a run() method.
+ * Nodes call emit() to push partial results downstream immediately.
+ */
+export interface StreamingOutputs {
+  /** Emit a value to a named output slot. */
+  emit(slot: string, value: unknown): Promise<void>;
+  /** Signal early end-of-stream for a specific output slot. */
+  complete(slot: string): void;
+}
+
+// ---------------------------------------------------------------------------
 // Node execution interface (implemented by actual node classes)
 // ---------------------------------------------------------------------------
 
@@ -27,6 +55,18 @@ export interface NodeExecutor {
     inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>>;
+
+  /**
+   * Streaming input+output processing.
+   * Called for nodes with isStreamingInput=true that implement this method.
+   * The node drains inputs via `inputs.stream()` / `inputs.any()` and
+   * pushes results via `outputs.emit()`.
+   */
+  run?(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void>;
 
   /** Called before process/genProcess. */
   preProcess?(): Promise<void>;
