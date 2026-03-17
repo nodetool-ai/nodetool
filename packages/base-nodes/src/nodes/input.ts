@@ -1006,37 +1006,46 @@ export class StringInputNode extends BaseNode {
 
 export class RealtimeAudioInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.RealtimeAudioInput";
-            static readonly title = "Realtime Audio Input";
-            static readonly description = "Accepts streaming audio data for workflows.\n    input, parameter, audio, sound, voice, speech, asset";
-        static readonly metadataOutputTypes = {
-    chunk: "chunk"
+  static readonly title = "Realtime Audio Input";
+  static readonly description =
+    "Accepts streaming audio data for workflows.\n    input, parameter, audio, sound, voice, speech, asset";
+  static readonly metadataOutputTypes = {
+    chunk: "chunk",
   };
-          static readonly basicFields = [
-  "name",
-  "value",
-  "value"
-];
-            static readonly isStreamingOutput = true;
+  static readonly basicFields = ["name", "value", "value"];
+  static readonly isStreamingOutput = true;
 
-  @prop({ type: "str", default: "", title: "Name", description: "The parameter name for the workflow." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description: "The parameter name for the workflow.",
+  })
   declare name: any;
 
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Value", description: "The audio to use as input." })
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+    },
+    title: "Value",
+    description: "The audio to use as input.",
+  })
   declare value: any;
 
-  @prop({ type: "str", default: "", title: "Description", description: "The description of the input for the workflow." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Description",
+    description: "The description of the input for the workflow.",
+  })
   declare description: any;
 
-
-    
-
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { chunk: this.value ?? null };
   }
 }
