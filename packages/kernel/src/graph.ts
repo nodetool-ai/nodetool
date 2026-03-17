@@ -313,6 +313,12 @@ export class Graph {
           ...(node.outputs ?? {}),
         },
         sync_mode: node.sync_mode ?? descriptorDefaults.sync_mode ?? "on_any",
+        // Streaming/control flags: registry metadata (descriptorDefaults) is
+        // the source of truth.  Saved graph data may have stale or missing
+        // values, so always prefer the registry if it declares true.
+        is_streaming_input: descriptorDefaults.is_streaming_input || node.is_streaming_input || false,
+        is_streaming_output: descriptorDefaults.is_streaming_output || node.is_streaming_output || false,
+        is_controlled: descriptorDefaults.is_controlled || node.is_controlled || false,
       };
 
       resolvedNodes.push(hydratedNode);
