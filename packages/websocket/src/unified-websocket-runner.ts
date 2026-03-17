@@ -1103,6 +1103,12 @@ export class UnifiedWebSocketRunner {
           tools: shouldIncludeTools && providerToolSchemas.length > 0 ? providerToolSchemas : undefined,
         });
 
+        // Phase 1: Stream chunks and collect tool calls
+        interface PendingToolCall {
+          tc: ProviderToolCall;
+        }
+        const pendingToolCalls: PendingToolCall[] = [];
+
         for await (const item of stream) {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
@@ -1115,11 +1121,11 @@ export class UnifiedWebSocketRunner {
             if (!chunk.thread_id) chunk.thread_id = threadId;
             await this.sendMessage({ ...chunk });
           } else if ("name" in item && "id" in item) {
-            // --- Tool call from provider ---
+            // --- Tool call from provider (collect, don't execute yet) ---
             const tc = item as ProviderToolCall;
             log.info("Tool call", { tool: tc.name, args: tc.args });
 
-            // Build assistant Message with tool_calls — matches Python's assistant_msg
+            // Build assistant Message with tool_calls and send to client immediately
             const assistantMsgData: Record<string, unknown> = {
               type: "message",
               role: "assistant",
@@ -1129,7 +1135,6 @@ export class UnifiedWebSocketRunner {
               provider: providerId,
               model,
             };
-            // Persist to DB and forward to client — matches _run_processor for type: "message"
             await this.saveMessageToDb(assistantMsgData);
             await this.sendMessage(assistantMsgData);
 
@@ -1142,7 +1147,13 @@ export class UnifiedWebSocketRunner {
               threadId,
             });
 
-            // Execute tool
+            pendingToolCalls.push({ tc });
+          }
+        }
+
+        // Phase 2: Execute all collected tool calls in parallel
+        if (pendingToolCalls.length > 0) {
+          const executeOne = async ({ tc }: PendingToolCall) => {
             let toolResult: unknown;
             const serverTool = serverToolMap.get(tc.name);
             if (serverTool) {
@@ -1169,11 +1180,16 @@ export class UnifiedWebSocketRunner {
             }
 
             // Process tool result — handle asset-like objects, dates, etc.
-            // Matches Python's _process_tool_result()
             const processedResult = await this.processToolResult(toolResult, ctx);
             const toolResultJson = JSON.stringify(processedResult);
 
-            // Build tool result Message — matches Python's tool_msg
+            return { tc, toolResultJson };
+          };
+
+          const results = await Promise.all(pendingToolCalls.map(executeOne));
+
+          for (const { tc, toolResultJson } of results) {
+            // Build tool result Message
             const toolMsgData: Record<string, unknown> = {
               type: "message",
               role: "tool",
@@ -1185,7 +1201,6 @@ export class UnifiedWebSocketRunner {
               provider: providerId,
               model,
             };
-            // Persist to DB and forward to client — matches _run_processor for type: "message"
             await this.saveMessageToDb(toolMsgData);
             await this.sendMessage(toolMsgData);
 
@@ -2133,6 +2148,14 @@ export class UnifiedWebSocketRunner {
         if (!jobId) return { error: "job_id is required" };
         {
           const active = this.activeJobs.get(jobId);
+          log.info("stream_input command", {
+            jobId,
+            hasActive: !!active,
+            inputName: data.input,
+            handle: data.handle,
+            hasValue: data.value !== undefined,
+            activeJobIds: [...this.activeJobs.keys()],
+          });
           if (!active) return { error: "No active job/context" };
           const inputName = typeof data.input === "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
@@ -2146,6 +2169,7 @@ export class UnifiedWebSocketRunner {
               workflow_id: workflowId ?? active.workflowId,
             };
           } catch (err) {
+            log.error("stream_input failed", { error: err instanceof Error ? err.message : String(err) });
             return {
               error: err instanceof Error ? err.message : String(err),
               job_id: jobId,

@@ -306,6 +306,38 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
+
+  // DEBUG: log what OutputRenderer receives and how it classifies it
+  useEffect(() => {
+    if (!shouldRender) return;
+    const isArr = Array.isArray(value);
+    const summary: Record<string, unknown> = {
+      type,
+      shouldRender,
+      isArray: isArr,
+      arrayLength: isArr ? value.length : undefined,
+      valueType: typeof value,
+    };
+    if (isArr && value.length > 0) {
+      const first = value[0];
+      summary.firstItemType = typeof first;
+      if (first && typeof first === "object") {
+        summary.firstItemKeys = Object.keys(first).slice(0, 10);
+        summary.firstItemContentType = (first as any).content_type;
+        summary.firstItemDone = (first as any).done;
+        summary.firstItemHasContent = !!(first as any).content;
+        summary.firstItemContentLength = typeof (first as any).content === "string" ? (first as any).content.length : undefined;
+      }
+    } else if (value && typeof value === "object" && !isArr) {
+      summary.keys = Object.keys(value).slice(0, 10);
+      summary.contentType = (value as any).content_type;
+      summary.done = (value as any).done;
+      summary.hasContent = !!(value as any).content;
+      summary.contentLength = typeof (value as any).content === "string" ? (value as any).content.length : undefined;
+    }
+    console.log("[OutputRenderer]", JSON.stringify(summary));
+  }, [value, type, shouldRender]);
+
   const documentDataPreview = useMemo(() => {
     if (type !== "document") {
       return { url: "", isPdf: false };
