@@ -1587,9 +1587,19 @@ describe("ProcessingContext – getProvider with no resolver", () => {
   });
 
   it("resolves built-in providers from the default registry path", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1" });
-    const provider = await ctx.getProvider("openai");
-    expect(provider.provider).toBe("openai");
+    const origKey = process.env["OPENAI_API_KEY"];
+    process.env["OPENAI_API_KEY"] = "sk-test-dummy-key-for-unit-test";
+    try {
+      const ctx = new ProcessingContext({ jobId: "j1" });
+      const provider = await ctx.getProvider("openai");
+      expect(provider.provider).toBe("openai");
+    } finally {
+      if (origKey === undefined) {
+        delete process.env["OPENAI_API_KEY"];
+      } else {
+        process.env["OPENAI_API_KEY"] = origKey;
+      }
+    }
   });
 });
 

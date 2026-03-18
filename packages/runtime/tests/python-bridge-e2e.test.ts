@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PythonBridge } from "../src/python-bridge.js";
+import { execSync } from "node:child_process";
 
 /**
  * E2E test: spawns the real Python worker process and verifies discovery.
@@ -9,8 +10,23 @@ import { PythonBridge } from "../src/python-bridge.js";
  *   - nodetool-core installed
  *
  * Skip with: SKIP_PYTHON_E2E=1
+ * Also auto-skips when the nodetool Python module is not available.
  */
-describe.skipIf(process.env.SKIP_PYTHON_E2E === "1")("PythonBridge E2E", () => {
+
+function isPythonNodetoolAvailable(): boolean {
+  try {
+    const pythonPath = process.env.NODETOOL_PYTHON ?? "python";
+    execSync(`${pythonPath} -c "import nodetool"`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const skipPython =
+  process.env.SKIP_PYTHON_E2E === "1" || !isPythonNodetoolAvailable();
+
+describe.skipIf(skipPython)("PythonBridge E2E", () => {
   let bridge: PythonBridge;
 
   beforeAll(async () => {
