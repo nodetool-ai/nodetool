@@ -36,10 +36,38 @@ describe("models index exports", () => {
   it("exports domain models", () => {
     expect(models.Job).toBeDefined();
     expect(models.Workflow).toBeDefined();
+    expect(models.WorkflowVersion).toBeDefined();
     expect(models.Asset).toBeDefined();
     expect(models.Message).toBeDefined();
     expect(models.Thread).toBeDefined();
     expect(models.Secret).toBeDefined();
     expect(models.OAuthCredential).toBeDefined();
+    expect(models.Prediction).toBeDefined();
+    expect(models.Workspace).toBeDefined();
+  });
+
+  it("exports API graph utilities", () => {
+    expect(models.toApiNode).toBeDefined();
+    expect(models.toApiEdge).toBeDefined();
+    expect(models.toApiGraph).toBeDefined();
+    expect(models.removeConnectedSlots).toBeDefined();
+  });
+
+  it("exports migration utilities", () => {
+    expect(models.MigrationError).toBeDefined();
+    expect(models.LockError).toBeDefined();
+    expect(models.ChecksumError).toBeDefined();
+    expect(models.BaselineError).toBeDefined();
+    expect(models.MigrationDiscoveryError).toBeDefined();
+    expect(models.RollbackError).toBeDefined();
+    expect(models.DatabaseState).toBeDefined();
+    expect(models.APPLICATION_TABLES).toBeDefined();
+    expect(models.MIGRATION_TRACKING_TABLE).toBeDefined();
+    expect(models.MIGRATION_LOCK_TABLE).toBeDefined();
+    expect(models.detectDatabaseState).toBeDefined();
+    expect(models.SQLiteMigrationAdapter).toBeDefined();
+    expect(models.PostgresMigrationAdapter).toBeDefined();
+    expect(models.migrations).toBeDefined();
+    expect(models.MigrationRunner).toBeDefined();
   });
 });
