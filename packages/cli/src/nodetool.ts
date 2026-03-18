@@ -20,6 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { workflowToDsl } from "@nodetool/dsl";
 import {
   SQLiteAdapterFactory,
   setGlobalAdapterResolver,
@@ -62,6 +63,12 @@ async function apiGet(apiUrl: string, path: string): Promise<unknown> {
   return res.json();
 }
 
+async function apiGetText(apiUrl: string, path: string): Promise<string> {
+  const res = await fetch(`${apiUrl}${path}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+  return res.text();
+}
+
 async function apiPost(apiUrl: string, path: string, body: unknown): Promise<unknown> {
   const res = await fetch(`${apiUrl}${path}`, {
     method: "POST",
@@ -101,6 +108,42 @@ program
   .name("nodetool")
   .description("NodeTool CLI")
   .version("0.1.0");
+
+// ---------------------------------------------------------------------------
+// run — execute a TypeScript/JavaScript DSL workflow file
+// ---------------------------------------------------------------------------
+
+program
+  .command("run <dsl-file>")
+  .description("Run a TypeScript/JavaScript DSL workflow file")
+  .option("--json", "Output results as JSON (default: pretty-print)")
+  .action(async (dslFile: string, opts: { json?: boolean }) => {
+    try {
+      const { resolve } = await import("node:path");
+      const { runDslFile } = await import("./run-dsl.js");
+      const { registerBaseNodes } = await import("@nodetool/base-nodes");
+      const { NodeRegistry } = await import("@nodetool/node-sdk");
+
+      registerBaseNodes(NodeRegistry.global);
+
+      const absolutePath = resolve(dslFile);
+      const results = await runDslFile(absolutePath);
+
+      if (opts.json) {
+        console.log(JSON.stringify(results, null, 2));
+      } else {
+        for (const [workflowName, outputs] of Object.entries(results)) {
+          console.log(`\n${workflowName}:`);
+          for (const [key, value] of Object.entries(outputs)) {
+            console.log(`  ${key}: ${JSON.stringify(value)}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
 
 program
   .command("info")
@@ -311,6 +354,37 @@ workflows
       }
 
       process.exit(result.status === "completed" ? 0 : 1);
+    } catch (e) { console.error(String(e)); process.exit(1); }
+  });
+
+workflows
+  .command("export-dsl <workflow_id_or_file>")
+  .description("Export a workflow as TypeScript DSL code")
+  .option("--api-url <url>", "API base URL", process.env["NODETOOL_API_URL"] ?? "http://localhost:7777")
+  .option("-o, --output <file>", "Write the exported DSL to a file")
+  .action(async (idOrFile: string, opts: { apiUrl: string; output?: string }) => {
+    try {
+      let source: string;
+
+      if (idOrFile.endsWith(".json") || idOrFile.includes("/") || idOrFile.includes("\\")) {
+        const { readFileSync } = await import("node:fs");
+        const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<string, unknown>;
+        const graph = (raw.graph ?? raw) as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+        source = workflowToDsl(graph, {
+          workflowName: typeof raw.name === "string" ? raw.name : null,
+        });
+      } else {
+        source = await apiGetText(opts.apiUrl, `/api/workflows/${idOrFile}/dsl-export`);
+      }
+
+      if (opts.output) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(opts.output, source, "utf8");
+        console.log(opts.output);
+        return;
+      }
+
+      console.log(source);
     } catch (e) { console.error(String(e)); process.exit(1); }
   });
 
