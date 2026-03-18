@@ -644,8 +644,14 @@ export class StreamRunnerBase {
           resolve(child.exitCode);
           return;
         }
-        child.on("close", (code) => {
-          resolve(code ?? 0);
+        child.on("close", (code, signal) => {
+          if (signal) {
+            // Killed by a signal (e.g. SIGTERM from timeout or stop()).
+            // Use 128 + signal number as a conventional non-zero exit code.
+            resolve(128);
+          } else {
+            resolve(code ?? 0);
+          }
         });
       });
 
