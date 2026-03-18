@@ -194,25 +194,26 @@ export class Graph {
             : {};
 
       if (!allowUndefinedProperties) {
-        const definedProperties = new Set<string>([
-          ...Object.keys(
-            nodeObj.propertyTypes && typeof nodeObj.propertyTypes === "object"
-              ? (nodeObj.propertyTypes as Record<string, unknown>)
-              : {},
-          ),
-          ...Object.keys(
-            nodeObj.properties && typeof nodeObj.properties === "object"
-              ? (nodeObj.properties as Record<string, unknown>)
-              : {},
-          ),
-        ]);
+        // Only validate against propertyTypes when it is explicitly provided.
+        // Using properties itself as a source of truth would defeat the purpose
+        // of this check, since every property key would always be "defined".
+        const hasPropertyTypes =
+          nodeObj.propertyTypes != null &&
+          typeof nodeObj.propertyTypes === "object" &&
+          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
 
-        for (const key of Object.keys(rawProperties)) {
-          if (!definedProperties.has(key)) {
-            if (skipErrors) {
-              delete rawProperties[key];
-            } else {
-              throw new GraphValidationError(`Property ${key} does not exist on node ${id}`);
+        if (hasPropertyTypes) {
+          const definedProperties = new Set<string>(
+            Object.keys(nodeObj.propertyTypes as Record<string, unknown>),
+          );
+
+          for (const key of Object.keys(rawProperties)) {
+            if (!definedProperties.has(key)) {
+              if (skipErrors) {
+                delete rawProperties[key];
+              } else {
+                throw new GraphValidationError(`Property ${key} does not exist on node ${id}`);
+              }
             }
           }
         }

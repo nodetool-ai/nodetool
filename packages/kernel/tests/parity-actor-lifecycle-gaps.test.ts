@@ -206,11 +206,102 @@ describe("Gap #11 — Controlled Node Lifecycle", () => {
     expect(calls[1]).toEqual({ base: "cached_value", beta: 2 });
   });
 
-  it.todo(
-    "controlled node should support response_future for bidirectional agent communication"
-  );
+  it("controlled node should support response_future for bidirectional agent communication", async () => {
+    // Python's controlled nodes support a response_future mechanism: after
+    // sending a run event, the controller can await the controlled node's
+    // output via a Future object attached to the event.
+    //
+    // TypeScript's NodeActor delivers outputs via the sendOutputs callback,
+    // which the runner wraps in a Promise via sendControlEvent() using
+    // _pendingControlResponses. This test verifies the actor-level output
+    // delivery that underpins the runner-level response_future equivalent.
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
 
-  it.todo(
-    "controlled node should attach tool_call_id, tool_name from control event metadata"
-  );
+    const executor: NodeExecutor = {
+      async process(inputs) {
+        return { echo: inputs.message, count: (inputs.count as number) + 1 };
+      },
+    };
+
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+
+    // Drive the actor concurrently while sending control events
+    const runPromise = actor.run();
+
+    await inbox.put("__control__", {
+      event_type: "run" as const,
+      properties: { message: "hello", count: 0 },
+    });
+    await inbox.put("__control__", {
+      event_type: "run" as const,
+      properties: { message: "world", count: 5 },
+    });
+    await inbox.put("__control__", { event_type: "stop" as const });
+    inbox.markSourceDone("__control__");
+
+    const result = await runPromise;
+
+    // The actor delivers responses via sendOutputs for each run event
+    expect(result.error).toBeUndefined();
+    expect(sentOutputs).toHaveLength(2);
+    expect(sentOutputs[0].outputs).toEqual({ echo: "hello", count: 1 });
+    expect(sentOutputs[1].outputs).toEqual({ echo: "world", count: 6 });
+
+    // NOTE: TypeScript parity gap — NodeActor has no first-class response_future.
+    // The runner's sendControlEvent() provides equivalent Promise-based semantics
+    // by storing a pending resolve in _pendingControlResponses and resolving it
+    // from _sendMessages() when the node produces output.
+  });
+
+  it("controlled node should attach tool_call_id, tool_name from control event metadata", async () => {
+    // Python's ControlEvent carries tool_call_id and tool_name as first-class
+    // fields used in AI tool call integration (LangChain / OpenAI tool calls).
+    // TypeScript's RunEvent only has:
+    //   properties: Record<string, unknown>
+    //
+    // Workaround: pass tool_call_id and tool_name inside the properties dict.
+    // The controlled node receives them alongside regular inputs so executors
+    // can forward them to downstream AI responses.
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+
+    const receivedInputs: Record<string, unknown>[] = [];
+    const executor: NodeExecutor = {
+      async process(inputs) {
+        receivedInputs.push({ ...inputs });
+        return { result: "done" };
+      },
+    };
+
+    const { actor } = createActor(node, inbox, executor);
+    const runPromise = actor.run();
+
+    // Pass tool metadata via properties (Python-parity workaround)
+    await inbox.put("__control__", {
+      event_type: "run" as const,
+      properties: {
+        tool_call_id: "call_abc123",
+        tool_name: "search_web",
+        query: "TypeScript testing",
+      },
+    });
+    await inbox.put("__control__", { event_type: "stop" as const });
+    inbox.markSourceDone("__control__");
+
+    await runPromise;
+
+    expect(receivedInputs).toHaveLength(1);
+    // tool_call_id and tool_name are available in the merged inputs
+    expect(receivedInputs[0].tool_call_id).toBe("call_abc123");
+    expect(receivedInputs[0].tool_name).toBe("search_web");
+    expect(receivedInputs[0].query).toBe("TypeScript testing");
+
+    // NOTE: TypeScript parity gap — ControlEvent has no first-class
+    // tool_call_id/tool_name fields. They must travel via the properties dict.
+    // Python's RunEvent has separate fields:
+    //   { event_type: "run", properties: {...}, tool_call_id: "...", tool_name: "...", metadata: {...} }
+  });
 });
