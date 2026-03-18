@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SchemaParser } from "../src/schema-parser.js";
+import type { FieldDef } from "../src/types.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -278,5 +279,499 @@ describe("jsonTypeToTs", () => {
   it("maps object type to dict", () => {
     const result = parser.jsonTypeToTs({ type: "object" }, undefined, "meta");
     expect(result).toEqual({ tsType: "object", propType: "dict[str, any]" });
+  });
+
+  it("maps unknown type to any", () => {
+    const result = parser.jsonTypeToTs({ type: "null" }, undefined, "field");
+    expect(result).toEqual({ tsType: "any", propType: "any" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// normalizeAssetUrlFields
+// ---------------------------------------------------------------------------
+
+describe("normalizeAssetUrlFields", () => {
+  let p: SchemaParser;
+  beforeEach(() => {
+    p = new SchemaParser();
+  });
+
+  function makeField(overrides: Partial<FieldDef> & { name: string }): FieldDef {
+    return {
+      tsType: "string",
+      propType: "str",
+      default: "",
+      description: "",
+      fieldType: "input",
+      required: false,
+      ...overrides,
+    };
+  }
+
+  it("renames image_url → image and records apiParamName", () => {
+    const fields = [makeField({ name: "image_url", propType: "image", tsType: "image", default: null })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("image");
+    expect(result[0].apiParamName).toBe("image_url");
+    expect(result[0].propType).toBe("image");
+  });
+
+  it("renames video_url → video and records apiParamName", () => {
+    const fields = [makeField({ name: "video_url", propType: "video", tsType: "video", default: null })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("video");
+    expect(result[0].apiParamName).toBe("video_url");
+    expect(result[0].propType).toBe("video");
+  });
+
+  it("renames audio_url → audio and records apiParamName", () => {
+    const fields = [makeField({ name: "audio_url", propType: "audio", tsType: "audio", default: null })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("audio");
+    expect(result[0].apiParamName).toBe("audio_url");
+    expect(result[0].propType).toBe("audio");
+  });
+
+  it("renames compound prefix: input_image_url → input_image", () => {
+    const fields = [makeField({ name: "input_image_url", propType: "image", tsType: "image", default: null })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("input_image");
+    expect(result[0].apiParamName).toBe("input_image_url");
+  });
+
+  it("does not rename non-asset _url fields (e.g. webhook_url)", () => {
+    const fields = [makeField({ name: "webhook_url", propType: "str" })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("webhook_url");
+    expect(result[0].apiParamName).toBeUndefined();
+  });
+
+  it("does not rename fields without _url suffix", () => {
+    const fields = [makeField({ name: "prompt", propType: "str" })];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("prompt");
+    expect(result[0].apiParamName).toBeUndefined();
+  });
+
+  it("leaves unrelated fields in the array unchanged", () => {
+    const fields = [
+      makeField({ name: "image_url", propType: "image", tsType: "image", default: null }),
+      makeField({ name: "prompt", propType: "str" }),
+    ];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("image");
+    expect(result[1].name).toBe("prompt");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// normalizeImageUrlsFields
+// ---------------------------------------------------------------------------
+
+describe("normalizeImageUrlsFields", () => {
+  let p: SchemaParser;
+  beforeEach(() => {
+    p = new SchemaParser();
+  });
+
+  function makeField(overrides: Partial<FieldDef> & { name: string }): FieldDef {
+    return {
+      tsType: "string",
+      propType: "str",
+      default: "",
+      description: "",
+      fieldType: "input",
+      required: false,
+      ...overrides,
+    };
+  }
+
+  it("renames image_urls → images and sets list[image] type", () => {
+    const fields = [makeField({ name: "image_urls", propType: "list[image]", tsType: "image[]", default: [] })];
+    const result = p.normalizeImageUrlsFields(fields);
+    expect(result[0].name).toBe("images");
+    expect(result[0].apiParamName).toBe("image_urls");
+    expect(result[0].propType).toBe("list[image]");
+    expect(result[0].tsType).toBe("image[]");
+  });
+
+  it("does not rename video_urls (only handles image_urls)", () => {
+    const fields = [makeField({ name: "video_urls", propType: "list[video]", tsType: "video[]", default: [] })];
+    const result = p.normalizeImageUrlsFields(fields);
+    expect(result[0].name).toBe("video_urls");
+    expect(result[0].apiParamName).toBeUndefined();
+  });
+
+  it("does not rename fields that do not end with _urls", () => {
+    const fields = [makeField({ name: "image_url", propType: "image", tsType: "image", default: null })];
+    const result = p.normalizeImageUrlsFields(fields);
+    expect(result[0].name).toBe("image_url");
+  });
+
+  it("leaves unrelated fields unchanged", () => {
+    const fields = [
+      makeField({ name: "image_urls", propType: "list[image]", tsType: "image[]", default: [] }),
+      makeField({ name: "prompt", propType: "str" }),
+    ];
+    const result = p.normalizeImageUrlsFields(fields);
+    expect(result[0].name).toBe("images");
+    expect(result[1].name).toBe("prompt");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parse() — edge cases with minimal synthetic schemas
+// ---------------------------------------------------------------------------
+
+describe("parse() — synthetic schema edge cases", () => {
+  let p: SchemaParser;
+  beforeEach(() => {
+    p = new SchemaParser();
+  });
+
+  function makeMinimalSchema(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      openapi: "3.0.0",
+      info: {
+        title: "Test",
+        version: "1.0.0",
+        "x-fal-metadata": { endpointId: "fal-ai/test/model" },
+      },
+      paths: {
+        "/fal-ai/test/model": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {},
+                    required: [],
+                  },
+                },
+              },
+            },
+          },
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {},
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      ...overrides,
+    };
+  }
+
+  it("extracts endpoint ID from path when x-fal-metadata is absent", () => {
+    const schema = {
+      openapi: "3.0.0",
+      info: { title: "Test" },
+      paths: {
+        "/fal-ai/some/model": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: { type: "object", properties: {}, required: [] },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.endpointId).toBe("fal-ai/some/model");
+  });
+
+  it("returns empty string when no paths are present", () => {
+    const schema = { openapi: "3.0.0", info: { title: "Test" }, paths: {} };
+    const spec = p.parse(schema);
+    expect(spec.endpointId).toBe("");
+  });
+
+  it("determines video output type from 'video' key", () => {
+    const schema = makeMinimalSchema();
+    // Inject video property into the response schema
+    (
+      (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+    )["get"] = {
+      responses: {
+        "200": {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { video: { type: "object" } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.outputType).toBe("video");
+  });
+
+  it("determines audio output type from 'audio' key", () => {
+    const schema = makeMinimalSchema();
+    (
+      (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+    )["get"] = {
+      responses: {
+        "200": {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { audio: { type: "object" } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.outputType).toBe("audio");
+  });
+
+  it("determines dict output type for multiple output fields", () => {
+    const schema = makeMinimalSchema();
+    (
+      (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+    )["get"] = {
+      responses: {
+        "200": {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  result: { type: "string" },
+                  metadata: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.outputType).toBe("dict");
+  });
+
+  it("determines image output type from single 'image' key", () => {
+    const schema = makeMinimalSchema();
+    (
+      (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+    )["get"] = {
+      responses: {
+        "200": {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { image: { type: "object" } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.outputType).toBe("image");
+  });
+
+  it("resolves inline $ref in input schema", () => {
+    const schema = {
+      openapi: "3.0.0",
+      info: {
+        "x-fal-metadata": { endpointId: "fal-ai/test" },
+      },
+      components: {
+        schemas: {
+          TestInput: {
+            type: "object",
+            properties: {
+              prompt: { type: "string", description: "Text prompt" },
+            },
+            required: ["prompt"],
+          },
+        },
+      },
+      paths: {
+        "/fal-ai/test": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/TestInput" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    const promptField = spec.inputFields.find((f) => f.name === "prompt");
+    expect(promptField).toBeDefined();
+    expect(promptField?.required).toBe(true);
+    expect(promptField?.propType).toBe("str");
+  });
+
+  it("resolves allOf in input schema by merging properties", () => {
+    const schema = {
+      openapi: "3.0.0",
+      info: { "x-fal-metadata": { endpointId: "fal-ai/test" } },
+      components: {
+        schemas: {
+          Base: {
+            type: "object",
+            properties: { seed: { type: "integer", default: -1 } },
+            required: [],
+          },
+          Extra: {
+            type: "object",
+            properties: { prompt: { type: "string" } },
+            required: ["prompt"],
+          },
+        },
+      },
+      paths: {
+        "/fal-ai/test": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    allOf: [
+                      { $ref: "#/components/schemas/Base" },
+                      { $ref: "#/components/schemas/Extra" },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.inputFields.find((f) => f.name === "seed")).toBeDefined();
+    expect(spec.inputFields.find((f) => f.name === "prompt")).toBeDefined();
+  });
+
+  it("normalizes image_url fields during parse", () => {
+    const schema = makeMinimalSchema();
+    (
+      (
+        (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+      )["post"] as Record<string, unknown>
+    )["requestBody"] = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              image_url: { type: "string", description: "Input image URL" },
+            },
+            required: [],
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    // Should be renamed from image_url → image
+    const imageField = spec.inputFields.find((f) => f.name === "image");
+    expect(imageField).toBeDefined();
+    expect(imageField?.apiParamName).toBe("image_url");
+    expect(imageField?.propType).toBe("image");
+  });
+
+  it("generates default -1 for seed-named integer fields", () => {
+    const schema = makeMinimalSchema();
+    (
+      (
+        (schema["paths"] as Record<string, unknown>)["/fal-ai/test/model"] as Record<string, unknown>
+      )["post"] as Record<string, unknown>
+    )["requestBody"] = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              seed: {
+                type: "integer",
+                description: "Random seed for reproducibility",
+              },
+            },
+            required: [],
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    const seedField = spec.inputFields.find((f) => f.name === "seed");
+    expect(seedField).toBeDefined();
+    expect(seedField?.default).toBe(-1);
+  });
+
+  it("skips queue-status paths when finding the output schema", () => {
+    const schema = {
+      openapi: "3.0.0",
+      info: { "x-fal-metadata": { endpointId: "fal-ai/test" } },
+      paths: {
+        "/fal-ai/test/requests/{request_id}": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: { images: { type: "array", items: { type: "object" } } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "/fal-ai/test/requests/{request_id}/status": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      title: "QueueStatus",
+                      properties: {
+                        status: { type: "string" },
+                        request_id: { type: "string" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const spec = p.parse(schema);
+    expect(spec.outputType).toBe("image");
   });
 });
