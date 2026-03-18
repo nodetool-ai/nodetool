@@ -289,6 +289,44 @@ describe("processChat", () => {
     expect(result[1]).toEqual({ role: "assistant", content: "hello" });
   });
 
+  it("executes multiple tool calls in a single round in parallel", async () => {
+    const executionLog: string[] = [];
+
+    class SlowTool extends Tool {
+      readonly name = "slow";
+      readonly description = "Sleeps briefly";
+      readonly inputSchema = { type: "object", properties: { id: { type: "string" } } };
+      async process(_ctx: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+        executionLog.push(`start_${params.id}`);
+        await new Promise((r) => setTimeout(r, 50));
+        executionLog.push(`end_${params.id}`);
+        return { id: params.id };
+      }
+    }
+
+    const provider = createMockProvider([
+      // Single round with two tool calls
+      [toolCall("tc1", "slow", { id: "a" }), toolCall("tc2", "slow", { id: "b" })],
+      // Final text
+      [chunk("Done")],
+    ]);
+
+    await processChat({
+      userInput: "Go",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      tools: [new SlowTool()],
+    });
+
+    // If parallel: both start before either finishes
+    expect(executionLog[0]).toBe("start_a");
+    expect(executionLog[1]).toBe("start_b");
+    // Both ends come after both starts
+    expect(executionLog.slice(2).sort()).toEqual(["end_a", "end_b"]);
+  });
+
   it("works with no tools provided", async () => {
     const provider = createMockProvider([[chunk("Simple reply")]]);
 
