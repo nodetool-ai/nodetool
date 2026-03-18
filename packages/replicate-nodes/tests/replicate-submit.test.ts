@@ -210,12 +210,10 @@ describe("replicateSubmit", () => {
       .mockResolvedValueOnce(mockJsonResponse(starting))
       .mockResolvedValueOnce(mockJsonResponse(failed));
 
-    // Attach .rejects handler before advancing timers to avoid unhandled rejection
-    const expectation = expect(
-      replicateSubmit(apiKey, "owner/model:hash", {})
-    ).rejects.toThrow("Replicate prediction failed: Model crashed");
-    await vi.runAllTimersAsync();
-    await expectation;
+    await expectPollingRejection(
+      replicateSubmit(apiKey, "owner/model:hash", {}),
+      "Replicate prediction failed: Model crashed"
+    );
   });
 
   it("returns canceled prediction without throwing", async () => {
@@ -250,12 +248,10 @@ describe("replicateSubmit", () => {
       .mockResolvedValueOnce(mockJsonResponse(starting))
       .mockResolvedValueOnce(mockErrorResponse(500, "Internal Server Error"));
 
-    // Attach .rejects handler before advancing timers to avoid unhandled rejection
-    const expectation = expect(
-      replicateSubmit(apiKey, "owner/model:hash", {})
-    ).rejects.toThrow("Replicate poll error 500: Internal Server Error");
-    await vi.runAllTimersAsync();
-    await expectation;
+    await expectPollingRejection(
+      replicateSubmit(apiKey, "owner/model:hash", {}),
+      "Replicate poll error 500: Internal Server Error"
+    );
   });
 
   it("uses the poll URL from prediction.urls.get when polling", async () => {
