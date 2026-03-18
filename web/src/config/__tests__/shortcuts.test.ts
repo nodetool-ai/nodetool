@@ -1,4 +1,110 @@
-import { NODE_EDITOR_SHORTCUTS, Shortcut } from "../shortcuts";
+import React from "react";
+import {
+  NODE_EDITOR_SHORTCUTS,
+  Shortcut,
+  expandShortcutsForOS,
+  getShortcutTooltip,
+  SHORTCUT_CATEGORIES
+} from "../shortcuts";
+
+// Ensure React.createElement is available for getShortcutTooltip
+jest.mock("react", () => {
+  const actual = jest.requireActual("react");
+  return { ...actual, default: actual, __esModule: true };
+});
+
+describe("expandShortcutsForOS", () => {
+  const sampleShortcuts: Shortcut[] = [
+    {
+      title: "Copy",
+      slug: "copy",
+      keyCombo: ["Control", "C"],
+      category: "editor"
+    },
+    {
+      title: "Option Test",
+      slug: "optionTest",
+      keyCombo: ["Alt", "X"],
+      category: "editor"
+    },
+    {
+      title: "Custom Mac",
+      slug: "customMac",
+      keyCombo: ["Control", "S"],
+      keyComboMac: ["Meta", "S"],
+      category: "editor"
+    }
+  ];
+
+  it("should map Control to Meta on mac", () => {
+    const result = expandShortcutsForOS(sampleShortcuts, true);
+    const copy = result.find((s) => s.slug === "copy");
+    expect(copy?.keyCombo).toEqual(["Meta", "C"]);
+  });
+
+  it("should map Alt to Option on mac", () => {
+    const result = expandShortcutsForOS(sampleShortcuts, true);
+    const opt = result.find((s) => s.slug === "optionTest");
+    expect(opt?.keyCombo).toEqual(["Option", "X"]);
+  });
+
+  it("should use keyComboMac when provided on mac", () => {
+    const result = expandShortcutsForOS(sampleShortcuts, true);
+    const custom = result.find((s) => s.slug === "customMac");
+    expect(custom?.keyCombo).toEqual(["Meta", "S"]);
+  });
+
+  it("should keep original combos on non-mac", () => {
+    const result = expandShortcutsForOS(sampleShortcuts, false);
+    const copy = result.find((s) => s.slug === "copy");
+    expect(copy?.keyCombo).toEqual(["Control", "C"]);
+  });
+
+  it("should not mutate original shortcuts", () => {
+    const original = sampleShortcuts.map((s) => ({ ...s, keyCombo: [...s.keyCombo] }));
+    expandShortcutsForOS(sampleShortcuts, true);
+    sampleShortcuts.forEach((s, i) => {
+      expect(s.keyCombo).toEqual(original[i].keyCombo);
+    });
+  });
+});
+
+describe("getShortcutTooltip", () => {
+  it("should return the slug if shortcut is not found", () => {
+    const result = getShortcutTooltip("nonExistentSlug");
+    expect(result).toBe("nonExistentSlug");
+  });
+
+  it("should return a React element for a valid shortcut", () => {
+    const result = getShortcutTooltip("copy", "win");
+    expect(typeof result).toBe("object");
+    expect(result).toHaveProperty("props");
+  });
+
+  it("should return combo-only mode element", () => {
+    const result = getShortcutTooltip("copy", "win", "combo");
+    expect(typeof result).toBe("object");
+    if (typeof result === "object") {
+      expect(result.props.className).toBe("shortcut-combo");
+    }
+  });
+});
+
+describe("SHORTCUT_CATEGORIES", () => {
+  it("should have all expected categories", () => {
+    expect(SHORTCUT_CATEGORIES).toHaveProperty("workflow");
+    expect(SHORTCUT_CATEGORIES).toHaveProperty("panel");
+    expect(SHORTCUT_CATEGORIES).toHaveProperty("editor");
+    expect(SHORTCUT_CATEGORIES).toHaveProperty("assets");
+  });
+
+  it("all values should be non-empty strings", () => {
+    Object.values(SHORTCUT_CATEGORIES).forEach((value) => {
+      expect(typeof value).toBe("string");
+      expect(value.length).toBeGreaterThan(0);
+    });
+  });
+});
 
 describe("NODE_EDITOR_SHORTCUTS", () => {
   describe("resetZoom shortcut", () => {
