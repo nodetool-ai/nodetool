@@ -225,6 +225,63 @@ for (const [base, ckpt] of Object.entries(_CHECKPOINT_BASES)) {
 }
 
 /**
+ * Map transformer architecture class names (from `config.json` `architectures` array)
+ * to hf.* types for offline model-type inference.
+ */
+export const _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING: Readonly<Record<string, string>> = {
+  // Causal language models (text generation)
+  LlamaForCausalLM: "hf.text_generation",
+  LlamaForSequenceClassification: "hf.text_classification",
+  MistralForCausalLM: "hf.text_generation",
+  Mistral3ForCausalLM: "hf.text_generation",
+  MixtralForCausalLM: "hf.text_generation",
+  GPT2LMHeadModel: "hf.text_generation",
+  GPT2ForSequenceClassification: "hf.text_classification",
+  GPTJForCausalLM: "hf.text_generation",
+  GPTNeoXForCausalLM: "hf.text_generation",
+  BloomForCausalLM: "hf.text_generation",
+  FalconForCausalLM: "hf.text_generation",
+  MPTForCausalLM: "hf.text_generation",
+  Qwen2ForCausalLM: "hf.text_generation",
+  Qwen3ForCausalLM: "hf.text_generation",
+  Qwen2_5ForCausalLM: "hf.text_generation",
+  PhiForCausalLM: "hf.text_generation",
+  Phi3ForCausalLM: "hf.text_generation",
+  Phi4ForCausalLM: "hf.text_generation",
+  GemmaForCausalLM: "hf.text_generation",
+  Gemma2ForCausalLM: "hf.text_generation",
+  Gemma3ForCausalLM: "hf.text_generation",
+  Gemma3nForCausalLM: "hf.text_generation",
+  CohereForCausalLM: "hf.text_generation",
+  OPTForCausalLM: "hf.text_generation",
+  // Encoder-only models (feature extraction / classification)
+  BertModel: "hf.feature_extraction",
+  BertForMaskedLM: "hf.feature_extraction",
+  BertForSequenceClassification: "hf.text_classification",
+  RobertaModel: "hf.feature_extraction",
+  RobertaForSequenceClassification: "hf.text_classification",
+  DistilBertModel: "hf.feature_extraction",
+  DistilBertForSequenceClassification: "hf.text_classification",
+  // Vision
+  CLIPModel: "hf.zero_shot_image_classification",
+  CLIPVisionModel: "hf.zero_shot_image_classification",
+  ViTModel: "hf.image_classification",
+  ViTForImageClassification: "hf.image_classification",
+  // Audio
+  WhisperForConditionalGeneration: "hf.automatic_speech_recognition",
+  // Seq2Seq
+  T5ForConditionalGeneration: "hf.text2text_generation",
+  BartForConditionalGeneration: "hf.text2text_generation",
+  MBartForConditionalGeneration: "hf.translation",
+  MarianMTModel: "hf.translation",
+  // Vision-language
+  LlavaForConditionalGeneration: "hf.image_text_to_text",
+  Qwen2VLForConditionalGeneration: "hf.image_text_to_text",
+  Qwen2_5_VLForConditionalGeneration: "hf.image_text_to_text",
+  Qwen3VLForConditionalGeneration: "hf.image_text_to_text",
+};
+
+/**
  * Map transformer `model_type` values to hf.* types when configs are parsed offline.
  */
 export const _CONFIG_MODEL_TYPE_MAPPING: Readonly<Record<string, string>> = {
@@ -949,10 +1006,10 @@ export function _inferModelTypeFromLocalConfigs(
 
     const architectures = data.architectures;
     if (Array.isArray(architectures)) {
-      // _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING is empty in Python, but structure is preserved
-      // for future extension.
-      for (const _arch of architectures) {
-        // No mappings defined yet -- placeholder for parity.
+      for (const arch of architectures) {
+        if (typeof arch !== "string") continue;
+        const mapped = _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING[arch];
+        if (mapped) return mapped;
       }
     }
   }
