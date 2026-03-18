@@ -693,8 +693,12 @@ describe("SINGLE_FILE_DIFFUSION_EXTENSIONS", () => {
     expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".safetensors");
   });
 
-  it("includes .gguf", () => {
-    expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".gguf");
+  it("includes .ckpt", () => {
+    expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".ckpt");
+  });
+
+  it("includes .svdq", () => {
+    expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".svdq");
   });
 });
 

@@ -101,7 +101,8 @@ describe("detectFromJson", () => {
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
-    expect(result!.family).toBeTruthy();
+    expect(result!.family).toBe("stable-diffusion");
+    expect(result!.component).toBe("unet");
   });
 
   it("detects SDXL from model_index.json _class_name", async () => {
@@ -111,7 +112,28 @@ describe("detectFromJson", () => {
     });
     const result = detectFromJson([], [indexPath]);
     expect(result).not.toBeNull();
-    expect(result!.family).toBeTruthy();
+    expect(result!.family).toBe("sdxl");
+    expect(result!.component).toBe("unet");
+  });
+
+  it("detects Flux pipeline with transformer component", async () => {
+    const indexPath = await writeJson("model_index.json", {
+      _class_name: "FluxPipeline",
+    });
+    const result = detectFromJson([], [indexPath]);
+    expect(result).not.toBeNull();
+    expect(result!.family).toBe("flux");
+    expect(result!.component).toBe("transformer");
+  });
+
+  it("detects SDXL refiner from model_index.json _class_name", async () => {
+    const indexPath = await writeJson("model_index.json", {
+      _class_name: "StableDiffusionXLRefinerPipeline",
+    });
+    const result = detectFromJson([], [indexPath]);
+    expect(result).not.toBeNull();
+    expect(result!.family).toBe("sdxl-refiner");
+    expect(result!.component).toBe("unet");
   });
 
   it("handles malformed JSON files gracefully", async () => {
