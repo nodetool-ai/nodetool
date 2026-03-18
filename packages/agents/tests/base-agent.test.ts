@@ -181,7 +181,7 @@ describe("BaseAgent execute / getResults", () => {
     });
 
     // Drain the generator
-    for await (const _ of agent.execute(context)) { /* noop */ }
+    for await (const message of agent.execute(context)) { void message; }
 
     expect(agent.getResults()).toEqual({ done: true });
   });
