@@ -172,6 +172,7 @@ export function createGraphNodeTypeResolver(
         (metadata.outputs ?? []).map((output) => [output.name, typeMetadataToString(output.type)]),
       );
       const NodeClass = registry.getClass(nodeType);
+      const syncMode = NodeClass?.syncMode;
       return {
         nodeType: metadata.node_type,
         propertyTypes,
@@ -179,11 +180,11 @@ export function createGraphNodeTypeResolver(
         isDynamic: metadata.is_dynamic ?? false,
         descriptorDefaults: {
           name: metadata.title,
-          is_streaming_input: metadata.is_streaming_input ?? false,
-          is_streaming_output: metadata.is_streaming_output ?? false,
-          is_controlled: metadata.is_controlled ?? false,
-          sync_mode: NodeClass?.syncMode,
-          propertyMeta,
+          ...(metadata.is_streaming_input && { is_streaming_input: true }),
+          ...(metadata.is_streaming_output && { is_streaming_output: true }),
+          ...(metadata.is_controlled && { is_controlled: true }),
+          ...(syncMode !== undefined && { sync_mode: syncMode }),
+          ...(Object.keys(propertyMeta).length > 0 && { propertyMeta }),
         },
       };
     },

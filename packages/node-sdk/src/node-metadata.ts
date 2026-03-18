@@ -181,7 +181,7 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
 
   const descriptor = nodeClass.toDescriptor();
   if (descriptor.outputs && Object.keys(descriptor.outputs).length > 0) {
-    for (const [name, typeName] of Object.entries(descriptor.outputs)) {
+    for (const [name, typeName] of Object.entries(descriptor.outputs as Record<string, string>)) {
       outputs.push({
         name,
         type: parseTypeString(typeName),
