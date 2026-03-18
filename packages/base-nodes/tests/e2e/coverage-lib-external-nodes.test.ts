@@ -3,7 +3,6 @@
  *
  * Strategy:
  * - lib-browser: Real playwright against a local HTTP server for Browser, Screenshot, BrowserNavigation.
- *   BrowserUseLibNode is a stub that always throws.
  * - lib-mail: SendEmail with invalid config → error. Gmail stubs throw.
  * - lib-supabase: All nodes throw when no credentials provided.
  * - lib-compat: LIB_COMPAT_PY_NODES is empty (all descriptors removed). Verify the array is empty.
@@ -33,9 +32,6 @@ import {
 } from "../../src/index.js";
 
 import { SpiderCrawlLibNode, WebFetchLibNode, DownloadFileLibNode } from "../../src/nodes/lib-browser.js";
-
-// BrowserUseLibNode is not re-exported from index; import directly
-import { BrowserUseLibNode } from "../../src/nodes/lib-browser.js";
 
 // Supabase nodes with qualified imports to avoid name collisions with sqlite
 import {
@@ -522,14 +518,6 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         expect(urls.every((u) => !u.includes("example.com"))).toBe(true);
       }
     );
-  });
-});
-
-describe("lib.browser.BrowserUse (stub)", () => {
-  it("throws not-implemented error", async () => {
-    await expect(
-      new BrowserUseLibNode().process({ task: "test" })
-    ).rejects.toThrow("not yet implemented");
   });
 });
 
@@ -1043,12 +1031,6 @@ describe("defaults() methods", () => {
     expect(d).toHaveProperty("start_url");
     expect(d).toHaveProperty("max_depth");
     expect(d).toHaveProperty("delay_ms");
-  });
-
-  it("BrowserUseLibNode defaults", () => {
-    const d = new BrowserUseLibNode().serialize();
-    expect(d).toHaveProperty("task");
-    expect(d).toHaveProperty("model");
   });
 
   it("SendEmailLibNode defaults", () => {
