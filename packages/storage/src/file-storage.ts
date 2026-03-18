@@ -23,8 +23,8 @@ export class FileStorage implements AbstractStorage {
     const filePath = this.resolvePath(key);
     try {
       return await fs.readFile(filePath);
-    } catch (err: any) {
-      if (err.code === "ENOENT") {
+    } catch (err: unknown) {
+      if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
         throw new Error(`Key not found: ${key}`, { cause: err });
       }
       throw err;

@@ -1,13 +1,27 @@
 /**
- * SupabaseStorage — T-ST-5.
+ * SupabaseStorage — storage backend for Supabase Storage buckets.
  *
- * Storage backend for Supabase Storage buckets.
- * Uses dynamic import for @supabase/supabase-js (optional dependency).
+ * Uses dynamic `import()` for `@supabase/supabase-js` so the SDK is an
+ * optional runtime dependency — it is loaded lazily on first use, not at
+ * compile time.
+ *
+ * The interfaces below (`SupabaseBucket`, `SupabaseStorageClient`, etc.) are
+ * intentional **compile-time type stubs** that mirror the subset of the
+ * Supabase SDK API used by this module. They allow the package to type-check
+ * without requiring `@supabase/supabase-js` as a build-time dependency.
+ * At runtime the real SDK module is loaded via `getClient()` and all five
+ * {@link AbstractStorage} methods are fully implemented.
  */
 
 import type { AbstractStorage } from "./abstract-storage.js";
 
-/** Minimal type stubs so we don't need the SDK at compile time. */
+/**
+ * Compile-time type stubs for the Supabase SDK.
+ *
+ * These interfaces mirror the subset of `@supabase/supabase-js` that this
+ * module uses. They exist so the package can be type-checked without the SDK
+ * installed. At runtime the actual SDK classes are loaded via dynamic `import()`.
+ */
 interface SupabaseBucket {
   upload(
     path: string,

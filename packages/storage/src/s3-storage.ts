@@ -1,15 +1,28 @@
 /**
- * S3Storage — T-ST-4.
+ * S3Storage — storage backend for Amazon S3 and S3-compatible services.
  *
- * Storage backend for Amazon S3 and S3-compatible services.
- * Uses dynamic import for @aws-sdk/client-s3 (optional dependency).
+ * Uses dynamic `import()` for `@aws-sdk/client-s3` so the SDK is an optional
+ * runtime dependency — it is loaded lazily on first use, not at compile time.
+ *
+ * The interfaces below (`S3ClientLike`, `S3SdkModule`) are intentional
+ * **compile-time type stubs** that mirror the subset of the AWS SDK API used
+ * by this module. They allow the package to type-check without requiring
+ * `@aws-sdk/client-s3` as a build-time dependency. At runtime the real SDK
+ * module is loaded via `loadSdk()` and all five {@link AbstractStorage} methods
+ * are fully implemented.
  */
 
 import type { AbstractStorage } from "./abstract-storage.js";
 
-/** Minimal type stubs so we don't need the SDK at compile time. */
+/**
+ * Compile-time type stubs for the AWS S3 SDK.
+ *
+ * These interfaces mirror the subset of `@aws-sdk/client-s3` that this module
+ * uses. They exist so the package can be type-checked without the SDK installed.
+ * At runtime the actual SDK classes are loaded via dynamic `import()`.
+ */
 interface S3ClientLike {
-  send(command: unknown): Promise<any>;
+  send(command: unknown): Promise<Record<string, unknown>>;
 }
 
 interface S3SdkModule {
@@ -71,12 +84,15 @@ export class S3Storage implements AbstractStorage {
     const response = await client.send(
       new sdk.GetObjectCommand({ Bucket: this.bucketName, Key: key })
     );
-    const body = response.Body;
+    const body = response.Body as
+      | { transformToByteArray?: () => Promise<Uint8Array> }
+      | AsyncIterable<Uint8Array>
+      | undefined;
     if (!body) {
       throw new Error(`Empty response body for key: ${key}`);
     }
     // body is a Readable stream in Node.js
-    if (typeof body.transformToByteArray === "function") {
+    if ("transformToByteArray" in body && typeof body.transformToByteArray === "function") {
       const bytes: Uint8Array = await body.transformToByteArray();
       return Buffer.from(bytes);
     }
