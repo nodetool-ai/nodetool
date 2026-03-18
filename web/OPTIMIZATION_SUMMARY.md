@@ -138,3 +138,26 @@ Verify by capturing a memory allocation profile while triggering operations like
 ## 🧪 Testing
 - `npm run lint` and `npm run typecheck` run inside the `web` folder.
 - Store test files confirm logic parity.
+
+# ⚡ Bolt: GroupNode Child Check Performance Optimization
+
+## 💡 What
+Refactored `GroupNode.tsx` to combine two separate `useNodes` subscriptions into a single optimized `for` loop that checks for children and bypassed children simultaneously.
+
+## 🎯 Why
+Previously, every `GroupNode` on the canvas subscribed to `state.nodes` using two separate `.some()` loops.
+Because ReactFlow updates the `nodes` array reference on every drag frame (60fps), these loops ran continuously during interactions.
+This caused O(G * N) operations per frame (where G = number of group nodes, N = total nodes), taking up valuable main thread time.
+
+## 📊 Impact
+- **Reduces Main Thread Work:** Combines two O(N) array iterations into a single loop.
+- **Early Exit:** The loop stops as soon as both conditions (`hasChildren` and `someChildrenBypassed`) are met, further reducing iteration time.
+- **Improved Responsiveness:** Smoother node dragging when workflows contain Group Nodes.
+
+## 🔬 Measurement
+Verify by checking the React Profiler during node drag operations with multiple group nodes. The `useNodes` selector execution time within `GroupNode` will be significantly reduced.
+
+## 🧪 Testing
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
+- Ran `make test-web`: Verified core tests pass.
