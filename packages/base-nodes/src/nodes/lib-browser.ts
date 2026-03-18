@@ -520,7 +520,117 @@ export class BrowserUseLibNode extends BaseNode {
 
 
   async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    throw new Error("lib.browser.BrowserUse: not yet implemented in TypeScript. Use the Python bridge.");
+    const task = String(_inputs.task ?? this.task ?? "");
+    const model = String(_inputs.model ?? this.model ?? "gpt-4o");
+    const timeoutSec = Number(_inputs.timeout ?? this.timeout ?? 300);
+    const apiKey =
+      (_inputs._secrets as Record<string, string>)?.OPENAI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      "";
+
+    if (!task) {
+      return { success: false, task, result: null, error: "Task is required" };
+    }
+    if (!apiKey) {
+      return { success: false, task, result: null, error: "OPENAI_API_KEY is not configured" };
+    }
+
+    const axios = (await import("axios")).default;
+    const cheerio = await import("cheerio");
+
+    const OPENAI_BASE = "https://api.openai.com/v1";
+    const maxSteps = 10;
+    let currentUrl = "";
+    let pageContent = "";
+    const history: string[] = [];
+    let result: string | null = null;
+
+    interface Decision {
+      action: string;
+      url?: string;
+      data?: string;
+    }
+
+    const getDecision = async (content: string): Promise<Decision> => {
+      const res = await axios.post(
+        `${OPENAI_BASE}/chat/completions`,
+        {
+          model,
+          response_format: { type: "json_object" },
+          max_tokens: 500,
+          messages: [
+            {
+              role: "system",
+              content:
+                'You are a web browser agent. Given a web page content and a task, decide what to do next. Respond with JSON: { "action": "navigate|extract|done", "url": "URL if navigating", "data": "extracted data or result if done" }. Actions: "navigate" (go to URL), "extract" (extract data from current page into data field), "done" (task complete, put result in data field).',
+            },
+            {
+              role: "user",
+              content: `Task: ${task}\nHistory: ${history.slice(-5).join(", ") || "none"}\nCurrent page:\n${content.slice(0, 2000)}`,
+            },
+          ],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 30000,
+        }
+      );
+      const raw: string = res.data.choices?.[0]?.message?.content ?? "{}";
+      try {
+        return JSON.parse(raw) as Decision;
+      } catch {
+        return { action: "done", data: pageContent.slice(0, 1000) };
+      }
+    };
+
+    const startTime = Date.now();
+
+    for (let step = 0; step < maxSteps; step++) {
+      if (Date.now() - startTime > timeoutSec * 1000) {
+        return { success: false, task, result, error: "Timeout exceeded" };
+      }
+
+      let decision: Decision;
+      try {
+        decision = await getDecision(pageContent || `No page loaded yet. Task: ${task}`);
+      } catch (e) {
+        return { success: false, task, result, error: e instanceof Error ? e.message : String(e) };
+      }
+
+      if (decision.action === "done" || decision.action === "extract") {
+        result = decision.data ?? pageContent.slice(0, 1000);
+        return { success: true, task, result, error: "" };
+      }
+
+      if (decision.action === "navigate" && decision.url) {
+        try {
+          const response = await axios.get(decision.url, {
+            headers: { "User-Agent": USER_AGENT },
+            timeout: 30000,
+            responseType: "text",
+          });
+          currentUrl = decision.url;
+          const $ = cheerio.load(String(response.data));
+          $("script, style, nav, footer, header").remove();
+          const text = $.text().replace(/\s+/g, " ").trim();
+          pageContent = `URL: ${currentUrl}\n${text}`;
+          history.push(`navigate:${decision.url}`);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          pageContent = `Error fetching ${decision.url}: ${msg}`;
+          history.push(`error:${decision.url}`);
+        }
+      } else {
+        // Unknown action, treat as done
+        result = pageContent.slice(0, 1000);
+        return { success: true, task, result, error: "" };
+      }
+    }
+
+    return { success: false, task, result, error: "Max steps reached without completing the task" };
   }
 }
 
