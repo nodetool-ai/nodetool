@@ -112,6 +112,9 @@ export async function processChat(opts: {
       tools: providerTools,
     });
 
+    // Phase 1: Stream chunks and collect tool calls
+    const pendingToolCalls: ToolCall[] = [];
+
     for await (const item of stream) {
       // --- Text chunk ---
       if (isChunk(item)) {
@@ -127,15 +130,23 @@ export async function processChat(opts: {
         }
       }
 
-      // --- Tool call ---
+      // --- Tool call (collect, don't execute yet) ---
       if (isToolCall(item)) {
         callbacks?.onToolCall?.(item);
-
-        const toolResult = await runTool(context, item, tools);
-        callbacks?.onToolResult?.(item, (toolResult as ToolCall & { result: unknown }).result);
-
-        toolCallResults.push(toolResult as ToolCall & { result: unknown });
+        pendingToolCalls.push(item);
       }
+    }
+
+    // Phase 2: Execute all collected tool calls in parallel
+    if (pendingToolCalls.length > 0) {
+      const results = await Promise.all(
+        pendingToolCalls.map(async (tc) => {
+          const toolResult = await runTool(context, tc, tools);
+          callbacks?.onToolResult?.(tc, (toolResult as ToolCall & { result: unknown }).result);
+          return toolResult as ToolCall & { result: unknown };
+        }),
+      );
+      toolCallResults.push(...results);
     }
 
     // If tool calls were processed, consolidate into a single assistant message + tool results
