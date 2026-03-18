@@ -1,0 +1,94 @@
+{
+  "modelId": "stability-ai/sdxl",
+  "owner": "stability-ai",
+  "name": "sdxl",
+  "version": "7762fd07cf82c948538e41f63f77d685e02b063e68b3c9e1d0d8f37e2f4b09bb",
+  "description": "A text-to-image generative AI model that creates beautiful images",
+  "inputSchema": {
+    "type": "object",
+    "title": "Input",
+    "required": ["prompt"],
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "title": "Prompt",
+        "description": "Input prompt"
+      },
+      "negative_prompt": {
+        "type": "string",
+        "title": "Negative Prompt",
+        "description": "Input Negative Prompt",
+        "default": ""
+      },
+      "width": {
+        "type": "integer",
+        "title": "Width",
+        "description": "Width of output image",
+        "default": 1024
+      },
+      "height": {
+        "type": "integer",
+        "title": "Height",
+        "description": "Height of output image",
+        "default": 1024
+      },
+      "num_outputs": {
+        "type": "integer",
+        "title": "Num Outputs",
+        "description": "Number of images to output",
+        "default": 1
+      },
+      "guidance_scale": {
+        "type": "number",
+        "title": "Guidance Scale",
+        "description": "Scale for classifier-free guidance",
+        "default": 7.5
+      },
+      "seed": {
+        "type": "integer",
+        "title": "Seed",
+        "description": "Random seed. Leave blank to randomize the seed"
+      },
+      "apply_watermark": {
+        "type": "boolean",
+        "title": "Apply Watermark",
+        "description": "Applies a watermark to enable determining if an image is machine-generated",
+        "default": true
+      },
+      "image": {
+        "type": "string",
+        "format": "uri",
+        "title": "Image",
+        "description": "Input image for img2img or inpaint mode"
+      },
+      "mask": {
+        "type": "string",
+        "format": "uri",
+        "title": "Mask",
+        "description": "Input mask for inpaint mode"
+      },
+      "scheduler": {
+        "type": "string",
+        "title": "Scheduler",
+        "description": "scheduler",
+        "enum": ["DDIM", "DPMSolverMultistep", "HeunDiscrete", "KarrasDPM", "K_EULER_ANCESTRAL", "K_EULER", "PNDM"],
+        "default": "K_EULER"
+      },
+      "refine": {
+        "type": "string",
+        "title": "Refine",
+        "description": "Which refine style to use",
+        "enum": ["no_refiner", "expert_ensemble_refiner", "base_image_refiner"],
+        "default": "no_refiner"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "array",
+    "items": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": "Output"
+  }
+}
