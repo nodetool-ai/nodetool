@@ -218,67 +218,45 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       ws.on("message", async (data: Buffer | string) => {
         try {
           const msg = JSON.parse(data.toString()) as Record<string, unknown>;
-          console.log("[ElevenLabs TTS] WS message:", JSON.stringify({
-            isFinal: msg.isFinal,
-            hasAudio: !!(msg.audio),
-            audioLength: typeof msg.audio === "string" ? msg.audio.length : 0,
-            normalizedAlignment: msg.normalizedAlignment ? "present" : undefined,
-            ...( msg.error ? { error: msg.error } : {}),
-          }));
 
           if (msg.isFinal) {
-            console.log("[ElevenLabs TTS] Emitting final chunk (done=true)");
-            try {
-              await outputs.emit("chunk", {
-                type: "chunk",
-                content: "",
-                done: true,
-                content_type: "audio",
-                content_metadata: audioMetadata,
-              });
-              console.log("[ElevenLabs TTS] Final chunk emitted OK");
-            } catch (emitErr) {
-              console.error("[ElevenLabs TTS] Final chunk emit FAILED:", emitErr);
-            }
+            await outputs.emit("chunk", {
+              type: "chunk",
+              content: "",
+              done: true,
+              content_type: "audio",
+              content_metadata: audioMetadata,
+            });
             consumerDone = true;
             resolve();
             return;
           }
 
           if (msg.audio && typeof msg.audio === "string") {
-            console.log("[ElevenLabs TTS] Emitting audio chunk, b64len:", msg.audio.length);
-            try {
-              await outputs.emit("chunk", {
-                type: "chunk",
-                content: msg.audio,
-                done: false,
-                content_type: "audio",
-                content_metadata: audioMetadata,
-              });
-              console.log("[ElevenLabs TTS] Audio chunk emitted OK");
-            } catch (emitErr) {
-              console.error("[ElevenLabs TTS] Audio chunk emit FAILED:", emitErr);
-            }
+            await outputs.emit("chunk", {
+              type: "chunk",
+              content: msg.audio,
+              done: false,
+              content_type: "audio",
+              content_metadata: audioMetadata,
+            });
           }
         } catch (err) {
-          console.error("[ElevenLabs TTS] WS message parse error:", err);
           reject(err);
         }
       });
 
       ws.on("error", (err: Error) => {
-        console.error("[ElevenLabs TTS] WS error:", err.message);
         if (!consumerDone) reject(err);
       });
 
-      ws.on("close", (code: number, reason: Buffer) => {
-        console.log("[ElevenLabs TTS] WS closed:", code, reason.toString());
+      ws.on("close", (_code: number, reason?: Buffer) => {
+        void reason?.toString();
         if (!consumerDone) resolve();
       });
     });
 
     // Producer: read streaming text input and forward to WebSocket
-    console.log("[ElevenLabs TTS] Producer started, reading input stream");
     try {
       for await (const [handle, item] of inputs.any()) {
         if (handle === "__control__") continue;
@@ -294,13 +272,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
           done = Boolean(chunk.done ?? false);
         }
 
-        console.log("[ElevenLabs TTS] Input chunk:", JSON.stringify({
-          handle,
-          contentLength: content.length,
-          contentPreview: content.slice(0, 80),
-          done,
-        }));
-
         if (content && !done) {
           ws.send(JSON.stringify({ text: content + " " }));
         }
@@ -308,7 +279,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
         if (done) break;
       }
     } finally {
-      console.log("[ElevenLabs TTS] Producer finished, closing stream");
       // Send empty string to close the ElevenLabs stream
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ text: "" }));
@@ -316,9 +286,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     }
 
     // Wait for consumer to finish receiving audio
-    console.log("[ElevenLabs TTS] Waiting for consumer to finish");
     await consumerPromise;
-    console.log("[ElevenLabs TTS] Consumer finished");
 
     if (ws.readyState === WebSocket.OPEN) {
       ws.close();

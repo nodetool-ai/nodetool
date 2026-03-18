@@ -48,7 +48,7 @@ class MockWebSocket extends EventEmitter {
     lifecycleEvents.push("close");
     this.readyState = MockWebSocket.CLOSED;
     setTimeout(() => {
-      this.emit("close");
+      this.emit("close", 1000, Buffer.from(""));
     }, 0);
   }
 }
@@ -122,11 +122,13 @@ describe("RealtimeSpeechToTextNode", () => {
     expect(lifecycleEvents).toEqual(["commit", "close"]);
     expect(emitted).toEqual([
       {
+        type: "chunk",
         content: "final transcript",
         done: false,
         content_type: "text",
       },
       {
+        type: "chunk",
         content: "",
         done: true,
         content_type: "text",
