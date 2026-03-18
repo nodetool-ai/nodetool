@@ -691,8 +691,8 @@ export class NoiseGateNode extends BaseNode {
   async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const audio = (_inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(_inputs.threshold_db ?? this.threshold_db ?? -50);
-    const attackMs = Number(_inputs.attack_ms ?? this.attack_ms ?? 1);
-    const releaseMs = Number(_inputs.release_ms ?? this.release_ms ?? 100);
+    const attackMs = Math.max(0.1, Number(_inputs.attack_ms ?? this.attack_ms ?? 1));
+    const releaseMs = Math.max(1, Number(_inputs.release_ms ?? this.release_ms ?? 100));
 
     if (!audio.data) return { output: audio };
 

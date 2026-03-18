@@ -535,6 +535,32 @@ export class BrowserUseLibNode extends BaseNode {
       return { success: false, task, result: null, error: "OPENAI_API_KEY is not configured" };
     }
 
+    /** Validate that a URL is a safe external HTTP/HTTPS URL (prevent SSRF). */
+    const isSafeUrl = (rawUrl: string): boolean => {
+      let parsed: URL;
+      try {
+        parsed = new URL(rawUrl);
+      } catch {
+        return false;
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+      const host = parsed.hostname.toLowerCase();
+      // Block loopback and private network ranges
+      if (
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "::1" ||
+        host.startsWith("192.168.") ||
+        host.startsWith("10.") ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+        host.endsWith(".local") ||
+        host.endsWith(".internal")
+      ) {
+        return false;
+      }
+      return true;
+    };
+
     const axios = (await import("axios")).default;
     const cheerio = await import("cheerio");
 
@@ -581,7 +607,10 @@ export class BrowserUseLibNode extends BaseNode {
       const raw: string = res.data.choices?.[0]?.message?.content ?? "{}";
       try {
         return JSON.parse(raw) as Decision;
-      } catch {
+      } catch (e) {
+        // JSON parse failed; treat as completed with available page content
+        const parseErr = e instanceof Error ? e.message : String(e);
+        history.push(`json-parse-error:${parseErr}`);
         return { action: "done", data: pageContent.slice(0, 1000) };
       }
     };
@@ -606,22 +635,28 @@ export class BrowserUseLibNode extends BaseNode {
       }
 
       if (decision.action === "navigate" && decision.url) {
-        try {
-          const response = await axios.get(decision.url, {
-            headers: { "User-Agent": USER_AGENT },
-            timeout: 30000,
-            responseType: "text",
-          });
-          currentUrl = decision.url;
-          const $ = cheerio.load(String(response.data));
-          $("script, style, nav, footer, header").remove();
-          const text = $.text().replace(/\s+/g, " ").trim();
-          pageContent = `URL: ${currentUrl}\n${text}`;
-          history.push(`navigate:${decision.url}`);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          pageContent = `Error fetching ${decision.url}: ${msg}`;
-          history.push(`error:${decision.url}`);
+        const targetUrl = decision.url;
+        if (!isSafeUrl(targetUrl)) {
+          pageContent = `Blocked navigation to disallowed URL: ${targetUrl}`;
+          history.push(`blocked:${targetUrl}`);
+        } else {
+          try {
+            const response = await axios.get(targetUrl, {
+              headers: { "User-Agent": USER_AGENT },
+              timeout: 30000,
+              responseType: "text",
+            });
+            currentUrl = targetUrl;
+            const $ = cheerio.load(String(response.data));
+            $("script, style, nav, footer, header").remove();
+            const text = $.text().replace(/\s+/g, " ").trim();
+            pageContent = `URL: ${currentUrl}\n${text}`;
+            history.push(`navigate:${targetUrl}`);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            pageContent = `Error fetching ${targetUrl}: ${msg}`;
+            history.push(`error:${targetUrl}`);
+          }
         }
       } else {
         // Unknown action, treat as done

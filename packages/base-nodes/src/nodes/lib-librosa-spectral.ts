@@ -305,8 +305,8 @@ function griffinLim(
         const im = mag * Math.sin(ph);
         frame[k * 2] = re;
         frame[k * 2 + 1] = im;
-        // Mirror for conjugate symmetry (real signal)
-        if (k > 0 && k < nFft - k) {
+        // Mirror for conjugate symmetry (real signal): bin k maps to bin nFft - k
+        if (k > 0 && k < nFft / 2) {
           frame[(nFft - k) * 2] = re;
           frame[(nFft - k) * 2 + 1] = -im;
         }
