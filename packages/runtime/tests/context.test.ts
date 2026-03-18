@@ -2,7 +2,7 @@
  * ProcessingContext tests.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   ProcessingContext,
   MemoryCache,
@@ -1587,9 +1587,14 @@ describe("ProcessingContext – getProvider with no resolver", () => {
   });
 
   it("resolves built-in providers from the default registry path", async () => {
-    const ctx = new ProcessingContext({ jobId: "j1" });
-    const provider = await ctx.getProvider("openai");
-    expect(provider.provider).toBe("openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test-fake-key");
+    try {
+      const ctx = new ProcessingContext({ jobId: "j1" });
+      const provider = await ctx.getProvider("openai");
+      expect(provider.provider).toBe("openai");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 
