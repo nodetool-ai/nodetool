@@ -29,6 +29,7 @@ import type {
   PlanningUpdate,
   Chunk,
   Prediction,
+  LLMCallUpdate,
 } from "../src/messages.js";
 import {
   TaskUpdateEvent,
@@ -158,6 +159,18 @@ function prediction(): Prediction {
     status: "completed",
   };
 }
+function llmCallUpdate(): LLMCallUpdate {
+  return {
+    type: "llm_call",
+    node_id: "n1",
+    provider: "openai",
+    model: "gpt-4",
+    messages: [{ role: "user", content: "hello" }],
+    response: "hi",
+    duration_ms: 100,
+    timestamp: "2024-01-01T00:00:00Z",
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Collect all factory functions so we can iterate over them
@@ -182,6 +195,7 @@ const factories: Array<[MessageType, () => ProcessingMessage]> = [
   ["planning_update", planningUpdate],
   ["chunk", chunk],
   ["prediction", prediction],
+  ["llm_call", llmCallUpdate],
 ];
 
 // ---------------------------------------------------------------------------
@@ -201,8 +215,8 @@ describe("ProcessingMessage discriminator", () => {
     expect(new Set(types).size).toBe(types.length);
   });
 
-  it("has exactly 18 message types matching Python ProcessingMessage", () => {
-    expect(factories.length).toBe(18);
+  it("has exactly 19 message types matching Python ProcessingMessage", () => {
+    expect(factories.length).toBe(19);
   });
 });
 
