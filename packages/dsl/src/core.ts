@@ -258,11 +258,44 @@ export type RunOptions = {
 export type WorkflowResult = Record<string, unknown>;
 
 export async function run(
-  _wf: Workflow,
+  wf: Workflow,
   _opts?: RunOptions
 ): Promise<WorkflowResult> {
-  // Placeholder — actual integration with WorkflowRunner deferred
-  throw new Error("run() is not yet implemented — use workflow() to build graphs");
+  // Dynamic imports to avoid hard dependency on base-nodes
+  const { WorkflowRunner } = await import("@nodetool/kernel");
+  const { NodeRegistry } = await import("@nodetool/node-sdk");
+  const { registerBaseNodes } = await import("@nodetool/base-nodes");
+  const { registerElevenLabsNodes } = await import("@nodetool/elevenlabs-nodes");
+  const { ProcessingContext } = await import("@nodetool/runtime");
+
+  const registry = new NodeRegistry();
+  registerBaseNodes(registry);
+  registerElevenLabsNodes(registry);
+
+  const jobId = `job-${Date.now()}`;
+  const context = new ProcessingContext({ jobId, workflowId: null });
+
+  const runner = new WorkflowRunner(jobId, {
+    resolveExecutor: (node: { id: string; type: string }) => {
+      if (!registry.has(node.type))
+        throw new Error(`Unknown node type: ${node.type}`);
+      return registry.resolve(node);
+    },
+    executionContext: context,
+  });
+
+  // Normalize nodes: DSL uses `data` field, kernel expects `properties`
+  const nodes = wf.nodes.map((n) => {
+    const { data, ...rest } = n as any;
+    return { ...rest, properties: data ?? {} };
+  });
+
+  const result = await runner.run(
+    { job_id: jobId, params: {} },
+    { nodes, edges: wf.edges as any[] }
+  );
+
+  return result.outputs ?? {};
 }
 
 export async function runGraph(

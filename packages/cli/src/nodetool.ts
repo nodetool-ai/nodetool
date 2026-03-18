@@ -30,6 +30,7 @@ import { getSecret } from "@nodetool/security";
 import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
@@ -226,7 +227,7 @@ workflows
 
 workflows
   .command("run <workflow_id_or_file>")
-  .description("Run a workflow by ID (from DB) or JSON file path")
+  .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
   .option("--params <json>", "JSON params string")
   .option("--json", "Output as JSON")
   .action(async (idOrFile: string, opts: { params?: string; json?: boolean }) => {
@@ -237,9 +238,21 @@ workflows
       const params = opts.params ? JSON.parse(opts.params) as Record<string, unknown> : {};
 
       // Determine if argument is a file path or workflow ID
-      if (idOrFile.endsWith(".json") || idOrFile.includes("/") || idOrFile.includes("\\")) {
-        const { readFileSync } = await import("node:fs");
-        const raw = JSON.parse(readFileSync(idOrFile, "utf8"));
+      if (idOrFile.endsWith(".json") || idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx") || idOrFile.includes("/") || idOrFile.includes("\\")) {
+        let raw: any;
+        if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
+          // Execute DSL file via tsx and capture JSON output
+          const { execSync } = await import("node:child_process");
+          const output = execSync(`npx tsx "${resolve(idOrFile)}"`, {
+            encoding: "utf8",
+            cwd: dirname(resolve(idOrFile)),
+            timeout: 30000,
+          });
+          raw = JSON.parse(output.trim());
+        } else {
+          const { readFileSync } = await import("node:fs");
+          raw = JSON.parse(readFileSync(idOrFile, "utf8"));
+        }
         graph = raw.graph ?? raw;
         workflowId = raw.workflow_id ?? raw.id ?? null;
         if (raw.params) Object.assign(params, raw.params);
@@ -267,6 +280,7 @@ workflows
       // Set up node registry
       const registry = new NodeRegistry();
       registerBaseNodes(registry);
+      registerElevenLabsNodes(registry);
       registerFalNodes(registry);
       registerReplicateNodes(registry);
 
