@@ -20,7 +20,6 @@
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import ivm from "isolated-vm";
 
 /** JS keywords that cannot be used as variable names in the isolate. */
 const JS_RESERVED = new Set([
@@ -40,6 +39,22 @@ const STATEMENT_KEYWORDS = /^(if|else|for|while|do|switch|try|catch|finally|thro
 
 /** Memory limit per isolate in MB. */
 const ISOLATE_MEMORY_MB = 128;
+
+/**
+ * Lazily load isolated-vm to avoid loading the native addon at import time.
+ *
+ * We return `any` here because isolated-vm uses `export = IsolatedVM` (CommonJS
+ * `module.exports` style). TypeScript's type for `await import("isolated-vm")`
+ * is `typeof IsolatedVM` (the namespace itself) but at runtime in Node.js ESM
+ * the CJS `module.exports` is placed under a `.default` wrapper. We normalise
+ * both layouts so callers can use `ivm.Isolate` / `ivm.ExternalCopy` directly.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadIvm(): Promise<any> {
+  const mod = await import("isolated-vm");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (mod as any).default ?? mod;
+}
 
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
@@ -73,6 +88,7 @@ export class CodeNode extends BaseNode {
   async process(
     inputs: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
+    const ivm = await loadIvm();
     const code = String(inputs.code ?? this.code ?? "return {};");
     const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
 
@@ -100,7 +116,7 @@ export class CodeNode extends BaseNode {
       }
 
       // Inject minimal safe globals.
-      await injectSafeGlobals(jail);
+      await injectSafeGlobals(jail, ivm);
 
       const timeoutMs = timeout > 0 ? timeout * 1000 : undefined;
       const resultJson = await context.eval(wrappedCode, {
@@ -120,6 +136,7 @@ export class CodeNode extends BaseNode {
   async *genProcess(
     inputs: Record<string, unknown>,
   ): AsyncGenerator<Record<string, unknown>> {
+    const ivm = await loadIvm();
     const code = String(inputs.code ?? this.code ?? "return {};");
     const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
 
@@ -151,7 +168,7 @@ export class CodeNode extends BaseNode {
       for (const [key, value] of Object.entries(dynamicInputs)) {
         await jail.set(key, new ivm.ExternalCopy(deepCopyable(value)).copyInto());
       }
-      await injectSafeGlobals(jail);
+      await injectSafeGlobals(jail, ivm);
 
       const timeoutMs = timeout > 0 ? timeout * 1000 : undefined;
       const resultJson = await context.eval(wrappedCode, {
@@ -208,7 +225,8 @@ function deepCopyable(value: unknown): unknown {
 }
 
 /** Inject safe globals that user code may expect. */
-async function injectSafeGlobals(jail: ivm.Reference<Record<string | number | symbol, unknown>>): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function injectSafeGlobals(jail: any, ivm: any): Promise<void> {
   // JSON and Math are already available in V8.
   // Add console.log as a no-op (prevents ReferenceError).
   await jail.set("console", new ivm.ExternalCopy({

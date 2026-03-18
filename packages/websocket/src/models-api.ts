@@ -541,6 +541,9 @@ function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?:
 async function getAllModels(): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
+  // Always include recommended models as a baseline
+  all.push(...RECOMMENDED_MODELS);
+
   // Include language models from all available providers
   const availableIds = await getAvailableProviderIds();
   for (const providerId of availableIds) {
@@ -902,7 +905,10 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   if (path === "/pull_ollama_model") {
     if (request.method !== "POST") return errorResponse(405, "Method not allowed");
     if (isProduction()) return errorResponse(503, { status: "unavailable", message: "Not available in production" });
-    return errorResponse(501, "Streaming Ollama model pulls are not implemented in TS API yet");
+    // Streaming Ollama model pulls require Server-Sent Events with progress deltas.
+    // The TS standalone server does not implement this streaming protocol yet.
+    // Clients should use the Python backend or manage Ollama pulls directly via the Ollama HTTP API.
+    return errorResponse(501, "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend.");
   }
 
   if (path === "/huggingface/file_info") {
