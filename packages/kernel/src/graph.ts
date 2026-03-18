@@ -194,18 +194,13 @@ export class Graph {
             : {};
 
       if (!allowUndefinedProperties) {
-        const definedProperties = new Set<string>([
-          ...Object.keys(
+        const definedProperties = new Set<string>(
+          Object.keys(
             nodeObj.propertyTypes && typeof nodeObj.propertyTypes === "object"
               ? (nodeObj.propertyTypes as Record<string, unknown>)
               : {},
           ),
-          ...Object.keys(
-            nodeObj.properties && typeof nodeObj.properties === "object"
-              ? (nodeObj.properties as Record<string, unknown>)
-              : {},
-          ),
-        ]);
+        );
 
         for (const key of Object.keys(rawProperties)) {
           if (!definedProperties.has(key)) {

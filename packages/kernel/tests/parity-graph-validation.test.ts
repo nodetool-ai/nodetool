@@ -207,26 +207,98 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
 // ===========================================================================
 
 describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
-  it.todo(
-    "should drop unrecognized node types when skip_errors=true"
+  it("should drop unrecognized node types when skip_errors=true", () => {
     // Python: Graph.from_dict(data, skip_errors=True) silently drops nodes
-    // whose types are not registered. It also removes edges connected to
-    // those dropped nodes. TypeScript has no equivalent — the Graph
-    // constructor accepts any node type string without validation.
-  );
+    // whose types are not registered. TypeScript's Graph.fromDict() supports
+    // this via the validateNodeType callback + skipErrors=true.
+    const knownTypes = new Set(["test.Known"]);
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          { id: "a", type: "test.Known" },
+          { id: "b", type: "test.Unknown" }, // unrecognized
+          { id: "c", type: "test.Known" },
+        ],
+        edges: [
+          { source: "a", sourceHandle: "out", target: "c", targetHandle: "in" },
+        ],
+      },
+      {
+        skipErrors: true,
+        validateNodeType: (t) => knownTypes.has(t),
+      }
+    );
 
-  it.todo(
-    "should also remove edges connected to dropped nodes when skip_errors=true"
+    // Node "b" should be dropped
+    expect(graph.nodes).toHaveLength(2);
+    expect(graph.nodes.map((n) => n.id)).toEqual(["a", "c"]);
+  });
+
+  it("should also remove edges connected to dropped nodes when skip_errors=true", () => {
     // When a node is dropped due to unrecognized type, all edges that
     // reference that node (as source or target) must also be dropped.
-  );
+    const knownTypes = new Set(["test.Known"]);
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          { id: "a", type: "test.Known" },
+          { id: "b", type: "test.Unknown" }, // will be dropped
+          { id: "c", type: "test.Known" },
+        ],
+        edges: [
+          { source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }, // target dropped
+          { source: "b", sourceHandle: "out", target: "c", targetHandle: "in" }, // source dropped
+          { source: "a", sourceHandle: "out", target: "c", targetHandle: "in" }, // valid
+        ],
+      },
+      {
+        skipErrors: true,
+        validateNodeType: (t) => knownTypes.has(t),
+      }
+    );
 
-  it.todo(
-    "should throw on unrecognized node types when skip_errors=false (default)"
+    // Only the valid edge should remain
+    expect(graph.edges).toHaveLength(1);
+    expect(graph.edges[0].source).toBe("a");
+    expect(graph.edges[0].target).toBe("c");
+  });
+
+  it("should throw on unrecognized node types when skip_errors=false", () => {
     // Python: Graph.from_dict(data) without skip_errors raises an error
-    // when encountering unknown node types. TypeScript never validates
-    // node types during construction.
-  );
+    // when encountering unknown node types. TypeScript's Graph.fromDict()
+    // throws GraphValidationError when skipErrors=false and validateNodeType fails.
+    const knownTypes = new Set(["test.Known"]);
+    expect(() =>
+      Graph.fromDict(
+        {
+          nodes: [
+            { id: "a", type: "test.Known" },
+            { id: "b", type: "test.Unknown" },
+          ],
+          edges: [],
+        },
+        {
+          skipErrors: false,
+          validateNodeType: (t) => knownTypes.has(t),
+        }
+      )
+    ).toThrow(GraphValidationError);
+    expect(() =>
+      Graph.fromDict(
+        {
+          nodes: [
+            { id: "a", type: "test.Known" },
+            { id: "b", type: "test.Unknown" },
+          ],
+          edges: [],
+        },
+        {
+          skipErrors: false,
+          validateNodeType: (t) => knownTypes.has(t),
+        }
+      )
+    ).toThrow(/Invalid node type/);
+  });
 });
 
 describe("Gap #14 – property filtering for nodes with incoming edges", () => {
@@ -276,31 +348,124 @@ describe("Gap #14 – property filtering for nodes with incoming edges", () => {
     expect(result.outputs.result).toContain(5);
   });
 
-  it.todo(
-    "property filtering should strip static values during deserialization for edge-connected inputs"
+  it("property filtering should strip static values during deserialization for edge-connected inputs", () => {
     // Python explicitly removes the static property value from the node
     // during Graph.from_dict() if that property has an incoming edge.
-    // This is a deserialization-time optimization that prevents confusion.
-    // TypeScript does no such stripping — it relies on runtime override.
-    //
-    // This matters when a node's process() reads from node.properties
-    // directly (as a fallback) rather than from the inputs dict.
-  );
+    // TypeScript's Graph.fromDict() implements this via propertiesWithEdges
+    // map — it deletes properties that have an incoming edge targeting them.
+    const graph = Graph.fromDict({
+      nodes: [
+        { id: "in", type: "test.Input" },
+        {
+          id: "proc",
+          type: "test.Proc",
+          properties: { value: 999, other: "kept" }, // value should be stripped
+        },
+        { id: "out", type: "test.Output" },
+      ],
+      edges: [
+        { source: "in", sourceHandle: "value", target: "proc", targetHandle: "value" },
+        { source: "proc", sourceHandle: "result", target: "out", targetHandle: "value" },
+      ],
+    });
+
+    const procNode = graph.findNode("proc")!;
+    expect(procNode).toBeDefined();
+    // "value" should be stripped because it has an incoming edge
+    expect((procNode.properties as Record<string, unknown>).value).toBeUndefined();
+    // "other" should be kept because it has no incoming edge
+    expect((procNode.properties as Record<string, unknown>).other).toBe("kept");
+  });
 });
 
 describe("Gap #14 – allow_undefined_properties flag", () => {
-  it.todo(
-    "should silently ignore unknown properties on nodes when allow_undefined_properties=true"
+  it("should silently ignore unknown properties on nodes when allow_undefined_properties=true", () => {
     // Python: Graph.from_dict(data, allow_undefined_properties=True) strips
     // unknown properties from node data instead of raising validation errors.
-    // This is used for forward compatibility — loading graphs saved with a
-    // newer version that has properties the current version doesn't know about.
-  );
+    // TypeScript: Graph.fromDict() with allowUndefinedProperties=true (default)
+    // accepts any properties without validation.
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          {
+            id: "a",
+            type: "test.Node",
+            properties: { known: 1, unknown_prop: 2 },
+            propertyTypes: { known: "int" },
+          },
+        ],
+        edges: [],
+      },
+      { allowUndefinedProperties: true }
+    );
 
-  it.todo(
-    "should raise on unknown properties when allow_undefined_properties=false (default)"
+    const node = graph.findNode("a")!;
+    expect(node).toBeDefined();
+    // Both properties should be preserved when allowUndefinedProperties=true
+    expect((node.properties as Record<string, unknown>).known).toBe(1);
+    expect((node.properties as Record<string, unknown>).unknown_prop).toBe(2);
+  });
+
+  it("should raise on unknown properties when allow_undefined_properties=false", () => {
     // Python: Without the flag, unknown properties trigger a validation error.
-    // TypeScript: No property validation exists at all — any properties are
-    // accepted without validation since NodeDescriptor uses a loose type.
-  );
+    // TypeScript: Graph.fromDict() with allowUndefinedProperties=false and
+    // skipErrors=false throws GraphValidationError for unknown properties.
+    expect(() =>
+      Graph.fromDict(
+        {
+          nodes: [
+            {
+              id: "a",
+              type: "test.Node",
+              properties: { known: 1, unknown_prop: 2 },
+              propertyTypes: { known: "int" },
+            },
+          ],
+          edges: [],
+        },
+        { allowUndefinedProperties: false, skipErrors: false }
+      )
+    ).toThrow(GraphValidationError);
+    expect(() =>
+      Graph.fromDict(
+        {
+          nodes: [
+            {
+              id: "a",
+              type: "test.Node",
+              properties: { known: 1, unknown_prop: 2 },
+              propertyTypes: { known: "int" },
+            },
+          ],
+          edges: [],
+        },
+        { allowUndefinedProperties: false, skipErrors: false }
+      )
+    ).toThrow(/does not exist on node/);
+  });
+
+  it("should silently strip unknown properties when allow_undefined_properties=false and skip_errors=true", () => {
+    // When skipErrors=true and allowUndefinedProperties=false, unknown
+    // properties are silently stripped instead of throwing.
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          {
+            id: "a",
+            type: "test.Node",
+            properties: { known: 1, unknown_prop: 2 },
+            propertyTypes: { known: "int" },
+          },
+        ],
+        edges: [],
+      },
+      { allowUndefinedProperties: false, skipErrors: true }
+    );
+
+    const node = graph.findNode("a")!;
+    expect(node).toBeDefined();
+    // known should be preserved, unknown_prop should be stripped
+    expect((node.properties as Record<string, unknown>).known).toBe(1);
+    expect((node.properties as Record<string, unknown>).unknown_prop).toBeUndefined();
+  });
 });

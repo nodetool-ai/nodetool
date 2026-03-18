@@ -95,7 +95,7 @@ describe("Gap #9 — OutputUpdate messages", () => {
     expect(outputMsgs.some(m => m.node_id === "out" && m.value === 10)).toBe(true);
   });
 
-  it("should deduplicate consecutive identical output values (not yet implemented)", async () => {
+  it("should deduplicate consecutive identical output values", async () => {
     // Streaming node that yields the same value twice
     const nodes: NodeDescriptor[] = [
       { id: "streamer", type: "test.Streamer", is_streaming_output: true },
@@ -108,7 +108,8 @@ describe("Gap #9 — OutputUpdate messages", () => {
     let callCount = 0;
     const runner = makeRunner({
       "test.Streamer": {
-        async *stream() {
+        async process() { return {}; },
+        async *genProcess() {
           yield { value: "same" };
           yield { value: "same" }; // duplicate
           yield { value: "different" };
@@ -127,19 +128,21 @@ describe("Gap #9 — OutputUpdate messages", () => {
 
     expect(result.status).toBe("completed");
 
-    // GAP #9: Consecutive deduplication not implemented.
+    // GAP #9 fixed: Consecutive deduplication is now implemented.
     // Python's process_output_node() deduplicates consecutive identical values,
     // emitting only one OutputUpdate when the same value appears back-to-back.
-    // TypeScript does not have this logic since it doesn't emit output_update at all.
     const outputMsgs = result.messages.filter(
       (m) => m.type === "output_update"
     ) as OutputUpdate[];
 
-    // Currently no output_update messages at all — dedup is moot
-    expect(outputMsgs.length).toBe(0); // Current behavior
-
-    // TODO: When gap #9 is fixed, consecutive dedup should reduce 3 yields to 2 output_updates:
-    // expect(outputMsgs.length).toBe(2); // "same" (once) + "different"
+    // The streamer emits: "same", "same" (deduped), "different"
+    // output_update messages are emitted for BOTH the streamer and the output node.
+    // Streamer emits: "same" (once, deduped) + "different" = 2 output_updates
+    // Output node receives "same", "same", "different" and emits deduped too.
+    // Verify that at least the streamer's output is deduped:
+    const streamerMsgs = outputMsgs.filter(m => m.node_id === "streamer");
+    // Should be 2, not 3 (consecutive "same" deduped)
+    expect(streamerMsgs.length).toBe(2);
   });
 
   it("should include proper fields in output_update messages (not yet implemented)", async () => {

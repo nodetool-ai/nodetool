@@ -977,7 +977,8 @@ export class OpenAIProvider extends BaseProvider {
 
     const temperature = Math.max(0, Math.min(1, args.temperature ?? 0));
 
-    const audioPart = new Uint8Array(args.audio) as BlobPart;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const audioPart: any = new Uint8Array(args.audio);
     const fileLike =
       typeof File !== "undefined"
         ? new File([audioPart], "audio.mp3", { type: "audio/mpeg" })

@@ -98,6 +98,9 @@ export class WorkflowRunner {
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
+  /** Last emitted output value per node+handle for consecutive dedup. */
+  private _lastOutputValues = new Map<string, unknown>();
+
   /** Control edges that have routed at least one event (used for diagnostics). */
   private _controlEdgesRouted = new Set<string>();
 
@@ -284,6 +287,7 @@ export class WorkflowRunner {
     this._inboxes = new Map();
     this._edgeCounters = new Map();
     this._streamingEdges = new Map();
+    this._lastOutputValues = new Map();
     this._controlEdgesRouted = new Set();
     this._multiEdgeListInputs = new Map();
     this._outputs = new Map();
@@ -682,13 +686,23 @@ export class WorkflowRunner {
       this._incrementEdgeCounter(edge);
     }
 
-    // Emit output_update for each produced output handle
+    // Emit output_update for each produced output handle (with consecutive dedup)
     const sourceNode = this._graph.findNode(sourceNodeId);
     if (sourceNode) {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;
         if (handle === "__control__" || handle === "__control_output__") continue;
+
+        // Consecutive deduplication: skip if value is identical to the last emitted value
+        // for this node+handle combination (Python parity: process_output_node dedup).
+        const dedupKey = `${sourceNodeId}:${handle}`;
+        const lastValue = this._lastOutputValues.get(dedupKey);
+        if (lastValue !== undefined && this._valuesEqual(lastValue, value)) {
+          continue;
+        }
+        this._lastOutputValues.set(dedupKey, value);
+
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,
@@ -985,6 +999,22 @@ export class WorkflowRunner {
       this._options.executionContext.emit(msg);
     }
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
+  }
+
+  /**
+   * Shallow equality check for consecutive deduplication of output values.
+   * Handles primitives and does a JSON comparison for objects/arrays.
+   */
+  private _valuesEqual(a: unknown, b: unknown): boolean {
+    if (a === b) return true;
+    if (a === null || b === null || a === undefined || b === undefined) return false;
+    if (typeof a !== typeof b) return false;
+    if (typeof a !== "object") return false;
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+      return false;
+    }
   }
 
   private _resolveInputNodes(inputName: string): NodeDescriptor[] {

@@ -1,6 +1,14 @@
 {
+  "private": true,
+  "workspaces": [
+    "packages/protocol",
+    "packages/config",
+    "packages/runtime",
+    "packages/kernel"
+  ],
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.8"
+    "@types/node": "^25.0.8",
+    "vitest": "^1.6.1"
   }
 }
