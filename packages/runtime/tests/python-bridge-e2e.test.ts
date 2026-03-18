@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PythonBridge } from "../src/python-bridge.js";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 /**
  * E2E test: spawns the real Python worker process and verifies discovery.
@@ -16,7 +16,7 @@ import { execSync } from "node:child_process";
 function isPythonNodetoolAvailable(): boolean {
   try {
     const pythonPath = process.env.NODETOOL_PYTHON ?? "python";
-    execSync(`${pythonPath} -c "import nodetool"`, { stdio: "ignore" });
+    execFileSync(pythonPath, ["-c", "import nodetool"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
