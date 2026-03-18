@@ -292,29 +292,35 @@ export class SQLiteAdapter implements DatabaseAdapter {
         return ["1=1", []];
       }
 
+      // Serialize the condition value using the column's field type so that
+      // booleans, JSON, etc. are properly converted for SQLite binding.
+      const fieldDef = this.tableSchema.columns[col];
+      const serialize = (v: unknown) =>
+        fieldDef ? serializeValue(v, fieldDef.type) : v;
+
       switch (condition.operator) {
         case Operator.EQ:
-          return [`${quotedField} = ?`, [condition.value]];
+          return [`${quotedField} = ?`, [serialize(condition.value)]];
         case Operator.NE:
-          return [`${quotedField} != ?`, [condition.value]];
+          return [`${quotedField} != ?`, [serialize(condition.value)]];
         case Operator.GT:
-          return [`${quotedField} > ?`, [condition.value]];
+          return [`${quotedField} > ?`, [serialize(condition.value)]];
         case Operator.LT:
-          return [`${quotedField} < ?`, [condition.value]];
+          return [`${quotedField} < ?`, [serialize(condition.value)]];
         case Operator.GTE:
-          return [`${quotedField} >= ?`, [condition.value]];
+          return [`${quotedField} >= ?`, [serialize(condition.value)]];
         case Operator.LTE:
-          return [`${quotedField} <= ?`, [condition.value]];
+          return [`${quotedField} <= ?`, [serialize(condition.value)]];
         case Operator.IN:
         case Operator.CONTAINS: {
           const values = Array.isArray(condition.value)
             ? condition.value
             : [condition.value];
           const placeholders = values.map(() => "?").join(", ");
-          return [`${quotedField} IN (${placeholders})`, values];
+          return [`${quotedField} IN (${placeholders})`, values.map(serialize)];
         }
         case Operator.LIKE:
-          return [`${quotedField} LIKE ?`, [condition.value]];
+          return [`${quotedField} LIKE ?`, [serialize(condition.value)]];
         case Operator.IS_NULL:
           return [`${quotedField} IS NULL`, []];
         case Operator.IS_NOT_NULL:

@@ -13,6 +13,9 @@ import { Workflow } from "../src/workflow.js";
 import { Asset } from "../src/asset.js";
 import { Message } from "../src/message.js";
 import { Thread } from "../src/thread.js";
+import { Workspace } from "../src/workspace.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
+import { Prediction } from "../src/prediction.js";
 import type { ModelClass } from "../src/base-model.js";
 
 // ── Setup ────────────────────────────────────────────────────────────
@@ -27,6 +30,9 @@ async function setup() {
   await (Asset as unknown as ModelClass).createTable();
   await (Message as unknown as ModelClass).createTable();
   await (Thread as unknown as ModelClass).createTable();
+  await (Workspace as unknown as ModelClass).createTable();
+  await (WorkflowVersion as unknown as ModelClass).createTable();
+  await (Prediction as unknown as ModelClass).createTable();
 }
 
 function teardown() {
@@ -420,5 +426,317 @@ describe("Thread model (SQLite)", () => {
     const [threads] = await Thread.paginate("u1");
     expect(threads).toHaveLength(1);
     expect(threads[0].title).toBe("Thread A");
+  });
+});
+
+// ── Workspace ─────────────────────────────────────────────────────────
+
+describe("Workspace model (SQLite)", () => {
+  beforeEach(setup);
+  afterEach(teardown);
+
+  it("creates with defaults", async () => {
+    const ws = await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "My Workspace",
+      path: "/tmp/ws1",
+    });
+    expect(ws.id).toBeTruthy();
+    expect(ws.is_default).toBe(false);
+    expect(ws.created_at).toBeTruthy();
+  });
+
+  it("boolean round-trip through SQLite", async () => {
+    const ws = await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "Default WS",
+      path: "/tmp/ws-default",
+      is_default: true,
+    });
+    await ws.save();
+
+    const reloaded = await (Workspace as unknown as ModelClass<Workspace>).get(
+      ws.id,
+    );
+    expect(reloaded).not.toBeNull();
+    expect(reloaded!.is_default).toBe(true);
+  });
+
+  it("find scoped to user", async () => {
+    const ws = await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "WS",
+      path: "/tmp/ws",
+    });
+    expect(await Workspace.find("u1", ws.id)).not.toBeNull();
+    expect(await Workspace.find("u2", ws.id)).toBeNull();
+  });
+
+  it("getDefault returns default workspace", async () => {
+    await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "Normal",
+      path: "/tmp/normal",
+      is_default: false,
+    });
+    await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "Default",
+      path: "/tmp/default",
+      is_default: true,
+    });
+
+    const def = await Workspace.getDefault("u1");
+    expect(def).not.toBeNull();
+    expect(def!.name).toBe("Default");
+  });
+
+  it("hasLinkedWorkflows detects linked workflows", async () => {
+    const ws = await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "WS",
+      path: "/tmp/ws",
+    });
+    expect(await Workspace.hasLinkedWorkflows(ws.id)).toBe(false);
+
+    await (Workflow as unknown as ModelClass<Workflow>).create({
+      user_id: "u1",
+      name: "Test WF",
+      workspace_id: ws.id,
+    });
+    expect(await Workspace.hasLinkedWorkflows(ws.id)).toBe(true);
+  });
+
+  it("paginate by user", async () => {
+    await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u1",
+      name: "WS1",
+      path: "/tmp/ws1",
+    });
+    await (Workspace as unknown as ModelClass<Workspace>).create({
+      user_id: "u2",
+      name: "WS2",
+      path: "/tmp/ws2",
+    });
+    const [results] = await Workspace.paginate("u1");
+    expect(results).toHaveLength(1);
+  });
+});
+
+// ── WorkflowVersion ──────────────────────────────────────────────────
+
+describe("WorkflowVersion model (SQLite)", () => {
+  beforeEach(setup);
+  afterEach(teardown);
+
+  it("creates with defaults", async () => {
+    const ver = await (
+      WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+    ).create({
+      workflow_id: "wf1",
+      user_id: "u1",
+    });
+    expect(ver.id).toBeTruthy();
+    expect(ver.version).toBe(1);
+    expect(ver.save_type).toBe("manual");
+    expect(ver.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("listForWorkflow returns versions newest first", async () => {
+    for (let i = 1; i <= 3; i++) {
+      await (
+        WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+      ).create({
+        workflow_id: "wf1",
+        user_id: "u1",
+        version: i,
+      });
+    }
+
+    const versions = await WorkflowVersion.listForWorkflow("wf1");
+    expect(versions).toHaveLength(3);
+    expect(versions[0].version).toBe(3);
+    expect(versions[2].version).toBe(1);
+  });
+
+  it("findByVersion returns correct version", async () => {
+    for (let i = 1; i <= 3; i++) {
+      await (
+        WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+      ).create({
+        workflow_id: "wf1",
+        user_id: "u1",
+        version: i,
+        name: `Version ${i}`,
+      });
+    }
+
+    const v2 = await WorkflowVersion.findByVersion("wf1", 2);
+    expect(v2).not.toBeNull();
+    expect(v2!.version).toBe(2);
+    expect(v2!.name).toBe("Version 2");
+  });
+
+  it("nextVersion returns max+1", async () => {
+    for (let i = 1; i <= 3; i++) {
+      await (
+        WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+      ).create({
+        workflow_id: "wf1",
+        user_id: "u1",
+        version: i,
+      });
+    }
+    expect(await WorkflowVersion.nextVersion("wf1")).toBe(4);
+  });
+
+  it("pruneOldVersions keeps newest", async () => {
+    for (let i = 1; i <= 5; i++) {
+      await (
+        WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+      ).create({
+        workflow_id: "wf1",
+        user_id: "u1",
+        version: i,
+      });
+    }
+
+    await WorkflowVersion.pruneOldVersions("wf1", 3);
+    const remaining = await WorkflowVersion.listForWorkflow("wf1");
+    expect(remaining).toHaveLength(3);
+    expect(remaining.map((v) => v.version)).toEqual([5, 4, 3]);
+  });
+
+  it("round-trips graph JSON through SQLite", async () => {
+    const graph = {
+      nodes: [{ id: "n1", type: "text", data: { value: "hello" } }],
+      edges: [{ source: "n1", target: "n2" }],
+    };
+    const ver = await (
+      WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+    ).create({
+      workflow_id: "wf1",
+      user_id: "u1",
+      graph,
+      version: 1,
+    });
+
+    const reloaded = await (
+      WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+    ).get(ver.id);
+    expect(reloaded).not.toBeNull();
+    expect(reloaded!.graph).toEqual(graph);
+  });
+
+  it("round-trips autosave_metadata JSON through SQLite", async () => {
+    const metadata = { trigger: "timer", interval: 30 };
+    const ver = await (
+      WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+    ).create({
+      workflow_id: "wf1",
+      user_id: "u1",
+      save_type: "autosave",
+      autosave_metadata: metadata,
+    });
+
+    const reloaded = await (
+      WorkflowVersion as unknown as ModelClass<WorkflowVersion>
+    ).get(ver.id);
+    expect(reloaded).not.toBeNull();
+    expect(reloaded!.autosave_metadata).toEqual(metadata);
+  });
+});
+
+// ── Prediction ───────────────────────────────────────────────────────
+
+describe("Prediction model (SQLite)", () => {
+  beforeEach(setup);
+  afterEach(teardown);
+
+  it("creates with defaults", async () => {
+    const pred = await (
+      Prediction as unknown as ModelClass<Prediction>
+    ).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+    });
+    expect(pred.id).toBeTruthy();
+    expect(pred.status).toBe("pending");
+    expect(pred.cost).toBeNull();
+  });
+
+  it("aggregateByUser sums through SQLite", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+      input_tokens: 100,
+      output_tokens: 50,
+      total_tokens: 150,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.10,
+      input_tokens: 200,
+      output_tokens: 100,
+      total_tokens: 300,
+    });
+
+    const agg = await Prediction.aggregateByUser("u1");
+    expect(agg.call_count).toBe(2);
+    expect(agg.total_cost).toBeCloseTo(0.15);
+    expect(agg.total_tokens).toBe(450);
+  });
+
+  it("aggregateByProvider groups through SQLite", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "anthropic",
+      model: "claude-3",
+      cost: 0.08,
+    });
+
+    const results = await Prediction.aggregateByProvider("u1");
+    expect(results).toHaveLength(2);
+    const openai = results.find((r) => r.provider === "openai");
+    expect(openai).toBeDefined();
+    expect(openai!.total_cost).toBeCloseTo(0.05);
+  });
+
+  it("round-trips parameters and metadata JSON through SQLite", async () => {
+    const params = { temperature: 0.7, max_tokens: 1000 };
+    const meta = { source: "api", version: "2.0" };
+    const pred = await (
+      Prediction as unknown as ModelClass<Prediction>
+    ).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      parameters: params,
+      metadata: meta,
+    });
+
+    const reloaded = await (
+      Prediction as unknown as ModelClass<Prediction>
+    ).get(pred.id);
+    expect(reloaded).not.toBeNull();
+    expect(reloaded!.parameters).toEqual(params);
+    expect(reloaded!.metadata).toEqual(meta);
   });
 });
