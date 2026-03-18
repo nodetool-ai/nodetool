@@ -3,6 +3,8 @@ import {
   isOutputHandle,
   createNode,
   workflow,
+  run,
+  runGraph,
 } from "../src/core.js";
 import type {
   OutputHandle,
@@ -190,5 +192,18 @@ describe("workflow", () => {
     const ids = wf.nodes.map((n) => n.id);
     expect(ids.indexOf(a.nodeId)).toBeLessThan(ids.indexOf(b.nodeId));
     expect(ids.indexOf(b.nodeId)).toBeLessThan(ids.indexOf(c.nodeId));
+  });
+});
+
+describe("run / runGraph stubs", () => {
+  test("run() throws not-implemented error", async () => {
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 1 });
+    const wf = workflow(a);
+    await expect(run(wf)).rejects.toThrow("run() is not yet implemented");
+  });
+
+  test("runGraph() propagates the not-implemented error", async () => {
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 1 });
+    await expect(runGraph(a)).rejects.toThrow("run() is not yet implemented");
   });
 });
