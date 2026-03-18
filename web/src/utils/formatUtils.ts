@@ -57,3 +57,23 @@ export const SIZE_FILTERS = [
 ] as const;
 
 export type SizeFilterKey = (typeof SIZE_FILTERS)[number]["key"];
+
+/**
+ * Format a raw tool name into a human-readable label.
+ * Handles MCP-style names like "mcp__nodetool-ui__ui_search_nodes" → "Search Nodes"
+ * and plain names like "google_search" → "Google Search".
+ */
+export function formatToolName(name: string): string {
+  // MCP tool names: mcp__<server>__<tool_name>
+  const mcpMatch = name.match(/^mcp__[^_]+(?:_[^_]+)*__(.+)$/);
+  const rawName = mcpMatch ? mcpMatch[1] : name;
+
+  // Strip common prefixes like "ui_", "tool_"
+  const stripped = rawName.replace(/^(ui_|tool_)/, "");
+
+  // Convert snake_case to Title Case
+  return stripped
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
