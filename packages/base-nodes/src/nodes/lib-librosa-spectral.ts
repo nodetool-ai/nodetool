@@ -218,6 +218,123 @@ function dct2(input: number[], nOut: number): number[] {
   return result;
 }
 
+// ── Griffin-Lim helpers ───────────────────────────────────────────
+
+/** Complex STFT returning interleaved [re, im] per frame, shape [numFrames][nFft * 2]. */
+function computeComplexSTFT(
+  signal: Float32Array,
+  nFft: number,
+  hopLength: number
+): number[][] {
+  const fft = new FFT(nFft);
+  const frames: number[][] = [];
+
+  for (let i = 0; i + nFft <= signal.length; i += hopLength) {
+    const input = fft.createComplexArray();
+    for (let j = 0; j < nFft; j++) {
+      input[j * 2] = signal[i + j] * hanningWindow(j, nFft);
+      input[j * 2 + 1] = 0;
+    }
+    const output = fft.createComplexArray();
+    fft.transform(output, input);
+    // Store full complex spectrum (all nFft bins interleaved re/im)
+    frames.push(Array.from(output));
+  }
+  return frames;
+}
+
+/** Overlap-add ISTFT from complex frames [numFrames][nFft * 2]. */
+function computeISTFT(
+  frames: number[][],
+  nFft: number,
+  hopLength: number,
+  signalLength: number
+): Float32Array {
+  const fft = new FFT(nFft);
+  const output = new Float32Array(signalLength);
+  const windowSum = new Float32Array(signalLength);
+
+  for (let f = 0; f < frames.length; f++) {
+    const complexIn = frames[f];
+    const complexOut = fft.createComplexArray();
+    fft.inverseTransform(complexOut, complexIn);
+
+    const offset = f * hopLength;
+    for (let j = 0; j < nFft && offset + j < signalLength; j++) {
+      const win = hanningWindow(j, nFft);
+      output[offset + j] += (complexOut[j * 2] / nFft) * win;
+      windowSum[offset + j] += win * win;
+    }
+  }
+
+  // Normalize by window overlap
+  for (let i = 0; i < signalLength; i++) {
+    if (windowSum[i] > 1e-8) {
+      output[i] /= windowSum[i];
+    }
+  }
+  return output;
+}
+
+/** Griffin-Lim phase reconstruction algorithm. magnitude is [numBins][numFrames]. */
+function griffinLim(
+  magnitude: number[][],
+  nFft: number,
+  hopLength: number,
+  nIter: number
+): Float32Array {
+  const numBins = magnitude.length;
+  const numFrames = magnitude[0]?.length ?? 0;
+  if (numFrames === 0 || numBins === 0) return new Float32Array(0);
+
+  const signalLength = (numFrames - 1) * hopLength + nFft;
+
+  // Initialize with random phases
+  const phases: number[][] = Array.from({ length: numFrames }, () =>
+    Array.from({ length: numBins }, () => Math.random() * 2 * Math.PI)
+  );
+
+  for (let iter = 0; iter < nIter; iter++) {
+    // Build complex frames from magnitude [numBins][numFrames] + phases [numFrames][numBins]
+    const complexFrames: number[][] = Array.from({ length: numFrames }, (_, f) => {
+      const frame = new Array(nFft * 2).fill(0);
+      for (let k = 0; k < numBins; k++) {
+        const mag = magnitude[k][f] ?? 0;
+        const ph = phases[f][k];
+        const re = mag * Math.cos(ph);
+        const im = mag * Math.sin(ph);
+        frame[k * 2] = re;
+        frame[k * 2 + 1] = im;
+        // Mirror for conjugate symmetry (real signal)
+        if (k > 0 && k < nFft - k) {
+          frame[(nFft - k) * 2] = re;
+          frame[(nFft - k) * 2 + 1] = -im;
+        }
+      }
+      return frame;
+    });
+
+    // ISTFT
+    const signal = computeISTFT(complexFrames, nFft, hopLength, signalLength);
+
+    // STFT to update phases (stop updating on last iteration)
+    if (iter < nIter - 1) {
+      const newComplexFrames = computeComplexSTFT(signal, nFft, hopLength);
+      for (let f = 0; f < numFrames && f < newComplexFrames.length; f++) {
+        for (let k = 0; k < numBins; k++) {
+          const re = newComplexFrames[f][k * 2];
+          const im = newComplexFrames[f][k * 2 + 1];
+          phases[f][k] = Math.atan2(im, re);
+        }
+      }
+    } else {
+      // Final iteration — return the signal
+      return signal;
+    }
+  }
+  return new Float32Array(0);
+}
+
 // ── STFT Node ─────────────────────────────────────────────────────
 
 export class STFTNode extends BaseNode {
@@ -741,9 +858,24 @@ export class GriffinLimNode extends BaseNode {
   async process(
     _inputs: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    throw new Error(
-      "GriffinLim is not implemented in the TypeScript runtime. Use the Python runtime for this node."
-    );
+    const magSpec = (_inputs.magnitude_spectrogram ?? this.magnitude_spectrogram ?? {}) as Record<string, unknown>;
+    const nIter = Number(_inputs.n_iter ?? this.n_iter ?? 32);
+    const hopLength = Number(_inputs.hop_length ?? this.hop_length ?? 512);
+
+    const data = magSpec.data;
+    if (!data || !Array.isArray(data) || (data as unknown[]).length === 0) {
+      return { output: { data: [] } };
+    }
+
+    // data is [numBins][numFrames]
+    const magnitude = data as number[][];
+    const numBins = magnitude.length;
+    // Infer nFft from numBins: numBins = nFft/2 + 1
+    const nFft = (numBins - 1) * 2;
+    if (nFft < 2) return { output: { data: [] } };
+
+    const signal = griffinLim(magnitude, nFft, hopLength, nIter);
+    return { output: { data: Array.from(signal) } };
   }
 }
 

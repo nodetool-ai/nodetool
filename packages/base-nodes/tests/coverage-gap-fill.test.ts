@@ -1678,12 +1678,14 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("NoiseGate throws not implemented", async () => {
-    await expect(new NoiseGateNode().process({})).rejects.toThrow("not yet implemented");
+  it("NoiseGate processes audio", async () => {
+    const res = await new NoiseGateNode().process({ audio });
+    expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Phaser throws not implemented", async () => {
-    await expect(new PhaserNode().process({})).rejects.toThrow("not yet implemented");
+  it("Phaser processes audio", async () => {
+    const res = await new PhaserNode().process({ audio });
+    expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
   it("defaults for all pedalboard nodes", () => {
@@ -1782,8 +1784,9 @@ describe("lib-librosa-spectral gaps", () => {
     expect((res.output as any).data).toEqual([]);
   });
 
-  it("GriffinLim throws", async () => {
-    await expect(new GriffinLimNode().process({})).rejects.toThrow("not implemented");
+  it("GriffinLim returns output for empty input", async () => {
+    const res = await new GriffinLimNode().process({});
+    expect((res.output as any).data).toEqual([]);
   });
 
   it("DetectOnsets", async () => {
