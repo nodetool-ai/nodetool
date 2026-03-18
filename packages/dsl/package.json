@@ -15,6 +15,7 @@
   "dependencies": {
     "@nodetool/protocol": "*",
     "@nodetool/kernel": "*",
+    "@nodetool/elevenlabs-nodes": "*",
     "@nodetool/runtime": "*"
   },
   "devDependencies": {

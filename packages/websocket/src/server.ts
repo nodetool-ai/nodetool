@@ -14,6 +14,7 @@ import { createLogger } from "@nodetool/config";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
@@ -157,6 +158,7 @@ log.info("Metadata roots", { roots: metadataRoots });
 const registry = new NodeRegistry();
 registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
 registerBaseNodes(registry);
+registerElevenLabsNodes(registry);
 registerFalNodes(registry);
 registerReplicateNodes(registry);
 const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);

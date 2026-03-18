@@ -25,6 +25,7 @@
     "packages/storage",
     "packages/config",
     "packages/deploy",
+    "packages/elevenlabs-nodes",
     "web",
     "electron"
   ],
