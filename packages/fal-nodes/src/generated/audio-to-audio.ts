@@ -17,6 +17,7 @@ export class ElevenlabsVoiceChanger extends FalNode {
   static readonly description = `ElevenLabs Voice Changer transforms voice characteristics in audio with AI-powered voice conversion.
 audio, voice-change, elevenlabs, transformation, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "Rachel", description: "The voice to use for speech generation" })
   declare voice: any;
@@ -65,6 +66,7 @@ export class NovaSr extends FalNode {
   static readonly description = `Nova SR enhances audio quality through super-resolution processing for clearer and richer sound.
 audio, enhancement, super-resolution, quality, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -108,6 +110,7 @@ export class Deepfilternet3 extends FalNode {
   static readonly description = `DeepFilterNet3 removes noise and improves audio quality with advanced deep learning filtering.
 audio, noise-reduction, filtering, cleaning, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -141,7 +144,7 @@ audio, noise-reduction, filtering, cleaning, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/deepfilternet3", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -151,6 +154,7 @@ export class SamAudioSeparate extends FalNode {
   static readonly description = `SAM Audio Separate isolates and extracts different audio sources from mixed recordings.
 audio, separation, source-extraction, isolation, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the sound to isolate." })
   declare prompt: any;
@@ -204,7 +208,7 @@ audio, separation, source-extraction, isolation, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/separate", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -214,6 +218,7 @@ export class SamAudioSpanSeparate extends FalNode {
   static readonly description = `SAM Audio Span Separate isolates audio sources across time spans with precise temporal control.
 audio, separation, temporal, span, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the sound to isolate. Optional but recommended - helps the model identify what type of sound to extract from the span." })
   declare prompt: any;
@@ -277,7 +282,7 @@ audio, separation, temporal, span, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/span-separate", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -287,6 +292,7 @@ export class Demucs extends FalNode {
   static readonly description = `Demucs separates music into vocals, drums, bass, and other instruments with high quality.
 audio, music-separation, stems, demucs, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Length in seconds of each segment for processing. Smaller values use less memory but may reduce quality. Default is model-specific." })
   declare segment_length: any;
@@ -335,7 +341,7 @@ audio, music-separation, stems, demucs, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/demucs", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -345,6 +351,7 @@ export class StableAudio25AudioToAudio extends FalNode {
   static readonly description = `Stable Audio 2.5 transforms and modifies audio with AI-powered processing and effects.
 audio, transformation, stable-audio, 2.5, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the audio generation" })
   declare prompt: any;
@@ -408,6 +415,7 @@ export class FfmpegApiMergeAudios extends FalNode {
   static readonly description = `FFmpeg API Merge Audios combines multiple audio files into a single output.
 audio, processing, audio-to-audio, merging, ffmpeg`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "list[audio]", default: [], description: "List of audio URLs to merge in order. The 0th stream of the audio will be considered as the merge candidate." })
   declare audio_urls: any;
@@ -444,6 +452,7 @@ export class KlingVideoCreateVoice extends FalNode {
   static readonly description = `Create Voices to be used with Kling 2.6 Voice Control
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "video", default: "", description: "URL of the voice audio file. Supports .mp3/.wav audio or .mp4/.mov video. Duration must be 5-30 seconds with clean, single-voice audio." })
   declare voice_url: any;
@@ -461,7 +470,7 @@ audio, processing, audio-to-audio, transformation`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/kling-video/create-voice", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -471,6 +480,7 @@ export class AudioUnderstanding extends FalNode {
   static readonly description = `A audio understanding model to analyze audio content and answer questions about what's happening in the audio based on user prompts.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The question or prompt about the audio content." })
   declare prompt: any;
@@ -499,7 +509,7 @@ audio, processing, audio-to-audio, transformation`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/audio-understanding", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -509,6 +519,7 @@ export class StableAudio25Inpaint extends FalNode {
   static readonly description = `Generate high quality music and sound effects using Stable Audio 2.5 from StabilityAI
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the audio generation" })
   declare prompt: any;
@@ -577,6 +588,7 @@ export class SonautoV2Extend extends FalNode {
   static readonly description = `Extend an existing song
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the track you want to generate. This prompt will be used to automatically generate the tags and lyrics unless you manually set them. For example, if you set prompt and tags, then the prompt will be used to generate only the lyrics." })
   declare prompt: any;
@@ -665,6 +677,7 @@ export class AceStepAudioOutpaint extends FalNode {
   static readonly description = `Extend the beginning or end of provided audio with lyrics and/or style using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -768,6 +781,7 @@ export class AceStepAudioInpaint extends FalNode {
   static readonly description = `Modify a portion of provided audio with lyrics and/or style using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -886,6 +900,7 @@ export class AceStepAudioToAudio extends FalNode {
   static readonly description = `Generate music from a lyrics and example audio using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -999,6 +1014,7 @@ export class DiaTtsVoiceClone extends FalNode {
   static readonly description = `Clone dialog voices from a sample audio and generate dialogs from text prompts using the Dia TTS which leverages advanced AI techniques to create high-quality text-to-speech.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech." })
   declare text: any;
@@ -1023,6 +1039,7 @@ export class ElevenlabsAudioIsolation extends FalNode {
   static readonly description = `Isolate audio tracks using ElevenLabs advanced audio isolation technology.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "video", default: "", description: "Video file to use for audio isolation. Either 'audio_url' or 'video_url' must be provided." })
   declare video: any;

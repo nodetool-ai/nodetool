@@ -17,6 +17,7 @@ export class BriaFiboEditEditStructured_instruction extends FalNode {
   static readonly description = `Structured Instructions Generation endpoint for Fibo Edit, Bria's newest editing model.
 text, analysis, json, extraction`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "If true, returns the image directly in the response (increases latency)." })
   declare sync_mode: any;
@@ -69,6 +70,7 @@ export class BriaFiboLiteGenerateStructured_prompt extends FalNode {
   static readonly description = `Structured Prompt Generation endpoint for Fibo-Lite, Bria's SOTA Open source model
 text, analysis, json, extraction`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate." })
   declare prompt: any;
@@ -112,6 +114,7 @@ export class BriaFiboLiteGenerateStructured_promptLite extends FalNode {
   static readonly description = `Structured Prompt Generation endpoint for Fibo-Lite, Bria's SOTA Open source model
 text, analysis, json, extraction`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt for image generation." })
   declare prompt: any;
@@ -155,6 +158,7 @@ export class BriaFiboGenerateStructured_prompt extends FalNode {
   static readonly description = `Structured Prompt Generation endpoint for Fibo, Bria's SOTA Open source model
 text, analysis, json, extraction`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt for image generation." })
   declare prompt: any;

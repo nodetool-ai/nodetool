@@ -17,6 +17,7 @@ export class SamAudioVisualSeparate extends FalNode {
   static readonly description = `Audio separation with SAM Audio. Isolate any sound using natural language—professional-grade audio editing made simple for creators, researchers, and accessibility applications.
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text prompt to assist with separation. Use natural language to describe the target sound." })
   declare prompt: any;
@@ -74,7 +75,7 @@ audio, extraction, video-to-audio, processing`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/visual-separate", args);
-    return { output: res };
+    return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
@@ -84,6 +85,7 @@ export class MireloAiSfxV15VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -137,6 +139,7 @@ export class KlingVideoVideoToAudio extends FalNode {
   static readonly description = `Generate audio from input videos using Kling
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "video", default: "", description: "The video URL to extract audio from. Only .mp4/.mov formats are supported. File size does not exceed 100MB. Video duration between 3.0s and 20.0s." })
   declare video: any;
@@ -180,6 +183,7 @@ export class MireloAiSfxV1VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;

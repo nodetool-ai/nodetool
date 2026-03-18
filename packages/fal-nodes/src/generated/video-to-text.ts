@@ -17,6 +17,7 @@ export class OpenrouterRouterVideoEnterprise extends FalNode {
   static readonly description = `Run any VLM (Video Language Model) with fal, powered by OpenRouter.
 video, transcription, analysis, video-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the video processing" })
   declare prompt: any;
@@ -75,6 +76,7 @@ export class OpenrouterRouterVideo extends FalNode {
   static readonly description = `Run any VLM (Video Language Model) with fal, powered by OpenRouter.
 video, transcription, analysis, video-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the video processing" })
   declare prompt: any;

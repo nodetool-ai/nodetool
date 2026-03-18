@@ -17,6 +17,7 @@ export class Trellis2 extends FalNode {
   static readonly description = `Trellis 2
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "float", default: 1, description: "How closely the texture follows the input image colors. Higher values produce more vivid but potentially oversaturated textures." })
   declare tex_slat_guidance_strength: any;
@@ -140,6 +141,7 @@ export class Hunyuan3DV3SketchTo3D extends FalNode {
   static readonly description = `Hunyuan3d V3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of sketch or line art image to transform into a 3D model. Image resolution must be between 128x128 and 5000x5000 pixels." })
   declare input_image: any;
@@ -183,6 +185,7 @@ export class Hunyuan3DV3ImageTo3D extends FalNode {
   static readonly description = `Hunyuan3d V3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -258,6 +261,7 @@ export class Sam33DBody extends FalNode {
   static readonly description = `Sam 3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image containing humans" })
   declare image: any;
@@ -305,6 +309,7 @@ export class Sam33DObjects extends FalNode {
   static readonly description = `Sam 3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Optional URL to external pointmap/depth data (NPY or NPZ format) for improved 3D reconstruction depth estimation" })
   declare pointmap_url: any;
@@ -373,6 +378,7 @@ export class Omnipart extends FalNode {
   static readonly description = `Omnipart
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -421,6 +427,7 @@ export class BytedanceSeed3DImageTo3D extends FalNode {
   static readonly description = `Bytedance
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image for the 3D asset generation." })
   declare image: any;
@@ -448,6 +455,7 @@ export class MeshyV5MultiImageTo3D extends FalNode {
   static readonly description = `Meshy 5 Multi
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color. Requires should_texture to be true." })
   declare enable_pbr: any;
@@ -558,6 +566,7 @@ export class MeshyV6PreviewImageTo3D extends FalNode {
   static readonly description = `Meshy 6 Preview
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color" })
   declare enable_pbr: any;
@@ -665,6 +674,7 @@ export class Hyper3DRodinV2 extends FalNode {
   static readonly description = `Hyper3d
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "An array that specifies the bounding box dimensions [width, height, length]." })
   declare bbox_condition: any;
@@ -746,6 +756,7 @@ export class Pshuman extends FalNode {
   static readonly description = `Pshuman
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "float", default: 4, description: "Guidance scale for the diffusion process. Controls how much the output adheres to the generated views." })
   declare guidance_scale: any;
@@ -784,6 +795,7 @@ export class Hunyuan_WorldImageToWorld extends FalNode {
   static readonly description = `Hunyuan World
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Classes to use for the world generation." })
   declare classes: any;
@@ -832,6 +844,7 @@ export class Tripo3dTripoV25MultiviewTo3d extends FalNode {
   static readonly description = `State of the art Multiview to 3D Object generation. Generate 3D models from multiple images!
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "int", default: 0, description: "Limits the number of faces on the output model. If this option is not set, the face limit will be adaptively determined." })
   declare face_limit: any;
@@ -937,6 +950,7 @@ export class Hunyuan3dV21 extends FalNode {
   static readonly description = `Hunyuan3D-2.1 is a scalable 3D asset creation system that advances state-of-the-art 3D generation through Physically-Based Rendering (PBR).
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -990,6 +1004,7 @@ export class TrellisMulti extends FalNode {
   static readonly description = `Generate 3D models from multiple images using Trellis. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "enum", default: "stochastic", values: ["stochastic", "multidiffusion"], description: "Algorithm for multi-image generation" })
   declare multiimage_algo: any;
@@ -1061,6 +1076,7 @@ export class Tripo3dTripoV25ImageTo3d extends FalNode {
   static readonly description = `State of the art Image to 3D Object generation. Generate 3D model from a single image!
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "int", default: 0, description: "Limits the number of faces on the output model. If this option is not set, the face limit will be adaptively determined." })
   declare face_limit: any;
@@ -1139,6 +1155,7 @@ export class Hunyuan3dV2MultiView extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare left_image: any;
@@ -1210,6 +1227,7 @@ export class Hunyuan3dV2Mini extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1263,6 +1281,7 @@ export class Hunyuan3dV2Turbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1316,6 +1335,7 @@ export class Hunyuan3dV2MiniTurbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1369,6 +1389,7 @@ export class Hunyuan3dV2 extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1422,6 +1443,7 @@ export class Hunyuan3dV2MultiViewTurbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare left_image: any;
@@ -1493,6 +1515,7 @@ export class Hyper3dRodin extends FalNode {
   static readonly description = `Rodin by Hyper3D generates realistic and production ready 3D models from text or images.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "enum", default: "Regular", values: ["Regular", "Sketch"], description: "Tier of generation. For Rodin Sketch, set to Sketch. For Rodin Regular, set to Regular." })
   declare tier: any;
@@ -1579,6 +1602,7 @@ export class Trellis extends FalNode {
   static readonly description = `Generate 3D models from your images using Trellis. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "int", default: 12, description: "Sampling steps for structured latent generation" })
   declare slat_sampling_steps: any;
@@ -1642,6 +1666,7 @@ export class Triposr extends FalNode {
   static readonly description = `State of the art Image to 3D Object generation
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "int", default: 256, description: "Resolution of the marching cubes. Above 512 is not recommended." })
   declare mc_resolution: any;

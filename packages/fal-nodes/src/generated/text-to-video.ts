@@ -17,6 +17,7 @@ export class HunyuanVideo extends FalNode {
   static readonly description = `Hunyuan Video is Tencent's advanced text-to-video model for high-quality video generation.
 video, generation, hunyuan, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -71,6 +72,7 @@ export class CogVideoX5B extends FalNode {
   static readonly description = `CogVideoX-5B is a powerful open-source text-to-video generation model with 5 billion parameters.
 video, generation, cogvideo, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -135,6 +137,7 @@ export class AnimateDiffTextToVideo extends FalNode {
   static readonly description = `AnimateDiff generates smooth animations from text prompts using diffusion models.
 video, generation, animatediff, animation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the video. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -199,6 +202,7 @@ export class AnimateDiffTurboTextToVideo extends FalNode {
   static readonly description = `AnimateDiff Turbo generates animations at lightning speed with reduced steps.
 video, generation, animatediff, turbo, fast, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the video. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -258,6 +262,7 @@ export class AnimateDiffSparseCtrlLCM extends FalNode {
   static readonly description = `AnimateDiff SparseCtrl LCM animates drawings with latent consistency models for fast generation.
 video, generation, animatediff, sparsectrl, lcm, animation, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -349,6 +354,7 @@ export class VeedAvatarsTextToVideo extends FalNode {
   static readonly description = `VEED Avatars generates talking avatar videos from text using realistic AI-powered characters.
 video, generation, avatar, talking-head, veed, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare text: any;
@@ -378,6 +384,7 @@ export class ArgilAvatarsTextToVideo extends FalNode {
   static readonly description = `Argil Avatars creates realistic talking avatar videos from text descriptions.
 video, generation, avatar, talking-head, argil, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare text: any;
@@ -417,6 +424,7 @@ export class SeeDanceV15ProTextToVideo extends FalNode {
   static readonly description = `SeeDance v1.5 Pro from ByteDance generates high-quality dance videos from text prompts.
 video, generation, dance, seedance, bytedance, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
@@ -476,6 +484,7 @@ export class SeeDanceV1ProFastTextToVideo extends FalNode {
   static readonly description = `SeeDance v1 Pro Fast generates dance videos quickly from text with reduced generation time.
 video, generation, dance, seedance, fast, bytedance, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
@@ -530,6 +539,7 @@ export class VeedFabric10Text extends FalNode {
   static readonly description = `VEED Fabric 1.0 generates video content from text using advanced video synthesis.
 video, generation, fabric, veed, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare text: any;
@@ -573,6 +583,7 @@ export class LTXVideo extends FalNode {
   static readonly description = `LTX Video generates high-quality videos from text prompts with advanced temporal consistency.
 video, generation, ltx, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -617,6 +628,7 @@ export class KlingVideoV1StandardTextToVideo extends FalNode {
   static readonly description = `Kling Video v1 Standard generates videos from text with balanced quality and speed.
 video, generation, kling, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -671,6 +683,7 @@ export class MochiV1 extends FalNode {
   static readonly description = `Mochi v1 generates creative videos from text with unique artistic style.
 video, generation, mochi, artistic, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a video from." })
   declare prompt: any;
@@ -710,6 +723,7 @@ export class StableVideo extends FalNode {
   static readonly description = `Stable Video generates consistent and stable video sequences from text prompts.
 video, generation, stable, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "int", default: 127, description: "\n            The motion bucket id determines the motion of the generated video. The\n            higher the number, the more motion there will be.\n        " })
   declare motion_bucket_id: any;
@@ -758,6 +772,7 @@ export class T2VTurbo extends FalNode {
   static readonly description = `T2V Turbo generates videos from text at high speed with optimized performance.
 video, generation, turbo, fast, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate images from" })
   declare prompt: any;
@@ -807,6 +822,7 @@ export class LumaDreamMachineTextToVideo extends FalNode {
   static readonly description = `Luma Dream Machine generates creative videos from text with dreamlike aesthetics.
 video, generation, luma, dream-machine, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -841,6 +857,7 @@ export class LumaPhoton extends FalNode {
   static readonly description = `Luma Photon generates photorealistic videos from text with high visual fidelity.
 video, generation, luma, photon, photorealistic, text-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "image" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -871,6 +888,7 @@ export class PixverseV56TextToVideo extends FalNode {
   static readonly description = `Pixverse
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -935,6 +953,7 @@ export class Ltx219BDistilledTextToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, text-to-video, txt2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1044,6 +1063,7 @@ export class Ltx219BDistilledTextToVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1148,6 +1168,7 @@ export class Ltx219BTextToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, text-to-video, txt2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1267,6 +1288,7 @@ export class Ltx219BTextToVideo extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1381,6 +1403,7 @@ export class Kandinsky5ProTextToVideo extends FalNode {
   static readonly description = `Kandinsky5 Pro
 video, generation, text-to-video, txt2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -1430,6 +1453,7 @@ export class WanV26TextToVideo extends FalNode {
   static readonly description = `Wan v2.6 Text to Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt for video generation. Supports Chinese and English, max 800 characters. For multi-shot videos, use format: 'Overall description. First shot [0-3s] content. Second shot [3-5s] content.'" })
   declare prompt: any;
@@ -1503,6 +1527,7 @@ export class KlingVideoV26ProTextToVideo extends FalNode {
   static readonly description = `Kling Video v2.6 Text to Video
 video, generation, text-to-video, txt2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -1552,6 +1577,7 @@ export class PixverseV55TextToVideo extends FalNode {
   static readonly description = `Pixverse
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -1621,6 +1647,7 @@ export class Ltx2TextToVideoFast extends FalNode {
   static readonly description = `LTX Video 2.0 Fast
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from" })
   declare prompt: any;
@@ -1665,6 +1692,7 @@ export class Ltx2TextToVideo extends FalNode {
   static readonly description = `LTX Video 2.0 Pro
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from" })
   declare prompt: any;
@@ -1709,6 +1737,7 @@ export class HunyuanVideoV15TextToVideo extends FalNode {
   static readonly description = `Hunyuan Video V1.5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video." })
   declare prompt: any;
@@ -1768,6 +1797,7 @@ export class InfinityStarTextToVideo extends FalNode {
   static readonly description = `Infinity Star
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for generating the video" })
   declare prompt: any;
@@ -1832,6 +1862,7 @@ export class SanaVideo extends FalNode {
   static readonly description = `Sana Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video to generate" })
   declare prompt: any;
@@ -1896,6 +1927,7 @@ export class LongcatVideoTextToVideo720P extends FalNode {
   static readonly description = `LongCat Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -1995,6 +2027,7 @@ export class LongcatVideoTextToVideo480P extends FalNode {
   static readonly description = `LongCat Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -2089,6 +2122,7 @@ export class LongcatVideoDistilledTextToVideo720P extends FalNode {
   static readonly description = `LongCat Video Distilled
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -2173,6 +2207,7 @@ export class LongcatVideoDistilledTextToVideo480P extends FalNode {
   static readonly description = `LongCat Video Distilled
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -2252,6 +2287,7 @@ export class MinimaxHailuo23StandardTextToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo 2.3 [Standard] (Text to Video)
 video, generation, text-to-video, txt2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -2286,6 +2322,7 @@ export class MinimaxHailuo23ProTextToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo 2.3 [Pro] (Text to Video)
 video, generation, text-to-video, txt2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
@@ -2315,6 +2352,7 @@ export class ViduQ2TextToVideo extends FalNode {
   static readonly description = `Vidu
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 3000 characters" })
   declare prompt: any;
@@ -2369,6 +2407,7 @@ export class KreaWan14BTextToVideo extends FalNode {
   static readonly description = `Krea Wan 14b- Text to Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Prompt for the video-to-video generation." })
   declare prompt: any;
@@ -2408,6 +2447,7 @@ export class WanAlpha extends FalNode {
   static readonly description = `Wan Alpha
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "float", default: 10.5, description: "The shift of the generated video." })
   declare shift: any;
@@ -2522,6 +2562,7 @@ export class Kandinsky5TextToVideoDistill extends FalNode {
   static readonly description = `Kandinsky5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -2561,6 +2602,7 @@ export class Kandinsky5TextToVideo extends FalNode {
   static readonly description = `Kandinsky5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -2605,6 +2647,7 @@ export class Veo31Fast extends FalNode {
   static readonly description = `Veo 3.1 Fast
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -2669,6 +2712,7 @@ export class Veo31 extends FalNode {
   static readonly description = `Veo 3.1
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -2733,6 +2777,7 @@ export class Sora2TextToVideoPro extends FalNode {
   static readonly description = `Sora 2
 video, generation, text-to-video, txt2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -2782,6 +2827,7 @@ export class Sora2TextToVideo extends FalNode {
   static readonly description = `Sora 2
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -2836,6 +2882,7 @@ export class Ovi extends FalNode {
   static readonly description = `Ovi Text to Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -2885,6 +2932,7 @@ export class Wan25PreviewTextToVideo extends FalNode {
   static readonly description = `Wan 2.5 Text to Video
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt for video generation. Supports Chinese and English, max 800 characters." })
   declare prompt: any;
@@ -2953,6 +3001,7 @@ export class PixverseV5TextToVideo extends FalNode {
   static readonly description = `Pixverse
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -3007,6 +3056,7 @@ export class InfinitalkSingleText extends FalNode {
   static readonly description = `Infinitalk
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3070,6 +3120,7 @@ export class MoonvalleyMareyT2V extends FalNode {
   static readonly description = `Marey Realism V1.5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a video from" })
   declare prompt: any;
@@ -3119,6 +3170,7 @@ export class WanV22A14bTextToVideoLora extends FalNode {
   static readonly description = `Wan-2.2 text-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts. This endpoint supports LoRAs made for Wan 2.2.
 video, generation, text-to-video, txt2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3248,6 +3300,7 @@ export class WanV225bTextToVideoDistill extends FalNode {
   static readonly description = `Wan 2.2's 5B distill model produces up to 5 seconds of video 720p at 24FPS with fluid motion and powerful prompt understanding
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3352,6 +3405,7 @@ export class WanV225bTextToVideoFastWan extends FalNode {
   static readonly description = `Wan 2.2's 5B FastVideo model produces up to 5 seconds of video 720p at 24FPS with fluid motion and powerful prompt understanding
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3451,6 +3505,7 @@ export class WanV22A14bTextToVideoTurbo extends FalNode {
   static readonly description = `Wan-2.2 turbo text-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts. 
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3520,6 +3575,7 @@ export class WanV225bTextToVideo extends FalNode {
   static readonly description = `Wan 2.2's 5B model produces up to 5 seconds of video 720p at 24FPS with fluid motion and powerful prompt understanding
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3629,6 +3685,7 @@ export class WanV22A14bTextToVideo extends FalNode {
   static readonly description = `Wan-2.2 text-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts. 
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -3748,6 +3805,7 @@ export class Ltxv13b098Distilled extends FalNode {
   static readonly description = `Generate long videos from prompts using LTX Video-0.9.8 13B Distilled and custom LoRA
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -3852,6 +3910,7 @@ export class MinimaxHailuo02ProTextToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo-02 Text To Video API (Pro, 1080p): Advanced video generation model with 1080p resolution
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -3881,6 +3940,7 @@ export class BytedanceSeedanceV1ProTextToVideo extends FalNode {
   static readonly description = `Seedance 1.0 Pro, a high quality video generation model developed by Bytedance.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
@@ -3935,6 +3995,7 @@ export class BytedanceSeedanceV1LiteTextToVideo extends FalNode {
   static readonly description = `Seedance 1.0 Lite
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
@@ -3989,6 +4050,7 @@ export class KlingVideoV21MasterTextToVideo extends FalNode {
   static readonly description = `Kling 2.1 Master: The premium endpoint for Kling 2.1, designed for top-tier text-to-video generation with unparalleled motion fluidity, cinematic visuals, and exceptional prompt precision.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4033,6 +4095,7 @@ export class LtxVideo13bDev extends FalNode {
   static readonly description = `Generate videos from prompts using LTX Video-0.9.7 13B and custom LoRA
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -4137,6 +4200,7 @@ export class LtxVideo13bDistilled extends FalNode {
   static readonly description = `Generate videos from prompts using LTX Video-0.9.7 13B Distilled and custom LoRA
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -4241,6 +4305,7 @@ export class PixverseV45TextToVideoFast extends FalNode {
   static readonly description = `Generate high quality and fast video clips from text and image prompts using PixVerse v4.5 fast
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4290,6 +4355,7 @@ export class PixverseV45TextToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts using PixVerse v4.5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4344,6 +4410,7 @@ export class ViduQ1TextToVideo extends FalNode {
   static readonly description = `Vidu Q1 Text to Video generates high-quality 1080p videos with exceptional visual quality and motion diversity
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -4388,6 +4455,7 @@ export class Magi extends FalNode {
   static readonly description = `MAGI-1 is a video generation model with exceptional understanding of physical interactions and cinematic prompts
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4442,6 +4510,7 @@ export class MagiDistilled extends FalNode {
   static readonly description = `MAGI-1 distilled is a faster video generation model with exceptional understanding of physical interactions and cinematic prompts
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4496,6 +4565,7 @@ export class PixverseV4TextToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts using PixVerse v4
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4550,6 +4620,7 @@ export class PixverseV4TextToVideoFast extends FalNode {
   static readonly description = `Generate high quality and fast video clips from text and image prompts using PixVerse v4 fast
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4599,6 +4670,7 @@ export class KlingVideoLipsyncAudioToVideo extends FalNode {
   static readonly description = `Kling LipSync is an audio-to-video model that generates realistic lip movements from audio input.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to generate the lip sync for. Supports .mp4/.mov, ≤100MB, 2–10s, 720p/1080p only, width/height 720–1920px." })
   declare video: any;
@@ -4635,6 +4707,7 @@ export class KlingVideoLipsyncTextToVideo extends FalNode {
   static readonly description = `Kling LipSync is a text-to-video model that generates realistic lip movements from text input.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text content for lip-sync video generation. Max 120 characters." })
   declare text: any;
@@ -4683,6 +4756,7 @@ export class WanT2vLora extends FalNode {
   static readonly description = `Add custom LoRAs to Wan-2.1 is a text-to-video model that generates high-quality videos with high visual quality and motion diversity from images
 video, generation, text-to-video, txt2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4767,6 +4841,7 @@ export class LumaDreamMachineRay2Flash extends FalNode {
   static readonly description = `Ray2 Flash is a fast video generative model capable of creating realistic visuals with natural, coherent motion.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4811,6 +4886,7 @@ export class PikaV21TextToVideo extends FalNode {
   static readonly description = `Start with a simple text input to create dynamic generations that defy expectations. Anything you dream can come to life with sharp details, impressive character control and cinematic camera moves.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4860,6 +4936,7 @@ export class PikaV22TextToVideo extends FalNode {
   static readonly description = `Start with a simple text input to create dynamic generations that defy expectations in up to 1080p. Experience better image clarity and crisper, sharper visuals.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4909,6 +4986,7 @@ export class PikaV2TurboTextToVideo extends FalNode {
   static readonly description = `Pika v2 Turbo creates videos from a text prompt with high quality output.
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4958,6 +5036,7 @@ export class WanProTextToVideo extends FalNode {
   static readonly description = `Wan-2.1 Pro is a premium text-to-video model that generates high-quality 1080p videos at 30fps with up to 6 seconds duration, delivering exceptional visual quality and motion diversity from text prompts
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video" })
   declare prompt: any;
@@ -4992,6 +5071,7 @@ export class KlingVideoV16ProEffects extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.6 (pro)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
@@ -5033,6 +5113,7 @@ export class KlingVideoV16StandardEffects extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.6 (std)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
@@ -5074,6 +5155,7 @@ export class KlingVideoV15ProEffects extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.5 (pro)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
@@ -5115,6 +5197,7 @@ export class KlingVideoV1StandardEffects extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.0
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
@@ -5156,6 +5239,7 @@ export class LtxVideoV095 extends FalNode {
   static readonly description = `Generate videos from prompts using LTX Video-0.9.5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -5210,6 +5294,7 @@ export class KlingVideoV16ProTextToVideo extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.6 (pro)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5254,6 +5339,7 @@ export class WanT2v extends FalNode {
   static readonly description = `Wan-2.1 is a text-to-video model that generates high-quality videos with high visual quality and motion diversity from text prompts
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -5328,6 +5414,7 @@ export class Veo2 extends FalNode {
   static readonly description = `Veo 2 creates videos with realistic motion and high quality output. Explore different styles and find your own with extensive camera controls.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -5382,6 +5469,7 @@ export class MinimaxVideo01Director extends FalNode {
   static readonly description = `Generate video clips more accurately with respect to natural language descriptions and using camera movement instructions for shot control.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]. For a more detailed guide, refer https://sixth-switch-2ac.notion.site/T2V-01-Director-Model-Tutorial-with-camera-movement-1886c20a98eb80f395b8e05291ad8645" })
   declare prompt: any;
@@ -5411,6 +5499,7 @@ export class PixverseV35TextToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text prompts using PixVerse v3.5
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5465,6 +5554,7 @@ export class PixverseV35TextToVideoFast extends FalNode {
   static readonly description = `Generate high quality video clips quickly from text prompts using PixVerse v3.5 Fast
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5514,6 +5604,7 @@ export class LumaDreamMachineRay2 extends FalNode {
   static readonly description = `Ray2 is a large-scale video generative model capable of creating realistic visuals with natural, coherent motion.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5558,6 +5649,7 @@ export class HunyuanVideoLora extends FalNode {
   static readonly description = `Hunyuan Video is an Open video generation model with high visual quality, motion diversity, text-video alignment, and generation stability
 video, generation, text-to-video, txt2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -5617,6 +5709,7 @@ export class Transpixar extends FalNode {
   static readonly description = `Transform text into stunning videos with TransPixar - an AI model that generates both RGB footage and alpha channels, enabling seamless compositing and creative video effects.
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -5656,7 +5749,7 @@ video, generation, text-to-video, txt2vid`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/transpixar", args);
-    return { output: res };
+    return { output: { type: "video", uri: (res.video as any).url } };
   }
 }
 
@@ -5666,6 +5759,7 @@ export class KlingVideoV16StandardTextToVideo extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.6 (std)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5710,6 +5804,7 @@ export class MinimaxVideo01Live extends FalNode {
   static readonly description = `Generate video clips from your prompts using MiniMax model
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5739,6 +5834,7 @@ export class KlingVideoV15ProTextToVideo extends FalNode {
   static readonly description = `Generate video clips from your prompts using Kling 1.5 (pro)
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5783,6 +5879,7 @@ export class FastSvdTextToVideo extends FalNode {
   static readonly description = `Generate short video clips from your prompts using SVD v1.1
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use as a starting point for the generation." })
   declare prompt: any;
@@ -5847,6 +5944,7 @@ export class FastSvdLcmTextToVideo extends FalNode {
   static readonly description = `Generate short video clips from your images using SVD v1.1 at Lightning Speed
 video, generation, text-to-video, txt2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use as a starting point for the generation." })
   declare prompt: any;
@@ -5901,6 +5999,7 @@ export class MinimaxVideo01 extends FalNode {
   static readonly description = `Generate video clips from your prompts using MiniMax model
 video, generation, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5930,6 +6029,7 @@ export class KlingVideoV3StandardTextToVideo extends FalNode {
   static readonly description = `Kling Video V3 Standard generates videos from text prompts with balanced quality and speed using the latest V3 model.
 video, generation, kling, v3, standard, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -5994,6 +6094,7 @@ export class KlingVideoV3ProTextToVideo extends FalNode {
   static readonly description = `Kling Video V3 Pro generates professional quality videos from text prompts with enhanced visual fidelity using the latest V3 model.
 video, generation, kling, v3, pro, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -6058,6 +6159,7 @@ export class KlingVideoO3StandardTextToVideo extends FalNode {
   static readonly description = `Kling Video O3 Standard generates videos from text prompts with balanced quality and speed.
 video, generation, kling, o3, standard, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Required unless multi_prompt is provided." })
   declare prompt: any;
@@ -6112,6 +6214,7 @@ export class KlingVideoO3ProTextToVideo extends FalNode {
   static readonly description = `Kling Video O3 Pro generates professional quality videos from text prompts with enhanced fidelity.
 video, generation, kling, o3, pro, text-to-video, txt2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Required unless multi_prompt is provided." })
   declare prompt: any;

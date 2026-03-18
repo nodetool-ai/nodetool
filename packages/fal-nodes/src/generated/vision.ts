@@ -17,6 +17,7 @@ export class ArbiterImageText extends FalNode {
   static readonly description = `Arbiter measures semantic alignment between images and text descriptions.
 vision, alignment, similarity, text-image, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -46,6 +47,7 @@ export class ArbiterImageImage extends FalNode {
   static readonly description = `Arbiter measures similarity and alignment between reference images.
 vision, similarity, comparison, image-matching, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -75,6 +77,7 @@ export class ArbiterImage extends FalNode {
   static readonly description = `Arbiter provides comprehensive image analysis and quality metrics.
 vision, analysis, quality, metrics, image-evaluation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -104,6 +107,7 @@ export class Florence2RegionToDescription extends FalNode {
   static readonly description = `Florence-2 Large generates detailed descriptions of specific image regions.
 vision, captioning, region-description, florence, ocr`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -137,6 +141,7 @@ export class Florence2OCR extends FalNode {
   static readonly description = `Florence-2 Large performs optical character recognition to extract text from images.
 vision, ocr, text-extraction, florence, reading`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -164,6 +169,7 @@ export class Florence2MoreDetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates highly detailed, comprehensive image captions.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -191,6 +197,7 @@ export class Florence2RegionToCategory extends FalNode {
   static readonly description = `Florence-2 Large classifies image regions into semantic categories.
 vision, classification, region-analysis, florence, categorization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -224,6 +231,7 @@ export class Florence2Caption extends FalNode {
   static readonly description = `Florence-2 Large generates concise, accurate captions for images.
 vision, captioning, description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -251,6 +259,7 @@ export class Florence2DetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates detailed captions with rich contextual information.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -278,6 +287,7 @@ export class Sam3ImageEmbed extends FalNode {
   static readonly description = `Sam 3
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image to embed." })
   declare image: any;
@@ -305,6 +315,7 @@ export class OpenrouterRouterVision extends FalNode {
   static readonly description = `OpenRouter [Vision]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -366,6 +377,7 @@ export class Moondream3PreviewDetect extends FalNode {
   static readonly description = `Moondream3 Preview [Detect]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare prompt: any;
@@ -404,6 +416,7 @@ export class Moondream3PreviewPoint extends FalNode {
   static readonly description = `Moondream3 Preview [Point]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be located in the image" })
   declare prompt: any;
@@ -442,6 +455,7 @@ export class Moondream3PreviewQuery extends FalNode {
   static readonly description = `Moondream 3 Preview [Query]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -490,6 +504,7 @@ export class Moondream3PreviewCaption extends FalNode {
   static readonly description = `Moondream3 Preview [Caption]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Nucleus sampling probability mass to use, between 0 and 1." })
   declare top_p: any;
@@ -533,6 +548,7 @@ export class PerceptronIsaac01OpenaiV1ChatCompletions extends FalNode {
   static readonly description = `Isaac 0.1 [OpenAI Compatible Endpoint]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
@@ -551,6 +567,7 @@ export class PerceptronIsaac01 extends FalNode {
   static readonly description = `Isaac-01 is a multimodal vision-language model from Perceptron for various vision language tasks.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -589,6 +606,7 @@ export class XAilabNsfw extends FalNode {
   static readonly description = `Predict whether an image is NSFW or SFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[image]", default: [], description: "List of image URLs to check. If more than 10 images are provided, only the first 10 will be checked." })
   declare images: any;
@@ -619,6 +637,7 @@ export class VideoUnderstanding extends FalNode {
   static readonly description = `A video understanding model to analyze video content and answer questions about what's happening in the video based on user prompts.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Whether to request a more detailed analysis of the video" })
   declare detailed_analysis: any;
@@ -657,6 +676,7 @@ export class Moondream2VisualQuery extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -690,6 +710,7 @@ export class Moondream2 extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
@@ -717,6 +738,7 @@ export class Moondream2PointObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -750,6 +772,7 @@ export class Moondream2ObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -783,6 +806,7 @@ export class GotOcrV2 extends FalNode {
   static readonly description = `GOT-OCR2 works on a wide range of tasks, including plain document OCR, scene text OCR, formatted document OCR, and even OCR for tables, charts, mathematical formulas, geometric shapes, molecular formulas and sheet music.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Generate the output in formatted mode." })
   declare do_format: any;
@@ -824,6 +848,7 @@ export class MoondreamNextBatch extends FalNode {
   static readonly description = `MoonDreamNext Batch is a multimodal vision-language model for batch captioning.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Single prompt to apply to all images" })
   declare prompt: any;
@@ -862,6 +887,7 @@ export class Sa2va4bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -900,6 +926,7 @@ export class Sa2va8bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -938,6 +965,7 @@ export class Sa2va4bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -971,6 +999,7 @@ export class Sa2va8bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -1004,6 +1033,7 @@ export class MoondreamNext extends FalNode {
   static readonly description = `MoonDreamNext is a multimodal vision-language model for captioning, gaze detection, bbox detection, point detection, and more.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt for query task" })
   declare prompt: any;
@@ -1047,6 +1077,7 @@ export class ImageutilsNsfw extends FalNode {
   static readonly description = `Predict the probability of an image being NSFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "Input image url." })
   declare image: any;
@@ -1074,6 +1105,7 @@ export class MoondreamBatched extends FalNode {
   static readonly description = `Answer questions from the images.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "enum", default: "vikhyatk/moondream2", values: ["vikhyatk/moondream2", "fal-ai/moondream2-docci"], description: "Model ID to use for inference" })
   declare model_id: any;
@@ -1123,6 +1155,7 @@ export class LlavaNext extends FalNode {
   static readonly description = `Vision
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
