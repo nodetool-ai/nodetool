@@ -23,11 +23,11 @@
     "@nodetool/config": "*",
     "@nodetool/protocol": "*",
     "@nodetool/security": "*",
-    "better-sqlite3": "^12.6.2"
+    "better-sqlite3": "^12.8.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "vitest": "^1.6.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.1"
   }
 }
