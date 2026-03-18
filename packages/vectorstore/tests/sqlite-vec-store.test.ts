@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { SqliteVecStore, VecNotFoundError } from "../src/sqlite-vec-store.js";
+import { SqliteVecStore, VecNotFoundError, getDefaultStore, resetDefaultStore } from "../src/sqlite-vec-store.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { unlinkSync } from "node:fs";
@@ -422,6 +422,146 @@ describe("SqliteVecStore", () => {
       });
       // Only "b" should remain
       expect(result.ids[0]).toEqual(["b"]);
+    });
+  });
+
+  // ── Edge cases ────────────────────────────────────────────────
+
+  describe("edge cases", () => {
+    it("count returns 0 for empty collection", async () => {
+      const col = await store.createCollection({ name: "empty-count" });
+      expect(await col.count()).toBe(0);
+    });
+
+    it("get returns empty result for empty collection", async () => {
+      const col = await store.createCollection({ name: "empty-get" });
+      const result = await col.get();
+      expect(result.ids).toEqual([]);
+      expect(result.documents).toEqual([]);
+      expect(result.metadatas).toEqual([]);
+    });
+
+    it("query with nResults greater than available documents", async () => {
+      const col = await store.createCollection({ name: "small-col" });
+      await col.add({
+        ids: ["a"],
+        documents: ["only one"],
+        embeddings: [[1, 0]],
+      });
+
+      const result = await col.query({
+        queryEmbeddings: [[1, 0]],
+        nResults: 100,
+      });
+      expect(result.ids[0]).toHaveLength(1);
+      expect(result.ids[0][0]).toBe("a");
+    });
+
+    it("handles high-dimensional vectors (128-dim)", async () => {
+      const dim = 128;
+      const makeVec = (hot: number) =>
+        Array.from({ length: dim }, (_, i) => (i === hot ? 1 : 0));
+
+      const col = await store.createCollection({ name: "high-dim" });
+      await col.add({
+        ids: ["v0", "v1", "v2"],
+        documents: ["zero", "one", "two"],
+        embeddings: [makeVec(0), makeVec(1), makeVec(2)],
+      });
+
+      const result = await col.query({
+        queryEmbeddings: [makeVec(1)],
+        nResults: 1,
+      });
+      expect(result.ids[0][0]).toBe("v1");
+    });
+
+    it("handles batch add of many documents", async () => {
+      const n = 100;
+      const ids = Array.from({ length: n }, (_, i) => `doc-${i}`);
+      const documents = ids.map((id) => `Content for ${id}`);
+      const embeddings = ids.map((_, i) => [i / n, 1 - i / n]);
+
+      const col = await store.createCollection({ name: "batch" });
+      await col.add({ ids, documents, embeddings });
+
+      expect(await col.count()).toBe(n);
+
+      const result = await col.query({
+        queryEmbeddings: [[0, 1]],
+        nResults: 3,
+      });
+      // doc-0 has embedding [0, 1] — should be first
+      expect(result.ids[0][0]).toBe("doc-0");
+    });
+
+    it("delete with empty ids list is a no-op", async () => {
+      const col = await store.createCollection({ name: "del-empty" });
+      await col.add({ ids: ["a"], documents: ["hello"] });
+      await col.delete({ ids: [] });
+      expect(await col.count()).toBe(1);
+    });
+
+    it("keyword search with whereDocument $contains via queryTexts", async () => {
+      const col = await store.createCollection({ name: "kw-where-text" });
+      await col.add({
+        ids: ["d1", "d2", "d3"],
+        documents: ["apple pie recipe", "apple sauce tutorial", "banana bread"],
+      });
+
+      // No embedding function → falls back to keyword search; whereDocument applies
+      const result = await col.query({
+        queryTexts: ["apple"],
+        nResults: 5,
+        whereDocument: { $contains: "pie" },
+      });
+      expect(result.ids[0]).toEqual(["d1"]);
+    });
+
+    it("listCollections returns empty array when no collections exist", async () => {
+      const cols = await store.listCollections();
+      expect(cols).toEqual([]);
+    });
+
+    it("createCollection preserves metadata with nested values", async () => {
+      await store.createCollection({
+        name: "meta-types",
+        metadata: { count: 42, active: true, label: "test" },
+      });
+      const col = await store.getCollection({ name: "meta-types" });
+      expect(col.metadata.count).toBe(42);
+      expect(col.metadata.active).toBe(true);
+      expect(col.metadata.label).toBe("test");
+    });
+
+    it("peek on empty collection returns empty result", async () => {
+      const col = await store.createCollection({ name: "empty-peek" });
+      const result = await col.peek({ limit: 5 });
+      expect(result.ids).toEqual([]);
+    });
+  });
+
+  // ── Default store singleton ───────────────────────────────────
+
+  describe("default store singleton", () => {
+    afterEach(() => {
+      resetDefaultStore();
+    });
+
+    it("getDefaultStore returns the same instance on repeated calls", () => {
+      process.env.VECTORSTORE_DB_PATH = dbPath;
+      const s1 = getDefaultStore();
+      const s2 = getDefaultStore();
+      expect(s1).toBe(s2);
+    });
+
+    it("resetDefaultStore clears the singleton", () => {
+      process.env.VECTORSTORE_DB_PATH = dbPath;
+      const s1 = getDefaultStore();
+      resetDefaultStore();
+      const s2 = getDefaultStore();
+      expect(s1).not.toBe(s2);
+      s2.close();
     });
   });
 });

@@ -515,7 +515,7 @@ export class VecCollection {
     const params: unknown[] = [];
 
     if ("$contains" in where) {
-      parts.push(`d.document LIKE ?`);
+      parts.push(`document LIKE ?`);
       params.push(`%${where.$contains}%`);
     }
 
@@ -523,7 +523,7 @@ export class VecCollection {
       const orParts: string[] = [];
       for (const condition of where.$or) {
         if (condition && typeof condition === "object" && "$contains" in condition) {
-          orParts.push(`d.document LIKE ?`);
+          orParts.push(`document LIKE ?`);
           params.push(`%${(condition as Record<string, unknown>).$contains}%`);
         }
       }

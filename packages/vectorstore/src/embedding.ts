@@ -277,20 +277,20 @@ export function getProviderEmbeddingFunction(
     });
   }
 
-  // Auto-detect from model name
+  // Auto-detect from model name — check Gemini-specific patterns before generic OpenAI prefix
+  if (
+    embeddingModel.startsWith("text-embedding-004") ||
+    embeddingModel.startsWith("gemini-embedding-")
+  ) {
+    return new GeminiEmbeddingFunction(embeddingModel);
+  }
+
   if (embeddingModel.startsWith("text-embedding-")) {
     return new OpenAIEmbeddingFunction(embeddingModel);
   }
 
   if (embeddingModel.startsWith("mistral-embed")) {
     return new MistralEmbeddingFunction(embeddingModel);
-  }
-
-  if (
-    embeddingModel.startsWith("text-embedding-004") ||
-    embeddingModel.startsWith("gemini-embedding-")
-  ) {
-    return new GeminiEmbeddingFunction(embeddingModel);
   }
 
   // Default to Ollama for local models (nomic-embed-text, all-minilm, mxbai-embed-large, etc.)

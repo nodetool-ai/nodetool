@@ -36,6 +36,8 @@ export function splitDocument(
   chunkOverlap = 1000,
   separators: string[] = DEFAULT_SEPARATORS,
 ): TextChunk[] {
+  if (!text || !text.trim()) return [];
+
   const chunks = recursiveSplit(text, separators, chunkSize, chunkOverlap);
 
   return chunks.map((chunk) => ({
