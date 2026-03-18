@@ -8,9 +8,9 @@ import { PythonBridge } from "../src/python-bridge.js";
  *   - nodetool-worker installed: pip install -e /Users/mg/workspace/nodetool-worker
  *   - nodetool-core installed
  *
- * Skip with: SKIP_PYTHON_E2E=1
+ * Skip with: RUN_PYTHON_E2E unset (default). Enable with: RUN_PYTHON_E2E=1
  */
-describe.skipIf(process.env.SKIP_PYTHON_E2E === "1")("PythonBridge E2E", () => {
+describe.skipIf(process.env.RUN_PYTHON_E2E !== "1")("PythonBridge E2E", () => {
   let bridge: PythonBridge;
 
   beforeAll(async () => {
