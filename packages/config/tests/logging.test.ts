@@ -1,8 +1,8 @@
 /**
- * Tests for T-CFG-3: configureLogging.
+ * Tests for T-CFG-3: configureLogging and createLogger.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { configureLogging, getLogLevel, type LogLevel } from "../src/logging.js";
+import { configureLogging, getLogLevel, createLogger, type LogLevel } from "../src/logging.js";
 
 describe("T-CFG-3: configureLogging", () => {
   const savedEnv: Record<string, string | undefined> = {};
@@ -89,3 +89,93 @@ function shouldLog(level: LogLevel): boolean {
   const currentLevel = getLogLevel();
   return levels.indexOf(level) >= levels.indexOf(currentLevel);
 }
+
+// ── T-CFG-3b — createLogger ──────────────────────────────────────────
+
+describe("T-CFG-3b: createLogger", () => {
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    configureLogging({ level: "debug" });
+  });
+
+  afterEach(() => {
+    stderrSpy.mockRestore();
+    configureLogging({ level: "info" });
+  });
+
+  it("returns a Logger with debug/info/warn/error methods", () => {
+    const log = createLogger("test.module");
+    expect(typeof log.debug).toBe("function");
+    expect(typeof log.info).toBe("function");
+    expect(typeof log.warn).toBe("function");
+    expect(typeof log.error).toBe("function");
+  });
+
+  it("writes to stderr when logging", () => {
+    const log = createLogger("test.module");
+    log.info("hello world");
+    expect(stderrSpy).toHaveBeenCalledOnce();
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("hello world");
+  });
+
+  it("includes the logger name in output", () => {
+    const log = createLogger("nodetool.kernel.runner");
+    log.info("started");
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("nodetool.kernel.runner");
+  });
+
+  it("includes the level in output", () => {
+    const log = createLogger("test");
+    log.warn("something");
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("WARN");
+  });
+
+  it("suppresses messages below the current log level", () => {
+    configureLogging({ level: "warn" });
+    const log = createLogger("test");
+    log.debug("hidden");
+    log.info("also hidden");
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it("logs at exactly the current level", () => {
+    configureLogging({ level: "warn" });
+    const log = createLogger("test");
+    log.warn("visible");
+    expect(stderrSpy).toHaveBeenCalledOnce();
+  });
+
+  it("formats object args as JSON", () => {
+    const log = createLogger("test");
+    log.info("context", { jobId: 42 });
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain('"jobId":42');
+  });
+
+  it("formats Error args using stack or message", () => {
+    const log = createLogger("test");
+    const err = new Error("boom");
+    log.error("failed", err);
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("boom");
+  });
+
+  it("formats primitive args as strings", () => {
+    const log = createLogger("test");
+    log.info("value is", 99);
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("99");
+  });
+
+  it("includes a timestamp in HH:MM:SS format", () => {
+    const log = createLogger("test");
+    log.info("ts check");
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toMatch(/\d{2}:\d{2}:\d{2}/);
+  });
+});
