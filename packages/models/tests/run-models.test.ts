@@ -326,6 +326,242 @@ describe("Prediction model", () => {
     const found = await Prediction.find("nonexistent-id");
     expect(found).toBeNull();
   });
+
+  it("paginate returns predictions for user", async () => {
+    for (let i = 0; i < 3; i++) {
+      await (Prediction as unknown as ModelClass<Prediction>).create({
+        user_id: "u1",
+        node_id: `n${i}`,
+        provider: "openai",
+        model: "gpt-4",
+      });
+    }
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u2",
+      node_id: "n0",
+      provider: "openai",
+      model: "gpt-4",
+    });
+
+    const [results] = await Prediction.paginate("u1");
+    expect(results).toHaveLength(3);
+    expect(results.every((p) => p.user_id === "u1")).toBe(true);
+  });
+
+  it("paginate filters by provider and model", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "anthropic",
+      model: "claude-3",
+    });
+
+    const [byProvider] = await Prediction.paginate("u1", {
+      provider: "openai",
+    });
+    expect(byProvider).toHaveLength(1);
+    expect(byProvider[0].provider).toBe("openai");
+
+    const [byModel] = await Prediction.paginate("u1", { model: "claude-3" });
+    expect(byModel).toHaveLength(1);
+    expect(byModel[0].model).toBe("claude-3");
+  });
+
+  it("aggregateByUser sums costs and tokens", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+      input_tokens: 100,
+      output_tokens: 50,
+      total_tokens: 150,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.10,
+      input_tokens: 200,
+      output_tokens: 100,
+      total_tokens: 300,
+    });
+
+    const agg = await Prediction.aggregateByUser("u1");
+    expect(agg.user_id).toBe("u1");
+    expect(agg.total_cost).toBeCloseTo(0.15);
+    expect(agg.total_input_tokens).toBe(300);
+    expect(agg.total_output_tokens).toBe(150);
+    expect(agg.total_tokens).toBe(450);
+    expect(agg.call_count).toBe(2);
+  });
+
+  it("aggregateByUser filters by provider", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+      input_tokens: 100,
+      output_tokens: 50,
+      total_tokens: 150,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "anthropic",
+      model: "claude-3",
+      cost: 0.08,
+      input_tokens: 80,
+      output_tokens: 40,
+      total_tokens: 120,
+    });
+
+    const agg = await Prediction.aggregateByUser("u1", {
+      provider: "openai",
+    });
+    expect(agg.call_count).toBe(1);
+    expect(agg.total_cost).toBeCloseTo(0.05);
+    expect(agg.provider).toBe("openai");
+  });
+
+  it("aggregateByUser handles null costs/tokens", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      // cost, tokens left as null defaults
+    });
+
+    const agg = await Prediction.aggregateByUser("u1");
+    expect(agg.total_cost).toBe(0);
+    expect(agg.total_input_tokens).toBe(0);
+    expect(agg.total_output_tokens).toBe(0);
+    expect(agg.total_tokens).toBe(0);
+    expect(agg.call_count).toBe(1);
+  });
+
+  it("aggregateByProvider groups by provider", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+      input_tokens: 100,
+      output_tokens: 50,
+      total_tokens: 150,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "openai",
+      model: "gpt-3.5",
+      cost: 0.02,
+      input_tokens: 50,
+      output_tokens: 25,
+      total_tokens: 75,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n3",
+      provider: "anthropic",
+      model: "claude-3",
+      cost: 0.08,
+      input_tokens: 80,
+      output_tokens: 40,
+      total_tokens: 120,
+    });
+
+    const results = await Prediction.aggregateByProvider("u1");
+    expect(results).toHaveLength(2);
+
+    const openai = results.find((r) => r.provider === "openai");
+    expect(openai).toBeDefined();
+    expect(openai!.call_count).toBe(2);
+    expect(openai!.total_cost).toBeCloseTo(0.07);
+    expect(openai!.total_input_tokens).toBe(150);
+
+    const anthropic = results.find((r) => r.provider === "anthropic");
+    expect(anthropic).toBeDefined();
+    expect(anthropic!.call_count).toBe(1);
+    expect(anthropic!.total_cost).toBeCloseTo(0.08);
+  });
+
+  it("aggregateByModel groups by provider+model", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+      total_tokens: 150,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "openai",
+      model: "gpt-3.5",
+      cost: 0.02,
+      total_tokens: 75,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n3",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.06,
+      total_tokens: 180,
+    });
+
+    const results = await Prediction.aggregateByModel("u1");
+    expect(results).toHaveLength(2);
+
+    const gpt4 = results.find((r) => r.model === "gpt-4");
+    expect(gpt4).toBeDefined();
+    expect(gpt4!.provider).toBe("openai");
+    expect(gpt4!.call_count).toBe(2);
+    expect(gpt4!.total_cost).toBeCloseTo(0.11);
+    expect(gpt4!.total_tokens).toBe(330);
+
+    const gpt35 = results.find((r) => r.model === "gpt-3.5");
+    expect(gpt35).toBeDefined();
+    expect(gpt35!.call_count).toBe(1);
+  });
+
+  it("aggregateByModel filters by provider", async () => {
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n1",
+      provider: "openai",
+      model: "gpt-4",
+      cost: 0.05,
+    });
+    await (Prediction as unknown as ModelClass<Prediction>).create({
+      user_id: "u1",
+      node_id: "n2",
+      provider: "anthropic",
+      model: "claude-3",
+      cost: 0.08,
+    });
+
+    const results = await Prediction.aggregateByModel("u1", {
+      provider: "openai",
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].provider).toBe("openai");
+    expect(results[0].model).toBe("gpt-4");
+  });
 });
 
 // ── RunLease ──────────────────────────────────────────────────────────

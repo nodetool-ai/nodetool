@@ -1,4 +1,11 @@
 {
+  "private": true,
+  "workspaces": [
+    "packages/protocol",
+    "packages/config",
+    "packages/security",
+    "packages/models"
+  ],
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.8"
