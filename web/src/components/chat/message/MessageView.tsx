@@ -35,6 +35,7 @@ import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
 import AgentExecutionView from "./AgentExecutionView";
+import { formatToolName } from "../../../utils/formatUtils";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -80,7 +81,7 @@ const ToolCallCard: React.FC<{
     <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
       <Box className="tool-call-header">
         <Typography component="span" variant="caption" className="tool-call-name">
-          {tc.name}
+          {formatToolName(tc.name)}
         </Typography>
         {(isRunning || tc.message) && (
           <Typography component="span" variant="caption" className="tool-message">
