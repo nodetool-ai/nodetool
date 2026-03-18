@@ -759,7 +759,7 @@ export class TranscribeNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
-// 9. RealtimeAgent (stub — WebSocket not yet implemented)
+// 9. RealtimeAgent
 // ---------------------------------------------------------------------------
 export class RealtimeAgentNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeAgent";
@@ -910,7 +910,7 @@ export class RealtimeAgentNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
-// 10. RealtimeTranscription (stub — WebSocket not yet implemented)
+// 10. RealtimeTranscription
 // ---------------------------------------------------------------------------
 export class RealtimeTranscriptionNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeTranscription";
