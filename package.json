@@ -52,6 +52,7 @@
     "vitest": "^1.6.1"
   },
   "dependencies": {
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "msgpackr": "^1.11.9"
   }
 }
