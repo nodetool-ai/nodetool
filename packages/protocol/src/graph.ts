@@ -21,7 +21,7 @@ export interface Edge {
   target: string;
   targetHandle: string;
   ui_properties?: Record<string, string> | null;
-  edge_type: EdgeType;
+  edge_type?: EdgeType;
 }
 
 export function isControlEdge(edge: Edge): boolean {

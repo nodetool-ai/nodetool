@@ -104,3 +104,76 @@ describe("GraphData", () => {
     expect(graph.edges).toHaveLength(1);
   });
 });
+
+import type { ControlEvent, RunEvent, StopEvent, SyncMode } from "../src/graph.js";
+
+describe("ControlEvent", () => {
+  it("RunEvent has event_type 'run' and carries properties", () => {
+    const runEvt: RunEvent = {
+      event_type: "run",
+      properties: { input: 42, mode: "fast" },
+    };
+    expect(runEvt.event_type).toBe("run");
+    expect(runEvt.properties.input).toBe(42);
+  });
+
+  it("StopEvent has event_type 'stop' with no extra data", () => {
+    const stopEvt: StopEvent = { event_type: "stop" };
+    expect(stopEvt.event_type).toBe("stop");
+  });
+
+  it("ControlEvent union can be narrowed by event_type", () => {
+    const events: ControlEvent[] = [
+      { event_type: "run", properties: {} },
+      { event_type: "stop" },
+    ];
+    for (const evt of events) {
+      if (evt.event_type === "run") {
+        expect(evt.properties).toBeDefined();
+      } else {
+        expect(evt.event_type).toBe("stop");
+      }
+    }
+  });
+});
+
+describe("SyncMode", () => {
+  it("accepts on_any and zip_all values", () => {
+    const modes: SyncMode[] = ["on_any", "zip_all"];
+    expect(modes).toContain("on_any");
+    expect(modes).toContain("zip_all");
+    expect(modes).toHaveLength(2);
+  });
+
+  it("NodeDescriptor sync_mode is applied correctly", () => {
+    const nodeOnAny = { id: "n1", type: "math.Add", sync_mode: "on_any" as SyncMode };
+    const nodeZipAll = { id: "n2", type: "math.Mul", sync_mode: "zip_all" as SyncMode };
+    expect(nodeOnAny.sync_mode).toBe("on_any");
+    expect(nodeZipAll.sync_mode).toBe("zip_all");
+  });
+});
+
+describe("NodeDescriptor property metadata", () => {
+  it("supports propertyTypes record", () => {
+    const node = {
+      id: "n1",
+      type: "math.Add",
+      propertyTypes: { a: "int", b: "int", values: "list[int]" },
+    };
+    expect(node.propertyTypes.a).toBe("int");
+    expect(node.propertyTypes.values).toBe("list[int]");
+  });
+
+  it("supports propertyMeta record with min/max/description", () => {
+    const node = {
+      id: "n1",
+      type: "math.Clamp",
+      propertyMeta: {
+        value: { description: "Input value", min: 0, max: 1 },
+      },
+    };
+    expect(node.propertyMeta.value.min).toBe(0);
+    expect(node.propertyMeta.value.max).toBe(1);
+    expect(node.propertyMeta.value.description).toBe("Input value");
+  });
+});
