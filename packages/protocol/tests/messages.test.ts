@@ -29,6 +29,7 @@ import type {
   PlanningUpdate,
   Chunk,
   Prediction,
+  LLMCallUpdate,
 } from "../src/messages.js";
 import {
   TaskUpdateEvent,
@@ -159,6 +160,19 @@ function prediction(): Prediction {
   };
 }
 
+function llmCallUpdate(): LLMCallUpdate {
+  return {
+    type: "llm_call",
+    node_id: "n1",
+    provider: "openai",
+    model: "gpt-4",
+    messages: [{ role: "user", content: "hello" }],
+    response: { text: "hi" },
+    duration_ms: 100,
+    timestamp: "2024-01-01T00:00:00Z",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Collect all factory functions so we can iterate over them
 // ---------------------------------------------------------------------------
@@ -182,6 +196,7 @@ const factories: Array<[MessageType, () => ProcessingMessage]> = [
   ["planning_update", planningUpdate],
   ["chunk", chunk],
   ["prediction", prediction],
+  ["llm_call", llmCallUpdate],
 ];
 
 // ---------------------------------------------------------------------------
@@ -201,8 +216,8 @@ describe("ProcessingMessage discriminator", () => {
     expect(new Set(types).size).toBe(types.length);
   });
 
-  it("has exactly 18 message types matching Python ProcessingMessage", () => {
-    expect(factories.length).toBe(18);
+  it("has exactly 19 message types matching Python ProcessingMessage", () => {
+    expect(factories.length).toBe(19);
   });
 });
 
@@ -414,5 +429,109 @@ describe("encodeBinaryUpdate", () => {
     // Nothing after the null byte
     const payload = encoded.slice(nullIdx + 1);
     expect(payload.length).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LLMCallUpdate narrowing
+// ---------------------------------------------------------------------------
+
+describe("LLMCallUpdate", () => {
+  it("narrows LLMCallUpdate correctly", () => {
+    const msg: ProcessingMessage = llmCallUpdate();
+    if (msg.type === "llm_call") {
+      expect(msg.provider).toBe("openai");
+      expect(msg.model).toBe("gpt-4");
+      expect(msg.duration_ms).toBe(100);
+      expect(msg.messages).toHaveLength(1);
+    } else {
+      throw new Error("narrowing failed");
+    }
+  });
+
+  it("LLMCallUpdate minimal required fields", () => {
+    const msg = llmCallUpdate();
+    expect(msg.type).toBe("llm_call");
+    expect(msg.node_id).toBe("n1");
+    expect(msg.tool_calls).toBeUndefined();
+    expect(msg.cost).toBeUndefined();
+    expect(msg.error).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WebSocket control messages
+// ---------------------------------------------------------------------------
+
+import type {
+  PingMessage,
+  PongMessage,
+  ClientToolManifestMessage,
+  ToolResultMessage,
+  SystemStatsMessage,
+  ResourceChangeMessage,
+  WebSocketCommandEnvelope,
+} from "../src/messages.js";
+
+describe("WebSocket control messages", () => {
+  it("PingMessage has correct type discriminator", () => {
+    const ping: PingMessage = { type: "ping", ts: Date.now() };
+    expect(ping.type).toBe("ping");
+  });
+
+  it("PongMessage has correct type and required ts field", () => {
+    const pong: PongMessage = { type: "pong", ts: 1234567890 };
+    expect(pong.type).toBe("pong");
+    expect(pong.ts).toBe(1234567890);
+  });
+
+  it("ClientToolManifestMessage carries tool list", () => {
+    const manifest: ClientToolManifestMessage = {
+      type: "client_tools_manifest",
+      tools: [{ name: "search", description: "Search the web" }],
+    };
+    expect(manifest.type).toBe("client_tools_manifest");
+    expect(manifest.tools).toHaveLength(1);
+  });
+
+  it("ToolResultMessage supports open-ended payload", () => {
+    const result: ToolResultMessage = {
+      type: "tool_result",
+      tool_call_id: "tc1",
+      output: "result text",
+    };
+    expect(result.type).toBe("tool_result");
+    expect(result.tool_call_id).toBe("tc1");
+  });
+
+  it("SystemStatsMessage carries stats record", () => {
+    const stats: SystemStatsMessage = {
+      type: "system_stats",
+      stats: { cpu: 42, memory: 80 },
+    };
+    expect(stats.type).toBe("system_stats");
+    expect(stats.stats.cpu).toBe(42);
+  });
+
+  it("ResourceChangeMessage covers all event types", () => {
+    for (const event of ["created", "updated", "deleted"] as const) {
+      const msg: ResourceChangeMessage = {
+        type: "resource_change",
+        event,
+        resource_type: "workflow",
+        resource: { id: "w1" },
+      };
+      expect(msg.event).toBe(event);
+      expect(msg.resource_type).toBe("workflow");
+    }
+  });
+
+  it("WebSocketCommandEnvelope carries command and data", () => {
+    const envelope: WebSocketCommandEnvelope<"run_job", { workflow_id: string }> = {
+      command: "run_job",
+      data: { workflow_id: "wf-1" },
+    };
+    expect(envelope.command).toBe("run_job");
+    expect(envelope.data.workflow_id).toBe("wf-1");
   });
 });
