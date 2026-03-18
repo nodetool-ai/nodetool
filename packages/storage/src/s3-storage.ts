@@ -7,7 +7,12 @@
 
 import type { AbstractStorage } from "./abstract-storage.js";
 
-/** Minimal type stubs so we don't need the SDK at compile time. */
+/**
+ * Inline type definitions that mirror the @aws-sdk/client-s3 public API surface
+ * used by S3Storage.  Declaring them here keeps @aws-sdk/client-s3 an optional
+ * *runtime* dependency — the package compiles and type-checks without it.  At
+ * runtime the real SDK is loaded via dynamic `import()` inside `loadSdk()`.
+ */
 interface S3ClientLike {
   send(command: unknown): Promise<any>;
 }

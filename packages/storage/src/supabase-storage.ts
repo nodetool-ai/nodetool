@@ -7,7 +7,13 @@
 
 import type { AbstractStorage } from "./abstract-storage.js";
 
-/** Minimal type stubs so we don't need the SDK at compile time. */
+/**
+ * Inline type definitions that mirror the @supabase/supabase-js public API
+ * surface used by SupabaseStorage.  Declaring them here keeps
+ * @supabase/supabase-js an optional *runtime* dependency — the package
+ * compiles and type-checks without it.  At runtime the real SDK is loaded via
+ * dynamic `import()` inside `getClient()`.
+ */
 interface SupabaseBucket {
   upload(
     path: string,

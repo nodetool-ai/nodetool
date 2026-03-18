@@ -16,6 +16,7 @@
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "vitest": "^1.6.1",
     "typescript": "^5.4.5"
   }
