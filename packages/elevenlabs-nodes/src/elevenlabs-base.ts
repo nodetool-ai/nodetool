@@ -1,5 +1,3 @@
-import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
-
 export function getElevenLabsApiKey(inputs: Record<string, unknown>): string {
   const key =
     (inputs._secrets as Record<string, string>)?.ELEVENLABS_API_KEY ||
@@ -7,10 +5,6 @@ export function getElevenLabsApiKey(inputs: Record<string, unknown>): string {
     "";
   if (!key) throw new Error("ELEVENLABS_API_KEY is not configured");
   return key;
-}
-
-export function createClient(inputs: Record<string, unknown>): ElevenLabsClient {
-  return new ElevenLabsClient({ apiKey: getElevenLabsApiKey(inputs) });
 }
 
 export const VOICE_ID_MAP: Record<string, string> = {

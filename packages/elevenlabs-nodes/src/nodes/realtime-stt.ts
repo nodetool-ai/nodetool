@@ -197,12 +197,10 @@ export class RealtimeSpeechToTextNode extends BaseNode {
         try {
           const msg = JSON.parse(data.toString()) as Record<string, unknown>;
           const msgType = String(msg.message_type ?? "");
-          console.log("[ElevenLabs STT] WS message:", msgType, msgType.includes("transcript") ? `text="${String(msg.text ?? "").slice(0, 80)}"` : "");
 
           if (msgType === "partial_transcript" || msgType === "committed_transcript") {
             const text = String(msg.text ?? "");
             if (text) {
-              console.log("[ElevenLabs STT] Emitting text chunk:", text.slice(0, 80));
               await outputs.emit("chunk", {
                 type: "chunk",
                 content: text,
@@ -216,7 +214,6 @@ export class RealtimeSpeechToTextNode extends BaseNode {
           } else if (msgType === "committed_transcript_with_timestamps") {
             const text = String(msg.text ?? "");
             if (text) {
-              console.log("[ElevenLabs STT] Emitting timestamped chunk:", text.slice(0, 80));
               const metadata: Record<string, unknown> = {};
               if (msg.language_code) metadata.language_code = msg.language_code;
               if (msg.words) metadata.words = msg.words;
@@ -232,22 +229,18 @@ export class RealtimeSpeechToTextNode extends BaseNode {
               }
             }
           } else if (msgType.includes("error")) {
-            console.error("[ElevenLabs STT] Error from API:", msg.error ?? msgType);
             reject(new Error(`Transcription error: ${msg.error ?? msgType}`));
           }
         } catch (err) {
-          console.error("[ElevenLabs STT] WS message error:", err);
           if (!consumerDone) reject(err);
         }
       });
 
       ws.on("error", (err: Error) => {
-        console.error("[ElevenLabs STT] WS error:", err.message);
         if (!consumerDone) reject(err);
       });
 
-      ws.on("close", (code: number, reason: Buffer) => {
-        console.log("[ElevenLabs STT] WS closed:", code, reason.toString());
+      ws.on("close", (_code: number, _reason?: Buffer) => {
         consumerDone = true;
         resolve();
       });
@@ -256,10 +249,8 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     // Producer: read streaming audio input and forward to WebSocket.
     // Detect sample rate from the first chunk's content_metadata, falling
     // back to the WS URL parameter value (pcm_16000 → 16000).
-    console.log("[ElevenLabs STT] Producer started, reading input stream");
     let detectedSampleRate = 16000;
     let sampleRateDetected = false;
-    let chunkCount = 0;
     for await (const [handle, item] of inputs.any()) {
       if (handle === "__control__") continue;
 
@@ -275,19 +266,11 @@ export class RealtimeSpeechToTextNode extends BaseNode {
           const meta = chunk.content_metadata as Record<string, unknown>;
           if (typeof meta.sample_rate === "number" && meta.sample_rate > 0) {
             detectedSampleRate = meta.sample_rate;
-            console.log("[ElevenLabs STT] Detected sample rate from metadata:", detectedSampleRate);
           }
           sampleRateDetected = true;
         }
 
-        console.log("[ElevenLabs STT] Input chunk:", JSON.stringify({
-          handle,
-          contentType: (chunk as any).content_type,
-          contentLength: typeof (chunk as any).content === "string" ? (chunk as any).content.length : 0,
-          done: (chunk as any).done,
-        }));
         if (chunk.content_type && chunk.content_type !== "audio") {
-          console.log("[ElevenLabs STT] Skipping non-audio chunk");
           continue;
         }
         audioB64 = String(chunk.content ?? "");
@@ -295,15 +278,12 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       }
 
       if (done) {
-        console.log("[ElevenLabs STT] Got done=true, breaking");
         break;
       }
       if (!audioB64) {
-        console.log("[ElevenLabs STT] Empty audio, skipping");
         continue;
       }
 
-      chunkCount++;
       ws.send(JSON.stringify({
         message_type: "input_audio_chunk",
         audio_base_64: audioB64,
@@ -311,7 +291,6 @@ export class RealtimeSpeechToTextNode extends BaseNode {
         sample_rate: detectedSampleRate,
       }));
     }
-    console.log("[ElevenLabs STT] Producer finished, total chunks sent:", chunkCount, "sampleRate:", detectedSampleRate);
 
     // Flush the final segment before closing so the last transcript is delivered.
     finalizeRequested = true;
