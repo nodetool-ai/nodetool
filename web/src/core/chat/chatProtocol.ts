@@ -938,6 +938,106 @@ const applyError = (message: string): ReducerResult => ({
   }
 });
 
+async function executeToolCall(
+  toolCallData: ToolCallMessage,
+  get: ChatStateGetter,
+  set: ChatStateSetter,
+  wsManager: typeof globalWebSocketManager
+): Promise<void> {
+  const { tool_call_id, name, args, thread_id } = toolCallData;
+
+  // Update UI immediately
+  set({
+    currentRunningToolCallId: tool_call_id,
+    currentToolMessage: `Executing ${name}`,
+    statusMessage: `Executing ${name}`
+  });
+
+  if (!FrontendToolRegistry.has(name)) {
+    log.warn(`Unknown tool: ${name}`);
+    try {
+      await wsManager.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: `Unsupported tool: ${name}`,
+        result: { error: `Unsupported tool: ${name}` }
+      });
+    } catch (error) {
+      log.error("Failed to send tool_result for unknown tool:", error);
+    }
+    return;
+  }
+
+  const startTime = Date.now();
+  try {
+    const threadWorkflowId =
+      get().threadWorkflowId?.[thread_id] ?? get().workflowId ?? null;
+    if (threadWorkflowId) {
+      try {
+        await get().frontendToolState.fetchWorkflow(threadWorkflowId);
+      } catch (e) {
+        log.warn("Failed to fetch workflow for tool call:", e);
+      }
+    }
+
+    const effectiveArgs =
+      threadWorkflowId === null || threadWorkflowId === undefined
+        ? args
+        : {
+            ...(args ?? {}),
+            workflow_id: threadWorkflowId,
+            w: threadWorkflowId
+          };
+
+    const result = await FrontendToolRegistry.call(
+      name,
+      effectiveArgs,
+      tool_call_id,
+      {
+        getState: () =>
+          ({
+            ...(get().frontendToolState as FrontendToolState),
+            currentWorkflowId:
+              threadWorkflowId ?? get().frontendToolState.currentWorkflowId
+          }) as FrontendToolState
+      }
+    );
+
+    const elapsedMs = Date.now() - startTime;
+    try {
+      await wsManager.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: true,
+        result,
+        elapsed_ms: elapsedMs
+      });
+    } catch (error) {
+      log.error("Failed to send tool_result:", error);
+    }
+  } catch (error) {
+    const elapsedMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : "Unknown error";
+    log.error(`Tool execution failed for ${name}:`, error);
+    try {
+      await wsManager.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: message,
+        result: { error: message },
+        elapsed_ms: elapsedMs
+      });
+    } catch (sendError) {
+      log.error("Failed to send tool_result after error:", sendError);
+    }
+  }
+}
+
 export async function handleChatWebSocketMessage(
   data: MsgpackData,
   set: ChatStateSetter,
@@ -1007,98 +1107,7 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyNodeProgress, data as NodeProgress);
   } else if (data.type === "tool_call") {
     const toolCallData = data as ToolCallMessage;
-    const { tool_call_id, name, args, thread_id } = toolCallData;
-
-    // Update UI immediately; server-side ToolCallUpdate may arrive later (or not at all for UI tools).
-    set({
-      currentRunningToolCallId: tool_call_id,
-      currentToolMessage: `Executing ${name}`,
-      statusMessage: `Executing ${name}`
-    });
-
-    if (!FrontendToolRegistry.has(name)) {
-      log.warn(`Unknown tool: ${name}`);
-      try {
-        await globalWebSocketManager.send({
-          type: "tool_result",
-          tool_call_id,
-          thread_id,
-          ok: false,
-          error: `Unsupported tool: ${name}`,
-          result: { error: `Unsupported tool: ${name}` }
-        });
-      } catch (error) {
-        log.error("Failed to send tool_result for unknown tool:", error);
-      }
-      return;
-    }
-
-    const startTime = Date.now();
-    try {
-      const threadWorkflowId =
-        get().threadWorkflowId?.[thread_id] ?? get().workflowId ?? null;
-      if (threadWorkflowId) {
-        try {
-          await get().frontendToolState.fetchWorkflow(threadWorkflowId);
-        } catch (e) {
-          log.warn("Failed to fetch workflow for tool call:", e);
-        }
-      }
-
-      const effectiveArgs =
-        threadWorkflowId === null || threadWorkflowId === undefined
-          ? args
-          : {
-              ...(args ?? {}),
-              workflow_id: threadWorkflowId,
-              w: threadWorkflowId
-            };
-
-      const result = await FrontendToolRegistry.call(
-        name,
-        effectiveArgs,
-        tool_call_id,
-        {
-          getState: () =>
-            ({
-              ...(get().frontendToolState as FrontendToolState),
-              currentWorkflowId:
-                threadWorkflowId ?? get().frontendToolState.currentWorkflowId
-            }) as FrontendToolState
-        }
-      );
-
-      const elapsedMs = Date.now() - startTime;
-      try {
-        await globalWebSocketManager.send({
-          type: "tool_result",
-          tool_call_id,
-          thread_id,
-          ok: true,
-          result,
-          elapsed_ms: elapsedMs
-        });
-      } catch (error) {
-        log.error("Failed to send tool_result:", error);
-      }
-    } catch (error) {
-      const elapsedMs = Date.now() - startTime;
-      const message = error instanceof Error ? error.message : "Unknown error";
-      log.error(`Tool execution failed for ${name}:`, error);
-      try {
-        await globalWebSocketManager.send({
-          type: "tool_result",
-          tool_call_id,
-          thread_id,
-          ok: false,
-          error: message,
-          result: { error: message },
-          elapsed_ms: elapsedMs
-        });
-      } catch (sendError) {
-        log.error("Failed to send tool_result after error:", sendError);
-      }
-    }
+    void executeToolCall(toolCallData, get, set, globalWebSocketManager);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;
