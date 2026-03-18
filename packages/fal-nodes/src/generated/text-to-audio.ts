@@ -17,6 +17,7 @@ export class ACEStepPromptToAudio extends FalNode {
   static readonly description = `ACE-Step generates music from text prompts with high-quality audio synthesis.
 audio, generation, music, ace-step, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Prompt to control the style of the generated audio. This will be used to generate tags and lyrics." })
   declare prompt: any;
@@ -106,6 +107,7 @@ export class ACEStep extends FalNode {
   static readonly description = `ACE-Step generates music with lyrics from text using advanced audio synthesis.
 audio, generation, music, lyrics, ace-step, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -195,6 +197,7 @@ export class CSM1B extends FalNode {
   static readonly description = `CSM (Conversational Speech Model) generates natural conversational speech from text.
 audio, speech, tts, conversational, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "list[Turn]", default: [], description: "The text to generate an audio from." })
   declare scene: any;
@@ -224,6 +227,7 @@ export class DiffRhythm extends FalNode {
   static readonly description = `DiffRhythm generates rhythmic music and beats using diffusion models.
 audio, generation, rhythm, beats, music, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the song from. Must have two sections. Sections start with either [chorus] or a [verse]." })
   declare lyrics: any;
@@ -282,6 +286,7 @@ export class ElevenLabsTTSMultilingualV2 extends FalNode {
   static readonly description = `ElevenLabs Multilingual TTS v2 generates natural speech in multiple languages.
 audio, tts, speech, multilingual, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to convert to speech" })
   declare text: any;
@@ -356,6 +361,7 @@ export class ElevenLabsTextToDialogueV3 extends FalNode {
   static readonly description = `ElevenLabs Text to Dialogue v3 generates conversational dialogue with multiple speakers.
 audio, dialogue, conversation, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range for the voice. Higher values can result in a monotonous voice with limited emotion. Must be one of 0.0, 0.5, 1.0, else it will be rounded to the nearest value." })
   declare stability: any;
@@ -405,6 +411,7 @@ export class ElevenLabsSoundEffectsV2 extends FalNode {
   static readonly description = `ElevenLabs Sound Effects v2 generates custom sound effects from text descriptions.
 audio, sound-effects, sfx, elevenlabs, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text describing the sound effect to generate" })
   declare text: any;
@@ -449,6 +456,7 @@ export class ElevenLabsTTSV3 extends FalNode {
   static readonly description = `ElevenLabs TTS v3 generates high-quality natural speech with advanced voice control.
 audio, tts, speech, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to convert to speech" })
   declare text: any;
@@ -498,6 +506,7 @@ export class ElevenLabsMusic extends FalNode {
   static readonly description = `ElevenLabs Music generates custom music compositions from text descriptions.
 audio, music, generation, elevenlabs, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the music to generate" })
   declare prompt: any;
@@ -547,6 +556,7 @@ export class F5TTS extends FalNode {
   static readonly description = `F5 TTS generates natural speech with fast inference and high quality.
 audio, tts, speech, fast, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The reference text to be used for TTS. If not provided, an ASR (Automatic Speech Recognition) model will be used to generate the reference text." })
   declare ref_text: any;
@@ -595,6 +605,7 @@ export class Kokoro extends FalNode {
   static readonly description = `Kokoro generates expressive and emotional speech with advanced prosody control.
 audio, tts, speech, expressive, emotional, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -629,6 +640,7 @@ export class StableAudio extends FalNode {
   static readonly description = `Stable Audio generates high-quality audio from text with consistent results.
 audio, generation, stable, music, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate audio from" })
   declare prompt: any;
@@ -668,6 +680,7 @@ export class XTTS extends FalNode {
   static readonly description = `XTTS generates expressive speech with voice cloning capabilities.
 audio, tts, speech, voice-cloning, expressive, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt you would like to convert to speech." })
   declare prompt: any;
@@ -736,6 +749,7 @@ export class MinimaxMusicV2 extends FalNode {
   static readonly description = `Minimax Music
 audio, generation, text-to-audio, tts, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the music, specifying style, mood, and scenario. 10-300 characters." })
   declare prompt: any;
@@ -770,6 +784,7 @@ export class BeatovenSoundEffectGeneration extends FalNode {
   static readonly description = `Sound Effect Generation
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Describe the sound effect you want to generate" })
   declare prompt: any;
@@ -819,6 +834,7 @@ export class BeatovenMusicGeneration extends FalNode {
   static readonly description = `Music Generation
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Describe the music you want to generate" })
   declare prompt: any;
@@ -868,6 +884,7 @@ export class MinimaxMusicV15 extends FalNode {
   static readonly description = `MiniMax (Hailuo AI) Music v1.5
 audio, generation, text-to-audio, tts, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Lyrics, supports [intro][verse][chorus][bridge][outro] sections. 10-600 characters." })
   declare prompt: any;
@@ -902,6 +919,7 @@ export class StableAudio25TextToAudio extends FalNode {
   static readonly description = `Stable Audio 2.5
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate audio from" })
   declare prompt: any;
@@ -951,6 +969,7 @@ export class SonautoV2Inpaint extends FalNode {
   static readonly description = `Sonauto V2
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The lyrics sung in the generated song. An empty string will generate an instrumental track." })
   declare lyrics_prompt: any;
@@ -1029,6 +1048,7 @@ export class SonautoV2TextToMusic extends FalNode {
   static readonly description = `Create full songs in any style
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the track you want to generate. This prompt will be used to automatically generate the tags and lyrics unless you manually set them. For example, if you set prompt and tags, then the prompt will be used to generate only the lyrics." })
   declare prompt: any;
@@ -1098,6 +1118,7 @@ export class Lyria2 extends FalNode {
   static readonly description = `Lyria 2 is Google's latest music generation model, you can generate any type of music with this model.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the music you want to generate" })
   declare prompt: any;
@@ -1132,6 +1153,7 @@ export class CassetteaiSoundEffectsGenerator extends FalNode {
   static readonly description = `Create stunningly realistic sound effects in seconds - CassetteAI's Sound Effects Model generates high-quality SFX up to 30 seconds long in just 1 second of processing time
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate SFX." })
   declare prompt: any;
@@ -1161,6 +1183,7 @@ export class CassetteaiMusicGenerator extends FalNode {
   static readonly description = `CassetteAI's model generates a 30-second sample in under 2 seconds and a full 3-minute track in under 10 seconds. At 44.1 kHz stereo audio, expect a level of professional consistency with no breaks, no squeaks, and no random interruptions in your creations.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate music from." })
   declare prompt: any;
@@ -1190,6 +1213,7 @@ export class KokoroHindi extends FalNode {
   static readonly description = `A fast and expressive Hindi text-to-speech model with clear pronunciation and accurate intonation.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1224,6 +1248,7 @@ export class KokoroBritishEnglish extends FalNode {
   static readonly description = `A high-quality British English text-to-speech model offering natural and expressive voice synthesis.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1258,6 +1283,7 @@ export class KokoroAmericanEnglish extends FalNode {
   static readonly description = `Kokoro is a lightweight text-to-speech model that delivers comparable quality to larger models while being significantly faster and more cost-efficient.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1292,6 +1318,7 @@ export class Zonos extends FalNode {
   static readonly description = `Clone voice of any person and speak anything in their voice using zonos' voice cloning.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The content generated using cloned voice." })
   declare prompt: any;
@@ -1325,6 +1352,7 @@ export class KokoroItalian extends FalNode {
   static readonly description = `A high-quality Italian text-to-speech model delivering smooth and expressive speech synthesis.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1359,6 +1387,7 @@ export class KokoroBrazilianPortuguese extends FalNode {
   static readonly description = `A natural and expressive Brazilian Portuguese text-to-speech model optimized for clarity and fluency.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1393,6 +1422,7 @@ export class KokoroFrench extends FalNode {
   static readonly description = `An expressive and natural French text-to-speech model for both European and Canadian French.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1427,6 +1457,7 @@ export class KokoroJapanese extends FalNode {
   static readonly description = `A fast and natural-sounding Japanese text-to-speech model optimized for smooth pronunciation.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1461,6 +1492,7 @@ export class KokoroMandarinChinese extends FalNode {
   static readonly description = `A highly efficient Mandarin Chinese text-to-speech model that captures natural tones and prosody.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1495,6 +1527,7 @@ export class KokoroSpanish extends FalNode {
   static readonly description = `A natural-sounding Spanish text-to-speech model optimized for Latin American and European Spanish.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1529,6 +1562,7 @@ export class Yue extends FalNode {
   static readonly description = `YuE is a groundbreaking series of open-source foundation models designed for music generation, specifically for transforming lyrics into full songs.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from. Must have two sections. Sections start with either [chorus] or a [verse]." })
   declare lyrics: any;
@@ -1558,6 +1592,7 @@ export class MmaudioV2TextToAudio extends FalNode {
   static readonly description = `MMAudio generates synchronized audio given text inputs. It can generate sounds described by a prompt.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the audio for." })
   declare prompt: any;
@@ -1612,6 +1647,7 @@ export class MinimaxMusic extends FalNode {
   static readonly description = `Generate music from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality, diverse musical compositions.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment. Maximum 600 characters." })
   declare prompt: any;
