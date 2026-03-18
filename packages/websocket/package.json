@@ -20,6 +20,7 @@
     "@nodetool/agents": "*",
     "@nodetool/auth": "*",
     "@nodetool/base-nodes": "*",
+    "@nodetool/elevenlabs-nodes": "*",
     "@nodetool/fal-nodes": "*",
     "@nodetool/replicate-nodes": "*",
     "@nodetool/config": "*",
