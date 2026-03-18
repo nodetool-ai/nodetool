@@ -235,27 +235,36 @@ describe("HTTP API: workflow validation", () => {
     await Workflow.createTable();
   });
 
-  it("POST /api/workflows with invalid body returns 400", async () => {
+  it("POST /api/workflows without graph defaults to empty graph", async () => {
     const res = await handleApiRequest(
       makeRequest("/api/workflows", {
         method: "POST",
         body: { name: "test" },
       })
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const data = (await jsonBody(res)) as Record<string, unknown>;
+    expect(data.name).toBe("test");
+    const graph = data.graph as Record<string, unknown>;
+    expect(graph.nodes).toEqual([]);
+    expect(graph.edges).toEqual([]);
   });
 
-  it("POST /api/workflows without graph returns 400", async () => {
+  it("POST /api/workflows without graph but with access defaults graph", async () => {
     const res = await handleApiRequest(
       makeRequest("/api/workflows", {
         method: "POST",
         body: { name: "test", access: "private" },
       })
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const data = (await jsonBody(res)) as Record<string, unknown>;
+    const graph = data.graph as Record<string, unknown>;
+    expect(graph.nodes).toEqual([]);
+    expect(graph.edges).toEqual([]);
   });
 
-  it("PUT /api/workflows/:id with invalid graph returns 400", async () => {
+  it("PUT /api/workflows/:id without graph defaults to empty graph", async () => {
     const createRes = await handleApiRequest(
       makeRequest("/api/workflows", {
         method: "POST",
@@ -274,7 +283,12 @@ describe("HTTP API: workflow validation", () => {
         body: { name: "Updated", access: "private" },
       })
     );
-    expect(updateRes.status).toBe(400);
+    expect(updateRes.status).toBe(200);
+    const updated = (await jsonBody(updateRes)) as Record<string, unknown>;
+    expect(updated.name).toBe("Updated");
+    const graph = updated.graph as Record<string, unknown>;
+    expect(graph.nodes).toEqual([]);
+    expect(graph.edges).toEqual([]);
   });
 
   it("PUT /api/workflows/:id without json body returns 400", async () => {
