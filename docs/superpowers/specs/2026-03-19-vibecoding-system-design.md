@@ -28,7 +28,7 @@ NodeTool (Electron)
                                 │   ├── workflows/
                                 │   │   └── <slug>.json       ← snapshotted DSL on publish
                                 │   └── lib/
-                                │       └── run-workflow.ts   ← static kernel wrapper
+                                │       └── run-workflow.ts   ← generated on publish (see below)
                                 ├── globals.css               ← theme (CSS custom props)
                                 └── package.json
 ```
@@ -36,19 +36,27 @@ NodeTool (Electron)
 **Key invariants:**
 - The workspace directory is the source of truth — not NodeTool's database.
 - The Next.js dev server is managed by NodeTool (Electron main process) and runs while the VibeCoding panel is open.
-- **Publish** = snapshot `workflow.json` into `src/workflows/<slug>.json` + `git commit`.
-- **Deploy** = `git push` → Vercel CI builds and serves.
+- **Publish** = snapshot `workflow.json` + generate `run-workflow.ts` with correct node registrations + `git commit`.
+- **Deploy** = `git push origin <branch>` + POST to Vercel deploy hook.
 - Deployed apps have zero NodeTool runtime dependency. They run workflows via `@nodetool/kernel` in Vercel serverless functions.
 
 ### Workspace Template
 
-On first connection of a workflow to a workspace, NodeTool scaffolds the workspace from a canonical template (fork of `demo/`). The template includes:
+On first connection of a workflow to a workspace, NodeTool scaffolds the workspace from a canonical template bundled as a zip inside the Electron app package. This is the resolved answer to the distribution question: bundling as a zip keeps scaffolding offline-capable and deterministic. Template updates ship with new Electron releases.
+
+The template includes:
 - Next.js 15 + Turbopack
 - shadcn/ui + Tailwind v4
-- `src/lib/run-workflow.ts` (static, never modified)
-- `src/components/blocks/` (static block components)
-- `.env.example` with `OPENAI_API_KEY`
+- `src/components/blocks/` (static block components, never AI-modified)
+- `.env.example` with `OPENAI_API_KEY` and notes for Anthropic/Gemini alternatives
 - `vercel.json` for serverless function config
+- Pre-initialized git repo (`git init` + initial commit) so Publish works immediately
+
+`src/lib/run-workflow.ts` is **not** in the template — it is **generated** by the Publish step (see Section 7).
+
+### v1 Node Type Scope
+
+The Publish step generates `run-workflow.ts` by inspecting the workflow DSL and importing only the node types present in that workflow. v1 supports all node types available in `@nodetool/base-nodes`. Node types from other packages (e.g. `@nodetool/huggingface`) are out of scope for v1 Vercel deployment.
 
 ---
 
@@ -64,8 +72,8 @@ The existing `VibeCodingPanel`, `VibeCodingChat`, `VibeCodingPreview`, and `Vibe
 - Right pane: iframe → `http://localhost:{port}` (live dev server).
 
 **WYSIWYG mode** (activated by toolbar toggle after initial generation)
-- Overlays the iframe with a transparent pointer-intercept layer.
-- Click → select → property panel or AI-assisted edit (see Section 3).
+- A cosmetic highlight overlay renders selection boxes on the iframe.
+- Click events are detected *inside* the iframe via injected listeners (see Section 3).
 - Component palette sidebar for drag-insert.
 
 **Theme mode** (toolbar toggle)
@@ -75,12 +83,34 @@ The existing `VibeCodingPanel`, `VibeCodingChat`, `VibeCodingPreview`, and `Vibe
 ### Panel Header
 
 ```
-[⚡ VibeCoding]  [Chat | WYSIWYG | Theme]     [Publish]  [Deploy ↗]  [your-app.vercel.app]
+[⚡ VibeCoding]  [Chat | WYSIWYG | Theme]     [Publish]  [Deploy ↗]  [your-app.vercel.app]  [↺ Restart]
 ```
 
-- **Publish**: snapshot workflow DSL + git commit.
-- **Deploy**: POST to Vercel deploy hook. Active only after Vercel is connected.
+- **Publish**: snapshot workflow DSL + generate `run-workflow.ts` + git commit.
+- **Deploy**: `git push` then POST to Vercel deploy hook. Active only after Vercel is connected.
 - **Vercel URL**: shown after first successful deploy.
+- **↺ Restart**: kills and respawns the dev server (shown when server is in error state).
+
+### VibeCodingStore: New Session Shape
+
+The existing store's `currentHtml` / `savedHtml` / `isDirty` are retired. The new session shape:
+
+```typescript
+interface VibeCodingSession {
+  workspaceId: string;        // NodeTool workspace ID
+  workspacePath: string;      // absolute path on disk
+  port: number | null;        // dev server port (null = not yet running)
+  serverStatus: "starting" | "running" | "error" | "stopped";
+  serverLogs: string[];       // last 100 lines of stderr
+  isPublished: boolean;       // true if last git commit matches current workflow DSL hash
+  messages: Message[];        // chat history
+  chatStatus: "idle" | "streaming" | "error";
+}
+```
+
+`isDirty` is replaced by `isPublished: false` — set when NodeTool detects the workflow DSL has changed since the last publish (by comparing a hash of the current DSL against the hash stored at publish time). No git diff call needed at runtime.
+
+The `persist` middleware is **removed** for this store — `workspacePath` and `port` are runtime state that should be rehydrated from disk on app restart, not from localStorage.
 
 ---
 
@@ -88,34 +118,47 @@ The existing `VibeCodingPanel`, `VibeCodingChat`, `VibeCodingPreview`, and `Vibe
 
 ### Element Identification
 
-A Next.js compiler plugin (Babel transform, dev-only) injects `data-vibe-id="ComponentName:lineNumber"` onto every JSX element during development. Production builds strip these attributes.
+A Next.js compiler plugin (Babel/SWC transform, dev-only) does two things to every JSX element:
+1. Injects `data-vibe-id="ComponentName:lineNumber"` attribute.
+2. Injects an `onClick` listener that calls `window.parent.postMessage({ type: 'vibe-select', vibeId, boundingRect, outerHTML }, '*')`.
+
+Production builds strip both injections entirely.
 
 ### Selection Flow
 
-1. Transparent overlay div intercepts pointer events on the iframe.
-2. On click, `postMessage` sends `{ vibeId, boundingRect, currentProps }` to the NodeTool parent frame.
-3. NodeTool reads the source file at the identified line to extract current prop values.
+1. User enters WYSIWYG mode (toolbar toggle).
+2. User clicks anywhere inside the preview iframe — the injected `onClick` fires and posts `{ type: 'vibe-select', vibeId, boundingRect, outerHTML }` to the NodeTool parent frame.
+3. NodeTool receives the `message` event, draws a selection highlight overlay (absolutely positioned div matching `boundingRect`, rendered in the parent frame over the iframe).
+4. NodeTool reads the source file at the line number from `vibeId` to extract current prop values.
+5. Property panel opens anchored to the selection highlight.
 
-### Edit Modes from Selection
+The overlay div's only job is to render the selection highlight and the property panel. It does **not** intercept pointer events — user clicks pass through to the iframe normally.
 
-**Property panel** (simple edits — text, color, spacing):
-- Rendered as a floating panel anchored to the selected element's bounding rect.
-- Writes targeted replacements to the source file (no full AST parser — line-targeted string replacement for prop values).
-- Covers: text content, Tailwind color classes, padding/margin classes, font size classes.
+### Property Panel: Scoped Edit Surface
 
-**AI-assisted edit** (structural changes):
-- Selection context (`ComponentName`, surrounding JSX, file path, line range) is prepended automatically to the chat input.
+The property panel supports **only** these edit cases in v1 (intentionally narrow to avoid unreliable regex replacement):
+- **Static string children**: single-line JSX text like `<CardTitle>Hello</CardTitle>` — replaces the string literal.
+- **Single-line `className` Tailwind tokens**: replaces individual tokens (e.g. swap `bg-blue-500` → `bg-red-500`) using token-aware splitting, not raw regex.
+- **String prop values**: single-line string literals like `title="My App"` — replaces the quoted string.
+
+Multi-line props, template literals, and JSX expressions (`{variable}`) are **not** editable via the property panel — the panel shows a "Use chat to edit" fallback for these cases.
+
+Implementation uses `ts-morph` (already available in the Node.js environment) for reliable AST-based prop replacement. The "no full AST parser" constraint is dropped; `ts-morph` is lightweight enough for targeted single-node edits.
+
+### AI-Assisted Edit (Structural Changes)
+
+- Selection context (`ComponentName`, file path, line range, surrounding 20 lines of JSX) is prepended automatically to the chat input as a quoted block.
 - User types natural language: "make this a two-column grid" — AI writes coherent JSX back to the file.
+- Covers everything the property panel cannot.
 
 ### Component Palette
 
-- Sidebar listing all `src/components/blocks/` components with previews.
-- Drag onto preview overlay fires an AI instruction: "Insert `<ResultCard>` after the `<InputCard>` in `page.tsx`".
-- AI handles the insertion and required imports.
+- Sidebar listing all `src/components/blocks/` components with prop signatures.
+- Drag onto the preview area fires an AI instruction: "Insert `<ResultCard title="Result" />` after the `<InputCard>` in `page.tsx`". AI handles the insertion and required imports.
 
 ### File Watcher → HMR Loop
 
-All file writes (property panel or AI) are picked up by Next.js HMR automatically. No manual refresh needed.
+All file writes (property panel via `ts-morph` or AI) are picked up by Next.js HMR automatically. No manual refresh needed.
 
 ---
 
@@ -175,28 +218,37 @@ The workspace template ships with 3-4 named presets (e.g. `dark-indigo` matching
 
 ```typescript
 interface WorkspaceDevServer {
-  spawn(workspacePath: string): Promise<number>  // returns port
+  spawn(workspacePath: string): Promise<number>   // returns port; runs npm install first if needed
   kill(workspacePath: string): Promise<void>
+  respawn(workspacePath: string): Promise<number> // kill + spawn
   isRunning(workspacePath: string): boolean
   getPort(workspacePath: string): number | null
-  getLogs(workspacePath: string): string[]        // last N lines of stderr
+  getLogs(workspacePath: string): string[]         // last 100 lines of combined stdout/stderr
 }
 ```
 
 ### Lifecycle
 
 - **Open VibeCoding panel** → check if server running for workspace path. If not, spawn `next dev --port <available-port>`.
-- **First run** → if `node_modules/` absent, run `npm install` first, show "Setting up workspace…" state.
-- **Close panel** → server stays alive (avoids cold start). Killed on NodeTool exit or explicit user action.
+- **First run** → if `node_modules/` absent, run `npm install` first, show "Setting up workspace…" state in panel.
+- **Close panel** → server stays alive (avoids cold start). Killed on NodeTool exit.
 - **Multiple workspaces** → each gets its own port (3001, 3002, …). Port registry in memory.
 
 ### Preview iframe
 
 `http://localhost:{port}` — loaded directly in Electron renderer. No proxy needed (no CORS on localhost in Electron).
 
-### Error Recovery
+### Error Recovery: Two Cases
 
-If the dev server crashes (TypeScript error, port conflict), the preview pane shows the last N lines of stderr. User fixes via chat; `next dev` restarts automatically on valid code.
+**Case A — TypeScript/JSX compile error (server stays up):**
+- Next.js HMR shows an error overlay inside the iframe automatically.
+- The panel shows the last 10 lines of stderr in a collapsible log section below the preview.
+- User fixes via chat; HMR recovers without restart.
+
+**Case B — Process crash (server exits):**
+- `WorkspaceDevServer` auto-respawns the process with 2s backoff, up to 3 attempts.
+- After 3 failed attempts, panel enters error state: preview goes blank, shows last N log lines, **↺ Restart** button becomes prominent.
+- User can fix the underlying issue (e.g. via chat editing the offending file) then click ↺ Restart.
 
 ---
 
@@ -204,30 +256,35 @@ If the dev server crashes (TypeScript error, port conflict), the preview pane sh
 
 ### Setup (One-Time per Workspace)
 
-User pastes a Vercel deploy hook URL into the workspace settings. NodeTool stores it in workspace config. Alternatively, `vercel link` can be run in a terminal in the workspace directory.
+**Prerequisites:**
+1. A git remote must be configured for the workspace (`git remote add origin <url>`). NodeTool prompts for this in workspace settings if absent.
+2. User pastes a Vercel deploy hook URL into workspace settings. NodeTool stores it alongside the workspace record.
 
 ### Publish Flow
 
 1. User clicks **Publish** in VibeCoding panel header.
-2. NodeTool copies `workflow.json` DSL into `src/workflows/<slug>.json`.
-3. Runs `git add . && git commit -m "Publish: <workflow-name> [<timestamp>]"`.
-4. Panel shows "Published" confirmation. Workflow version is now in git history.
+2. NodeTool inspects the workflow DSL, generates `src/lib/run-workflow.ts` with imports for every node type present in the workflow (from `@nodetool/base-nodes`).
+3. Copies `workflow.json` DSL into `src/workflows/<slug>.json`.
+4. Records a hash of the workflow DSL in workspace config (used to drive the sync indicator).
+5. Runs `git add . && git commit -m "Publish: <workflow-name> [<timestamp>]"`.
+6. Panel shows "Published ✓" confirmation.
 
 ### Deploy Flow
 
 1. User clicks **Deploy ↗**.
-2. NodeTool POSTs to the stored Vercel deploy hook URL.
-3. Vercel pulls latest git commit, runs `next build`, deploys serverless functions.
-4. NodeTool shows a link to the Vercel deployment URL once available.
+2. NodeTool runs `git push origin <branch>`.
+3. NodeTool POSTs to the stored Vercel deploy hook URL.
+4. Vercel pulls the pushed commit, runs `next build`, deploys serverless functions.
+5. NodeTool shows a link to the Vercel deployment URL once available.
 
 ### Runtime Requirements (Vercel side)
 
-- `OPENAI_API_KEY` (or equivalent provider key) set in Vercel environment variables.
+- `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` depending on the workflow's model provider) set in Vercel environment variables.
 - No NodeTool server. Workflows run via `@nodetool/kernel` in Next.js API routes.
 
 ### Sync Indicator
 
-If the workflow DSL in NodeTool has changed since the last publish, the panel header shows an "Out of sync" badge next to Publish. Clicking Publish resolves it.
+If the workflow DSL hash in NodeTool differs from the hash recorded at last publish, the panel header shows an "Out of sync" badge next to Publish. Clicking Publish resolves it.
 
 ---
 
@@ -235,28 +292,35 @@ If the workflow DSL in NodeTool has changed since the last publish, the panel he
 
 ### Replaced
 - `VibeCodingPanel.tsx` — full rewrite
-- `VibeCodingChat.tsx` — rewritten (now edits files, not HTML blob)
-- `VibeCodingPreview.tsx` — rewritten (iframe → localhost instead of srcDoc)
+- `VibeCodingChat.tsx` — rewritten (now triggers file edits, not HTML blob updates)
+- `VibeCodingPreview.tsx` — rewritten (iframe → `http://localhost:{port}` instead of `srcDoc`)
 - `VibeCodingModal.tsx` — kept, wraps new panel
+- `VibeCodingStore` — new session shape (see Section 2); `persist` middleware removed
 
 ### New
-- `VibeCodingWysiwyg.tsx` — overlay + selection + property panel
+- `VibeCodingWysiwyg.tsx` — selection highlight overlay + property panel
 - `VibeCodingThemePanel.tsx` — CSS var editor
 - `VibeCodingComponentPalette.tsx` — block component palette
-- `WorkspaceDevServer` (Electron main) — process manager
-- Babel/SWC plugin — `data-vibe-id` injection
-- Workspace template repo — canonical Next.js scaffold
-- `src/components/blocks/` — 8 block components
+- `WorkspaceDevServer` (Electron main) — process manager with auto-respawn
+- Babel/SWC plugin — dev-only `data-vibe-id` + `postMessage` injection
+- Workspace template (bundled zip in Electron app) — canonical Next.js scaffold
+- `src/components/blocks/` — 8 block components (shipped in template)
+- Publish-time `run-workflow.ts` generator — inspects DSL, emits correct node imports
+
+### Retired
+- `utils/extractHtml.ts` — no longer generating HTML blobs
+- HTML blob storage in `workflow.html_app` — superseded by workspace files
 
 ### Unchanged
-- `VibeCodingStore` — state shape stays (session, messages, status); `currentHtml` replaced by `workspacePath + port`
-- `utils/extractHtml.ts` — retired (no longer generating HTML blobs)
-- `demo/` — becomes the reference implementation / workspace template source
+- `VibeCodingModal.tsx` — wrapper only, no logic changes
+- `demo/` — becomes the reference implementation and source for the workspace template
+- NodeTool workspace data model — workspace-to-workflow connection is an existing concept
 
 ---
 
-## Open Questions
+## Out of Scope for v1
 
-1. **Workspace template distribution**: Ship as a git submodule, an npm package, or a bundled zip in the Electron app?
-2. **Multi-page apps**: v1 targets single `page.tsx`. Multi-route apps (e.g. `/spritesheet` route) deferred.
-3. **Non-OpenAI providers**: The `run-workflow.ts` kernel wrapper already supports provider-agnostic model injection. Document the env var pattern for Anthropic/Gemini in the template.
+- Multi-page Next.js apps (multiple routes). v1 targets single `page.tsx` per workspace.
+- Node types outside `@nodetool/base-nodes` in deployed Vercel apps.
+- GitHub OAuth integration. Git remote setup is manual.
+- Per-app git repo isolation (Approach 1 from design exploration). All workflows share one repo per workspace.
