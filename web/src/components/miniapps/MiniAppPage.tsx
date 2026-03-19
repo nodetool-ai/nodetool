@@ -229,9 +229,11 @@ const MiniAppPage: React.FC = () => {
         {/* Custom HTML App - Full Width */}
         {hasCustomApp && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
+            {/* TODO(Task 7): wire real port/serverStatus/serverLogs from store */}
             <VibeCodingPreview
-              html={workflow.html_app!}
-              workflowId={workflow.id}
+              port={null}
+              serverStatus="stopped"
+              serverLogs={[]}
             />
           </Box>
         )}

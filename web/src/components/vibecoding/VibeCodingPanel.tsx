@@ -285,10 +285,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           />
         </div>
         <div className="preview-section">
+          {/* TODO(Task 7): wire real port/serverStatus/serverLogs from store */}
           <VibeCodingPreview
-            html={session.currentHtml}
-            workflowId={workflow.id}
-            isGenerating={session.status === "streaming"}
+            port={null}
+            serverStatus="stopped"
+            serverLogs={[]}
           />
         </div>
       </div>
