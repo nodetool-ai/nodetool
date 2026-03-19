@@ -23,14 +23,29 @@ The VibeCoding panel currently lives inside a MUI Dialog modal opened from MiniA
 - If no `workspaceId` in URL params, the toolbar shows the workspace dropdown in "select" state and the content area shows an empty state prompting workspace selection.
 - If `workspaceId` is present, the workspace is fetched from the API and the builder loads immediately.
 
+### Data Fetching
+
+`VibeCodingRoute` uses TanStack Query (React Query) to fetch workspace data, following the app's established pattern:
+
+- **Workspace list** (for the dropdown): `useQuery({ queryKey: ["workspaces"], queryFn: () => client.GET("/api/workspaces/") })` — returns `WorkspaceListResponse`.
+- **Single workspace** (when `workspaceId` is in URL): `useQuery({ queryKey: ["workspace", workspaceId], queryFn: () => client.GET("/api/workspaces/{workspace_id}", { params: { path: { workspace_id: workspaceId } } }) })` — returns `WorkspaceResponse`.
+- If the workspace is not found (404), show an error state: "Workspace not found."
+- If the workspace exists but `is_accessible` is `false` (directory deleted/unmounted), show: "Workspace directory not accessible" with the path.
+
+### Session Key: workspaceId
+
+The `VibeCodingStore` currently keys sessions by `workflowId`. This spec changes the session key to `workspaceId` — the route param. `VibeCodingRoute` calls `initSession(workspaceId, workspace.path)` using the workspace ID, not a workflow ID. The `VibeCodingSession.workflowId` field is renamed to `workspaceId` throughout.
+
+This aligns with the system design spec (Section 2) which specifies `workspaceId` as the session identifier.
+
 ### Workspace Picker (Minimal)
 
-A dropdown in the toolbar header listing recent/available workspaces. Selecting a workspace navigates to `/vibecoding/:id`. The dropdown uses `WorkspaceResponse` from the API — showing `name` and using `path` for the dev server.
+A dropdown in the toolbar header listing available workspaces from the API. Selecting a workspace navigates to `/vibecoding/:workspaceId`. The dropdown shows `workspace.name` and uses `workspace.path` for the dev server.
 
 ### Entry Point Changes
 
-- `MiniAppSidePanel.tsx`: "Design App UI" button navigates to `/vibecoding/:id` via `useNavigate()` instead of opening a modal.
-- `VibeCodingModal.tsx`: Simplified to navigate to `/vibecoding/:id` instead of rendering the panel inline. Becomes a thin redirect wrapper for backward compatibility.
+- `MiniAppSidePanel.tsx`: "Design App UI" button navigates to `/vibecoding/:workspaceId` via `useNavigate()`. The `workspaceId` comes from the workflow's linked workspace — if the workflow has no linked workspace, the button navigates to `/vibecoding` (no ID) and the user picks from the dropdown.
+- `VibeCodingModal.tsx`: Delete this file. All callers are updated to use `useNavigate()` instead. No backward-compatibility wrapper needed.
 
 ### Back Navigation
 
@@ -90,13 +105,14 @@ A thin bar between the toolbar and the iframe:
 | `web/src/components/vibecoding/VibeCodingPanel.tsx` | Remove panel header (moved to toolbar). Receive workspace data from route context instead of props. Remove `onClose` prop. |
 | `web/src/components/vibecoding/VibeCodingPreview.tsx` | Add status bar (green dot + URL). Replace Emotion `createStyles` with `sx` props. Use theme variables for all colors. |
 | `web/src/components/vibecoding/VibeCodingChat.tsx` | Improve welcome state styling. Template chips use theme accent colors. Replace Emotion `createStyles` with `sx` props. |
-| `web/src/components/vibecoding/VibeCodingModal.tsx` | Simplify to navigate to `/vibecoding/:id` instead of rendering panel inline. |
-| `web/src/components/miniapps/components/MiniAppSidePanel.tsx` | "Design App UI" button navigates to `/vibecoding/:id` via router. |
+| `web/src/components/miniapps/components/MiniAppSidePanel.tsx` | "Design App UI" button navigates to `/vibecoding/:workspaceId` via router. |
+| `web/src/stores/VibeCodingStore.ts` | Rename `workflowId` to `workspaceId` as session key throughout. |
 
 ### Deleted Files
 
 | File | Reason |
 |---|---|
+| `web/src/components/vibecoding/VibeCodingModal.tsx` | Replaced by route navigation — all callers updated |
 | `web/src/components/vibecoding/utils/extractHtml.ts` | Orphaned dead code from HTML-blob system removal |
 | `web/src/__tests__/components/vibecoding/extractHtml.test.ts` | Test for deleted file |
 
@@ -127,10 +143,10 @@ All vibecoding components drop the `/** @jsxImportSource @emotion/react */` dire
 | Accent/active | `theme.palette.primary.main` |
 | Success (green) | `theme.palette.success.main` |
 | Error (red) | `theme.palette.error.main` |
-| UI font | `var(--fontFamily1)` / `theme.fontFamily1` |
-| Code/log font | `var(--fontFamily2)` / `theme.fontFamily2` |
+| UI font | `theme.fontFamily1` in `sx` props, `var(--fontFamily1)` in plain CSS only |
+| Code/log font | `theme.fontFamily2` in `sx` props, `var(--fontFamily2)` in plain CSS only |
 | Spacing | `theme.spacing()` (base 4px) |
-| Border radius | `theme.shape.borderRadius` (4px), `theme.rounded.dialog` (20px for pill toggles) |
+| Border radius | `theme.shape.borderRadius` (4px), `20px` for pill-style toggle groups |
 
 ### No Hardcoded Colors
 
@@ -149,7 +165,8 @@ Zero hardcoded hex/rgb values in vibecoding components. All colors flow from the
 - Dead code cleanup (extractHtml)
 
 ### What Doesn't Change
-- WorkspaceDevServer, IPC channels, store shape — all untouched
+- WorkspaceDevServer, IPC channels — all untouched
+- VibeCodingStore session shape — only the key rename (`workflowId` → `workspaceId`)
 - ChatView component — used as-is
 - Block components — no changes
 - WYSIWYG/Theme functionality — deferred to Plan B (tabs visible but disabled)
