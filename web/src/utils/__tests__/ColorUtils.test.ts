@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import log from "loglevel";
 import {
   hexToRgba,
   darkenHexColor,
@@ -45,7 +46,7 @@ describe("ColorUtils", () => {
     });
 
     it("should handle invalid color gracefully", () => {
-      const logSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
+      const logSpy = jest.spyOn(log, "error").mockImplementation();
       expect(hexToRgba("invalid", 0.5)).toBe("invalid");
       expect(logSpy).toHaveBeenCalled();
       logSpy.mockRestore();

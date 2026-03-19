@@ -7,6 +7,7 @@ import useErrorStore from "../ErrorStore";
 import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
 import { NodeMetadata } from "../ApiTypes";
+import log from "loglevel";
 
 const makeNode = (
   id: string,
@@ -594,7 +595,7 @@ describe("Graph Sanitization", () => {
   });
 
   test("should report statistics about removed edges", () => {
-    const consoleSpy = jest.spyOn(require("loglevel"), "info").mockImplementation();
+    const consoleSpy = jest.spyOn(log, "info").mockImplementation();
 
     const nodeA = makeNode("a", "test-workflow", "test");
     const nodeB = makeNode("b", "test-workflow", "test");

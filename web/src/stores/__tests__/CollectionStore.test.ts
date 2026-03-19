@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react";
 import { useCollectionStore } from "../CollectionStore";
 import { client } from "../ApiClient";
+import log from "loglevel";
 
 // Mock the client module
 jest.mock("../ApiClient", () => ({
@@ -541,7 +542,7 @@ describe("CollectionStore", () => {
       mockClient.POST.mockRejectedValueOnce(new Error("Network failure"));
       mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
 
-      const consoleErrorSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
+      const consoleErrorSpy = jest.spyOn(log, "error").mockImplementation();
 
       const handler = useCollectionStore.getState().handleDrop("collection1");
       await act(async () => {

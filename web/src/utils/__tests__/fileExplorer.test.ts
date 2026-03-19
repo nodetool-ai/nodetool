@@ -7,6 +7,7 @@ import {
   isFileExplorerAvailable
 } from "../fileExplorer";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import log from "loglevel";
 
 const createMockApi = () => ({
   openModelPath: jest.fn<any>(),
@@ -20,8 +21,8 @@ describe("fileExplorer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(require("loglevel"), "warn").mockImplementation(() => {});
-    jest.spyOn(require("loglevel"), "error").mockImplementation(() => {});
+    jest.spyOn(log, "warn").mockImplementation(() => {});
+    jest.spyOn(log, "error").mockImplementation(() => {});
     (useNotificationStore.setState as any)((state: any) => ({
       ...state,
       addNotification
@@ -121,8 +122,8 @@ describe("fileExplorer", () => {
     let logErrorSpy: any;
 
     beforeEach(() => {
-      logWarnSpy = jest.spyOn(require("loglevel"), "warn").mockImplementation(() => {});
-      logErrorSpy = jest.spyOn(require("loglevel"), "error").mockImplementation(() => {});
+      logWarnSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
+      logErrorSpy = jest.spyOn(log, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {

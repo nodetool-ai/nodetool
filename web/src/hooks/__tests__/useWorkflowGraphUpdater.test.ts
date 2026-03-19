@@ -18,6 +18,7 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
+import log from "loglevel";
 
 describe("useWorkflowGraphUpdater", () => {
   const mockGetCurrentWorkflow = jest.fn();
@@ -64,7 +65,7 @@ describe("useWorkflowGraphUpdater", () => {
   });
 
   it("logs warning when no current workflow found", () => {
-    const consoleSpy = jest.spyOn(require("loglevel"), "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
     mockGetCurrentWorkflow.mockReturnValue(null);
 
     mockChatState = {
@@ -80,7 +81,7 @@ describe("useWorkflowGraphUpdater", () => {
   });
 
   it("logs warning when no node store found for workflow", () => {
-    const consoleSpy = jest.spyOn(require("loglevel"), "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
     mockGetCurrentWorkflow.mockReturnValue({ id: "workflow-123" });
     mockGetNodeStore.mockReturnValue(null);
 

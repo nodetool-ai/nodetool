@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useFitNodeEvent } from "../useFitNodeEvent";
 import { useNodes } from "../../contexts/NodeContext";
 import { useFitView } from "../useFitView";
+import log from "loglevel";
 
 jest.mock("../../contexts/NodeContext");
 jest.mock("../useFitView");
@@ -91,7 +92,7 @@ describe("useFitNodeEvent", () => {
 
     it("logs error when node is not found", () => {
       mockFindNode.mockReturnValue(undefined);
-      const consoleErrorSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
+      const consoleErrorSpy = jest.spyOn(log, "error").mockImplementation();
 
       renderHook(() => useFitNodeEvent());
 

@@ -7,6 +7,7 @@ import { renderHook } from "@testing-library/react";
 import { useChatService } from "../useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { MemoryRouter, useNavigate } from "react-router-dom";
+import log from "loglevel";
 
 // Mock dependencies
 jest.mock("../../stores/GlobalChatStore");
@@ -279,7 +280,7 @@ describe("useChatService", () => {
 
     it("should not send message if no model selected", async () => {
       const logSpy = jest
-        .spyOn(require("loglevel"), "error")
+        .spyOn(log, "error")
         .mockImplementation(() => {});
 
       const { result } = renderHook(() => useChatService(null), {
@@ -300,7 +301,7 @@ describe("useChatService", () => {
 
     it("should handle errors when sending message", async () => {
       const logSpy = jest
-        .spyOn(require("loglevel"), "error")
+        .spyOn(log, "error")
         .mockImplementation(() => {});
 
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
@@ -365,7 +366,7 @@ describe("useChatService", () => {
 
     it("should handle errors when creating new thread", async () => {
       const logSpy = jest
-        .spyOn(require("loglevel"), "error")
+        .spyOn(log, "error")
         .mockImplementation(() => {});
 
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));

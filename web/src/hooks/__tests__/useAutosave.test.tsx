@@ -6,6 +6,7 @@ import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
 import { Workflow } from "../../stores/ApiTypes";
+import log from "loglevel";
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -242,7 +243,7 @@ describe("useAutosave", () => {
     });
 
     it("handles fetch errors gracefully", async () => {
-      const consoleSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
+      const consoleSpy = jest.spyOn(log, "error").mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });

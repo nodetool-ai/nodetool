@@ -4,6 +4,7 @@
 
 import { getAssetThumbUrl } from '../getAssetThumbUrl';
 import { AssetRef } from '../../stores/ApiTypes';
+import log from "loglevel";
 
 // Mock URL.createObjectURL since it's not available in Node
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
@@ -96,7 +97,7 @@ describe('getAssetThumbUrl', () => {
       (URL.createObjectURL as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create object URL');
       });
-      const logSpy = jest.spyOn(require('loglevel'), 'error').mockImplementation(() => {});
+      const logSpy = jest.spyOn(log, 'error').mockImplementation(() => {});
 
       const asset: AssetRef = {
         type: 'image',

@@ -4,6 +4,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import log from "loglevel";
 
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn()
@@ -523,7 +524,7 @@ describe("useFindInWorkflow", () => {
 
       jest.advanceTimersByTime(200);
 
-      const consoleSpy = jest.spyOn(require("loglevel"), "error").mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(log, "error").mockImplementation(() => {});
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
