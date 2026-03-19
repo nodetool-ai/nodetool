@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { DataframeRef } from "../types.js";
 
 // SQLite Skill — skills.data.SQLiteSkill
@@ -14,13 +14,13 @@ export interface SQLiteSkillInputs {
 }
 
 export interface SQLiteSkillOutputs {
-  text: OutputHandle<string>;
-  json: OutputHandle<Record<string, unknown>>;
-  dataframe: OutputHandle<DataframeRef>;
+  text: string;
+  json: Record<string, unknown>;
+  dataframe: DataframeRef;
 }
 
 export function sqLiteSkill(inputs: SQLiteSkillInputs): DslNode<SQLiteSkillOutputs> {
-  return createNode("skills.data.SQLiteSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.data.SQLiteSkill", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
 }
 
 // Supabase Skill — skills.data.SupabaseSkill
@@ -32,11 +32,11 @@ export interface SupabaseSkillInputs {
 }
 
 export interface SupabaseSkillOutputs {
-  text: OutputHandle<string>;
-  json: OutputHandle<Record<string, unknown>>;
-  dataframe: OutputHandle<DataframeRef>;
+  text: string;
+  json: Record<string, unknown>;
+  dataframe: DataframeRef;
 }
 
 export function supabaseSkill(inputs: SupabaseSkillInputs): DslNode<SupabaseSkillOutputs> {
-  return createNode("skills.data.SupabaseSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.data.SupabaseSkill", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
 }

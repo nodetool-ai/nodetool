@@ -37,12 +37,13 @@ describe("codegen output", () => {
     workflow(node);
   });
 
-  test("multi-output node has .out slots", async () => {
+  test("multi-output node exposes named output() access", async () => {
     const { workflow, isOutputHandle } = await import("../src/core.js");
     const control = await import("../src/generated/nodetool.control.js");
     const node = control.if_({ condition: true, value: "test" });
-    expect(isOutputHandle(node.out.if_true)).toBe(true);
-    expect(isOutputHandle(node.out.if_false)).toBe(true);
+    expect(isOutputHandle(node.output("if_true"))).toBe(true);
+    expect(isOutputHandle(node.output("if_false"))).toBe(true);
+    expect(() => node.output()).toThrow("requires an explicit output slot");
     workflow(node);
   });
 
@@ -61,9 +62,9 @@ describe("codegen output", () => {
     expect(content).toContain("createNode");
   });
 
-  test("multi-output nodes pass multiOutput option", () => {
+  test("generated files declare output metadata", () => {
     const controlPath = path.join(generatedDir, "nodetool.control.ts");
     const content = fs.readFileSync(controlPath, "utf-8");
-    expect(content).toContain("multiOutput: true");
+    expect(content).toContain("outputNames:");
   });
 });

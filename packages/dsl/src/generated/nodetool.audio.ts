@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef, FolderRef } from "../types.js";
 
 // Load Audio Assets — nodetool.audio.LoadAudioAssets
@@ -9,12 +9,12 @@ export interface LoadAudioAssetsInputs {
 }
 
 export interface LoadAudioAssetsOutputs {
-  audio: OutputHandle<AudioRef>;
-  name: OutputHandle<string>;
+  audio: AudioRef;
+  name: string;
 }
 
 export function loadAudioAssets(inputs: LoadAudioAssetsInputs): DslNode<LoadAudioAssetsOutputs> {
-  return createNode("nodetool.audio.LoadAudioAssets", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.audio.LoadAudioAssets", inputs as Record<string, unknown>, { outputNames: ["audio", "name"], streaming: true });
 }
 
 // Load Audio File — nodetool.audio.LoadAudioFile
@@ -22,8 +22,12 @@ export interface LoadAudioFileInputs {
   path?: Connectable<string>;
 }
 
-export function loadAudioFile(inputs: LoadAudioFileInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.LoadAudioFile", inputs as Record<string, unknown>);
+export interface LoadAudioFileOutputs {
+  output: AudioRef;
+}
+
+export function loadAudioFile(inputs: LoadAudioFileInputs): DslNode<LoadAudioFileOutputs, "output"> {
+  return createNode("nodetool.audio.LoadAudioFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Load Audio Folder — nodetool.audio.LoadAudioFolder
@@ -34,12 +38,12 @@ export interface LoadAudioFolderInputs {
 }
 
 export interface LoadAudioFolderOutputs {
-  audio: OutputHandle<AudioRef>;
-  path: OutputHandle<string>;
+  audio: AudioRef;
+  path: string;
 }
 
 export function loadAudioFolder(inputs: LoadAudioFolderInputs): DslNode<LoadAudioFolderOutputs> {
-  return createNode("nodetool.audio.LoadAudioFolder", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.audio.LoadAudioFolder", inputs as Record<string, unknown>, { outputNames: ["audio", "path"], streaming: true });
 }
 
 // Save Audio Asset — nodetool.audio.SaveAudio
@@ -49,8 +53,12 @@ export interface SaveAudioInputs {
   name?: Connectable<string>;
 }
 
-export function saveAudio(inputs: SaveAudioInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.SaveAudio", inputs as Record<string, unknown>);
+export interface SaveAudioOutputs {
+  output: AudioRef;
+}
+
+export function saveAudio(inputs: SaveAudioInputs): DslNode<SaveAudioOutputs, "output"> {
+  return createNode("nodetool.audio.SaveAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Audio File — nodetool.audio.SaveAudioFile
@@ -61,8 +69,12 @@ export interface SaveAudioFileInputs {
   FORMAT_MAP?: Connectable<Record<string, string>>;
 }
 
-export function saveAudioFile(inputs: SaveAudioFileInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.SaveAudioFile", inputs as Record<string, unknown>);
+export interface SaveAudioFileOutputs {
+  output: AudioRef;
+}
+
+export function saveAudioFile(inputs: SaveAudioFileInputs): DslNode<SaveAudioFileOutputs, "output"> {
+  return createNode("nodetool.audio.SaveAudioFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Normalize — nodetool.audio.Normalize
@@ -70,8 +82,12 @@ export interface NormalizeInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export function normalize(inputs: NormalizeInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.Normalize", inputs as Record<string, unknown>);
+export interface NormalizeOutputs {
+  output: AudioRef;
+}
+
+export function normalize(inputs: NormalizeInputs): DslNode<NormalizeOutputs, "output"> {
+  return createNode("nodetool.audio.Normalize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Overlay Audio — nodetool.audio.OverlayAudio
@@ -80,8 +96,12 @@ export interface OverlayAudioInputs {
   b?: Connectable<AudioRef>;
 }
 
-export function overlayAudio(inputs: OverlayAudioInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.OverlayAudio", inputs as Record<string, unknown>);
+export interface OverlayAudioOutputs {
+  output: AudioRef;
+}
+
+export function overlayAudio(inputs: OverlayAudioInputs): DslNode<OverlayAudioOutputs, "output"> {
+  return createNode("nodetool.audio.OverlayAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Remove Silence — nodetool.audio.RemoveSilence
@@ -94,8 +114,12 @@ export interface RemoveSilenceInputs {
   min_silence_between_parts?: Connectable<number>;
 }
 
-export function removeSilence(inputs: RemoveSilenceInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.RemoveSilence", inputs as Record<string, unknown>);
+export interface RemoveSilenceOutputs {
+  output: AudioRef;
+}
+
+export function removeSilence(inputs: RemoveSilenceInputs): DslNode<RemoveSilenceOutputs, "output"> {
+  return createNode("nodetool.audio.RemoveSilence", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Slice Audio — nodetool.audio.SliceAudio
@@ -105,8 +129,12 @@ export interface SliceAudioInputs {
   end?: Connectable<number>;
 }
 
-export function sliceAudio(inputs: SliceAudioInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.SliceAudio", inputs as Record<string, unknown>);
+export interface SliceAudioOutputs {
+  output: AudioRef;
+}
+
+export function sliceAudio(inputs: SliceAudioInputs): DslNode<SliceAudioOutputs, "output"> {
+  return createNode("nodetool.audio.SliceAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Mono To Stereo — nodetool.audio.MonoToStereo
@@ -114,8 +142,12 @@ export interface MonoToStereoInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export function monoToStereo(inputs: MonoToStereoInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.MonoToStereo", inputs as Record<string, unknown>);
+export interface MonoToStereoOutputs {
+  output: AudioRef;
+}
+
+export function monoToStereo(inputs: MonoToStereoInputs): DslNode<MonoToStereoOutputs, "output"> {
+  return createNode("nodetool.audio.MonoToStereo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Stereo To Mono — nodetool.audio.StereoToMono
@@ -124,8 +156,12 @@ export interface StereoToMonoInputs {
   method?: Connectable<string>;
 }
 
-export function stereoToMono(inputs: StereoToMonoInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.StereoToMono", inputs as Record<string, unknown>);
+export interface StereoToMonoOutputs {
+  output: AudioRef;
+}
+
+export function stereoToMono(inputs: StereoToMonoInputs): DslNode<StereoToMonoOutputs, "output"> {
+  return createNode("nodetool.audio.StereoToMono", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Reverse — nodetool.audio.Reverse
@@ -133,8 +169,12 @@ export interface ReverseInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export function reverse(inputs: ReverseInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.Reverse", inputs as Record<string, unknown>);
+export interface ReverseOutputs {
+  output: AudioRef;
+}
+
+export function reverse(inputs: ReverseInputs): DslNode<ReverseOutputs, "output"> {
+  return createNode("nodetool.audio.Reverse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Fade In — nodetool.audio.FadeIn
@@ -143,8 +183,12 @@ export interface FadeInInputs {
   duration?: Connectable<number>;
 }
 
-export function fadeIn(inputs: FadeInInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.FadeIn", inputs as Record<string, unknown>);
+export interface FadeInOutputs {
+  output: AudioRef;
+}
+
+export function fadeIn(inputs: FadeInInputs): DslNode<FadeInOutputs, "output"> {
+  return createNode("nodetool.audio.FadeIn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Fade Out — nodetool.audio.FadeOut
@@ -153,8 +197,12 @@ export interface FadeOutInputs {
   duration?: Connectable<number>;
 }
 
-export function fadeOut(inputs: FadeOutInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.FadeOut", inputs as Record<string, unknown>);
+export interface FadeOutOutputs {
+  output: AudioRef;
+}
+
+export function fadeOut(inputs: FadeOutInputs): DslNode<FadeOutOutputs, "output"> {
+  return createNode("nodetool.audio.FadeOut", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Repeat — nodetool.audio.Repeat
@@ -163,8 +211,12 @@ export interface RepeatInputs {
   loops?: Connectable<number>;
 }
 
-export function repeat(inputs: RepeatInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.Repeat", inputs as Record<string, unknown>);
+export interface RepeatOutputs {
+  output: AudioRef;
+}
+
+export function repeat(inputs: RepeatInputs): DslNode<RepeatOutputs, "output"> {
+  return createNode("nodetool.audio.Repeat", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio Mixer — nodetool.audio.AudioMixer
@@ -181,8 +233,12 @@ export interface AudioMixerInputs {
   volume5?: Connectable<number>;
 }
 
-export function audioMixer(inputs: AudioMixerInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.AudioMixer", inputs as Record<string, unknown>);
+export interface AudioMixerOutputs {
+  output: AudioRef;
+}
+
+export function audioMixer(inputs: AudioMixerInputs): DslNode<AudioMixerOutputs, "output"> {
+  return createNode("nodetool.audio.AudioMixer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio To Numpy — nodetool.audio.AudioToNumpy
@@ -191,13 +247,13 @@ export interface AudioToNumpyInputs {
 }
 
 export interface AudioToNumpyOutputs {
-  array: OutputHandle<unknown>;
-  sample_rate: OutputHandle<number>;
-  channels: OutputHandle<number>;
+  array: unknown;
+  sample_rate: number;
+  channels: number;
 }
 
 export function audioToNumpy(inputs: AudioToNumpyInputs): DslNode<AudioToNumpyOutputs> {
-  return createNode("nodetool.audio.AudioToNumpy", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("nodetool.audio.AudioToNumpy", inputs as Record<string, unknown>, { outputNames: ["array", "sample_rate", "channels"] });
 }
 
 // Numpy To Audio — nodetool.audio.NumpyToAudio
@@ -207,8 +263,12 @@ export interface NumpyToAudioInputs {
   channels?: Connectable<number>;
 }
 
-export function numpyToAudio(inputs: NumpyToAudioInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.NumpyToAudio", inputs as Record<string, unknown>);
+export interface NumpyToAudioOutputs {
+  output: AudioRef;
+}
+
+export function numpyToAudio(inputs: NumpyToAudioInputs): DslNode<NumpyToAudioOutputs, "output"> {
+  return createNode("nodetool.audio.NumpyToAudio", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Trim — nodetool.audio.Trim
@@ -218,8 +278,12 @@ export interface TrimInputs {
   end?: Connectable<number>;
 }
 
-export function trim(inputs: TrimInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.Trim", inputs as Record<string, unknown>);
+export interface TrimOutputs {
+  output: AudioRef;
+}
+
+export function trim(inputs: TrimInputs): DslNode<TrimOutputs, "output"> {
+  return createNode("nodetool.audio.Trim", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Convert To Array — nodetool.audio.ConvertToArray
@@ -227,8 +291,12 @@ export interface ConvertToArrayInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export function convertToArray(inputs: ConvertToArrayInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.audio.ConvertToArray", inputs as Record<string, unknown>);
+export interface ConvertToArrayOutputs {
+  output: unknown;
+}
+
+export function convertToArray(inputs: ConvertToArrayInputs): DslNode<ConvertToArrayOutputs, "output"> {
+  return createNode("nodetool.audio.ConvertToArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Create Silence — nodetool.audio.CreateSilence
@@ -236,8 +304,12 @@ export interface CreateSilenceInputs {
   duration?: Connectable<number>;
 }
 
-export function createSilence(inputs: CreateSilenceInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.CreateSilence", inputs as Record<string, unknown>);
+export interface CreateSilenceOutputs {
+  output: AudioRef;
+}
+
+export function createSilence(inputs: CreateSilenceInputs): DslNode<CreateSilenceOutputs, "output"> {
+  return createNode("nodetool.audio.CreateSilence", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Concat — nodetool.audio.Concat
@@ -246,8 +318,12 @@ export interface ConcatInputs {
   b?: Connectable<AudioRef>;
 }
 
-export function concat(inputs: ConcatInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.Concat", inputs as Record<string, unknown>);
+export interface ConcatOutputs {
+  output: AudioRef;
+}
+
+export function concat(inputs: ConcatInputs): DslNode<ConcatOutputs, "output"> {
+  return createNode("nodetool.audio.Concat", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Concat List — nodetool.audio.ConcatList
@@ -255,8 +331,12 @@ export interface ConcatListInputs {
   audio_files?: Connectable<AudioRef[]>;
 }
 
-export function concatList(inputs: ConcatListInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.audio.ConcatList", inputs as Record<string, unknown>);
+export interface ConcatListOutputs {
+  output: AudioRef;
+}
+
+export function concatList(inputs: ConcatListInputs): DslNode<ConcatListOutputs, "output"> {
+  return createNode("nodetool.audio.ConcatList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Text To Speech — nodetool.audio.TextToSpeech
@@ -267,12 +347,12 @@ export interface TextToSpeechInputs {
 }
 
 export interface TextToSpeechOutputs {
-  audio: OutputHandle<AudioRef>;
-  chunk: OutputHandle<unknown>;
+  audio: AudioRef;
+  chunk: unknown;
 }
 
 export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs> {
-  return createNode("nodetool.audio.TextToSpeech", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["audio", "chunk"], streaming: true });
 }
 
 // Chunk To Audio — nodetool.audio.ChunkToAudio
@@ -282,9 +362,9 @@ export interface ChunkToAudioInputs {
 }
 
 export interface ChunkToAudioOutputs {
-  audio: OutputHandle<AudioRef>;
+  audio: AudioRef;
 }
 
-export function chunkToAudio(inputs: ChunkToAudioInputs): DslNode<ChunkToAudioOutputs> {
-  return createNode("nodetool.audio.ChunkToAudio", inputs as Record<string, unknown>, { multiOutput: true });
+export function chunkToAudio(inputs: ChunkToAudioInputs): DslNode<ChunkToAudioOutputs, "audio"> {
+  return createNode("nodetool.audio.ChunkToAudio", inputs as Record<string, unknown>, { outputNames: ["audio"], defaultOutput: "audio" });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef, DataframeRef, FolderRef } from "../types.js";
 
 // Float Input — nodetool.input.FloatInput
@@ -12,8 +12,12 @@ export interface FloatInputInputs {
   max?: Connectable<number>;
 }
 
-export function floatInput(inputs: FloatInputInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.input.FloatInput", inputs as Record<string, unknown>);
+export interface FloatInputOutputs {
+  output: number;
+}
+
+export function floatInput(inputs: FloatInputInputs): DslNode<FloatInputOutputs, "output"> {
+  return createNode("nodetool.input.FloatInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Boolean Input — nodetool.input.BooleanInput
@@ -23,8 +27,12 @@ export interface BooleanInputInputs {
   description?: Connectable<string>;
 }
 
-export function booleanInput(inputs: BooleanInputInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.input.BooleanInput", inputs as Record<string, unknown>);
+export interface BooleanInputOutputs {
+  output: boolean;
+}
+
+export function booleanInput(inputs: BooleanInputInputs): DslNode<BooleanInputOutputs, "output"> {
+  return createNode("nodetool.input.BooleanInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Integer Input — nodetool.input.IntegerInput
@@ -36,8 +44,12 @@ export interface IntegerInputInputs {
   max?: Connectable<number>;
 }
 
-export function integerInput(inputs: IntegerInputInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.input.IntegerInput", inputs as Record<string, unknown>);
+export interface IntegerInputOutputs {
+  output: number;
+}
+
+export function integerInput(inputs: IntegerInputInputs): DslNode<IntegerInputOutputs, "output"> {
+  return createNode("nodetool.input.IntegerInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // String Input — nodetool.input.StringInput
@@ -49,8 +61,12 @@ export interface StringInputInputs {
   line_mode?: Connectable<string>;
 }
 
-export function stringInput(inputs: StringInputInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.input.StringInput", inputs as Record<string, unknown>);
+export interface StringInputOutputs {
+  output: string;
+}
+
+export function stringInput(inputs: StringInputInputs): DslNode<StringInputOutputs, "output"> {
+  return createNode("nodetool.input.StringInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Select Input — nodetool.input.SelectInput
@@ -62,8 +78,12 @@ export interface SelectInputInputs {
   enum_type_name?: Connectable<string>;
 }
 
-export function selectInput(inputs: SelectInputInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.input.SelectInput", inputs as Record<string, unknown>);
+export interface SelectInputOutputs {
+  output: string;
+}
+
+export function selectInput(inputs: SelectInputInputs): DslNode<SelectInputOutputs, "output"> {
+  return createNode("nodetool.input.SelectInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // String List Input — nodetool.input.StringListInput
@@ -73,8 +93,12 @@ export interface StringListInputInputs {
   description?: Connectable<string>;
 }
 
-export function stringListInput(inputs: StringListInputInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.input.StringListInput", inputs as Record<string, unknown>);
+export interface StringListInputOutputs {
+  output: string[];
+}
+
+export function stringListInput(inputs: StringListInputInputs): DslNode<StringListInputOutputs, "output"> {
+  return createNode("nodetool.input.StringListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Folder Path Input — nodetool.input.FolderPathInput
@@ -84,8 +108,12 @@ export interface FolderPathInputInputs {
   description?: Connectable<string>;
 }
 
-export function folderPathInput(inputs: FolderPathInputInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.input.FolderPathInput", inputs as Record<string, unknown>);
+export interface FolderPathInputOutputs {
+  output: string;
+}
+
+export function folderPathInput(inputs: FolderPathInputInputs): DslNode<FolderPathInputOutputs, "output"> {
+  return createNode("nodetool.input.FolderPathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Hugging Face Model Input — nodetool.input.HuggingFaceModelInput
@@ -95,8 +123,12 @@ export interface HuggingFaceModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function huggingFaceModelInput(inputs: HuggingFaceModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.HuggingFaceModelInput", inputs as Record<string, unknown>);
+export interface HuggingFaceModelInputOutputs {
+  output: unknown;
+}
+
+export function huggingFaceModelInput(inputs: HuggingFaceModelInputInputs): DslNode<HuggingFaceModelInputOutputs, "output"> {
+  return createNode("nodetool.input.HuggingFaceModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Color Input — nodetool.input.ColorInput
@@ -106,8 +138,12 @@ export interface ColorInputInputs {
   description?: Connectable<string>;
 }
 
-export function colorInput(inputs: ColorInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.ColorInput", inputs as Record<string, unknown>);
+export interface ColorInputOutputs {
+  output: unknown;
+}
+
+export function colorInput(inputs: ColorInputInputs): DslNode<ColorInputOutputs, "output"> {
+  return createNode("nodetool.input.ColorInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Size Input — nodetool.input.ImageSizeInput
@@ -117,8 +153,12 @@ export interface ImageSizeInputInputs {
   description?: Connectable<string>;
 }
 
-export function imageSizeInput(inputs: ImageSizeInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.ImageSizeInput", inputs as Record<string, unknown>);
+export interface ImageSizeInputOutputs {
+  output: unknown;
+}
+
+export function imageSizeInput(inputs: ImageSizeInputInputs): DslNode<ImageSizeInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageSizeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Language Model Input — nodetool.input.LanguageModelInput
@@ -128,8 +168,12 @@ export interface LanguageModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function languageModelInput(inputs: LanguageModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.LanguageModelInput", inputs as Record<string, unknown>);
+export interface LanguageModelInputOutputs {
+  output: unknown;
+}
+
+export function languageModelInput(inputs: LanguageModelInputInputs): DslNode<LanguageModelInputOutputs, "output"> {
+  return createNode("nodetool.input.LanguageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Model Input — nodetool.input.ImageModelInput
@@ -139,8 +183,12 @@ export interface ImageModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function imageModelInput(inputs: ImageModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.ImageModelInput", inputs as Record<string, unknown>);
+export interface ImageModelInputOutputs {
+  output: unknown;
+}
+
+export function imageModelInput(inputs: ImageModelInputInputs): DslNode<ImageModelInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video Model Input — nodetool.input.VideoModelInput
@@ -150,8 +198,12 @@ export interface VideoModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function videoModelInput(inputs: VideoModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.VideoModelInput", inputs as Record<string, unknown>);
+export interface VideoModelInputOutputs {
+  output: unknown;
+}
+
+export function videoModelInput(inputs: VideoModelInputInputs): DslNode<VideoModelInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // TTSModel Input — nodetool.input.TTSModelInput
@@ -161,8 +213,12 @@ export interface TTSModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function ttsModelInput(inputs: TTSModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.TTSModelInput", inputs as Record<string, unknown>);
+export interface TTSModelInputOutputs {
+  output: unknown;
+}
+
+export function ttsModelInput(inputs: TTSModelInputInputs): DslNode<TTSModelInputOutputs, "output"> {
+  return createNode("nodetool.input.TTSModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // ASRModel Input — nodetool.input.ASRModelInput
@@ -172,8 +228,12 @@ export interface ASRModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function asrModelInput(inputs: ASRModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.ASRModelInput", inputs as Record<string, unknown>);
+export interface ASRModelInputOutputs {
+  output: unknown;
+}
+
+export function asrModelInput(inputs: ASRModelInputInputs): DslNode<ASRModelInputOutputs, "output"> {
+  return createNode("nodetool.input.ASRModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Embedding Model Input — nodetool.input.EmbeddingModelInput
@@ -183,8 +243,12 @@ export interface EmbeddingModelInputInputs {
   description?: Connectable<string>;
 }
 
-export function embeddingModelInput(inputs: EmbeddingModelInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.EmbeddingModelInput", inputs as Record<string, unknown>);
+export interface EmbeddingModelInputOutputs {
+  output: unknown;
+}
+
+export function embeddingModelInput(inputs: EmbeddingModelInputInputs): DslNode<EmbeddingModelInputOutputs, "output"> {
+  return createNode("nodetool.input.EmbeddingModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Dataframe Input — nodetool.input.DataframeInput
@@ -194,8 +258,12 @@ export interface DataframeInputInputs {
   description?: Connectable<string>;
 }
 
-export function dataframeInput(inputs: DataframeInputInputs): DslNode<SingleOutput<DataframeRef>> {
-  return createNode("nodetool.input.DataframeInput", inputs as Record<string, unknown>);
+export interface DataframeInputOutputs {
+  output: DataframeRef;
+}
+
+export function dataframeInput(inputs: DataframeInputInputs): DslNode<DataframeInputOutputs, "output"> {
+  return createNode("nodetool.input.DataframeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Document Input — nodetool.input.DocumentInput
@@ -205,8 +273,12 @@ export interface DocumentInputInputs {
   description?: Connectable<string>;
 }
 
-export function documentInput(inputs: DocumentInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.DocumentInput", inputs as Record<string, unknown>);
+export interface DocumentInputOutputs {
+  output: unknown;
+}
+
+export function documentInput(inputs: DocumentInputInputs): DslNode<DocumentInputOutputs, "output"> {
+  return createNode("nodetool.input.DocumentInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Input — nodetool.input.ImageInput
@@ -216,8 +288,12 @@ export interface ImageInputInputs {
   description?: Connectable<string>;
 }
 
-export function imageInput(inputs: ImageInputInputs): DslNode<SingleOutput<ImageRef>> {
-  return createNode("nodetool.input.ImageInput", inputs as Record<string, unknown>);
+export interface ImageInputOutputs {
+  output: ImageRef;
+}
+
+export function imageInput(inputs: ImageInputInputs): DslNode<ImageInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image List Input — nodetool.input.ImageListInput
@@ -227,8 +303,12 @@ export interface ImageListInputInputs {
   description?: Connectable<string>;
 }
 
-export function imageListInput(inputs: ImageListInputInputs): DslNode<SingleOutput<ImageRef[]>> {
-  return createNode("nodetool.input.ImageListInput", inputs as Record<string, unknown>);
+export interface ImageListInputOutputs {
+  output: ImageRef[];
+}
+
+export function imageListInput(inputs: ImageListInputInputs): DslNode<ImageListInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video List Input — nodetool.input.VideoListInput
@@ -238,8 +318,12 @@ export interface VideoListInputInputs {
   description?: Connectable<string>;
 }
 
-export function videoListInput(inputs: VideoListInputInputs): DslNode<SingleOutput<VideoRef[]>> {
-  return createNode("nodetool.input.VideoListInput", inputs as Record<string, unknown>);
+export interface VideoListInputOutputs {
+  output: VideoRef[];
+}
+
+export function videoListInput(inputs: VideoListInputInputs): DslNode<VideoListInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio List Input — nodetool.input.AudioListInput
@@ -249,8 +333,12 @@ export interface AudioListInputInputs {
   description?: Connectable<string>;
 }
 
-export function audioListInput(inputs: AudioListInputInputs): DslNode<SingleOutput<AudioRef[]>> {
-  return createNode("nodetool.input.AudioListInput", inputs as Record<string, unknown>);
+export interface AudioListInputOutputs {
+  output: AudioRef[];
+}
+
+export function audioListInput(inputs: AudioListInputInputs): DslNode<AudioListInputOutputs, "output"> {
+  return createNode("nodetool.input.AudioListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Text List Input — nodetool.input.TextListInput
@@ -260,8 +348,12 @@ export interface TextListInputInputs {
   description?: Connectable<string>;
 }
 
-export function textListInput(inputs: TextListInputInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.input.TextListInput", inputs as Record<string, unknown>);
+export interface TextListInputOutputs {
+  output: string[];
+}
+
+export function textListInput(inputs: TextListInputInputs): DslNode<TextListInputOutputs, "output"> {
+  return createNode("nodetool.input.TextListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video Input — nodetool.input.VideoInput
@@ -271,8 +363,12 @@ export interface VideoInputInputs {
   description?: Connectable<string>;
 }
 
-export function videoInput(inputs: VideoInputInputs): DslNode<SingleOutput<VideoRef>> {
-  return createNode("nodetool.input.VideoInput", inputs as Record<string, unknown>);
+export interface VideoInputOutputs {
+  output: VideoRef;
+}
+
+export function videoInput(inputs: VideoInputInputs): DslNode<VideoInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio Input — nodetool.input.AudioInput
@@ -282,8 +378,12 @@ export interface AudioInputInputs {
   description?: Connectable<string>;
 }
 
-export function audioInput(inputs: AudioInputInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("nodetool.input.AudioInput", inputs as Record<string, unknown>);
+export interface AudioInputOutputs {
+  output: AudioRef;
+}
+
+export function audioInput(inputs: AudioInputInputs): DslNode<AudioInputOutputs, "output"> {
+  return createNode("nodetool.input.AudioInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Model 3D Input — nodetool.input.Model3DInput
@@ -293,8 +393,12 @@ export interface Model3DInputInputs {
   description?: Connectable<string>;
 }
 
-export function model3DInput(inputs: Model3DInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.Model3DInput", inputs as Record<string, unknown>);
+export interface Model3DInputOutputs {
+  output: unknown;
+}
+
+export function model3DInput(inputs: Model3DInputInputs): DslNode<Model3DInputOutputs, "output"> {
+  return createNode("nodetool.input.Model3DInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Realtime Audio Input — nodetool.input.RealtimeAudioInput
@@ -305,11 +409,11 @@ export interface RealtimeAudioInputInputs {
 }
 
 export interface RealtimeAudioInputOutputs {
-  chunk: OutputHandle<unknown>;
+  chunk: unknown;
 }
 
-export function realtimeAudioInput(inputs: RealtimeAudioInputInputs): DslNode<RealtimeAudioInputOutputs> {
-  return createNode("nodetool.input.RealtimeAudioInput", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+export function realtimeAudioInput(inputs: RealtimeAudioInputInputs): DslNode<RealtimeAudioInputOutputs, "chunk"> {
+  return createNode("nodetool.input.RealtimeAudioInput", inputs as Record<string, unknown>, { outputNames: ["chunk"], defaultOutput: "chunk", streaming: true });
 }
 
 // Asset Folder Input — nodetool.input.AssetFolderInput
@@ -319,8 +423,12 @@ export interface AssetFolderInputInputs {
   description?: Connectable<string>;
 }
 
-export function assetFolderInput(inputs: AssetFolderInputInputs): DslNode<SingleOutput<FolderRef>> {
-  return createNode("nodetool.input.AssetFolderInput", inputs as Record<string, unknown>);
+export interface AssetFolderInputOutputs {
+  output: FolderRef;
+}
+
+export function assetFolderInput(inputs: AssetFolderInputInputs): DslNode<AssetFolderInputOutputs, "output"> {
+  return createNode("nodetool.input.AssetFolderInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Path Input — nodetool.input.FilePathInput
@@ -330,8 +438,12 @@ export interface FilePathInputInputs {
   description?: Connectable<string>;
 }
 
-export function filePathInput(inputs: FilePathInputInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.input.FilePathInput", inputs as Record<string, unknown>);
+export interface FilePathInputOutputs {
+  output: string;
+}
+
+export function filePathInput(inputs: FilePathInputInputs): DslNode<FilePathInputOutputs, "output"> {
+  return createNode("nodetool.input.FilePathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Document File Input — nodetool.input.DocumentFileInput
@@ -342,12 +454,12 @@ export interface DocumentFileInputInputs {
 }
 
 export interface DocumentFileInputOutputs {
-  document: OutputHandle<unknown>;
-  path: OutputHandle<string>;
+  document: unknown;
+  path: string;
 }
 
 export function documentFileInput(inputs: DocumentFileInputInputs): DslNode<DocumentFileInputOutputs> {
-  return createNode("nodetool.input.DocumentFileInput", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("nodetool.input.DocumentFileInput", inputs as Record<string, unknown>, { outputNames: ["document", "path"] });
 }
 
 // Message Input — nodetool.input.MessageInput
@@ -357,8 +469,12 @@ export interface MessageInputInputs {
   description?: Connectable<string>;
 }
 
-export function messageInput(inputs: MessageInputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.input.MessageInput", inputs as Record<string, unknown>);
+export interface MessageInputOutputs {
+  output: unknown;
+}
+
+export function messageInput(inputs: MessageInputInputs): DslNode<MessageInputOutputs, "output"> {
+  return createNode("nodetool.input.MessageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Message List Input — nodetool.input.MessageListInput
@@ -368,8 +484,12 @@ export interface MessageListInputInputs {
   description?: Connectable<string>;
 }
 
-export function messageListInput(inputs: MessageListInputInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.input.MessageListInput", inputs as Record<string, unknown>);
+export interface MessageListInputOutputs {
+  output: unknown[];
+}
+
+export function messageListInput(inputs: MessageListInputInputs): DslNode<MessageListInputOutputs, "output"> {
+  return createNode("nodetool.input.MessageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Message Deconstructor — nodetool.input.MessageDeconstructor
@@ -378,15 +498,15 @@ export interface MessageDeconstructorInputs {
 }
 
 export interface MessageDeconstructorOutputs {
-  id: OutputHandle<string>;
-  thread_id: OutputHandle<string>;
-  role: OutputHandle<string>;
-  text: OutputHandle<string>;
-  image: OutputHandle<ImageRef>;
-  audio: OutputHandle<AudioRef>;
-  model: OutputHandle<unknown>;
+  id: string;
+  thread_id: string;
+  role: string;
+  text: string;
+  image: ImageRef;
+  audio: AudioRef;
+  model: unknown;
 }
 
 export function messageDeconstructor(inputs: MessageDeconstructorInputs): DslNode<MessageDeconstructorOutputs> {
-  return createNode("nodetool.input.MessageDeconstructor", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("nodetool.input.MessageDeconstructor", inputs as Record<string, unknown>, { outputNames: ["id", "thread_id", "role", "text", "image", "audio", "model"] });
 }

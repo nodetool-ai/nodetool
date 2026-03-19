@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Gain — lib.pedalboard.Gain
@@ -9,8 +9,12 @@ export interface GainInputs {
   gain_db?: Connectable<number>;
 }
 
-export function gain(inputs: GainInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Gain", inputs as Record<string, unknown>);
+export interface GainOutputs {
+  output: AudioRef;
+}
+
+export function gain(inputs: GainInputs): DslNode<GainOutputs, "output"> {
+  return createNode("lib.pedalboard.Gain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Delay — lib.pedalboard.Delay
@@ -21,8 +25,12 @@ export interface DelayInputs {
   mix?: Connectable<number>;
 }
 
-export function delay(inputs: DelayInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Delay", inputs as Record<string, unknown>);
+export interface DelayOutputs {
+  output: AudioRef;
+}
+
+export function delay(inputs: DelayInputs): DslNode<DelayOutputs, "output"> {
+  return createNode("lib.pedalboard.Delay", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // High Pass Filter — lib.pedalboard.HighPassFilter
@@ -31,8 +39,12 @@ export interface HighPassFilterInputs {
   cutoff_frequency_hz?: Connectable<number>;
 }
 
-export function highPassFilter(inputs: HighPassFilterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.HighPassFilter", inputs as Record<string, unknown>);
+export interface HighPassFilterOutputs {
+  output: AudioRef;
+}
+
+export function highPassFilter(inputs: HighPassFilterInputs): DslNode<HighPassFilterOutputs, "output"> {
+  return createNode("lib.pedalboard.HighPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Low Pass Filter — lib.pedalboard.LowPassFilter
@@ -41,8 +53,12 @@ export interface LowPassFilterInputs {
   cutoff_frequency_hz?: Connectable<number>;
 }
 
-export function lowPassFilter(inputs: LowPassFilterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.LowPassFilter", inputs as Record<string, unknown>);
+export interface LowPassFilterOutputs {
+  output: AudioRef;
+}
+
+export function lowPassFilter(inputs: LowPassFilterInputs): DslNode<LowPassFilterOutputs, "output"> {
+  return createNode("lib.pedalboard.LowPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // High Shelf Filter — lib.pedalboard.HighShelfFilter
@@ -52,8 +68,12 @@ export interface HighShelfFilterInputs {
   gain_db?: Connectable<number>;
 }
 
-export function highShelfFilter(inputs: HighShelfFilterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.HighShelfFilter", inputs as Record<string, unknown>);
+export interface HighShelfFilterOutputs {
+  output: AudioRef;
+}
+
+export function highShelfFilter(inputs: HighShelfFilterInputs): DslNode<HighShelfFilterOutputs, "output"> {
+  return createNode("lib.pedalboard.HighShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Low Shelf Filter — lib.pedalboard.LowShelfFilter
@@ -63,8 +83,12 @@ export interface LowShelfFilterInputs {
   gain_db?: Connectable<number>;
 }
 
-export function lowShelfFilter(inputs: LowShelfFilterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.LowShelfFilter", inputs as Record<string, unknown>);
+export interface LowShelfFilterOutputs {
+  output: AudioRef;
+}
+
+export function lowShelfFilter(inputs: LowShelfFilterInputs): DslNode<LowShelfFilterOutputs, "output"> {
+  return createNode("lib.pedalboard.LowShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Peak Filter — lib.pedalboard.PeakFilter
@@ -74,8 +98,12 @@ export interface PeakFilterInputs {
   q_factor?: Connectable<number>;
 }
 
-export function peakFilter(inputs: PeakFilterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.PeakFilter", inputs as Record<string, unknown>);
+export interface PeakFilterOutputs {
+  output: AudioRef;
+}
+
+export function peakFilter(inputs: PeakFilterInputs): DslNode<PeakFilterOutputs, "output"> {
+  return createNode("lib.pedalboard.PeakFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Bitcrush — lib.pedalboard.Bitcrush
@@ -85,8 +113,12 @@ export interface BitcrushInputs {
   sample_rate_reduction?: Connectable<number>;
 }
 
-export function bitcrush(inputs: BitcrushInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Bitcrush", inputs as Record<string, unknown>);
+export interface BitcrushOutputs {
+  output: AudioRef;
+}
+
+export function bitcrush(inputs: BitcrushInputs): DslNode<BitcrushOutputs, "output"> {
+  return createNode("lib.pedalboard.Bitcrush", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Compress — lib.pedalboard.Compress
@@ -98,8 +130,12 @@ export interface CompressInputs {
   release?: Connectable<number>;
 }
 
-export function compress(inputs: CompressInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Compress", inputs as Record<string, unknown>);
+export interface CompressOutputs {
+  output: AudioRef;
+}
+
+export function compress(inputs: CompressInputs): DslNode<CompressOutputs, "output"> {
+  return createNode("lib.pedalboard.Compress", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Distortion — lib.pedalboard.Distortion
@@ -108,8 +144,12 @@ export interface DistortionInputs {
   drive_db?: Connectable<number>;
 }
 
-export function distortion(inputs: DistortionInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Distortion", inputs as Record<string, unknown>);
+export interface DistortionOutputs {
+  output: AudioRef;
+}
+
+export function distortion(inputs: DistortionInputs): DslNode<DistortionOutputs, "output"> {
+  return createNode("lib.pedalboard.Distortion", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Limiter — lib.pedalboard.Limiter
@@ -119,8 +159,12 @@ export interface LimiterInputs {
   release_ms?: Connectable<number>;
 }
 
-export function limiter(inputs: LimiterInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Limiter", inputs as Record<string, unknown>);
+export interface LimiterOutputs {
+  output: AudioRef;
+}
+
+export function limiter(inputs: LimiterInputs): DslNode<LimiterOutputs, "output"> {
+  return createNode("lib.pedalboard.Limiter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Reverb — lib.pedalboard.Reverb
@@ -132,8 +176,12 @@ export interface ReverbInputs {
   dry_level?: Connectable<number>;
 }
 
-export function reverb(inputs: ReverbInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Reverb", inputs as Record<string, unknown>);
+export interface ReverbOutputs {
+  output: AudioRef;
+}
+
+export function reverb(inputs: ReverbInputs): DslNode<ReverbOutputs, "output"> {
+  return createNode("lib.pedalboard.Reverb", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Pitch Shift — lib.pedalboard.PitchShift
@@ -142,8 +190,12 @@ export interface PitchShiftInputs {
   semitones?: Connectable<number>;
 }
 
-export function pitchShift(inputs: PitchShiftInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.PitchShift", inputs as Record<string, unknown>);
+export interface PitchShiftOutputs {
+  output: AudioRef;
+}
+
+export function pitchShift(inputs: PitchShiftInputs): DslNode<PitchShiftOutputs, "output"> {
+  return createNode("lib.pedalboard.PitchShift", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Time Stretch — lib.pedalboard.TimeStretch
@@ -152,8 +204,12 @@ export interface TimeStretchInputs {
   rate?: Connectable<number>;
 }
 
-export function timeStretch(inputs: TimeStretchInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.TimeStretch", inputs as Record<string, unknown>);
+export interface TimeStretchOutputs {
+  output: AudioRef;
+}
+
+export function timeStretch(inputs: TimeStretchInputs): DslNode<TimeStretchOutputs, "output"> {
+  return createNode("lib.pedalboard.TimeStretch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Noise Gate — lib.pedalboard.NoiseGate
@@ -164,8 +220,12 @@ export interface NoiseGateInputs {
   release_ms?: Connectable<number>;
 }
 
-export function noiseGate(inputs: NoiseGateInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.NoiseGate", inputs as Record<string, unknown>);
+export interface NoiseGateOutputs {
+  output: AudioRef;
+}
+
+export function noiseGate(inputs: NoiseGateInputs): DslNode<NoiseGateOutputs, "output"> {
+  return createNode("lib.pedalboard.NoiseGate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Phaser — lib.pedalboard.Phaser
@@ -178,6 +238,10 @@ export interface PhaserInputs {
   mix?: Connectable<number>;
 }
 
-export function phaser(inputs: PhaserInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("lib.pedalboard.Phaser", inputs as Record<string, unknown>);
+export interface PhaserOutputs {
+  output: AudioRef;
+}
+
+export function phaser(inputs: PhaserInputs): DslNode<PhaserOutputs, "output"> {
+  return createNode("lib.pedalboard.Phaser", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

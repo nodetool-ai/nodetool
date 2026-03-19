@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // PPTX Skill — skills.pptx.PptxSkill
 export interface PptxSkillInputs {
@@ -12,10 +12,10 @@ export interface PptxSkillInputs {
 }
 
 export interface PptxSkillOutputs {
-  document: OutputHandle<unknown>;
-  text: OutputHandle<string>;
+  document: unknown;
+  text: string;
 }
 
 export function pptxSkill(inputs: PptxSkillInputs): DslNode<PptxSkillOutputs> {
-  return createNode("skills.pptx.PptxSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.pptx.PptxSkill", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
 }

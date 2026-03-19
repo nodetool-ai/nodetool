@@ -13,13 +13,13 @@
     "codegen": "tsx scripts/codegen.ts"
   },
   "dependencies": {
+    "@nodetool/base-nodes": "*",
     "@nodetool/protocol": "*",
     "@nodetool/kernel": "*",
+    "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*"
   },
   "devDependencies": {
-    "@nodetool/node-sdk": "*",
-    "@nodetool/base-nodes": "*",
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",

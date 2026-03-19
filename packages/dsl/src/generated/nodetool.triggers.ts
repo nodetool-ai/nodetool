@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Wait — nodetool.triggers.Wait
 export interface WaitInputs {
@@ -9,13 +9,13 @@ export interface WaitInputs {
 }
 
 export interface WaitOutputs {
-  data: OutputHandle<unknown>;
-  resumed_at: OutputHandle<string>;
-  waited_seconds: OutputHandle<number>;
+  data: unknown;
+  resumed_at: string;
+  waited_seconds: number;
 }
 
 export function wait(inputs: WaitInputs): DslNode<WaitOutputs> {
-  return createNode("nodetool.triggers.Wait", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("nodetool.triggers.Wait", inputs as Record<string, unknown>, { outputNames: ["data", "resumed_at", "waited_seconds"] });
 }
 
 // Manual Trigger — nodetool.triggers.ManualTrigger
@@ -26,14 +26,14 @@ export interface ManualTriggerInputs {
 }
 
 export interface ManualTriggerOutputs {
-  data: OutputHandle<unknown>;
-  timestamp: OutputHandle<string>;
-  source: OutputHandle<string>;
-  event_type: OutputHandle<string>;
+  data: unknown;
+  timestamp: string;
+  source: string;
+  event_type: string;
 }
 
 export function manualTrigger(inputs: ManualTriggerInputs): DslNode<ManualTriggerOutputs> {
-  return createNode("nodetool.triggers.ManualTrigger", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.triggers.ManualTrigger", inputs as Record<string, unknown>, { outputNames: ["data", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Interval Trigger — nodetool.triggers.IntervalTrigger
@@ -46,16 +46,16 @@ export interface IntervalTriggerInputs {
 }
 
 export interface IntervalTriggerOutputs {
-  tick: OutputHandle<number>;
-  elapsed_seconds: OutputHandle<number>;
-  interval_seconds: OutputHandle<number>;
-  timestamp: OutputHandle<string>;
-  source: OutputHandle<string>;
-  event_type: OutputHandle<string>;
+  tick: number;
+  elapsed_seconds: number;
+  interval_seconds: number;
+  timestamp: string;
+  source: string;
+  event_type: string;
 }
 
 export function intervalTrigger(inputs: IntervalTriggerInputs): DslNode<IntervalTriggerOutputs> {
-  return createNode("nodetool.triggers.IntervalTrigger", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.triggers.IntervalTrigger", inputs as Record<string, unknown>, { outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
@@ -69,18 +69,18 @@ export interface WebhookTriggerInputs {
 }
 
 export interface WebhookTriggerOutputs {
-  body: OutputHandle<unknown>;
-  headers: OutputHandle<Record<string, unknown>>;
-  query: OutputHandle<Record<string, unknown>>;
-  method: OutputHandle<string>;
-  path: OutputHandle<string>;
-  timestamp: OutputHandle<string>;
-  source: OutputHandle<string>;
-  event_type: OutputHandle<string>;
+  body: unknown;
+  headers: Record<string, unknown>;
+  query: Record<string, unknown>;
+  method: string;
+  path: string;
+  timestamp: string;
+  source: string;
+  event_type: string;
 }
 
 export function webhookTrigger(inputs: WebhookTriggerInputs): DslNode<WebhookTriggerOutputs> {
-  return createNode("nodetool.triggers.WebhookTrigger", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.triggers.WebhookTrigger", inputs as Record<string, unknown>, { outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // File Watch Trigger — nodetool.triggers.FileWatchTrigger
@@ -95,13 +95,13 @@ export interface FileWatchTriggerInputs {
 }
 
 export interface FileWatchTriggerOutputs {
-  event: OutputHandle<string>;
-  path: OutputHandle<string>;
-  dest_path: OutputHandle<string>;
-  is_directory: OutputHandle<boolean>;
-  timestamp: OutputHandle<string>;
+  event: string;
+  path: string;
+  dest_path: string;
+  is_directory: boolean;
+  timestamp: string;
 }
 
 export function fileWatchTrigger(inputs: FileWatchTriggerInputs): DslNode<FileWatchTriggerOutputs> {
-  return createNode("nodetool.triggers.FileWatchTrigger", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.triggers.FileWatchTrigger", inputs as Record<string, unknown>, { outputNames: ["event", "path", "dest_path", "is_directory", "timestamp"], streaming: true });
 }

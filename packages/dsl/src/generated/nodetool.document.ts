@@ -1,14 +1,18 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Load Document File — nodetool.document.LoadDocumentFile
 export interface LoadDocumentFileInputs {
   path?: Connectable<string>;
 }
 
-export function loadDocumentFile(inputs: LoadDocumentFileInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.document.LoadDocumentFile", inputs as Record<string, unknown>);
+export interface LoadDocumentFileOutputs {
+  output: unknown;
+}
+
+export function loadDocumentFile(inputs: LoadDocumentFileInputs): DslNode<LoadDocumentFileOutputs, "output"> {
+  return createNode("nodetool.document.LoadDocumentFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Document File — nodetool.document.SaveDocumentFile
@@ -18,8 +22,11 @@ export interface SaveDocumentFileInputs {
   filename?: Connectable<string>;
 }
 
-export function saveDocumentFile(inputs: SaveDocumentFileInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.document.SaveDocumentFile", inputs as Record<string, unknown>);
+export interface SaveDocumentFileOutputs {
+}
+
+export function saveDocumentFile(inputs: SaveDocumentFileInputs): DslNode<SaveDocumentFileOutputs> {
+  return createNode("nodetool.document.SaveDocumentFile", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // List Documents — nodetool.document.ListDocuments
@@ -30,11 +37,11 @@ export interface ListDocumentsInputs {
 }
 
 export interface ListDocumentsOutputs {
-  document: OutputHandle<unknown>;
+  document: unknown;
 }
 
-export function listDocuments(inputs: ListDocumentsInputs): DslNode<ListDocumentsOutputs> {
-  return createNode("nodetool.document.ListDocuments", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+export function listDocuments(inputs: ListDocumentsInputs): DslNode<ListDocumentsOutputs, "document"> {
+  return createNode("nodetool.document.ListDocuments", inputs as Record<string, unknown>, { outputNames: ["document"], defaultOutput: "document", streaming: true });
 }
 
 // Split Document — nodetool.document.SplitDocument
@@ -46,13 +53,13 @@ export interface SplitDocumentInputs {
 }
 
 export interface SplitDocumentOutputs {
-  text: OutputHandle<string>;
-  source_id: OutputHandle<string>;
-  start_index: OutputHandle<number>;
+  text: string;
+  source_id: string;
+  start_index: number;
 }
 
 export function splitDocument(inputs: SplitDocumentInputs): DslNode<SplitDocumentOutputs> {
-  return createNode("nodetool.document.SplitDocument", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.document.SplitDocument", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index"], streaming: true });
 }
 
 // Split HTML — nodetool.document.SplitHTML
@@ -61,13 +68,13 @@ export interface SplitHTMLInputs {
 }
 
 export interface SplitHTMLOutputs {
-  text: OutputHandle<string>;
-  source_id: OutputHandle<string>;
-  start_index: OutputHandle<number>;
+  text: string;
+  source_id: string;
+  start_index: number;
 }
 
 export function splitHTML(inputs: SplitHTMLInputs): DslNode<SplitHTMLOutputs> {
-  return createNode("nodetool.document.SplitHTML", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.document.SplitHTML", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index"], streaming: true });
 }
 
 // Split JSON — nodetool.document.SplitJSON
@@ -78,13 +85,13 @@ export interface SplitJSONInputs {
 }
 
 export interface SplitJSONOutputs {
-  text: OutputHandle<string>;
-  source_id: OutputHandle<string>;
-  start_index: OutputHandle<number>;
+  text: string;
+  source_id: string;
+  start_index: number;
 }
 
 export function splitJSON(inputs: SplitJSONInputs): DslNode<SplitJSONOutputs> {
-  return createNode("nodetool.document.SplitJSON", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.document.SplitJSON", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index"], streaming: true });
 }
 
 // Split Recursively — nodetool.document.SplitRecursively
@@ -96,13 +103,13 @@ export interface SplitRecursivelyInputs {
 }
 
 export interface SplitRecursivelyOutputs {
-  text: OutputHandle<string>;
-  source_id: OutputHandle<string>;
-  start_index: OutputHandle<number>;
+  text: string;
+  source_id: string;
+  start_index: number;
 }
 
 export function splitRecursively(inputs: SplitRecursivelyInputs): DslNode<SplitRecursivelyOutputs> {
-  return createNode("nodetool.document.SplitRecursively", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.document.SplitRecursively", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index"], streaming: true });
 }
 
 // Split Markdown — nodetool.document.SplitMarkdown
@@ -116,11 +123,11 @@ export interface SplitMarkdownInputs {
 }
 
 export interface SplitMarkdownOutputs {
-  text: OutputHandle<string>;
-  source_id: OutputHandle<string>;
-  start_index: OutputHandle<number>;
+  text: string;
+  source_id: string;
+  start_index: number;
 }
 
 export function splitMarkdown(inputs: SplitMarkdownInputs): DslNode<SplitMarkdownOutputs> {
-  return createNode("nodetool.document.SplitMarkdown", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.document.SplitMarkdown", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index"], streaming: true });
 }

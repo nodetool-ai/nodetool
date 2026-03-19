@@ -202,9 +202,6 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
   // Determine needed imports
   const mediaRefs = new Set<string>();
-  let needsSingleOutput = false;
-  let needsOutputHandle = false;
-
   for (const { meta } of nodes) {
     for (const prop of meta.properties) {
       collectMediaRefs(prop.type, mediaRefs);
@@ -212,20 +209,10 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     for (const out of meta.outputs) {
       collectMediaRefs(out.type, mediaRefs);
     }
-    const isMultiOutput =
-      meta.outputs.length > 1 ||
-      (meta.outputs.length === 1 && meta.outputs[0].name !== "output");
-    if (isMultiOutput) {
-      needsOutputHandle = true;
-    } else {
-      needsSingleOutput = true;
-    }
   }
 
   // Core imports
   const coreImports = ["createNode", "Connectable", "DslNode"];
-  if (needsSingleOutput) coreImports.push("SingleOutput");
-  if (needsOutputHandle) coreImports.push("OutputHandle");
   lines.push(
     `import { ${coreImports.join(", ")} } from "../core.js";`
   );
@@ -268,10 +255,6 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
       factoryName = factoryName + "_";
     }
 
-    const isMultiOutput =
-      meta.outputs.length > 1 ||
-      (meta.outputs.length === 1 && meta.outputs[0].name !== "output");
-
     // Comment
     lines.push(`// ${meta.title || className} — ${meta.node_type}`);
 
@@ -289,17 +272,15 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     lines.push("}");
     lines.push("");
 
-    // --- Outputs interface (multi-output only) ---
-    if (isMultiOutput) {
-      lines.push(`export interface ${className}Outputs {`);
-      for (const out of meta.outputs) {
-        const tsType = mapType(out.type);
-        const outName = isValidIdentifier(out.name) ? out.name : JSON.stringify(out.name);
-        lines.push(`  ${outName}: OutputHandle<${tsType}>;`);
-      }
-      lines.push("}");
-      lines.push("");
+    // --- Outputs interface ---
+    lines.push(`export interface ${className}Outputs {`);
+    for (const out of meta.outputs) {
+      const tsType = mapType(out.type);
+      const outName = isValidIdentifier(out.name) ? out.name : JSON.stringify(out.name);
+      lines.push(`  ${outName}: ${tsType};`);
     }
+    lines.push("}");
+    lines.push("");
 
     // --- Factory function ---
     const inputsArg = hasProps
@@ -307,19 +288,17 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
       : `inputs?: ${className}Inputs`;
 
     // Return type
-    let returnType: string;
-    if (isMultiOutput) {
-      returnType = `DslNode<${className}Outputs>`;
-    } else {
-      // Single output
-      const outputType =
-        meta.outputs.length === 1 ? mapType(meta.outputs[0].type) : "unknown";
-      returnType = `DslNode<SingleOutput<${outputType}>>`;
-    }
+    const defaultOutput =
+      meta.outputs.length === 1 ? JSON.stringify(meta.outputs[0].name) : null;
+    const returnType = defaultOutput
+      ? `DslNode<${className}Outputs, ${defaultOutput}>`
+      : `DslNode<${className}Outputs>`;
 
     // Options
     const opts: string[] = [];
-    if (isMultiOutput) opts.push("multiOutput: true");
+    const outputNames = meta.outputs.map((out) => JSON.stringify(out.name)).join(", ");
+    opts.push(`outputNames: [${outputNames}]`);
+    if (defaultOutput) opts.push(`defaultOutput: ${defaultOutput}`);
     if (meta.is_streaming_output) opts.push("streaming: true");
     const optsStr = opts.length > 0 ? `, { ${opts.join(", ")} }` : "";
 

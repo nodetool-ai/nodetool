@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Filter Number — nodetool.numbers.FilterNumber
 export interface FilterNumberInputs {
@@ -9,8 +9,12 @@ export interface FilterNumberInputs {
   compare_value?: Connectable<number>;
 }
 
-export function filterNumber(inputs: FilterNumberInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.numbers.FilterNumber", inputs as Record<string, unknown>, { streaming: true });
+export interface FilterNumberOutputs {
+  output: number;
+}
+
+export function filterNumber(inputs: FilterNumberInputs): DslNode<FilterNumberOutputs, "output"> {
+  return createNode("nodetool.numbers.FilterNumber", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 
 // Filter Number Range — nodetool.numbers.FilterNumberRange
@@ -21,6 +25,10 @@ export interface FilterNumberRangeInputs {
   inclusive?: Connectable<boolean>;
 }
 
-export function filterNumberRange(inputs: FilterNumberRangeInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.numbers.FilterNumberRange", inputs as Record<string, unknown>, { streaming: true });
+export interface FilterNumberRangeOutputs {
+  output: number;
+}
+
+export function filterNumberRange(inputs: FilterNumberRangeInputs): DslNode<FilterNumberRangeOutputs, "output"> {
+  return createNode("nodetool.numbers.FilterNumberRange", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }

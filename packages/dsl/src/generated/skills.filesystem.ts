@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Filesystem Skill — skills.filesystem.FilesystemSkill
 export interface FilesystemSkillInputs {
@@ -11,9 +11,9 @@ export interface FilesystemSkillInputs {
 }
 
 export interface FilesystemSkillOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function filesystemSkill(inputs: FilesystemSkillInputs): DslNode<FilesystemSkillOutputs> {
-  return createNode("skills.filesystem.FilesystemSkill", inputs as Record<string, unknown>, { multiOutput: true });
+export function filesystemSkill(inputs: FilesystemSkillInputs): DslNode<FilesystemSkillOutputs, "text"> {
+  return createNode("skills.filesystem.FilesystemSkill", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }

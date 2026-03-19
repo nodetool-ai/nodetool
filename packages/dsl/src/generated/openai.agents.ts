@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Realtime Agent — openai.agents.RealtimeAgent
@@ -14,13 +14,13 @@ export interface RealtimeAgentInputs {
 }
 
 export interface RealtimeAgentOutputs {
-  chunk: OutputHandle<unknown>;
-  audio: OutputHandle<AudioRef>;
-  text: OutputHandle<string>;
+  chunk: unknown;
+  audio: AudioRef;
+  text: string;
 }
 
 export function realtimeAgent(inputs: RealtimeAgentInputs): DslNode<RealtimeAgentOutputs> {
-  return createNode("openai.agents.RealtimeAgent", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("openai.agents.RealtimeAgent", inputs as Record<string, unknown>, { outputNames: ["chunk", "audio", "text"], streaming: true });
 }
 
 // Realtime Transcription — openai.agents.RealtimeTranscription
@@ -31,10 +31,10 @@ export interface RealtimeTranscriptionInputs {
 }
 
 export interface RealtimeTranscriptionOutputs {
-  text: OutputHandle<string>;
-  chunk: OutputHandle<unknown>;
+  text: string;
+  chunk: unknown;
 }
 
 export function realtimeTranscription(inputs: RealtimeTranscriptionInputs): DslNode<RealtimeTranscriptionOutputs> {
-  return createNode("openai.agents.RealtimeTranscription", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("openai.agents.RealtimeTranscription", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
 }

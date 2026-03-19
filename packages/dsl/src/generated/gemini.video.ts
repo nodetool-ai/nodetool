@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, VideoRef } from "../types.js";
 
 // Text To Video — gemini.video.TextToVideo
@@ -11,8 +11,12 @@ export interface TextToVideoInputs {
   negative_prompt?: Connectable<string>;
 }
 
-export function textToVideo(inputs: TextToVideoInputs): DslNode<SingleOutput<VideoRef>> {
-  return createNode("gemini.video.TextToVideo", inputs as Record<string, unknown>);
+export interface TextToVideoOutputs {
+  output: VideoRef;
+}
+
+export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutputs, "output"> {
+  return createNode("gemini.video.TextToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image To Video — gemini.video.ImageToVideo
@@ -24,6 +28,10 @@ export interface ImageToVideoInputs {
   negative_prompt?: Connectable<string>;
 }
 
-export function imageToVideo(inputs: ImageToVideoInputs): DslNode<SingleOutput<VideoRef>> {
-  return createNode("gemini.video.ImageToVideo", inputs as Record<string, unknown>);
+export interface ImageToVideoOutputs {
+  output: VideoRef;
+}
+
+export function imageToVideo(inputs: ImageToVideoInputs): DslNode<ImageToVideoOutputs, "output"> {
+  return createNode("gemini.video.ImageToVideo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

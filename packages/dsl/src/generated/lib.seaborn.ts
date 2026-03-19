@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, DataframeRef } from "../types.js";
 
 // Chart Renderer — lib.seaborn.ChartRenderer
@@ -13,6 +13,10 @@ export interface ChartRendererInputs {
   trim_margins?: Connectable<boolean>;
 }
 
-export function chartRenderer(inputs: ChartRendererInputs): DslNode<SingleOutput<ImageRef>> {
-  return createNode("lib.seaborn.ChartRenderer", inputs as Record<string, unknown>);
+export interface ChartRendererOutputs {
+  output: ImageRef;
+}
+
+export function chartRenderer(inputs: ChartRendererInputs): DslNode<ChartRendererOutputs, "output"> {
+  return createNode("lib.seaborn.ChartRenderer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

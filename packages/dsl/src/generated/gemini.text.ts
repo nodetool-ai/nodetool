@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Grounded Search — gemini.text.GroundedSearch
 export interface GroundedSearchInputs {
@@ -9,12 +9,12 @@ export interface GroundedSearchInputs {
 }
 
 export interface GroundedSearchOutputs {
-  results: OutputHandle<string[]>;
-  sources: OutputHandle<unknown[]>;
+  results: string[];
+  sources: unknown[];
 }
 
 export function groundedSearch(inputs: GroundedSearchInputs): DslNode<GroundedSearchOutputs> {
-  return createNode("gemini.text.GroundedSearch", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("gemini.text.GroundedSearch", inputs as Record<string, unknown>, { outputNames: ["results", "sources"] });
 }
 
 // Embedding — gemini.text.Embedding
@@ -23,6 +23,10 @@ export interface EmbeddingInputs {
   model?: Connectable<unknown>;
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("gemini.text.Embedding", inputs as Record<string, unknown>);
+export interface EmbeddingOutputs {
+  output: unknown;
+}
+
+export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
+  return createNode("gemini.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

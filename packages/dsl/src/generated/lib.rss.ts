@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Fetch RSS Feed — lib.rss.FetchRSSFeed
 export interface FetchRSSFeedInputs {
@@ -8,15 +8,15 @@ export interface FetchRSSFeedInputs {
 }
 
 export interface FetchRSSFeedOutputs {
-  title: OutputHandle<string>;
-  link: OutputHandle<string>;
-  published: OutputHandle<unknown>;
-  summary: OutputHandle<string>;
-  author: OutputHandle<string>;
+  title: string;
+  link: string;
+  published: unknown;
+  summary: string;
+  author: string;
 }
 
 export function fetchRSSFeed(inputs: FetchRSSFeedInputs): DslNode<FetchRSSFeedOutputs> {
-  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, { outputNames: ["title", "link", "published", "summary", "author"], streaming: true });
 }
 
 // Extract Feed Metadata — lib.rss.ExtractFeedMetadata
@@ -24,6 +24,10 @@ export interface ExtractFeedMetadataInputs {
   url?: Connectable<string>;
 }
 
-export function extractFeedMetadata(inputs: ExtractFeedMetadataInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.rss.ExtractFeedMetadata", inputs as Record<string, unknown>);
+export interface ExtractFeedMetadataOutputs {
+  output: Record<string, unknown>;
+}
+
+export function extractFeedMetadata(inputs: ExtractFeedMetadataInputs): DslNode<ExtractFeedMetadataOutputs, "output"> {
+  return createNode("lib.rss.ExtractFeedMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
