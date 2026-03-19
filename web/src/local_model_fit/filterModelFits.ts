@@ -8,21 +8,58 @@
 
 import type { RankedModelFit, FitTier } from "./types";
 
-/** Case-insensitive text search across name, family, provider, description. */
+/**
+ * Whether a single token matches a row. Tags need length ≥3 for prefix match
+ * (avoids "e" matching everything). Description only when token length ≥4.
+ */
+const rowMatchesSearchToken = (r: RankedModelFit, token: string): boolean => {
+  const t = token.toLowerCase();
+  if (r.name.toLowerCase().includes(t)) {
+    return true;
+  }
+  if (r.family.toLowerCase().includes(t)) {
+    return true;
+  }
+  if (r.provider.toLowerCase().includes(t)) {
+    return true;
+  }
+  const tagHit = r.tags.some((tag) => {
+    const lt = tag.toLowerCase();
+    return lt === t || (t.length >= 3 && lt.startsWith(t));
+  });
+  if (tagHit) {
+    return true;
+  }
+  if (t.length >= 4) {
+    const desc = (r.description ?? "").toLowerCase();
+    if (desc.includes(t)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Whitespace-separated tokens; each token must match (AND). Tokens shorter than
+ * 2 characters are ignored so single-letter typing does not flood results.
+ */
 export const filterBySearch = (
   results: readonly RankedModelFit[],
   query: string,
 ): RankedModelFit[] => {
-  if (!query.trim()) { return [...results]; }
-  const q = query.toLowerCase();
-  return results.filter(
-    (r) =>
-      r.name.toLowerCase().includes(q) ||
-      r.family.toLowerCase().includes(q) ||
-      r.provider.toLowerCase().includes(q) ||
-      (r.description ?? "").toLowerCase().includes(q) ||
-      r.tags.some((t) => t.toLowerCase().includes(q))
-  );
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return [...results];
+  }
+  const tokens = trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2);
+  if (tokens.length === 0) {
+    return [...results];
+  }
+  return results.filter((r) => tokens.every((tok) => rowMatchesSearchToken(r, tok)));
 };
 
 /** Keep only entries that have at least one of the given tags. */

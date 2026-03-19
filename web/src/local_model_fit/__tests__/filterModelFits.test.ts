@@ -56,6 +56,23 @@ describe("filterBySearch", () => {
   it("filters by tag", () => {
     expect(filterBySearch(results, "vision")).toHaveLength(1);
   });
+
+  it("ignores single-character tokens (still typing)", () => {
+    expect(filterBySearch(results, "a")).toHaveLength(4);
+  });
+
+  it("requires every whitespace-separated token to match (AND)", () => {
+    expect(filterBySearch(results, "alpha chat")).toHaveLength(1);
+    expect(filterBySearch(results, "alpha vision")).toHaveLength(0);
+  });
+
+  it("matches tag prefix when token length >= 3", () => {
+    expect(filterBySearch(results, "cod")).toHaveLength(2);
+  });
+
+  it("does not match tag prefix when token length < 3", () => {
+    expect(filterBySearch(results, "co")).toHaveLength(0);
+  });
 });
 
 describe("filterByTags", () => {

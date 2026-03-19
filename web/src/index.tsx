@@ -394,6 +394,7 @@ function getRoutes() {
       path: "local-model-fit",
       element: (
         <ProtectedRoute>
+          <PanelLeft />
           <LocalModelFitPage />
         </ProtectedRoute>
       )
