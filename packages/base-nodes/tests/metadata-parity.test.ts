@@ -75,6 +75,7 @@ function normalizeMetadata(metadata: NonNullable<ReturnType<NodeRegistry["getMet
 
 const TS_ONLY_NODE_TYPES = [
   "nodetool.workflows.base_node.Preview",
+  "nodetool.input.SketchInput",
   "nodetool.code.Code",
   "vector.Collection",
   "vector.Count",

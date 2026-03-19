@@ -615,6 +615,88 @@ export class ImageInputNode extends BaseNode {
   }
 }
 
+export class SketchInputNode extends BaseNode {
+  static readonly nodeType = "nodetool.input.SketchInput";
+  static readonly title = "Sketch Input";
+  static readonly description =
+    "Draw and compose images in a layered sketch editor; exports a flattened composite image and an optional mask for inpainting or segmentation downstream.\n    sketch, draw, paint, mask, inpaint, layers, image, input, composite";
+  static readonly metadataOutputTypes = {
+    image: "image",
+    mask: "image",
+  };
+  static readonly basicFields = ["name", "sketch_data", "input_image"];
+
+  @prop({ type: "str", default: "", title: "Name", description: "The parameter name for the workflow." })
+  declare name: any;
+
+  @prop({ type: "str", default: "", title: "Description", description: "The description of the input for the workflow." })
+  declare description: any;
+
+  @prop({
+    type: "sketch",
+    default: "",
+    title: "Sketch",
+    description: "Serialized sketch document (edited on the canvas in the sketch editor).",
+  })
+  declare sketch_data: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+    },
+    title: "Input Image",
+    description: "Optional base image from the graph; appears as a locked layer in the editor.",
+  })
+  declare input_image: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+    },
+    title: "Image",
+    description: "Flattened sketch output (updated when you draw or save in the editor).",
+  })
+  declare image: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+    },
+    title: "Mask",
+    description: "Mask export when configured in the sketch editor.",
+  })
+  declare mask: any;
+
+  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const emptyImage = {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+    };
+    return {
+      image: this.image ?? emptyImage,
+      mask: this.mask ?? emptyImage,
+    };
+  }
+}
+
 export class ImageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageListInput";
             static readonly title = "Image List Input";
@@ -1214,6 +1296,7 @@ export const INPUT_NODES = [
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
+  SketchInputNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,

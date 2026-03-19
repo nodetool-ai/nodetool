@@ -178,6 +178,7 @@ export {
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
+  SketchInputNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,

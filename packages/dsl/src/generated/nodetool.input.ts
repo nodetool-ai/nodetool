@@ -296,6 +296,25 @@ export function imageInput(inputs: ImageInputInputs): DslNode<ImageInputOutputs,
   return createNode("nodetool.input.ImageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
+// Sketch Input — nodetool.input.SketchInput
+export interface SketchInputInputs {
+  name?: Connectable<string>;
+  description?: Connectable<string>;
+  sketch_data?: Connectable<unknown>;
+  input_image?: Connectable<ImageRef>;
+  image?: Connectable<ImageRef>;
+  mask?: Connectable<ImageRef>;
+}
+
+export interface SketchInputOutputs {
+  image: ImageRef;
+  mask: ImageRef;
+}
+
+export function sketchInput(inputs: SketchInputInputs): DslNode<SketchInputOutputs> {
+  return createNode("nodetool.input.SketchInput", inputs as Record<string, unknown>, { outputNames: ["image", "mask"] });
+}
+
 // Image List Input — nodetool.input.ImageListInput
 export interface ImageListInputInputs {
   name?: Connectable<string>;
