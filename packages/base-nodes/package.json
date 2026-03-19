@@ -31,7 +31,6 @@
     "faiss-node": "^0.5.1",
     "fft.js": "^4.0.4",
     "html-to-text": "^9.0.5",
-    "isolated-vm": "^6.1.2",
     "jsdom": "^28.1.0",
     "mammoth": "^1.11.0",
     "ndarray": "^1.0.19",
