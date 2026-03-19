@@ -46,6 +46,7 @@ import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
+import SketchProperty from "../properties/SketchProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -240,6 +241,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return RecordTypeProperty;
     case "font":
       return FontProperty;
+    case "sketch":
+      return SketchProperty;
     case "inference_provider_automatic_speech_recognition_model":
     case "inference_provider_audio_classification_model":
     case "inference_provider_image_classification_model":
