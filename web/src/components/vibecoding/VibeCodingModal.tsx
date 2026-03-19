@@ -7,12 +7,14 @@ import VibeCodingPanel from "./VibeCodingPanel";
 interface VibeCodingModalProps {
   open: boolean;
   workflow: Workflow | null;
+  workspacePath: string;
   onClose: () => void;
 }
 
 const VibeCodingModal: React.FC<VibeCodingModalProps> = ({
   open,
   workflow,
+  workspacePath,
   onClose
 }) => {
   if (!workflow) {
@@ -34,7 +36,11 @@ const VibeCodingModal: React.FC<VibeCodingModalProps> = ({
       }}
     >
       <DialogContent sx={{ p: 0, display: "flex", flexDirection: "column" }}>
-        <VibeCodingPanel workflow={workflow} onClose={onClose} />
+        <VibeCodingPanel
+          workflow={workflow}
+          workspacePath={workspacePath}
+          onClose={onClose}
+        />
       </DialogContent>
     </Dialog>
   );
