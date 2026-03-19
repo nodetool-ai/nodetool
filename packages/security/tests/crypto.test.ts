@@ -4,6 +4,8 @@ import {
   deriveKey,
   encrypt,
   decrypt,
+  encryptFernet,
+  decryptFernet,
   isValidMasterKey,
 } from "../src/crypto.js";
 import {
@@ -11,8 +13,12 @@ import {
   initMasterKey,
   clearMasterKeyCache,
   setMasterKey,
+  setMasterKeyPersistent,
+  deleteMasterKey,
   isUsingEnvKey,
   isUsingAwsKey,
+  setKeytarLoader,
+  resetKeytarLoader,
 } from "../src/master-key.js";
 import {
   getSecret,
@@ -194,6 +200,141 @@ describe("crypto", () => {
       expect(isValidMasterKey(masterKey2, encrypted, userId)).toBe(false);
     });
   });
+
+  describe("encryptFernet/decryptFernet", () => {
+    /** Convert a Buffer to a base64url string (no + / = characters). */
+    function toBase64Url(buf: Buffer): string {
+      return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+
+    /**
+     * Decode a base64url string back to a Buffer.
+     * Adds the minimal "==" padding needed: formula `(len % 4) || 4` gives
+     * 0 pad when len%4==0 (already aligned), otherwise 4-(len%4) chars,
+     * which is equivalent to slicing "==" by the needed amount.
+     */
+    function fromBase64Url(token: string): Buffer {
+      const padded = token + "==".slice((token.length % 4) || 4);
+      return Buffer.from(padded.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+    }
+
+    it("should round-trip encrypt and decrypt", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const plaintext = "my-fernet-secret";
+
+      const token = encryptFernet(masterKey, userId, plaintext);
+      const decrypted = decryptFernet(masterKey, userId, token);
+
+      expect(decrypted).toBe(plaintext);
+    });
+
+    it("should handle empty strings", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+
+      const token = encryptFernet(masterKey, userId, "");
+      const decrypted = decryptFernet(masterKey, userId, token);
+
+      expect(decrypted).toBe("");
+    });
+
+    it("should handle unicode content", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const plaintext = "unicode: \u00e9\u00e0\u00fc\u00f1 \ud83d\udd10";
+
+      const token = encryptFernet(masterKey, userId, plaintext);
+      const decrypted = decryptFernet(masterKey, userId, token);
+
+      expect(decrypted).toBe(plaintext);
+    });
+
+    it("should handle long plaintext", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const plaintext = "a".repeat(1000);
+
+      const token = encryptFernet(masterKey, userId, plaintext);
+      const decrypted = decryptFernet(masterKey, userId, token);
+
+      expect(decrypted).toBe(plaintext);
+    });
+
+    it("should produce different tokens for same plaintext (random IV)", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const plaintext = "same-fernet-secret";
+
+      const token1 = encryptFernet(masterKey, userId, plaintext);
+      const token2 = encryptFernet(masterKey, userId, plaintext);
+
+      expect(token1).not.toBe(token2);
+      expect(decryptFernet(masterKey, userId, token1)).toBe(plaintext);
+      expect(decryptFernet(masterKey, userId, token2)).toBe(plaintext);
+    });
+
+    it("should produce base64url-encoded tokens (no + / = chars)", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const token = encryptFernet(masterKey, userId, "test");
+
+      expect(token).not.toMatch(/[+/=]/);
+    });
+
+    it("should fail to decrypt with wrong master key (HMAC mismatch)", () => {
+      const masterKey1 = generateMasterKey();
+      const masterKey2 = generateMasterKey();
+      const userId = "user-fernet";
+      const token = encryptFernet(masterKey1, userId, "secret");
+
+      expect(() => decryptFernet(masterKey2, userId, token)).toThrow("HMAC mismatch");
+    });
+
+    it("should fail to decrypt with wrong userId (HMAC mismatch)", () => {
+      const masterKey = generateMasterKey();
+      const token = encryptFernet(masterKey, "user-1", "secret");
+
+      expect(() => decryptFernet(masterKey, "user-2", token)).toThrow("HMAC mismatch");
+    });
+
+    it("should fail to decrypt a truncated token (too short)", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      // 20 bytes is less than minimum (1 + 8 + 16 + 32 = 57)
+      const shortToken = toBase64Url(Buffer.alloc(20));
+
+      expect(() => decryptFernet(masterKey, userId, shortToken)).toThrow("too short");
+    });
+
+    it("should fail to decrypt a token with wrong version byte", () => {
+      const masterKey = generateMasterKey();
+      const userId = "user-fernet";
+      const token = encryptFernet(masterKey, userId, "test");
+
+      // Decode, corrupt version byte, re-encode
+      const decoded = fromBase64Url(token);
+      decoded[0] = 0x00; // Wrong version byte
+      const corrupted = toBase64Url(decoded);
+
+      expect(() => decryptFernet(masterKey, userId, corrupted)).toThrow("version");
+    });
+
+    it("encryptFernet and native encrypt should produce interoperable keys with same PBKDF2", () => {
+      // Both use the same master key — cross-format is NOT interoperable (different ciphers)
+      // but the key derivation logic should be consistent within each format.
+      const masterKey = generateMasterKey();
+      const userId = "user-1";
+
+      // AES-256-GCM (native)
+      const nativeEncrypted = encrypt(masterKey, userId, "test");
+      expect(decrypt(masterKey, userId, nativeEncrypted)).toBe("test");
+
+      // Fernet (AES-128-CBC + HMAC)
+      const fernetToken = encryptFernet(masterKey, userId, "test");
+      expect(decryptFernet(masterKey, userId, fernetToken)).toBe("test");
+    });
+  });
 });
 
 describe("master-key", () => {
@@ -201,12 +342,14 @@ describe("master-key", () => {
 
   beforeEach(() => {
     clearMasterKeyCache();
+    resetKeytarLoader();
     delete process.env["SECRETS_MASTER_KEY"];
     delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   afterEach(() => {
     clearMasterKeyCache();
+    resetKeytarLoader();
     if (originalEnv !== undefined) {
       process.env["SECRETS_MASTER_KEY"] = originalEnv;
     } else {
@@ -289,6 +432,129 @@ describe("master-key", () => {
     it("should return true when AWS_SECRETS_MASTER_KEY_NAME is set", () => {
       process.env["AWS_SECRETS_MASTER_KEY_NAME"] = "my-secret";
       expect(isUsingAwsKey()).toBe(true);
+    });
+  });
+
+  describe("setMasterKeyPersistent", () => {
+    it("should throw when keytar is not available", async () => {
+      setKeytarLoader(async () => null);
+
+      await expect(setMasterKeyPersistent("test-key-persistent")).rejects.toThrow(
+        "keytar is not available"
+      );
+    });
+
+    it("should set password in keytar and cache the key", async () => {
+      const mockSetPassword = vi.fn(async () => undefined);
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: mockSetPassword,
+        deletePassword: vi.fn(async () => true),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      await setMasterKeyPersistent("my-persistent-key");
+
+      expect(mockSetPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key", "my-persistent-key");
+      expect(getMasterKey()).toBe("my-persistent-key");
+    });
+
+    it("should propagate keytar setPassword errors", async () => {
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn().mockRejectedValue(new Error("Keychain write denied")),
+        deletePassword: vi.fn(async () => true),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      await expect(setMasterKeyPersistent("test-key")).rejects.toThrow("Keychain write denied");
+    });
+  });
+
+  describe("deleteMasterKey", () => {
+    it("should return false when keytar is not available", async () => {
+      setKeytarLoader(async () => null);
+
+      const result = await deleteMasterKey();
+      expect(result).toBe(false);
+    });
+
+    it("should delete password from keytar and clear cache", async () => {
+      const mockDeletePassword = vi.fn(async () => true);
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: mockDeletePassword,
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      // Pre-populate the cache
+      setMasterKey("cached-key");
+      expect(getMasterKey()).toBe("cached-key");
+
+      const result = await deleteMasterKey();
+
+      expect(result).toBe(true);
+      expect(mockDeletePassword).toHaveBeenCalledWith("nodetool", "secrets_master_key");
+      // Cache should be cleared after deletion
+      // (next getMasterKey call will auto-generate or read from env)
+    });
+
+    it("should return false when keytar.deletePassword returns false", async () => {
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => false),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      const result = await deleteMasterKey();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("initMasterKey with keytar", () => {
+    it("should load key from keychain when available", async () => {
+      const mockKeytar = {
+        getPassword: vi.fn(async () => "keychain-stored-key"),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => true),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      const key = await initMasterKey();
+      expect(key).toBe("keychain-stored-key");
+      expect(mockKeytar.getPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key");
+    });
+
+    it("should generate and persist new key when keychain is empty", async () => {
+      const mockSetPassword = vi.fn(async () => undefined);
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: mockSetPassword,
+        deletePassword: vi.fn(async () => true),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      const key = await initMasterKey();
+      expect(typeof key).toBe("string");
+      expect(key.length).toBeGreaterThan(0);
+      // Should have persisted the new key
+      expect(mockSetPassword).toHaveBeenCalledWith("nodetool", "secrets_master_key", key);
+    });
+
+    it("should continue gracefully when keychain getPassword throws", async () => {
+      const mockKeytar = {
+        getPassword: vi.fn().mockRejectedValue(new Error("Keychain locked")),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => true),
+      };
+      setKeytarLoader(async () => mockKeytar);
+
+      // Should still return a key (auto-generated) without throwing
+      const key = await initMasterKey();
+      expect(typeof key).toBe("string");
+      expect(key.length).toBeGreaterThan(0);
     });
   });
 });

@@ -46,19 +46,21 @@ export async function getProvider(providerId: string): Promise<BaseProvider> {
     throw new Error(`No provider registered for "${providerId}"`);
   }
 
-  // Re-resolve any undefined/empty values from process.env or secret resolver
+  // Re-resolve any undefined/empty values via secret resolver (DB → env)
+  // or direct env var lookup as final fallback
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (!value) {
-      // Try process.env first (may have been set after module load)
-      const envVal = process.env[key];
-      if (envVal) {
-        kwargs[key] = envVal;
-      } else if (_secretResolver) {
+      if (_secretResolver) {
         const resolved = await _secretResolver(key);
         if (resolved) {
           kwargs[key] = resolved;
+          continue;
         }
+      }
+      const envVal = process.env[key];
+      if (envVal) {
+        kwargs[key] = envVal;
       }
     }
   }
@@ -76,4 +78,32 @@ export function clearProviderCache(): number {
 
 export function listRegisteredProviderIds(): string[] {
   return Array.from(_PROVIDER_REGISTRY.keys());
+}
+
+/** Get the secret key name required by a provider (e.g. "OPENAI_API_KEY"), or null. */
+export function getProviderSecretKey(providerId: string): string | null {
+  const reg = _PROVIDER_REGISTRY.get(providerId);
+  if (!reg) return null;
+  // The kwargs keys are the secret names; find the first one that looks like a key/token
+  for (const key of Object.keys(reg.kwargs)) {
+    if (key.includes("KEY") || key.includes("TOKEN") || key.includes("SECRET")) {
+      return key;
+    }
+  }
+  // No secret — provider is local (ollama, llama_cpp, etc.)
+  return null;
+}
+
+/** Check if a provider has credentials available (DB, env, or is local). */
+export async function isProviderConfigured(providerId: string): Promise<boolean> {
+  const secretKey = getProviderSecretKey(providerId);
+  if (!secretKey) return true; // Local provider, always available
+
+  // Check via secret resolver (DB → env)
+  if (_secretResolver) {
+    const val = await _secretResolver(secretKey);
+    if (val) return true;
+  }
+  // Direct env check
+  return Boolean(process.env[secretKey]);
 }

@@ -1,0 +1,169 @@
+{
+  "modelId": "catacolabs/sdxl-ad-inpaint",
+  "owner": "catacolabs",
+  "name": "sdxl-ad-inpaint",
+  "version": "9c0cb4c579c54432431d96c70924afcca18983de872e8a221777fb1416253359",
+  "description": "Product advertising image generator using SDXL",
+  "inputSchema": {
+    "properties": {
+      "apply_img": {
+        "default": true,
+        "description": "Applies the original product image to the final result",
+        "title": "Apply Img",
+        "type": "boolean",
+        "x-order": 10
+      },
+      "condition_scale": {
+        "default": 0.9,
+        "description": "controlnet conditioning scale for generalization",
+        "maximum": 0.9,
+        "minimum": 0.3,
+        "title": "Condition Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Guidance Scale",
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 7
+      },
+      "image": {
+        "description": "Remove background from this image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "img_size": {
+        "default": "1024, 1024",
+        "description": "Possible SDXL image sizes",
+        "enum": [
+          "512, 2048",
+          "512, 1984",
+          "512, 1920",
+          "512, 1856",
+          "576, 1792",
+          "576, 1728",
+          "576, 1664",
+          "640, 1600",
+          "640, 1536",
+          "704, 1472",
+          "704, 1408",
+          "704, 1344",
+          "768, 1344",
+          "768, 1280",
+          "832, 1216",
+          "832, 1152",
+          "896, 1152",
+          "896, 1088",
+          "960, 1088",
+          "960, 1024",
+          "1024, 1024",
+          "1024, 960",
+          "1088, 960",
+          "1088, 896",
+          "1152, 896",
+          "1152, 832",
+          "1216, 832",
+          "1280, 768",
+          "1344, 768",
+          "1408, 704",
+          "1472, 704",
+          "1536, 640",
+          "1600, 640",
+          "1664, 576",
+          "1728, 576",
+          "1792, 576",
+          "1856, 512",
+          "1920, 512",
+          "1984, 512",
+          "2048, 512"
+        ],
+        "title": "img_size",
+        "type": "string",
+        "x-order": 4
+      },
+      "negative_prompt": {
+        "default": "low quality, out of frame, illustration, 3d, sepia, painting, cartoons, sketch, watermark, text, Logo, advertisement",
+        "description": "Describe what you do not want in your setting",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "num_inference_steps": {
+        "default": 40,
+        "description": "Inference Steps",
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 6
+      },
+      "num_refine_steps": {
+        "default": 10,
+        "description": "Number of steps to refine",
+        "maximum": 40,
+        "minimum": 0,
+        "title": "Num Refine Steps",
+        "type": "integer",
+        "x-order": 9
+      },
+      "product_fill": {
+        "default": "Original",
+        "description": "What percentage of the image width to fill with product",
+        "enum": [
+          "Original",
+          "80",
+          "70",
+          "60",
+          "50",
+          "40",
+          "30",
+          "20"
+        ],
+        "title": "product_fill",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Describe the new setting for your product",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "scheduler": {
+        "default": "K_EULER",
+        "description": "scheduler",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "HeunDiscrete",
+          "KarrasDPM",
+          "K_EULER_ANCESTRAL",
+          "K_EULER",
+          "PNDM"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Empty or 0 for a random image",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      }
+    },
+    "required": [
+      "image",
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

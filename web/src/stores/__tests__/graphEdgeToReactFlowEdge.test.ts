@@ -4,7 +4,7 @@ import { Edge as GraphEdge } from "../ApiTypes";
 describe("isAgentNodeType", () => {
   it("returns true for agent node types", () => {
     expect(isAgentNodeType("nodetool.agents.Agent")).toBe(true);
-    expect(isAgentNodeType("nodetool.agents.ControlAgent")).toBe(true);
+    expect(isAgentNodeType("nodetool.agents.ResearchAgent")).toBe(true);
   });
 
   it("returns false for non-agent node types", () => {

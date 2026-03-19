@@ -1,0 +1,35 @@
+{
+  "modelId": "arielreplicate/deoldify_video",
+  "owner": "arielreplicate",
+  "name": "deoldify_video",
+  "version": "8f1189b476fcb54cfbe1d07d97b025c571a2ce4e9a7a9558640c78647576e16f",
+  "description": "Add colours to old video footage.",
+  "inputSchema": {
+    "properties": {
+      "input_video": {
+        "description": "Path to a video",
+        "format": "uri",
+        "title": "Input Video",
+        "type": "string",
+        "x-order": 0
+      },
+      "render_factor": {
+        "default": 21,
+        "description": "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out.",
+        "title": "Render Factor",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "input_video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

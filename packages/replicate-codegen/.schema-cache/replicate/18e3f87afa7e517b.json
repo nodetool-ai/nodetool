@@ -1,0 +1,48 @@
+{
+  "modelId": "megvii-research/nafnet",
+  "owner": "megvii-research",
+  "name": "nafnet",
+  "version": "018241a6c880319404eaa2714b764313e27e11f950a7ff0a7b5b37b27b74dcf7",
+  "description": "Nonlinear Activation Free Network for Image Restoration",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image. Stereo Image Super-Resolution, upload the left image here.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "image_r": {
+        "description": "Right Input image for Stereo Image Super-Resolution. Optional, only valid for Stereo Image Super-Resolution task.",
+        "format": "uri",
+        "title": "Image R",
+        "type": "string",
+        "x-order": 2
+      },
+      "task_type": {
+        "default": "Image Debluring (REDS)",
+        "description": "Choose task type.",
+        "enum": [
+          "Image Denoising",
+          "Image Debluring (GoPro)",
+          "Image Debluring (REDS)",
+          "Stereo Image Super-Resolution"
+        ],
+        "title": "task_type",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

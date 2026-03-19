@@ -1,0 +1,92 @@
+{
+  "modelId": "riffusion/riffusion",
+  "owner": "riffusion",
+  "name": "riffusion",
+  "version": "8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+  "description": "Stable diffusion for real-time music generation",
+  "inputSchema": {
+    "properties": {
+      "alpha": {
+        "default": 0.5,
+        "description": "Interpolation alpha if using two prompts. A value of 0 uses prompt_a fully, a value of 1 uses prompt_b fully",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Alpha",
+        "type": "number",
+        "x-order": 3
+      },
+      "denoising": {
+        "default": 0.75,
+        "description": "How much to transform input spectrogram",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Denoising",
+        "type": "number",
+        "x-order": 1
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of steps to run the diffusion model",
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt_a": {
+        "default": "funky synth solo",
+        "description": "The prompt for your audio",
+        "title": "Prompt A",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_b": {
+        "description": "The second prompt to interpolate with the first, leave blank if no interpolation",
+        "title": "Prompt B",
+        "type": "string",
+        "x-order": 2
+      },
+      "seed_image_id": {
+        "default": "vibes",
+        "description": "Seed spectrogram to use",
+        "enum": [
+          "agile",
+          "marim",
+          "mask_beat_lines_80",
+          "mask_gradient_dark",
+          "mask_gradient_top_70",
+          "mask_graident_top_fifth_75",
+          "mask_top_third_75",
+          "mask_top_third_95",
+          "motorway",
+          "og_beat",
+          "vibes"
+        ],
+        "title": "seed_image_id",
+        "type": "string",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "audio": {
+        "format": "uri",
+        "title": "Audio",
+        "type": "string"
+      },
+      "spectrogram": {
+        "format": "uri",
+        "title": "Spectrogram",
+        "type": "string"
+      }
+    },
+    "required": [
+      "audio",
+      "spectrogram"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

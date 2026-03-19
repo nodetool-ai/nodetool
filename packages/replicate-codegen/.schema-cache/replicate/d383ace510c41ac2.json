@@ -1,0 +1,40 @@
+{
+  "modelId": "mv-lab/swin2sr",
+  "owner": "mv-lab",
+  "name": "swin2sr",
+  "version": "a01b0512004918ca55d02e554914a9eca63909fa83a29ff0f115c78a7045574f",
+  "description": "3.5 Million Runs! AI Photorealistic Image Super-Resolution and Restoration",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "task": {
+        "default": "real_sr",
+        "description": "Choose a task",
+        "enum": [
+          "classical_sr",
+          "real_sr",
+          "compressed_sr"
+        ],
+        "title": "task",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -301,7 +301,7 @@ describe("WorkflowRunner – multi-edge list detection", () => {
 describe("WorkflowRunner – control edges initialize __control__ handle (lines 270-274)", () => {
   it("sets up __control__ upstream count from control edges", async () => {
     const nodes: NodeDescriptor[] = [
-      { id: "controller", type: "test.Controller" },
+      { id: "controller", type: "test.Controller", is_streaming_output: true },
       { id: "controlled", type: "test.Controlled", is_controlled: true },
     ];
     const edges: Edge[] = [
@@ -318,7 +318,13 @@ describe("WorkflowRunner – control edges initialize __control__ handle (lines 
     const runner = new WorkflowRunner("test-ctrl-init", {
       resolveExecutor: (node) => {
         if (node.type === "test.Controller") {
-          return simpleExecutor(() => ({ out: "ctrl" }));
+          // Controller emits a RunEvent through __control__ output handle
+          return {
+            async process() { return {}; },
+            async *genProcess() {
+              yield { __control__: { event_type: "run", properties: { p: 1 } } };
+            },
+          };
         }
         return {
           async process(inputs) {
@@ -329,26 +335,11 @@ describe("WorkflowRunner – control edges initialize __control__ handle (lines 
       },
     });
 
-    const runPromise = runner.run(
+    const result = await runner.run(
       { job_id: "j-ctrl-init", params: {} },
       { nodes, edges }
     );
 
-    // Let actors start
-    await new Promise((r) => setTimeout(r, 50));
-
-    // Dispatch control events directly via the runner
-    await runner.dispatchControlEvent({
-      event_type: "run",
-      properties: { p: 1 },
-    } as ControlEvent);
-
-    await runner.dispatchControlEvent({
-      event_type: "stop",
-      properties: {},
-    } as ControlEvent);
-
-    const result = await runPromise;
     expect(result.status).toBe("completed");
     expect(calls.length).toBeGreaterThanOrEqual(1);
   });

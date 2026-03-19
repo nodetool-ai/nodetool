@@ -457,3 +457,299 @@ describe("T-WS-7: Node API — replicate_status", () => {
     expect(typeof body.configured).toBe("boolean");
   });
 });
+
+// ── T-WS-8 — Workflow generate-name ────────────────────────────────────
+
+describe("T-WS-8: Workflow generate-name", () => {
+  beforeEach(async () => {
+    const factory = new MemoryAdapterFactory();
+    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+    await Workflow.createTable();
+  });
+
+  it("POST /api/workflows/{id}/generate-name returns a name", async () => {
+    const createRes = await handleApiRequest(
+      new Request("http://localhost/api/workflows", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "u1" },
+        body: JSON.stringify({
+          name: "My Workflow",
+          access: "private",
+          graph: {
+            nodes: [
+              { id: "n1", type: "nodetool.text.Generate" },
+              { id: "n2", type: "nodetool.image.Transform" },
+            ],
+            edges: [],
+          },
+        }),
+      })
+    );
+    const created = (await jsonBody(createRes)) as Record<string, unknown>;
+    const wfId = String(created.id);
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/workflows/${wfId}/generate-name`, {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = (await jsonBody(res)) as Record<string, unknown>;
+    expect(typeof body.name).toBe("string");
+    expect((body.name as string).length).toBeGreaterThan(0);
+  });
+
+  it("POST /api/workflows/{id}/generate-name returns 404 for missing workflow", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/nonexistent/generate-name", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("POST /api/workflows/{id}/generate-name returns 404 for another user's workflow", async () => {
+    const createRes = await handleApiRequest(
+      new Request("http://localhost/api/workflows", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "owner" },
+        body: JSON.stringify({
+          name: "WF",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+        }),
+      })
+    );
+    const created = (await jsonBody(createRes)) as Record<string, unknown>;
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/workflows/${String(created.id)}/generate-name`, {
+        method: "POST",
+        headers: { "x-user-id": "other-user" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /api/workflows/{id}/generate-name returns 405", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/any-id/generate-name", {
+        method: "GET",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(405);
+  });
+});
+
+// ── T-WS-9 — Workflow DSL export ────────────────────────────────────────
+
+describe("T-WS-9: Workflow DSL export", () => {
+  beforeEach(async () => {
+    const factory = new MemoryAdapterFactory();
+    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+    await Workflow.createTable();
+  });
+
+  it("GET /api/workflows/{id}/dsl-export returns 501 in standalone mode", async () => {
+    const createRes = await handleApiRequest(
+      new Request("http://localhost/api/workflows", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "u1" },
+        body: JSON.stringify({
+          name: "WF",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+        }),
+      })
+    );
+    const created = (await jsonBody(createRes)) as Record<string, unknown>;
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/workflows/${String(created.id)}/dsl-export`, {
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(501);
+  });
+
+  it("GET /api/workflows/{id}/dsl-export returns 404 for missing workflow", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/nonexistent/dsl-export", {
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("POST /api/workflows/{id}/dsl-export returns 405", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/any-id/dsl-export", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(405);
+  });
+});
+
+// ── T-WS-10 — Workflow Gradio export ────────────────────────────────────
+
+describe("T-WS-10: Workflow Gradio export", () => {
+  beforeEach(async () => {
+    const factory = new MemoryAdapterFactory();
+    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+    await Workflow.createTable();
+  });
+
+  it("POST /api/workflows/{id}/gradio-export returns 501 in standalone mode", async () => {
+    const createRes = await handleApiRequest(
+      new Request("http://localhost/api/workflows", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "u1" },
+        body: JSON.stringify({
+          name: "WF",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+        }),
+      })
+    );
+    const created = (await jsonBody(createRes)) as Record<string, unknown>;
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/workflows/${String(created.id)}/gradio-export`, {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(501);
+  });
+
+  it("POST /api/workflows/{id}/gradio-export returns 404 for missing workflow", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/nonexistent/gradio-export", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /api/workflows/{id}/gradio-export returns 405", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/workflows/any-id/gradio-export", {
+        method: "GET",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(405);
+  });
+});
+
+// ── T-WS-11 — Thread summarize ────────────────────────────────────────────
+
+describe("T-WS-11: Thread summarize", () => {
+  beforeEach(async () => {
+    const factory = new MemoryAdapterFactory();
+    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+    await Thread.createTable();
+    await Message.createTable();
+  });
+
+  it("POST /api/threads/{id}/summarize returns title derived from messages", async () => {
+    const thread = (await Thread.create({
+      user_id: "u1",
+      title: "Old Title",
+    })) as Thread;
+
+    await Message.create({
+      user_id: "u1",
+      thread_id: thread.id,
+      role: "user",
+      content: "What is the capital of France?",
+    });
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/threads/${thread.id}/summarize`, {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = (await jsonBody(res)) as Record<string, unknown>;
+    expect(typeof body.title).toBe("string");
+    expect((body.title as string).length).toBeGreaterThan(0);
+  });
+
+  it("POST /api/threads/{id}/summarize returns 404 for missing thread", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/threads/nonexistent/summarize", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("POST /api/threads/{id}/summarize returns 404 for another user's thread", async () => {
+    const thread = (await Thread.create({
+      user_id: "owner",
+      title: "Owner's Thread",
+    })) as Thread;
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/threads/${thread.id}/summarize`, {
+        method: "POST",
+        headers: { "x-user-id": "other-user" },
+      })
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /api/threads/{id}/summarize returns 405", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/threads/any-id/summarize", {
+        method: "GET",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(405);
+  });
+});
+
+// ── T-WS-12 — Trigger job stubs ──────────────────────────────────────────
+
+describe("T-WS-12: Trigger job endpoints", () => {
+  it("GET /api/triggers/running returns empty list", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/jobs/triggers/running", {
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = (await jsonBody(res)) as Record<string, unknown>;
+    expect(Array.isArray(body.workflows)).toBe(true);
+  });
+
+  it("POST /api/triggers/{id}/start returns 501", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/jobs/triggers/some-workflow/start", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(501);
+  });
+
+  it("POST /api/triggers/{id}/stop returns 501", async () => {
+    const res = await handleApiRequest(
+      new Request("http://localhost/api/jobs/triggers/some-workflow/stop", {
+        method: "POST",
+        headers: { "x-user-id": "u1" },
+      })
+    );
+    expect(res.status).toBe(501);
+  });
+});

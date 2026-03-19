@@ -17,6 +17,8 @@ export {
   deleteMasterKey,
   isUsingEnvKey,
   isUsingAwsKey,
+  setKeytarLoader,
+  resetKeytarLoader,
 } from "./master-key.js";
 
 export {

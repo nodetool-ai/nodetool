@@ -1,0 +1,92 @@
+{
+  "modelId": "cjwbw/aniportrait-audio2vid",
+  "owner": "cjwbw",
+  "name": "aniportrait-audio2vid",
+  "version": "3f976d8f2308f5c676a484e873f7d1ac09763f789fa211894df1ed96d3d17cb2",
+  "description": "Audio-Driven Synthesis of Photorealistic Portrait Animations",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Input audio",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "fps": {
+        "default": 30,
+        "description": "Frame per second in the output video",
+        "title": "Fps",
+        "type": "integer",
+        "x-order": 6
+      },
+      "guidance_scale": {
+        "default": 3.5,
+        "description": "Scale for classifier-free guidance",
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 4
+      },
+      "height": {
+        "default": 512,
+        "description": "Height of output video",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "steps": {
+        "default": 25,
+        "description": "Inference steps",
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "width": {
+        "default": 512,
+        "description": "Width of output video",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "pose": {
+        "format": "uri",
+        "title": "Pose",
+        "type": "string"
+      },
+      "video": {
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      }
+    },
+    "required": [
+      "video",
+      "pose"
+    ],
+    "title": "ModelOutput",
+    "type": "object"
+  }
+}

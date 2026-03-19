@@ -1,0 +1,61 @@
+{
+  "modelId": "minimax/hailuo-2.3-fast",
+  "owner": "minimax",
+  "name": "hailuo-2.3-fast",
+  "version": "c92f075dfd04541f1c1913a9689f778ecf76bfec3dd9fdfe19903a86e07f2cdc",
+  "description": "A lower-latency image-to-video version of Hailuo 2.3 that preserves core motion quality, visual consistency, and stylization performance while enabling faster iteration cycles.",
+  "inputSchema": {
+    "properties": {
+      "duration": {
+        "default": 6,
+        "description": "Duration of the video in seconds. 10 seconds is only available for 768p resolution.",
+        "enum": [
+          6,
+          10
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 2
+      },
+      "first_frame_image": {
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "format": "uri",
+        "title": "First Frame Image",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_optimizer": {
+        "default": true,
+        "description": "Use prompt optimizer",
+        "title": "Prompt Optimizer",
+        "type": "boolean"
+      },
+      "resolution": {
+        "default": "768p",
+        "description": "Pick between 768p or 1080p resolution. 1080p supports only 6-second duration.",
+        "enum": [
+          "768p",
+          "1080p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt",
+      "first_frame_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

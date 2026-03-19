@@ -1,0 +1,46 @@
+{
+  "modelId": "tencentarc/animesr",
+  "owner": "tencentarc",
+  "name": "animesr",
+  "version": "8c5b0d2da7a0c881bb2253adc3b899f27cb191f643f43c14a0e554078a7bbad3",
+  "description": "Real-World Super-Resolution Models for Animation Videos",
+  "inputSchema": {
+    "properties": {
+      "frames": {
+        "description": "Zip file of frames of a video. Ignored when video is provided.",
+        "format": "uri",
+        "title": "Frames",
+        "type": "string",
+        "x-order": 1
+      },
+      "video": {
+        "description": "Input video file",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "sr_frames": {
+        "format": "uri",
+        "title": "Sr Frames",
+        "type": "string"
+      },
+      "video": {
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "ModelOutput",
+    "type": "object"
+  }
+}

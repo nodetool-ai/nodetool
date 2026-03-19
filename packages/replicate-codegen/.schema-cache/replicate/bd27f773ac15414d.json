@@ -1,0 +1,135 @@
+{
+  "modelId": "datacte/proteus-v0.2",
+  "owner": "datacte",
+  "name": "proteus-v0.2",
+  "version": "06775cd262843edbde5abab958abdbb65a0a6b58ca301c9fd78fa55c775fc019",
+  "description": "Proteus v0.2 shows subtle yet significant improvements over Version 0.1. It demonstrates enhanced prompt understanding that surpasses MJ6, while also approaching its stylistic capabilities.",
+  "inputSchema": {
+    "properties": {
+      "apply_watermark": {
+        "default": true,
+        "description": "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.",
+        "title": "Apply Watermark",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance. Recommended 7-8",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of output image",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Input image for img2img or inpaint mode",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "mask": {
+        "description": "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "worst quality, low quality",
+        "description": "Negative Input prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_inference_steps": {
+        "default": 20,
+        "description": "Number of denoising steps. 20 to 35 steps for more detail, 20 steps for faster results.",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "default": "black fluffy gorgeous dangerous cat animal creature, large orange eyes, big fluffy ears, piercing gaze, full moon, dark ambiance, best quality, extremely detailed",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_strength": {
+        "default": 0.8,
+        "description": "Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 10
+      },
+      "scheduler": {
+        "default": "KarrasDPM",
+        "description": "scheduler",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "HeunDiscrete",
+          "KarrasDPM",
+          "K_EULER_ANCESTRAL",
+          "K_EULER",
+          "PNDM"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of output image",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

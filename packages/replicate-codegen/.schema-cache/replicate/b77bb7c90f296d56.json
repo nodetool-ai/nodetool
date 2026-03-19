@@ -1,0 +1,61 @@
+{
+  "modelId": "lucataco/apollo-7b",
+  "owner": "lucataco",
+  "name": "apollo-7b",
+  "version": "e282f76d0451b759128be3e8bccfe5ded8f521f4a7d705883e92f837e563f575",
+  "description": "Apollo 7B - An Exploration of Video Understanding in Large Multimodal Models",
+  "inputSchema": {
+    "properties": {
+      "max_new_tokens": {
+        "default": 256,
+        "description": "Maximum number of tokens to generate",
+        "maximum": 1024,
+        "minimum": 32,
+        "title": "Max New Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "prompt": {
+        "default": "Describe this video in detail",
+        "description": "Question or prompt about the video",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.4,
+        "description": "Sampling temperature",
+        "maximum": 2,
+        "minimum": 0.1,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 2
+      },
+      "top_p": {
+        "default": 0.7,
+        "description": "Top-p sampling probability",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 4
+      },
+      "video": {
+        "description": "Input video file",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

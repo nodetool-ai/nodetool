@@ -1,0 +1,62 @@
+{
+  "modelId": "sync/lipsync-2",
+  "owner": "sync",
+  "name": "lipsync-2",
+  "version": "3190ef7dc0cbca29458d0032c032ef140a840087141cf10333e8d19a213f9194",
+  "description": "Generate realistic lipsyncs with Sync Labs' 2.0 model",
+  "inputSchema": {
+    "properties": {
+      "active_speaker": {
+        "default": false,
+        "description": "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)",
+        "title": "Active Speaker",
+        "type": "boolean"
+      },
+      "audio": {
+        "description": "Input audio file (.wav)",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string"
+      },
+      "sync_mode": {
+        "default": "loop",
+        "description": "Lipsync mode when audio and video durations are out of sync",
+        "enum": [
+          "loop",
+          "bounce",
+          "cut_off",
+          "silence",
+          "remap"
+        ],
+        "title": "sync_mode",
+        "type": "string",
+        "x-order": 2
+      },
+      "temperature": {
+        "default": 0.5,
+        "description": "How expressive lipsync can be (0-1)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number"
+      },
+      "video": {
+        "description": "Input video file (.mp4)",
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      }
+    },
+    "required": [
+      "video",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

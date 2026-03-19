@@ -1,0 +1,101 @@
+{
+  "modelId": "bytedance/seedream-5-lite",
+  "owner": "bytedance",
+  "name": "seedream-5-lite",
+  "version": "eeb2857d94c49a5bcbc9d6c6057416e1d3b1a2735a16e08e4def9bf7ee22ec71",
+  "description": "Seedream 5.0 lite: image generation with built-in reasoning, example-based editing, and deep domain knowledge",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Image aspect ratio. Use 'match_input_image' to automatically match the input image's aspect ratio.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 3
+      },
+      "image_input": {
+        "default": [],
+        "description": "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 1
+      },
+      "max_images": {
+        "default": 1,
+        "description": "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15.",
+        "maximum": 15,
+        "minimum": 1,
+        "title": "Max Images",
+        "type": "integer",
+        "x-order": 5
+      },
+      "output_format": {
+        "default": "png",
+        "description": "Output image format.",
+        "enum": [
+          "png",
+          "jpeg"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "sequential_image_generation": {
+        "default": "disabled",
+        "description": "Group image generation mode. 'disabled' generates a single image. 'auto' lets the model decide whether to generate multiple related images (e.g., story scenes, character variations).",
+        "enum": [
+          "disabled",
+          "auto"
+        ],
+        "title": "sequential_image_generation",
+        "type": "string",
+        "x-order": 4
+      },
+      "size": {
+        "default": "2K",
+        "description": "Image resolution: 2K (2048px) or 3K (3072px).",
+        "enum": [
+          "2K",
+          "3K"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

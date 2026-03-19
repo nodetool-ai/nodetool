@@ -375,7 +375,9 @@ const ImageListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "image.png";
 
-          const file = new File([result.buffer], fileName, { type: result.mimeType });
+          const fileBytes = new Uint8Array(result.buffer.byteLength);
+          fileBytes.set(result.buffer);
+          const file = new File([fileBytes], fileName, { type: result.mimeType });
 
           return new Promise<ImageItem>((resolve, reject) => {
             uploadAsset({

@@ -51,6 +51,9 @@ export class GoogleSearchNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[organic_result]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Keyword", description: "Search query or keyword to search for" })
@@ -91,6 +94,9 @@ export class GoogleNewsNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[news_result]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Keyword", description: "Search query or keyword for news articles" })
@@ -131,6 +137,9 @@ export class GoogleImagesNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[image]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Keyword", description: "Search query or keyword for images" })
@@ -187,6 +196,9 @@ export class GoogleFinanceNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Query", description: "Stock symbol or company name to search for" })
@@ -227,6 +239,9 @@ export class GoogleJobsNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[job_result]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Query", description: "Job title, skills, or company name to search for" })
@@ -268,6 +283,9 @@ export class GoogleLensNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleLens";
             static readonly title = "Google Lens";
             static readonly description = "Analyze images using Google Lens to find visual matches and related content.\n    google, lens, visual, image, search, serp, identify";
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Image Url", description: "URL of the image to analyze with Google Lens" })
@@ -309,6 +327,9 @@ export class GoogleMapsNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[local_result]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Query", description: "Place name, address, or location query" })
@@ -354,6 +375,9 @@ export class GoogleShoppingNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[shopping_result]"
   };
+          static readonly requiredSettings = [
+  "SERPAPI_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "str", default: "", title: "Query", description: "Product name or description to search for" })

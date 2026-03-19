@@ -1,0 +1,54 @@
+{
+  "modelId": "daanelson/whisperx",
+  "owner": "daanelson",
+  "name": "whisperx",
+  "version": "9aa6ecadd30610b81119fc1b6807302fd18ca6cbb39b3216f430dcf23618cedd",
+  "description": "Accelerated transcription of audio using WhisperX",
+  "inputSchema": {
+    "properties": {
+      "align_output": {
+        "default": false,
+        "description": "Use if you need word-level timing and not just batched transcription. Only works for English atm",
+        "title": "Align Output",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "audio": {
+        "description": "Audio file",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      },
+      "batch_size": {
+        "default": 32,
+        "description": "Parallelization of input audio transcription",
+        "title": "Batch Size",
+        "type": "integer",
+        "x-order": 1
+      },
+      "debug": {
+        "default": false,
+        "description": "Print out memory usage information.",
+        "title": "Debug",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "only_text": {
+        "default": false,
+        "description": "Set if you only want to return text; otherwise, segment metadata will be returned as well.",
+        "title": "Only Text",
+        "type": "boolean",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output"
+  }
+}

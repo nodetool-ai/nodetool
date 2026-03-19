@@ -16,6 +16,7 @@ import useGlobalChatStore, { type StepToolCall } from "../../../stores/GlobalCha
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import StepView from "../../node/StepView";
 import StepResultDisplay from "../../node/StepResultDisplay";
+import { formatToolName } from "../../../utils/formatUtils";
 
 const styles = (theme: Theme) =>
   css({
@@ -396,7 +397,7 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCall
               <div className="tool-call-header-row">
                 <div className={`tool-call-status-dot ${tc.status || (tc.message ? "running" : "completed")}`} />
                 <div className="tool-call-content">
-                  <span className="tool-name">{tc.name}</span>
+                  <span className="tool-name">{formatToolName(tc.name)}</span>
                   {tc.message && (
                     <div className="tool-message">{tc.message}</div>
                   )}

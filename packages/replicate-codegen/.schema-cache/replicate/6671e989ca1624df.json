@@ -1,0 +1,80 @@
+{
+  "modelId": "bria/eraser",
+  "owner": "bria",
+  "name": "eraser",
+  "version": "2757d1ac2f1291af219f5f10e8ecba15e92e7c05253e2841295f3ba6bff6adc4",
+  "description": "SOTA Object removal, enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use",
+  "inputSchema": {
+    "properties": {
+      "content_moderation": {
+        "default": false,
+        "description": "Enable content moderation",
+        "title": "Content Moderation",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "image_url": {
+        "description": "Image URL",
+        "nullable": true,
+        "title": "Image Url",
+        "type": "string",
+        "x-order": 2
+      },
+      "mask": {
+        "description": "Mask file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Mask",
+        "type": "string",
+        "x-order": 1
+      },
+      "mask_type": {
+        "default": "manual",
+        "description": "[DEPRECATED] Type of mask: manual or automatic. No longer used in V2 API.",
+        "enum": [
+          "manual",
+          "automatic"
+        ],
+        "title": "mask_type",
+        "type": "string",
+        "x-order": 6
+      },
+      "mask_url": {
+        "description": "Mask URL",
+        "nullable": true,
+        "title": "Mask Url",
+        "type": "string",
+        "x-order": 3
+      },
+      "preserve_alpha": {
+        "default": true,
+        "description": "Preserve alpha channel in output. When true, maintains original transparency. When false, output is fully opaque.",
+        "title": "Preserve Alpha",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "sync": {
+        "default": true,
+        "description": "Synchronous response mode",
+        "title": "Sync",
+        "type": "boolean",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

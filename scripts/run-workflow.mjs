@@ -9,7 +9,7 @@ const tsRoot = path.resolve(scriptDir, "..");
 function usage() {
   process.stdout.write(
     [
-      "Usage: npm run workflow -- <workflow.json> [--input key=value ...] [--inputs-json '{...}'] [--params-file file.json] [--json] [--show-messages]",
+      "Usage: npm run workflow -- <workflow.json|workflow.ts> [--input key=value ...] [--inputs-json '{...}'] [--params-file file.json] [--json] [--show-messages]",
       "",
       "Accepted file shapes:",
       "  1) { \"nodes\": [...], \"edges\": [...] }",
@@ -167,12 +167,52 @@ function readJsonObjectFile(filePath, label) {
   return parsed;
 }
 
-function loadWorkflowFile(filePath) {
+async function loadWorkflowFile(filePath) {
   const abs = path.resolve(filePath);
   if (!fs.existsSync(abs)) {
     throw new Error(`Workflow file not found: ${abs}`);
   }
 
+  // Handle TypeScript DSL files
+  if (abs.endsWith(".ts") || abs.endsWith(".tsx")) {
+    const { execSync } = await import("node:child_process");
+    const result = execSync(`npx tsx "${abs}"`, {
+      encoding: "utf8",
+      cwd: path.dirname(abs),
+      env: { ...process.env },
+      timeout: 30000,
+    });
+    // DSL files print workflow JSON to stdout
+    const parsed = JSON.parse(result.trim());
+    const graph = parsed.graph ?? parsed;
+    if (!graph || typeof graph !== "object") {
+      throw new Error("Invalid DSL output: missing graph object");
+    }
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      throw new Error("Invalid DSL output: graph must contain arrays 'nodes' and 'edges'");
+    }
+    // Normalize: DSL uses `data`, kernel expects `properties`
+    graph.nodes = graph.nodes.map((n) => {
+      if (n.properties === undefined && n.data !== undefined) {
+        const { data, ...rest } = n;
+        return { ...rest, properties: data };
+      }
+      return n;
+    });
+    return {
+      workflowPath: abs,
+      graph,
+      params: parsed.params && typeof parsed.params === "object" ? parsed.params : {},
+      workflowId:
+        typeof parsed.workflow_id === "string"
+          ? parsed.workflow_id
+          : typeof parsed.workflowId === "string"
+            ? parsed.workflowId
+            : null,
+    };
+  }
+
+  // Existing JSON path
   const parsed = JSON.parse(fs.readFileSync(abs, "utf8"));
   const graph = parsed.graph ?? parsed;
   if (!graph || typeof graph !== "object") {
@@ -202,7 +242,7 @@ async function main() {
     process.exit(parsed.help ? 0 : 1);
   }
 
-  const { graph, params, workflowPath, workflowId } = loadWorkflowFile(parsed.workflowPath);
+  const { graph, params, workflowPath, workflowId } = await loadWorkflowFile(parsed.workflowPath);
   const extraFromFile = parsed.paramsFile
     ? readJsonObjectFile(parsed.paramsFile, "Params file")
     : {};
@@ -226,6 +266,7 @@ async function main() {
   let WorkflowRunner;
   let NodeRegistry;
   let registerBaseNodes;
+  let registerElevenLabsNodes;
   let registerFalNodes;
   let ProcessingContext;
   let OpenAIProvider;
@@ -234,16 +275,24 @@ async function main() {
   let LlamaProvider;
   let PythonBridge;
   let PythonNodeExecutor;
+  let getSecret;
+  let SQLiteAdapterFactory;
+  let setGlobalAdapterResolver;
+  let Secret;
   try {
     const kernelPath = path.resolve(tsRoot, "packages/kernel/dist/index.js");
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
     const baseNodesPath = path.resolve(tsRoot, "packages/base-nodes/dist/index.js");
+    const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
+    const securityPath = path.resolve(tsRoot, "packages/security/dist/index.js");
+    const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
     ({ registerBaseNodes } = await import(pathToFileURL(baseNodesPath).href));
+    ({ registerElevenLabsNodes } = await import(pathToFileURL(elevenLabsNodesPath).href));
     ({
       ProcessingContext,
       OpenAIProvider,
@@ -253,6 +302,8 @@ async function main() {
       PythonBridge,
       PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
+    ({ getSecret } = await import(pathToFileURL(securityPath).href));
+    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret } = await import(pathToFileURL(modelsPath).href));
     try {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {
@@ -264,9 +315,21 @@ async function main() {
     );
   }
 
+  // Set up SQLite DB for secrets resolution
+  try {
+    const { homedir } = await import("node:os");
+    const dbPath = process.env.DB_PATH ?? path.join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
+    const factory = new SQLiteAdapterFactory(dbPath);
+    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+    await Secret.createTable();
+  } catch {
+    // DB not available — fall back to env vars only
+  }
+
   const jobId = `job-${Date.now()}`;
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
+  registerElevenLabsNodes(registry);
   if (registerFalNodes) registerFalNodes(registry);
 
   // Check if any node in the graph needs Python execution
@@ -289,6 +352,8 @@ async function main() {
   const context = new ProcessingContext({
     jobId,
     workflowId: workflowId ?? null,
+    userId: "1",
+    secretResolver: getSecret,
   });
 
   const providerCache = new Map();

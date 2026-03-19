@@ -486,44 +486,6 @@ export class SpiderCrawlLibNode extends BaseNode {
   }
 }
 
-export class BrowserUseLibNode extends BaseNode {
-  static readonly nodeType = "lib.browser.BrowserUse";
-            static readonly title = "Browser Use";
-            static readonly description = "Browser agent tool that uses browser_use under the hood.\n\n    This module provides a tool for running browser-based agents using the browser_use library.\n    The agent can perform complex web automation tasks like form filling, navigation, data extraction,\n    and multi-step workflows using natural language instructions.\n\n    Use cases:\n    - Perform complex web automation tasks based on natural language.\n    - Automate form filling and data entry.\n    - Scrape data after complex navigation or interaction sequences.\n    - Automate multi-step web workflows.";
-        static readonly metadataOutputTypes = {
-    success: "bool",
-    task: "str",
-    result: "any",
-    error: "str"
-  };
-          static readonly requiredSettings = [
-  "OPENAI_API_KEY"
-];
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "enum", default: "gpt-4o", title: "Model", description: "The model to use for the browser agent.", values: [
-  "gpt-4o",
-  "claude-3-5-sonnet"
-] })
-  declare model: any;
-
-  @prop({ type: "str", default: "", title: "Task", description: "Natural language description of the browser task to perform. Can include complex multi-step instructions like 'Compare prices between websites', 'Fill out forms', or 'Extract specific data'." })
-  declare task: any;
-
-  @prop({ type: "int", default: 300, title: "Timeout", description: "Maximum time in seconds to allow for task completion. Complex tasks may require longer timeouts.", min: 1, max: 3600 })
-  declare timeout: any;
-
-  @prop({ type: "bool", default: true, title: "Use Remote Browser", description: "Use a remote browser instead of a local one" })
-  declare use_remote_browser: any;
-
-
-
-
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    throw new Error("lib.browser.BrowserUse: not yet implemented in TypeScript. Use the Python bridge.");
-  }
-}
-
 export const LIB_BROWSER_NODES: readonly NodeClass[] = [
   WebFetchLibNode,
   DownloadFileLibNode,
@@ -531,5 +493,4 @@ export const LIB_BROWSER_NODES: readonly NodeClass[] = [
   ScreenshotLibNode,
   BrowserNavigationLibNode,
   SpiderCrawlLibNode,
-  BrowserUseLibNode,
 ] as const;

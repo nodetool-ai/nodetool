@@ -17,6 +17,7 @@ export class OpenRouter extends FalNode {
   static readonly description = `OpenRouter provides unified access to any LLM (Large Language Model) through a single API.
 llm, chat, openrouter, multimodel, language-model`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -66,6 +67,7 @@ export class OpenRouterChatCompletions extends FalNode {
   static readonly description = `OpenRouter Chat Completions provides OpenAI-compatible interface for any LLM.
 llm, chat, openai-compatible, openrouter, chat-completions`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
@@ -84,6 +86,7 @@ export class Qwen3Guard extends FalNode {
   static readonly description = `Qwen 3 Guard provides content safety and moderation using Qwen's LLM.
 llm, safety, moderation, qwen, guard`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The input text to be classified" })
   declare prompt: any;
@@ -108,6 +111,7 @@ export class OpenrouterRouterOpenaiV1Responses extends FalNode {
   static readonly description = `The OpenRouter Responses API with fal, powered by OpenRouter, provides unified access to a wide range of large language models - including GPT, Claude, Gemini, and many others through a single API interface.
 llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
@@ -126,6 +130,7 @@ export class OpenrouterRouterOpenaiV1Embeddings extends FalNode {
   static readonly description = `The OpenRouter Embeddings API with fal, powered by OpenRouter, provides unified access to a wide range of large language models - including GPT, Claude, Gemini, and many others through a single API interface.
 llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
@@ -144,6 +149,7 @@ export class VideoPromptGenerator extends FalNode {
   static readonly description = `Generate video prompts using a variety of techniques including camera direction, style, pacing, special effects and more.
 llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Custom technical elements (optional)" })
   declare custom_elements: any;

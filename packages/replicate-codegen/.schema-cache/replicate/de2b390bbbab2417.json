@@ -1,0 +1,124 @@
+{
+  "modelId": "fofr/become-image",
+  "owner": "fofr",
+  "name": "become-image",
+  "version": "8d0b076a2aff3904dfcec3253c778e0310a68f78483c4699c7fd800f3051d2b3",
+  "description": "Adapt any picture of a face into another image",
+  "inputSchema": {
+    "properties": {
+      "control_depth_strength": {
+        "default": 0.8,
+        "description": "Strength of depth controlnet. The bigger this is, the more controlnet affects the output.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Control Depth Strength",
+        "type": "number",
+        "x-order": 7
+      },
+      "denoising_strength": {
+        "default": 1,
+        "description": "How much of the original image of the person to keep. 1 is the complete destruction of the original image, 0 is the original image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Denoising Strength",
+        "type": "number",
+        "x-order": 5
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "image": {
+        "description": "An image of a person to be converted",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "image_to_become": {
+        "description": "Any image to convert the person to",
+        "format": "uri",
+        "title": "Image To Become",
+        "type": "string",
+        "x-order": 1
+      },
+      "image_to_become_noise": {
+        "default": 0.3,
+        "description": "How much noise to add to the style image before processing. An alternative way of controlling stength.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Image To Become Noise",
+        "type": "number",
+        "x-order": 10
+      },
+      "image_to_become_strength": {
+        "default": 0.75,
+        "description": "How strong the style will be applied",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Image To Become Strength",
+        "type": "number",
+        "x-order": 9
+      },
+      "instant_id_strength": {
+        "default": 1,
+        "description": "How strong the InstantID will be.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Instant Id Strength",
+        "type": "number",
+        "x-order": 8
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "number_of_images": {
+        "default": 2,
+        "description": "Number of images to generate",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "a person",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt_strength": {
+        "default": 2,
+        "description": "Strength of the prompt. This is the CFG scale, higher numbers lead to stronger prompt, lower numbers will keep more of a likeness to the original.",
+        "maximum": 3,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 6
+      },
+      "seed": {
+        "description": "Fix the random seed for reproducibility",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

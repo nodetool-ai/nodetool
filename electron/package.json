@@ -62,7 +62,8 @@
     "dmg-license": "^1.0.11"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.37",
+    "@anthropic-ai/claude-agent-sdk": "latest",
+    "@nodetool/protocol": "*",
     "@eslint/compat": "^1.2.6",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "bufferutil": "^4.0.9",
@@ -77,6 +78,7 @@
     "react-dom": "^19.1.0",
     "tar": "^7.5.8",
     "ws": "^8.18.0",
+    "zod": "^4.0.0",
     "zustand": "^5.0.3"
   },
   "overrides": {

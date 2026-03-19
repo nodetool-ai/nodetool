@@ -1,0 +1,62 @@
+{
+  "modelId": "sync/lipsync-2-pro",
+  "owner": "sync",
+  "name": "lipsync-2-pro",
+  "version": "eaad6bceea4938d05f5d984b22897e5a7d389d4fff9a70888af5718502b57d39",
+  "description": "Studio-grade lipsync in minutes, not weeks",
+  "inputSchema": {
+    "properties": {
+      "active_speaker": {
+        "default": false,
+        "description": "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)",
+        "title": "Active Speaker",
+        "type": "boolean"
+      },
+      "audio": {
+        "description": "Input audio file (.wav)",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string"
+      },
+      "sync_mode": {
+        "default": "loop",
+        "description": "Lipsync mode when audio and video durations are out of sync",
+        "enum": [
+          "loop",
+          "bounce",
+          "cut_off",
+          "silence",
+          "remap"
+        ],
+        "title": "sync_mode",
+        "type": "string",
+        "x-order": 2
+      },
+      "temperature": {
+        "default": 0.5,
+        "description": "How expressive lipsync can be (0-1)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number"
+      },
+      "video": {
+        "description": "Input video file (.mp4)",
+        "format": "uri",
+        "title": "Video",
+        "type": "string"
+      }
+    },
+    "required": [
+      "video",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

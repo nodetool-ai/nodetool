@@ -4,6 +4,7 @@ import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
 import os from "node:os";
 import { createLogger } from "@nodetool/config";
+import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
   WorkflowVersion,
@@ -269,9 +270,10 @@ async function createWorkflow(body: WorkflowRequestBody, userId: string): Promis
   if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  const graph = body.graph && Array.isArray(body.graph.nodes) && Array.isArray(body.graph.edges)
-    ? body.graph
-    : { nodes: [], edges: [] };
+  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
+    throw new Error("graph is required and must have nodes and edges arrays");
+  }
+  const graph = body.graph;
 
   return (await Workflow.create({
     user_id: userId,
@@ -300,9 +302,10 @@ async function updateWorkflow(
   if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  const graph = body.graph && Array.isArray(body.graph.nodes) && Array.isArray(body.graph.edges)
-    ? body.graph
-    : { nodes: [], edges: [] };
+  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
+    throw new Error("graph is required and must have nodes and edges arrays");
+  }
+  const graph = body.graph;
 
   const existing = (await Workflow.get(id)) as Workflow | null;
 
@@ -528,49 +531,116 @@ async function handleWorkflowApp(
   });
 }
 
-// ── Workflow generate-name (stub) ──────────────────────────────────────
+// ── Workflow generate-name ─────────────────────────────────────────────
+
+/**
+ * Generate a descriptive name for a workflow based on its node types.
+ * The Python backend uses an LLM for this; the TS standalone mode derives
+ * a name from the workflow graph's node types instead.
+ *
+ * Node types follow the pattern `<root>.<category>[.<subcategory>...]`,
+ * e.g. `nodetool.text.Generate`. We collect unique category segments
+ * (parts[1]) to form a human-readable label.
+ */
+function deriveWorkflowName(workflow: Workflow): string {
+  const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
+  const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
+  if (nodes.length === 0) {
+    return workflow.name || "Untitled Workflow";
+  }
+  // Collect unique category segments from node types (second dotted segment).
+  const categories = new Set<string>();
+  for (const n of nodes) {
+    if (typeof n.type === "string") {
+      const parts = n.type.split(".");
+      // Require at least root.category format.
+      if (parts.length >= 2 && parts[1]) {
+        categories.add(parts[1]);
+      }
+    }
+  }
+  const segments = Array.from(categories).slice(0, 3);
+  if (segments.length === 0) {
+    return workflow.name || "Untitled Workflow";
+  }
+  const label = segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" + ");
+  return `${label} Workflow`;
+}
 
 async function handleWorkflowGenerateName(
   request: Request,
-  _workflowId: string,
-  _options: HttpApiOptions
+  workflowId: string,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
-  return jsonResponse({ message: "Name generation not available" }, { status: 501 });
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  await ensureWorkflowTable();
+  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+  if (!workflow) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+  const name = deriveWorkflowName(workflow);
+  return jsonResponse({ name });
 }
 
 // ── Workflow DSL export (stub) ─────────────────────────────────────────
 
 async function handleWorkflowDslExport(
   request: Request,
-  _workflowId: string,
-  _options: HttpApiOptions
+  workflowId: string,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  return new Response("# DSL export not available in standalone mode", {
-    status: 200,
-    headers: { "content-type": "text/plain" },
-  });
+
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  await ensureWorkflowTable();
+
+  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+  if (!workflow) {
+    return errorResponse(404, "Workflow not found");
+  }
+  if (workflow.access !== "public" && workflow.user_id !== userId) {
+    return errorResponse(404, "Workflow not found");
+  }
+
+  if (!workflow.graph) {
+    return errorResponse(400, "Workflow has no graph to export");
+  }
+
+  try {
+    const source = workflowToDsl(workflow.graph, { workflowName: workflow.name });
+    return new Response(source, {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to export workflow as DSL";
+    return errorResponse(400, message);
+  }
 }
 
 // ── Workflow Gradio export (stub) ──────────────────────────────────────
 
 async function handleWorkflowGradioExport(
   request: Request,
-  _workflowId: string,
-  _options: HttpApiOptions
+  workflowId: string,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
-  return new Response("# Gradio export not available in standalone mode", {
-    status: 200,
-    headers: { "content-type": "text/plain" },
-  });
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  await ensureWorkflowTable();
+  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+  if (!workflow) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !== userId) {
+    return errorResponse(404, "Workflow not found");
+  }
+  // Gradio export requires the Python Gradio library; return 501 in standalone TS mode.
+  return errorResponse(501, "Workflow Gradio export is not available in standalone mode");
 }
 
 // ── Workflow versions ──────────────────────────────────────────────────
@@ -994,7 +1064,51 @@ async function handleThreadById(
   return errorResponse(405, "Method not allowed");
 }
 
-// ── Thread summarize stub ─────────────────────────────────────────
+// ── Thread summarize ─────────────────────────────────────────────────
+
+/** Maximum length of a derived thread title before truncation. */
+const THREAD_TITLE_MAX_LEN = 60;
+/** Length of visible text when a title is truncated (max - "...".length). */
+const THREAD_TITLE_TRUNC_LEN = THREAD_TITLE_MAX_LEN - 3;
+
+/**
+ * Generate a brief title/summary for a thread from its messages.
+ * The Python backend uses an LLM for this; the TS standalone mode derives
+ * a title from the first user message instead.
+ */
+async function deriveThreadTitle(threadId: string): Promise<string> {
+  await ensureMessageTable();
+  const [messages] = await Message.paginate(threadId, { limit: 10 });
+  for (const msg of messages) {
+    const content = msg.content;
+    if (typeof content === "string" && content.trim().length > 0) {
+      const text = content.trim().replace(/\s+/g, " ");
+      return text.length > THREAD_TITLE_MAX_LEN
+        ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
+        : text;
+    }
+    if (Array.isArray(content)) {
+      for (const part of content) {
+        if (
+          part !== null &&
+          typeof part === "object" &&
+          "type" in part &&
+          (part as Record<string, unknown>).type === "text" &&
+          "text" in part &&
+          typeof (part as Record<string, unknown>).text === "string"
+        ) {
+          const text = ((part as Record<string, unknown>).text as string).trim().replace(/\s+/g, " ");
+          if (text.length > 0) {
+            return text.length > THREAD_TITLE_MAX_LEN
+              ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
+              : text;
+          }
+        }
+      }
+    }
+  }
+  return "New Thread";
+}
 
 async function handleThreadSummarize(
   request: Request,
@@ -1008,7 +1122,11 @@ async function handleThreadSummarize(
   await ensureThreadTable();
   const thread = await Thread.find(userId, threadId);
   if (!thread) return errorResponse(404, "Thread not found");
-  return errorResponse(501, "Thread summarization not available in standalone mode");
+
+  const title = await deriveThreadTitle(threadId);
+  thread.title = title;
+  await thread.save();
+  return jsonResponse({ title });
 }
 
 // ── Job types & helpers ───────────────────────────────────────────
@@ -1682,7 +1800,7 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/replicate_status") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const replicateKey = process.env.REPLICATE_API_TOKEN ?? await getSecret("REPLICATE_API_TOKEN", "1");
+    const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
     const configured = Boolean(replicateKey);
     return jsonResponse({ configured });
   }

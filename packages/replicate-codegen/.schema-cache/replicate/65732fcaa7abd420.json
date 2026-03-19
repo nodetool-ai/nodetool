@@ -1,0 +1,111 @@
+{
+  "modelId": "black-forest-labs/flux-canny-dev",
+  "owner": "black-forest-labs",
+  "name": "flux-canny-dev",
+  "version": "aeb2a8dbfe2580e25d41d8881cc1df1a0b1e52c87de99c1a65fc587ac3918179",
+  "description": "Open-weight edge-guided image generation. Control structure and composition using Canny edge detection.",
+  "inputSchema": {
+    "properties": {
+      "control_image": {
+        "description": "Image used to control the generation. The canny edge detection will be automatically generated.",
+        "format": "uri",
+        "title": "Control Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "guidance": {
+        "default": 30,
+        "description": "Guidance for generated image",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Guidance",
+        "type": "number",
+        "x-order": 4
+      },
+      "megapixels": {
+        "default": "1",
+        "description": "Approximate number of megapixels for generated image. Use match_input to match the size of the input (with an upper limit of 1440x1440 pixels)",
+        "enum": [
+          "1",
+          "0.25",
+          "match_input"
+        ],
+        "title": "megapixels",
+        "type": "string",
+        "x-order": 9
+      },
+      "num_inference_steps": {
+        "default": 28,
+        "description": "Number of denoising steps. Recommended range is 28-50, and lower number of steps produce lower quality outputs, faster.",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of outputs to generate",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 2
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Prompt for generated image",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt",
+      "control_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

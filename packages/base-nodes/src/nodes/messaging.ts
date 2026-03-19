@@ -18,7 +18,10 @@ export class DiscordBotTrigger extends BaseNode {
     source: "str",
     event_type: "str"
   };
-  
+          static readonly requiredSettings = [
+  "DISCORD_BOT_TOKEN"
+];
+
           static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 0, title: "Max Events", description: "Maximum number of events to process (0 = unlimited)", min: 0 })
   declare max_events: any;
@@ -83,7 +86,10 @@ export class DiscordSendMessage extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  
+          static readonly requiredSettings = [
+  "DISCORD_BOT_TOKEN"
+];
+
   @prop({ type: "str", default: "", title: "Token", description: "Discord bot token" })
   declare token: any;
 
@@ -178,7 +184,10 @@ export class TelegramBotTrigger extends BaseNode {
     source: "str",
     event_type: "str"
   };
-  
+          static readonly requiredSettings = [
+  "TELEGRAM_BOT_TOKEN"
+];
+
           static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 0, title: "Max Events", description: "Maximum number of events to process (0 = unlimited)", min: 0 })
   declare max_events: any;
@@ -262,7 +271,10 @@ export class TelegramSendMessage extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  
+          static readonly requiredSettings = [
+  "TELEGRAM_BOT_TOKEN"
+];
+
   @prop({ type: "str", default: "", title: "Token", description: "Telegram bot token" })
   declare token: any;
 

@@ -1,0 +1,74 @@
+{
+  "modelId": "qwen/qwen3-235b-a22b-instruct-2507",
+  "owner": "qwen",
+  "name": "qwen3-235b-a22b-instruct-2507",
+  "version": "a96f2c4d13a1fa8462bf365d1778e0e1d77ef99fbddad0f90ff5b9b90691b66c",
+  "description": "Updated Qwen3 model for instruction following",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 4
+      },
+      "max_tokens": {
+        "default": 1024,
+        "description": "The maximum number of tokens the model should generate as output.",
+        "maximum": 16384,
+        "minimum": 1,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 1
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 3
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "temperature": {
+        "default": 0.1,
+        "description": "The value used to modulate the next token probabilities.",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 2
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Top-p (nucleus) sampling",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

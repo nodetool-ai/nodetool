@@ -657,7 +657,7 @@ export class TimeStretchNode extends BaseNode {
   }
 }
 
-// ── NoiseGate (stub) ─────────────────────────────────────────────
+// ── NoiseGate ─────────────────────────────────────────────────────
 
 export class NoiseGateNode extends BaseNode {
   static readonly nodeType = "lib.pedalboard.NoiseGate";
@@ -689,11 +689,44 @@ export class NoiseGateNode extends BaseNode {
 
 
   async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    throw new Error("lib.pedalboard.NoiseGate: not yet implemented in TypeScript. Use Python bridge.");
+    const audio = (_inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
+    const thresholdDb = Number(_inputs.threshold_db ?? this.threshold_db ?? -50);
+    const attackMs = Math.max(0.1, Number(_inputs.attack_ms ?? this.attack_ms ?? 1));
+    const releaseMs = Math.max(1, Number(_inputs.release_ms ?? this.release_ms ?? 100));
+
+    if (!audio.data) return { output: audio };
+
+    const wav = decodeWav(audio);
+    const thresholdLin = Math.pow(10, thresholdDb / 20);
+
+    const result = processPerChannel(wav, (ch, sr) => {
+      const out = new Float32Array(ch.length);
+      const attackCoeff = Math.exp(-1 / (sr * attackMs / 1000));
+      const releaseCoeff = Math.exp(-1 / (sr * releaseMs / 1000));
+      let envelope = 0;
+      let gain = 0;
+
+      for (let i = 0; i < ch.length; i++) {
+        const absVal = Math.abs(ch[i]);
+        // Envelope follower: fast attack, slow release
+        if (absVal > envelope) {
+          envelope = attackCoeff * envelope + (1 - attackCoeff) * absVal;
+        } else {
+          envelope = releaseCoeff * envelope + (1 - releaseCoeff) * absVal;
+        }
+        // Gate: open when above threshold, close when below
+        const targetGain = envelope >= thresholdLin ? 1 : 0;
+        gain = releaseCoeff * gain + (1 - releaseCoeff) * targetGain;
+        out[i] = ch[i] * gain;
+      }
+      return out;
+    });
+
+    return { output: audioRefFromWav(encodeWav(result.samples, result.sampleRate, result.numChannels)) };
   }
 }
 
-// ── Phaser (stub) ────────────────────────────────────────────────
+// ── Phaser ────────────────────────────────────────────────────────
 
 export class PhaserNode extends BaseNode {
   static readonly nodeType = "lib.pedalboard.Phaser";
@@ -731,7 +764,59 @@ export class PhaserNode extends BaseNode {
 
 
   async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    throw new Error("lib.pedalboard.Phaser: not yet implemented in TypeScript. Use Python bridge.");
+    const audio = (_inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
+    const rateHz = Number(_inputs.rate_hz ?? this.rate_hz ?? 1);
+    const depth = Number(_inputs.depth ?? this.depth ?? 0.5);
+    const centreFreqHz = Number(_inputs.centre_frequency_hz ?? this.centre_frequency_hz ?? 1300);
+    const feedback = Number(_inputs.feedback ?? this.feedback ?? 0);
+    const mix = Number(_inputs.mix ?? this.mix ?? 0.5);
+
+    if (!audio.data) return { output: audio };
+
+    const wav = decodeWav(audio);
+    const result = processPerChannel(wav, (ch, sr) => {
+      const out = new Float32Array(ch.length);
+      // 4-stage first-order all-pass phaser
+      const numStages = 4;
+      // Delay buffers: x[n-1] and y[n-1] for each stage
+      const xPrev = new Float32Array(numStages);
+      const yPrev = new Float32Array(numStages);
+      // Feedback delay
+      let feedbackSample = 0;
+      let lfoPhase = 0;
+      const lfoIncrement = (2 * Math.PI * rateHz) / sr;
+
+      for (let i = 0; i < ch.length; i++) {
+        // LFO modulates centre frequency
+        const lfo = Math.sin(lfoPhase) * depth;
+        lfoPhase += lfoIncrement;
+        if (lfoPhase > 2 * Math.PI) lfoPhase -= 2 * Math.PI;
+
+        // Modulated frequency (centre ± depth range)
+        const modFreq = Math.max(20, Math.min(sr / 2 - 1, centreFreqHz * (1 + lfo)));
+        const tanVal = Math.tan(Math.PI * modFreq / sr);
+        const a = (tanVal - 1) / (tanVal + 1);
+
+        // Input with feedback
+        let signal = ch[i] + feedbackSample * feedback;
+
+        // Apply all-pass filter stages
+        let apOut = signal;
+        for (let s = 0; s < numStages; s++) {
+          const newOut = a * apOut + xPrev[s] - a * yPrev[s];
+          xPrev[s] = apOut;
+          yPrev[s] = newOut;
+          apOut = newOut;
+        }
+        feedbackSample = apOut;
+
+        // Mix dry and wet
+        out[i] = ch[i] * (1 - mix) + apOut * mix;
+      }
+      return out;
+    });
+
+    return { output: audioRefFromWav(encodeWav(result.samples, result.sampleRate, result.numChannels)) };
   }
 }
 

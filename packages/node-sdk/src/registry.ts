@@ -43,11 +43,10 @@ export class NodeRegistry {
         `Cannot register node class without nodeType: ${nodeClass.name}`
       );
     }
-    const loadedMetadata = this._resolveLoadedMetadata(nodeClass.nodeType);
-    const metadata = options.metadata ?? getNodeMetadata(nodeClass, {
-      pythonMetadata: loadedMetadata,
-      mergePythonBackfill: true,
-    });
+    // TS class definitions are the source of truth for TS nodes.
+    // Python metadata is NOT merged — it is only used for Python-only
+    // node packs (huggingface, mlx, etc.) that have no TS class.
+    const metadata = options.metadata ?? getNodeMetadata(nodeClass);
 
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
@@ -116,15 +115,6 @@ export class NodeRegistry {
     return loaded;
   }
 
-  private _resolveLoadedMetadata(nodeType: string): NodeMetadata | undefined {
-    const exact = this._loadedMetadataByType.get(nodeType);
-    if (exact) return exact;
-    if (nodeType.endsWith("Node")) {
-      return this._loadedMetadataByType.get(nodeType.slice(0, -4));
-    }
-    return undefined;
-  }
-
   clear(): void {
     this._classes.clear();
     this._loadedMetadataByType.clear();
@@ -169,10 +159,20 @@ export function createGraphNodeTypeResolver(
       const propertyTypes = Object.fromEntries(
         (metadata.properties ?? []).map((prop) => [prop.name, typeMetadataToString(prop.type)]),
       );
+      const propertyMeta = Object.fromEntries(
+        (metadata.properties ?? [])
+          .filter((p) => p.description || p.min != null || p.max != null)
+          .map((p) => [p.name, {
+            ...(p.description ? { description: p.description } : {}),
+            ...(p.min != null ? { min: p.min } : {}),
+            ...(p.max != null ? { max: p.max } : {}),
+          }]),
+      );
       const outputs = Object.fromEntries(
         (metadata.outputs ?? []).map((output) => [output.name, typeMetadataToString(output.type)]),
       );
       const NodeClass = registry.getClass(nodeType);
+      const syncMode = NodeClass?.syncMode;
       return {
         nodeType: metadata.node_type,
         propertyTypes,
@@ -180,8 +180,11 @@ export function createGraphNodeTypeResolver(
         isDynamic: metadata.is_dynamic ?? false,
         descriptorDefaults: {
           name: metadata.title,
-          is_streaming_output: metadata.is_streaming_output ?? false,
-          sync_mode: NodeClass?.syncMode,
+          ...(metadata.is_streaming_input && { is_streaming_input: true }),
+          ...(metadata.is_streaming_output && { is_streaming_output: true }),
+          ...(metadata.is_controlled && { is_controlled: true }),
+          ...(syncMode !== undefined && { sync_mode: syncMode }),
+          ...(Object.keys(propertyMeta).length > 0 && { propertyMeta }),
         },
       };
     },

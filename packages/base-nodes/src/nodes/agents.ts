@@ -38,10 +38,6 @@ const CLASSIFIER_SYSTEM_PROMPT = [
 ].join(" ");
 const SUMMARIZER_SYSTEM_PROMPT =
   "You are an expert summarizer. Produce a concise, accurate summary.";
-const CONTROL_AGENT_SYSTEM_PROMPT = [
-  "You are a control flow agent that determines parameter values for downstream nodes.",
-  "Return only a JSON object containing parameter names and values.",
-].join(" ");
 const RESEARCH_AGENT_SYSTEM_PROMPT = [
   "You are a research assistant.",
   "Synthesize a concise answer and key findings from the objective.",
@@ -506,6 +502,100 @@ export function serializeToolResult(value: unknown): unknown {
   return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, serializeToolResult(item)]));
 }
 
+// ---------------------------------------------------------------------------
+// Control tool support for Agent nodes with outgoing control edges
+// ---------------------------------------------------------------------------
+
+/**
+ * Marker symbol to identify control tools built from _control_context.
+ */
+const CONTROL_TOOL_MARKER = Symbol("controlTool");
+
+interface ControlToolLike extends ToolLike {
+  [CONTROL_TOOL_MARKER]: true;
+  targetNodeId: string;
+}
+
+function isControlTool(tool: ToolLike): tool is ControlToolLike {
+  return CONTROL_TOOL_MARKER in tool && (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true;
+}
+
+/**
+ * Sanitize a node title to a valid tool name (snake_case, max 64 chars).
+ */
+function sanitizeControlToolName(name: string): string {
+  if (!name) return "control_node";
+  let s = name
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (!s) return "control_node";
+  if (s.length > 64) s = s.slice(0, 64);
+  return s;
+}
+
+/**
+ * Build ControlToolLike instances from `_control_context` input.
+ * These tools allow the agent's LLM to call controlled nodes via tool-calling.
+ */
+function buildControlTools(controlContext: unknown): ControlToolLike[] {
+  if (!controlContext || typeof controlContext !== "object") return [];
+
+  const tools: ControlToolLike[] = [];
+
+  for (const [targetId, info] of Object.entries(controlContext as Record<string, unknown>)) {
+    if (!info || typeof info !== "object") continue;
+    const nodeInfo = info as Record<string, unknown>;
+
+    const nodeTitle = String(nodeInfo.node_title ?? nodeInfo.node_type ?? targetId);
+    const toolName = sanitizeControlToolName(nodeTitle);
+
+    // Build input schema from control_actions.run.properties
+    const actions = (nodeInfo.control_actions ?? {}) as Record<string, unknown>;
+    const runAction = (actions.run ?? {}) as Record<string, unknown>;
+    const rawProperties = (runAction.properties ?? {}) as Record<string, Record<string, unknown>>;
+    const properties: Record<string, Record<string, unknown>> = {};
+    for (const [key, schema] of Object.entries(rawProperties)) {
+      if (typeof schema === "object" && schema !== null) {
+        properties[key] = { ...schema };
+      } else {
+        properties[key] = { type: "string", description: String(schema) };
+      }
+    }
+
+    const inputSchema = {
+      type: "object",
+      properties,
+      required: [] as string[],
+    };
+
+    let description = `Control ${nodeTitle}: trigger execution with optional property overrides`;
+    const propNames = Object.keys(properties);
+    if (propNames.length > 0) {
+      description += `. Available properties: ${propNames.join(", ")}`;
+    }
+
+    tools.push({
+      [CONTROL_TOOL_MARKER]: true as const,
+      targetNodeId: targetId,
+      name: toolName,
+      description,
+      inputSchema,
+      // Stub process — actual execution goes through sendControlEvent
+      async process(_ctx: ProcessingContext, _params: Record<string, unknown>) {
+        return { status: "dispatched", target: targetId };
+      },
+      toProviderTool() {
+        return { name: toolName, description, inputSchema };
+      },
+    });
+  }
+
+  return tools;
+}
+
 export interface AgentLoopOptions {
   context: ProcessingContext;
   providerId: string;
@@ -650,59 +740,7 @@ function hasContentType(message: Message | undefined, type: MessageContent["type
     : false;
 }
 
-function inferControlValue(value: unknown): unknown {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const record = value as Record<string, unknown>;
-  if ("value" in record && record.value !== undefined) return record.value;
-  if ("default" in record && record.default !== undefined) return record.default;
-  return value;
-}
 
-function inferControlParams(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const record = value as Record<string, unknown>;
-  const properties =
-    "properties" in record && record.properties && typeof record.properties === "object"
-      ? (record.properties as Record<string, unknown>)
-      : record;
-
-  const entries = Object.entries(properties).map(([key, propValue]) => [
-    key,
-    inferControlValue(propValue),
-  ]);
-  return Object.fromEntries(entries);
-}
-
-function parseControlOutput(raw: string): Record<string, unknown> {
-  const parsed = extractJson(raw);
-  if (!parsed) return {};
-
-  if (Object.keys(parsed).length === 1) {
-    const [key] = Object.keys(parsed);
-    const value = parsed[key];
-    if (
-      ["result", "output", "json", "data", "properties", "response"].includes(
-        key.toLowerCase()
-      ) &&
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value)
-    ) {
-      return value as Record<string, unknown>;
-    }
-  }
-
-  if (
-    "properties" in parsed &&
-    parsed.properties &&
-    typeof parsed.properties === "object" &&
-    !Array.isArray(parsed.properties)
-  ) {
-    return parsed.properties as Record<string, unknown>;
-  }
-
-  return parsed;
-}
 
 function parseResearchOutput(raw: string, query: string): {
   text: string;
@@ -1925,7 +1963,22 @@ export class AgentNode extends BaseNode {
       : [];
     const threadId = String(inputs.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const tools = normalizeTools(inputs.tools ?? this.tools);
+    const tools: ToolLike[] = normalizeTools(inputs.tools ?? this.tools);
+
+    // Build control tools from _control_context (injected by the kernel
+    // for nodes that have outgoing control edges). This lets the LLM
+    // call controlled nodes as tools.
+    const controlContext = inputs._control_context;
+    const controlTools = buildControlTools(controlContext);
+    if (controlTools.length > 0) {
+      tools.push(...controlTools);
+      log.info("AgentNode added control tools", {
+        nodeId: this.__node_id ?? null,
+        controlToolNames: controlTools.map((t) => t.name),
+        controlTargets: controlTools.map((t) => t.targetNodeId),
+      });
+    }
+
     const structuredSchema = getStructuredOutputSchema(this);
     const responseFormat = structuredSchema
       ? {
@@ -2092,12 +2145,76 @@ export class AgentNode extends BaseNode {
           });
           continue;
         }
-        log.info("AgentNode executing tool", {
-          nodeId: this.__node_id ?? null,
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-        });
-        const result = await tool.process(context, toolCall.args);
+
+        let result: unknown;
+
+        if (isControlTool(tool)) {
+          // Control tool: dispatch control event to the controlled node
+          // and await its output, rather than calling tool.process().
+          const callArgs = toolCall.args ?? {};
+          log.info("AgentNode dispatching control tool", {
+            nodeId: this.__node_id ?? null,
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            targetNodeId: tool.targetNodeId,
+            argKeys: Object.keys(callArgs),
+          });
+
+          if (context.hasControlEventSupport) {
+            try {
+              const controlResult = await context.sendControlEvent(
+                tool.targetNodeId,
+                callArgs,
+              );
+              result = {
+                status: "completed",
+                target_node_id: tool.targetNodeId,
+                result: controlResult,
+              };
+              log.info("AgentNode control tool completed", {
+                nodeId: this.__node_id ?? null,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                targetNodeId: tool.targetNodeId,
+                resultKeys: controlResult ? Object.keys(controlResult) : [],
+              });
+            } catch (err) {
+              result = {
+                status: "error",
+                target_node_id: tool.targetNodeId,
+                error: err instanceof Error ? err.message : String(err),
+              };
+              log.error("AgentNode control tool failed", {
+                nodeId: this.__node_id ?? null,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                targetNodeId: tool.targetNodeId,
+                error: String(err),
+              });
+            }
+          } else {
+            result = {
+              status: "error",
+              target_node_id: tool.targetNodeId,
+              error: "Control event dispatch is not available in this execution context",
+            };
+            log.warn("AgentNode control tool dispatch unavailable", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              targetNodeId: tool.targetNodeId,
+            });
+          }
+        } else {
+          // Regular tool: execute normally
+          log.info("AgentNode executing tool", {
+            nodeId: this.__node_id ?? null,
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+          });
+          result = await tool.process(context, toolCall.args);
+        }
+
         const toolMessage: Message = {
           role: "tool",
           toolCallId: toolCall.id,
@@ -2212,95 +2329,6 @@ export class AgentNode extends BaseNode {
   }
 }
 
-export class ControlAgentNode extends BaseNode {
-  static readonly nodeType = "nodetool.agents.ControlAgent";
-            static readonly title = "Control Agent";
-            static readonly description = "Agent that analyzes context and outputs control parameters for downstream nodes via control edges.\n    control, agent, flow-control, parameters, automation, decision-making\n\n    This agent receives _control_context as an auto-injected input when it has outgoing\n    control edges. It uses an LLM to analyze the context and controlled node properties,\n    then outputs control parameters that are routed to other nodes via control edges.\n    Control edges override normal data inputs, enabling dynamic workflow behavior.\n\n    The _control_context is automatically injected by the system and contains information\n    about which nodes this agent controls and their available properties.\n\n    Use cases:\n    - Dynamic parameter setting based on content analysis\n    - Conditional workflow routing based on LLM reasoning\n    - Adaptive processing based on input characteristics\n    - Context-aware parameter optimization";
-        static readonly metadataOutputTypes = {
-    __control_output__: "dict[str, any]"
-  };
-          static readonly recommendedModels = [
-    {
-      "id": "qwen3:4b",
-      "type": "llama_model",
-      "name": "Qwen3 - 4B",
-      "repo_id": "qwen3:4b",
-      "description": "Fast and efficient for control decisions with strong JSON output.",
-      "size_on_disk": 2684354560
-    },
-    {
-      "id": "gemma3:4b",
-      "type": "llama_model",
-      "name": "Gemma3 - 4B",
-      "repo_id": "gemma3:4b",
-      "description": "Compact model suitable for control flow decisions.",
-      "size_on_disk": 3543348019
-    },
-    {
-      "id": "llama3.2:3b",
-      "type": "llama_model",
-      "name": "Llama 3.2 - 3B",
-      "repo_id": "llama3.2:3b",
-      "description": "Lightweight Llama variant for fast control decisions.",
-      "size_on_disk": 2040109465
-    }
-  ];
-  
-  @prop({ type: "language_model", default: {
-  "type": "language_model",
-  "provider": "empty",
-  "id": "",
-  "name": "",
-  "path": null,
-  "supported_tasks": []
-}, title: "Model", description: "Model to use for control decisions" })
-  declare model: any;
-
-  @prop({ type: "str", default: "You are a control flow agent that analyzes context and determines parameters for downstream nodes.\n\nYour task is to:\n1. Analyze the provided context (text, data, or previous results)\n2. Review the controlled nodes and their available properties (provided in _control_context)\n3. Reason about what parameter values should be set for each controlled node\n4. Output a JSON object with property names as keys and their values\n\nThe _control_context will tell you:\n- Which nodes you control (by node_id)\n- Each node's type and available properties\n- Current property values, types, descriptions, and defaults\n\nExample _control_context:\n{\n  \"target_node_id\": {\n    \"node_id\": \"target_node_id\",\n    \"node_type\": \"nodetool.processing.SomeNode\",\n    \"properties\": {\n      \"threshold\": {\n        \"value\": 0.5,\n        \"type\": \"float\",\n        \"description\": \"Processing threshold\",\n        \"default\": 0.5\n      }\n    }\n  }\n}\n\nExample output format:\n{\n  \"threshold\": 0.95,\n  \"mode\": \"turbo\"\n}\n\nGuidelines:\n- Output ONLY properties that exist in the controlled nodes' schemas\n- Use appropriate data types matching the property types (strings, numbers, booleans)\n- Be concise and precise in your parameter choices\n- Control parameters override normal data edge inputs\n- If multiple controlled nodes exist, return parameters for the relevant node(s)\n", title: "System", description: "The system prompt for the control agent" })
-  declare system: any;
-
-  @prop({ type: "str", default: "", title: "Context", description: "Legacy free-form context used to infer control parameters." })
-  declare context: any;
-
-  @prop({ type: "str", default: "", title: "Schema Description", description: "Legacy schema hint (e.g. 'brightness: int, contrast: int')." })
-  declare schema_description: any;
-
-  @prop({ type: "int", default: 2048, title: "Max Tokens", min: 1, max: 100000 })
-  declare max_tokens: any;
-
-
-
-
-  async process(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
-    const value = inputs._control_context ?? this._control_context ?? {};
-    const legacyContext = asText(inputs.context ?? this.context ?? "");
-    const schemaDescription = asText(
-      inputs.schema_description ?? this.schema_description ?? ""
-    );
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const userPrompt =
-        value && typeof value === "object"
-          ? `_control_context:\n${JSON.stringify(value, null, 2)}`
-          : `Context:\n${legacyContext}\n\nSchema description:\n${schemaDescription}`;
-      const raw = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 2048),
-        responseFormat: { type: "json_object" },
-        messages: [
-          { role: "system", content: CONTROL_AGENT_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-      });
-      return { __control_output__: parseControlOutput(raw) };
-    }
-    return { __control_output__: inferControlParams(value) };
-  }
-}
 
 export class ResearchAgentNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.ResearchAgent";
@@ -2499,6 +2527,5 @@ export const AGENT_NODES = [
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ControlAgentNode,
   ResearchAgentNode,
 ] as const;

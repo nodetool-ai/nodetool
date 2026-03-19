@@ -1,0 +1,74 @@
+{
+  "modelId": "recraft-ai/recraft-v4-pro",
+  "owner": "recraft-ai",
+  "name": "recraft-v4-pro",
+  "version": "da14602f43a83d1a85654e8cbce5afc0d4cca59b41c0c13f73be8ca84d54d6b6",
+  "description": "Recraft's latest image generation model at ~2048px resolution. Same design taste and prompt accuracy as V4, with higher resolution for print-ready and large-scale work.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "4:5",
+          "5:4",
+          "6:10",
+          "14:10",
+          "10:14"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation (up to 10,000 characters)",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "size": {
+        "default": "2048x2048",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "enum": [
+          "2048x2048",
+          "3072x1536",
+          "1536x3072",
+          "2560x1664",
+          "1664x2560",
+          "2432x1792",
+          "1792x2432",
+          "2304x1792",
+          "1792x2304",
+          "1664x2688",
+          "2560x1792",
+          "1792x2560",
+          "2688x1536",
+          "1536x2688"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

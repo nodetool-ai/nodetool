@@ -71,6 +71,9 @@ export class ApifyWebScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Start Urls", description: "List of URLs to scrape", required: true })
@@ -128,6 +131,9 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Queries", description: "List of search queries to execute", required: true })
@@ -191,6 +197,9 @@ export class ApifyInstagramScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Usernames", description: "List of Instagram usernames to scrape", required: true })
@@ -253,6 +262,9 @@ export class ApifyAmazonScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Search Queries", description: "List of search queries to execute on Amazon", required: true })
@@ -315,6 +327,9 @@ export class ApifyYouTubeScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Search Queries", description: "List of search queries to execute on YouTube", required: true })
@@ -394,6 +409,9 @@ export class ApifyTwitterScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Search Terms", description: "List of search terms to find tweets", required: true })
@@ -467,6 +485,9 @@ export class ApifyLinkedInScraperNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
+          static readonly requiredSettings = [
+  "APIFY_API_KEY"
+];
           static readonly exposeAsTool = true;
   
   @prop({ type: "list[str]", default: null, title: "Profile Urls", description: "List of LinkedIn profile URLs to scrape", required: true })

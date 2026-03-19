@@ -1,0 +1,32 @@
+{
+  "modelId": "cuuupid/gte-qwen2-7b-instruct",
+  "owner": "cuuupid",
+  "name": "gte-qwen2-7b-instruct",
+  "version": "67b1736bae9312a321217b2e10547882943b9e4a285eac4cba4043fab954b954",
+  "description": "Embed text with Qwen2-7b-Instruct",
+  "inputSchema": {
+    "properties": {
+      "text": {
+        "description": "Texts to embed",
+        "items": {
+          "type": "string"
+        },
+        "title": "Text",
+        "type": "array",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "number"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

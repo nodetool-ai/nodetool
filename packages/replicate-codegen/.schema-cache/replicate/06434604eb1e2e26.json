@@ -1,0 +1,81 @@
+{
+  "modelId": "moonshotai/kimi-k2.5",
+  "owner": "moonshotai",
+  "name": "kimi-k2.5",
+  "version": "b4d8427a98a2de294f719d281c5218daebd44895b308ace34792d0746f6670ba",
+  "description": "Moonshot AI's latest open model. It unifies vision and text, thinking and non-thinking modes, and single-agent and multi-agent execution into one model",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Image file to analyze (optional). Will be resized if larger than 1024px.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "max_tokens": {
+        "default": 1024,
+        "description": "Maximum number of tokens to generate.",
+        "maximum": 131072,
+        "minimum": 1,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 2
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "",
+        "description": "Text prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "temperature": {
+        "default": 0.1,
+        "description": "Sampling temperature.",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 3
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Top-p (nucleus) sampling",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 6
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

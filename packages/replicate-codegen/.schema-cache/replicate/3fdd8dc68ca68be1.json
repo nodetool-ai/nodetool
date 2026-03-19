@@ -1,0 +1,100 @@
+{
+  "modelId": "google/nano-banana-pro",
+  "owner": "google",
+  "name": "nano-banana-pro",
+  "version": "712e06a8e122fb7c8dae55dcf7ad6a8e717afb7b1c41c889fc8c5132fd42f374",
+  "description": "Google's state of the art image generation and editing model 🍌🍌",
+  "inputSchema": {
+    "properties": {
+      "allow_fallback_model": {
+        "default": false,
+        "description": "Fallback to another model (currently bytedance/seedream-5) if Nano Banana Pro is at capacity.",
+        "title": "Allow Fallback Model",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "image_input": {
+        "default": [],
+        "description": "Input images to transform or use as reference (supports up to 14 images)",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 4
+      },
+      "prompt": {
+        "description": "A text description of the image you want to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "2K",
+        "description": "Resolution of the generated image",
+        "enum": [
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "safety_filter_level": {
+        "default": "block_only_high",
+        "description": "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked",
+        "enum": [
+          "block_low_and_above",
+          "block_medium_and_above",
+          "block_only_high"
+        ],
+        "title": "safety_filter_level",
+        "type": "string",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

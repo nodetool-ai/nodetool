@@ -1,0 +1,270 @@
+{
+  "modelId": "zsxkib/instant-id",
+  "owner": "zsxkib",
+  "name": "instant-id",
+  "version": "2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789",
+  "description": "Make realistic images of real people instantly",
+  "inputSchema": {
+    "properties": {
+      "canny_strength": {
+        "default": 0.3,
+        "description": "Canny ControlNet strength, effective only if `enable_canny_controlnet` is true",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Canny Strength",
+        "type": "number",
+        "x-order": 15
+      },
+      "controlnet_conditioning_scale": {
+        "default": 0.8,
+        "description": "Scale for IdentityNet strength (for fidelity)",
+        "maximum": 1.5,
+        "minimum": 0,
+        "title": "Controlnet Conditioning Scale",
+        "type": "number",
+        "x-order": 11
+      },
+      "depth_strength": {
+        "default": 0.5,
+        "description": "Depth ControlNet strength, effective only if `enable_depth_controlnet` is true",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Depth Strength",
+        "type": "number",
+        "x-order": 17
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 26
+      },
+      "enable_canny_controlnet": {
+        "default": false,
+        "description": "Enable Canny ControlNet, overrides strength if set to false",
+        "title": "Enable Canny Controlnet",
+        "type": "boolean",
+        "x-order": 14
+      },
+      "enable_depth_controlnet": {
+        "default": false,
+        "description": "Enable Depth ControlNet, overrides strength if set to false",
+        "title": "Enable Depth Controlnet",
+        "type": "boolean",
+        "x-order": 16
+      },
+      "enable_lcm": {
+        "default": false,
+        "description": "Enable Fast Inference with LCM (Latent Consistency Models) - speeds up inference steps, trade-off is the quality of the generated image. Performs better with close-up portrait face images",
+        "title": "Enable Lcm",
+        "type": "boolean",
+        "x-order": 18
+      },
+      "enable_pose_controlnet": {
+        "default": true,
+        "description": "Enable Openpose ControlNet, overrides strength if set to false",
+        "title": "Enable Pose Controlnet",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "enhance_nonface_region": {
+        "default": true,
+        "description": "Enhance non-face region",
+        "title": "Enhance Nonface Region",
+        "type": "boolean",
+        "x-order": 21
+      },
+      "face_detection_input_height": {
+        "default": 640,
+        "description": "Height of the input image for face detection",
+        "maximum": 4096,
+        "minimum": 640,
+        "title": "Face Detection Input Height",
+        "type": "integer",
+        "x-order": 6
+      },
+      "face_detection_input_width": {
+        "default": 640,
+        "description": "Width of the input image for face detection",
+        "maximum": 4096,
+        "minimum": 640,
+        "title": "Face Detection Input Width",
+        "type": "integer",
+        "x-order": 5
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "image": {
+        "description": "Input face image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "ip_adapter_scale": {
+        "default": 0.8,
+        "description": "Scale for image adapter strength (for detail)",
+        "maximum": 1.5,
+        "minimum": 0,
+        "title": "Ip Adapter Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "lcm_guidance_scale": {
+        "default": 1.5,
+        "description": "Only used when `enable_lcm` is set to True, Scale for classifier-free guidance when using LCM",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Lcm Guidance Scale",
+        "type": "number",
+        "x-order": 20
+      },
+      "lcm_num_inference_steps": {
+        "default": 5,
+        "description": "Only used when `enable_lcm` is set to True, Number of denoising steps when using LCM",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Lcm Num Inference Steps",
+        "type": "integer",
+        "x-order": 19
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output",
+        "maximum": 8,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 25
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 22
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 23
+      },
+      "pose_image": {
+        "description": "(Optional) reference pose image",
+        "format": "uri",
+        "title": "Pose Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "pose_strength": {
+        "default": 0.4,
+        "description": "Openpose ControlNet strength, effective only if `enable_pose_controlnet` is true",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Pose Strength",
+        "type": "number",
+        "x-order": 13
+      },
+      "prompt": {
+        "default": "a person",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "scheduler": {
+        "default": "EulerDiscreteScheduler",
+        "description": "Scheduler",
+        "enum": [
+          "DEISMultistepScheduler",
+          "HeunDiscreteScheduler",
+          "EulerDiscreteScheduler",
+          "DPMSolverMultistepScheduler",
+          "DPMSolverMultistepScheduler-Karras",
+          "DPMSolverMultistepScheduler-Karras-SDE"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "sdxl_weights": {
+        "default": "stable-diffusion-xl-base-1.0",
+        "description": "Pick which base weights you want to use",
+        "enum": [
+          "stable-diffusion-xl-base-1.0",
+          "juggernaut-xl-v8",
+          "afrodite-xl-v2",
+          "albedobase-xl-20",
+          "albedobase-xl-v13",
+          "animagine-xl-30",
+          "anime-art-diffusion-xl",
+          "anime-illust-diffusion-xl",
+          "dreamshaper-xl",
+          "dynavision-xl-v0610",
+          "guofeng4-xl",
+          "nightvision-xl-0791",
+          "omnigen-xl",
+          "pony-diffusion-v6-xl",
+          "protovision-xl-high-fidel",
+          "RealVisXL_V3.0_Turbo",
+          "RealVisXL_V4.0_Lightning"
+        ],
+        "title": "sdxl_weights",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 24
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "modelId": "stability-ai/stable-audio-2.5",
+  "owner": "stability-ai",
+  "name": "stable-audio-2.5",
+  "version": "a61ac8edbb27cd2eda1b2eff2bbc03dcff1131f5560836ff77a052df05b77491",
+  "description": "Generate high-quality music and sound from text prompts",
+  "inputSchema": {
+    "properties": {
+      "cfg_scale": {
+        "default": 1,
+        "description": "Classifier-free guidance scale (higher = more prompt adherence)",
+        "maximum": 25,
+        "minimum": 1,
+        "title": "Cfg Scale",
+        "type": "number"
+      },
+      "duration": {
+        "default": 190,
+        "description": "Duration of generated audio in seconds",
+        "maximum": 190,
+        "minimum": 1,
+        "title": "Duration",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Text prompt describing the desired audio",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "seed": {
+        "description": "Random seed for reproducible results. Leave blank for random seed.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 8,
+        "description": "Number of diffusion steps (higher = better quality but slower)",
+        "maximum": 8,
+        "minimum": 4,
+        "title": "Steps",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

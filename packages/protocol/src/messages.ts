@@ -277,6 +277,23 @@ export interface Prediction {
   completed_at?: string | null;
 }
 
+export interface LLMCallUpdate {
+  type: "llm_call";
+  node_id: string;
+  node_name?: string | null;
+  provider: string;
+  model: string;
+  messages: Array<{ role: string; content: unknown }>;
+  response: unknown;
+  tool_calls?: Array<{ id: string; name: string; args: unknown }> | null;
+  tokens_input?: number | null;
+  tokens_output?: number | null;
+  cost?: number | null;
+  duration_ms: number;
+  error?: string | null;
+  timestamp: string;
+}
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -372,7 +389,8 @@ export type ProcessingMessage =
   | StepResult
   | PlanningUpdate
   | Chunk
-  | Prediction;
+  | Prediction
+  | LLMCallUpdate;
 
 /**
  * Literal union of every `type` discriminator value.

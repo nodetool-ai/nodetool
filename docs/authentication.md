@@ -1,9 +1,8 @@
 ---
 layout: page
 title: "NodeTool Server Authentication"
+description: "Token-based authentication for securing NodeTool server endpoints in development and production."
 ---
-
-
 
 See [API Reference](api-reference.md) for a matrix of endpoints, auth requirements, and streaming behavior. The NodeTool
 server uses token-based authentication to secure all endpoints when deployed.
@@ -15,13 +14,13 @@ For environment variable defaults and precedence, see the [Configuration Guide](
 
 ```bash
 # Start the server
-python -m nodetool.api.run_server
+nodetool serve
 
 # The token is automatically generated and displayed
 # Copy it from the console output to use with requests
 ```
 
-______________________________________________________________________
+---
 
 ## How It Works
 
@@ -37,7 +36,7 @@ The server looks for a token in this order:
 
 On first run, if no token is found:
 
-1. A cryptographically secure 32-byte token is generated
+1. A cryptographically secure 32-byte token is generated (`crypto.randomBytes`)
 1. The token is saved to `~/.config/nodetool/deployment.yaml`
 1. File permissions are set to `0600` (owner read/write only)
 1. The full token is displayed in the console output
@@ -55,14 +54,14 @@ On first run, if no token is found:
 server_auth_token: your-auto-generated-token-here
 ```
 
-______________________________________________________________________
+---
 
 ## Using the Token
 
- All API requests (except `/health` and `/ping`) require authentication when
- `AUTH_PROVIDER` is `static` or `supabase`. In local development (default
- `ENV=development` and `AUTH_PROVIDER=local`) the server and API server accept
- requests without a token for convenience.
+All API requests (except `/health` and `/ping`) require authentication when
+`AUTH_PROVIDER` is `static` or `supabase`. In local development (default
+`ENV=development` and `AUTH_PROVIDER=local`) the server accepts
+requests without a token for convenience.
 
 When authentication is enforced, send the static token in the header:
 
@@ -103,7 +102,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   --data-binary @image.png
 ```
 
-______________________________________________________________________
+---
 
 ## Authentication Providers
 
@@ -111,10 +110,10 @@ Choose the auth strategy via `AUTH_PROVIDER`:
 
 ```bash
 # Valid values:
-#  none      – no authentication; requests run as user "1"
-#  local     – development convenience; requests run as user "1"
-#  static    – pre-shared token only (server token)
-#  supabase  – validate Supabase JWTs
+#  none      - no authentication; requests run as user "1"
+#  local     - development convenience; requests run as user "1"
+#  static    - pre-shared token only (server token)
+#  supabase  - validate Supabase JWTs
 
 export AUTH_PROVIDER=supabase
 ```
@@ -140,9 +139,36 @@ export AUTH_CACHE_TTL=30     # seconds (0 disables caching)
 export AUTH_CACHE_MAX=1000   # cache size
 ```
 
-> WebSockets use the same `Authorization` header semantics as HTTP when auth is enforced.
+> WebSockets use the same `Authorization` header semantics as HTTP when auth is enforced. A `?api_key=<token>` query parameter is also accepted as a fallback for WebSocket connections.
 
-______________________________________________________________________
+---
+
+## Architecture
+
+The authentication system is split across two packages:
+
+- **`@nodetool/auth`** -- defines the abstract **AuthProvider** base class, token extraction from HTTP and WebSocket headers, and the `AuthResult` / `TokenType` types.
+- **`@nodetool/deploy`** -- provides the concrete token management functions: `getServerAuthToken()`, `generateSecureToken()`, `verifyServerToken()`, and config file I/O.
+
+```ts
+// @nodetool/auth
+abstract class AuthProvider {
+  extractTokenFromHeaders(headers: Record<string, string> | Headers): string | null;
+  extractTokenFromWs(headers, queryParams?): string | null;
+  abstract verifyToken(token: string): Promise<AuthResult>;
+}
+
+// @nodetool/deploy
+function getServerAuthToken(): string;       // resolve token (env → config → generate)
+function generateSecureToken(): string;       // crypto.randomBytes(32).toString("base64url")
+function verifyServerToken(auth: string): Promise<"authenticated">;  // timing-safe compare
+function loadAuthConfig(): Record<string, unknown>;
+function saveAuthConfig(config: Record<string, unknown>): void;
+```
+
+Token verification uses `crypto.timingSafeEqual` to prevent timing attacks.
+
+---
 
 ## Environment Variable Override
 
@@ -153,7 +179,7 @@ You can override the auto-generated token by setting the environment variable:
 export SERVER_AUTH_TOKEN="my-custom-secure-token"
 
 # Start server (will use this token instead)
-python -m nodetool.api.run_server
+nodetool serve
 ```
 
 This is useful for:
@@ -162,7 +188,7 @@ This is useful for:
 - CI/CD pipelines
 - Multiple server instances with shared token
 
-______________________________________________________________________
+---
 
 ## Docker Deployment
 
@@ -207,7 +233,7 @@ services:
       - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN}
 ```
 
-______________________________________________________________________
+---
 
 ## Retrieving Your Token
 
@@ -219,9 +245,9 @@ The full token is displayed when the server starts:
 ======================================================================
 AUTHENTICATION
 ======================================================================
-🔒 Status: ENABLED (all endpoints require authentication)
-🔑 Token: abc12345...xyz9
-📍 Source: Auto-generated and saved to /home/user/.config/nodetool/deployment.yaml
+Status: ENABLED (all endpoints require authentication)
+Token: abc12345...xyz9
+Source: Auto-generated and saved to /home/user/.config/nodetool/deployment.yaml
 
    Authorization: Bearer abc12345-full-token-here-xyz9
 ======================================================================
@@ -239,14 +265,15 @@ Get-Content $env:APPDATA\nodetool\deployment.yaml
 
 ### Programmatically
 
-```python
-from nodetool.deploy.auth import get_server_auth_token
+```ts
+import { getServerAuthToken, getTokenSource } from "@nodetool/deploy";
 
-token = get_server_auth_token()
-print(f"Token: {token}")
+const token = getServerAuthToken();
+const source = getTokenSource();  // "environment" | "config" | "generated"
+console.log(`Token (${source}): ${token}`);
 ```
 
-______________________________________________________________________
+---
 
 ## Security Best Practices
 
@@ -273,7 +300,7 @@ chmod 600 ~/.config/nodetool/deployment.yaml
 rm ~/.config/nodetool/deployment.yaml
 
 # Restart server (new token will be generated)
-python -m nodetool.api.run_server
+nodetool serve
 ```
 
 Or set a new environment variable:
@@ -313,7 +340,7 @@ server {
 }
 ```
 
-______________________________________________________________________
+---
 
 ## Public Endpoints
 
@@ -324,7 +351,7 @@ These endpoints do **not** require authentication:
 
 This allows load balancers and monitoring systems to check service status without authentication.
 
-______________________________________________________________________
+---
 
 ## Error Responses
 
@@ -354,15 +381,15 @@ ______________________________________________________________________
 }
 ```
 
-______________________________________________________________________
+---
 
 ## Troubleshooting
 
 ### Token Not Working
 
 ```bash
-# Check token source
-python -m nodetool.api.run_server
+# Start server and check token source in output
+nodetool serve
 # Look for "Source: ..." in the output
 
 # Verify token in config
@@ -382,7 +409,7 @@ ls -la ~/.config/nodetool/
 mkdir -p ~/.config/nodetool
 
 # Restart server to generate token
-python -m nodetool.api.run_server
+nodetool serve
 ```
 
 ### Token Not Persisting (Docker)
@@ -399,9 +426,36 @@ docker run -e SERVER_AUTH_TOKEN="your-token" \
   nodetool-server
 ```
 
-______________________________________________________________________
+---
 
 ## API Client Examples
+
+### TypeScript / JavaScript
+
+```ts
+const TOKEN = "your-token-here";
+const BASE_URL = "http://localhost:7777";
+
+const headers = {
+  "Authorization": `Bearer ${TOKEN}`,
+  "Content-Type": "application/json",
+};
+
+// List models
+const models = await fetch(`${BASE_URL}/v1/models`, { headers });
+console.log(await models.json());
+
+// Chat completion
+const chat = await fetch(`${BASE_URL}/v1/chat/completions`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({
+    model: "llama3.2:latest",
+    messages: [{ role: "user", content: "Hello!" }],
+  }),
+});
+console.log(await chat.json());
+```
 
 ### Python
 
@@ -429,33 +483,6 @@ response = requests.post(
 print(response.json())
 ```
 
-### JavaScript/TypeScript
-
-```javascript
-const TOKEN = "your-token-here";
-const BASE_URL = "http://localhost:7777";
-
-const headers = {
-  "Authorization": `Bearer ${TOKEN}`,
-  "Content-Type": "application/json"
-};
-
-// List models
-const models = await fetch(`${BASE_URL}/v1/models`, { headers });
-console.log(await models.json());
-
-// Chat completion
-const chat = await fetch(`${BASE_URL}/v1/chat/completions`, {
-  method: "POST",
-  headers,
-  body: JSON.stringify({
-    model: "llama3.2:latest",
-    messages: [{ role: "user", content: "Hello!" }]
-  })
-});
-console.log(await chat.json());
-```
-
 ### Shell Script
 
 ```bash
@@ -478,53 +505,24 @@ curl -H "Authorization: Bearer $TOKEN" \
   }'
 ```
 
-______________________________________________________________________
+---
 
 ## Advanced Configuration
 
 ### Custom Config Location
 
-```python
-from nodetool.deploy.auth import DEPLOYMENT_CONFIG_FILE
-import os
+```ts
+import { loadAuthConfig, saveAuthConfig, generateSecureToken } from "@nodetool/deploy";
 
-# Set custom path
-os.environ['NODETOOL_CONFIG_PATH'] = '/custom/path/deployment.yaml'
+// Load current config
+const config = loadAuthConfig();
+
+// Generate and save a new token
+config["server_auth_token"] = generateSecureToken();
+saveAuthConfig(config);
 ```
 
-### Programmatic Token Management
-
-```python
-from nodetool.deploy.auth import (
-    load_deployment_config,
-    save_deployment_config,
-    generate_secure_token
-)
-
-# Load config
-config = load_deployment_config()
-
-# Generate new token
-new_token = generate_secure_token()
-config['server_auth_token'] = new_token
-
-# Save config
-save_deployment_config(config)
-print(f"New token: {new_token}")
-```
-
-______________________________________________________________________
-
-## Support
-
-For authentication issues:
-
-- Check logs for detailed error messages
-- Verify token format (no spaces, newlines)
-- Ensure file permissions are correct
-- Test with public `/health` endpoint first
-
-______________________________________________________________________
+---
 
 ## Security Hardening
 

@@ -1,0 +1,39 @@
+{
+  "modelId": "zsxkib/bsrgan",
+  "owner": "zsxkib",
+  "name": "bsrgan",
+  "version": "1ae02b13920bbc43cedec32a680b836412a55d978d0a2f2f6a423acc85e332e4",
+  "description": "Upscale videos + images with BSRGAN",
+  "inputSchema": {
+    "properties": {
+      "input_file": {
+        "description": "Input image or video file",
+        "format": "uri",
+        "title": "Input File",
+        "type": "string",
+        "x-order": 0
+      },
+      "scale_factor": {
+        "default": 4,
+        "description": "Upscaling factor (2x or 4x)",
+        "enum": [
+          2,
+          4
+        ],
+        "title": "scale_factor",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "input_file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

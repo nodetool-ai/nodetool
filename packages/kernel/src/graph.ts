@@ -119,6 +119,9 @@ export class Graph {
     this._outgoingEdges = new Map();
     this._outgoingByHandle = new Map();
     this._buildIndices();
+    // Auto-detect is_controlled from incoming control edges (Python parity:
+    // BaseNode.is_controlled() checks graph edges at runtime).
+    this._detectControlledNodes();
   }
 
   /**
@@ -191,25 +194,26 @@ export class Graph {
             : {};
 
       if (!allowUndefinedProperties) {
-        const definedProperties = new Set<string>([
-          ...Object.keys(
-            nodeObj.propertyTypes && typeof nodeObj.propertyTypes === "object"
-              ? (nodeObj.propertyTypes as Record<string, unknown>)
-              : {},
-          ),
-          ...Object.keys(
-            nodeObj.properties && typeof nodeObj.properties === "object"
-              ? (nodeObj.properties as Record<string, unknown>)
-              : {},
-          ),
-        ]);
+        // Only validate against propertyTypes when it is explicitly provided.
+        // Using properties itself as a source of truth would defeat the purpose
+        // of this check, since every property key would always be "defined".
+        const hasPropertyTypes =
+          nodeObj.propertyTypes != null &&
+          typeof nodeObj.propertyTypes === "object" &&
+          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
 
-        for (const key of Object.keys(rawProperties)) {
-          if (!definedProperties.has(key)) {
-            if (skipErrors) {
-              delete rawProperties[key];
-            } else {
-              throw new GraphValidationError(`Property ${key} does not exist on node ${id}`);
+        if (hasPropertyTypes) {
+          const definedProperties = new Set<string>(
+            Object.keys(nodeObj.propertyTypes as Record<string, unknown>),
+          );
+
+          for (const key of Object.keys(rawProperties)) {
+            if (!definedProperties.has(key)) {
+              if (skipErrors) {
+                delete rawProperties[key];
+              } else {
+                throw new GraphValidationError(`Property ${key} does not exist on node ${id}`);
+              }
             }
           }
         }
@@ -310,6 +314,12 @@ export class Graph {
           ...(node.outputs ?? {}),
         },
         sync_mode: node.sync_mode ?? descriptorDefaults.sync_mode ?? "on_any",
+        // Streaming/control flags: registry metadata (descriptorDefaults) is
+        // the source of truth.  Saved graph data may have stale or missing
+        // values, so always prefer the registry if it declares true.
+        is_streaming_input: descriptorDefaults.is_streaming_input || node.is_streaming_input || false,
+        is_streaming_output: descriptorDefaults.is_streaming_output || node.is_streaming_output || false,
+        is_controlled: descriptorDefaults.is_controlled || node.is_controlled || false,
       };
 
       resolvedNodes.push(hydratedNode);
@@ -352,6 +362,23 @@ export class Graph {
         byHandle.push(edge);
       } else {
         this._outgoingByHandle.set(handleKey, [edge]);
+      }
+    }
+  }
+
+  /**
+   * Auto-detect is_controlled from incoming control edges.
+   * In Python, BaseNode.is_controlled() is a runtime method that checks
+   * the graph context. In TS, we set the flag on the descriptor so that
+   * the actor knows to use _runControlled().
+   */
+  private _detectControlledNodes(): void {
+    for (const edge of this.edges) {
+      if (!isControlEdge(edge)) continue;
+      const target = this._nodeIndex.get(edge.target);
+      if (target && !target.is_controlled) {
+        // NodeDescriptor is readonly in the type, but we own the instances
+        (target as { is_controlled?: boolean }).is_controlled = true;
       }
     }
   }

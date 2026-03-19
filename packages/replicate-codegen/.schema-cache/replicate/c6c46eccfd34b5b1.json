@@ -1,0 +1,158 @@
+{
+  "modelId": "cjwbw/voicecraft",
+  "owner": "cjwbw",
+  "name": "voicecraft",
+  "version": "db97f6312d4c4d20e500e47fd95d8f14b00d8d28e046834faffb7999d83b6b30",
+  "description": "Zero-Shot Speech Editing and Text-to-Speech in the Wild",
+  "inputSchema": {
+    "properties": {
+      "cut_off_sec": {
+        "default": 3.01,
+        "description": "Only used for for zero-shot text-to-speech task. The first seconds of the original audio that are used for zero-shot text-to-speech. 3 sec of reference is generally enough for high quality voice cloning, but longer is generally better, try e.g. 3~6 sec",
+        "title": "Cut Off Sec",
+        "type": "number",
+        "x-order": 6
+      },
+      "kvcache": {
+        "default": 1,
+        "description": "Set to 0 to use less VRAM, but with slower inference",
+        "enum": [
+          0,
+          1
+        ],
+        "title": "kvcache",
+        "type": "integer",
+        "x-order": 7
+      },
+      "left_margin": {
+        "default": 0.08,
+        "description": "Margin to the left of the editing segment",
+        "title": "Left Margin",
+        "type": "number",
+        "x-order": 8
+      },
+      "orig_audio": {
+        "description": "Original audio file",
+        "format": "uri",
+        "title": "Orig Audio",
+        "type": "string",
+        "x-order": 2
+      },
+      "orig_transcript": {
+        "default": "",
+        "description": "Optionally provide the transcript of the input audio. Leave it blank to use the WhisperX model below to generate the transcript. Inaccurate transcription may lead to error TTS or speech editing",
+        "title": "Orig Transcript",
+        "type": "string",
+        "x-order": 3
+      },
+      "right_margin": {
+        "default": 0.08,
+        "description": "Margin to the right of the editing segment",
+        "title": "Right Margin",
+        "type": "number",
+        "x-order": 9
+      },
+      "sample_batch_size": {
+        "default": 4,
+        "description": "Default value for TTS is 4, and 1 for speech editing. The higher the number, the faster the output will be. Under the hood, the model will generate this many samples and choose the shortest one",
+        "title": "Sample Batch Size",
+        "type": "integer",
+        "x-order": 13
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 14
+      },
+      "stop_repetition": {
+        "default": 3,
+        "description": "Default value for TTS is 3, and -1 for speech editing. -1 means do not adjust prob of silence tokens. if there are long silence or unnaturally stretched words, increase sample_batch_size to 2, 3 or even 4",
+        "title": "Stop Repetition",
+        "type": "integer",
+        "x-order": 12
+      },
+      "target_transcript": {
+        "description": "Transcript of the target audio file",
+        "title": "Target Transcript",
+        "type": "string",
+        "x-order": 5
+      },
+      "task": {
+        "default": "zero-shot text-to-speech",
+        "description": "Choose a task",
+        "enum": [
+          "speech_editing-substitution",
+          "speech_editing-insertion",
+          "speech_editing-deletion",
+          "zero-shot text-to-speech"
+        ],
+        "title": "task",
+        "type": "string",
+        "x-order": 0
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic. Do not recommend to change",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 10
+      },
+      "top_p": {
+        "default": 0.9,
+        "description": "Default value for TTS is 0.9, and 0.8 for speech editing",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 11
+      },
+      "voicecraft_model": {
+        "default": "giga330M_TTSEnhanced.pth",
+        "description": "Choose a model",
+        "enum": [
+          "giga830M.pth",
+          "giga330M.pth",
+          "giga330M_TTSEnhanced.pth"
+        ],
+        "title": "voicecraft_model",
+        "type": "string",
+        "x-order": 1
+      },
+      "whisperx_model": {
+        "default": "base.en",
+        "description": "If orig_transcript is not provided above, choose a WhisperX model for generating the transcript. Inaccurate transcription may lead to error TTS or speech editing. You can modify the generated transcript and provide it directly to orig_transcript above",
+        "enum": [
+          "base.en",
+          "small.en",
+          "medium.en"
+        ],
+        "title": "whisperx_model",
+        "type": "string",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "orig_audio",
+      "target_transcript"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "generated_audio": {
+        "format": "uri",
+        "title": "Generated Audio",
+        "type": "string"
+      },
+      "whisper_transcript_orig_audio": {
+        "title": "Whisper Transcript Orig Audio",
+        "type": "string"
+      }
+    },
+    "required": [
+      "whisper_transcript_orig_audio"
+    ],
+    "title": "ModelOutput",
+    "type": "object"
+  }
+}

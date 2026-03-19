@@ -8,6 +8,7 @@ import { homedir } from "node:os";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
 import { ScriptedProvider, autoScript } from "@nodetool/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
@@ -1094,6 +1095,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   const registry = new NodeRegistry();
   registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: options.metadataMaxDepth ?? 8 });
   registerBaseNodes(registry);
+  registerElevenLabsNodes(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,

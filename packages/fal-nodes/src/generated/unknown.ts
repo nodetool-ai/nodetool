@@ -17,6 +17,7 @@ export class WorkflowUtilitiesInterleaveVideo extends FalNode {
   static readonly description = `ffmpeg utility to interleave videos
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "list[video]", default: [], description: "List of video URLs to interleave in order" })
   declare video_urls: any;
@@ -47,6 +48,7 @@ export class Qwen3TtsCloneVoice17b extends FalNode {
   static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
   declare reference_text: any;
@@ -80,6 +82,7 @@ export class Qwen3TtsCloneVoice06b extends FalNode {
   static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
   declare reference_text: any;
@@ -113,6 +116,7 @@ export class OpenrouterRouterAudio extends FalNode {
   static readonly description = `Run any ALM (Audio Language Model) with fal, powered by OpenRouter.
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the audio processing" })
   declare prompt: any;
