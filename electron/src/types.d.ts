@@ -241,6 +241,22 @@ declare global {
         ) => Promise<DialogOpenResult>;
       };
 
+      // Workspace dev server and file I/O
+      workspace: {
+        server: {
+          spawn: (workspacePath: string, port: number) => Promise<number>;
+          kill: (workspacePath: string) => Promise<void>;
+          respawn: (workspacePath: string, port: number) => Promise<number>;
+          status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
+          logs: (workspacePath: string) => Promise<string[]>;
+          ensureInstalled: (workspacePath: string) => Promise<void>;
+        };
+        file: {
+          write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
+          read: (workspacePath: string, relPath: string) => Promise<string>;
+        };
+      };
+
       // Claude Agent SDK operations
       agent: {
         createSession: (options: AgentSessionOptions) => Promise<string>;
@@ -601,6 +617,16 @@ export enum IpcChannels {
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
   LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
   FRONTEND_LOG = "frontend-log",
+  // Workspace dev server
+  WORKSPACE_SERVER_SPAWN = "workspace-server-spawn",
+  WORKSPACE_SERVER_KILL = "workspace-server-kill",
+  WORKSPACE_SERVER_RESPAWN = "workspace-server-respawn",
+  WORKSPACE_SERVER_STATUS = "workspace-server-status",
+  WORKSPACE_SERVER_LOGS = "workspace-server-logs",
+  WORKSPACE_SERVER_ENSURE_INSTALLED = "workspace-server-ensure-installed",
+  // Workspace file I/O
+  WORKSPACE_FILE_WRITE = "workspace-file-write",
+  WORKSPACE_FILE_READ = "workspace-file-read",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -779,6 +805,15 @@ export interface IpcRequest {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
+  // Workspace dev server
+  [IpcChannels.WORKSPACE_SERVER_SPAWN]: { workspacePath: string; port: number };
+  [IpcChannels.WORKSPACE_SERVER_KILL]: { workspacePath: string };
+  [IpcChannels.WORKSPACE_SERVER_RESPAWN]: { workspacePath: string; port: number };
+  [IpcChannels.WORKSPACE_SERVER_STATUS]: { workspacePath: string };
+  [IpcChannels.WORKSPACE_SERVER_LOGS]: { workspacePath: string };
+  [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: { workspacePath: string };
+  [IpcChannels.WORKSPACE_FILE_WRITE]: { workspacePath: string; relPath: string; content: string };
+  [IpcChannels.WORKSPACE_FILE_READ]: { workspacePath: string; relPath: string };
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -885,6 +920,15 @@ export interface IpcResponse {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
   [IpcChannels.FRONTEND_LOG]: void;
+  // Workspace dev server
+  [IpcChannels.WORKSPACE_SERVER_SPAWN]: number;
+  [IpcChannels.WORKSPACE_SERVER_KILL]: void;
+  [IpcChannels.WORKSPACE_SERVER_RESPAWN]: number;
+  [IpcChannels.WORKSPACE_SERVER_STATUS]: { running: boolean; port: number | null; status: string };
+  [IpcChannels.WORKSPACE_SERVER_LOGS]: string[];
+  [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: void;
+  [IpcChannels.WORKSPACE_FILE_WRITE]: void;
+  [IpcChannels.WORKSPACE_FILE_READ]: string;
 }
 
 // Event types for each IPC channel
