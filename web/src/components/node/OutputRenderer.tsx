@@ -309,7 +309,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   // DEBUG: log what OutputRenderer receives and how it classifies it
   useEffect(() => {
-    if (!shouldRender) return;
+    if (!shouldRender) {
+      return;
+    }
     const isArr = Array.isArray(value);
     const summary: Record<string, unknown> = {
       type,
@@ -370,7 +372,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimeType }));
     return { url, isPdf };
   }, [type, value]);
 
