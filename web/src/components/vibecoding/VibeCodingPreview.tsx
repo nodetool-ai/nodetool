@@ -1,66 +1,21 @@
-/** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo, memo, useState } from "react";
-import { css } from "@emotion/react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
+import { Box, Typography, IconButton, Tooltip, keyframes } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import type { Theme } from "@mui/material/styles";
 import { ServerStatus } from "../../stores/VibeCodingStore";
 
-export type { ServerStatus };
-
-const createStyles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      backgroundColor: theme.palette.background.default,
-      overflow: "hidden"
-    },
-    ".preview-header": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "8px 12px",
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.background.paper
-    },
-    ".preview-title": { fontSize: "14px", fontWeight: 500 },
-    ".preview-actions": { display: "flex", gap: "4px" },
-    ".preview-frame-container": { flex: 1, position: "relative" },
-    ".preview-frame": { width: "100%", height: "100%", border: "none" },
-    ".preview-state": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100%",
-      gap: "16px",
-      padding: "24px",
-      textAlign: "center"
-    },
-    ".error-log": {
-      fontSize: "11px",
-      color: theme.palette.text.secondary,
-      backgroundColor: theme.palette.background.default,
-      padding: theme.spacing(1),
-      borderRadius: "4px",
-      maxHeight: "200px",
-      overflow: "auto",
-      textAlign: "left",
-      width: "100%",
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word"
-    }
-  });
+const pulse = keyframes`
+  0%   { opacity: 1; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 1; }
+`;
 
 interface VibeCodingPreviewProps {
   port: number | null;
   serverStatus: ServerStatus;
   serverLogs: string[];
-  onRestart?: () => void;
+  onRestart: () => void;
 }
 
 const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
@@ -70,92 +25,188 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   onRestart
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const [iframeKey, setIframeKey] = useState(0);
+  const blobUrlCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const src =
-    serverStatus === "running" && port ? `http://localhost:${port}` : null;
+  // Status dot color
+  const dotColor =
+    serverStatus === "running"
+      ? theme.palette.success.main
+      : serverStatus === "starting"
+        ? theme.palette.warning.main
+        : serverStatus === "error"
+          ? theme.palette.error.main
+          : theme.palette.text.disabled;
 
-  const handleRefresh = useCallback(() => setIframeKey((k) => k + 1), []);
+  const isStarting = serverStatus === "starting";
+  const isRunning = serverStatus === "running";
+
+  const iframeUrl =
+    isRunning && port != null ? `http://localhost:${port}` : null;
+
+  // Open in new tab
   const handleOpenInNew = useCallback(() => {
-    if (src) { window.open(src, "_blank", "noopener,noreferrer"); }
-  }, [src]);
+    if (!iframeUrl) return;
+    window.open(iframeUrl, "_blank", "noopener,noreferrer");
+  }, [iframeUrl]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (blobUrlCleanupRef.current) {
+        clearTimeout(blobUrlCleanupRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <Box css={styles}>
-      <div className="preview-header">
-        <Typography className="preview-title">
-          Preview{serverStatus === "starting" && " (Starting\u2026)"}
-        </Typography>
-        <div className="preview-actions">
-          <Tooltip title="Refresh">
-            <span>
-              <IconButton size="small" onClick={handleRefresh} disabled={!src}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </span>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        backgroundColor: "background.default",
+        borderRadius: "8px",
+        overflow: "hidden"
+      }}
+    >
+      {/* Status bar */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 1.5,
+          py: 0.75,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          backgroundColor: "background.paper"
+        }}
+      >
+        {/* Left: dot + URL */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              backgroundColor: dotColor,
+              flexShrink: 0,
+              animation: isStarting
+                ? `${pulse} 1.2s ease-in-out infinite`
+                : "none"
+            }}
+          />
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: "fontFamily2",
+              color: isRunning ? "text.primary" : "text.disabled",
+              fontSize: "12px"
+            }}
+          >
+            {isRunning && port != null
+              ? `localhost:${port}`
+              : serverStatus === "starting"
+                ? "starting…"
+                : serverStatus === "error"
+                  ? "error"
+                  : "stopped"}
+          </Typography>
+        </Box>
+
+        {/* Right: actions */}
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Tooltip title="Restart server">
+            <IconButton size="small" onClick={onRestart}>
+              <RefreshIcon fontSize="small" />
+            </IconButton>
           </Tooltip>
           <Tooltip title="Open in new tab">
             <span>
               <IconButton
                 size="small"
                 onClick={handleOpenInNew}
-                disabled={!src}
+                disabled={!isRunning || port == null}
               >
                 <OpenInNewIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div className="preview-frame-container">
-        {serverStatus === "starting" && (
-          <div className="preview-state">
-            <Typography variant="body2" color="text.secondary">
-              Starting dev server\u2026
-            </Typography>
-          </div>
-        )}
-
-        {serverStatus === "error" && (
-          <div className="preview-state">
-            <Typography variant="body1" color="error">
-              Dev server error
-            </Typography>
-            {serverLogs.length > 0 && (
-              <pre className="error-log">
-                {serverLogs.slice(-20).join("\n")}
-              </pre>
-            )}
-            {onRestart && (
-              <Button size="small" variant="outlined" onClick={onRestart}>
-                &#8635; Restart server
-              </Button>
-            )}
-          </div>
-        )}
-
-        {serverStatus === "stopped" && (
-          <div className="preview-state">
-            <Typography variant="body2" color="text.secondary">
-              No workspace connected
-            </Typography>
-          </div>
-        )}
-
-        {src && (
-          <iframe
-            key={iframeKey}
-            src={src}
-            className="preview-frame"
-            title="VibeCoding Preview"
+      {/* Preview area */}
+      <Box sx={{ flex: 1, position: "relative", backgroundColor: "background.paper" }}>
+        {/* Iframe when running */}
+        {iframeUrl && (
+          <Box
+            component="iframe"
+            src={iframeUrl}
             sandbox="allow-scripts allow-same-origin allow-forms"
+            title="VibeCoding Preview"
+            sx={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              display: "block"
+            }}
           />
         )}
-      </div>
+
+        {/* Error logs */}
+        {serverStatus === "error" && serverLogs.length > 0 && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              overflowY: "auto",
+              p: 2,
+              backgroundColor: "background.default"
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                fontFamily: "fontFamily2",
+                color: "error.main",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all"
+              }}
+            >
+              {serverLogs.join("\n")}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Stopped / starting placeholder */}
+        {!iframeUrl && serverStatus !== "error" && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              color: "text.secondary",
+              textAlign: "center",
+              p: 3
+            }}
+          >
+            <Typography variant="body1" gutterBottom>
+              {serverStatus === "starting"
+                ? "Starting preview server…"
+                : "Preview server is stopped"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {serverStatus === "starting"
+                ? "Please wait a moment"
+                : "Click the restart button to start the server"}
+            </Typography>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };
 
-export default memo(VibeCodingPreview);
+export default VibeCodingPreview;

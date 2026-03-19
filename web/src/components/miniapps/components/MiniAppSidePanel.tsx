@@ -10,7 +10,7 @@ import { CloseButton, ExpandCollapseButton } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
-import VibeCodingModal from "../../vibecoding/VibeCodingModal";
+import { useNavigate } from "react-router-dom";
 import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniAppSidePanelProps {
@@ -25,7 +25,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
-  const [vibeCodingOpen, setVibeCodingOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleOpenPanel = useCallback(() => {
     setIsOpen(true);
@@ -40,12 +40,8 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   }, [showGraph]);
 
   const handleOpenVibeCoding = useCallback(() => {
-    setVibeCodingOpen(true);
-  }, []);
-
-  const handleCloseVibeCoding = useCallback(() => {
-    setVibeCodingOpen(false);
-  }, []);
+    navigate("/vibecoding");
+  }, [navigate]);
 
   const panelWidth = 360;
 
@@ -273,14 +269,6 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
         </div>
       </div>
 
-      {/* VibeCoding Modal */}
-      {/* TODO: pass actual workspacePath once workspace selection is wired up */}
-      <VibeCodingModal
-        open={vibeCodingOpen}
-        workflow={workflow}
-        workspacePath=""
-        onClose={handleCloseVibeCoding}
-      />
     </Box>
   );
 });

@@ -1,49 +1,12 @@
-/** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, memo, useRef, useState } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
 import { Box, Typography, Chip } from "@mui/material";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { Message, Workflow } from "../../stores/ApiTypes";
+import { Message } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { authHeader } from "../../stores/ApiClient";
 import ChatView from "../chat/containers/ChatView";
-import type { Theme } from "@mui/material/styles";
 import { useVibecodingTemplates, Template } from "../../hooks/useVibecodingTemplates";
-
-const createStyles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      backgroundColor: theme.palette.background.paper
-    },
-    ".chat-header": {
-      padding: "12px 16px",
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    },
-    ".chat-title": {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px"
-    },
-    ".template-chips": {
-      display: "flex",
-      gap: "8px",
-      padding: "8px 16px",
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      flexWrap: "wrap"
-    },
-    ".chat-container": {
-      flex: 1,
-      overflow: "hidden"
-    }
-  });
 
 /** Extract the first TypeScript/TSX code block from a markdown AI response. */
 function extractCodeBlock(response: string): string | null {
@@ -52,23 +15,20 @@ function extractCodeBlock(response: string): string | null {
 }
 
 interface VibeCodingChatProps {
-  workflow: Workflow;
+  workspaceId: string;
   workspacePath: string;
 }
 
 const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
-  workflow,
+  workspaceId,
   workspacePath
 }) => {
-  const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-
   const getSession = useVibeCodingStore((state) => state.getSession);
   const addMessage = useVibeCodingStore((state) => state.addMessage);
   const updateLastMessage = useVibeCodingStore((state) => state.updateLastMessage);
   const setChatStatus = useVibeCodingStore((state) => state.setChatStatus);
 
-  const session = getSession(workflow.id);
+  const session = getSession(workspaceId);
   const { templates } = useVibecodingTemplates();
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -87,14 +47,14 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
       }
       if (!prompt.trim() || isStreaming) return;
 
-      addMessage(workflow.id, {
+      addMessage(workspaceId, {
         type: "message",
         name: "",
         role: "user",
         content: [{ type: "text", text: prompt }],
         created_at: new Date().toISOString()
       });
-      addMessage(workflow.id, {
+      addMessage(workspaceId, {
         type: "message",
         name: "",
         role: "assistant",
@@ -102,7 +62,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         created_at: new Date().toISOString()
       });
 
-      setChatStatus(workflow.id, "streaming");
+      setChatStatus(workspaceId, "streaming");
       setIsStreaming(true);
       accumulatedResponseRef.current = "";
       abortControllerRef.current = new AbortController();
@@ -116,7 +76,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            workflow_id: workflow.id,
+            workspace_id: workspaceId,
             prompt
           }),
           signal: abortControllerRef.current.signal
@@ -131,41 +91,42 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          accumulatedResponseRef.current += decoder.decode(value, { stream: true });
-          updateLastMessage(workflow.id, accumulatedResponseRef.current);
+          accumulatedResponseRef.current += decoder.decode(value, {
+            stream: true
+          });
+          updateLastMessage(workspaceId, accumulatedResponseRef.current);
         }
 
-        setChatStatus(workflow.id, "idle");
+        setChatStatus(workspaceId, "idle");
 
-        // Write generated TSX page to workspace (errors here don't affect chat status)
         const code = extractCodeBlock(accumulatedResponseRef.current);
         if (code && workspacePath && window.api?.workspace?.file) {
           try {
-            await window.api.workspace.file.write(workspacePath, "src/app/page.tsx", code);
+            await window.api.workspace.file.write(
+              workspacePath,
+              "src/app/page.tsx",
+              code
+            );
           } catch (writeError) {
-            console.error("VibeCoding: failed to write file to workspace:", writeError);
+            console.error(
+              "VibeCoding: failed to write file to workspace:",
+              writeError
+            );
           }
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === "AbortError") {
-          setChatStatus(workflow.id, "idle");
+          setChatStatus(workspaceId, "idle");
         } else {
           console.error("VibeCoding error:", error);
-          setChatStatus(workflow.id, "error");
+          setChatStatus(workspaceId, "error");
         }
       } finally {
         setIsStreaming(false);
         abortControllerRef.current = null;
       }
     },
-    [
-      workflow.id,
-      workspacePath,
-      isStreaming,
-      addMessage,
-      updateLastMessage,
-      setChatStatus
-    ]
+    [workspaceId, workspacePath, isStreaming, addMessage, updateLastMessage, setChatStatus]
   );
 
   const handleStop = useCallback(() => {
@@ -208,11 +169,15 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           p: 4
         }}
       >
-        <AutoFixHighIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+        <AutoFixHighIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
         <Typography variant="h6" gutterBottom>
           Design Your App
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ maxWidth: 400 }}
+        >
           Describe your UI. The AI will generate a Next.js page and update the
           live preview.
         </Typography>
@@ -222,21 +187,27 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   );
 
   return (
-    <Box css={styles}>
-      <div className="chat-header">
-        <div className="chat-title">
-          <AutoFixHighIcon color="primary" />
-          <Typography variant="subtitle1" fontWeight={500}>
-            VibeCoding
-          </Typography>
-        </div>
-        <Typography variant="caption" color="text.secondary">
-          {workflow.name}
-        </Typography>
-      </div>
-
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        bgcolor: "background.paper"
+      }}
+    >
+      {/* Template chips — shown when no messages */}
       {templates && templates.length > 0 && session.messages.length === 0 && (
-        <div className="template-chips">
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            px: 4,
+            py: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+            flexWrap: "wrap"
+          }}
+        >
           {templates.map((template) => (
             <Chip
               key={template.id}
@@ -245,12 +216,21 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
               onClick={createTemplateClickHandler(template)}
               clickable
               variant="outlined"
+              sx={{
+                borderColor: "primary.main",
+                color: "primary.main",
+                "&:hover": {
+                  bgcolor: "primary.main",
+                  color: "primary.contrastText"
+                }
+              }}
             />
           ))}
-        </div>
+        </Box>
       )}
 
-      <div className="chat-container">
+      {/* Chat area */}
+      <Box sx={{ flex: 1, overflow: "hidden" }}>
         <ChatView
           status={chatStatus}
           progress={0}
@@ -262,7 +242,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           noMessagesPlaceholder={welcomePlaceholder}
           progressMessage={null}
         />
-      </div>
+      </Box>
     </Box>
   );
 };
