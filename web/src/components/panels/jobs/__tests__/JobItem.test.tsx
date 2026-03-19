@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import JobItem from "../JobItem";
 import { Job } from "../../../../stores/ApiTypes";
+import { useNavigate as useNavigateMock } from "react-router-dom";
 import { useWorkflow } from "../../../../serverState/useWorkflow";
 import { useJobAssets } from "../../../../serverState/useJobAssets";
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
@@ -88,8 +89,7 @@ describe("JobItem", () => {
     jest.useFakeTimers();
 
     // Setup default mock implementations
-    const { useNavigate } = require("react-router-dom");
-    useNavigate.mockReturnValue(mockNavigate);
+    (useNavigateMock as jest.Mock).mockReturnValue(mockNavigate);
 
     mockUseWorkflow.mockReturnValue({ data: mockWorkflow } as any);
     mockUseJobAssets.mockReturnValue({ data: [], isLoading: false, error: null } as any);
