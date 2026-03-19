@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Embedding — mistral.embeddings.Embedding
 export interface EmbeddingInputs {
@@ -9,6 +9,10 @@ export interface EmbeddingInputs {
   chunk_size?: Connectable<number>;
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("mistral.embeddings.Embedding", inputs as Record<string, unknown>);
+export interface EmbeddingOutputs {
+  output: unknown;
+}
+
+export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
+  return createNode("mistral.embeddings.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

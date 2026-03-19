@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // HTML Skill — skills.html.HtmlSkill
 export interface HtmlSkillInputs {
@@ -11,10 +11,10 @@ export interface HtmlSkillInputs {
 }
 
 export interface HtmlSkillOutputs {
-  html: OutputHandle<unknown>;
-  text: OutputHandle<string>;
+  html: unknown;
+  text: string;
 }
 
 export function htmlSkill(inputs: HtmlSkillInputs): DslNode<HtmlSkillOutputs> {
-  return createNode("skills.html.HtmlSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.html.HtmlSkill", inputs as Record<string, unknown>, { outputNames: ["html", "text"] });
 }

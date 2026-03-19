@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Text To Speech — openai.audio.TextToSpeech
@@ -11,8 +11,12 @@ export interface TextToSpeechInputs {
   speed?: Connectable<number>;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<SingleOutput<AudioRef>> {
-  return createNode("openai.audio.TextToSpeech", inputs as Record<string, unknown>);
+export interface TextToSpeechOutputs {
+  output: AudioRef;
+}
+
+export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
+  return createNode("openai.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Translate — openai.audio.Translate
@@ -21,8 +25,12 @@ export interface TranslateInputs {
   temperature?: Connectable<number>;
 }
 
-export function translate(inputs: TranslateInputs): DslNode<SingleOutput<string>> {
-  return createNode("openai.audio.Translate", inputs as Record<string, unknown>);
+export interface TranslateOutputs {
+  output: string;
+}
+
+export function translate(inputs: TranslateInputs): DslNode<TranslateOutputs, "output"> {
+  return createNode("openai.audio.Translate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Transcribe — openai.audio.Transcribe
@@ -36,11 +44,11 @@ export interface TranscribeInputs {
 }
 
 export interface TranscribeOutputs {
-  text: OutputHandle<string>;
-  words: OutputHandle<unknown[]>;
-  segments: OutputHandle<unknown[]>;
+  text: string;
+  words: unknown[];
+  segments: unknown[];
 }
 
 export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs> {
-  return createNode("openai.audio.Transcribe", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("openai.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["text", "words", "segments"] });
 }

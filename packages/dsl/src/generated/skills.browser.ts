@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Browser Skill — skills.browser.BrowserSkill
 export interface BrowserSkillInputs {
@@ -11,9 +11,9 @@ export interface BrowserSkillInputs {
 }
 
 export interface BrowserSkillOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function browserSkill(inputs: BrowserSkillInputs): DslNode<BrowserSkillOutputs> {
-  return createNode("skills.browser.BrowserSkill", inputs as Record<string, unknown>, { multiOutput: true });
+export function browserSkill(inputs: BrowserSkillInputs): DslNode<BrowserSkillOutputs, "text"> {
+  return createNode("skills.browser.BrowserSkill", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }

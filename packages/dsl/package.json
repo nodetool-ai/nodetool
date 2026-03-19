@@ -4,7 +4,15 @@
   "version": "0.1.0",
   "description": "Type-safe TypeScript DSL for defining NodeTool workflows",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
     "test": "vitest run",
@@ -13,14 +21,14 @@
     "codegen": "tsx scripts/codegen.ts"
   },
   "dependencies": {
+    "@nodetool/base-nodes": "*",
+    "@nodetool/elevenlabs-nodes": "*",
     "@nodetool/protocol": "*",
     "@nodetool/kernel": "*",
-    "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*"
   },
   "devDependencies": {
-    "@nodetool/node-sdk": "*",
-    "@nodetool/base-nodes": "*",
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",

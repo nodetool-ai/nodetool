@@ -47,11 +47,11 @@ import { add, multiply } from "@nodetool/dsl/generated/nodetool.math";
 
 ### OutputHandle
 
-When you create a node, you get back a `DslNode` object. Its `.output` property is an `OutputHandle` — a symbolic reference to the node's output slot. You pass handles as inputs to other nodes to create connections.
+When you create a node, you get back a `DslNode` object. Its `output()` method returns an `OutputHandle` — a symbolic reference to one of the node's output slots. You pass handles as inputs to other nodes to create connections.
 
 ```ts
 const a = constant.integer({ value: 5 });
-a.output  // → OutputHandle<number> — reference, not the value itself
+a.output()  // → OutputHandle<number> — reference, not the value itself
 ```
 
 ### Connectable
@@ -60,7 +60,7 @@ Every input field accepts either a **literal value** or an **OutputHandle**:
 
 ```ts
 const sum = math.add({ a: 1, b: 2 });           // literal values
-const sum2 = math.add({ a: a.output, b: 2 });    // connection + literal
+const sum2 = math.add({ a: a.output(), b: 2 });  // connection + literal
 ```
 
 ### DslNode
@@ -72,8 +72,7 @@ const node = constant.integer({ value: 42 });
 node.nodeId    // unique UUID
 node.nodeType  // "nodetool.constant.Integer"
 node.inputs    // { value: 42 }
-node.output    // OutputHandle for single-output nodes
-node.out       // accessor for named output slots
+node.output()  // OutputHandle for the node's default output slot
 ```
 
 ---
@@ -91,7 +90,7 @@ const x = constant.float({ value: 3.14 });
 const y = constant.float({ value: 2.0 });
 
 // 2. Connect nodes by passing output handles
-const sum = math.add({ a: x.output, b: y.output });
+const sum = math.add({ a: x.output(), b: y.output() });
 
 // 3. Build the workflow graph
 const wf = workflow(sum);
@@ -110,8 +109,8 @@ The `workflow()` function traces all connections from the terminal nodes back to
 
 ```ts
 const a = constant.integer({ value: 5 });
-const b = math.add({ a: a.output, b: 1 });
-const c = math.multiply({ a: b.output, b: 2 });
+const b = math.add({ a: a.output(), b: 1 });
+const c = math.multiply({ a: b.output(), b: 2 });
 
 const wf = workflow(c);
 // 3 nodes, 2 edges: a→b→c
@@ -123,9 +122,9 @@ A node's output can be connected to multiple downstream nodes. The graph builder
 
 ```ts
 const shared = constant.float({ value: 10 });
-const left = math.add({ a: shared.output, b: 1 });
-const right = math.multiply({ a: shared.output, b: 2 });
-const final = math.add({ a: left.output, b: right.output });
+const left = math.add({ a: shared.output(), b: 1 });
+const right = math.multiply({ a: shared.output(), b: 2 });
+const final = math.add({ a: left.output(), b: right.output() });
 
 const wf = workflow(final);
 // 4 nodes, 4 edges — `shared` appears only once
@@ -136,8 +135,8 @@ const wf = workflow(final);
 Pass multiple nodes to `workflow()` to trace all branches:
 
 ```ts
-const branch1 = math.add({ a: x.output, b: 1 });
-const branch2 = math.multiply({ a: x.output, b: 2 });
+const branch1 = math.add({ a: x.output(), b: 1 });
+const branch2 = math.multiply({ a: x.output(), b: 2 });
 
 const wf = workflow(branch1, branch2);
 ```
@@ -146,7 +145,7 @@ const wf = workflow(branch1, branch2);
 
 ## Multi-Output Nodes
 
-Some nodes produce multiple outputs (e.g., `If` has `if_true` and `if_false`). Use `.out.<slotName>` instead of `.output`:
+Some nodes produce multiple outputs (e.g., `If` has `if_true` and `if_false`). Use `output("slotName")` to select the slot you want:
 
 ```ts
 import { control } from "@nodetool/dsl";
@@ -154,10 +153,10 @@ import { control } from "@nodetool/dsl";
 const branch = control.if_({ condition: true, value: "hello" });
 
 // Access named outputs
-branch.out.if_true   // → OutputHandle
-branch.out.if_false  // → OutputHandle
+branch.output("if_true")   // → OutputHandle
+branch.output("if_false")  // → OutputHandle
 
-// .output is undefined on multi-output nodes (compile-time type error)
+// Calling output() without a slot throws when there is no default output
 ```
 
 Each output slot is individually typed, so TypeScript catches type mismatches at compile time.
@@ -190,7 +189,7 @@ async function run(wf: Workflow, opts?: RunOptions): Promise<WorkflowResult>;
 async function runGraph(...terminals: DslNode<any>[]): Promise<WorkflowResult>;
 ```
 
-> **Note:** `run()` is a placeholder — full integration with the workflow runner is planned. Currently, use `workflow()` to build graphs and execute them through the API or CLI.
+`run()` executes the graph locally via `WorkflowRunner`. By default it resolves executors from `NodeRegistry.global`, or you can pass an explicit registry via `RunOptions.registry`.
 
 ---
 

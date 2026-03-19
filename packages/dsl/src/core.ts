@@ -4,6 +4,15 @@
  * OutputHandle, Connectable, DslNode, SingleOutput, createNode(), workflow(), run()
  */
 
+import { WorkflowRunner } from "@nodetool/kernel";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import { ProcessingContext } from "@nodetool/runtime";
+import type {
+  NodeDescriptor as GraphNodeDescriptor,
+  Edge,
+  NodeUpdate,
+} from "@nodetool/protocol";
+
 // ---------------------------------------------------------------------------
 // OutputHandle
 // ---------------------------------------------------------------------------
@@ -33,23 +42,38 @@ export type Connectable<T> = T | OutputHandle<T>;
 // SingleOutput
 // ---------------------------------------------------------------------------
 
-export interface SingleOutput<T> {
-  readonly __singleOutput: true;
-  readonly output: OutputHandle<T>;
+export type SingleOutput<T, TSlot extends string = "output"> = {
+  readonly [K in TSlot]: T;
+};
+
+export type OutputSlot<TOutputs extends object> =
+  Extract<keyof TOutputs, string>;
+
+export interface OutputAccessor<
+  TOutputs extends object,
+  TDefault extends OutputSlot<TOutputs> | undefined = undefined
+> {
+  (): TDefault extends OutputSlot<TOutputs>
+    ? OutputHandle<TOutputs[TDefault]>
+    : never;
+  <K extends OutputSlot<TOutputs>>(slot: K): OutputHandle<TOutputs[K]>;
 }
 
 // ---------------------------------------------------------------------------
 // DslNode
 // ---------------------------------------------------------------------------
 
-export interface DslNode<TOutputs> {
+export interface DslNode<
+  TOutputs extends object,
+  TDefault extends OutputSlot<TOutputs> | undefined =
+    TOutputs extends SingleOutput<infer _TValue, infer TSlot>
+      ? Extract<TSlot, OutputSlot<TOutputs>>
+      : undefined
+> {
   readonly nodeId: string;
   readonly nodeType: string;
   readonly inputs: Record<string, unknown>;
-  readonly output: TOutputs extends SingleOutput<infer U>
-    ? OutputHandle<U>
-    : never;
-  readonly out: TOutputs;
+  readonly output: OutputAccessor<TOutputs, TDefault>;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,64 +103,79 @@ export interface Workflow {
 // Node Registry (internal)
 // ---------------------------------------------------------------------------
 
-interface NodeDescriptor {
+interface RegisteredNodeDescriptor {
   nodeId: string;
   nodeType: string;
   inputs: Record<string, unknown>;
   streaming: boolean;
 }
 
-const nodeRegistry = new Map<string, NodeDescriptor>();
+const nodeRegistry = new Map<string, RegisteredNodeDescriptor>();
+
+function createOutputHandle<T>(nodeId: string, slot: string): OutputHandle<T> {
+  return Object.freeze({
+    __brand: "OutputHandle" as const,
+    nodeId,
+    slot,
+  });
+}
+
+export type CreateNodeOptions<
+  TOutputs extends object,
+  TDefault extends OutputSlot<TOutputs> | undefined = undefined
+> = {
+  streaming?: boolean;
+  outputNames?: readonly OutputSlot<TOutputs>[];
+  defaultOutput?: TDefault;
+  multiOutput?: boolean;
+};
 
 // ---------------------------------------------------------------------------
 // createNode() — used by generated factories
 // ---------------------------------------------------------------------------
 
-export function createNode<TOutputs>(
+export function createNode<
+  TOutputs extends object,
+  TDefault extends OutputSlot<TOutputs> | undefined =
+    TOutputs extends SingleOutput<infer _TValue, infer TSlot>
+      ? Extract<TSlot, OutputSlot<TOutputs>>
+      : undefined
+>(
   nodeType: string,
   inputs: Record<string, unknown>,
-  opts?: { streaming?: boolean; multiOutput?: boolean }
-): DslNode<TOutputs> {
+  opts?: CreateNodeOptions<TOutputs, TDefault>
+): DslNode<TOutputs, TDefault> {
   const nodeId = crypto.randomUUID();
   const streaming = opts?.streaming ?? false;
-  const multiOutput = opts?.multiOutput ?? false;
+  const outputNames = opts?.outputNames
+    ? [...opts.outputNames]
+    : opts?.multiOutput
+      ? []
+      : [opts?.defaultOutput ?? "output"];
+  const defaultOutput = opts?.defaultOutput
+    ?? (outputNames.length === 1 && !opts?.multiOutput ? outputNames[0] : undefined);
 
-  const descriptor: NodeDescriptor = { nodeId, nodeType, inputs, streaming };
+  const descriptor: RegisteredNodeDescriptor = { nodeId, nodeType, inputs, streaming };
   nodeRegistry.set(nodeId, descriptor);
 
-  // Lazy proxy for .out — creates OutputHandle for any slot accessed
-  const outProxy = new Proxy(
-    {} as any,
-    {
-      get(_target, prop: string | symbol) {
-        if (typeof prop === "symbol") return undefined;
-        const handle: OutputHandle<any> = Object.freeze({
-          __brand: "OutputHandle" as const,
-          nodeId,
-          slot: prop,
-        });
-        return handle;
-      },
+  const knownOutputs = new Set<string>(outputNames);
+  const output = Object.freeze(((slot?: string) => {
+    const resolvedSlot = slot ?? defaultOutput;
+    if (!resolvedSlot) {
+      throw new Error(`Node ${nodeType} requires an explicit output slot`);
     }
-  );
-
-  // For multi-output nodes, .output is undefined at runtime (type is `never`)
-  // For single-output nodes, .output is a real OutputHandle
-  const outputHandle = multiOutput
-    ? undefined
-    : Object.freeze({
-        __brand: "OutputHandle" as const,
-        nodeId,
-        slot: "output",
-      });
+    if (knownOutputs.size > 0 && !knownOutputs.has(resolvedSlot)) {
+      throw new Error(`Unknown output slot '${resolvedSlot}' for node type ${nodeType}`);
+    }
+    return createOutputHandle(nodeId, resolvedSlot);
+  }) as OutputAccessor<TOutputs, TDefault>);
 
   const node = Object.freeze({
     nodeId,
     nodeType,
     inputs,
-    output: outputHandle,
-    out: outProxy,
-  }) as DslNode<TOutputs>;
+    output,
+  }) as DslNode<TOutputs, TDefault>;
 
   return node;
 }
@@ -150,7 +189,7 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
     throw new Error("workflow() requires at least one terminal node");
   }
 
-  const visited = new Map<string, NodeDescriptor>();
+  const visited = new Map<string, RegisteredNodeDescriptor>();
   const edges: WorkflowEdge[] = [];
   const queue: string[] = [];
 
@@ -253,49 +292,86 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
 export type RunOptions = {
   userId?: string;
   authToken?: string;
+  /** Custom node registry; defaults to NodeRegistry.global. */
+  registry?: NodeRegistry;
 };
 
 export type WorkflowResult = Record<string, unknown>;
 
 export async function run(
   wf: Workflow,
-  _opts?: RunOptions
+  opts?: RunOptions
 ): Promise<WorkflowResult> {
-  // Dynamic imports to avoid hard dependency on base-nodes
-  const { WorkflowRunner } = await import("@nodetool/kernel");
-  const { NodeRegistry } = await import("@nodetool/node-sdk");
+  const jobId = crypto.randomUUID();
+  const nodes: GraphNodeDescriptor[] = wf.nodes.map((n) => ({
+    id: n.id,
+    type: n.type,
+    properties: n.data,
+    is_streaming_output: n.streaming,
+  }));
+
+  const edges = wf.edges.map((e) => ({
+    source: e.source,
+    sourceHandle: e.sourceHandle,
+    target: e.target,
+    targetHandle: e.targetHandle,
+  })) as Edge[];
+
+  const context = new ProcessingContext({
+    jobId,
+    userId: opts?.userId,
+  });
+
+  const builtinRegistry = new NodeRegistry();
   const { registerBaseNodes } = await import("@nodetool/base-nodes");
-  const { registerElevenLabsNodes } = await import("@nodetool/elevenlabs-nodes");
-  const { ProcessingContext } = await import("@nodetool/runtime");
+  registerBaseNodes(builtinRegistry);
+  try {
+    const { registerElevenLabsNodes } = await import("@nodetool/elevenlabs-nodes");
+    registerElevenLabsNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the ElevenLabs node package in a runnable state.
+  }
 
-  const registry = new NodeRegistry();
-  registerBaseNodes(registry);
-  registerElevenLabsNodes(registry);
-
-  const jobId = `job-${Date.now()}`;
-  const context = new ProcessingContext({ jobId, workflowId: null });
+  const resolveExecutor = (node: { id: string; type: string }) => {
+    if (opts?.registry?.has(node.type)) {
+      return opts.registry.resolve(node);
+    }
+    if (NodeRegistry.global.has(node.type)) {
+      return NodeRegistry.global.resolve(node);
+    }
+    if (builtinRegistry.has(node.type)) {
+      return builtinRegistry.resolve(node);
+    }
+    throw new Error(`Unknown node type: ${node.type}`);
+  };
 
   const runner = new WorkflowRunner(jobId, {
-    resolveExecutor: (node: { id: string; type: string }) => {
-      if (!registry.has(node.type))
-        throw new Error(`Unknown node type: ${node.type}`);
-      return registry.resolve(node);
-    },
+    resolveExecutor,
     executionContext: context,
   });
 
-  // Normalize nodes: DSL uses `data` field, kernel expects `properties`
-  const nodes = wf.nodes.map((n) => {
-    const { data, ...rest } = n as any;
-    return { ...rest, properties: data ?? {} };
-  });
+  const result = await runner.run({ job_id: jobId }, { nodes, edges });
 
-  const result = await runner.run(
-    { job_id: jobId, params: {} },
-    { nodes, edges: wf.edges as any[] }
+  if (result.status === "failed") {
+    throw new Error(result.error ?? "Workflow execution failed");
+  }
+
+  // Surface node-level errors: actors catch exceptions and return them as
+  // node_update messages with status "error" without failing the whole run.
+  const nodeErrors = (result.messages ?? []).filter(
+    (m): m is NodeUpdate => m.type === "node_update" && (m as NodeUpdate).status === "error"
   );
+  if (nodeErrors.length > 0) {
+    throw new Error(nodeErrors[0].error ?? "A node failed during execution");
+  }
 
-  return result.outputs ?? {};
+  const outputs: WorkflowResult = {};
+  for (const [name, values] of Object.entries(result.outputs)) {
+    if (values.length > 0) {
+      outputs[name] = values[values.length - 1];
+    }
+  }
+  return outputs;
 }
 
 export async function runGraph(

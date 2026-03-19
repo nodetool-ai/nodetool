@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Image Skill — skills.image.ImageSkill
@@ -13,10 +13,10 @@ export interface ImageSkillInputs {
 }
 
 export interface ImageSkillOutputs {
-  image: OutputHandle<ImageRef>;
-  text: OutputHandle<string>;
+  image: ImageRef;
+  text: string;
 }
 
 export function imageSkill(inputs: ImageSkillInputs): DslNode<ImageSkillOutputs> {
-  return createNode("skills.image.ImageSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.image.ImageSkill", inputs as Record<string, unknown>, { outputNames: ["image", "text"] });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // PDF-lib Skill — skills.pdf_lib.PdfLibSkill
 export interface PdfLibSkillInputs {
@@ -12,10 +12,10 @@ export interface PdfLibSkillInputs {
 }
 
 export interface PdfLibSkillOutputs {
-  document: OutputHandle<unknown>;
-  text: OutputHandle<string>;
+  document: unknown;
+  text: string;
 }
 
 export function pdfLibSkill(inputs: PdfLibSkillInputs): DslNode<PdfLibSkillOutputs> {
-  return createNode("skills.pdf_lib.PdfLibSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.pdf_lib.PdfLibSkill", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
 }

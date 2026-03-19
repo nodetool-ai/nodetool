@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef, VideoRef } from "../types.js";
 
 // Media Skill — skills.media.MediaSkill
@@ -14,11 +14,11 @@ export interface MediaSkillInputs {
 }
 
 export interface MediaSkillOutputs {
-  video: OutputHandle<VideoRef>;
-  audio: OutputHandle<AudioRef>;
-  text: OutputHandle<string>;
+  video: VideoRef;
+  audio: AudioRef;
+  text: string;
 }
 
 export function mediaSkill(inputs: MediaSkillInputs): DslNode<MediaSkillOutputs> {
-  return createNode("skills.media.MediaSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.media.MediaSkill", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"] });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Chat Complete — mistral.text.ChatComplete
 export interface ChatCompleteInputs {
@@ -11,8 +11,12 @@ export interface ChatCompleteInputs {
   max_tokens?: Connectable<number>;
 }
 
-export function chatComplete(inputs: ChatCompleteInputs): DslNode<SingleOutput<string>> {
-  return createNode("mistral.text.ChatComplete", inputs as Record<string, unknown>);
+export interface ChatCompleteOutputs {
+  output: string;
+}
+
+export function chatComplete(inputs: ChatCompleteInputs): DslNode<ChatCompleteOutputs, "output"> {
+  return createNode("mistral.text.ChatComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Code Complete — mistral.text.CodeComplete
@@ -23,6 +27,10 @@ export interface CodeCompleteInputs {
   max_tokens?: Connectable<number>;
 }
 
-export function codeComplete(inputs: CodeCompleteInputs): DslNode<SingleOutput<string>> {
-  return createNode("mistral.text.CodeComplete", inputs as Record<string, unknown>);
+export interface CodeCompleteOutputs {
+  output: string;
+}
+
+export function codeComplete(inputs: CodeCompleteInputs): DslNode<CodeCompleteOutputs, "output"> {
+  return createNode("mistral.text.CodeComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

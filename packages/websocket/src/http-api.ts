@@ -4,6 +4,7 @@ import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
 import os from "node:os";
 import { createLogger } from "@nodetool/config";
+import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
   WorkflowVersion,
@@ -593,15 +594,32 @@ async function handleWorkflowDslExport(
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
+
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   await ensureWorkflowTable();
+
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId && workflow.access !== "public") {
+  if (!workflow) {
     return errorResponse(404, "Workflow not found");
   }
-  // DSL export requires the Python DSL compiler; return 501 in standalone TS mode.
-  return errorResponse(501, "Workflow DSL export is not available in standalone mode");
+  if (workflow.access !== "public" && workflow.user_id !== userId) {
+    return errorResponse(404, "Workflow not found");
+  }
+
+  if (!workflow.graph) {
+    return errorResponse(400, "Workflow has no graph to export");
+  }
+
+  try {
+    const source = workflowToDsl(workflow.graph, { workflowName: workflow.name });
+    return new Response(source, {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to export workflow as DSL";
+    return errorResponse(400, message);
+  }
 }
 
 // ── Workflow Gradio export (stub) ──────────────────────────────────────
