@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef, FolderRef } from "../types.js";
 
 // Detect Onsets — lib.librosa.segmentation.DetectOnsets
@@ -9,8 +9,12 @@ export interface DetectOnsetsInputs {
   hop_length?: Connectable<number>;
 }
 
-export function detectOnsets(inputs: DetectOnsetsInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.librosa.segmentation.DetectOnsets", inputs as Record<string, unknown>);
+export interface DetectOnsetsOutputs {
+  output: unknown;
+}
+
+export function detectOnsets(inputs: DetectOnsetsInputs): DslNode<DetectOnsetsOutputs, "output"> {
+  return createNode("lib.librosa.segmentation.DetectOnsets", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Segment Audio By Onsets — lib.librosa.segmentation.SegmentAudioByOnsets
@@ -20,8 +24,12 @@ export interface SegmentAudioByOnsetsInputs {
   min_segment_length?: Connectable<number>;
 }
 
-export function segmentAudioByOnsets(inputs: SegmentAudioByOnsetsInputs): DslNode<SingleOutput<AudioRef[]>> {
-  return createNode("lib.librosa.segmentation.SegmentAudioByOnsets", inputs as Record<string, unknown>);
+export interface SegmentAudioByOnsetsOutputs {
+  output: AudioRef[];
+}
+
+export function segmentAudioByOnsets(inputs: SegmentAudioByOnsetsInputs): DslNode<SegmentAudioByOnsetsOutputs, "output"> {
+  return createNode("lib.librosa.segmentation.SegmentAudioByOnsets", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Audio Segments — lib.librosa.segmentation.SaveAudioSegments
@@ -31,6 +39,10 @@ export interface SaveAudioSegmentsInputs {
   name_prefix?: Connectable<string>;
 }
 
-export function saveAudioSegments(inputs: SaveAudioSegmentsInputs): DslNode<SingleOutput<FolderRef>> {
-  return createNode("lib.librosa.segmentation.SaveAudioSegments", inputs as Record<string, unknown>);
+export interface SaveAudioSegmentsOutputs {
+  output: FolderRef;
+}
+
+export function saveAudioSegments(inputs: SaveAudioSegmentsInputs): DslNode<SaveAudioSegmentsOutputs, "output"> {
+  return createNode("lib.librosa.segmentation.SaveAudioSegments", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

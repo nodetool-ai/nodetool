@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // DOCX Skill — skills.docx.DocxSkill
 export interface DocxSkillInputs {
@@ -11,10 +11,10 @@ export interface DocxSkillInputs {
 }
 
 export interface DocxSkillOutputs {
-  document: OutputHandle<unknown>;
-  text: OutputHandle<string>;
+  document: unknown;
+  text: string;
 }
 
 export function docxSkill(inputs: DocxSkillInputs): DslNode<DocxSkillOutputs> {
-  return createNode("skills.docx.DocxSkill", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("skills.docx.DocxSkill", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
 }

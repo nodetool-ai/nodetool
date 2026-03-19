@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { FolderRef } from "../types.js";
 
 // Save Array — lib.numpy.io.SaveArray
@@ -10,6 +10,10 @@ export interface SaveArrayInputs {
   name?: Connectable<string>;
 }
 
-export function saveArray(inputs: SaveArrayInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.numpy.io.SaveArray", inputs as Record<string, unknown>);
+export interface SaveArrayOutputs {
+  output: unknown;
+}
+
+export function saveArray(inputs: SaveArrayInputs): DslNode<SaveArrayOutputs, "output"> {
+  return createNode("lib.numpy.io.SaveArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Select — lib.supabase.Select
 export interface SelectInputs {
@@ -13,8 +13,12 @@ export interface SelectInputs {
   to_dataframe?: Connectable<boolean>;
 }
 
-export function select(inputs: SelectInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.supabase.Select", inputs as Record<string, unknown>);
+export interface SelectOutputs {
+  output: unknown;
+}
+
+export function select(inputs: SelectInputs): DslNode<SelectOutputs, "output"> {
+  return createNode("lib.supabase.Select", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Insert — lib.supabase.Insert
@@ -24,8 +28,12 @@ export interface InsertInputs {
   return_rows?: Connectable<boolean>;
 }
 
-export function insert(inputs: InsertInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>);
+export interface InsertOutputs {
+  output: unknown;
+}
+
+export function insert(inputs: InsertInputs): DslNode<InsertOutputs, "output"> {
+  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Update — lib.supabase.Update
@@ -36,8 +44,12 @@ export interface UpdateInputs {
   return_rows?: Connectable<boolean>;
 }
 
-export function update(inputs: UpdateInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.supabase.Update", inputs as Record<string, unknown>);
+export interface UpdateOutputs {
+  output: unknown;
+}
+
+export function update(inputs: UpdateInputs): DslNode<UpdateOutputs, "output"> {
+  return createNode("lib.supabase.Update", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Delete — lib.supabase.Delete
@@ -46,8 +58,12 @@ export interface DeleteInputs {
   filters?: Connectable<unknown[]>;
 }
 
-export function delete_(inputs: DeleteInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>);
+export interface DeleteOutputs {
+  output: Record<string, unknown>;
+}
+
+export function delete_(inputs: DeleteInputs): DslNode<DeleteOutputs, "output"> {
+  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Upsert — lib.supabase.Upsert
@@ -57,8 +73,12 @@ export interface UpsertInputs {
   return_rows?: Connectable<boolean>;
 }
 
-export function upsert(inputs: UpsertInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>);
+export interface UpsertOutputs {
+  output: unknown;
+}
+
+export function upsert(inputs: UpsertInputs): DslNode<UpsertOutputs, "output"> {
+  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // RPC — lib.supabase.RPC
@@ -68,6 +88,10 @@ export interface RPCInputs {
   to_dataframe?: Connectable<boolean>;
 }
 
-export function rpc(inputs: RPCInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>);
+export interface RPCOutputs {
+  output: unknown;
+}
+
+export function rpc(inputs: RPCInputs): DslNode<RPCOutputs, "output"> {
+  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

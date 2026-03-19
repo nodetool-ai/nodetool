@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Create Table — lib.sqlite.CreateTable
 export interface CreateTableInputs {
@@ -12,13 +12,13 @@ export interface CreateTableInputs {
 }
 
 export interface CreateTableOutputs {
-  database_name: OutputHandle<string>;
-  table_name: OutputHandle<string>;
-  columns: OutputHandle<unknown>;
+  database_name: string;
+  table_name: string;
+  columns: unknown;
 }
 
 export function createTable(inputs: CreateTableInputs): DslNode<CreateTableOutputs> {
-  return createNode("lib.sqlite.CreateTable", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("lib.sqlite.CreateTable", inputs as Record<string, unknown>, { outputNames: ["database_name", "table_name", "columns"] });
 }
 
 // Insert — lib.sqlite.Insert
@@ -28,8 +28,12 @@ export interface InsertInputs {
   data?: Connectable<Record<string, unknown>>;
 }
 
-export function insert(inputs: InsertInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.sqlite.Insert", inputs as Record<string, unknown>);
+export interface InsertOutputs {
+  output: Record<string, unknown>;
+}
+
+export function insert(inputs: InsertInputs): DslNode<InsertOutputs, "output"> {
+  return createNode("lib.sqlite.Insert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Query — lib.sqlite.Query
@@ -42,8 +46,12 @@ export interface QueryInputs {
   limit?: Connectable<number>;
 }
 
-export function query(inputs: QueryInputs): DslNode<SingleOutput<Record<string, unknown>[]>> {
-  return createNode("lib.sqlite.Query", inputs as Record<string, unknown>);
+export interface QueryOutputs {
+  output: Record<string, unknown>[];
+}
+
+export function query(inputs: QueryInputs): DslNode<QueryOutputs, "output"> {
+  return createNode("lib.sqlite.Query", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Update — lib.sqlite.Update
@@ -54,8 +62,12 @@ export interface UpdateInputs {
   where?: Connectable<string>;
 }
 
-export function update(inputs: UpdateInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.sqlite.Update", inputs as Record<string, unknown>);
+export interface UpdateOutputs {
+  output: Record<string, unknown>;
+}
+
+export function update(inputs: UpdateInputs): DslNode<UpdateOutputs, "output"> {
+  return createNode("lib.sqlite.Update", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Delete — lib.sqlite.Delete
@@ -65,8 +77,12 @@ export interface DeleteInputs {
   where?: Connectable<string>;
 }
 
-export function delete_(inputs: DeleteInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.sqlite.Delete", inputs as Record<string, unknown>);
+export interface DeleteOutputs {
+  output: Record<string, unknown>;
+}
+
+export function delete_(inputs: DeleteInputs): DslNode<DeleteOutputs, "output"> {
+  return createNode("lib.sqlite.Delete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Execute SQL — lib.sqlite.ExecuteSQL
@@ -76,8 +92,12 @@ export interface ExecuteSQLInputs {
   parameters?: Connectable<unknown[]>;
 }
 
-export function executeSQL(inputs: ExecuteSQLInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("lib.sqlite.ExecuteSQL", inputs as Record<string, unknown>);
+export interface ExecuteSQLOutputs {
+  output: Record<string, unknown>;
+}
+
+export function executeSQL(inputs: ExecuteSQLInputs): DslNode<ExecuteSQLOutputs, "output"> {
+  return createNode("lib.sqlite.ExecuteSQL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Database Path — lib.sqlite.GetDatabasePath
@@ -85,6 +105,10 @@ export interface GetDatabasePathInputs {
   database_name?: Connectable<string>;
 }
 
-export function getDatabasePath(inputs: GetDatabasePathInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.sqlite.GetDatabasePath", inputs as Record<string, unknown>);
+export interface GetDatabasePathOutputs {
+  output: string;
+}
+
+export function getDatabasePath(inputs: GetDatabasePathInputs): DslNode<GetDatabasePathOutputs, "output"> {
+  return createNode("lib.sqlite.GetDatabasePath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

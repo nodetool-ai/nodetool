@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Sum Array — lib.numpy.statistics.SumArray
 export interface SumArrayInputs {
@@ -8,8 +8,12 @@ export interface SumArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function sumArray(inputs: SumArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.SumArray", inputs as Record<string, unknown>);
+export interface SumArrayOutputs {
+  output: unknown | number;
+}
+
+export function sumArray(inputs: SumArrayInputs): DslNode<SumArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.SumArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Mean Array — lib.numpy.statistics.MeanArray
@@ -18,8 +22,12 @@ export interface MeanArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function meanArray(inputs: MeanArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.MeanArray", inputs as Record<string, unknown>);
+export interface MeanArrayOutputs {
+  output: unknown | number;
+}
+
+export function meanArray(inputs: MeanArrayInputs): DslNode<MeanArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.MeanArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Min Array — lib.numpy.statistics.MinArray
@@ -28,8 +36,12 @@ export interface MinArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function minArray(inputs: MinArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.MinArray", inputs as Record<string, unknown>);
+export interface MinArrayOutputs {
+  output: unknown | number;
+}
+
+export function minArray(inputs: MinArrayInputs): DslNode<MinArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.MinArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Max Array — lib.numpy.statistics.MaxArray
@@ -38,8 +50,12 @@ export interface MaxArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function maxArray(inputs: MaxArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.MaxArray", inputs as Record<string, unknown>);
+export interface MaxArrayOutputs {
+  output: unknown | number;
+}
+
+export function maxArray(inputs: MaxArrayInputs): DslNode<MaxArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.MaxArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Arg Min Array — lib.numpy.statistics.ArgMinArray
@@ -48,8 +64,12 @@ export interface ArgMinArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function argMinArray(inputs: ArgMinArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.ArgMinArray", inputs as Record<string, unknown>);
+export interface ArgMinArrayOutputs {
+  output: unknown | number;
+}
+
+export function argMinArray(inputs: ArgMinArrayInputs): DslNode<ArgMinArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.ArgMinArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Arg Max Array — lib.numpy.statistics.ArgMaxArray
@@ -58,6 +78,10 @@ export interface ArgMaxArrayInputs {
   axis?: Connectable<number>;
 }
 
-export function argMaxArray(inputs: ArgMaxArrayInputs): DslNode<SingleOutput<unknown | number>> {
-  return createNode("lib.numpy.statistics.ArgMaxArray", inputs as Record<string, unknown>);
+export interface ArgMaxArrayOutputs {
+  output: unknown | number;
+}
+
+export function argMaxArray(inputs: ArgMaxArrayInputs): DslNode<ArgMaxArrayOutputs, "output"> {
+  return createNode("lib.numpy.statistics.ArgMaxArray", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

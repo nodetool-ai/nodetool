@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Spreadsheet Skill — skills.spreadsheet.SpreadsheetSkill
 export interface SpreadsheetSkillInputs {
@@ -11,9 +11,9 @@ export interface SpreadsheetSkillInputs {
 }
 
 export interface SpreadsheetSkillOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function spreadsheetSkill(inputs: SpreadsheetSkillInputs): DslNode<SpreadsheetSkillOutputs> {
-  return createNode("skills.spreadsheet.SpreadsheetSkill", inputs as Record<string, unknown>, { multiOutput: true });
+export function spreadsheetSkill(inputs: SpreadsheetSkillInputs): DslNode<SpreadsheetSkillOutputs, "text"> {
+  return createNode("skills.spreadsheet.SpreadsheetSkill", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }

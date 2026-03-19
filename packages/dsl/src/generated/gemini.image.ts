@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Image Generation — gemini.image.ImageGeneration
@@ -10,6 +10,10 @@ export interface ImageGenerationInputs {
   image?: Connectable<ImageRef>;
 }
 
-export function imageGeneration(inputs: ImageGenerationInputs): DslNode<SingleOutput<ImageRef>> {
-  return createNode("gemini.image.ImageGeneration", inputs as Record<string, unknown>);
+export interface ImageGenerationOutputs {
+  output: ImageRef;
+}
+
+export function imageGeneration(inputs: ImageGenerationInputs): DslNode<ImageGenerationOutputs, "output"> {
+  return createNode("gemini.image.ImageGeneration", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

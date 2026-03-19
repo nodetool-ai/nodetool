@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { TextRef } from "../types.js";
 
 // Length — nodetool.list.Length
@@ -8,8 +8,12 @@ export interface LengthInputs {
   values?: Connectable<unknown[]>;
 }
 
-export function length(inputs: LengthInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Length", inputs as Record<string, unknown>);
+export interface LengthOutputs {
+  output: number;
+}
+
+export function length(inputs: LengthInputs): DslNode<LengthOutputs, "output"> {
+  return createNode("nodetool.list.Length", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // List Range — nodetool.list.ListRange
@@ -19,8 +23,12 @@ export interface ListRangeInputs {
   step?: Connectable<number>;
 }
 
-export function listRange(inputs: ListRangeInputs): DslNode<SingleOutput<number[]>> {
-  return createNode("nodetool.list.ListRange", inputs as Record<string, unknown>);
+export interface ListRangeOutputs {
+  output: number[];
+}
+
+export function listRange(inputs: ListRangeInputs): DslNode<ListRangeOutputs, "output"> {
+  return createNode("nodetool.list.ListRange", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Generate Sequence — nodetool.list.GenerateSequence
@@ -30,8 +38,12 @@ export interface GenerateSequenceInputs {
   step?: Connectable<number>;
 }
 
-export function generateSequence(inputs: GenerateSequenceInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.GenerateSequence", inputs as Record<string, unknown>, { streaming: true });
+export interface GenerateSequenceOutputs {
+  output: number;
+}
+
+export function generateSequence(inputs: GenerateSequenceInputs): DslNode<GenerateSequenceOutputs, "output"> {
+  return createNode("nodetool.list.GenerateSequence", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 
 // Slice — nodetool.list.Slice
@@ -42,8 +54,12 @@ export interface SliceInputs {
   step?: Connectable<number>;
 }
 
-export function slice(inputs: SliceInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Slice", inputs as Record<string, unknown>);
+export interface SliceOutputs {
+  output: unknown[];
+}
+
+export function slice(inputs: SliceInputs): DslNode<SliceOutputs, "output"> {
+  return createNode("nodetool.list.Slice", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Select Elements — nodetool.list.SelectElements
@@ -52,8 +68,12 @@ export interface SelectElementsInputs {
   indices?: Connectable<number[]>;
 }
 
-export function selectElements(inputs: SelectElementsInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.SelectElements", inputs as Record<string, unknown>);
+export interface SelectElementsOutputs {
+  output: unknown[];
+}
+
+export function selectElements(inputs: SelectElementsInputs): DslNode<SelectElementsOutputs, "output"> {
+  return createNode("nodetool.list.SelectElements", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Element — nodetool.list.GetElement
@@ -62,8 +82,12 @@ export interface GetElementInputs {
   index?: Connectable<number>;
 }
 
-export function getElement(inputs: GetElementInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.list.GetElement", inputs as Record<string, unknown>);
+export interface GetElementOutputs {
+  output: unknown;
+}
+
+export function getElement(inputs: GetElementInputs): DslNode<GetElementOutputs, "output"> {
+  return createNode("nodetool.list.GetElement", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Append — nodetool.list.Append
@@ -72,8 +96,12 @@ export interface AppendInputs {
   value?: Connectable<unknown>;
 }
 
-export function append(inputs: AppendInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Append", inputs as Record<string, unknown>);
+export interface AppendOutputs {
+  output: unknown[];
+}
+
+export function append(inputs: AppendInputs): DslNode<AppendOutputs, "output"> {
+  return createNode("nodetool.list.Append", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extend — nodetool.list.Extend
@@ -82,8 +110,12 @@ export interface ExtendInputs {
   other_values?: Connectable<unknown[]>;
 }
 
-export function extend(inputs: ExtendInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Extend", inputs as Record<string, unknown>);
+export interface ExtendOutputs {
+  output: unknown[];
+}
+
+export function extend(inputs: ExtendInputs): DslNode<ExtendOutputs, "output"> {
+  return createNode("nodetool.list.Extend", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Dedupe — nodetool.list.Dedupe
@@ -91,8 +123,12 @@ export interface DedupeInputs {
   values?: Connectable<unknown[]>;
 }
 
-export function dedupe(inputs: DedupeInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Dedupe", inputs as Record<string, unknown>);
+export interface DedupeOutputs {
+  output: unknown[];
+}
+
+export function dedupe(inputs: DedupeInputs): DslNode<DedupeOutputs, "output"> {
+  return createNode("nodetool.list.Dedupe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Reverse — nodetool.list.Reverse
@@ -100,8 +136,12 @@ export interface ReverseInputs {
   values?: Connectable<unknown[]>;
 }
 
-export function reverse(inputs: ReverseInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Reverse", inputs as Record<string, unknown>);
+export interface ReverseOutputs {
+  output: unknown[];
+}
+
+export function reverse(inputs: ReverseInputs): DslNode<ReverseOutputs, "output"> {
+  return createNode("nodetool.list.Reverse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Randomize — nodetool.list.Randomize
@@ -109,8 +149,12 @@ export interface RandomizeInputs {
   values?: Connectable<unknown[]>;
 }
 
-export function randomize(inputs: RandomizeInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Randomize", inputs as Record<string, unknown>);
+export interface RandomizeOutputs {
+  output: unknown[];
+}
+
+export function randomize(inputs: RandomizeInputs): DslNode<RandomizeOutputs, "output"> {
+  return createNode("nodetool.list.Randomize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sort — nodetool.list.Sort
@@ -119,8 +163,12 @@ export interface SortInputs {
   order?: Connectable<unknown>;
 }
 
-export function sort(inputs: SortInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Sort", inputs as Record<string, unknown>);
+export interface SortOutputs {
+  output: unknown[];
+}
+
+export function sort(inputs: SortInputs): DslNode<SortOutputs, "output"> {
+  return createNode("nodetool.list.Sort", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Intersection — nodetool.list.Intersection
@@ -129,8 +177,12 @@ export interface IntersectionInputs {
   list2?: Connectable<unknown[]>;
 }
 
-export function intersection(inputs: IntersectionInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Intersection", inputs as Record<string, unknown>);
+export interface IntersectionOutputs {
+  output: unknown[];
+}
+
+export function intersection(inputs: IntersectionInputs): DslNode<IntersectionOutputs, "output"> {
+  return createNode("nodetool.list.Intersection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Union — nodetool.list.Union
@@ -139,8 +191,12 @@ export interface UnionInputs {
   list2?: Connectable<unknown[]>;
 }
 
-export function union(inputs: UnionInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Union", inputs as Record<string, unknown>);
+export interface UnionOutputs {
+  output: unknown[];
+}
+
+export function union(inputs: UnionInputs): DslNode<UnionOutputs, "output"> {
+  return createNode("nodetool.list.Union", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Difference — nodetool.list.Difference
@@ -149,8 +205,12 @@ export interface DifferenceInputs {
   list2?: Connectable<unknown[]>;
 }
 
-export function difference(inputs: DifferenceInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Difference", inputs as Record<string, unknown>);
+export interface DifferenceOutputs {
+  output: unknown[];
+}
+
+export function difference(inputs: DifferenceInputs): DslNode<DifferenceOutputs, "output"> {
+  return createNode("nodetool.list.Difference", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Chunk — nodetool.list.Chunk
@@ -159,8 +219,12 @@ export interface ChunkInputs {
   chunk_size?: Connectable<number>;
 }
 
-export function chunk(inputs: ChunkInputs): DslNode<SingleOutput<unknown[][]>> {
-  return createNode("nodetool.list.Chunk", inputs as Record<string, unknown>);
+export interface ChunkOutputs {
+  output: unknown[][];
+}
+
+export function chunk(inputs: ChunkInputs): DslNode<ChunkOutputs, "output"> {
+  return createNode("nodetool.list.Chunk", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sum — nodetool.list.Sum
@@ -168,8 +232,12 @@ export interface SumInputs {
   values?: Connectable<number[]>;
 }
 
-export function sum(inputs: SumInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Sum", inputs as Record<string, unknown>);
+export interface SumOutputs {
+  output: number;
+}
+
+export function sum(inputs: SumInputs): DslNode<SumOutputs, "output"> {
+  return createNode("nodetool.list.Sum", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Average — nodetool.list.Average
@@ -177,8 +245,12 @@ export interface AverageInputs {
   values?: Connectable<number[]>;
 }
 
-export function average(inputs: AverageInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Average", inputs as Record<string, unknown>);
+export interface AverageOutputs {
+  output: number;
+}
+
+export function average(inputs: AverageInputs): DslNode<AverageOutputs, "output"> {
+  return createNode("nodetool.list.Average", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Minimum — nodetool.list.Minimum
@@ -186,8 +258,12 @@ export interface MinimumInputs {
   values?: Connectable<number[]>;
 }
 
-export function minimum(inputs: MinimumInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Minimum", inputs as Record<string, unknown>);
+export interface MinimumOutputs {
+  output: number;
+}
+
+export function minimum(inputs: MinimumInputs): DslNode<MinimumOutputs, "output"> {
+  return createNode("nodetool.list.Minimum", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Maximum — nodetool.list.Maximum
@@ -195,8 +271,12 @@ export interface MaximumInputs {
   values?: Connectable<number[]>;
 }
 
-export function maximum(inputs: MaximumInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Maximum", inputs as Record<string, unknown>);
+export interface MaximumOutputs {
+  output: number;
+}
+
+export function maximum(inputs: MaximumInputs): DslNode<MaximumOutputs, "output"> {
+  return createNode("nodetool.list.Maximum", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Product — nodetool.list.Product
@@ -204,8 +284,12 @@ export interface ProductInputs {
   values?: Connectable<number[]>;
 }
 
-export function product(inputs: ProductInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.list.Product", inputs as Record<string, unknown>);
+export interface ProductOutputs {
+  output: number;
+}
+
+export function product(inputs: ProductInputs): DslNode<ProductOutputs, "output"> {
+  return createNode("nodetool.list.Product", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Flatten — nodetool.list.Flatten
@@ -214,8 +298,12 @@ export interface FlattenInputs {
   max_depth?: Connectable<number>;
 }
 
-export function flatten(inputs: FlattenInputs): DslNode<SingleOutput<unknown[]>> {
-  return createNode("nodetool.list.Flatten", inputs as Record<string, unknown>);
+export interface FlattenOutputs {
+  output: unknown[];
+}
+
+export function flatten(inputs: FlattenInputs): DslNode<FlattenOutputs, "output"> {
+  return createNode("nodetool.list.Flatten", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save List — nodetool.list.SaveList
@@ -224,6 +312,10 @@ export interface SaveListInputs {
   name?: Connectable<string>;
 }
 
-export function saveList(inputs: SaveListInputs): DslNode<SingleOutput<TextRef>> {
-  return createNode("nodetool.list.SaveList", inputs as Record<string, unknown>);
+export interface SaveListOutputs {
+  output: TextRef;
+}
+
+export function saveList(inputs: SaveListInputs): DslNode<SaveListOutputs, "output"> {
+  return createNode("nodetool.list.SaveList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

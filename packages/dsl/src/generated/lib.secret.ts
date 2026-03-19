@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Get Secret — lib.secret.GetSecret
 export interface GetSecretInputs {
@@ -8,6 +8,10 @@ export interface GetSecretInputs {
   default?: Connectable<string>;
 }
 
-export function getSecret(inputs: GetSecretInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>);
+export interface GetSecretOutputs {
+  output: string;
+}
+
+export function getSecret(inputs: GetSecretInputs): DslNode<GetSecretOutputs, "output"> {
+  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

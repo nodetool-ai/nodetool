@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { AudioRef, TextRef, FolderRef } from "../types.js";
 
 // To String — nodetool.text.ToString
@@ -9,8 +9,12 @@ export interface ToStringInputs {
   mode?: Connectable<unknown>;
 }
 
-export function toString_(inputs: ToStringInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.ToString", inputs as Record<string, unknown>);
+export interface ToStringOutputs {
+  output: string;
+}
+
+export function toString_(inputs: ToStringInputs): DslNode<ToStringOutputs, "output"> {
+  return createNode("nodetool.text.ToString", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Concatenate Text — nodetool.text.Concat
@@ -19,8 +23,12 @@ export interface ConcatInputs {
   b?: Connectable<string>;
 }
 
-export function concat(inputs: ConcatInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Concat", inputs as Record<string, unknown>);
+export interface ConcatOutputs {
+  output: string;
+}
+
+export function concat(inputs: ConcatInputs): DslNode<ConcatOutputs, "output"> {
+  return createNode("nodetool.text.Concat", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Join — nodetool.text.Join
@@ -29,8 +37,12 @@ export interface JoinInputs {
   separator?: Connectable<string>;
 }
 
-export function join(inputs: JoinInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Join", inputs as Record<string, unknown>);
+export interface JoinOutputs {
+  output: string;
+}
+
+export function join(inputs: JoinInputs): DslNode<JoinOutputs, "output"> {
+  return createNode("nodetool.text.Join", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Replace Text — nodetool.text.Replace
@@ -40,8 +52,12 @@ export interface ReplaceInputs {
   new?: Connectable<string>;
 }
 
-export function replace(inputs: ReplaceInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Replace", inputs as Record<string, unknown>);
+export interface ReplaceOutputs {
+  output: string;
+}
+
+export function replace(inputs: ReplaceInputs): DslNode<ReplaceOutputs, "output"> {
+  return createNode("nodetool.text.Replace", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Collect — nodetool.text.Collect
@@ -50,8 +66,12 @@ export interface CollectInputs {
   separator?: Connectable<string>;
 }
 
-export function collect(inputs: CollectInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Collect", inputs as Record<string, unknown>);
+export interface CollectOutputs {
+  output: string;
+}
+
+export function collect(inputs: CollectInputs): DslNode<CollectOutputs, "output"> {
+  return createNode("nodetool.text.Collect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Format Text — nodetool.text.FormatText
@@ -59,8 +79,12 @@ export interface FormatTextInputs {
   template?: Connectable<string>;
 }
 
-export function formatText(inputs: FormatTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.FormatText", inputs as Record<string, unknown>);
+export interface FormatTextOutputs {
+  output: string;
+}
+
+export function formatText(inputs: FormatTextInputs): DslNode<FormatTextOutputs, "output"> {
+  return createNode("nodetool.text.FormatText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Template — nodetool.text.Template
@@ -69,8 +93,12 @@ export interface TemplateInputs {
   values?: Connectable<unknown>;
 }
 
-export function template(inputs: TemplateInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Template", inputs as Record<string, unknown>);
+export interface TemplateOutputs {
+  output: string;
+}
+
+export function template(inputs: TemplateInputs): DslNode<TemplateOutputs, "output"> {
+  return createNode("nodetool.text.Template", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split Text — nodetool.text.Split
@@ -79,8 +107,12 @@ export interface SplitInputs {
   delimiter?: Connectable<string>;
 }
 
-export function split(inputs: SplitInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.Split", inputs as Record<string, unknown>);
+export interface SplitOutputs {
+  output: string[];
+}
+
+export function split(inputs: SplitInputs): DslNode<SplitOutputs, "output"> {
+  return createNode("nodetool.text.Split", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Text — nodetool.text.Extract
@@ -90,8 +122,12 @@ export interface ExtractInputs {
   end?: Connectable<number>;
 }
 
-export function extract(inputs: ExtractInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Extract", inputs as Record<string, unknown>);
+export interface ExtractOutputs {
+  output: string;
+}
+
+export function extract(inputs: ExtractInputs): DslNode<ExtractOutputs, "output"> {
+  return createNode("nodetool.text.Extract", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split Text into Chunks — nodetool.text.Chunk
@@ -102,8 +138,12 @@ export interface ChunkInputs {
   separator?: Connectable<string>;
 }
 
-export function chunk(inputs: ChunkInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.Chunk", inputs as Record<string, unknown>);
+export interface ChunkOutputs {
+  output: string[];
+}
+
+export function chunk(inputs: ChunkInputs): DslNode<ChunkOutputs, "output"> {
+  return createNode("nodetool.text.Chunk", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Regex Groups — nodetool.text.ExtractRegex
@@ -115,8 +155,12 @@ export interface ExtractRegexInputs {
   multiline?: Connectable<boolean>;
 }
 
-export function extractRegex(inputs: ExtractRegexInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.ExtractRegex", inputs as Record<string, unknown>);
+export interface ExtractRegexOutputs {
+  output: string[];
+}
+
+export function extractRegex(inputs: ExtractRegexInputs): DslNode<ExtractRegexOutputs, "output"> {
+  return createNode("nodetool.text.ExtractRegex", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Find All Regex Matches — nodetool.text.FindAllRegex
@@ -128,8 +172,12 @@ export interface FindAllRegexInputs {
   multiline?: Connectable<boolean>;
 }
 
-export function findAllRegex(inputs: FindAllRegexInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.FindAllRegex", inputs as Record<string, unknown>);
+export interface FindAllRegexOutputs {
+  output: string[];
+}
+
+export function findAllRegex(inputs: FindAllRegexInputs): DslNode<FindAllRegexOutputs, "output"> {
+  return createNode("nodetool.text.FindAllRegex", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Parse JSON String — nodetool.text.ParseJSON
@@ -137,8 +185,12 @@ export interface ParseJSONInputs {
   text?: Connectable<string>;
 }
 
-export function parseJSON(inputs: ParseJSONInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.text.ParseJSON", inputs as Record<string, unknown>);
+export interface ParseJSONOutputs {
+  output: unknown;
+}
+
+export function parseJSON(inputs: ParseJSONInputs): DslNode<ParseJSONOutputs, "output"> {
+  return createNode("nodetool.text.ParseJSON", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract JSON — nodetool.text.ExtractJSON
@@ -148,8 +200,12 @@ export interface ExtractJSONInputs {
   find_all?: Connectable<boolean>;
 }
 
-export function extractJSON(inputs: ExtractJSONInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.text.ExtractJSON", inputs as Record<string, unknown>);
+export interface ExtractJSONOutputs {
+  output: unknown;
+}
+
+export function extractJSON(inputs: ExtractJSONInputs): DslNode<ExtractJSONOutputs, "output"> {
+  return createNode("nodetool.text.ExtractJSON", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Find Regex Matches — nodetool.text.RegexMatch
@@ -159,8 +215,12 @@ export interface RegexMatchInputs {
   group?: Connectable<number>;
 }
 
-export function regexMatch(inputs: RegexMatchInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.RegexMatch", inputs as Record<string, unknown>);
+export interface RegexMatchOutputs {
+  output: string[];
+}
+
+export function regexMatch(inputs: RegexMatchInputs): DslNode<RegexMatchOutputs, "output"> {
+  return createNode("nodetool.text.RegexMatch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Replace with Regex — nodetool.text.RegexReplace
@@ -171,8 +231,12 @@ export interface RegexReplaceInputs {
   count?: Connectable<number>;
 }
 
-export function regexReplace(inputs: RegexReplaceInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.RegexReplace", inputs as Record<string, unknown>);
+export interface RegexReplaceOutputs {
+  output: string;
+}
+
+export function regexReplace(inputs: RegexReplaceInputs): DslNode<RegexReplaceOutputs, "output"> {
+  return createNode("nodetool.text.RegexReplace", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split with Regex — nodetool.text.RegexSplit
@@ -182,8 +246,12 @@ export interface RegexSplitInputs {
   maxsplit?: Connectable<number>;
 }
 
-export function regexSplit(inputs: RegexSplitInputs): DslNode<SingleOutput<string[]>> {
-  return createNode("nodetool.text.RegexSplit", inputs as Record<string, unknown>);
+export interface RegexSplitOutputs {
+  output: string[];
+}
+
+export function regexSplit(inputs: RegexSplitInputs): DslNode<RegexSplitOutputs, "output"> {
+  return createNode("nodetool.text.RegexSplit", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Validate with Regex — nodetool.text.RegexValidate
@@ -192,8 +260,12 @@ export interface RegexValidateInputs {
   pattern?: Connectable<string>;
 }
 
-export function regexValidate(inputs: RegexValidateInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.RegexValidate", inputs as Record<string, unknown>);
+export interface RegexValidateOutputs {
+  output: boolean;
+}
+
+export function regexValidate(inputs: RegexValidateInputs): DslNode<RegexValidateOutputs, "output"> {
+  return createNode("nodetool.text.RegexValidate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Compare Text — nodetool.text.Compare
@@ -204,8 +276,12 @@ export interface CompareInputs {
   trim_whitespace?: Connectable<boolean>;
 }
 
-export function compare(inputs: CompareInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Compare", inputs as Record<string, unknown>);
+export interface CompareOutputs {
+  output: string;
+}
+
+export function compare(inputs: CompareInputs): DslNode<CompareOutputs, "output"> {
+  return createNode("nodetool.text.Compare", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Equals — nodetool.text.Equals
@@ -216,8 +292,12 @@ export interface EqualsInputs {
   trim_whitespace?: Connectable<boolean>;
 }
 
-export function equals(inputs: EqualsInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.Equals", inputs as Record<string, unknown>);
+export interface EqualsOutputs {
+  output: boolean;
+}
+
+export function equals(inputs: EqualsInputs): DslNode<EqualsOutputs, "output"> {
+  return createNode("nodetool.text.Equals", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // To Uppercase — nodetool.text.ToUppercase
@@ -225,8 +305,12 @@ export interface ToUppercaseInputs {
   text?: Connectable<string>;
 }
 
-export function toUppercase(inputs: ToUppercaseInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.ToUppercase", inputs as Record<string, unknown>);
+export interface ToUppercaseOutputs {
+  output: string;
+}
+
+export function toUppercase(inputs: ToUppercaseInputs): DslNode<ToUppercaseOutputs, "output"> {
+  return createNode("nodetool.text.ToUppercase", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // To Lowercase — nodetool.text.ToLowercase
@@ -234,8 +318,12 @@ export interface ToLowercaseInputs {
   text?: Connectable<string>;
 }
 
-export function toLowercase(inputs: ToLowercaseInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.ToLowercase", inputs as Record<string, unknown>);
+export interface ToLowercaseOutputs {
+  output: string;
+}
+
+export function toLowercase(inputs: ToLowercaseInputs): DslNode<ToLowercaseOutputs, "output"> {
+  return createNode("nodetool.text.ToLowercase", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // To Title Case — nodetool.text.ToTitlecase
@@ -243,8 +331,12 @@ export interface ToTitlecaseInputs {
   text?: Connectable<string>;
 }
 
-export function toTitlecase(inputs: ToTitlecaseInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.ToTitlecase", inputs as Record<string, unknown>);
+export interface ToTitlecaseOutputs {
+  output: string;
+}
+
+export function toTitlecase(inputs: ToTitlecaseInputs): DslNode<ToTitlecaseOutputs, "output"> {
+  return createNode("nodetool.text.ToTitlecase", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Capitalize Text — nodetool.text.CapitalizeText
@@ -252,8 +344,12 @@ export interface CapitalizeTextInputs {
   text?: Connectable<string>;
 }
 
-export function capitalizeText(inputs: CapitalizeTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.CapitalizeText", inputs as Record<string, unknown>);
+export interface CapitalizeTextOutputs {
+  output: string;
+}
+
+export function capitalizeText(inputs: CapitalizeTextInputs): DslNode<CapitalizeTextOutputs, "output"> {
+  return createNode("nodetool.text.CapitalizeText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Slice Text — nodetool.text.Slice
@@ -264,8 +360,12 @@ export interface SliceInputs {
   step?: Connectable<number>;
 }
 
-export function slice(inputs: SliceInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Slice", inputs as Record<string, unknown>);
+export interface SliceOutputs {
+  output: string;
+}
+
+export function slice(inputs: SliceInputs): DslNode<SliceOutputs, "output"> {
+  return createNode("nodetool.text.Slice", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Starts With — nodetool.text.StartsWith
@@ -274,8 +374,12 @@ export interface StartsWithInputs {
   prefix?: Connectable<string>;
 }
 
-export function startsWith(inputs: StartsWithInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.StartsWith", inputs as Record<string, unknown>);
+export interface StartsWithOutputs {
+  output: boolean;
+}
+
+export function startsWith(inputs: StartsWithInputs): DslNode<StartsWithOutputs, "output"> {
+  return createNode("nodetool.text.StartsWith", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Ends With — nodetool.text.EndsWith
@@ -284,8 +388,12 @@ export interface EndsWithInputs {
   suffix?: Connectable<string>;
 }
 
-export function endsWith(inputs: EndsWithInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.EndsWith", inputs as Record<string, unknown>);
+export interface EndsWithOutputs {
+  output: boolean;
+}
+
+export function endsWith(inputs: EndsWithInputs): DslNode<EndsWithOutputs, "output"> {
+  return createNode("nodetool.text.EndsWith", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Contains Text — nodetool.text.Contains
@@ -297,8 +405,12 @@ export interface ContainsInputs {
   match_mode?: Connectable<unknown>;
 }
 
-export function contains(inputs: ContainsInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.Contains", inputs as Record<string, unknown>);
+export interface ContainsOutputs {
+  output: boolean;
+}
+
+export function contains(inputs: ContainsInputs): DslNode<ContainsOutputs, "output"> {
+  return createNode("nodetool.text.Contains", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Trim Whitespace — nodetool.text.TrimWhitespace
@@ -308,8 +420,12 @@ export interface TrimWhitespaceInputs {
   trim_end?: Connectable<boolean>;
 }
 
-export function trimWhitespace(inputs: TrimWhitespaceInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.TrimWhitespace", inputs as Record<string, unknown>);
+export interface TrimWhitespaceOutputs {
+  output: string;
+}
+
+export function trimWhitespace(inputs: TrimWhitespaceInputs): DslNode<TrimWhitespaceOutputs, "output"> {
+  return createNode("nodetool.text.TrimWhitespace", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Collapse Whitespace — nodetool.text.CollapseWhitespace
@@ -320,8 +436,12 @@ export interface CollapseWhitespaceInputs {
   trim_edges?: Connectable<boolean>;
 }
 
-export function collapseWhitespace(inputs: CollapseWhitespaceInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.CollapseWhitespace", inputs as Record<string, unknown>);
+export interface CollapseWhitespaceOutputs {
+  output: string;
+}
+
+export function collapseWhitespace(inputs: CollapseWhitespaceInputs): DslNode<CollapseWhitespaceOutputs, "output"> {
+  return createNode("nodetool.text.CollapseWhitespace", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Is Empty — nodetool.text.IsEmpty
@@ -330,8 +450,12 @@ export interface IsEmptyInputs {
   trim_whitespace?: Connectable<boolean>;
 }
 
-export function isEmpty(inputs: IsEmptyInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.IsEmpty", inputs as Record<string, unknown>);
+export interface IsEmptyOutputs {
+  output: boolean;
+}
+
+export function isEmpty(inputs: IsEmptyInputs): DslNode<IsEmptyOutputs, "output"> {
+  return createNode("nodetool.text.IsEmpty", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Remove Punctuation — nodetool.text.RemovePunctuation
@@ -341,8 +465,12 @@ export interface RemovePunctuationInputs {
   punctuation?: Connectable<string>;
 }
 
-export function removePunctuation(inputs: RemovePunctuationInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.RemovePunctuation", inputs as Record<string, unknown>);
+export interface RemovePunctuationOutputs {
+  output: string;
+}
+
+export function removePunctuation(inputs: RemovePunctuationInputs): DslNode<RemovePunctuationOutputs, "output"> {
+  return createNode("nodetool.text.RemovePunctuation", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Strip Accents — nodetool.text.StripAccents
@@ -351,8 +479,12 @@ export interface StripAccentsInputs {
   preserve_non_ascii?: Connectable<boolean>;
 }
 
-export function stripAccents(inputs: StripAccentsInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.StripAccents", inputs as Record<string, unknown>);
+export interface StripAccentsOutputs {
+  output: string;
+}
+
+export function stripAccents(inputs: StripAccentsInputs): DslNode<StripAccentsOutputs, "output"> {
+  return createNode("nodetool.text.StripAccents", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Slugify — nodetool.text.Slugify
@@ -363,8 +495,12 @@ export interface SlugifyInputs {
   allow_unicode?: Connectable<boolean>;
 }
 
-export function slugify(inputs: SlugifyInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.Slugify", inputs as Record<string, unknown>);
+export interface SlugifyOutputs {
+  output: string;
+}
+
+export function slugify(inputs: SlugifyInputs): DslNode<SlugifyOutputs, "output"> {
+  return createNode("nodetool.text.Slugify", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Check Length — nodetool.text.HasLength
@@ -375,8 +511,12 @@ export interface HasLengthInputs {
   exact_length?: Connectable<number>;
 }
 
-export function hasLength(inputs: HasLengthInputs): DslNode<SingleOutput<boolean>> {
-  return createNode("nodetool.text.HasLength", inputs as Record<string, unknown>);
+export interface HasLengthOutputs {
+  output: boolean;
+}
+
+export function hasLength(inputs: HasLengthInputs): DslNode<HasLengthOutputs, "output"> {
+  return createNode("nodetool.text.HasLength", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Truncate Text — nodetool.text.TruncateText
@@ -386,8 +526,12 @@ export interface TruncateTextInputs {
   ellipsis?: Connectable<string>;
 }
 
-export function truncateText(inputs: TruncateTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.TruncateText", inputs as Record<string, unknown>);
+export interface TruncateTextOutputs {
+  output: string;
+}
+
+export function truncateText(inputs: TruncateTextInputs): DslNode<TruncateTextOutputs, "output"> {
+  return createNode("nodetool.text.TruncateText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Pad Text — nodetool.text.PadText
@@ -398,8 +542,12 @@ export interface PadTextInputs {
   direction?: Connectable<unknown>;
 }
 
-export function padText(inputs: PadTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.PadText", inputs as Record<string, unknown>);
+export interface PadTextOutputs {
+  output: string;
+}
+
+export function padText(inputs: PadTextInputs): DslNode<PadTextOutputs, "output"> {
+  return createNode("nodetool.text.PadText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Measure Length — nodetool.text.Length
@@ -409,8 +557,12 @@ export interface LengthInputs {
   trim_whitespace?: Connectable<boolean>;
 }
 
-export function length(inputs: LengthInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.text.Length", inputs as Record<string, unknown>);
+export interface LengthOutputs {
+  output: number;
+}
+
+export function length(inputs: LengthInputs): DslNode<LengthOutputs, "output"> {
+  return createNode("nodetool.text.Length", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Index Of — nodetool.text.IndexOf
@@ -423,8 +575,12 @@ export interface IndexOfInputs {
   search_from_end?: Connectable<boolean>;
 }
 
-export function indexOf(inputs: IndexOfInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.text.IndexOf", inputs as Record<string, unknown>);
+export interface IndexOfOutputs {
+  output: number;
+}
+
+export function indexOf(inputs: IndexOfInputs): DslNode<IndexOfOutputs, "output"> {
+  return createNode("nodetool.text.IndexOf", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Surround With — nodetool.text.SurroundWith
@@ -435,8 +591,12 @@ export interface SurroundWithInputs {
   skip_if_wrapped?: Connectable<boolean>;
 }
 
-export function surroundWith(inputs: SurroundWithInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.SurroundWith", inputs as Record<string, unknown>);
+export interface SurroundWithOutputs {
+  output: string;
+}
+
+export function surroundWith(inputs: SurroundWithInputs): DslNode<SurroundWithOutputs, "output"> {
+  return createNode("nodetool.text.SurroundWith", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Count Tokens — nodetool.text.CountTokens
@@ -445,8 +605,12 @@ export interface CountTokensInputs {
   encoding?: Connectable<unknown>;
 }
 
-export function countTokens(inputs: CountTokensInputs): DslNode<SingleOutput<number>> {
-  return createNode("nodetool.text.CountTokens", inputs as Record<string, unknown>);
+export interface CountTokensOutputs {
+  output: number;
+}
+
+export function countTokens(inputs: CountTokensInputs): DslNode<CountTokensOutputs, "output"> {
+  return createNode("nodetool.text.CountTokens", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // HTML to Text — nodetool.text.HtmlToText
@@ -458,8 +622,12 @@ export interface HtmlToTextInputs {
   ignore_mailto_links?: Connectable<boolean>;
 }
 
-export function htmlToText(inputs: HtmlToTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.HtmlToText", inputs as Record<string, unknown>);
+export interface HtmlToTextOutputs {
+  output: string;
+}
+
+export function htmlToText(inputs: HtmlToTextInputs): DslNode<HtmlToTextOutputs, "output"> {
+  return createNode("nodetool.text.HtmlToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Automatic Speech Recognition — nodetool.text.AutomaticSpeechRecognition
@@ -469,11 +637,11 @@ export interface AutomaticSpeechRecognitionInputs {
 }
 
 export interface AutomaticSpeechRecognitionOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function automaticSpeechRecognition(inputs: AutomaticSpeechRecognitionInputs): DslNode<AutomaticSpeechRecognitionOutputs> {
-  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs as Record<string, unknown>, { multiOutput: true });
+export function automaticSpeechRecognition(inputs: AutomaticSpeechRecognitionInputs): DslNode<AutomaticSpeechRecognitionOutputs, "text"> {
+  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }
 
 // Embedding — nodetool.text.Embedding
@@ -483,8 +651,12 @@ export interface EmbeddingInputs {
   chunk_size?: Connectable<number>;
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.text.Embedding", inputs as Record<string, unknown>);
+export interface EmbeddingOutputs {
+  output: unknown;
+}
+
+export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
+  return createNode("nodetool.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Text File — nodetool.text.SaveTextFile
@@ -494,8 +666,12 @@ export interface SaveTextFileInputs {
   name?: Connectable<string>;
 }
 
-export function saveTextFile(inputs: SaveTextFileInputs): DslNode<SingleOutput<TextRef>> {
-  return createNode("nodetool.text.SaveTextFile", inputs as Record<string, unknown>);
+export interface SaveTextFileOutputs {
+  output: TextRef;
+}
+
+export function saveTextFile(inputs: SaveTextFileInputs): DslNode<SaveTextFileOutputs, "output"> {
+  return createNode("nodetool.text.SaveTextFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Text — nodetool.text.SaveText
@@ -505,8 +681,12 @@ export interface SaveTextInputs {
   name?: Connectable<string>;
 }
 
-export function saveText(inputs: SaveTextInputs): DslNode<SingleOutput<TextRef>> {
-  return createNode("nodetool.text.SaveText", inputs as Record<string, unknown>);
+export interface SaveTextOutputs {
+  output: TextRef;
+}
+
+export function saveText(inputs: SaveTextInputs): DslNode<SaveTextOutputs, "output"> {
+  return createNode("nodetool.text.SaveText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Load Text Folder — nodetool.text.LoadTextFolder
@@ -518,12 +698,12 @@ export interface LoadTextFolderInputs {
 }
 
 export interface LoadTextFolderOutputs {
-  text: OutputHandle<string>;
-  path: OutputHandle<string>;
+  text: string;
+  path: string;
 }
 
 export function loadTextFolder(inputs: LoadTextFolderInputs): DslNode<LoadTextFolderOutputs> {
-  return createNode("nodetool.text.LoadTextFolder", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.text.LoadTextFolder", inputs as Record<string, unknown>, { outputNames: ["text", "path"], streaming: true });
 }
 
 // Load Text Assets — nodetool.text.LoadTextAssets
@@ -532,12 +712,12 @@ export interface LoadTextAssetsInputs {
 }
 
 export interface LoadTextAssetsOutputs {
-  text: OutputHandle<TextRef>;
-  name: OutputHandle<string>;
+  text: TextRef;
+  name: string;
 }
 
 export function loadTextAssets(inputs: LoadTextAssetsInputs): DslNode<LoadTextAssetsOutputs> {
-  return createNode("nodetool.text.LoadTextAssets", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.text.LoadTextAssets", inputs as Record<string, unknown>, { outputNames: ["text", "name"], streaming: true });
 }
 
 // Filter String — nodetool.text.FilterString
@@ -547,8 +727,12 @@ export interface FilterStringInputs {
   criteria?: Connectable<string>;
 }
 
-export function filterString(inputs: FilterStringInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.FilterString", inputs as Record<string, unknown>, { streaming: true });
+export interface FilterStringOutputs {
+  output: string;
+}
+
+export function filterString(inputs: FilterStringInputs): DslNode<FilterStringOutputs, "output"> {
+  return createNode("nodetool.text.FilterString", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 
 // Filter Regex String — nodetool.text.FilterRegexString
@@ -558,6 +742,10 @@ export interface FilterRegexStringInputs {
   full_match?: Connectable<boolean>;
 }
 
-export function filterRegexString(inputs: FilterRegexStringInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.text.FilterRegexString", inputs as Record<string, unknown>, { streaming: true });
+export interface FilterRegexStringOutputs {
+  output: string;
+}
+
+export function filterRegexString(inputs: FilterRegexStringInputs): DslNode<FilterRegexStringOutputs, "output"> {
+  return createNode("nodetool.text.FilterRegexString", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
