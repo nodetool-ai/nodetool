@@ -1,8 +1,8 @@
 /**
- * Universal Code Node — sandboxed JavaScript execution via isolated-vm.
+ * Universal Code Node — JavaScript execution via Function constructor.
  *
- * Runs user code in a V8 isolate with hard memory and CPU limits.
- * Dynamic inputs are injected as globals; the return value defines outputs.
+ * Runs user code in the same V8 VM using `new Function()`.
+ * Dynamic inputs are injected as function parameters; the return value defines outputs.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
@@ -11,17 +11,11 @@
  *   const upper = text.toUpperCase();
  *   return { sum, upper };
  *   // outputs: { sum: 15, upper: "HELLO" }
- *
- * Limitations (by design):
- *   - No Node.js APIs (fs, net, child_process, etc.)
- *   - No require() or import()
- *   - No access to host process
- *   - Memory capped at 128MB per execution
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
 
-/** JS keywords that cannot be used as variable names in the isolate. */
+/** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
   "abstract", "arguments", "await", "boolean", "break", "byte", "case", "catch",
   "char", "class", "const", "continue", "debugger", "default", "delete", "do",
@@ -37,30 +31,11 @@ const JS_RESERVED = new Set([
 /** Statement keywords that should never be wrapped with `return (...)`. */
 const STATEMENT_KEYWORDS = /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
 
-/** Memory limit per isolate in MB. */
-const ISOLATE_MEMORY_MB = 128;
-
-/**
- * Lazily load isolated-vm to avoid loading the native addon at import time.
- *
- * We return `any` here because isolated-vm uses `export = IsolatedVM` (CommonJS
- * `module.exports` style). TypeScript's type for `await import("isolated-vm")`
- * is `typeof IsolatedVM` (the namespace itself) but at runtime in Node.js ESM
- * the CJS `module.exports` is placed under a `.default` wrapper. We normalise
- * both layouts so callers can use `ivm.Isolate` / `ivm.ExternalCopy` directly.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loadIvm(): Promise<any> {
-  const mod = await import("isolated-vm");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (mod as any).default ?? mod;
-}
-
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly title = "Code";
   static readonly description =
-    "Execute JavaScript code in a sandboxed V8 isolate. Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic, sandbox";
+    "Execute JavaScript code. Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic";
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
@@ -70,10 +45,9 @@ export class CodeNode extends BaseNode {
     default: "return {};",
     title: "Code",
     description:
-      "JavaScript code to execute in a sandboxed V8 isolate. " +
-      "Dynamic inputs are available as global variables. " +
-      "Return an object — its keys become output handles. " +
-      "No Node.js APIs (fs, net, etc.) — pure JavaScript only.",
+      "JavaScript code to execute. " +
+      "Dynamic inputs are available as variables. " +
+      "Return an object — its keys become output handles.",
   })
   declare code: string;
 
@@ -88,7 +62,6 @@ export class CodeNode extends BaseNode {
   async process(
     inputs: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const ivm = await loadIvm();
     const code = String(inputs.code ?? this.code ?? "return {};");
     const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
 
@@ -98,45 +71,17 @@ export class CodeNode extends BaseNode {
     // Build the function body with implicit return support.
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
 
-    // Wrap in an async IIFE that returns JSON-serializable result.
-    const wrappedCode = `
-      (async function() {
-        ${body}
-      })().then(r => JSON.stringify(r === undefined ? null : r));
-    `;
-
-    const isolate = new ivm.Isolate({ memoryLimit: ISOLATE_MEMORY_MB });
     try {
-      const context = await isolate.createContext();
-      const jail = context.global;
-
-      // Inject dynamic inputs as globals.
-      for (const [key, value] of Object.entries(dynamicInputs)) {
-        await jail.set(key, new ivm.ExternalCopy(deepCopyable(value)).copyInto());
-      }
-
-      // Inject minimal safe globals.
-      await injectSafeGlobals(jail, ivm);
-
-      const timeoutMs = timeout > 0 ? timeout * 1000 : undefined;
-      const resultJson = await context.eval(wrappedCode, {
-        timeout: timeoutMs,
-        promise: true,
-      });
-
-      const result = resultJson != null ? JSON.parse(resultJson as string) : null;
+      const result = await executeCode(body, dynamicInputs, timeout);
       return normalizeOutput(result);
     } catch (err) {
       throw translateError(err);
-    } finally {
-      isolate.dispose();
     }
   }
 
   async *genProcess(
     inputs: Record<string, unknown>,
   ): AsyncGenerator<Record<string, unknown>> {
-    const ivm = await loadIvm();
     const code = String(inputs.code ?? this.code ?? "return {};");
     const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
 
@@ -146,37 +91,18 @@ export class CodeNode extends BaseNode {
       return;
     }
 
-    // For streaming: collect all yielded values inside the isolate,
-    // then return them as an array. True streaming across the isolate
-    // boundary would require callbacks which add complexity.
+    // For streaming: collect all yielded values, then emit them.
     const dynamicInputs = extractDynamicInputs(inputs);
 
-    const wrappedCode = `
-      (async function() {
-        const __yielded = [];
-        function yield_(value) { __yielded.push(value); }
-        ${code.replace(/\byield\b/g, "yield_")}
-        return JSON.stringify(__yielded);
-      })();
+    const wrappedBody = `
+      const __yielded = [];
+      function yield_(value) { __yielded.push(value); }
+      ${code.replace(/\byield\b/g, "yield_")}
+      return __yielded;
     `;
 
-    const isolate = new ivm.Isolate({ memoryLimit: ISOLATE_MEMORY_MB });
     try {
-      const context = await isolate.createContext();
-      const jail = context.global;
-
-      for (const [key, value] of Object.entries(dynamicInputs)) {
-        await jail.set(key, new ivm.ExternalCopy(deepCopyable(value)).copyInto());
-      }
-      await injectSafeGlobals(jail, ivm);
-
-      const timeoutMs = timeout > 0 ? timeout * 1000 : undefined;
-      const resultJson = await context.eval(wrappedCode, {
-        timeout: timeoutMs,
-        promise: true,
-      });
-
-      const items: unknown[] = JSON.parse(resultJson as string);
+      const items = await executeCode(wrappedBody, dynamicInputs, timeout) as unknown[];
       for (const item of items) {
         if (item !== null && item !== undefined) {
           yield normalizeOutput(item);
@@ -184,10 +110,49 @@ export class CodeNode extends BaseNode {
       }
     } catch (err) {
       throw translateError(err);
-    } finally {
-      isolate.dispose();
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Execution
+// ---------------------------------------------------------------------------
+
+/**
+ * Execute user code via AsyncFunction constructor.
+ * Dynamic inputs are passed as named function parameters.
+ */
+async function executeCode(
+  body: string,
+  dynamicInputs: Record<string, unknown>,
+  timeoutSeconds: number,
+): Promise<unknown> {
+  const paramNames = Object.keys(dynamicInputs);
+  const paramValues = Object.values(dynamicInputs).map(deepCopyable);
+
+  // Provide a no-op console to prevent ReferenceError if user code calls console.log
+  const consoleShim = { log() {}, warn() {}, error() {}, info() {}, debug() {} };
+
+  // Build an async function with named parameters + console
+  const allParamNames = [...paramNames, "console"];
+  const allParamValues = [...paramValues, consoleShim];
+
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const fn = new AsyncFunction(...allParamNames, body);
+
+  if (timeoutSeconds > 0) {
+    const timeoutMs = timeoutSeconds * 1000;
+    const result = await Promise.race([
+      fn(...allParamValues),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Script execution timed out")), timeoutMs),
+      ),
+    ]);
+    return result;
+  }
+
+  return fn(...allParamValues);
 }
 
 // ---------------------------------------------------------------------------
@@ -208,30 +173,18 @@ function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, u
 }
 
 /**
- * Make a value safe for ExternalCopy (must be structured-cloneable).
+ * Make a value safe for passing to user code.
  * Strips functions, symbols, and other non-serializable types.
  */
 function deepCopyable(value: unknown): unknown {
   if (value === null || value === undefined) return value;
-  // JSON round-trip is the safest way to get a structured-cloneable value.
-  // This drops functions, symbols, undefined values, Dates→strings, etc.
-  // For the sandbox use case this is acceptable — user code gets plain data.
+  // JSON round-trip strips functions, symbols, undefined values, Dates→strings, etc.
   try {
     return JSON.parse(JSON.stringify(value));
   } catch {
     // Circular references or other issues — return null.
     return null;
   }
-}
-
-/** Inject safe globals that user code may expect. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function injectSafeGlobals(jail: any, ivm: any): Promise<void> {
-  // JSON and Math are already available in V8.
-  // Add console.log as a no-op (prevents ReferenceError).
-  await jail.set("console", new ivm.ExternalCopy({
-    log: null, warn: null, error: null, info: null, debug: null,
-  }).copyInto());
 }
 
 /** Normalize return value to Record<string, unknown>. */
@@ -247,16 +200,13 @@ function normalizeOutput(value: unknown): Record<string, unknown> {
   return { output: value };
 }
 
-/** Translate isolated-vm errors to user-friendly messages. */
+/** Translate errors to user-friendly messages. */
 function translateError(err: unknown): Error {
   const msg = (err as Error).message ?? String(err);
   if (msg.includes("Script execution timed out")) {
     return new Error(`Code execution timed out`);
   }
-  if (msg.includes("disposed")) {
-    return new Error(`Code execution exceeded memory limit (${ISOLATE_MEMORY_MB}MB)`);
-  }
-  // Check for syntax errors from V8 compilation.
+  // Check for syntax errors.
   if (msg.includes("SyntaxError") || msg.includes("Unexpected")) {
     return new Error(`Syntax error in code: ${msg}`);
   }
