@@ -395,11 +395,21 @@ declare global {
         onAbort: (callback: (data: { sessionId: string }) => void) => () => void;
       };
 
-      // Workspace file I/O — write files into a Next.js workspace via IPC
+      // Workspace file I/O and dev server — manage Next.js workspaces via IPC
       workspace?: {
-        file: {
+        server?: {
+          spawn: (workspacePath: string, port: number) => Promise<number>;
+          kill: (workspacePath: string) => Promise<void>;
+          respawn: (workspacePath: string, port: number) => Promise<number>;
+          status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
+          logs: (workspacePath: string) => Promise<string[]>;
+          ensureInstalled: (workspacePath: string) => Promise<void>;
+        };
+        file?: {
           /** Write content to a relative path inside workspacePath */
           write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
+          /** Read content from a relative path inside workspacePath */
+          read: (workspacePath: string, relPath: string) => Promise<string>;
         };
       };
 

@@ -4,9 +4,6 @@ import { Message } from "./ApiTypes";
 export type ServerStatus = "starting" | "running" | "error" | "stopped";
 export type ChatStatus = "idle" | "streaming" | "error";
 
-/** @deprecated Use chatStatus instead */
-export type VibeCodingStatus = "idle" | "connecting" | "streaming" | "complete" | "error";
-
 export interface VibeCodingSession {
   workflowId: string;
   workspacePath: string;
@@ -16,12 +13,6 @@ export interface VibeCodingSession {
   isPublished: boolean;
   messages: Message[];
   chatStatus: ChatStatus;
-  /** @deprecated Legacy field — will be removed when VibeCodingPanel is rewritten */
-  currentHtml: string | null;
-  /** @deprecated Legacy field — will be removed when VibeCodingPanel is rewritten */
-  savedHtml: string | null;
-  /** @deprecated Use chatStatus instead — will be removed when VibeCodingChat is rewritten */
-  status: VibeCodingStatus;
 }
 
 const MAX_LOGS = 100;
@@ -35,9 +26,6 @@ const defaultSession = (workflowId: string): VibeCodingSession => ({
   isPublished: false,
   messages: [],
   chatStatus: "idle",
-  currentHtml: null,
-  savedHtml: null,
-  status: "idle",
 });
 
 interface VibeCodingState {
@@ -52,16 +40,6 @@ interface VibeCodingState {
   clearMessages: (workflowId: string) => void;
   setChatStatus: (workflowId: string, status: ChatStatus) => void;
   setIsPublished: (workflowId: string, published: boolean) => void;
-  /** @deprecated Use setChatStatus instead */
-  setStatus: (workflowId: string, status: VibeCodingStatus) => void;
-  /** @deprecated Will be removed when VibeCodingChat is rewritten */
-  setError: (workflowId: string, error: string | null) => void;
-  /** @deprecated Will be removed when VibeCodingPanel is rewritten */
-  setCurrentHtml: (workflowId: string, html: string | null) => void;
-  /** @deprecated Will be removed when VibeCodingPanel is rewritten */
-  setSavedHtml: (workflowId: string, html: string | null) => void;
-  /** @deprecated Will be removed when VibeCodingPanel is rewritten */
-  isDirty: (workflowId: string) => boolean;
 }
 
 function patch(
@@ -146,32 +124,4 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
     set((state) => ({
       sessions: patch(state.sessions, workflowId, () => ({ isPublished: published })),
     })),
-
-  setStatus: (workflowId, status) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ status })),
-    })),
-
-  setError: (workflowId, error) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workflowId, (s) => ({
-        status: error ? "error" : s.status,
-      })),
-    })),
-
-  setCurrentHtml: (workflowId, html) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ currentHtml: html })),
-    })),
-
-  setSavedHtml: (workflowId, html) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ savedHtml: html, currentHtml: html })),
-    })),
-
-  isDirty: (workflowId) => {
-    const session = get().sessions[workflowId];
-    if (!session) { return false; }
-    return session.currentHtml !== session.savedHtml;
-  },
 }));

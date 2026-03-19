@@ -1461,7 +1461,11 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.WORKSPACE_FILE_WRITE,
     async (_event, { workspacePath, relPath, content }) => {
-      const fullPath = path.join(workspacePath, relPath);
+      const resolvedBase = path.resolve(workspacePath);
+      const fullPath = path.resolve(workspacePath, relPath);
+      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
+        throw new Error('Path traversal detected');
+      }
       await fs.mkdir(path.dirname(fullPath), { recursive: true });
       await fs.writeFile(fullPath, content, 'utf-8');
     }
@@ -1470,7 +1474,11 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.WORKSPACE_FILE_READ,
     async (_event, { workspacePath, relPath }) => {
-      const fullPath = path.join(workspacePath, relPath);
+      const resolvedBase = path.resolve(workspacePath);
+      const fullPath = path.resolve(workspacePath, relPath);
+      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
+        throw new Error('Path traversal detected');
+      }
       return fs.readFile(fullPath, 'utf-8');
     }
   );
