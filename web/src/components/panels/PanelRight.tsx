@@ -235,7 +235,7 @@ const ChatAgentTabbedPanel = memo(function ChatAgentTabbedPanel({
   );
 });
 
-const PanelRight: React.FC = () => {
+const PanelRight = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const {

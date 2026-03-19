@@ -86,10 +86,10 @@ import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 
-const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
+const ReactFlowWrapper = ({
   workflowId,
   active
-}) => {
+}: ReactFlowWrapperProps) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders

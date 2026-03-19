@@ -17,7 +17,7 @@ import {
   Chunk
 } from "./ApiTypes";
 import useTraceStore, { traceEventId } from "./TraceStore";
-import type { TraceEvent, TraceEventType } from "./TraceStore";
+import type { TraceEventType } from "./TraceStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -213,7 +213,9 @@ export const handleUpdate = (
   const traceRunStart = useTraceStore.getState().runStartTime;
 
   const relativeMs = (ts?: string): number => {
-    if (!traceRunStart) return 0;
+    if (!traceRunStart) {
+      return 0;
+    }
     const start = new Date(traceRunStart).getTime();
     const now = ts ? new Date(ts).getTime() : Date.now();
     return Math.max(0, now - start);

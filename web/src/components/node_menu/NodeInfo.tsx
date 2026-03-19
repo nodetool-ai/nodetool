@@ -207,7 +207,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     return "unknown";
   }, [nodeMetadata]);
 
-  const { data: replicateStatus, isLoading } = useQuery({
+  const { data: replicateStatus } = useQuery({
     queryKey: ["replicateStatus", nodeMetadata.node_type],
     queryFn: fetchReplicateStatus
   });

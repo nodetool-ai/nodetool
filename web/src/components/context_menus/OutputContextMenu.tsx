@@ -55,7 +55,7 @@ const OutputContextMenu: React.FC = () => {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<unknown>();
-  const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
+  const [saveNodeMetadata, setSaveNodeMetadata] = useState<NodeMetadata | null>(null);
   const {
     showMenu,
     typeMetadata: _typeMetadata,
@@ -106,7 +106,7 @@ const OutputContextMenu: React.FC = () => {
 
       const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
       const saveMetadata = getMetadata(saveNodePath);
-      setSaveNodeMetadata(saveMetadata);
+      setSaveNodeMetadata(saveMetadata ?? null);
     },
     [getMetadata]
   );
