@@ -44,9 +44,8 @@ const VibeCodingToolbar: React.FC<VibeCodingToolbarProps> = ({
         justifyContent: "space-between",
         px: 4,
         py: 2,
-        bgcolor: "background.paper",
-        borderBottom: 1,
-        borderColor: "divider",
+        backgroundColor: (theme) => theme.palette.background.default,
+        borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
         gap: 3,
         minHeight: 48
       }}
