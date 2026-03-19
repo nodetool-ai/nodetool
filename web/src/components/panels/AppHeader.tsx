@@ -148,6 +148,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   const isEditorActive = currentPath.startsWith("/editor");
   const isChatActive = currentPath.startsWith("/chat");
   const isAppActive = currentPath.startsWith("/apps");
+  const isVibeCodingActive = currentPath.startsWith("/vibecoding");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -184,6 +185,10 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     }
   }, [navigate, currentWorkflowId]);
 
+  const handleVibeCodingClick = useCallback(() => {
+    navigate("/vibecoding");
+  }, [navigate]);
+
   return (
     <div className="mode-pills">
       <Tooltip title="Editor" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
@@ -219,6 +224,16 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         >
           {/* <RocketLaunchIcon /> */}
           <span>App</span>
+        </button>
+      </Tooltip>
+      <Tooltip title="VibeCoding" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isVibeCodingActive ? "active" : ""}`}
+          onClick={handleVibeCodingClick}
+          tabIndex={-1}
+          aria-current={isVibeCodingActive ? "page" : undefined}
+        >
+          <span>VibeCoding</span>
         </button>
       </Tooltip>
     </div>
