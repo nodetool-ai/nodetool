@@ -1,0 +1,146 @@
+{
+  "modelId": "openai/gpt-image-1.5",
+  "owner": "openai",
+  "name": "gpt-image-1.5",
+  "version": "118f53498ea7319519229b2d5bd0d4a69e3d77eb60d6292d5db38125534dc1ca",
+  "description": "OpenAI's latest image generation model with better instruction following and adherence to prompts",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "The aspect ratio of the generated image",
+        "enum": [
+          "1:1",
+          "3:2",
+          "2:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "background": {
+        "default": "auto",
+        "description": "Set whether the background is transparent or opaque or choose automatically",
+        "enum": [
+          "auto",
+          "transparent",
+          "opaque"
+        ],
+        "title": "background",
+        "type": "string",
+        "x-order": 7
+      },
+      "input_fidelity": {
+        "default": "low",
+        "description": "Control how much effort the model will exert to match the style and features, especially facial features, of input images",
+        "enum": [
+          "low",
+          "high"
+        ],
+        "title": "input_fidelity",
+        "type": "string",
+        "x-order": 3
+      },
+      "input_images": {
+        "description": "A list of images to use as input for the generation",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "nullable": true,
+        "title": "Input Images",
+        "type": "array",
+        "x-order": 4
+      },
+      "moderation": {
+        "default": "auto",
+        "description": "Content moderation level",
+        "enum": [
+          "auto",
+          "low"
+        ],
+        "title": "moderation",
+        "type": "string",
+        "x-order": 10
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "Number of images to generate (1-10)",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 5
+      },
+      "openai_api_key": {
+        "description": "Your OpenAI API key (optional - uses proxy if not provided)",
+        "format": "password",
+        "title": "Openai Api Key",
+        "type": "string",
+        "writeOnly": true,
+        "x-cog-secret": true,
+        "x-order": 1
+      },
+      "output_compression": {
+        "default": 90,
+        "description": "Compression level (0-100%)",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Compression",
+        "type": "integer",
+        "x-order": 8
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Output format",
+        "enum": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "A text description of the desired image",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "quality": {
+        "default": "auto",
+        "description": "The quality of the generated image",
+        "enum": [
+          "low",
+          "medium",
+          "high",
+          "auto"
+        ],
+        "title": "quality",
+        "type": "string",
+        "x-order": 6
+      },
+      "user_id": {
+        "description": "An optional unique identifier representing your end-user. This helps OpenAI monitor and detect abuse.",
+        "nullable": true,
+        "title": "User Id",
+        "type": "string",
+        "x-order": 11
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

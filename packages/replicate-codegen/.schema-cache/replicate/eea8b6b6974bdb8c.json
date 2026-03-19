@@ -1,0 +1,233 @@
+{
+  "modelId": "zsxkib/diffbir",
+  "owner": "zsxkib",
+  "name": "diffbir",
+  "version": "51ed1464d8bbbaca811153b051d3b09ab42f0bdeb85804ae26ba323d7a66a4ac",
+  "description": "✨DiffBIR: Towards Blind Image Restoration with Generative Diffusion Prior",
+  "inputSchema": {
+    "properties": {
+      "background_upsampler": {
+        "default": "RealESRGAN",
+        "description": "For 'faces' mode: Model used to upscale the background in images where the primary subject is a face.",
+        "enum": [
+          "DiffBIR",
+          "RealESRGAN"
+        ],
+        "title": "background_upsampler",
+        "type": "string",
+        "x-order": 22
+      },
+      "background_upsampler_tile": {
+        "default": 400,
+        "description": "For 'faces' mode: Size of each tile used by the background upsampler when dividing the image into patches.",
+        "title": "Background Upsampler Tile",
+        "type": "integer",
+        "x-order": 23
+      },
+      "background_upsampler_tile_stride": {
+        "default": 400,
+        "description": "For 'faces' mode: Distance between the start of each tile when the background is divided for upscaling. A smaller stride means more overlap between tiles.",
+        "title": "Background Upsampler Tile Stride",
+        "type": "integer",
+        "x-order": 24
+      },
+      "color_fix_type": {
+        "default": "wavelet",
+        "description": "Method used for color correction post enhancement. 'wavelet' and 'adain' offer different styles of color correction, while 'none' skips this step.",
+        "enum": [
+          "wavelet",
+          "adain",
+          "none"
+        ],
+        "title": "color_fix_type",
+        "type": "string",
+        "x-order": 17
+      },
+      "disable_preprocess_model": {
+        "default": false,
+        "description": "Disables the initial preprocessing step using SwinIR. Turn this off if your input image is already of high quality and doesn't require restoration.",
+        "title": "Disable Preprocess Model",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "face_detection_model": {
+        "default": "retinaface_resnet50",
+        "description": "For 'faces' mode: Model used for detecting faces in the image. Choose based on accuracy and speed preferences.",
+        "enum": [
+          "retinaface_resnet50",
+          "retinaface_mobile0.25",
+          "YOLOv5l",
+          "YOLOv5n",
+          "dlib"
+        ],
+        "title": "face_detection_model",
+        "type": "string",
+        "x-order": 21
+      },
+      "guidance_repeat": {
+        "default": 5,
+        "description": "For 'general_scenes': Number of times the guidance process is repeated during enhancement.",
+        "title": "Guidance Repeat",
+        "type": "integer",
+        "x-order": 16
+      },
+      "guidance_scale": {
+        "default": 0,
+        "description": "For 'general_scenes': Scale factor for the guidance mechanism. Adjusts the influence of guidance on the enhancement process.",
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 12
+      },
+      "guidance_space": {
+        "default": "latent",
+        "description": "For 'general_scenes': Determines in which space (RGB or latent) the guidance operates. 'latent' can often provide more subtle and context-aware enhancements.",
+        "enum": [
+          "rgb",
+          "latent"
+        ],
+        "title": "guidance_space",
+        "type": "string",
+        "x-order": 15
+      },
+      "guidance_time_start": {
+        "default": 1001,
+        "description": "For 'general_scenes': Specifies when (at which step) the guidance mechanism starts influencing the enhancement.",
+        "title": "Guidance Time Start",
+        "type": "integer",
+        "x-order": 13
+      },
+      "guidance_time_stop": {
+        "default": -1,
+        "description": "For 'general_scenes': Specifies when (at which step) the guidance mechanism stops influencing the enhancement.",
+        "title": "Guidance Time Stop",
+        "type": "integer",
+        "x-order": 14
+      },
+      "has_aligned": {
+        "default": false,
+        "description": "For 'faces' mode: Indicates if the input images are already cropped and aligned to faces. If not, the model will attempt to do this.",
+        "title": "Has Aligned",
+        "type": "boolean",
+        "x-order": 19
+      },
+      "input": {
+        "description": "Path to the input image you want to enhance.",
+        "format": "uri",
+        "title": "Input",
+        "type": "string",
+        "x-order": 0
+      },
+      "only_center_face": {
+        "default": false,
+        "description": "For 'faces' mode: If multiple faces are detected, only enhance the center-most face in the image.",
+        "title": "Only Center Face",
+        "type": "boolean",
+        "x-order": 20
+      },
+      "reload_restoration_model": {
+        "default": false,
+        "description": "Reload the image restoration model (SwinIR) if set to True. This can be useful if you've updated or changed the underlying SwinIR model.",
+        "title": "Reload Restoration Model",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "repeat_times": {
+        "default": 1,
+        "description": "Number of times the enhancement process is repeated by feeding the output back as input. This can refine the result but might also introduce over-enhancement issues.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Repeat Times",
+        "type": "integer",
+        "x-order": 6
+      },
+      "restoration_model_type": {
+        "default": "general_scenes",
+        "description": "Select the restoration model that aligns with the content of your image. This model is responsible for image restoration which removes degradations.",
+        "enum": [
+          "faces",
+          "general_scenes"
+        ],
+        "title": "restoration_model_type",
+        "type": "string",
+        "x-order": 2
+      },
+      "seed": {
+        "default": 231,
+        "description": "Random seed to ensure reproducibility. Setting this ensures that multiple runs with the same input produce the same output.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 18
+      },
+      "steps": {
+        "default": 50,
+        "description": "The number of enhancement iterations to perform. More steps might result in a clearer image but can also introduce artifacts.",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "super_resolution_factor": {
+        "default": 4,
+        "description": "Factor by which the input image resolution should be increased. For instance, a factor of 4 will make the resolution 4 times greater in both height and width.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Super Resolution Factor",
+        "type": "integer",
+        "x-order": 5
+      },
+      "tile_size": {
+        "default": 512,
+        "description": "Size of each tile (or patch) when 'tiled' option is enabled. Determines how the image is divided during patch-based enhancement.",
+        "title": "Tile Size",
+        "type": "integer",
+        "x-order": 9
+      },
+      "tile_stride": {
+        "default": 256,
+        "description": "Distance between the start of each tile when the image is divided for patch-based enhancement. A smaller stride means more overlap between tiles.",
+        "title": "Tile Stride",
+        "type": "integer",
+        "x-order": 10
+      },
+      "tiled": {
+        "default": false,
+        "description": "Whether to use patch-based sampling. This can be useful for very large images to enhance them in smaller chunks rather than all at once.",
+        "title": "Tiled",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "upscaling_model_type": {
+        "default": "general_scenes",
+        "description": "Choose the type of model best suited for the primary content of the image: 'faces' for portraits and 'general_scenes' for everything else.",
+        "enum": [
+          "faces",
+          "general_scenes"
+        ],
+        "title": "upscaling_model_type",
+        "type": "string",
+        "x-order": 1
+      },
+      "use_guidance": {
+        "default": false,
+        "description": "Use latent image guidance for enhancement. This can help in achieving more accurate and contextually relevant enhancements.",
+        "title": "Use Guidance",
+        "type": "boolean",
+        "x-order": 11
+      }
+    },
+    "required": [
+      "input"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

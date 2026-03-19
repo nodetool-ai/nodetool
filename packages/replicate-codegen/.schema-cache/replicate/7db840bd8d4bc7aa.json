@@ -1,0 +1,90 @@
+{
+  "modelId": "lucataco/ip-adapter-faceid",
+  "owner": "lucataco",
+  "name": "ip-adapter-faceid",
+  "version": "fb81ef963e74776af72e6f380949013533d46dd5c6228a9e586c57db6303d7cd",
+  "description": "(Research only) IP-Adapter-FaceID can generate various style images conditioned on a face with only text prompts",
+  "inputSchema": {
+    "properties": {
+      "agree_to_research_only": {
+        "default": false,
+        "description": "You must agree to use this model only for research. It is not for commercial use.",
+        "title": "Agree To Research Only",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "face_image": {
+        "description": "Input face image",
+        "format": "uri",
+        "title": "Face Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of output image",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "negative_prompt": {
+        "default": "monochrome, lowres, bad anatomy, worst quality, low quality, blurry",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 200,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 6
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "photo of a woman in red dress in a garden",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of output image",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "face_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

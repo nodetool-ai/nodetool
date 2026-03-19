@@ -1,0 +1,92 @@
+{
+  "modelId": "qwen/qwen-image-edit-plus",
+  "owner": "qwen",
+  "name": "qwen-image-edit-plus",
+  "version": "7677b9cc9967f7725fcf5e814a5a3446bf1d4b6ab0f9c15534dbbc54c7a088f2",
+  "description": "The latest Qwen-Image’s iteration with improved multi-image editing, single-image consistency, and native support for ControlNet",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio for the generated image",
+        "enum": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "match_input_image"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean"
+      },
+      "go_fast": {
+        "default": true,
+        "description": "Run faster predictions with additional optimizations.",
+        "title": "Go Fast",
+        "type": "boolean"
+      },
+      "image": {
+        "description": "Images to use as reference. Must be jpeg, png, gif, or webp.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image",
+        "type": "array"
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 5
+      },
+      "output_quality": {
+        "default": 95,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Text instruction on how to edit the given image.",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt",
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -21,7 +21,7 @@ export interface Edge {
   target: string;
   targetHandle: string;
   ui_properties?: Record<string, string> | null;
-  edge_type: EdgeType;
+  edge_type?: EdgeType;
 }
 
 export function isControlEdge(edge: Edge): boolean {
@@ -97,6 +97,9 @@ export interface NodeDescriptor {
 
   /** Property type strings keyed by property name (e.g. { values: "list[int]" }). */
   propertyTypes?: Record<string, string>;
+
+  /** Per-property metadata (description, min, max) for control context enrichment. */
+  propertyMeta?: Record<string, { description?: string; min?: number; max?: number }>;
 }
 
 // ---------------------------------------------------------------------------

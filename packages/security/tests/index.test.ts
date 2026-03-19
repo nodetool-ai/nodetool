@@ -10,6 +10,8 @@ describe("security index exports", () => {
     expect(mod.deriveKey).toBeDefined();
     expect(mod.encrypt).toBeDefined();
     expect(mod.decrypt).toBeDefined();
+    expect(mod.encryptFernet).toBeDefined();
+    expect(mod.decryptFernet).toBeDefined();
     expect(mod.isValidMasterKey).toBeDefined();
 
     // master-key
@@ -21,6 +23,8 @@ describe("security index exports", () => {
     expect(mod.deleteMasterKey).toBeDefined();
     expect(mod.isUsingEnvKey).toBeDefined();
     expect(mod.isUsingAwsKey).toBeDefined();
+    expect(mod.setKeytarLoader).toBeDefined();
+    expect(mod.resetKeytarLoader).toBeDefined();
 
     // secret-helper
     expect(mod.getSecret).toBeDefined();

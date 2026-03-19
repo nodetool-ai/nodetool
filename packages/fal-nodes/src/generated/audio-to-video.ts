@@ -17,6 +17,7 @@ export class Ltx219BDistilledAudioToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, audio-to-video, visualization, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -173,6 +174,7 @@ export class Ltx219BAudioToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, audio-to-video, visualization, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -339,6 +341,7 @@ export class Ltx219BDistilledAudioToVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -490,6 +493,7 @@ export class Ltx219BAudioToVideo extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -651,6 +655,7 @@ export class ElevenlabsDubbing extends FalNode {
   static readonly description = `ElevenLabs Dubbing
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "video", default: "", description: "URL of the video file to dub. Either audio_url or video_url must be provided. If both are provided, video_url takes priority." })
   declare video: any;
@@ -708,6 +713,7 @@ export class LongcatMultiAvatarImageAudioToVideo extends FalNode {
   static readonly description = `Longcat Multi Avatar
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "Two people are having a conversation with natural expressions and movements.", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -806,6 +812,7 @@ export class LongcatSingleAvatarImageAudioToVideo extends FalNode {
   static readonly description = `LongCat-Video-Avatar is an audio-driven video generation model that can generates super-realistic, lip-synchronized long video generation with natural dynamics and consistent identity.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -888,6 +895,7 @@ export class LongcatSingleAvatarAudioToVideo extends FalNode {
   static readonly description = `LongCat-Video-Avatar is an audio-driven video generation model that can generates super-realistic, lip-synchronized long video generation with natural dynamics and consistent identity.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "A person is talking naturally with natural expressions and movements.", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -961,6 +969,7 @@ export class ArgilAvatarsAudioToVideo extends FalNode {
   static readonly description = `High-quality avatar videos that feel real, generated from your audio
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "enum", default: "", values: ["Mia outdoor (UGC)", "Lara (Masterclass)", "Ines (UGC)", "Maria (Masterclass)", "Emma (UGC)", "Sienna (Masterclass)", "Elena (UGC)", "Jasmine (Masterclass)", "Amara (Masterclass)", "Ryan podcast (UGC)", "Tyler (Masterclass)", "Jayse (Masterclass)", "Paul (Masterclass)", "Matteo (UGC)", "Daniel car (UGC)", "Dario (Masterclass)", "Viva (Masterclass)", "Chen (Masterclass)", "Alex (Masterclass)", "Vanessa (UGC)", "Laurent (UGC)", "Noemie car (UGC)", "Brandon (UGC)", "Byron (Masterclass)", "Calista (Masterclass)", "Milo (Masterclass)", "Fabien (Masterclass)", "Rose (UGC)"] })
   declare avatar: any;
@@ -999,6 +1008,7 @@ export class WanV2214bSpeechToVideo extends FalNode {
   static readonly description = `Wan-S2V is a video model that generates high-quality videos from static images and audio, with realistic facial expressions, body movements, and professional camera work for film and television applications
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used for video generation." })
   declare prompt: any;
@@ -1101,6 +1111,7 @@ export class StableAvatar extends FalNode {
   static readonly description = `Stable Avatar generates audio-driven video avatars up to five minutes long
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -1173,6 +1184,7 @@ export class EchomimicV3 extends FalNode {
   static readonly description = `EchoMimic V3 generates a talking avatar model from a picture, audio and text prompt.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -1240,6 +1252,7 @@ export class VeedAvatarsAudioToVideo extends FalNode {
   static readonly description = `Generate high-quality videos with UGC-like avatars from audio
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "audio", default: "" })
   declare audio: any;

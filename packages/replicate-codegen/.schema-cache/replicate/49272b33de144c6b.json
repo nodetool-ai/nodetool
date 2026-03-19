@@ -1,0 +1,63 @@
+{
+  "modelId": "anthropic/claude-4.5-sonnet",
+  "owner": "anthropic",
+  "name": "claude-4.5-sonnet",
+  "version": "459655107e29a683cb6deb73a9640cf9aeae39ea7c87803a2ae81c311f6ef44f",
+  "description": "Claude Sonnet 4.5 is the best coding model to date, with significant improvements across the entire development lifecycle",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Optional input image. Images are priced as (width px * height px)/750 input tokens",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "max_image_resolution": {
+        "default": 0.5,
+        "description": "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money.",
+        "maximum": 2,
+        "minimum": 0.001,
+        "title": "Max Image Resolution",
+        "type": "number",
+        "x-order": 4
+      },
+      "max_tokens": {
+        "default": 8192,
+        "description": "Maximum number of output tokens",
+        "maximum": 64000,
+        "minimum": 1024,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "system_prompt": {
+        "default": "",
+        "description": "System prompt",
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

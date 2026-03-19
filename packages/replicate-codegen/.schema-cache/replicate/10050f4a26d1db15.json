@@ -1,0 +1,75 @@
+{
+  "modelId": "fofr/color-matcher",
+  "owner": "fofr",
+  "name": "color-matcher",
+  "version": "9870c2ebd9f6f747c39c23815cb58489e8df129e0bace4d61cf8ba3ddd03cb26",
+  "description": "Color match and white balance fixes for images",
+  "inputSchema": {
+    "properties": {
+      "fix_white_balance": {
+        "default": false,
+        "description": "Apply automatic white balance to input image (before color transfer)",
+        "title": "Fix White Balance",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "input_image": {
+        "description": "The input image",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "method": {
+        "default": "mkl",
+        "description": "The method to use for color transfer",
+        "enum": [
+          "mkl",
+          "hm",
+          "reinhard",
+          "mvgd",
+          "hm-mvgd-hm",
+          "hm-mkl-hm"
+        ],
+        "title": "method",
+        "type": "string",
+        "x-order": 2
+      },
+      "reference_image": {
+        "description": "The reference image. If not provided, only white balance fixes will be applied.",
+        "format": "uri",
+        "title": "Reference Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "strength": {
+        "default": 1,
+        "description": "Strength of the color transfer effect (0.0 to 1.0)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Strength",
+        "type": "number",
+        "x-order": 3
+      },
+      "white_balance_percentile": {
+        "default": 95,
+        "description": "Percentile for white balance calculation (0.0 to 100.0)",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "White Balance Percentile",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "input_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

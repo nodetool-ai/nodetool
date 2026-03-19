@@ -1,0 +1,120 @@
+{
+  "modelId": "black-forest-labs/flux-schnell",
+  "owner": "black-forest-labs",
+  "name": "flux-schnell",
+  "version": "c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e",
+  "description": "The fastest image generation model tailored for local development and personal use",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image",
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "go_fast": {
+        "default": true,
+        "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed.",
+        "title": "Go Fast",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "megapixels": {
+        "default": "1",
+        "description": "Approximate number of megapixels for generated image",
+        "enum": [
+          "1",
+          "0.25"
+        ],
+        "title": "megapixels",
+        "type": "string",
+        "x-order": 9
+      },
+      "num_inference_steps": {
+        "default": 4,
+        "description": "Number of denoising steps. 4 is recommended, and lower number of steps produce lower quality outputs, faster.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of outputs to generate",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 2
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 5
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "description": "Prompt for generated image",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

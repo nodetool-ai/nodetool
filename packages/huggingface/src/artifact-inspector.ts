@@ -227,8 +227,40 @@ function skipGgufValue(fd: number, valueType: number): void {
 }
 
 // ---------------------------------------------------------------------------
-// JSON config / model_index detection
+// Diffusers pipeline class name → { family, component } table
 // ---------------------------------------------------------------------------
+
+/**
+ * Maps known diffusers pipeline class names to { family, component } pairs.
+ * Exact string matching avoids the fragility of substring checks.
+ */
+const _PIPELINE_CLASS_DETECTION: Readonly<
+  Record<string, { family: string; component: string }>
+> = {
+  StableDiffusionPipeline: { family: "stable-diffusion", component: "unet" },
+  StableDiffusionImg2ImgPipeline: { family: "stable-diffusion", component: "unet" },
+  StableDiffusionInpaintPipeline: { family: "stable-diffusion", component: "unet" },
+  StableDiffusionUpscalePipeline: { family: "stable-diffusion", component: "unet" },
+  StableDiffusionXLPipeline: { family: "sdxl", component: "unet" },
+  StableDiffusionXLImg2ImgPipeline: { family: "sdxl", component: "unet" },
+  StableDiffusionXLInpaintPipeline: { family: "sdxl", component: "unet" },
+  StableDiffusionXLControlNetPipeline: { family: "sdxl", component: "unet" },
+  StableDiffusionXLRefinerPipeline: { family: "sdxl-refiner", component: "unet" },
+  StableDiffusion3Pipeline: { family: "sd3", component: "transformer" },
+  StableDiffusion3Img2ImgPipeline: { family: "sd3", component: "transformer" },
+  StableDiffusion3InpaintPipeline: { family: "sd3", component: "transformer" },
+  FluxPipeline: { family: "flux", component: "transformer" },
+  FluxFillPipeline: { family: "flux", component: "transformer" },
+  FluxControlNetPipeline: { family: "flux", component: "transformer" },
+  FluxKontextPipeline: { family: "flux", component: "transformer" },
+  FluxDepthPipeline: { family: "flux", component: "transformer" },
+  FluxReduxPipeline: { family: "flux", component: "transformer" },
+  QwenImagePipeline: { family: "qwen-image", component: "transformer" },
+  QwenImageEditPlusPipeline: { family: "qwen-image", component: "transformer" },
+  PixArtAlphaPipeline: { family: "pixart-alpha", component: "transformer" },
+  PixArtSigmaPipeline: { family: "pixart-sigma", component: "transformer" },
+};
+
 
 /**
  * Infer family/component from config.json or model_index.json files.
@@ -243,6 +275,21 @@ export function detectFromJson(
   // Check model_index.json for diffusers components
   for (const mi of modelIndexes) {
     if (!mi) continue;
+
+    // Handle _class_name as a string (real diffusers model_index.json format).
+    // Use an exact lookup table to avoid fragile substring ordering.
+    if (typeof mi._class_name === "string") {
+      const detection = _PIPELINE_CLASS_DETECTION[mi._class_name];
+      if (detection) {
+        return {
+          family: detection.family,
+          component: detection.component,
+          confidence: 0.75,
+          evidence: [`model_index.json _class_name: ${mi._class_name}`],
+        };
+      }
+    }
+
     const pipelines = mi.pipelines || mi._class_name;
     if (Array.isArray(pipelines)) {
       const pipelineStrs = pipelines.map((p: unknown) => String(p).toLowerCase());

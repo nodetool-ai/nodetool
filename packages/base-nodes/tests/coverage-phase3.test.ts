@@ -414,18 +414,18 @@ describe("TimeStretchNode", () => {
 });
 
 describe("NoiseGateNode", () => {
-  it("throws not-implemented error", async () => {
-    await expect(
-      new NoiseGateNode().process({ audio: makeShortSine() })
-    ).rejects.toThrow("not yet implemented");
+  it("applies noise gate to audio", async () => {
+    const res = await new NoiseGateNode().process({ audio: makeShortSine() });
+    const out = res.output as { data: string };
+    expect(out.data).toBeTruthy();
   });
 });
 
 describe("PhaserNode", () => {
-  it("throws not-implemented error", async () => {
-    await expect(
-      new PhaserNode().process({ audio: makeShortSine() })
-    ).rejects.toThrow("not yet implemented");
+  it("applies phaser effect to audio", async () => {
+    const res = await new PhaserNode().process({ audio: makeShortSine() });
+    const out = res.output as { data: string };
+    expect(out.data).toBeTruthy();
   });
 });
 
@@ -1145,12 +1145,12 @@ describe("lib-librosa-spectral nodes", () => {
     expect((res.output as any).data).toEqual([]);
   });
 
-  it("GriffinLimNode throws not-implemented", async () => {
-    await expect(
-      new GriffinLimNode().process({
-        magnitude_spectrogram: { data: [[1, 2]] },
-      })
-    ).rejects.toThrow("not implemented");
+  it("GriffinLimNode returns output from magnitude spectrogram", async () => {
+    const res = await new GriffinLimNode().process({
+      magnitude_spectrogram: { data: [[1, 2, 1], [0.5, 1, 0.5], [0.2, 0.4, 0.2]] },
+    });
+    const out = res.output as { data: number[] };
+    expect(Array.isArray(out.data)).toBe(true);
   });
 
   it("DetectOnsetsNode detects onsets", async () => {

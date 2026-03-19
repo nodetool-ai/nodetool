@@ -1,0 +1,134 @@
+{
+  "modelId": "lucataco/demofusion-enhance",
+  "owner": "lucataco",
+  "name": "demofusion-enhance",
+  "version": "5bcfe11066c820e8c08232c6efa3c8a7ab2cd667ad136ca173633f352170691e",
+  "description": "Image to Image enhancer using DemoFusion",
+  "inputSchema": {
+    "properties": {
+      "auto_prompt": {
+        "default": false,
+        "description": "Select to use auto-generated CLIP prompt instead of using the above custom prompt",
+        "title": "Auto Prompt",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "cosine_scale_1": {
+        "default": 3,
+        "description": "Control the strength of skip-residual",
+        "title": "Cosine Scale 1",
+        "type": "number",
+        "x-order": 9
+      },
+      "cosine_scale_2": {
+        "default": 1,
+        "description": "Control the strength of dilated sampling",
+        "title": "Cosine Scale 2",
+        "type": "number",
+        "x-order": 10
+      },
+      "cosine_scale_3": {
+        "default": 1,
+        "description": "Control the strength of the Gaussian filter",
+        "title": "Cosine Scale 3",
+        "type": "number",
+        "x-order": 11
+      },
+      "guidance_scale": {
+        "default": 8.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "multi_decoder": {
+        "default": false,
+        "description": "Use multiple decoders",
+        "title": "Multi Decoder",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "negative_prompt": {
+        "default": "blurry, ugly, duplicate, poorly drawn, deformed, mosaic",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "num_inference_steps": {
+        "default": 40,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "A high resolution photo",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "scale": {
+        "default": 2,
+        "description": "Scale factor for input image",
+        "enum": [
+          1,
+          2,
+          4
+        ],
+        "title": "scale",
+        "type": "integer",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 14
+      },
+      "sigma": {
+        "default": 0.8,
+        "description": "The standard value of the Gaussian filter",
+        "title": "Sigma",
+        "type": "number",
+        "x-order": 12
+      },
+      "stride": {
+        "default": 64,
+        "description": "The stride of moving local patches",
+        "title": "Stride",
+        "type": "integer",
+        "x-order": 8
+      },
+      "view_batch_size": {
+        "default": 16,
+        "description": "The batch size for multiple denoising paths",
+        "title": "View Batch Size",
+        "type": "integer",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

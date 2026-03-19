@@ -1,0 +1,173 @@
+{
+  "modelId": "cudanexus/ocr-surya",
+  "owner": "cudanexus",
+  "name": "ocr-surya",
+  "version": "7ab5bedee2cd1f0c82b2df6718d19bf0b473f738f9db062f122e47e1467f96ce",
+  "description": "Surya is a document OCR toolkit that does:",
+  "inputSchema": {
+    "properties": {
+      "action": {
+        "default": "Run Text Detection",
+        "description": "Action",
+        "enum": [
+          "Run Text Detection",
+          "Run OCR"
+        ],
+        "title": "action",
+        "type": "string",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Upload PDF or Image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "languages_choices": {
+        "default": "English",
+        "description": "Languages",
+        "enum": [
+          "Afrikaans",
+          "Albanian",
+          "Amharic",
+          "Arabic",
+          "Armenian",
+          "Assamese",
+          "Azerbaijani",
+          "Basque",
+          "Belarusian",
+          "Bengali",
+          "Bosnian",
+          "Breton",
+          "Bulgarian",
+          "Burmese",
+          "Catalan",
+          "Chinese",
+          "Croatian",
+          "Czech",
+          "Danish",
+          "Dutch",
+          "English",
+          "Esperanto",
+          "Estonian",
+          "Finnish",
+          "French",
+          "Galician",
+          "Georgian",
+          "German",
+          "Greek",
+          "Gujarati",
+          "Hausa",
+          "Hebrew",
+          "Hindi",
+          "Hungarian",
+          "Icelandic",
+          "Indonesian",
+          "Irish",
+          "Italian",
+          "Japanese",
+          "Javanese",
+          "Kannada",
+          "Kazakh",
+          "Khmer",
+          "Korean",
+          "Kurdish",
+          "Kyrgyz",
+          "Lao",
+          "Latin",
+          "Latvian",
+          "Lithuanian",
+          "Macedonian",
+          "Malagasy",
+          "Malay",
+          "Malayalam",
+          "Marathi",
+          "Mongolian",
+          "Nepali",
+          "Norwegian",
+          "Oriya",
+          "Oromo",
+          "Pashto",
+          "Persian",
+          "Polish",
+          "Portuguese",
+          "Punjabi",
+          "Romanian",
+          "Russian",
+          "Sanskrit",
+          "Scottish Gaelic",
+          "Serbian",
+          "Sindhi",
+          "Sinhala",
+          "Slovak",
+          "Slovenian",
+          "Somali",
+          "Spanish",
+          "Sundanese",
+          "Swahili",
+          "Swedish",
+          "Tagalog",
+          "Tamil",
+          "Telugu",
+          "Thai",
+          "Turkish",
+          "Ukrainian",
+          "Urdu",
+          "Uyghur",
+          "Uzbek",
+          "Vietnamese",
+          "Welsh",
+          "Western Frisian",
+          "Xhosa",
+          "Yiddish"
+        ],
+        "title": "languages_choices",
+        "type": "string",
+        "x-order": 2
+      },
+      "languages_input": {
+        "default": "English",
+        "description": "Languages (comma-separated list)",
+        "title": "Languages Input",
+        "type": "string",
+        "x-order": 3
+      },
+      "page_number": {
+        "default": 1,
+        "description": "Page Number",
+        "title": "Page Number",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "Status": {
+        "title": "Status",
+        "type": "string"
+      },
+      "image": {
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "text_file": {
+        "format": "uri",
+        "title": "Text File",
+        "type": "string"
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

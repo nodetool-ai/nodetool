@@ -1,0 +1,78 @@
+{
+  "modelId": "lucataco/ip_adapter-sdxl-face",
+  "owner": "lucataco",
+  "name": "ip_adapter-sdxl-face",
+  "version": "226c6bf67a75a129b0f978e518fed33e1fb13956e15761c1ac53c9d2f898c9af",
+  "description": "The image prompt adapter is designed to enable a pretrained text-to-image diffusion model to generate SDXL images with an image prompt",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input face image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt (leave blank for image variations)",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "scale": {
+        "default": 0.6,
+        "description": "Scale (influence of input image on generation)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

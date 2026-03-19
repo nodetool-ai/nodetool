@@ -527,8 +527,14 @@ describe("Models API: /all endpoint", () => {
 describe("OpenAI API: resolveProvider", () => {
   it("resolves OpenAI provider for gpt- models", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = await resolveProvider("gpt-4o");
-    expect(provider).toBeDefined();
+    // OpenAIProvider may throw if no API key; that's fine - we just test the code path
+    try {
+      const provider = await resolveProvider("gpt-4o");
+      expect(provider).toBeDefined();
+    } catch (e) {
+      // Expected when OPENAI_API_KEY is not set
+      expect((e as Error).message).toContain("OPENAI_API_KEY");
+    }
   });
 
   it("resolves Anthropic provider for claude- models", async () => {
@@ -551,14 +557,26 @@ describe("OpenAI API: resolveProvider", () => {
 
   it("resolves o1 model to OpenAI", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = await resolveProvider("o1-preview");
-    expect(provider).toBeDefined();
+    // OpenAIProvider may throw if no API key; that's fine - we just test the code path
+    try {
+      const provider = await resolveProvider("o1-preview");
+      expect(provider).toBeDefined();
+    } catch (e) {
+      // Expected when OPENAI_API_KEY is not set
+      expect((e as Error).message).toContain("OPENAI_API_KEY");
+    }
   });
 
   it("resolves o3 model to OpenAI", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = await resolveProvider("o3-mini");
-    expect(provider).toBeDefined();
+    // OpenAIProvider may throw if no API key; that's fine - we just test the code path
+    try {
+      const provider = await resolveProvider("o3-mini");
+      expect(provider).toBeDefined();
+    } catch (e) {
+      // Expected when OPENAI_API_KEY is not set
+      expect((e as Error).message).toContain("OPENAI_API_KEY");
+    }
   });
 
   it("returns explicit provider when given", async () => {

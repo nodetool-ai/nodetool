@@ -542,3 +542,146 @@ describe("NodeGenerator.selectBasicFields()", () => {
     expect(fields).not.toContain("seed");
   });
 });
+
+// ---------------------------------------------------------------------------
+// process() — bool field extraction
+// ---------------------------------------------------------------------------
+
+describe("NodeGenerator.generate() — bool field in process()", () => {
+  const gen = new NodeGenerator();
+
+  it("generates Boolean() cast for bool fields", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({ name: "enable_safety_checker", propType: "bool", default: true }),
+      ],
+    });
+    const code = gen.generate(spec, "text_to_image");
+    expect(code).toContain(
+      `const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);`,
+    );
+  });
+
+  it("includes bool var in args object", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({ name: "safe_mode", propType: "bool", default: false }),
+      ],
+    });
+    const code = gen.generate(spec, "text_to_image");
+    expect(code).toContain(`"safe_mode": safeMode,`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// process() — reserved variable name collision
+// ---------------------------------------------------------------------------
+
+describe("NodeGenerator.generate() — reserved variable names", () => {
+  const gen = new NodeGenerator();
+
+  it("prefixes 'inputs' field name with field_ to avoid collision", () => {
+    const spec = makeSpec({
+      inputFields: [makeField({ name: "inputs", propType: "str", default: "" })],
+    });
+    const code = gen.generate(spec, "text_to_image");
+    expect(code).toContain(`const field_inputs =`);
+    expect(code).toContain(`"inputs": field_inputs,`);
+  });
+
+  it("prefixes 'output' field name with field_ to avoid collision", () => {
+    const spec = makeSpec({
+      inputFields: [makeField({ name: "output", propType: "str", default: "" })],
+    });
+    const code = gen.generate(spec, "text_to_image");
+    expect(code).toContain(`const field_output =`);
+    expect(code).toContain(`"output": field_output,`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// process() — list asset fields
+// ---------------------------------------------------------------------------
+
+describe("NodeGenerator.generate() — list asset fields", () => {
+  const gen = new NodeGenerator();
+
+  it("generates list[image] handling with assetToFalUrl loop", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({
+          name: "images",
+          propType: "list[image]",
+          tsType: "image[]",
+          default: [],
+          apiParamName: "image_urls",
+        }),
+      ],
+      outputType: "image",
+    });
+    const code = gen.generate(spec, "image_to_image");
+    expect(code).toContain(`imagesList`);
+    expect(code).toContain(`imagesUrls`);
+    expect(code).toContain(`assetToFalUrl`);
+    expect(code).toContain(`"image_urls"`);
+  });
+
+  it("generates list[video] handling with assetToFalUrl loop", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({
+          name: "videos",
+          propType: "list[video]",
+          tsType: "video[]",
+          default: [],
+        }),
+      ],
+      outputType: "video",
+    });
+    const code = gen.generate(spec, "video_to_video");
+    expect(code).toContain(`videosList`);
+    expect(code).toContain(`videosUrls`);
+    expect(code).toContain(`assetToFalUrl`);
+  });
+
+  it("generates list[audio] handling with assetToFalUrl loop", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({
+          name: "audio_files",
+          propType: "list[audio]",
+          tsType: "audio[]",
+          default: [],
+        }),
+      ],
+      outputType: "audio",
+    });
+    const code = gen.generate(spec, "audio_to_audio");
+    expect(code).toContain(`audioFilesList`);
+    expect(code).toContain(`audioFilesUrls`);
+  });
+
+  it("does NOT declare parentField sub-fields as top-level props, but DOES declare list asset field", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({
+          name: "images",
+          propType: "list[image]",
+          tsType: "image[]",
+          default: [],
+        }),
+        makeField({
+          name: "sub_option",
+          propType: "str",
+          default: "",
+          parentField: "images",
+        }),
+      ],
+    });
+    const code = gen.generate(spec, "image_to_image");
+    // List asset field IS declared as a prop
+    expect(code).toContain(`declare images: any;`);
+    // But its parentField sub-field is NOT
+    expect(code).not.toContain(`declare sub_option: any;`);
+  });
+});

@@ -33,10 +33,16 @@ interface KeytarModule {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
+/** Optional override for the keytar loader (used in tests). */
+let _keytarLoader: (() => Promise<KeytarModule | null>) | null = null;
+
 /**
  * Try to import keytar. Returns null if not available.
  */
 async function tryLoadKeytar(): Promise<KeytarModule | null> {
+  if (_keytarLoader !== null) {
+    return _keytarLoader();
+  }
   try {
     // Dynamic import with variable to prevent TS from resolving the module
     const moduleName = "keytar";
@@ -44,6 +50,22 @@ async function tryLoadKeytar(): Promise<KeytarModule | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Set a custom keytar loader (for testing / dependency injection).
+ *
+ * @param loader - A function returning a KeytarModule or null.
+ */
+export function setKeytarLoader(loader: () => Promise<KeytarModule | null>): void {
+  _keytarLoader = loader;
+}
+
+/**
+ * Reset the keytar loader to the default dynamic import (for testing).
+ */
+export function resetKeytarLoader(): void {
+  _keytarLoader = null;
 }
 
 /**

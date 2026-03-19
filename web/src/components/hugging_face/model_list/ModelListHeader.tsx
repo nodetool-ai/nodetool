@@ -1,10 +1,12 @@
 import React from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Box,
   ToggleButton,
   ToggleButtonGroup,
   Slider,
-  Typography
+  Typography,
+  Link
 } from "@mui/material";
 import SearchInput from "../../search/SearchInput";
 import {
@@ -46,14 +48,25 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
 
   return (
     <>
-      <SearchInput
-        focusOnTyping={true}
-        focusSearchInput={false}
-        width={250}
-        maxWidth={"300px"}
-        onSearchChange={setModelSearchTerm}
-        searchTerm={modelSearchTerm}
-      />
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5 }}>
+        <SearchInput
+          focusOnTyping={true}
+          focusSearchInput={false}
+          width={250}
+          maxWidth={"300px"}
+          onSearchChange={setModelSearchTerm}
+          searchTerm={modelSearchTerm}
+        />
+        <Link
+          component={RouterLink}
+          to="/local-model-fit"
+          variant="body2"
+          underline="hover"
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Local hardware fit
+        </Link>
+      </Box>
 
       <Box
         sx={{

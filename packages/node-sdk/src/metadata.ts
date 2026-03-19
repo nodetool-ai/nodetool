@@ -44,12 +44,14 @@ export interface NodeMetadata {
   layout?: string;
   properties: PropertyMetadata[];
   outputs: OutputSlotMetadata[];
-  the_model_info?: Record<string, unknown>;
+
   recommended_models?: unknown[];
   basic_fields?: string[];
   required_settings?: string[];
   is_dynamic?: boolean;
+  is_streaming_input?: boolean;
   is_streaming_output?: boolean;
+  is_controlled?: boolean;
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   model_packs?: unknown[];

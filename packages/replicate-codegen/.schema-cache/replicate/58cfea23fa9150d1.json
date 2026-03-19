@@ -1,0 +1,112 @@
+{
+  "modelId": "zsxkib/dia",
+  "owner": "zsxkib",
+  "name": "dia",
+  "version": "2119e338ca5c0dacd3def83158d6c80d431f2ac1024146d8cca9220b74385599",
+  "description": "Dia 1.6B by Nari Labs, Generates realistic dialogue audio from text, including non-verbal cues and voice cloning",
+  "inputSchema": {
+    "properties": {
+      "audio_prompt": {
+        "description": "Optional audio file (.wav/.mp3/.flac) for voice cloning. The model will attempt to mimic this voice style.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Audio Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "audio_prompt_text": {
+        "description": "Optional transcript of the audio prompt. If provided, this will be prepended to the main text input.",
+        "nullable": true,
+        "title": "Audio Prompt Text",
+        "type": "string",
+        "x-order": 2
+      },
+      "cfg_filter_top_k": {
+        "default": 45,
+        "description": "Technical parameter for filtering audio generation tokens. Higher values allow more diverse sounds; lower values create more consistent audio.",
+        "maximum": 100,
+        "minimum": 10,
+        "title": "Cfg Filter Top K",
+        "type": "integer",
+        "x-order": 8
+      },
+      "cfg_scale": {
+        "default": 3,
+        "description": "Controls how closely the audio follows your text. Higher values (3-5) follow text more strictly; lower values may sound more natural but deviate more.",
+        "maximum": 5,
+        "minimum": 1,
+        "title": "Cfg Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "max_audio_prompt_seconds": {
+        "default": 10,
+        "description": "Maximum duration in seconds for the input voice cloning audio prompt. Only used when an audio prompt is provided. Longer voice samples will be truncated to this length.",
+        "maximum": 120,
+        "minimum": 1,
+        "title": "Max Audio Prompt Seconds",
+        "type": "integer",
+        "x-order": 4
+      },
+      "max_new_tokens": {
+        "default": 3072,
+        "description": "Controls the length of generated audio. Higher values create longer audio. (86 tokens ≈ 1 second of audio).",
+        "maximum": 4096,
+        "minimum": 500,
+        "title": "Max New Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed for reproducible results. Use the same seed value to get the same output for identical inputs. Leave blank for random results each time.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "speed_factor": {
+        "default": 1,
+        "description": "Adjusts playback speed of the generated audio. Values below 1.0 slow down the audio; 1.0 is original speed.",
+        "maximum": 1.5,
+        "minimum": 0.5,
+        "title": "Speed Factor",
+        "type": "number",
+        "x-order": 9
+      },
+      "temperature": {
+        "default": 1.8,
+        "description": "Controls randomness in generation. Higher values (1.3-2.0) increase variety; lower values make output more consistent. Set to 0 for deterministic (greedy) generation.",
+        "maximum": 2.5,
+        "minimum": 1,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 6
+      },
+      "text": {
+        "description": "Input text for dialogue generation. Use [S1], [S2] to indicate different speakers and (description) in parentheses for non-verbal cues e.g., (laughs), (whispers).",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "top_p": {
+        "default": 0.95,
+        "description": "Controls diversity of word choice. Higher values include more unusual options. Most users shouldn't need to adjust this parameter.",
+        "maximum": 1,
+        "minimum": 0.1,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

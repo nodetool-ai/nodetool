@@ -1,0 +1,28 @@
+{
+  "modelId": "pollinations/modnet",
+  "owner": "pollinations",
+  "name": "modnet",
+  "version": "da7d45f3b836795f945f221fc0b01a6d3ab7f5e163f13208948ad436001e2255",
+  "description": "A deep learning approach to remove background & adding new background image",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

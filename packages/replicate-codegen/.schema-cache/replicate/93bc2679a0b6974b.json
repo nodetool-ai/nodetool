@@ -1,0 +1,70 @@
+{
+  "modelId": "minimax/music-1.5",
+  "owner": "minimax",
+  "name": "music-1.5",
+  "version": "70c8395540eae909be2c09a0b4897d22ee2455a5e5c9826b71161743b5cc45f1",
+  "description": "Music-1.5: Full-length songs (up to 4 mins) with natural vocals & rich instrumentation",
+  "inputSchema": {
+    "properties": {
+      "audio_format": {
+        "default": "mp3",
+        "description": "Audio format",
+        "enum": [
+          "mp3",
+          "wav",
+          "pcm"
+        ],
+        "title": "audio_format",
+        "type": "string",
+        "x-order": 4
+      },
+      "bitrate": {
+        "default": 256000,
+        "description": "Bitrate for the generated music",
+        "enum": [
+          32000,
+          64000,
+          128000,
+          256000
+        ],
+        "title": "bitrate",
+        "type": "integer",
+        "x-order": 3
+      },
+      "lyrics": {
+        "description": "Lyrics. Use \n to separate lines. Supports [intro][verse][chorus][bridge][outro]. Valid input: 10-600 characters.",
+        "title": "Lyrics",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Control music generation with a text prompt. Valid input: 10-300 characters.",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "sample_rate": {
+        "default": 44100,
+        "description": "Sample rate for the generated music",
+        "enum": [
+          16000,
+          24000,
+          32000,
+          44100
+        ],
+        "title": "sample_rate",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt",
+      "lyrics"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -227,7 +227,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       ],
       input_schema: {},
       output_schema: {},
-      the_model_info: {},
+
       recommended_models: [],
       is_streaming_output: false,
       required_settings: []

@@ -20,6 +20,7 @@ import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
 import { NodeInbox } from "./inbox.js";
+import { NodeInputs, NodeOutputs } from "./io.js";
 
 export type { NodeExecutor };
 
@@ -66,6 +67,8 @@ export class NodeActor {
   private _emitMessage: (msg: unknown) => void;
   /** Optional execution context passed into node executors. */
   private _executionContext: ProcessingContext | undefined;
+  /** Control context for controller nodes (injected as _control_context input). */
+  private _controlContext: Record<string, unknown> | null;
 
   constructor(opts: {
     node: NodeDescriptor;
@@ -78,6 +81,7 @@ export class NodeActor {
     emitMessage: (msg: unknown) => void;
     executionContext?: ProcessingContext;
     stickyHandles?: Set<string>;
+    controlContext?: Record<string, unknown> | null;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -86,6 +90,7 @@ export class NodeActor {
     this._emitMessage = opts.emitMessage;
     this._executionContext = opts.executionContext;
     this._initialStickyHandles = opts.stickyHandles ?? new Set();
+    this._controlContext = opts.controlContext ?? null;
   }
 
   // -----------------------------------------------------------------------
@@ -108,12 +113,23 @@ export class NodeActor {
 
       // Determine execution mode
       if (this.node.is_streaming_input) {
-        // Streaming input mode: the node itself drains the inbox.
-        // We just call process() once with an empty input map;
-        // the node uses iter_input / iter_any internally.
-        const outputs = await this._executor.process({}, this._executionContext);
-        this._latestResult = outputs;
-        await this._sendOutputs(this.node.id, outputs);
+        if (this._executor.run) {
+          // Streaming input mode with run(): node drains inbox via
+          // NodeInputs and pushes outputs via NodeOutputs.
+          const nodeInputs = new NodeInputs(this.inbox);
+          const nodeOutputs = new NodeOutputs({
+            sendFn: async (slot: string, value: unknown) => {
+              await this._sendOutputs(this.node.id, { [slot]: value });
+            },
+          });
+          await this._executor.run(nodeInputs, nodeOutputs, this._executionContext);
+          this._latestResult = nodeOutputs.collected();
+        } else {
+          // Legacy fallback: call process() once with empty inputs.
+          const outputs = await this._executor.process({}, this._executionContext);
+          this._latestResult = outputs;
+          await this._sendOutputs(this.node.id, outputs);
+        }
       } else if (this.node.is_controlled) {
         // Controlled mode: wait for control events from inbox
         await this._runControlled();
@@ -211,6 +227,12 @@ export class NodeActor {
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
+    // Inject _control_context for controller nodes (Python parity:
+    // process_streaming_node_with_inputs / _is_controller / _build_control_context)
+    if (this._controlContext) {
+      inputs = { ...inputs, _control_context: this._controlContext };
+    }
+
     log.info("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,
@@ -243,30 +265,105 @@ export class NodeActor {
 
   /**
    * Controlled execution: wait for control events on __control__ handle.
+   *
+   * Unlike the generic iterAny() approach, this iterates ONLY the
+   * __control__ handle so that the loop terminates as soon as all
+   * controllers signal EOS (markSourceDone). Data inputs are drained
+   * from the inbox buffers before each execution and cached for replay.
    */
   private async _runControlled(): Promise<void> {
+    // Identify data handles (non-control) that need to be populated
+    const dataHandles = [...this.inbox["_buffers"].keys()].filter(
+      (h) => h !== "__control__"
+    );
+
+    // Wait for all data handles to have at least one value before
+    // processing the first control event. This ensures that when an
+    // upstream node feeds data into the controlled node, the data
+    // arrives before we try to execute.
+    if (dataHandles.length > 0 && !this._cachedInputs) {
+      await this._waitForDataInputs(dataHandles);
+    }
+
+    for await (const item of this.inbox.iterInput("__control__")) {
+      const event = item as ControlEvent;
+      if (event.event_type === "stop") {
+        break;
+      }
+      if (event.event_type === "run") {
+        this._currentControlProperties = event.properties;
+        // Drain any buffered data inputs before processing (replay)
+        this._cacheBufferedDataInputs();
+        const inputs = this._cachedInputs ?? {};
+        const merged = { ...inputs, ...this._currentControlProperties };
+        const outputs = await this._executor.process(
+          merged,
+          this._executionContext
+        );
+        this._latestResult = outputs;
+        await this._sendOutputs(this.node.id, outputs);
+      }
+    }
+  }
+
+  /**
+   * Wait until every data handle has at least one buffered value.
+   * Drains items from the inbox as they arrive, caching them, until
+   * all required handles are satisfied.
+   */
+  private async _waitForDataInputs(dataHandles: string[]): Promise<void> {
+    const pending = new Set(dataHandles);
+
+    // Check what's already buffered
+    for (const handle of dataHandles) {
+      if (this.inbox.hasBuffered(handle)) {
+        pending.delete(handle);
+      }
+    }
+    if (pending.size === 0) {
+      this._cacheBufferedDataInputs();
+      return;
+    }
+
+    // Drain items until all data handles have at least one value
     for await (const [handle, item] of this.inbox.iterAny()) {
       if (handle === "__control__") {
-        const event = item as ControlEvent;
-        if (event.event_type === "stop") {
-          break;
-        }
-        if (event.event_type === "run") {
-          this._currentControlProperties = event.properties;
-          // Apply control properties as inputs override
-          const inputs = this._cachedInputs ?? {};
-          const merged = { ...inputs, ...this._currentControlProperties };
-          const outputs = await this._executor.process(
-            merged,
-            this._executionContext
-          );
-          this._latestResult = outputs;
-          await this._sendOutputs(this.node.id, outputs);
-        }
-      } else {
-        // Data input on a controlled node – cache for replay
+        // Push control events back – they'll be consumed by iterInput later
+        this.inbox.prepend(
+          "__control__",
+          {
+            data: item,
+            metadata: {},
+            timestamp: Date.now(),
+            event_id: "",
+          }
+        );
+        continue;
+      }
+      if (!this._cachedInputs) this._cachedInputs = {};
+      this._cachedInputs[handle] = item;
+      pending.delete(handle);
+      if (pending.size === 0) break;
+    }
+  }
+
+  /**
+   * Drain all buffered data (non-control) inputs and cache them.
+   * Called before each controlled execution to pick up any data that
+   * arrived while waiting for the next control event.
+   */
+  private _cacheBufferedDataInputs(): void {
+    const buffers = this.inbox["_buffers"] as Map<
+      string,
+      Array<{ data: unknown }>
+    >;
+    for (const [handle, buf] of buffers) {
+      if (handle === "__control__" || buf.length === 0) continue;
+      // Use the latest buffered value for each data handle
+      while (buf.length > 0) {
+        const envelope = buf.shift()!;
         if (!this._cachedInputs) this._cachedInputs = {};
-        this._cachedInputs[handle] = item;
+        this._cachedInputs[handle] = envelope.data;
       }
     }
   }

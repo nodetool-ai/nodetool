@@ -437,7 +437,7 @@ export interface NodeMetadata {
   layout: string;
   properties: Property[];
   outputs: OutputSlot[];
-  the_model_info: Record<string, unknown>;
+
   recommended_models: UnifiedModel[];
   basic_fields: string[];
   required_settings: string[];

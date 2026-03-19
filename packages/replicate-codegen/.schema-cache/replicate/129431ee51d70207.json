@@ -1,0 +1,38 @@
+{
+  "modelId": "minimax/video-01-director",
+  "owner": "minimax",
+  "name": "video-01-director",
+  "version": "377cde553c72d2a8a034a2824a43b63b9472247d670dbb14d8c917abb2d39b64",
+  "description": "Generate videos with specific camera movements",
+  "inputSchema": {
+    "properties": {
+      "first_frame_image": {
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "format": "uri",
+        "title": "First Frame Image",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_optimizer": {
+        "default": true,
+        "description": "Use prompt optimizer",
+        "title": "Prompt Optimizer",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

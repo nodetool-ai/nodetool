@@ -37,6 +37,7 @@ import ModelsManager from "../hugging_face/ModelsManager";
 import WorkspacesManager from "../workspaces/WorkspacesManager";
 import CollectionsManager from "../collections/CollectionsManager";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import MemoryIcon from "@mui/icons-material/Memory";
 import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore";
@@ -199,6 +200,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
   // Modal states for Collections, Models, and Workspaces
@@ -248,6 +251,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
     onViewChange("assets");
   }, [onViewChange]);
 
+  const handleLocalModelFitClick = useCallback(() => {
+    navigate("/local-model-fit");
+  }, [navigate]);
+
+  const isLocalModelFitRoute = pathname.includes("local-model-fit");
+
   return (
     <div className="vertical-toolbar">
       {/* Drawer views section - My Stuff */}
@@ -287,6 +296,19 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
 
+      <Tooltip
+        title="Local model fit — RAM, tiers, and tags"
+        placement="right-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleLocalModelFitClick}
+          className={isLocalModelFitRoute ? "active" : ""}
+        >
+          <MemoryIcon />
+        </IconButton>
+      </Tooltip>
 
       {/* Divider between drawer views and external actions */}
       <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />

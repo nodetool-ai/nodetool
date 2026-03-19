@@ -17,6 +17,7 @@ export class FfmpegApiLoudnorm extends FalNode {
   static readonly description = `Get EBU R128 loudness normalization from audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Measured loudness range of input file in LU. Required for linear mode." })
   declare measured_lra: any;
@@ -100,6 +101,7 @@ export class FfmpegApiWaveform extends FalNode {
   static readonly description = `Get waveform data from audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "float", default: 4, description: "Controls how many points are sampled per second of audio. Lower values (e.g. 1-2) create a coarser waveform, higher values (e.g. 4-10) create a more detailed one." })
   declare points_per_second: any;
@@ -143,6 +145,7 @@ export class FfmpegApiMetadata extends FalNode {
   static readonly description = `Get encoding metadata from video and audio files using FFmpeg API.
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Whether to extract the start and end frames for videos. Note that when true the request will be slower." })
   declare extract_frames: any;

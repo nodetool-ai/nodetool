@@ -1,0 +1,121 @@
+{
+  "modelId": "bria/generate-background",
+  "owner": "bria",
+  "name": "generate-background",
+  "version": "2555256f9a283b27092a99741d35251c180d6712e572d19a1c3912b45c80c995",
+  "description": "Bria Background Generation allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use",
+  "inputSchema": {
+    "properties": {
+      "bg_prompt": {
+        "description": "Text description of the new scene or background. Either bg_prompt or ref_image_url must be provided",
+        "nullable": true,
+        "title": "Bg Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "content_moderation": {
+        "default": false,
+        "description": "Enable content moderation",
+        "title": "Content Moderation",
+        "type": "boolean",
+        "x-order": 9
+      },
+      "enhance_ref_image": {
+        "default": true,
+        "description": "[DEPRECATED] Enhance reference image. No longer used in V2 API.",
+        "title": "Enhance Ref Image",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "fast": {
+        "default": true,
+        "description": "[DEPRECATED] Use fast mode. No longer used in V2 API.",
+        "title": "Fast",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "force_rmbg": {
+        "default": false,
+        "description": "[DEPRECATED] Force background removal. No longer used in V2 API.",
+        "title": "Force Rmbg",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "image_url": {
+        "description": "Image URL",
+        "nullable": true,
+        "title": "Image Url",
+        "type": "string",
+        "x-order": 1
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 5
+      },
+      "original_quality": {
+        "default": false,
+        "description": "Retain original input image size, otherwise scale to 1MP",
+        "title": "Original Quality",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "ref_image_file": {
+        "description": "Reference image file for background generation",
+        "format": "uri",
+        "nullable": true,
+        "title": "Ref Image File",
+        "type": "string",
+        "x-order": 4
+      },
+      "ref_image_url": {
+        "description": "URL of reference image for background generation. Either bg_prompt or ref_image_url must be provided",
+        "nullable": true,
+        "title": "Ref Image Url",
+        "type": "string",
+        "x-order": 3
+      },
+      "refine_prompt": {
+        "default": true,
+        "description": "Refine the prompt for optimal results",
+        "title": "Refine Prompt",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "sync": {
+        "default": true,
+        "description": "Synchronous response mode",
+        "title": "Sync",
+        "type": "boolean",
+        "x-order": 6
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

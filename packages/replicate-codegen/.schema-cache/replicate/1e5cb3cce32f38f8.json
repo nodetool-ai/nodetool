@@ -1,0 +1,34 @@
+{
+  "modelId": "ibm-granite/granite-embedding-278m-multilingual",
+  "owner": "ibm-granite",
+  "name": "granite-embedding-278m-multilingual",
+  "version": "1f76d42a05f120e12272746d5a2d86b525c13420773f795a4cbef9117d8685f1",
+  "description": "Granite-Embedding-278M-Multilingual is a 278M parameter model from the Granite Embeddings suite that can be used to generate high quality text embeddings",
+  "inputSchema": {
+    "properties": {
+      "texts": {
+        "default": [],
+        "description": "A list of texts to embed.",
+        "items": {
+          "type": "string"
+        },
+        "title": "Texts",
+        "type": "array",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "items": {
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-type": "iterator"
+  }
+}

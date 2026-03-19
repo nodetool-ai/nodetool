@@ -17,6 +17,7 @@ export class Ultrashape extends FalNode {
   static readonly description = `Ultrashape
 3d_to_3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "int", default: 1024, description: "Marching cubes resolution." })
   declare octree_resolution: any;
@@ -70,6 +71,7 @@ export class Sam33DAlign extends FalNode {
   static readonly description = `Sam 3
 3d_to_3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the human mask image. If not provided, uses full image." })
   declare body_mask_url: any;
@@ -122,6 +124,7 @@ export class MeshyV5Retexture extends FalNode {
   static readonly description = `Meshy-5 retexture applies new, high-quality textures to existing 3D models using either text prompts or reference images. It supports PBR material generation for realistic, production-ready results.
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color." })
   declare enable_pbr: any;
@@ -175,6 +178,7 @@ export class MeshyV5Remesh extends FalNode {
   static readonly description = `Meshy-5 remesh allows you to remesh and export existing 3D models into various formats
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "float", default: 0, description: "Resize the model to a certain height measured in meters. Set to 0 for no resizing." })
   declare resize_height: any;
@@ -224,6 +228,7 @@ export class HunyuanPart extends FalNode {
   static readonly description = `Use the capabilities of hunyuan part to generate point clouds from your 3D files.
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "float", default: 0, description: "X coordinate of the point prompt for segmentation (normalized space -1 to 1)." })
   declare point_prompt_x: any;

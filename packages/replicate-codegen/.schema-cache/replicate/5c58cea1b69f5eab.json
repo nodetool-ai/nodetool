@@ -1,0 +1,84 @@
+{
+  "modelId": "bria/fibo",
+  "owner": "bria",
+  "name": "fibo",
+  "version": "11d5854315b5c315a9e9335bb816e693eea668e47e347ca69e2ea1eac16acd6b",
+  "description": "SOTA Open source model trained on licensed data, transforming intent into structured control for precise, high-quality AI image generation in enterprise and agentic workflows.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0",
+        "enum": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 5
+      },
+      "guidance_scale": {
+        "description": "Guidance scale (1-10)",
+        "maximum": 5,
+        "minimum": 3,
+        "nullable": true,
+        "title": "Guidance Scale",
+        "type": "integer",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "structured_prompt": {
+        "default": "",
+        "description": "Structured prompt (JSON string). Use a structured_prompt from a previous generation's response or the /v2/structured_prompt/generate endpoint for precise refinement.",
+        "nullable": true,
+        "title": "Structured Prompt",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

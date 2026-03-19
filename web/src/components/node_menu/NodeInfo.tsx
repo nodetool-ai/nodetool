@@ -198,12 +198,16 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       if (error) {
         return "unknown";
       }
-      return data;
+      // API returns {configured: boolean} — extract the status string
+      const configured = data && typeof data === "object" && "configured" in data
+        ? (data as { configured: boolean }).configured
+        : false;
+      return configured ? "online" : "offline";
     }
     return "unknown";
   }, [nodeMetadata]);
 
-  const { data: replicateStatus, isLoading } = useQuery({
+  const { data: replicateStatus } = useQuery({
     queryKey: ["replicateStatus", nodeMetadata.node_type],
     queryFn: fetchReplicateStatus
   });
@@ -271,17 +275,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Typography>
 
-      {nodeMetadata.the_model_info?.cover_image_url ? (
-        isLoading ? (
-          <div className="preview-image loading"></div>
-        ) : (
-          <img
-            className="preview-image"
-            src={nodeMetadata.the_model_info.cover_image_url as string}
-            alt={nodeMetadata.title}
-          />
-        )
-      ) : null}
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 

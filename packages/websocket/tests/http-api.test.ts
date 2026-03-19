@@ -40,7 +40,7 @@ describe("HTTP API: metadata + workflows", () => {
             layout: "default",
             properties: [],
             outputs: [],
-            the_model_info: {},
+
             recommended_models: [],
             basic_fields: [],
             required_settings: [],

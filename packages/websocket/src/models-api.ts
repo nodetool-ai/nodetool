@@ -3,21 +3,10 @@ import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import {
-  AnthropicProvider,
   BaseProvider,
-  CerebrasProvider,
-  FakeProvider,
-  GeminiProvider,
-  GroqProvider,
-  LlamaProvider,
-  LMStudioProvider,
-  MistralProvider,
-  OllamaProvider,
-  OpenAIProvider,
-  OpenRouterProvider,
-  PythonProvider,
-  TogetherProvider,
-  VLLMProvider,
+  getProvider,
+  isProviderConfigured,
+  listRegisteredProviderIds,
   type ASRModel,
   type EmbeddingModel,
   type ImageModel,
@@ -27,7 +16,6 @@ import {
   type VideoModel,
 } from "@nodetool/runtime";
 import type { PythonBridge } from "@nodetool/runtime";
-import { getSecret } from "@nodetool/security";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -366,77 +354,13 @@ function toOllamaModel(model: LanguageModel): Record<string, unknown> {
   };
 }
 
-/** Resolve a secret from encrypted DB (user "1") then env var. */
-async function resolveKey(key: string): Promise<string | undefined> {
-  return (await getSecret(key, "1")) ?? undefined;
-}
+// ---------------------------------------------------------------------------
+// Provider access — delegates to the runtime's single provider registry.
+// No duplicate registry here; the runtime's registerProvider() calls in
+// providers/index.ts are the single source of truth.
+// ---------------------------------------------------------------------------
 
-/** Registry mapping provider id → secret key + async constructor. */
-interface ProviderEntry {
-  /** Env/secret key required. null = local server (always available). */
-  secretKey: string | null;
-  /** Async factory — uses resolveKey() for secret DB + env lookup. */
-  create: () => Promise<BaseProvider>;
-}
-
-const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
-  fake: {
-    secretKey: null,
-    create: async () => new FakeProvider(),
-  },
-  openai: {
-    secretKey: "OPENAI_API_KEY",
-    create: async () => new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") }),
-  },
-  anthropic: {
-    secretKey: "ANTHROPIC_API_KEY",
-    create: async () => new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") }),
-  },
-  gemini: {
-    secretKey: "GEMINI_API_KEY",
-    create: async () => new GeminiProvider({ GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY") }),
-  },
-  ollama: {
-    secretKey: null,
-    create: async () => new OllamaProvider({ OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL") }),
-  },
-  llama_cpp: {
-    secretKey: null,
-    create: async () => new LlamaProvider({ LLAMA_CPP_URL: await resolveKey("LLAMA_CPP_URL") }),
-  },
-  groq: {
-    secretKey: "GROQ_API_KEY",
-    create: async () => new GroqProvider({ GROQ_API_KEY: await resolveKey("GROQ_API_KEY") }),
-  },
-  mistral: {
-    secretKey: "MISTRAL_API_KEY",
-    create: async () => new MistralProvider({ MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY") }),
-  },
-  openrouter: {
-    secretKey: "OPENROUTER_API_KEY",
-    create: async () => new OpenRouterProvider({ OPENROUTER_API_KEY: await resolveKey("OPENROUTER_API_KEY") }),
-  },
-  together: {
-    secretKey: "TOGETHER_API_KEY",
-    create: async () => new TogetherProvider({ TOGETHER_API_KEY: await resolveKey("TOGETHER_API_KEY") }),
-  },
-  cerebras: {
-    secretKey: "CEREBRAS_API_KEY",
-    create: async () => new CerebrasProvider({ CEREBRAS_API_KEY: await resolveKey("CEREBRAS_API_KEY") }),
-  },
-  lmstudio: {
-    secretKey: null,
-    create: async () => new LMStudioProvider({}, {
-      baseURL: (await resolveKey("LMSTUDIO_URL")) ?? "http://127.0.0.1:1234",
-    }),
-  },
-  vllm: {
-    secretKey: "VLLM_BASE_URL",
-    create: async () => new VLLMProvider({}, {
-      baseURL: await resolveKey("VLLM_BASE_URL"),
-    }),
-  },
-};
+import { PythonProvider, registerProvider } from "@nodetool/runtime";
 
 /**
  * Register Python-only providers (HuggingFace Local, MLX) discovered
@@ -446,58 +370,33 @@ export async function registerPythonProviders(bridge: PythonBridge): Promise<str
   const providers = await bridge.listProviders();
   const registered: string[] = [];
   for (const info of providers) {
-    if (PROVIDER_REGISTRY[info.id]) continue; // don't override existing
-    PROVIDER_REGISTRY[info.id] = {
-      secretKey: null, // local providers don't need API keys to be "available"
-      create: async () => {
-        // Resolve any required secrets for the provider
-        const secrets: Record<string, string> = {};
-        for (const key of info.required_secrets) {
-          const val = await resolveKey(key);
-          if (val) secrets[key] = val;
-        }
-        return new PythonProvider(info.id, bridge, secrets);
-      },
-    };
+    if (listRegisteredProviderIds().includes(info.id)) continue;
+    const secrets: Record<string, string> = {};
+    registerProvider(info.id, PythonProvider as any, { _bridge: bridge, _id: info.id, ...secrets });
     registered.push(info.id);
   }
   return registered;
 }
 
-/**
- * Check if a provider's required secret is available
- * (env var OR encrypted secrets DB).
- */
-async function isProviderAvailable(provider: ProviderId): Promise<boolean> {
-  const entry = PROVIDER_REGISTRY[provider];
-  if (!entry) return false;
-  // Local server providers are always "available"
-  if (!entry.secretKey) return true;
-  // Check secrets DB + env
-  const value = await resolveKey(entry.secretKey);
-  return !!value;
-}
-
-async function instantiateProvider(provider: ProviderId): Promise<BaseProvider | null> {
-  const entry = PROVIDER_REGISTRY[provider];
-  if (!entry) return null;
-  if (!(await isProviderAvailable(provider))) return null;
-  try {
-    return await entry.create();
-  } catch {
-    return null;
-  }
-}
-
 /** Returns only providers whose required credentials are present (env or DB). */
 async function getAvailableProviderIds(): Promise<ProviderId[]> {
+  const ids = listRegisteredProviderIds();
   const checks = await Promise.all(
-    Object.keys(PROVIDER_REGISTRY).map(async (id) => ({
+    ids.map(async (id) => ({
       id,
-      available: await isProviderAvailable(id),
+      available: await isProviderConfigured(id),
     })),
   );
   return checks.filter((c) => c.available).map((c) => c.id);
+}
+
+async function instantiateProvider(provider: ProviderId): Promise<BaseProvider | null> {
+  if (!(await isProviderConfigured(provider))) return null;
+  try {
+    return await getProvider(provider);
+  } catch {
+    return null;
+  }
 }
 
 function providerCapabilities(provider: BaseProvider): string[] {
@@ -606,7 +505,7 @@ async function serverAllowsModel(model: RecommendedUnifiedModel, servers: Record
   if (model.provider === "lmstudio") return servers.lmstudio ?? false;
   if (model.provider === "vllm") return servers.vllm ?? false;
   // API-key providers: available if key is set (env or secrets DB)
-  if (model.provider) return await isProviderAvailable(model.provider);
+  if (model.provider) return await isProviderConfigured(model.provider);
   return true;
 }
 
@@ -641,6 +540,9 @@ function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?:
 
 async function getAllModels(): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
+
+  // Always include recommended models as a baseline
+  all.push(...RECOMMENDED_MODELS);
 
   // Include language models from all available providers
   const availableIds = await getAvailableProviderIds();
@@ -1003,7 +905,10 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   if (path === "/pull_ollama_model") {
     if (request.method !== "POST") return errorResponse(405, "Method not allowed");
     if (isProduction()) return errorResponse(503, { status: "unavailable", message: "Not available in production" });
-    return errorResponse(501, "Streaming Ollama model pulls are not implemented in TS API yet");
+    // Streaming Ollama model pulls require Server-Sent Events with progress deltas.
+    // The TS standalone server does not implement this streaming protocol yet.
+    // Clients should use the Python backend or manage Ollama pulls directly via the Ollama HTTP API.
+    return errorResponse(501, "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend.");
   }
 
   if (path === "/huggingface/file_info") {
@@ -1012,7 +917,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const token = await resolveKey("HF_TOKEN");
+      const { getSecret } = await import("@nodetool/security");
+      const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
       const infos = await getHuggingfaceFileInfos(body, token);
       return jsonResponse(infos);
     } catch {

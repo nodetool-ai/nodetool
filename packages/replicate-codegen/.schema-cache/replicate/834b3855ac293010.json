@@ -1,0 +1,150 @@
+{
+  "modelId": "ryan5453/demucs",
+  "owner": "ryan5453",
+  "name": "demucs",
+  "version": "5a7041cc9b82e5a558fea6b3d7b12dea89625e89da33f0447bd727c2d0ab9e77",
+  "description": "Demucs is an audio source separator created by Facebook Research.",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Upload the file to be processed here.",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      },
+      "clip_mode": {
+        "default": "rescale",
+        "description": "Choose the strategy for avoiding clipping. Rescale will rescale entire signal if necessary or clamp will allow hard clipping.",
+        "enum": [
+          "rescale",
+          "clamp",
+          "none"
+        ],
+        "title": "clip_mode",
+        "type": "string",
+        "x-order": 7
+      },
+      "jobs": {
+        "default": 0,
+        "description": "Choose the number of parallel jobs to use for separation.",
+        "title": "Jobs",
+        "type": "integer",
+        "x-order": 12
+      },
+      "model": {
+        "default": "htdemucs",
+        "description": "Choose the demucs audio that proccesses your audio. The readme has more information on what to choose.",
+        "enum": [
+          "htdemucs",
+          "htdemucs_ft",
+          "htdemucs_6s",
+          "hdemucs_mmi",
+          "mdx_q",
+          "mdx_extra_q"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 1
+      },
+      "mp3_bitrate": {
+        "default": 320,
+        "description": "Choose the bitrate for the MP3 output. Higher is better quality but larger file size. If MP3 is not selected as the output type, this has no effect.",
+        "title": "Mp3 Bitrate",
+        "type": "integer",
+        "x-order": 4
+      },
+      "mp3_preset": {
+        "default": 2,
+        "description": "Choose the preset for the MP3 output. Higher is faster but worse quality. If MP3 is not selected as the output type, this has no effect.",
+        "enum": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "title": "mp3_preset",
+        "type": "integer",
+        "x-order": 5
+      },
+      "output_format": {
+        "default": "mp3",
+        "description": "Choose the audio format you would like the result to be returned in.",
+        "enum": [
+          "mp3",
+          "flac",
+          "wav"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "overlap": {
+        "default": 0.25,
+        "description": "Choose the amount of overlap between prediction windows.",
+        "title": "Overlap",
+        "type": "number",
+        "x-order": 9
+      },
+      "segment": {
+        "description": "Choose the segment length to use for separation.",
+        "title": "Segment",
+        "type": "integer",
+        "x-order": 11
+      },
+      "shifts": {
+        "default": 1,
+        "description": "Choose the amount random shifts for equivariant stabilization. This performs multiple predictions with random shifts of the input and averages them, which makes it x times slower.",
+        "title": "Shifts",
+        "type": "integer",
+        "x-order": 8
+      },
+      "split": {
+        "default": true,
+        "description": "Choose whether or not the audio should be split into chunks.",
+        "title": "Split",
+        "type": "boolean",
+        "x-order": 10
+      },
+      "stem": {
+        "default": "none",
+        "description": "If you just want to isolate one stem, you can choose it here.",
+        "enum": [
+          "none",
+          "drums",
+          "bass",
+          "other",
+          "vocals",
+          "guitar",
+          "piano"
+        ],
+        "title": "stem",
+        "type": "string",
+        "x-order": 2
+      },
+      "wav_format": {
+        "default": "int24",
+        "description": "Choose format for the WAV output. If WAV is not selected as the output type, this has no effect.",
+        "enum": [
+          "int16",
+          "int24",
+          "float32"
+        ],
+        "title": "wav_format",
+        "type": "string",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "object"
+  }
+}

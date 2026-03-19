@@ -374,7 +374,6 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ControlAgentNode,
   ResearchAgentNode,
   AGENT_NODES,
 } from "./nodes/agents.js";
@@ -592,7 +591,21 @@ export {
   ClipPathLibNode,
   LIB_SVG_NODES,
 } from "./nodes/lib-svg.js";
-export { LIB_PILLOW_NODES } from "./nodes/lib-pillow.js";
+export { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
+export { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
+export { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
+export { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
+// Backward compatibility: existing tests that import LIB_PILLOW_NODES still work
+import { LIB_IMAGE_ENHANCE_NODES as _LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
+import { LIB_IMAGE_FILTER_NODES as _LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
+import { LIB_IMAGE_DRAW_NODES as _LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
+import { LIB_IMAGE_COLOR_GRADING_NODES as _LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
+export const LIB_PILLOW_NODES = [
+  ..._LIB_IMAGE_ENHANCE_NODES,
+  ..._LIB_IMAGE_FILTER_NODES,
+  ..._LIB_IMAGE_DRAW_NODES,
+  ..._LIB_IMAGE_COLOR_GRADING_NODES,
+];
 export {
   WebFetchLibNode,
   DownloadFileLibNode,
@@ -812,7 +825,10 @@ import { LIB_PANDOC_NODES } from "./nodes/lib-pandoc.js";
 import { LIB_YTDLP_NODES } from "./nodes/lib-ytdlp.js";
 import { LIB_GRID_NODES } from "./nodes/lib-grid.js";
 import { LIB_SVG_NODES } from "./nodes/lib-svg.js";
-import { LIB_PILLOW_NODES } from "./nodes/lib-pillow.js";
+import { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
+import { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
+import { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
+import { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
 import { LIB_RSS_NODES } from "./nodes/lib-rss.js";
 import { LIB_SYNTHESIS_NODES } from "./nodes/lib-synthesis.js";
 import { LIB_AUDIO_DSP_NODES } from "./nodes/lib-audio-dsp.js";
@@ -883,7 +899,10 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...LIB_SVG_NODES,
-  ...LIB_PILLOW_NODES,
+  ...LIB_IMAGE_ENHANCE_NODES,
+  ...LIB_IMAGE_FILTER_NODES,
+  ...LIB_IMAGE_DRAW_NODES,
+  ...LIB_IMAGE_COLOR_GRADING_NODES,
   ...LIB_RSS_NODES,
   ...LIB_SYNTHESIS_NODES,
   ...LIB_AUDIO_DSP_NODES,
