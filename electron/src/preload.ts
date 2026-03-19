@@ -660,6 +660,32 @@ const api = {
   },
 
   // ============================================================================
+  // workspace: Workspace dev server and file I/O
+  // ============================================================================
+  workspace: {
+    server: {
+      spawn: (workspacePath: string, port: number) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_SPAWN, { workspacePath, port }),
+      kill: (workspacePath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_KILL, { workspacePath }),
+      respawn: (workspacePath: string, port: number) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_RESPAWN, { workspacePath, port }),
+      status: (workspacePath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_STATUS, { workspacePath }),
+      logs: (workspacePath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_LOGS, { workspacePath }),
+      ensureInstalled: (workspacePath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED, { workspacePath }),
+    },
+    file: {
+      write: (workspacePath: string, relPath: string, content: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_WRITE, { workspacePath, relPath, content }),
+      read: (workspacePath: string, relPath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_READ, { workspacePath, relPath }),
+    },
+  },
+
+  // ============================================================================
   // agent: Claude Agent SDK operations
   // ============================================================================
   agent: {

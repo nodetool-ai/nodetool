@@ -55,6 +55,7 @@ import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+import { workspaceDevServer } from "./WorkspaceDevServer";
 
 /**
  * Global application state flags and objects
@@ -498,6 +499,7 @@ app.on("before-quit", (event) => {
   if (!isAppQuitting) {
     isAppQuitting = true;
     stopServer();
+    workspaceDevServer.killAll();
   }
 });
 

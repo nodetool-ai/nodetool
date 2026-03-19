@@ -53,6 +53,7 @@ import {
 } from "./fileExplorer";
 import { exportDebugBundle } from "./debug";
 import WebSocket from "ws";
+import { workspaceDevServer } from "./WorkspaceDevServer";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -1411,5 +1412,66 @@ export function initializeIpcHandlers(): void {
       // Notify the renderer to abort any running tool calls
       event.sender.send(IpcChannels.FRONTEND_TOOLS_ABORT, { sessionId });
     },
+  );
+
+  // Workspace dev server handlers
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_SPAWN,
+    async (_event, { workspacePath, port }) => {
+      return workspaceDevServer.spawn(workspacePath, port);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_KILL,
+    async (_event, { workspacePath }) => {
+      return workspaceDevServer.kill(workspacePath);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_RESPAWN,
+    async (_event, { workspacePath, port }) => {
+      return workspaceDevServer.respawn(workspacePath, port);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_STATUS,
+    async (_event, { workspacePath }) => ({
+      running: workspaceDevServer.isRunning(workspacePath),
+      port: workspaceDevServer.getPort(workspacePath),
+      status: workspaceDevServer.getStatus(workspacePath),
+    })
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_LOGS,
+    async (_event, { workspacePath }) => workspaceDevServer.getLogs(workspacePath)
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED,
+    async (_event, { workspacePath }) => {
+      return workspaceDevServer.ensureInstalled(workspacePath);
+    }
+  );
+
+  // Workspace file I/O handlers
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_FILE_WRITE,
+    async (_event, { workspacePath, relPath, content }) => {
+      const fullPath = path.join(workspacePath, relPath);
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+      await fs.writeFile(fullPath, content, 'utf-8');
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_FILE_READ,
+    async (_event, { workspacePath, relPath }) => {
+      const fullPath = path.join(workspacePath, relPath);
+      return fs.readFile(fullPath, 'utf-8');
+    }
   );
 }
