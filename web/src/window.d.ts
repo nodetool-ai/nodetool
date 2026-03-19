@@ -395,6 +395,14 @@ declare global {
         onAbort: (callback: (data: { sessionId: string }) => void) => () => void;
       };
 
+      // Workspace file I/O — write files into a Next.js workspace via IPC
+      workspace?: {
+        file: {
+          /** Write content to a relative path inside workspacePath */
+          write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
+        };
+      };
+
       // Low-level IPC methods for registering handlers (available in Electron only)
       ipc?: {
         /** Invoke a main-process IPC handler */

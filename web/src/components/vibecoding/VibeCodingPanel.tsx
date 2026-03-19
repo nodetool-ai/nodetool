@@ -282,7 +282,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         <div className="chat-section">
           <VibeCodingChat
             workflow={workflow}
-            onHtmlGenerated={handleHtmlGenerated}
+            workspacePath=""
           />
         </div>
         <div className="preview-section">
