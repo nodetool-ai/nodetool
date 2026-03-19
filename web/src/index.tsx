@@ -305,7 +305,7 @@ function getRoutes() {
               }}
             >
               <PanelLeft />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", marginTop: 42, height: "calc(100vh - 42px)" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                 <VibeCodingRoute />
               </div>
               <PanelBottom />

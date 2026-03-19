@@ -1,7 +1,16 @@
 import React, { useCallback, useMemo, memo, useRef, useState } from "react";
-import { Box, Typography, Chip } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Chip,
+  Select,
+  MenuItem,
+  CircularProgress
+} from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { Message } from "../../stores/ApiTypes";
+import type { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { authHeader } from "../../stores/ApiClient";
@@ -10,32 +19,50 @@ import { useVibecodingTemplates, Template } from "../../hooks/useVibecodingTempl
 
 /** Extract the first TypeScript/TSX code block from a markdown AI response. */
 function extractCodeBlock(response: string): string | null {
-  const match = response.match(/```(?:tsx?|typescript|jsx?)?\s*\n([\s\S]*?)```/);
+  const match = response.match(
+    /```(?:tsx?|typescript|jsx?)?\s*\n([\s\S]*?)```/
+  );
   return match ? match[1].trim() : null;
 }
 
 interface VibeCodingChatProps {
-  workspaceId: string;
-  workspacePath: string;
+  workspaceId: string | undefined;
+  workspacePath: string | undefined;
+  workspaces: WorkspaceResponse[] | undefined;
+  isLoadingWorkspaces: boolean;
+  onWorkspaceChange: (workspaceId: string) => void;
 }
 
 const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   workspaceId,
-  workspacePath
+  workspacePath,
+  workspaces,
+  isLoadingWorkspaces,
+  onWorkspaceChange
 }) => {
   const getSession = useVibeCodingStore((state) => state.getSession);
   const addMessage = useVibeCodingStore((state) => state.addMessage);
-  const updateLastMessage = useVibeCodingStore((state) => state.updateLastMessage);
+  const updateLastMessage = useVibeCodingStore(
+    (state) => state.updateLastMessage
+  );
   const setChatStatus = useVibeCodingStore((state) => state.setChatStatus);
 
-  const session = getSession(workspaceId);
+  const session = workspaceId ? getSession(workspaceId) : null;
   const { templates } = useVibecodingTemplates();
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const accumulatedResponseRef = useRef<string>("");
 
+  const handleWorkspaceSelect = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      onWorkspaceChange(event.target.value);
+    },
+    [onWorkspaceChange]
+  );
+
   const sendMessage = useCallback(
     async (message: Message) => {
+      if (!workspaceId) return;
       let prompt = "";
       if (Array.isArray(message.content)) {
         const textContent = message.content.find(
@@ -126,7 +153,14 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         abortControllerRef.current = null;
       }
     },
-    [workspaceId, workspacePath, isStreaming, addMessage, updateLastMessage, setChatStatus]
+    [
+      workspaceId,
+      workspacePath,
+      isStreaming,
+      addMessage,
+      updateLastMessage,
+      setChatStatus
+    ]
   );
 
   const handleStop = useCallback(() => {
@@ -153,8 +187,11 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
 
   const chatStatus = useMemo(() => {
     if (isStreaming) return "streaming";
-    return session.chatStatus === "error" ? "error" : "connected";
-  }, [isStreaming, session.chatStatus]);
+    if (session?.chatStatus === "error") return "error";
+    return "connected";
+  }, [isStreaming, session?.chatStatus]);
+
+  const messages = session?.messages ?? [];
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -171,19 +208,20 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
       >
         <AutoFixHighIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
         <Typography variant="h6" gutterBottom>
-          Design Your App
+          {workspaceId ? "Design Your App" : "Select a Workspace"}
         </Typography>
         <Typography
           variant="body2"
           color="text.secondary"
           sx={{ maxWidth: 400 }}
         >
-          Describe your UI. The AI will generate a Next.js page and update the
-          live preview.
+          {workspaceId
+            ? "Describe your UI. The AI will generate a Next.js page and update the live preview."
+            : "Pick a workspace from the dropdown above to start building."}
         </Typography>
       </Box>
     ),
-    []
+    [workspaceId]
   );
 
   return (
@@ -195,39 +233,83 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         bgcolor: "background.paper"
       }}
     >
-      {/* Template chips — shown when no messages */}
-      {templates && templates.length > 0 && session.messages.length === 0 && (
-        <Box
+      {/* Workspace selector header */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          px: 3,
+          py: 2,
+          borderBottom: (theme) => `1px solid ${theme.palette.divider}`
+        }}
+      >
+        <AutoFixHighIcon
+          sx={{ fontSize: 20, color: "primary.main", flexShrink: 0 }}
+        />
+        <Select
+          size="small"
+          value={workspaceId ?? ""}
+          onChange={handleWorkspaceSelect}
+          displayEmpty
+          disabled={isLoadingWorkspaces}
+          fullWidth
+          MenuProps={{
+            sx: { zIndex: 1500 },
+            disablePortal: false
+          }}
           sx={{
-            display: "flex",
-            gap: 2,
-            px: 4,
-            py: 2,
-            borderBottom: 1,
-            borderColor: "divider",
-            flexWrap: "wrap"
+            fontSize: "0.8125rem",
+            "& .MuiSelect-select": { py: 1 }
           }}
         >
-          {templates.map((template) => (
-            <Chip
-              key={template.id}
-              label={template.name}
-              size="small"
-              onClick={createTemplateClickHandler(template)}
-              clickable
-              variant="outlined"
-              sx={{
-                borderColor: "primary.main",
-                color: "primary.main",
-                "&:hover": {
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText"
-                }
-              }}
-            />
+          <MenuItem value="" disabled>
+            {isLoadingWorkspaces ? "Loading…" : "Select workspace"}
+          </MenuItem>
+          {workspaces?.map((ws) => (
+            <MenuItem key={ws.id} value={ws.id}>
+              {ws.name}
+            </MenuItem>
           ))}
-        </Box>
-      )}
+        </Select>
+        {isLoadingWorkspaces && <CircularProgress size={16} />}
+      </Box>
+
+      {/* Template chips — shown when workspace selected and no messages */}
+      {workspaceId &&
+        templates &&
+        templates.length > 0 &&
+        messages.length === 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              px: 3,
+              py: 2,
+              borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+              flexWrap: "wrap"
+            }}
+          >
+            {templates.map((template) => (
+              <Chip
+                key={template.id}
+                label={template.name}
+                size="small"
+                onClick={createTemplateClickHandler(template)}
+                clickable
+                variant="outlined"
+                sx={{
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                  "&:hover": {
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText"
+                  }
+                }}
+              />
+            ))}
+          </Box>
+        )}
 
       {/* Chat area */}
       <Box sx={{ flex: 1, overflow: "hidden" }}>
@@ -235,7 +317,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           status={chatStatus}
           progress={0}
           total={100}
-          messages={session.messages}
+          messages={messages}
           sendMessage={sendMessage}
           onStop={handleStop}
           showToolbar={false}
