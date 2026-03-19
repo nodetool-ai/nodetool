@@ -118,3 +118,23 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: Optimize Zustand record filtering
+
+## 💡 What
+Replaced expensive `Object.fromEntries(Object.entries(record).filter(...))` patterns in `ErrorStore`, `ExecutionTimeStore`, and `VibeCodingStore` with optimized `for...in` loops and shallow-copy-and-delete mechanisms.
+
+## 🎯 Why
+`Object.entries().filter()` operations on large Zustand store state dictionaries create expensive intermediate arrays, which negatively impact performance and garbage collection, especially during rapid store updates or UI re-renders. Replacing them with `for...in` iteration prevents these allocations.
+
+## 📊 Impact
+- **Improves Memory Efficiency:** Eliminates O(N) intermediate array allocations during record cleanup operations.
+- **Reduces Main Thread Work:** Directly assigns objects to a pre-allocated cache map.
+- **Enhances Best Practices:** Standardizes record filtering methods across multiple critical Zustand stores (and updates `ZUSTAND_BEST_PRACTICES.md` to guide future developers).
+
+## 🔬 Measurement
+Verify by capturing a memory allocation profile while triggering operations like `clearErrors` or `clearTimings`. Notice the elimination of `Array` allocations associated with the `Object.entries` conversions in these code paths.
+
+## 🧪 Testing
+- `npm run lint` and `npm run typecheck` run inside the `web` folder.
+- Store test files confirm logic parity.
