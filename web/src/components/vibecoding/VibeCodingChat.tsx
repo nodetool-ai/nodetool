@@ -6,7 +6,6 @@ import { Box, Typography, Chip } from "@mui/material";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { Message, Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
-import { extractHtmlFromResponse } from "./utils/extractHtml";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { authHeader } from "../../stores/ApiClient";
 import ChatView from "../chat/containers/ChatView";
@@ -46,14 +45,20 @@ const createStyles = (theme: Theme) =>
     }
   });
 
+/** Extract the first TypeScript/TSX code block from a markdown AI response. */
+function extractCodeBlock(response: string): string | null {
+  const match = response.match(/```(?:tsx?|typescript|jsx?)?\s*\n([\s\S]*?)```/);
+  return match ? match[1].trim() : null;
+}
+
 interface VibeCodingChatProps {
   workflow: Workflow;
-  onHtmlGenerated: (html: string) => void;
+  workspacePath: string;
 }
 
 const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   workflow,
-  onHtmlGenerated
+  workspacePath
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -63,7 +68,6 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   const updateLastMessage = useVibeCodingStore((state) => state.updateLastMessage);
   const setStatus = useVibeCodingStore((state) => state.setStatus);
   const setError = useVibeCodingStore((state) => state.setError);
-  const setCurrentHtml = useVibeCodingStore((state) => state.setCurrentHtml);
 
   const session = getSession(workflow.id);
   const { templates } = useVibecodingTemplates();
@@ -71,7 +75,6 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const accumulatedResponseRef = useRef<string>("");
 
-  // Send message to VibeCoding agent
   const sendMessage = useCallback(
     async (message: Message) => {
       let prompt = "";
@@ -79,40 +82,31 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         const textContent = message.content.find(
           (c): c is { type: "text"; text: string } => c.type === "text"
         );
-        prompt = textContent?.text || "";
+        prompt = textContent?.text ?? "";
       } else if (typeof message.content === "string") {
         prompt = message.content;
       }
-      if (!prompt.trim() || isStreaming) {
-        return;
-      }
+      if (!prompt.trim() || isStreaming) return;
 
-      // Add user message
-      const userMessage: Message = {
+      addMessage(workflow.id, {
         type: "message",
         name: "",
         role: "user",
         content: [{ type: "text", text: prompt }],
         created_at: new Date().toISOString()
-      };
-      addMessage(workflow.id, userMessage);
-
-      // Add placeholder assistant message
-      const assistantMessage: Message = {
+      });
+      addMessage(workflow.id, {
         type: "message",
         name: "",
         role: "assistant",
         content: [{ type: "text", text: "" }],
         created_at: new Date().toISOString()
-      };
-      addMessage(workflow.id, assistantMessage);
+      });
 
       setStatus(workflow.id, "streaming");
       setIsStreaming(true);
       setError(workflow.id, null);
       accumulatedResponseRef.current = "";
-
-      // Create abort controller for cancellation
       abortControllerRef.current = new AbortController();
 
       try {
@@ -125,42 +119,28 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           },
           body: JSON.stringify({
             workflow_id: workflow.id,
-            prompt: prompt
+            prompt
           }),
           signal: abortControllerRef.current.signal
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("No response body");
-        }
-
+        if (!reader) throw new Error("No response body");
         const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          accumulatedResponseRef.current += chunk;
-
-          // Update the last message with accumulated content
+          if (done) break;
+          accumulatedResponseRef.current += decoder.decode(value, { stream: true });
           updateLastMessage(workflow.id, accumulatedResponseRef.current);
+        }
 
-          // Try to extract HTML from the accumulated response
-          const extractedHtml = extractHtmlFromResponse(
-            accumulatedResponseRef.current
-          );
-          if (extractedHtml) {
-            setCurrentHtml(workflow.id, extractedHtml);
-            onHtmlGenerated(extractedHtml);
-          }
+        // Write generated TSX page to workspace
+        const code = extractCodeBlock(accumulatedResponseRef.current);
+        if (code && workspacePath && window.api?.workspace?.file) {
+          await window.api.workspace.file.write(workspacePath, "src/app/page.tsx", code);
         }
 
         setStatus(workflow.id, "complete");
@@ -181,58 +161,42 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
     },
     [
       workflow.id,
+      workspacePath,
       isStreaming,
       addMessage,
       updateLastMessage,
       setStatus,
-      setError,
-      setCurrentHtml,
-      onHtmlGenerated
+      setError
     ]
   );
 
-  // Stop generation
   const handleStop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    abortControllerRef.current?.abort();
   }, []);
 
-  // Handle template click
   const handleTemplateClick = useCallback(
     (template: Template) => {
-      const message: Message = {
+      sendMessage({
         type: "message",
         name: "",
         role: "user",
         content: [{ type: "text", text: template.prompt }],
         created_at: new Date().toISOString()
-      };
-      sendMessage(message);
+      });
     },
     [sendMessage]
   );
 
-  // Memoized template click handler creator to avoid inline arrow functions
   const createTemplateClickHandler = useCallback(
-    (template: Template) => {
-      return () => handleTemplateClick(template);
-    },
+    (template: Template) => () => handleTemplateClick(template),
     [handleTemplateClick]
   );
 
-  // Map session status to ChatView status
   const chatStatus = useMemo(() => {
-    if (isStreaming) {
-      return "streaming";
-    }
-    if (session.status === "error") {
-      return "error";
-    }
-    return "connected";
+    if (isStreaming) return "streaming";
+    return session.status === "error" ? "error" : "connected";
   }, [isStreaming, session.status]);
 
-  // Build welcome placeholder
   const welcomePlaceholder = useMemo(
     () => (
       <Box
@@ -250,14 +214,9 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         <Typography variant="h6" gutterBottom>
           Design Your App
         </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ maxWidth: 400 }}
-        >
-          Describe how you want your workflow&apos;s UI to look. Try something
-          like: &quot;Create a modern dark-themed interface with a gradient
-          background&quot;
+        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
+          Describe your UI. The AI will generate a Next.js page and update the
+          live preview.
         </Typography>
       </Box>
     ),
