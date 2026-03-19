@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Paddle OCR — lib.ocr.PaddleOCR
@@ -10,10 +10,10 @@ export interface PaddleOCRInputs {
 }
 
 export interface PaddleOCROutputs {
-  boxes: OutputHandle<unknown[]>;
-  text: OutputHandle<string>;
+  boxes: unknown[];
+  text: string;
 }
 
 export function paddleOCR(inputs: PaddleOCRInputs): DslNode<PaddleOCROutputs> {
-  return createNode("lib.ocr.PaddleOCR", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("lib.ocr.PaddleOCR", inputs as Record<string, unknown>, { outputNames: ["boxes", "text"] });
 }

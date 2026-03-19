@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, DataframeRef } from "../types.js";
 
 // Get Page Count — lib.pdfplumber.GetPageCount
@@ -8,8 +8,12 @@ export interface GetPageCountInputs {
   pdf?: Connectable<unknown>;
 }
 
-export function getPageCount(inputs: GetPageCountInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.pdfplumber.GetPageCount", inputs as Record<string, unknown>);
+export interface GetPageCountOutputs {
+  output: number;
+}
+
+export function getPageCount(inputs: GetPageCountInputs): DslNode<GetPageCountOutputs, "output"> {
+  return createNode("lib.pdfplumber.GetPageCount", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Text — lib.pdfplumber.ExtractText
@@ -19,8 +23,12 @@ export interface ExtractTextInputs {
   end_page?: Connectable<number>;
 }
 
-export function extractText(inputs: ExtractTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.pdfplumber.ExtractText", inputs as Record<string, unknown>);
+export interface ExtractTextOutputs {
+  output: string;
+}
+
+export function extractText(inputs: ExtractTextInputs): DslNode<ExtractTextOutputs, "output"> {
+  return createNode("lib.pdfplumber.ExtractText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Page Metadata — lib.pdfplumber.ExtractPageMetadata
@@ -30,8 +38,12 @@ export interface ExtractPageMetadataInputs {
   end_page?: Connectable<number>;
 }
 
-export function extractPageMetadata(inputs: ExtractPageMetadataInputs): DslNode<SingleOutput<Record<string, unknown>[]>> {
-  return createNode("lib.pdfplumber.ExtractPageMetadata", inputs as Record<string, unknown>);
+export interface ExtractPageMetadataOutputs {
+  output: Record<string, unknown>[];
+}
+
+export function extractPageMetadata(inputs: ExtractPageMetadataInputs): DslNode<ExtractPageMetadataOutputs, "output"> {
+  return createNode("lib.pdfplumber.ExtractPageMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Tables — lib.pdfplumber.ExtractTables
@@ -42,8 +54,12 @@ export interface ExtractTablesInputs {
   table_settings?: Connectable<Record<string, unknown>>;
 }
 
-export function extractTables(inputs: ExtractTablesInputs): DslNode<SingleOutput<DataframeRef[]>> {
-  return createNode("lib.pdfplumber.ExtractTables", inputs as Record<string, unknown>);
+export interface ExtractTablesOutputs {
+  output: DataframeRef[];
+}
+
+export function extractTables(inputs: ExtractTablesInputs): DslNode<ExtractTablesOutputs, "output"> {
+  return createNode("lib.pdfplumber.ExtractTables", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Images — lib.pdfplumber.ExtractImages
@@ -53,6 +69,10 @@ export interface ExtractImagesInputs {
   end_page?: Connectable<number>;
 }
 
-export function extractImages(inputs: ExtractImagesInputs): DslNode<SingleOutput<ImageRef[]>> {
-  return createNode("lib.pdfplumber.ExtractImages", inputs as Record<string, unknown>);
+export interface ExtractImagesOutputs {
+  output: ImageRef[];
+}
+
+export function extractImages(inputs: ExtractImagesInputs): DslNode<ExtractImagesOutputs, "output"> {
+  return createNode("lib.pdfplumber.ExtractImages", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

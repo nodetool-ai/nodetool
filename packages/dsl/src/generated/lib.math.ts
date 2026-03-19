@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Add — lib.math.Add
 export interface AddInputs {
@@ -8,8 +8,12 @@ export interface AddInputs {
   b?: Connectable<number>;
 }
 
-export function add(inputs: AddInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Add", inputs as Record<string, unknown>);
+export interface AddOutputs {
+  output: number;
+}
+
+export function add(inputs: AddInputs): DslNode<AddOutputs, "output"> {
+  return createNode("lib.math.Add", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Subtract — lib.math.Subtract
@@ -18,8 +22,12 @@ export interface SubtractInputs {
   b?: Connectable<number>;
 }
 
-export function subtract(inputs: SubtractInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Subtract", inputs as Record<string, unknown>);
+export interface SubtractOutputs {
+  output: number;
+}
+
+export function subtract(inputs: SubtractInputs): DslNode<SubtractOutputs, "output"> {
+  return createNode("lib.math.Subtract", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Multiply — lib.math.Multiply
@@ -28,8 +36,12 @@ export interface MultiplyInputs {
   b?: Connectable<number>;
 }
 
-export function multiply(inputs: MultiplyInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Multiply", inputs as Record<string, unknown>);
+export interface MultiplyOutputs {
+  output: number;
+}
+
+export function multiply(inputs: MultiplyInputs): DslNode<MultiplyOutputs, "output"> {
+  return createNode("lib.math.Multiply", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Divide — lib.math.Divide
@@ -38,8 +50,12 @@ export interface DivideInputs {
   b?: Connectable<number>;
 }
 
-export function divide(inputs: DivideInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Divide", inputs as Record<string, unknown>);
+export interface DivideOutputs {
+  output: number;
+}
+
+export function divide(inputs: DivideInputs): DslNode<DivideOutputs, "output"> {
+  return createNode("lib.math.Divide", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Modulus — lib.math.Modulus
@@ -48,8 +64,12 @@ export interface ModulusInputs {
   b?: Connectable<number>;
 }
 
-export function modulus(inputs: ModulusInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Modulus", inputs as Record<string, unknown>);
+export interface ModulusOutputs {
+  output: number;
+}
+
+export function modulus(inputs: ModulusInputs): DslNode<ModulusOutputs, "output"> {
+  return createNode("lib.math.Modulus", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Math Function — lib.math.MathFunction
@@ -58,8 +78,12 @@ export interface MathFunctionInputs {
   operation?: Connectable<unknown>;
 }
 
-export function mathFunction(inputs: MathFunctionInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.MathFunction", inputs as Record<string, unknown>);
+export interface MathFunctionOutputs {
+  output: number;
+}
+
+export function mathFunction(inputs: MathFunctionInputs): DslNode<MathFunctionOutputs, "output"> {
+  return createNode("lib.math.MathFunction", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sine — lib.math.Sine
@@ -67,8 +91,12 @@ export interface SineInputs {
   angle_rad?: Connectable<number>;
 }
 
-export function sine(inputs: SineInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Sine", inputs as Record<string, unknown>);
+export interface SineOutputs {
+  output: number;
+}
+
+export function sine(inputs: SineInputs): DslNode<SineOutputs, "output"> {
+  return createNode("lib.math.Sine", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Cosine — lib.math.Cosine
@@ -76,8 +104,12 @@ export interface CosineInputs {
   angle_rad?: Connectable<number>;
 }
 
-export function cosine(inputs: CosineInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Cosine", inputs as Record<string, unknown>);
+export interface CosineOutputs {
+  output: number;
+}
+
+export function cosine(inputs: CosineInputs): DslNode<CosineOutputs, "output"> {
+  return createNode("lib.math.Cosine", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Power — lib.math.Power
@@ -86,8 +118,12 @@ export interface PowerInputs {
   exponent?: Connectable<number>;
 }
 
-export function power(inputs: PowerInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Power", inputs as Record<string, unknown>);
+export interface PowerOutputs {
+  output: number;
+}
+
+export function power(inputs: PowerInputs): DslNode<PowerOutputs, "output"> {
+  return createNode("lib.math.Power", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sqrt — lib.math.Sqrt
@@ -95,6 +131,10 @@ export interface SqrtInputs {
   x?: Connectable<number>;
 }
 
-export function sqrt(inputs: SqrtInputs): DslNode<SingleOutput<number>> {
-  return createNode("lib.math.Sqrt", inputs as Record<string, unknown>);
+export interface SqrtOutputs {
+  output: number;
+}
+
+export function sqrt(inputs: SqrtInputs): DslNode<SqrtOutputs, "output"> {
+  return createNode("lib.math.Sqrt", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

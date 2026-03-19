@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Slice Image Grid — lib.grid.SliceImageGrid
@@ -10,8 +10,12 @@ export interface SliceImageGridInputs {
   rows?: Connectable<number>;
 }
 
-export function sliceImageGrid(inputs: SliceImageGridInputs): DslNode<SingleOutput<ImageRef[]>> {
-  return createNode("lib.grid.SliceImageGrid", inputs as Record<string, unknown>);
+export interface SliceImageGridOutputs {
+  output: ImageRef[];
+}
+
+export function sliceImageGrid(inputs: SliceImageGridInputs): DslNode<SliceImageGridOutputs, "output"> {
+  return createNode("lib.grid.SliceImageGrid", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Combine Image Grid — lib.grid.CombineImageGrid
@@ -20,6 +24,10 @@ export interface CombineImageGridInputs {
   columns?: Connectable<number>;
 }
 
-export function combineImageGrid(inputs: CombineImageGridInputs): DslNode<SingleOutput<ImageRef>> {
-  return createNode("lib.grid.CombineImageGrid", inputs as Record<string, unknown>);
+export interface CombineImageGridOutputs {
+  output: ImageRef;
+}
+
+export function combineImageGrid(inputs: CombineImageGridInputs): DslNode<CombineImageGridOutputs, "output"> {
+  return createNode("lib.grid.CombineImageGrid", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

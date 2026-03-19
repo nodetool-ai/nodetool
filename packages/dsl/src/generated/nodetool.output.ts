@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Output — nodetool.output.Output
 export interface OutputInputs {
@@ -9,6 +9,10 @@ export interface OutputInputs {
   description?: Connectable<string>;
 }
 
-export function output(inputs: OutputInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.output.Output", inputs as Record<string, unknown>, { streaming: true });
+export interface OutputOutputs {
+  output: unknown;
+}
+
+export function output(inputs: OutputInputs): DslNode<OutputOutputs, "output"> {
+  return createNode("nodetool.output.Output", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }

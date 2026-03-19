@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Git Skill — skills.git.GitSkill
 export interface GitSkillInputs {
@@ -11,9 +11,9 @@ export interface GitSkillInputs {
 }
 
 export interface GitSkillOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function gitSkill(inputs: GitSkillInputs): DslNode<GitSkillOutputs> {
-  return createNode("skills.git.GitSkill", inputs as Record<string, unknown>, { multiOutput: true });
+export function gitSkill(inputs: GitSkillInputs): DslNode<GitSkillOutputs, "text"> {
+  return createNode("skills.git.GitSkill", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }

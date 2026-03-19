@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef } from "../types.js";
 
 // Base Url — lib.beautifulsoup.BaseUrl
@@ -8,8 +8,12 @@ export interface BaseUrlInputs {
   url?: Connectable<string>;
 }
 
-export function baseUrl(inputs: BaseUrlInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.beautifulsoup.BaseUrl", inputs as Record<string, unknown>);
+export interface BaseUrlOutputs {
+  output: string;
+}
+
+export function baseUrl(inputs: BaseUrlInputs): DslNode<BaseUrlOutputs, "output"> {
+  return createNode("lib.beautifulsoup.BaseUrl", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Links — lib.beautifulsoup.ExtractLinks
@@ -19,13 +23,13 @@ export interface ExtractLinksInputs {
 }
 
 export interface ExtractLinksOutputs {
-  href: OutputHandle<string>;
-  text: OutputHandle<string>;
-  type: OutputHandle<string>;
+  href: string;
+  text: string;
+  type: string;
 }
 
 export function extractLinks(inputs: ExtractLinksInputs): DslNode<ExtractLinksOutputs> {
-  return createNode("lib.beautifulsoup.ExtractLinks", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("lib.beautifulsoup.ExtractLinks", inputs as Record<string, unknown>, { outputNames: ["href", "text", "type"], streaming: true });
 }
 
 // Extract Images — lib.beautifulsoup.ExtractImages
@@ -35,11 +39,11 @@ export interface ExtractImagesInputs {
 }
 
 export interface ExtractImagesOutputs {
-  image: OutputHandle<ImageRef>;
+  image: ImageRef;
 }
 
-export function extractImages(inputs: ExtractImagesInputs): DslNode<ExtractImagesOutputs> {
-  return createNode("lib.beautifulsoup.ExtractImages", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+export function extractImages(inputs: ExtractImagesInputs): DslNode<ExtractImagesOutputs, "image"> {
+  return createNode("lib.beautifulsoup.ExtractImages", inputs as Record<string, unknown>, { outputNames: ["image"], defaultOutput: "image", streaming: true });
 }
 
 // Extract Audio — lib.beautifulsoup.ExtractAudio
@@ -49,11 +53,11 @@ export interface ExtractAudioInputs {
 }
 
 export interface ExtractAudioOutputs {
-  audio: OutputHandle<AudioRef>;
+  audio: AudioRef;
 }
 
-export function extractAudio(inputs: ExtractAudioInputs): DslNode<ExtractAudioOutputs> {
-  return createNode("lib.beautifulsoup.ExtractAudio", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+export function extractAudio(inputs: ExtractAudioInputs): DslNode<ExtractAudioOutputs, "audio"> {
+  return createNode("lib.beautifulsoup.ExtractAudio", inputs as Record<string, unknown>, { outputNames: ["audio"], defaultOutput: "audio", streaming: true });
 }
 
 // Extract Videos — lib.beautifulsoup.ExtractVideos
@@ -63,11 +67,11 @@ export interface ExtractVideosInputs {
 }
 
 export interface ExtractVideosOutputs {
-  video: OutputHandle<VideoRef>;
+  video: VideoRef;
 }
 
-export function extractVideos(inputs: ExtractVideosInputs): DslNode<ExtractVideosOutputs> {
-  return createNode("lib.beautifulsoup.ExtractVideos", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+export function extractVideos(inputs: ExtractVideosInputs): DslNode<ExtractVideosOutputs, "video"> {
+  return createNode("lib.beautifulsoup.ExtractVideos", inputs as Record<string, unknown>, { outputNames: ["video"], defaultOutput: "video", streaming: true });
 }
 
 // Extract Metadata — lib.beautifulsoup.ExtractMetadata
@@ -76,13 +80,13 @@ export interface ExtractMetadataInputs {
 }
 
 export interface ExtractMetadataOutputs {
-  title: OutputHandle<string>;
-  description: OutputHandle<string>;
-  keywords: OutputHandle<string>;
+  title: string;
+  description: string;
+  keywords: string;
 }
 
 export function extractMetadata(inputs: ExtractMetadataInputs): DslNode<ExtractMetadataOutputs> {
-  return createNode("lib.beautifulsoup.ExtractMetadata", inputs as Record<string, unknown>, { multiOutput: true });
+  return createNode("lib.beautifulsoup.ExtractMetadata", inputs as Record<string, unknown>, { outputNames: ["title", "description", "keywords"] });
 }
 
 // Convert HTML to Text — lib.beautifulsoup.HTMLToText
@@ -91,8 +95,12 @@ export interface HTMLToTextInputs {
   preserve_linebreaks?: Connectable<boolean>;
 }
 
-export function htmlToText(inputs: HTMLToTextInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.beautifulsoup.HTMLToText", inputs as Record<string, unknown>);
+export interface HTMLToTextOutputs {
+  output: string;
+}
+
+export function htmlToText(inputs: HTMLToTextInputs): DslNode<HTMLToTextOutputs, "output"> {
+  return createNode("lib.beautifulsoup.HTMLToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Website Content Extractor — lib.beautifulsoup.WebsiteContentExtractor
@@ -100,6 +108,10 @@ export interface WebsiteContentExtractorInputs {
   html_content?: Connectable<string>;
 }
 
-export function websiteContentExtractor(inputs: WebsiteContentExtractorInputs): DslNode<SingleOutput<string>> {
-  return createNode("lib.beautifulsoup.WebsiteContentExtractor", inputs as Record<string, unknown>);
+export interface WebsiteContentExtractorOutputs {
+  output: string;
+}
+
+export function websiteContentExtractor(inputs: WebsiteContentExtractorInputs): DslNode<WebsiteContentExtractorOutputs, "output"> {
+  return createNode("lib.beautifulsoup.WebsiteContentExtractor", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

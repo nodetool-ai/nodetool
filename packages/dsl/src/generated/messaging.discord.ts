@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Discord Bot Trigger — messaging.discord.DiscordBotTrigger
 export interface DiscordBotTriggerInputs {
@@ -11,19 +11,19 @@ export interface DiscordBotTriggerInputs {
 }
 
 export interface DiscordBotTriggerOutputs {
-  message_id: OutputHandle<number>;
-  content: OutputHandle<string>;
-  author: OutputHandle<Record<string, unknown>>;
-  channel: OutputHandle<Record<string, unknown>>;
-  guild: OutputHandle<Record<string, unknown>>;
-  attachments: OutputHandle<Record<string, unknown>[]>;
-  timestamp: OutputHandle<string>;
-  source: OutputHandle<string>;
-  event_type: OutputHandle<string>;
+  message_id: number;
+  content: string;
+  author: Record<string, unknown>;
+  channel: Record<string, unknown>;
+  guild: Record<string, unknown>;
+  attachments: Record<string, unknown>[];
+  timestamp: string;
+  source: string;
+  event_type: string;
 }
 
 export function discordBotTrigger(inputs: DiscordBotTriggerInputs): DslNode<DiscordBotTriggerOutputs> {
-  return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Discord Send Message — messaging.discord.DiscordSendMessage
@@ -35,6 +35,10 @@ export interface DiscordSendMessageInputs {
   embeds?: Connectable<Record<string, unknown>[]>;
 }
 
-export function discordSendMessage(inputs: DiscordSendMessageInputs): DslNode<SingleOutput<Record<string, unknown>>> {
-  return createNode("messaging.discord.DiscordSendMessage", inputs as Record<string, unknown>);
+export interface DiscordSendMessageOutputs {
+  output: Record<string, unknown>;
+}
+
+export function discordSendMessage(inputs: DiscordSendMessageInputs): DslNode<DiscordSendMessageOutputs, "output"> {
+  return createNode("messaging.discord.DiscordSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

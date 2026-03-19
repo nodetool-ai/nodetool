@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, SingleOutput, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef } from "../types.js";
 
 // Summarizer — nodetool.agents.Summarizer
@@ -13,12 +13,12 @@ export interface SummarizerInputs {
 }
 
 export interface SummarizerOutputs {
-  text: OutputHandle<string>;
-  chunk: OutputHandle<unknown>;
+  text: string;
+  chunk: unknown;
 }
 
 export function summarizer(inputs: SummarizerInputs): DslNode<SummarizerOutputs> {
-  return createNode("nodetool.agents.Summarizer", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.agents.Summarizer", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
 }
 
 // Create Thread — nodetool.agents.CreateThread
@@ -28,11 +28,11 @@ export interface CreateThreadInputs {
 }
 
 export interface CreateThreadOutputs {
-  thread_id: OutputHandle<string>;
+  thread_id: string;
 }
 
-export function createThread(inputs: CreateThreadInputs): DslNode<CreateThreadOutputs> {
-  return createNode("nodetool.agents.CreateThread", inputs as Record<string, unknown>, { multiOutput: true });
+export function createThread(inputs: CreateThreadInputs): DslNode<CreateThreadOutputs, "thread_id"> {
+  return createNode("nodetool.agents.CreateThread", inputs as Record<string, unknown>, { outputNames: ["thread_id"], defaultOutput: "thread_id" });
 }
 
 // Extractor — nodetool.agents.Extractor
@@ -44,8 +44,11 @@ export interface ExtractorInputs {
   audio?: Connectable<AudioRef>;
 }
 
-export function extractor(inputs: ExtractorInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.agents.Extractor", inputs as Record<string, unknown>);
+export interface ExtractorOutputs {
+}
+
+export function extractor(inputs: ExtractorInputs): DslNode<ExtractorOutputs> {
+  return createNode("nodetool.agents.Extractor", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Classifier — nodetool.agents.Classifier
@@ -58,8 +61,12 @@ export interface ClassifierInputs {
   categories?: Connectable<string[]>;
 }
 
-export function classifier(inputs: ClassifierInputs): DslNode<SingleOutput<string>> {
-  return createNode("nodetool.agents.Classifier", inputs as Record<string, unknown>);
+export interface ClassifierOutputs {
+  output: string;
+}
+
+export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs, "output"> {
+  return createNode("nodetool.agents.Classifier", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Agent — nodetool.agents.Agent
@@ -76,16 +83,15 @@ export interface AgentInputs {
 }
 
 export interface AgentOutputs {
-  text: OutputHandle<string>;
-  chunk: OutputHandle<unknown>;
-  thinking: OutputHandle<unknown>;
-  audio: OutputHandle<AudioRef>;
+  text: string;
+  chunk: unknown;
+  thinking: unknown;
+  audio: AudioRef;
 }
 
 export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
-  return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
 }
-
 
 // Research Agent — nodetool.agents.ResearchAgent
 export interface ResearchAgentInputs {
@@ -96,6 +102,9 @@ export interface ResearchAgentInputs {
   max_tokens?: Connectable<number>;
 }
 
-export function researchAgent(inputs: ResearchAgentInputs): DslNode<SingleOutput<unknown>> {
-  return createNode("nodetool.agents.ResearchAgent", inputs as Record<string, unknown>);
+export interface ResearchAgentOutputs {
+}
+
+export function researchAgent(inputs: ResearchAgentInputs): DslNode<ResearchAgentOutputs> {
+  return createNode("nodetool.agents.ResearchAgent", inputs as Record<string, unknown>, { outputNames: [] });
 }

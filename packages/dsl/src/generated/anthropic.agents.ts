@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Claude Agent — anthropic.agents.ClaudeAgent
 export interface ClaudeAgentInputs {
@@ -13,10 +13,10 @@ export interface ClaudeAgentInputs {
 }
 
 export interface ClaudeAgentOutputs {
-  text: OutputHandle<string>;
-  chunk: OutputHandle<unknown>;
+  text: string;
+  chunk: unknown;
 }
 
 export function claudeAgent(inputs: ClaudeAgentInputs): DslNode<ClaudeAgentOutputs> {
-  return createNode("anthropic.agents.ClaudeAgent", inputs as Record<string, unknown>, { multiOutput: true, streaming: true });
+  return createNode("anthropic.agents.ClaudeAgent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
 }

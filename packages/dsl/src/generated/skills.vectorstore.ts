@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode, OutputHandle } from "../core.js";
+import { createNode, Connectable, DslNode } from "../core.js";
 
 // Vector Store Skill — skills.vectorstore.VectorStoreSkill
 export interface VectorStoreSkillInputs {
@@ -11,9 +11,9 @@ export interface VectorStoreSkillInputs {
 }
 
 export interface VectorStoreSkillOutputs {
-  text: OutputHandle<string>;
+  text: string;
 }
 
-export function vectorStoreSkill(inputs: VectorStoreSkillInputs): DslNode<VectorStoreSkillOutputs> {
-  return createNode("skills.vectorstore.VectorStoreSkill", inputs as Record<string, unknown>, { multiOutput: true });
+export function vectorStoreSkill(inputs: VectorStoreSkillInputs): DslNode<VectorStoreSkillOutputs, "text"> {
+  return createNode("skills.vectorstore.VectorStoreSkill", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
 }
