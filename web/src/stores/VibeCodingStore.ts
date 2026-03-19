@@ -5,7 +5,7 @@ export type ServerStatus = "starting" | "running" | "error" | "stopped";
 export type ChatStatus = "idle" | "streaming" | "error";
 
 export interface VibeCodingSession {
-  workflowId: string;
+  workspaceId: string;
   workspacePath: string;
   port: number | null;
   serverStatus: ServerStatus;
@@ -17,8 +17,8 @@ export interface VibeCodingSession {
 
 const MAX_LOGS = 100;
 
-const defaultSession = (workflowId: string): VibeCodingSession => ({
-  workflowId,
+const defaultSession = (workspaceId: string): VibeCodingSession => ({
+  workspaceId,
   workspacePath: "",
   port: null,
   serverStatus: "stopped",
@@ -30,73 +30,73 @@ const defaultSession = (workflowId: string): VibeCodingSession => ({
 
 interface VibeCodingState {
   sessions: Record<string, VibeCodingSession>;
-  getSession: (workflowId: string) => VibeCodingSession;
-  initSession: (workflowId: string, workspacePath: string | null) => void;
-  clearSession: (workflowId: string) => void;
-  setServerStatus: (workflowId: string, status: ServerStatus, port?: number | null) => void;
-  appendServerLog: (workflowId: string, line: string) => void;
-  addMessage: (workflowId: string, message: Message) => void;
-  updateLastMessage: (workflowId: string, content: string) => void;
-  clearMessages: (workflowId: string) => void;
-  setChatStatus: (workflowId: string, status: ChatStatus) => void;
-  setIsPublished: (workflowId: string, published: boolean) => void;
+  getSession: (workspaceId: string) => VibeCodingSession;
+  initSession: (workspaceId: string, workspacePath: string | null) => void;
+  clearSession: (workspaceId: string) => void;
+  setServerStatus: (workspaceId: string, status: ServerStatus, port?: number | null) => void;
+  appendServerLog: (workspaceId: string, line: string) => void;
+  addMessage: (workspaceId: string, message: Message) => void;
+  updateLastMessage: (workspaceId: string, content: string) => void;
+  clearMessages: (workspaceId: string) => void;
+  setChatStatus: (workspaceId: string, status: ChatStatus) => void;
+  setIsPublished: (workspaceId: string, published: boolean) => void;
 }
 
 function patch(
   sessions: Record<string, VibeCodingSession>,
-  workflowId: string,
+  workspaceId: string,
   updater: (s: VibeCodingSession) => Partial<VibeCodingSession>
 ): Record<string, VibeCodingSession> {
-  const s = sessions[workflowId] ?? defaultSession(workflowId);
-  return { ...sessions, [workflowId]: { ...s, ...updater(s) } };
+  const s = sessions[workspaceId] ?? defaultSession(workspaceId);
+  return { ...sessions, [workspaceId]: { ...s, ...updater(s) } };
 }
 
 export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
   sessions: {},
 
-  getSession: (workflowId) =>
-    get().sessions[workflowId] ?? defaultSession(workflowId),
+  getSession: (workspaceId) =>
+    get().sessions[workspaceId] ?? defaultSession(workspaceId),
 
-  initSession: (workflowId, workspacePath) =>
+  initSession: (workspaceId, workspacePath) =>
     set((state) => ({
       sessions: {
         ...state.sessions,
-        [workflowId]: { ...defaultSession(workflowId), workspacePath: workspacePath ?? "" },
+        [workspaceId]: { ...defaultSession(workspaceId), workspacePath: workspacePath ?? "" },
       },
     })),
 
-  clearSession: (workflowId) =>
+  clearSession: (workspaceId) =>
     set((state) => {
-      const { [workflowId]: _, ...rest } = state.sessions;
+      const { [workspaceId]: _, ...rest } = state.sessions;
       return { sessions: rest };
     }),
 
-  setServerStatus: (workflowId, status, port) =>
+  setServerStatus: (workspaceId, status, port) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, (s) => ({
+      sessions: patch(state.sessions, workspaceId, (s) => ({
         serverStatus: status,
         port: port !== undefined ? port : s.port,
       })),
     })),
 
-  appendServerLog: (workflowId, line) =>
+  appendServerLog: (workspaceId, line) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, (s) => {
+      sessions: patch(state.sessions, workspaceId, (s) => {
         const logs = [...s.serverLogs, line];
         return { serverLogs: logs.length > MAX_LOGS ? logs.slice(-MAX_LOGS) : logs };
       }),
     })),
 
-  addMessage: (workflowId, message) =>
+  addMessage: (workspaceId, message) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, (s) => ({
+      sessions: patch(state.sessions, workspaceId, (s) => ({
         messages: [...s.messages, message],
       })),
     })),
 
-  updateLastMessage: (workflowId, content) =>
+  updateLastMessage: (workspaceId, content) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, (s) => {
+      sessions: patch(state.sessions, workspaceId, (s) => {
         if (!s.messages.length) { return {}; }
         const messages = [...s.messages];
         const last = { ...messages[messages.length - 1] };
@@ -110,18 +110,18 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
       }),
     })),
 
-  clearMessages: (workflowId) =>
+  clearMessages: (workspaceId) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ messages: [] })),
+      sessions: patch(state.sessions, workspaceId, () => ({ messages: [] })),
     })),
 
-  setChatStatus: (workflowId, status) =>
+  setChatStatus: (workspaceId, status) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ chatStatus: status })),
+      sessions: patch(state.sessions, workspaceId, () => ({ chatStatus: status })),
     })),
 
-  setIsPublished: (workflowId, published) =>
+  setIsPublished: (workspaceId, published) =>
     set((state) => ({
-      sessions: patch(state.sessions, workflowId, () => ({ isPublished: published })),
+      sessions: patch(state.sessions, workspaceId, () => ({ isPublished: published })),
     })),
 }));

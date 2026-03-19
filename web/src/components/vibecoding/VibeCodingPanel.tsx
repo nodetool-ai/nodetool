@@ -1,76 +1,28 @@
-/** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, memo, useRef } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
-import { CloseButton } from "../ui_primitives";
-import { Workflow } from "../../stores/ApiTypes";
+import React, { useCallback, useEffect, memo, useRef } from "react";
+import { Box } from "@mui/material";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
-import type { Theme } from "@mui/material/styles";
 
-const createStyles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      backgroundColor: theme.palette.background.default
-    },
-    ".panel-header": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "12px 16px",
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.background.paper
-    },
-    ".panel-content": {
-      flex: 1,
-      display: "flex",
-      overflow: "hidden"
-    },
-    ".chat-section": {
-      width: "40%",
-      minWidth: "300px",
-      borderRight: `1px solid ${theme.palette.divider}`,
-      display: "flex",
-      flexDirection: "column"
-    },
-    ".preview-section": {
-      flex: 1,
-      minWidth: "400px",
-      display: "flex",
-      flexDirection: "column"
-    }
-  });
-
-// Simple port allocator — starts at 3100, increments per panel instance.
 let nextPort = 3100;
 function allocatePort(): number {
   return nextPort++;
 }
 
 interface VibeCodingPanelProps {
-  workflow: Workflow;
+  workspaceId: string;
   workspacePath: string;
-  onClose?: () => void;
 }
 
 const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
-  workflow,
-  workspacePath,
-  onClose
+  workspaceId,
+  workspacePath
 }) => {
-  const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-
   const initSession = useVibeCodingStore((s) => s.initSession);
   const setServerStatus = useVibeCodingStore((s) => s.setServerStatus);
   const appendServerLog = useVibeCodingStore((s) => s.appendServerLog);
   const getSession = useVibeCodingStore((s) => s.getSession);
-  const session = getSession(workflow.id);
+  const session = getSession(workspaceId);
 
   const portRef = useRef<number>(allocatePort());
   const spawnedRef = useRef(false);
@@ -79,11 +31,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
     if (spawnedRef.current) return;
     spawnedRef.current = true;
 
-    initSession(workflow.id, workspacePath);
+    initSession(workspaceId, workspacePath);
 
     if (!window.api?.workspace?.server || !workspacePath) return;
 
-    setServerStatus(workflow.id, "starting", null);
+    setServerStatus(workspaceId, "starting", null);
 
     const startServer = async () => {
       try {
@@ -92,53 +44,64 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           workspacePath,
           portRef.current
         );
-        setServerStatus(workflow.id, "running", port);
+        setServerStatus(workspaceId, "running", port);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        appendServerLog(workflow.id, msg);
-        setServerStatus(workflow.id, "error", null);
+        appendServerLog(workspaceId, msg);
+        setServerStatus(workspaceId, "error", null);
       }
     };
     startServer();
-    // Server is intentionally NOT killed on unmount — stays alive for fast re-open
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflow.id, workspacePath]);
+  }, [workspaceId, workspacePath]);
 
   const handleRestart = useCallback(async () => {
     if (!window.api?.workspace?.server || !workspacePath) return;
-    setServerStatus(workflow.id, "starting", null);
+    setServerStatus(workspaceId, "starting", null);
     try {
       const port = await window.api.workspace.server.respawn(
         workspacePath,
         portRef.current
       );
-      setServerStatus(workflow.id, "running", port);
+      setServerStatus(workspaceId, "running", port);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      appendServerLog(workflow.id, msg);
-      setServerStatus(workflow.id, "error", null);
+      appendServerLog(workspaceId, msg);
+      setServerStatus(workspaceId, "error", null);
     }
-  }, [workflow.id, workspacePath, setServerStatus, appendServerLog]);
+  }, [workspaceId, workspacePath, setServerStatus, appendServerLog]);
 
   return (
-    <Box css={styles}>
-      <div className="panel-header">
-        <Typography variant="h6">VibeCoding</Typography>
-        {onClose && <CloseButton onClick={onClose} />}
-      </div>
-      <div className="panel-content">
-        <div className="chat-section">
-          <VibeCodingChat workflow={workflow} workspacePath={workspacePath} />
-        </div>
-        <div className="preview-section">
-          <VibeCodingPreview
-            port={session.port}
-            serverStatus={session.serverStatus}
-            serverLogs={session.serverLogs}
-            onRestart={handleRestart}
-          />
-        </div>
-      </div>
+    <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <Box
+        sx={{
+          width: "35%",
+          minWidth: 300,
+          borderRight: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          bgcolor: "background.paper"
+        }}
+      >
+        <VibeCodingChat workspaceId={workspaceId} workspacePath={workspacePath} />
+      </Box>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 400,
+          display: "flex",
+          flexDirection: "column",
+          bgcolor: "background.default"
+        }}
+      >
+        <VibeCodingPreview
+          port={session.port}
+          serverStatus={session.serverStatus}
+          serverLogs={session.serverLogs}
+          onRestart={handleRestart}
+        />
+      </Box>
     </Box>
   );
 };

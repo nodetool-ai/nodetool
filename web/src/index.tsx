@@ -119,6 +119,9 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
+const VibeCodingRoute = React.lazy(
+  () => import("./components/vibecoding/VibeCodingRoute")
+);
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
 
@@ -281,6 +284,29 @@ function getRoutes() {
               <PanelLeft />
               <div style={{ flex: 1, display: "flex" }}>
                 <MiniAppPage />
+              </div>
+              <PanelBottom />
+            </div>
+          </>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/vibecoding/:workspaceId?",
+      element: (
+        <ProtectedRoute>
+          <>
+            <AppHeader />
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                <VibeCodingRoute />
               </div>
               <PanelBottom />
             </div>
