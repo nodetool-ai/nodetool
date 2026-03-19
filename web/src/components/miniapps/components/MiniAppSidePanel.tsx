@@ -274,9 +274,11 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       </div>
 
       {/* VibeCoding Modal */}
+      {/* TODO: pass actual workspacePath once workspace selection is wired up */}
       <VibeCodingModal
         open={vibeCodingOpen}
         workflow={workflow}
+        workspacePath=""
         onClose={handleCloseVibeCoding}
       />
     </Box>

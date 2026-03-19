@@ -1,26 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, memo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, memo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Tooltip,
-  Typography,
-  Snackbar,
-  Alert
-} from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Box, Typography } from "@mui/material";
 import { CloseButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
-import { client } from "../../stores/ApiClient";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 import type { Theme } from "@mui/material/styles";
@@ -41,16 +26,6 @@ const createStyles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.palette.divider}`,
       backgroundColor: theme.palette.background.paper
     },
-    ".panel-title": {
-      display: "flex",
-      alignItems: "center",
-      gap: "12px"
-    },
-    ".panel-actions": {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px"
-    },
     ".panel-content": {
       flex: 1,
       display: "flex",
@@ -68,287 +43,102 @@ const createStyles = (theme: Theme) =>
       minWidth: "400px",
       display: "flex",
       flexDirection: "column"
-    },
-    ".dirty-indicator": {
-      width: "8px",
-      height: "8px",
-      borderRadius: "50%",
-      backgroundColor: theme.palette.warning.main
     }
   });
 
+// Simple port allocator — starts at 3100, increments per panel instance.
+let nextPort = 3100;
+function allocatePort(): number {
+  return nextPort++;
+}
+
 interface VibeCodingPanelProps {
   workflow: Workflow;
+  workspacePath: string;
   onClose?: () => void;
 }
 
 const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   workflow,
+  workspacePath,
   onClose
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const getSession = useVibeCodingStore((state) => state.getSession);
-  const initSession = useVibeCodingStore((state) => state.initSession);
-  const setCurrentHtml = useVibeCodingStore((state) => state.setCurrentHtml);
-  const setSavedHtml = useVibeCodingStore((state) => state.setSavedHtml);
-  const isDirty = useVibeCodingStore((state) => state.isDirty);
-
+  const initSession = useVibeCodingStore((s) => s.initSession);
+  const setServerStatus = useVibeCodingStore((s) => s.setServerStatus);
+  const appendServerLog = useVibeCodingStore((s) => s.appendServerLog);
+  const getSession = useVibeCodingStore((s) => s.getSession);
   const session = getSession(workflow.id);
-  const hasUnsavedChanges = isDirty(workflow.id);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
-  const [showClearDialog, setShowClearDialog] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
+  const portRef = useRef<number>(allocatePort());
+  const spawnedRef = useRef(false);
 
-  // Initialize session with workflow's current html_app
   useEffect(() => {
-    initSession(workflow.id, workflow.html_app || null);
-  }, [workflow.id, workflow.html_app, initSession]);
+    if (spawnedRef.current) return;
+    spawnedRef.current = true;
 
-  // Warn before closing with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
+    initSession(workflow.id, workspacePath);
+
+    if (!window.api?.workspace?.server || !workspacePath) return;
+
+    setServerStatus(workflow.id, "starting", null);
+
+    const startServer = async () => {
+      try {
+        await window.api.workspace.server.ensureInstalled(workspacePath);
+        const port = await window.api.workspace.server.spawn(
+          workspacePath,
+          portRef.current
+        );
+        setServerStatus(workflow.id, "running", port);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        appendServerLog(workflow.id, msg);
+        setServerStatus(workflow.id, "error", null);
       }
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+    startServer();
+    // Server is intentionally NOT killed on unmount — stays alive for fast re-open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflow.id, workspacePath]);
 
-  // Handle HTML generated from chat
-  const handleHtmlGenerated = useCallback(
-    (html: string) => {
-      setCurrentHtml(workflow.id, html);
-    },
-    [workflow.id, setCurrentHtml]
-  );
-
-  // Save HTML to workflow
-  const handleSave = useCallback(async () => {
-    if (!session.currentHtml) {
-      return;
-    }
-
-    setIsSaving(true);
+  const handleRestart = useCallback(async () => {
+    if (!window.api?.workspace?.server || !workspacePath) return;
+    setServerStatus(workflow.id, "starting", null);
     try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: session.currentHtml
-        }
-      });
-      setSavedHtml(workflow.id, session.currentHtml);
-      setSnackbar({
-        open: true,
-        message: "App saved successfully!",
-        severity: "success"
-      });
-    } catch (error: unknown) {
-      console.error("Failed to save:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to save app";
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: "error"
-      });
-    } finally {
-      setIsSaving(false);
+      const port = await window.api.workspace.server.respawn(
+        workspacePath,
+        portRef.current
+      );
+      setServerStatus(workflow.id, "running", port);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      appendServerLog(workflow.id, msg);
+      setServerStatus(workflow.id, "error", null);
     }
-  }, [workflow.id, workflow.name, workflow.access, session.currentHtml, setSavedHtml]);
-
-  // Clear saved HTML (revert to default UI)
-  const handleClearApp = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: null
-        }
-      });
-      setSavedHtml(workflow.id, null);
-      setCurrentHtml(workflow.id, null);
-      setShowClearDialog(false);
-      setSnackbar({
-        open: true,
-        message: "Custom app removed. Workflow will use default UI.",
-        severity: "success"
-      });
-    } catch (error: unknown) {
-      console.error("Failed to clear:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to clear app";
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: "error"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [workflow.id, workflow.name, workflow.access, setSavedHtml, setCurrentHtml]);
-
-  // Handle close with unsaved changes
-  const handleClose = useCallback(() => {
-    if (hasUnsavedChanges) {
-      setShowDiscardDialog(true);
-    } else {
-      onClose?.();
-    }
-  }, [hasUnsavedChanges, onClose]);
-
-  const handleDiscardAndClose = useCallback(() => {
-    setShowDiscardDialog(false);
-    setCurrentHtml(workflow.id, session.savedHtml);
-    onClose?.();
-  }, [workflow.id, session.savedHtml, setCurrentHtml, onClose]);
-
-  const handleSaveAndClose = useCallback(async () => {
-    await handleSave();
-    setShowDiscardDialog(false);
-    onClose?.();
-  }, [handleSave, onClose]);
-
-  // Memoized handlers for dialog actions to avoid inline arrow functions
-  const handleShowClearDialog = useCallback(() => {
-    setShowClearDialog(true);
-  }, []);
-
-  const handleHideClearDialog = useCallback(() => {
-    setShowClearDialog(false);
-  }, []);
-
-  const handleHideDiscardDialog = useCallback(() => {
-    setShowDiscardDialog(false);
-  }, []);
+  }, [workflow.id, workspacePath, setServerStatus, appendServerLog]);
 
   return (
     <Box css={styles}>
-      {/* Header */}
       <div className="panel-header">
-        <div className="panel-title">
-          <Typography variant="h6">Design App UI</Typography>
-          {hasUnsavedChanges && (
-            <Tooltip title="Unsaved changes">
-              <div className="dirty-indicator" />
-            </Tooltip>
-          )}
-        </div>
-        <div className="panel-actions">
-          {session.savedHtml && (
-            <Tooltip title="Remove custom app (use default UI)">
-              <Button
-                size="small"
-                color="error"
-                startIcon={<DeleteOutlineIcon />}
-                onClick={handleShowClearDialog}
-                disabled={isSaving}
-              >
-                Clear App
-              </Button>
-            </Tooltip>
-          )}
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges || isSaving || !session.currentHtml}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-          {onClose && (
-            <CloseButton onClick={handleClose} />
-          )}
-        </div>
+        <Typography variant="h6">VibeCoding</Typography>
+        {onClose && <CloseButton onClick={onClose} />}
       </div>
-
-      {/* Split Content */}
       <div className="panel-content">
         <div className="chat-section">
-          <VibeCodingChat
-            workflow={workflow}
-            workspacePath=""
-          />
+          <VibeCodingChat workflow={workflow} workspacePath={workspacePath} />
         </div>
         <div className="preview-section">
-          {/* TODO(Task 7): wire real port/serverStatus/serverLogs from store */}
           <VibeCodingPreview
-            port={null}
-            serverStatus="stopped"
-            serverLogs={[]}
+            port={session.port}
+            serverStatus={session.serverStatus}
+            serverLogs={session.serverLogs}
+            onRestart={handleRestart}
           />
         </div>
       </div>
-
-      {/* Discard Changes Dialog */}
-      <Dialog
-        open={showDiscardDialog}
-        onClose={handleHideDiscardDialog}
-      >
-        <DialogTitle>Unsaved Changes</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You have unsaved changes. Are you sure you want to close without
-            saving?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleHideDiscardDialog}>Cancel</Button>
-          <Button onClick={handleDiscardAndClose} color="error">
-            Discard Changes
-          </Button>
-          <Button
-            onClick={handleSaveAndClose}
-            variant="contained"
-            disabled={isSaving}
-          >
-            Save & Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Clear App Dialog */}
-      <Dialog open={showClearDialog} onClose={handleHideClearDialog}>
-        <DialogTitle>Remove Custom App?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will remove the custom app and the workflow will use the
-            default MiniApp UI. This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleHideClearDialog}>Cancel</Button>
-          <Button onClick={handleClearApp} color="error" disabled={isSaving}>
-            Remove App
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
