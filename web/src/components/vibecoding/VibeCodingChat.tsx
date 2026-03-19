@@ -66,8 +66,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   const getSession = useVibeCodingStore((state) => state.getSession);
   const addMessage = useVibeCodingStore((state) => state.addMessage);
   const updateLastMessage = useVibeCodingStore((state) => state.updateLastMessage);
-  const setStatus = useVibeCodingStore((state) => state.setStatus);
-  const setError = useVibeCodingStore((state) => state.setError);
+  const setChatStatus = useVibeCodingStore((state) => state.setChatStatus);
 
   const session = getSession(workflow.id);
   const { templates } = useVibecodingTemplates();
@@ -103,9 +102,8 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         created_at: new Date().toISOString()
       });
 
-      setStatus(workflow.id, "streaming");
+      setChatStatus(workflow.id, "streaming");
       setIsStreaming(true);
-      setError(workflow.id, null);
       accumulatedResponseRef.current = "";
       abortControllerRef.current = new AbortController();
 
@@ -137,22 +135,23 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           updateLastMessage(workflow.id, accumulatedResponseRef.current);
         }
 
-        // Write generated TSX page to workspace
+        setChatStatus(workflow.id, "idle");
+
+        // Write generated TSX page to workspace (errors here don't affect chat status)
         const code = extractCodeBlock(accumulatedResponseRef.current);
         if (code && workspacePath && window.api?.workspace?.file) {
-          await window.api.workspace.file.write(workspacePath, "src/app/page.tsx", code);
+          try {
+            await window.api.workspace.file.write(workspacePath, "src/app/page.tsx", code);
+          } catch (writeError) {
+            console.error("VibeCoding: failed to write file to workspace:", writeError);
+          }
         }
-
-        setStatus(workflow.id, "complete");
       } catch (error: unknown) {
         if (error instanceof Error && error.name === "AbortError") {
-          setStatus(workflow.id, "idle");
+          setChatStatus(workflow.id, "idle");
         } else {
           console.error("VibeCoding error:", error);
-          const errorMessage =
-            error instanceof Error ? error.message : "Failed to generate";
-          setError(workflow.id, errorMessage);
-          setStatus(workflow.id, "error");
+          setChatStatus(workflow.id, "error");
         }
       } finally {
         setIsStreaming(false);
@@ -165,8 +164,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
       isStreaming,
       addMessage,
       updateLastMessage,
-      setStatus,
-      setError
+      setChatStatus
     ]
   );
 
@@ -194,8 +192,8 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
 
   const chatStatus = useMemo(() => {
     if (isStreaming) return "streaming";
-    return session.status === "error" ? "error" : "connected";
-  }, [isStreaming, session.status]);
+    return session.chatStatus === "error" ? "error" : "connected";
+  }, [isStreaming, session.chatStatus]);
 
   const welcomePlaceholder = useMemo(
     () => (

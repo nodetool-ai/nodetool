@@ -6,10 +6,7 @@ import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import type { Theme } from "@mui/material/styles";
-
-// ServerStatus will be imported from VibeCodingStore once that rewrite lands.
-// Defined locally here until Task 4 (VibeCodingStore rewrite) is complete.
-type ServerStatus = "starting" | "running" | "error" | "stopped";
+import { ServerStatus } from "../../stores/VibeCodingStore";
 
 export type { ServerStatus };
 
@@ -153,6 +150,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             src={src}
             className="preview-frame"
             title="VibeCoding Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms"
           />
         )}
       </div>

@@ -15,33 +15,48 @@ interface DevServerEntry {
 const MAX_LOGS = 100;
 const MAX_RESPAWN_ATTEMPTS = 3;
 const RESPAWN_BACKOFF_MS = 2000;
+const SPAWN_TIMEOUT_MS = 60_000;
 
 export class WorkspaceDevServer {
   private servers = new Map<string, DevServerEntry>();
 
   spawn(workspacePath: string, port: number): Promise<number> {
     return new Promise((resolve, reject) => {
-      const entry: DevServerEntry = {
-        process: null as any,
-        port,
-        logs: [],
-        status: 'starting',
-        respawnAttempts: this.servers.get(workspacePath)?.respawnAttempts ?? 0,
-      };
-      this.servers.set(workspacePath, entry);
+      const respawnAttempts = this.servers.get(workspacePath)?.respawnAttempts ?? 0;
 
       const proc = spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
         cwd: workspacePath,
         env: { ...process.env },
         shell: false,
       });
-      entry.process = proc;
+
+      const entry: DevServerEntry = {
+        process: proc,
+        port,
+        logs: [],
+        status: 'starting',
+        respawnAttempts,
+      };
+      this.servers.set(workspacePath, entry);
 
       const appendLog = (text: string) => {
         const line = text.trim();
         if (!line) return;
         entry.logs.push(line);
         if (entry.logs.length > MAX_LOGS) entry.logs.shift();
+      };
+
+      const timeoutHandle = setTimeout(() => {
+        if (entry.status === 'starting') {
+          entry.status = 'error';
+          proc.kill('SIGTERM');
+          reject(new Error(`Dev server did not become ready within ${SPAWN_TIMEOUT_MS / 1000}s`));
+        }
+      }, SPAWN_TIMEOUT_MS);
+
+      const settle = (fn: () => void) => {
+        clearTimeout(timeoutHandle);
+        fn();
       };
 
       proc.stdout!.on('data', (data: Buffer) => {
@@ -53,7 +68,7 @@ export class WorkspaceDevServer {
         ) {
           entry.status = 'running';
           entry.respawnAttempts = 0;
-          resolve(port);
+          settle(() => resolve(port));
         }
       });
 
@@ -62,14 +77,14 @@ export class WorkspaceDevServer {
       proc.on('error', (err: Error) => {
         if (entry.status === 'starting') {
           entry.status = 'error';
-          reject(err);
+          settle(() => reject(err));
         }
       });
 
       proc.on('exit', (code: number | null) => {
         if (entry.status === 'starting') {
           entry.status = 'error';
-          reject(new Error(`next dev exited with code ${code} before ready`));
+          settle(() => reject(new Error(`next dev exited with code ${code} before ready`)));
           return;
         }
         if (entry.status === 'running') {
@@ -95,7 +110,7 @@ export class WorkspaceDevServer {
     if (!entry) return;
     entry.status = 'stopped';
     this.servers.delete(workspacePath);
-    entry.process.kill('SIGTERM');
+    entry.process?.kill('SIGTERM');
   }
 
   async respawn(workspacePath: string, port: number): Promise<number> {
