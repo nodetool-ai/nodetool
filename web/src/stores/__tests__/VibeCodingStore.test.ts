@@ -1,318 +1,105 @@
-import { act } from "@testing-library/react";
-import { useVibeCodingStore } from "../VibeCodingStore";
-import { Message } from "../ApiTypes";
+import { act, renderHook } from '@testing-library/react';
+import { useVibeCodingStore } from '../VibeCodingStore';
 
-describe("VibeCodingStore", () => {
+describe('VibeCodingStore', () => {
   beforeEach(() => {
-    // Reset store to initial state
     useVibeCodingStore.setState({ sessions: {} });
   });
 
-  describe("initial state", () => {
-    it("has empty sessions record", () => {
-      const { sessions } = useVibeCodingStore.getState();
-      expect(sessions).toEqual({});
-    });
+  it('getSession returns default for unknown workflowId', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    const session = result.current.getSession('unknown');
+    expect(session.workflowId).toBe('unknown');
+    expect(session.port).toBeNull();
+    expect(session.serverStatus).toBe('stopped');
+    expect(session.messages).toEqual([]);
+    expect(session.chatStatus).toBe('idle');
+    expect(session.isPublished).toBe(false);
+    expect(session.workspacePath).toBe('');
   });
 
-  describe("getSession", () => {
-    it("returns default session for unknown workflow", () => {
-      const session = useVibeCodingStore.getState().getSession("unknown");
-      expect(session).toEqual({
-        workflowId: "unknown",
-        messages: [],
-        currentHtml: null,
-        savedHtml: null,
-        status: "idle",
-        error: null
-      });
-    });
-
-    it("returns existing session", () => {
-      useVibeCodingStore.setState({
-        sessions: {
-          workflow1: {
-            workflowId: "workflow1",
-            messages: [],
-            currentHtml: "<html></html>",
-            savedHtml: null,
-            status: "idle",
-            error: null
-          }
-        }
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.currentHtml).toBe("<html></html>");
-    });
+  it('initSession creates a session with provided path', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => { result.current.initSession('wf-1', '/path/to/workspace'); });
+    const session = result.current.getSession('wf-1');
+    expect(session.workspacePath).toBe('/path/to/workspace');
+    expect(session.serverStatus).toBe('stopped');
   });
 
-  describe("initSession", () => {
-    it("initializes session with saved html", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", "<html>saved</html>");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.savedHtml).toBe("<html>saved</html>");
-      expect(session.currentHtml).toBe("<html>saved</html>");
+  it('setServerStatus updates status and port', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.setServerStatus('wf-1', 'running', 3001);
     });
-
-    it("initializes session with null html", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", null);
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.savedHtml).toBeNull();
-      expect(session.currentHtml).toBeNull();
-    });
+    expect(result.current.getSession('wf-1').serverStatus).toBe('running');
+    expect(result.current.getSession('wf-1').port).toBe(3001);
   });
 
-  describe("clearSession", () => {
-    it("removes session", () => {
-      useVibeCodingStore.setState({
-        sessions: {
-          workflow1: {
-            workflowId: "workflow1",
-            messages: [],
-            currentHtml: null,
-            savedHtml: null,
-            status: "idle",
-            error: null
-          }
-        }
-      });
-
-      act(() => {
-        useVibeCodingStore.getState().clearSession("workflow1");
-      });
-
-      const { sessions } = useVibeCodingStore.getState();
-      expect(sessions["workflow1"]).toBeUndefined();
+  it('appendServerLog keeps last 100 lines', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      for (let i = 0; i < 105; i++) { result.current.appendServerLog('wf-1', `line ${i}`); }
     });
+    const logs = result.current.getSession('wf-1').serverLogs;
+    expect(logs.length).toBe(100);
+    expect(logs[0]).toBe('line 5');
+    expect(logs[99]).toBe('line 104');
   });
 
-  describe("addMessage", () => {
-    it("adds a message to session", () => {
-      const message: Message = {
-        type: "message",
-        role: "user",
-        name: "",
-        content: [{ type: "text", text: "Hello" }],
-        created_at: new Date().toISOString()
-      };
-
-      act(() => {
-        useVibeCodingStore.getState().addMessage("workflow1", message);
+  it('addMessage appends message', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.addMessage('wf-1', {
+        type: 'message', role: 'user', name: '',
+        content: [{ type: 'text', text: 'hello' }],
+        created_at: new Date().toISOString(),
       });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.messages).toHaveLength(1);
-      expect(session.messages[0]).toEqual(message);
     });
-
-    it("appends messages in order", () => {
-      const message1: Message = {
-        type: "message",
-        role: "user",
-        name: "",
-        content: [{ type: "text", text: "First" }],
-        created_at: new Date().toISOString()
-      };
-      const message2: Message = {
-        type: "message",
-        role: "assistant",
-        name: "",
-        content: [{ type: "text", text: "Second" }],
-        created_at: new Date().toISOString()
-      };
-
-      act(() => {
-        useVibeCodingStore.getState().addMessage("workflow1", message1);
-        useVibeCodingStore.getState().addMessage("workflow1", message2);
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.messages).toHaveLength(2);
-    });
+    expect(result.current.getSession('wf-1').messages).toHaveLength(1);
   });
 
-  describe("updateLastMessage", () => {
-    it("updates the last message content", () => {
-      const message: Message = {
-        type: "message",
-        role: "assistant",
-        name: "",
-        content: [{ type: "text", text: "Initial" }],
-        created_at: new Date().toISOString()
-      };
-
-      act(() => {
-        useVibeCodingStore.getState().addMessage("workflow1", message);
-        useVibeCodingStore.getState().updateLastMessage("workflow1", "Updated");
+  it('updateLastMessage updates last message text', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.addMessage('wf-1', {
+        type: 'message', role: 'assistant', name: '',
+        content: [{ type: 'text', text: '' }],
+        created_at: new Date().toISOString(),
       });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      const lastMessage = session.messages[0];
-      if (Array.isArray(lastMessage.content)) {
-        expect(lastMessage.content[0]).toEqual({ type: "text", text: "Updated" });
-      } else {
-        fail("Expected content to be an array");
-      }
+      result.current.updateLastMessage('wf-1', 'updated content');
     });
-
-    it("does nothing if no messages exist", () => {
-      act(() => {
-        useVibeCodingStore.getState().updateLastMessage("workflow1", "Test");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.messages).toHaveLength(0);
-    });
+    const [msg] = result.current.getSession('wf-1').messages;
+    expect((msg.content as Array<{type: string; text: string}>)[0].text).toBe('updated content');
   });
 
-  describe("clearMessages", () => {
-    it("clears all messages", () => {
-      const message: Message = {
-        type: "message",
-        role: "user",
-        name: "",
-        content: [{ type: "text", text: "Test" }],
-        created_at: new Date().toISOString()
-      };
-
-      act(() => {
-        useVibeCodingStore.getState().addMessage("workflow1", message);
-        useVibeCodingStore.getState().clearMessages("workflow1");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.messages).toHaveLength(0);
+  it('setChatStatus updates chatStatus', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.setChatStatus('wf-1', 'streaming');
     });
+    expect(result.current.getSession('wf-1').chatStatus).toBe('streaming');
   });
 
-  describe("setCurrentHtml", () => {
-    it("sets current html", () => {
-      act(() => {
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>new</html>");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.currentHtml).toBe("<html>new</html>");
+  it('setIsPublished updates isPublished', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.setIsPublished('wf-1', true);
     });
-
-    it("can set html to null", () => {
-      act(() => {
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>test</html>");
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", null);
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.currentHtml).toBeNull();
-    });
+    expect(result.current.getSession('wf-1').isPublished).toBe(true);
   });
 
-  describe("setSavedHtml", () => {
-    it("sets saved html and updates current html", () => {
-      act(() => {
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>unsaved</html>");
-        useVibeCodingStore.getState().setSavedHtml("workflow1", "<html>saved</html>");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.savedHtml).toBe("<html>saved</html>");
-      expect(session.currentHtml).toBe("<html>saved</html>");
+  it('clearSession removes the session', () => {
+    const { result } = renderHook(() => useVibeCodingStore());
+    act(() => {
+      result.current.initSession('wf-1', '/path');
+      result.current.clearSession('wf-1');
     });
-  });
-
-  describe("setStatus", () => {
-    it("sets status", () => {
-      act(() => {
-        useVibeCodingStore.getState().setStatus("workflow1", "streaming");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.status).toBe("streaming");
-    });
-  });
-
-  describe("setError", () => {
-    it("sets error and updates status to error", () => {
-      act(() => {
-        useVibeCodingStore.getState().setError("workflow1", "Something went wrong");
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.error).toBe("Something went wrong");
-      expect(session.status).toBe("error");
-    });
-
-    it("clears error when set to null", () => {
-      act(() => {
-        useVibeCodingStore.getState().setError("workflow1", "Error");
-        useVibeCodingStore.getState().setStatus("workflow1", "complete");
-        useVibeCodingStore.getState().setError("workflow1", null);
-      });
-
-      const session = useVibeCodingStore.getState().getSession("workflow1");
-      expect(session.error).toBeNull();
-      expect(session.status).toBe("complete");
-    });
-  });
-
-  describe("isDirty", () => {
-    it("returns false when no session exists", () => {
-      const isDirty = useVibeCodingStore.getState().isDirty("unknown");
-      expect(isDirty).toBe(false);
-    });
-
-    it("returns false when current matches saved", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", "<html>same</html>");
-      });
-
-      const isDirty = useVibeCodingStore.getState().isDirty("workflow1");
-      expect(isDirty).toBe(false);
-    });
-
-    it("returns true when current differs from saved", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", "<html>saved</html>");
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>modified</html>");
-      });
-
-      const isDirty = useVibeCodingStore.getState().isDirty("workflow1");
-      expect(isDirty).toBe(true);
-    });
-
-    it("returns true when current is set and saved is null", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", null);
-        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>new</html>");
-      });
-
-      const isDirty = useVibeCodingStore.getState().isDirty("workflow1");
-      expect(isDirty).toBe(true);
-    });
-  });
-
-  describe("workflow isolation", () => {
-    it("maintains separate state for different workflows", () => {
-      act(() => {
-        useVibeCodingStore.getState().initSession("workflow1", "<html>1</html>");
-        useVibeCodingStore.getState().initSession("workflow2", "<html>2</html>");
-        useVibeCodingStore.getState().setStatus("workflow1", "streaming");
-        useVibeCodingStore.getState().setStatus("workflow2", "complete");
-      });
-
-      const session1 = useVibeCodingStore.getState().getSession("workflow1");
-      const session2 = useVibeCodingStore.getState().getSession("workflow2");
-
-      expect(session1.savedHtml).toBe("<html>1</html>");
-      expect(session2.savedHtml).toBe("<html>2</html>");
-      expect(session1.status).toBe("streaming");
-      expect(session2.status).toBe("complete");
-    });
+    expect(result.current.getSession('wf-1').workspacePath).toBe('');
   });
 });
