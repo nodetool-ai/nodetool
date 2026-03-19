@@ -523,7 +523,7 @@ describe("useFindInWorkflow", () => {
 
       jest.advanceTimersByTime(200);
 
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(require("loglevel"), "error").mockImplementation(() => {});
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });

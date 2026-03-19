@@ -594,7 +594,7 @@ describe("Graph Sanitization", () => {
   });
 
   test("should report statistics about removed edges", () => {
-    const consoleSpy = jest.spyOn(console, "info").mockImplementation();
+    const consoleSpy = jest.spyOn(require("loglevel"), "info").mockImplementation();
 
     const nodeA = makeNode("a", "test-workflow", "test");
     const nodeB = makeNode("b", "test-workflow", "test");

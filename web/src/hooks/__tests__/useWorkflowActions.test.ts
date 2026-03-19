@@ -175,7 +175,7 @@ describe("useWorkflowActions", () => {
 
     it("clears loading state on error", async () => {
       mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);

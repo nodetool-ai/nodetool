@@ -24,7 +24,7 @@ describe("binary utilities", () => {
     });
 
     it("returns fallback image when base64 conversion fails", () => {
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const logSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
       const originalBtoa = global.btoa;
       (global as any).btoa = () => {
         throw new Error("fail");
@@ -32,13 +32,13 @@ describe("binary utilities", () => {
       
       const result = uint8ArrayToBase64(new Uint8Array([1]));
       expect(result).toBe(base64ErrorImage);
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         "Error converting Uint8Array to Base64:",
         expect.any(Error)
       );
       
       global.btoa = originalBtoa;
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 
@@ -63,7 +63,7 @@ describe("binary utilities", () => {
     });
 
     it("handles conversion failures gracefully", () => {
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const logSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
       const originalBtoa = global.btoa;
       (global as any).btoa = () => {
         throw new Error("fail");
@@ -74,13 +74,13 @@ describe("binary utilities", () => {
       const result = uint8ArrayToDataUri(new Uint8Array([1]), "text/plain");
       expect(result).toBe(`data:text/plain;base64,${base64ErrorImage}`);
       
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         "Error converting Uint8Array to Base64:",
         expect.any(Error)
       );
       
       global.btoa = originalBtoa;
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 

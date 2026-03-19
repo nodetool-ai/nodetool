@@ -30,7 +30,7 @@ describe("graphNodeToReactFlowNode", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "warn").mockImplementation((..._args: unknown[]) => {});
+    jest.spyOn(require("loglevel"), "warn").mockImplementation((..._args: unknown[]) => {});
   });
 
   afterEach(() => {

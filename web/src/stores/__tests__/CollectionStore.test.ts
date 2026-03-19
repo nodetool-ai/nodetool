@@ -541,7 +541,7 @@ describe("CollectionStore", () => {
       mockClient.POST.mockRejectedValueOnce(new Error("Network failure"));
       mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
 
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
 
       const handler = useCollectionStore.getState().handleDrop("collection1");
       await act(async () => {

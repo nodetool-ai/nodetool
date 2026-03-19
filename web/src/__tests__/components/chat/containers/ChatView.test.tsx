@@ -349,8 +349,8 @@ describe("ChatView", () => {
     });
 
     it("handles sendMessage errors gracefully", async () => {
-      const consoleSpy = jest
-        .spyOn(console, "error")
+      const logSpy = jest
+        .spyOn(require("loglevel"), "error")
         .mockImplementation(() => {});
       mockSendMessage.mockRejectedValueOnce(new Error("Send failed"));
 
@@ -360,13 +360,13 @@ describe("ChatView", () => {
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
+        expect(logSpy).toHaveBeenCalledWith(
           "Error sending message:",
           expect.any(Error)
         );
       });
 
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 

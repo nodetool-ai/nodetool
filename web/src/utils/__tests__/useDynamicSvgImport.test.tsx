@@ -19,7 +19,7 @@ jest.mock("../icons/assistant.svg?react", () => {
 });
 
 // Mock console.warn to test error handling
-const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+const consoleSpy = jest.spyOn(require("loglevel"), "warn").mockImplementation();
 
 describe("useDynamicSvgImport", () => {
   beforeEach(() => {

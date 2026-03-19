@@ -45,10 +45,10 @@ describe("ColorUtils", () => {
     });
 
     it("should handle invalid color gracefully", () => {
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const logSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
       expect(hexToRgba("invalid", 0.5)).toBe("invalid");
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(logSpy).toHaveBeenCalled();
+      logSpy.mockRestore();
     });
 
     it("should handle rgb color strings", () => {

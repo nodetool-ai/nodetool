@@ -278,8 +278,8 @@ describe("useChatService", () => {
     });
 
     it("should not send message if no model selected", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
+      const logSpy = jest
+        .spyOn(require("loglevel"), "error")
         .mockImplementation(() => {});
 
       const { result } = renderHook(() => useChatService(null), {
@@ -293,14 +293,14 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("No model selected");
+      expect(logSpy).toHaveBeenCalledWith("No model selected");
 
-      consoleErrorSpy.mockRestore();
+      logSpy.mockRestore();
     });
 
     it("should handle errors when sending message", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
+      const logSpy = jest
+        .spyOn(require("loglevel"), "error")
         .mockImplementation(() => {});
 
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
@@ -324,12 +324,12 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         "Failed to send message:",
         expect.any(Error)
       );
 
-      consoleErrorSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 
@@ -364,8 +364,8 @@ describe("useChatService", () => {
     });
 
     it("should handle errors when creating new thread", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
+      const logSpy = jest
+        .spyOn(require("loglevel"), "error")
         .mockImplementation(() => {});
 
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));
@@ -389,12 +389,12 @@ describe("useChatService", () => {
 
       await result.current.onNewThread();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         "Failed to create new thread:",
         expect.any(Error)
       );
 
-      consoleErrorSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 

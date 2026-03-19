@@ -91,7 +91,7 @@ describe("useFitNodeEvent", () => {
 
     it("logs error when node is not found", () => {
       mockFindNode.mockReturnValue(undefined);
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = jest.spyOn(require("loglevel"), "error").mockImplementation();
 
       renderHook(() => useFitNodeEvent());
 
