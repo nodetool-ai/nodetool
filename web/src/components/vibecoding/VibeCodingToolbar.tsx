@@ -66,6 +66,10 @@ const VibeCodingToolbar: React.FC<VibeCodingToolbarProps> = ({
           onChange={handleWorkspaceSelect}
           displayEmpty
           disabled={isLoadingWorkspaces}
+          MenuProps={{
+            sx: { zIndex: 1500 },
+            disablePortal: false
+          }}
           sx={{
             minWidth: 180,
             fontSize: "0.8125rem",
