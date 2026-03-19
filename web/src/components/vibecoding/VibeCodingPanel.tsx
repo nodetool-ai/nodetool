@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, memo, useRef } from "react";
 import { Box } from "@mui/material";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
+import type { WorkspaceResponse } from "../../stores/ApiTypes";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 
@@ -10,30 +11,37 @@ function allocatePort(): number {
 }
 
 interface VibeCodingPanelProps {
-  workspaceId: string;
-  workspacePath: string;
+  workspaceId: string | undefined;
+  workspacePath: string | undefined;
+  workspaces: WorkspaceResponse[] | undefined;
+  isLoadingWorkspaces: boolean;
+  onWorkspaceChange: (workspaceId: string) => void;
 }
 
 const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   workspaceId,
-  workspacePath
+  workspacePath,
+  workspaces,
+  isLoadingWorkspaces,
+  onWorkspaceChange
 }) => {
   const initSession = useVibeCodingStore((s) => s.initSession);
   const setServerStatus = useVibeCodingStore((s) => s.setServerStatus);
   const appendServerLog = useVibeCodingStore((s) => s.appendServerLog);
   const getSession = useVibeCodingStore((s) => s.getSession);
-  const session = getSession(workspaceId);
+  const session = workspaceId ? getSession(workspaceId) : null;
 
   const portRef = useRef<number>(allocatePort());
-  const spawnedRef = useRef(false);
+  const spawnedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (spawnedRef.current) return;
-    spawnedRef.current = true;
+    if (!workspaceId || !workspacePath) return;
+    if (spawnedRef.current === workspaceId) return;
+    spawnedRef.current = workspaceId;
 
     initSession(workspaceId, workspacePath);
 
-    if (!window.api?.workspace?.server || !workspacePath) return;
+    if (!window.api?.workspace?.server) return;
 
     setServerStatus(workspaceId, "starting", null);
 
@@ -52,11 +60,10 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
       }
     };
     startServer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, workspacePath]);
+  }, [workspaceId, workspacePath, initSession, setServerStatus, appendServerLog]);
 
   const handleRestart = useCallback(async () => {
-    if (!window.api?.workspace?.server || !workspacePath) return;
+    if (!window.api?.workspace?.server || !workspacePath || !workspaceId) return;
     setServerStatus(workspaceId, "starting", null);
     try {
       const port = await window.api.workspace.server.respawn(
@@ -73,10 +80,12 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
 
   return (
     <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      {/* Chat: left side with workspace selector */}
       <Box
         sx={{
           width: "35%",
           minWidth: 300,
+          maxWidth: 480,
           borderRight: 1,
           borderColor: "divider",
           display: "flex",
@@ -84,8 +93,15 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           bgcolor: "background.paper"
         }}
       >
-        <VibeCodingChat workspaceId={workspaceId} workspacePath={workspacePath} />
+        <VibeCodingChat
+          workspaceId={workspaceId}
+          workspacePath={workspacePath}
+          workspaces={workspaces}
+          isLoadingWorkspaces={isLoadingWorkspaces}
+          onWorkspaceChange={onWorkspaceChange}
+        />
       </Box>
+      {/* Preview: right side */}
       <Box
         sx={{
           flex: 1,
@@ -96,9 +112,9 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         }}
       >
         <VibeCodingPreview
-          port={session.port}
-          serverStatus={session.serverStatus}
-          serverLogs={session.serverLogs}
+          port={session?.port ?? null}
+          serverStatus={session?.serverStatus ?? "stopped"}
+          serverLogs={session?.serverLogs ?? []}
           onRestart={handleRestart}
         />
       </Box>
