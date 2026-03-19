@@ -1,19 +1,17 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, memo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Tooltip
-} from "@mui/material";
+import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner } from "../ui_primitives";
-import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
-import { injectRuntimeConfig } from "./utils/extractHtml";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import type { Theme } from "@mui/material/styles";
+
+// ServerStatus will be imported from VibeCodingStore once that rewrite lands.
+// Defined locally here until Task 4 (VibeCodingStore rewrite) is complete.
+type ServerStatus = "starting" | "running" | "error" | "stopped";
+
+export type { ServerStatus };
 
 const createStyles = (theme: Theme) =>
   css({
@@ -22,7 +20,6 @@ const createStyles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       backgroundColor: theme.palette.background.default,
-      borderRadius: "8px",
       overflow: "hidden"
     },
     ".preview-header": {
@@ -33,169 +30,128 @@ const createStyles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.palette.divider}`,
       backgroundColor: theme.palette.background.paper
     },
-    ".preview-title": {
-      fontSize: "14px",
-      fontWeight: 500,
-      color: theme.palette.text.primary
-    },
-    ".preview-actions": {
-      display: "flex",
-      gap: "4px"
-    },
-    ".preview-frame-container": {
-      flex: 1,
-      position: "relative",
-      backgroundColor: theme.palette.background.paper
-    },
-    ".preview-frame": {
-      width: "100%",
-      height: "100%",
-      border: "none"
-    },
-    ".preview-empty": {
+    ".preview-title": { fontSize: "14px", fontWeight: 500 },
+    ".preview-actions": { display: "flex", gap: "4px" },
+    ".preview-frame-container": { flex: 1, position: "relative" },
+    ".preview-frame": { width: "100%", height: "100%", border: "none" },
+    ".preview-state": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       height: "100%",
+      gap: "16px",
+      padding: "24px",
+      textAlign: "center"
+    },
+    ".error-log": {
+      fontSize: "11px",
       color: theme.palette.text.secondary,
-      textAlign: "center",
-      padding: "24px"
-    },
-    ".preview-empty-icon": {
-      fontSize: "48px",
-      marginBottom: "16px",
-      opacity: 0.5
-    },
-    ".preview-loading": {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)"
+      backgroundColor: theme.palette.background.default,
+      padding: theme.spacing(1),
+      borderRadius: "4px",
+      maxHeight: "200px",
+      overflow: "auto",
+      textAlign: "left",
+      width: "100%",
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word"
     }
   });
 
 interface VibeCodingPreviewProps {
-  html: string | null;
-  workflowId: string;
-  isGenerating?: boolean;
-  onViewSource?: () => void;
+  port: number | null;
+  serverStatus: ServerStatus;
+  serverLogs: string[];
+  onRestart?: () => void;
 }
 
 const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
-  html,
-  workflowId,
-  isGenerating = false,
-  onViewSource
+  port,
+  serverStatus,
+  serverLogs,
+  onRestart
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const blobUrlCleanupRef = useRef<NodeJS.Timeout | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
-  // Inject runtime configuration into HTML
-  const processedHtml = useMemo(() => {
-    if (!html) {
-      return null;
-    }
+  const src =
+    serverStatus === "running" && port ? `http://localhost:${port}` : null;
 
-    return injectRuntimeConfig(html, {
-      apiUrl: BASE_URL,
-      wsUrl: UNIFIED_WS_URL,
-      workflowId
-    });
-  }, [html, workflowId]);
-
-  // Force iframe refresh
-  const handleRefresh = useCallback(() => {
-    setIframeKey((prev) => prev + 1);
-  }, []);
-
-  // Cleanup blob URL timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (blobUrlCleanupRef.current) {
-        clearTimeout(blobUrlCleanupRef.current);
-      }
-    };
-  }, []);
-
-  // Open in new tab
+  const handleRefresh = useCallback(() => setIframeKey((k) => k + 1), []);
   const handleOpenInNew = useCallback(() => {
-    if (!processedHtml) {
-      return;
-    }
-
-    const blob = new Blob([processedHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-
-    // Clean up blob URL after a delay
-    // Clear any existing timeout before setting a new one
-    if (blobUrlCleanupRef.current) {
-      clearTimeout(blobUrlCleanupRef.current);
-    }
-    blobUrlCleanupRef.current = setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, [processedHtml]);
+    if (src) { window.open(src, "_blank", "noopener,noreferrer"); }
+  }, [src]);
 
   return (
     <Box css={styles}>
       <div className="preview-header">
         <Typography className="preview-title">
-          Preview
-          {isGenerating && " (Generating...)"}
+          Preview{serverStatus === "starting" && " (Starting\u2026)"}
         </Typography>
         <div className="preview-actions">
-          {onViewSource && (
-            <Tooltip title="View Source">
-              <IconButton size="small" onClick={onViewSource}>
-                <CodeIcon fontSize="small" />
+          <Tooltip title="Refresh">
+            <span>
+              <IconButton size="small" onClick={handleRefresh} disabled={!src}>
+                <RefreshIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-          )}
-          <RefreshButton
-            onClick={handleRefresh}
-            tooltip="Refresh Preview"
-            tooltipPlacement="bottom"
-            disabled={!html}
-          />
-          <Tooltip title="Open in New Tab">
-            <IconButton size="small" onClick={handleOpenInNew} disabled={!html}>
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Open in new tab">
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleOpenInNew}
+                disabled={!src}
+              >
+                <OpenInNewIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
         </div>
       </div>
 
       <div className="preview-frame-container">
-        {isGenerating && !html && (
-          <div className="preview-loading">
-            <LoadingSpinner size="medium" />
-          </div>
-        )}
-
-        {!html && !isGenerating && (
-          <div className="preview-empty">
-            <CodeIcon className="preview-empty-icon" />
-            <Typography variant="body1" gutterBottom>
-              No preview available
-            </Typography>
+        {serverStatus === "starting" && (
+          <div className="preview-state">
             <Typography variant="body2" color="text.secondary">
-              Describe your desired UI in the chat to generate a custom app
+              Starting dev server\u2026
             </Typography>
           </div>
         )}
 
-        {processedHtml && (
+        {serverStatus === "error" && (
+          <div className="preview-state">
+            <Typography variant="body1" color="error">
+              Dev server error
+            </Typography>
+            {serverLogs.length > 0 && (
+              <pre className="error-log">
+                {serverLogs.slice(-20).join("\n")}
+              </pre>
+            )}
+            {onRestart && (
+              <Button size="small" variant="outlined" onClick={onRestart}>
+                &#8635; Restart server
+              </Button>
+            )}
+          </div>
+        )}
+
+        {serverStatus === "stopped" && (
+          <div className="preview-state">
+            <Typography variant="body2" color="text.secondary">
+              No workspace connected
+            </Typography>
+          </div>
+        )}
+
+        {src && (
           <iframe
             key={iframeKey}
-            ref={iframeRef}
+            src={src}
             className="preview-frame"
-            srcDoc={processedHtml}
-            // allow-same-origin is required for localStorage/sessionStorage and
-            // proper functioning of injected runtime config (API/WS URLs)
-            sandbox="allow-scripts allow-forms allow-same-origin allow-modals"
             title="VibeCoding Preview"
           />
         )}
@@ -204,4 +160,4 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   );
 };
 
-export default VibeCodingPreview;
+export default memo(VibeCodingPreview);
