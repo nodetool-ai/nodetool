@@ -87,14 +87,21 @@ jobs:
           echo "Using Python: $(which python)"
           python --version
 
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: npm ci
+
+      - name: Build workspace packages
+        shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: npm run build:packages
+
       - name: Build Web
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-        run: |
-          cd web
-          npm ci
-          npm run build
+        run: npm run build --workspace=web
 
       - name: Create Web Build Archive
         if: matrix.os == 'ubuntu-latest'
