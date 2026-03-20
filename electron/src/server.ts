@@ -16,7 +16,7 @@ import {
 
 /**
  * Resolves the path to the Node.js-based backend server entry point.
- * In packaged mode: resources/backend/modules/@nodetool/websocket/dist/server.js
+ * In packaged mode: resources/backend/modules/node_modules/@nodetool/websocket/dist/server.js
  * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
  */
 function getNodeBackendPath(): string {
@@ -25,6 +25,7 @@ function getNodeBackendPath(): string {
       process.resourcesPath,
       "backend",
       "modules",
+      "node_modules",
       "@nodetool",
       "websocket",
       "dist",
@@ -32,17 +33,6 @@ function getNodeBackendPath(): string {
     );
   }
   return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
-}
-
-/**
- * Returns the NODE_PATH for the backend process so it can resolve modules
- * from the renamed "modules" directory in the packaged app.
- */
-function getBackendNodePath(): string | undefined {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, "backend", "modules");
-  }
-  return undefined;
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
@@ -541,20 +531,14 @@ async function startServer(): Promise<void> {
   emitBootMessage("Starting backend server...");
 
   const backendEnv: Record<string, string> = {
-      ...getProcessEnv(),
-      PORT: String(selectedPort),
-      STATIC_FOLDER: webPath,
-      NODETOOL_PYTHON: getPythonPath(),
-      OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
-      LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-      NODE_ENV: "production",
+    ...getProcessEnv(),
+    PORT: String(selectedPort),
+    STATIC_FOLDER: webPath,
+    NODETOOL_PYTHON: getPythonPath(),
+    OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+    LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
+    NODE_ENV: "production",
   };
-
-  // In packaged mode, set NODE_PATH so the renamed "modules" dir is used for resolution
-  const backendNodePath = getBackendNodePath();
-  if (backendNodePath) {
-    backendEnv.NODE_PATH = backendNodePath;
-  }
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
