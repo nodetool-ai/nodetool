@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   MemoryAdapterFactory,
   setGlobalAdapterResolver,
@@ -50,6 +50,7 @@ describe("HTTP API: settings/secrets", () => {
     // All secrets should be unconfigured initially
     for (const s of data.secrets) {
       expect(s.is_configured).toBe(false);
+      expect(s.is_unreadable).toBe(false);
     }
   });
 
@@ -66,6 +67,7 @@ describe("HTTP API: settings/secrets", () => {
     expect(data.key).toBe("OPENAI_API_KEY");
     expect(data.description).toBe("My OpenAI key");
     expect(data.is_configured).toBe(true);
+    expect(data.is_unreadable).toBe(false);
     expect(data.user_id).toBe("user-1");
     expect(data).not.toHaveProperty("encrypted_value");
     expect(data).not.toHaveProperty("value");
@@ -90,12 +92,34 @@ describe("HTTP API: settings/secrets", () => {
     const configuredKeys = configured.map((s) => s.key).sort();
     expect(configuredKeys).toContain("ANTHROPIC_API_KEY");
     expect(configuredKeys).toContain("OPENAI_API_KEY");
+    expect(configured.every((s) => s.is_unreadable === false)).toBe(true);
 
     // Should not include encrypted values
     for (const s of data.secrets) {
       expect(s).not.toHaveProperty("encrypted_value");
       expect(s).not.toHaveProperty("value");
     }
+  });
+
+  it("GET /api/settings/secrets marks unreadable secrets", async () => {
+    await handleApiRequest(
+      makeRequest("PUT", "/api/settings/secrets/OPENAI_API_KEY", { value: "sk-test-a" })
+    );
+
+    const spy = vi
+      .spyOn(Secret.prototype, "getDecryptedValue")
+      .mockRejectedValueOnce(new Error("Failed to decrypt secret"));
+
+    const res = await handleApiRequest(makeRequest("GET", "/api/settings/secrets"));
+    expect(res.status).toBe(200);
+
+    const data = (await jsonBody(res)) as { secrets: Array<Record<string, unknown>> };
+    const secret = data.secrets.find((s) => s.key === "OPENAI_API_KEY");
+    expect(secret).toBeDefined();
+    expect(secret?.is_configured).toBe(true);
+    expect(secret?.is_unreadable).toBe(true);
+
+    spy.mockRestore();
   });
 
   it("GET /api/settings/secrets/:key returns secret metadata", async () => {
@@ -115,6 +139,7 @@ describe("HTTP API: settings/secrets", () => {
     expect(data.key).toBe("GROQ_API_KEY");
     expect(data.description).toBe("desc");
     expect(data.is_configured).toBe(true);
+    expect(data.is_unreadable).toBe(false);
     expect(data).not.toHaveProperty("value");
   });
 

@@ -1276,10 +1276,18 @@ interface SecretUpdateBody {
   description?: string;
 }
 
-function toSecretResponse(secret: Secret): JsonObject {
+async function toSecretResponse(secret: Secret): Promise<JsonObject> {
+  let isUnreadable = false;
+  try {
+    await secret.getDecryptedValue();
+  } catch {
+    isUnreadable = true;
+  }
+
   return {
     ...secret.toSafeObject(),
     is_configured: true,
+    is_unreadable: isUnreadable,
   };
 }
 
@@ -1296,7 +1304,10 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
   // Return all registry secrets with is_configured flag
   const registrySecrets = getRegisteredSettings().filter((d) => d.isSecret);
   const result = registrySecrets.map((def) => {
-    const configured = configuredMap.get(def.envVar);
+    return { def, configured: configuredMap.get(def.envVar) };
+  });
+
+  const normalizedResults = await Promise.all(result.map(async ({ def, configured }) => {
     if (configured) {
       return toSecretResponse(configured);
     }
@@ -1305,18 +1316,19 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
       user_id: userId,
       description: def.description ?? "",
       is_configured: false,
+      is_unreadable: false,
     };
-  });
+  }));
 
   // Also include any DB secrets not in the registry
   for (const s of configuredSecrets) {
     if (!registrySecrets.some((d) => d.envVar === s.key)) {
-      result.push(toSecretResponse(s));
+      normalizedResults.push(await toSecretResponse(s));
     }
   }
 
   return jsonResponse({
-    secrets: result,
+    secrets: normalizedResults,
     next_key: null,
   });
 }
@@ -1333,11 +1345,12 @@ async function handleSecretByKey(
     const secret = await Secret.find(userId, key);
     if (!secret) return errorResponse(404, "Secret not found");
 
-    const response = toSecretResponse(secret) as Record<string, unknown>;
+    const response = await toSecretResponse(secret) as Record<string, unknown>;
     const url = new URL(request.url);
     if (url.searchParams.get("decrypt") === "true") {
       try {
         response.value = await secret.getDecryptedValue();
+        response.is_unreadable = false;
       } catch (err) {
         const detail = err instanceof Error ? err.message : "Failed to decrypt secret";
         return errorResponse(500, detail);
@@ -1358,7 +1371,7 @@ async function handleSecretByKey(
         value: body.value,
         description: body.description,
       });
-      return jsonResponse(toSecretResponse(secret));
+      return jsonResponse(await toSecretResponse(secret));
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to update secret";
       return errorResponse(500, detail);

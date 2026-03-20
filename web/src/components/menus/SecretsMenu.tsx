@@ -266,7 +266,15 @@ const SecretsMenu = memo(() => {
                           flexDirection: "row",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          gap: "1em"
+                          gap: "1em",
+                          border: secret.is_unreadable
+                            ? `1px solid ${theme.vars.palette.warning.main}`
+                            : undefined,
+                          borderLeft: secret.is_unreadable
+                            ? `4px solid ${theme.vars.palette.warning.main}`
+                            : undefined,
+                          borderRadius: secret.is_unreadable ? "10px" : undefined,
+                          padding: secret.is_unreadable ? "0.875em 1em" : undefined
                         }}
                       >
                         <div style={{ flex: 1 }}>
@@ -301,11 +309,54 @@ const SecretsMenu = memo(() => {
                                 ? new Date(secret.updated_at).toLocaleDateString()
                                 : "Never"}
                             </Typography>
+                            {secret.is_unreadable && (
+                              <>
+                                <WarningIcon
+                                  sx={{
+                                    color: "warning.main",
+                                    fontSize: "1rem",
+                                    flexShrink: 0
+                                  }}
+                                />
+                                <Chip
+                                  label="Needs re-entry"
+                                  size="small"
+                                  color="warning"
+                                  variant="outlined"
+                                />
+                              </>
+                            )}
                           </div>
                           {secret.description && (
                             <Typography className="description">
                               {secret.description}
                             </Typography>
+                          )}
+                          {secret.is_unreadable && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "0.5em",
+                                marginTop: "0.5em"
+                              }}
+                            >
+                              <WarningIcon
+                                sx={{
+                                  color: "warning.main",
+                                  fontSize: "1rem",
+                                  marginTop: "0.1em",
+                                  flexShrink: 0
+                                }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "warning.main", fontWeight: 500 }}
+                              >
+                                Stored value can no longer be decrypted. Re-enter
+                                it to refresh this key.
+                              </Typography>
+                            </Box>
                           )}
                         </div>
                         <div
@@ -315,7 +366,9 @@ const SecretsMenu = memo(() => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Update secret">
+                          <Tooltip
+                            title={secret.is_unreadable ? "Re-enter secret" : "Update secret"}
+                          >
                             <IconButton
                               size="small"
                               onClick={handleOpenEditDialog(secret)}
@@ -431,7 +484,11 @@ const SecretsMenu = memo(() => {
           }}
         >
           <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
-          {editingSecret?.is_configured ? "Update" : "Set"} {formData.key || "Secret"}
+          {editingSecret?.is_unreadable
+            ? "Re-enter"
+            : editingSecret?.is_configured
+              ? "Update"
+              : "Set"} {formData.key || "Secret"}
         </DialogTitle>
         <DialogContent
           sx={{
@@ -504,9 +561,11 @@ const SecretsMenu = memo(() => {
           >
             {updateMutation.isPending
               ? "Saving..."
-              : editingSecret?.is_configured
-                ? "Update"
-                : "Set"}
+              : editingSecret?.is_unreadable
+                ? "Re-enter"
+                : editingSecret?.is_configured
+                  ? "Update"
+                  : "Set"}
           </Button>
         </DialogActions>
       </Dialog>
