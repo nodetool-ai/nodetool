@@ -104,7 +104,7 @@ jobs:
         run: npm run build --workspace=web
 
       - name: Create Web Build Archive
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash
         id: create_archive
         run: |
@@ -116,7 +116,7 @@ jobs:
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
 
       - name: Upload Web Build to GitHub Release
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -303,7 +303,7 @@ jobs:
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -312,7 +312,7 @@ jobs:
             ${{ env.DIST_DIR }}/latest.yml
 
       - name: Upload Windows assets to GitHub Release (unsigned)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -343,7 +343,7 @@ jobs:
           npx electron-builder --config electron-builder.json --publish never
 
       - name: Upload macOS assets to GitHub Release
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -353,7 +353,7 @@ jobs:
             electron/dist/latest-mac.yml
 
       - name: Upload Linux assets to GitHub Release
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
