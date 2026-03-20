@@ -25,6 +25,7 @@ import {
   EraserSettings,
   ShapeSettings,
   FillSettings,
+  BlurSettings,
   Point,
   BlendMode,
   isShapeTool
@@ -82,6 +83,7 @@ export interface SketchCanvasProps {
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
+  onBrushSizeChange?: (size: number) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -117,7 +119,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onZoomChange,
       onPanChange,
       onStrokeStart,
-      onStrokeEnd
+      onStrokeEnd,
+      onBrushSizeChange
     } = props;
 
     const theme = useTheme();
@@ -135,6 +138,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
     const shiftHeldRef = useRef(false);
     const spaceHeldRef = useRef(false);
+    const sKeyHeldRef = useRef(false);
+    const isSizeDraggingRef = useRef(false);
+    const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
+    const sizeDragInitialSize = useRef(0);
 
     // Shape tool state
     const shapeStartRef = useRef<Point | null>(null);
@@ -147,11 +154,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       panOffsetRef.current = pan;
     }, [pan]);
 
-    // Track Shift and Space key state for constraints and panning
+    // Track Shift, Space, and S key state for constraints, panning, size adjust
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Shift") { shiftHeldRef.current = true; }
         if (e.key === " ") { spaceHeldRef.current = true; }
+        if (e.key === "s" || e.key === "S") { sKeyHeldRef.current = true; }
       };
       const handleKeyUp = (e: KeyboardEvent) => {
         if (e.key === "Shift") { shiftHeldRef.current = false; }
@@ -160,6 +168,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           if (isSpacePanningRef.current) {
             isSpacePanningRef.current = false;
           }
+        }
+        if (e.key === "s" || e.key === "S") {
+          sKeyHeldRef.current = false;
+          isSizeDraggingRef.current = false;
         }
       };
       window.addEventListener("keydown", handleKeyDown);
@@ -311,6 +323,38 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.moveTo(Math.round(from.x), Math.round(from.y));
         ctx.lineTo(Math.round(to.x), Math.round(to.y));
         ctx.stroke();
+        ctx.restore();
+      },
+      []
+    );
+
+    const drawBlurStroke = useCallback(
+      (point: Point, settings: BlurSettings, layerCanvas: HTMLCanvasElement) => {
+        const ctx = layerCanvas.getContext("2d");
+        if (!ctx) { return; }
+        const r = Math.round(settings.size / 2);
+        const x = Math.round(point.x) - r;
+        const y = Math.round(point.y) - r;
+        const w = r * 2;
+        const h = r * 2;
+        // Clamp to canvas bounds
+        const sx = Math.max(0, x);
+        const sy = Math.max(0, y);
+        const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
+        const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
+        if (sw <= 0 || sh <= 0) { return; }
+        // Read, blur via temp canvas, write back
+        const imgData = ctx.getImageData(sx, sy, sw, sh);
+        const tmp = window.document.createElement("canvas");
+        tmp.width = sw;
+        tmp.height = sh;
+        const tmpCtx = tmp.getContext("2d");
+        if (!tmpCtx) { return; }
+        tmpCtx.putImageData(imgData, 0, 0);
+        ctx.save();
+        ctx.clearRect(sx, sy, sw, sh);
+        ctx.filter = `blur(${settings.strength}px)`;
+        ctx.drawImage(tmp, sx, sy);
         ctx.restore();
       },
       []
@@ -588,6 +632,26 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        // S + drag to adjust brush size
+        if (sKeyHeldRef.current && onBrushSizeChange) {
+          isSizeDraggingRef.current = true;
+          sizeDragStartRef.current = { x: e.clientX, y: e.clientY };
+          const tool = activeTool;
+          if (tool === "brush") {
+            sizeDragInitialSize.current = doc.toolSettings.brush.size;
+          } else if (tool === "pencil") {
+            sizeDragInitialSize.current = doc.toolSettings.pencil.size;
+          } else if (tool === "eraser") {
+            sizeDragInitialSize.current = doc.toolSettings.eraser.size;
+          } else if (tool === "blur") {
+            sizeDragInitialSize.current = doc.toolSettings.blur.size;
+          } else {
+            sizeDragInitialSize.current = doc.toolSettings.brush.size;
+          }
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
         const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
         if (!activeLayer || activeLayer.locked || !activeLayer.visible) {
           return;
@@ -677,6 +741,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
               pt, pt
             );
+          } else if (activeTool === "blur") {
+            drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
           }
           redraw();
         }
@@ -684,8 +750,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
       },
       [
-        doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd,
-        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke,
+        doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd, onBrushSizeChange,
+        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
         floodFill, redraw, withMirror
       ]
     );
@@ -699,6 +765,15 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           };
           panOffsetRef.current = newPan;
           onPanChange(newPan);
+          return;
+        }
+
+        // S + drag: adjust brush size by horizontal delta
+        if (isSizeDraggingRef.current && onBrushSizeChange) {
+          const dx = e.clientX - sizeDragStartRef.current.x;
+          const maxSize = activeTool === "pencil" ? 10 : 200;
+          const newSize = Math.max(1, Math.min(maxSize, Math.round(sizeDragInitialSize.current + dx * 0.5)));
+          onBrushSizeChange(newSize);
           return;
         }
 
@@ -761,14 +836,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
             lastPointRef.current, pt
           );
+        } else if (activeTool === "blur") {
+          drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
         }
 
         lastPointRef.current = pt;
         redraw();
       },
       [
-        doc, activeTool, screenToCanvas, onPanChange,
-        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke,
+        doc, activeTool, screenToCanvas, onPanChange, onBrushSizeChange,
+        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
         drawOverlayShape, redraw, withMirror
       ]
     );
@@ -777,6 +854,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       (_e: React.PointerEvent) => {
         if (isPanningRef.current) {
           isPanningRef.current = false;
+          return;
+        }
+
+        if (isSizeDraggingRef.current) {
+          isSizeDraggingRef.current = false;
           return;
         }
 
@@ -824,9 +906,24 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const offsetX = mouseX - centerX - pan.x;
+          const offsetY = mouseY - centerY - pan.y;
+          const zoomRatio = newZoom / zoom;
+          onPanChange({
+            x: pan.x + offsetX * (1 - zoomRatio),
+            y: pan.y + offsetY * (1 - zoomRatio)
+          });
+        }
         onZoomChange(newZoom);
       },
-      [zoom, onZoomChange]
+      [zoom, pan, onZoomChange, onPanChange]
     );
 
     // ─── Imperative handle ────────────────────────────────────────────
@@ -988,8 +1085,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for brush/pencil/eraser tools
-      if (activeTool !== "brush" && activeTool !== "pencil" && activeTool !== "eraser") {
+      // Only show brush cursor for brush/pencil/eraser/blur tools
+      if (activeTool !== "brush" && activeTool !== "pencil" && activeTool !== "eraser" && activeTool !== "blur") {
         return;
       }
 
@@ -998,6 +1095,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         size = doc.toolSettings.brush.size;
       } else if (activeTool === "pencil") {
         size = doc.toolSettings.pencil.size;
+      } else if (activeTool === "blur") {
+        size = doc.toolSettings.blur.size;
       } else {
         size = doc.toolSettings.eraser.size;
       }
@@ -1023,7 +1122,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       ctx.fill();
-    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.pencil.size, doc.toolSettings.eraser.size, zoom]);
+    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.pencil.size, doc.toolSettings.eraser.size, doc.toolSettings.blur.size, zoom]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -1046,7 +1145,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Determine cursor style based on tool
     const cursorStyle = activeTool === "move"
       ? "move"
-      : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser")
+      : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "blur")
         ? "none"
         : "crosshair";
 

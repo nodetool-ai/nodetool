@@ -40,7 +40,8 @@ export type SketchTool =
   | "line"
   | "rectangle"
   | "ellipse"
-  | "arrow";
+  | "arrow"
+  | "blur";
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
@@ -75,12 +76,18 @@ export interface FillSettings {
   tolerance: number;
 }
 
+export interface BlurSettings {
+  size: number;
+  strength: number;
+}
+
 export interface ToolSettings {
   brush: BrushSettings;
   pencil: PencilSettings;
   eraser: EraserSettings;
   shape: ShapeSettings;
   fill: FillSettings;
+  blur: BlurSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
@@ -215,12 +222,18 @@ export const DEFAULT_FILL_SETTINGS: FillSettings = {
   tolerance: 32
 };
 
+export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
+  size: 20,
+  strength: 5
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
   eraser: DEFAULT_ERASER_SETTINGS,
   shape: DEFAULT_SHAPE_SETTINGS,
-  fill: DEFAULT_FILL_SETTINGS
+  fill: DEFAULT_FILL_SETTINGS,
+  blur: DEFAULT_BLUR_SETTINGS
 };
 
 export function generateLayerId(): string {

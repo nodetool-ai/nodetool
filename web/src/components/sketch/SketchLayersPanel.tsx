@@ -7,7 +7,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -103,6 +103,7 @@ export interface SketchLayersPanelProps {
   onDuplicateLayer: (layerId: string) => void;
   onMoveLayerUp: (index: number) => void;
   onMoveLayerDown: (index: number) => void;
+  onReorderLayers: (fromIndex: number, toIndex: number) => void;
   onSetMaskLayer: (layerId: string | null) => void;
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
@@ -122,6 +123,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onDuplicateLayer,
   onMoveLayerUp,
   onMoveLayerDown,
+  onReorderLayers,
   onSetMaskLayer,
   onLayerOpacityChange,
   onLayerBlendModeChange,
@@ -132,6 +134,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragSourceIndex = useRef<number | null>(null);
 
   const handleStartRename = useCallback(
     (layerId: string, currentName: string) => {
@@ -150,6 +154,43 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     },
     [editName, onRenameLayer]
   );
+
+  // ─── Drag-and-drop layer reordering ─────────────────────────────
+  const handleDragStart = useCallback(
+    (realIdx: number) => {
+      dragSourceIndex.current = realIdx;
+    },
+    []
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, realIdx: number) => {
+      e.preventDefault();
+      setDragOverIndex(realIdx);
+    },
+    []
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (realIdx: number) => {
+      const from = dragSourceIndex.current;
+      if (from !== null && from !== realIdx) {
+        onReorderLayers(from, realIdx);
+      }
+      dragSourceIndex.current = null;
+      setDragOverIndex(null);
+    },
+    [onReorderLayers]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    dragSourceIndex.current = null;
+    setDragOverIndex(null);
+  }, []);
 
   const activeLayer = layers.find((l) => l.id === activeLayerId);
 
@@ -222,12 +263,23 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           const realIdx = layers.length - 1 - reverseIdx;
           const isActive = layer.id === activeLayerId;
           const isMask = layer.id === maskLayerId;
+          const isDragOver = dragOverIndex === realIdx;
 
           return (
             <Box key={layer.id}>
               <Box
                 className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}`}
+                draggable
+                onDragStart={() => handleDragStart(realIdx)}
+                onDragOver={(e) => handleDragOver(e, realIdx)}
+                onDragLeave={handleDragLeave}
+                onDrop={() => handleDrop(realIdx)}
+                onDragEnd={handleDragEnd}
                 onClick={() => onSelectLayer(layer.id)}
+                sx={isDragOver ? {
+                  borderTop: "2px solid",
+                  borderTopColor: "primary.main"
+                } : undefined}
               >
                 <IconButton
                   size="small"
