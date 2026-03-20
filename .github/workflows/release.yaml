@@ -133,6 +133,7 @@ jobs:
           cd electron
           npm run download-micromamba
           npm run vite:build
+          node scripts/prepare-backend.cjs
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
       - name: Resolve Windows artifacts (paths)
@@ -338,6 +339,7 @@ jobs:
           cd electron
           npm run download-micromamba
           npm run vite:build
+          node scripts/prepare-backend.cjs
           npx electron-builder --config electron-builder.json --publish never
 
       - name: Upload macOS assets to GitHub Release
