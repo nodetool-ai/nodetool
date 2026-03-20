@@ -21,12 +21,12 @@ for rel_path in "${lock_files[@]}"; do
     continue
   fi
 
-  if ! grep -qE '^  - python(=|$)' "${file_path}"; then
+  if ! grep -qE '^  - python([=>]|$)' "${file_path}"; then
     echo "Missing python dependency in ${rel_path}"
     missing=1
   fi
 
-  if ! grep -qE '^  - uv(=|$)' "${file_path}"; then
+  if ! grep -qE '^  - uv([=>]|$)' "${file_path}"; then
     echo "Missing uv dependency in ${rel_path}"
     missing=1
   fi
