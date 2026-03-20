@@ -31,6 +31,8 @@ export type {
   Point,
   Size,
   Color,
+  ColorMode,
+  Selection,
   HistoryEntry,
   SketchEditorState
 } from "./types";
@@ -55,6 +57,10 @@ export {
   generateLayerId,
   isShapeTool,
   isPaintingTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb,
   MAX_HISTORY_SIZE
 } from "./types";
 

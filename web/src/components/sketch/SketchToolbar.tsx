@@ -51,6 +51,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import {
@@ -63,9 +65,14 @@ import {
   FillSettings,
   BlurSettings,
   GradientSettings,
+  ColorMode,
   DEFAULT_SWATCHES,
   CANVAS_PRESETS,
-  isShapeTool
+  isShapeTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb
 } from "./types";
 
 // ─── Collapsible section persistence ──────────────────────────────────────
@@ -358,6 +365,9 @@ export interface SketchToolbarProps {
   onResetColors: () => void;
   onApplyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
   onBackgroundPreset: (color: string) => void;
+  colorMode: ColorMode;
+  onColorModeChange: (mode: ColorMode) => void;
+  onImportImage?: (file: File) => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -402,7 +412,10 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onSwapColors,
   onResetColors,
   onApplyAdjustments,
-  onBackgroundPreset
+  onBackgroundPreset,
+  colorMode,
+  onColorModeChange,
+  onImportImage
 }) => {
   const theme = useTheme();
 
@@ -525,6 +538,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="move" aria-label="Move">
           <Tooltip title="Move (V)">
             <OpenWithIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="select" aria-label="Select">
+          <Tooltip title="Select (S̃)">
+            <SelectAllIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
         <ToggleButton value="brush" aria-label="Brush">
