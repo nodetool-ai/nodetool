@@ -19,11 +19,7 @@ import { homedir } from "node:os";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
-import {
-  SQLiteAdapterFactory,
-  setGlobalAdapterResolver,
-  Secret,
-} from "@nodetool/models";
+import { initDb } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
 
 // Initialize OpenLLMetry before any LLM SDK calls are made.
@@ -53,12 +49,10 @@ const opts = program.opts<{
   url?: string;
 }>();
 
-// Initialize SQLite adapter pointing at the same DB as the Python side
+// Initialize database
 const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
 try {
-  const factory = new SQLiteAdapterFactory(dbPath);
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await Secret.createTable();
+  initDb(dbPath);
 } catch {
   // DB unavailable — secret lookups will fall back to env vars
 }

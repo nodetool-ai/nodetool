@@ -4,62 +4,14 @@
  * Port of Python's `nodetool.models.oauth_credential`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, desc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { oauthCredentials } from "./schema/oauth-credentials.js";
 import { encrypt, decrypt, decryptFernet, getMasterKey, initMasterKey } from "@nodetool/security";
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const OAUTH_CREDENTIAL_SCHEMA: TableSchema = {
-  table_name: "nodetool_oauth_credentials",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    provider: { type: "string" },
-    account_id: { type: "string" },
-    encrypted_access_token: { type: "string" },
-    encrypted_refresh_token: { type: "string", optional: true },
-    username: { type: "string", optional: true },
-    token_type: { type: "string" },
-    scope: { type: "string", optional: true },
-    received_at: { type: "datetime" },
-    expires_at: { type: "datetime", optional: true },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const OAUTH_CREDENTIAL_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_oauth_user_id",
-    columns: ["user_id"],
-    unique: false,
-  },
-  {
-    name: "idx_oauth_user_provider",
-    columns: ["user_id", "provider"],
-    unique: false,
-  },
-  {
-    name: "idx_oauth_user_provider_account",
-    columns: ["user_id", "provider", "account_id"],
-    unique: true,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class OAuthCredential extends DBModel {
-  static override schema = OAUTH_CREDENTIAL_SCHEMA;
-  static override indexes = OAUTH_CREDENTIAL_INDEXES;
+  static override table = oauthCredentials;
 
   declare id: string;
   declare user_id: string;
@@ -75,7 +27,7 @@ export class OAuthCredential extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -93,13 +45,7 @@ export class OAuthCredential extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
-  // ── Static helpers ────────────────────────────────────────────────
-
-  /**
-   * Upsert an OAuth credential. If a credential already exists for the
-   * given (user_id, provider, account_id) it is updated; otherwise a new
-   * one is created.
-   */
+  /** Upsert an OAuth credential. */
   static async upsert(opts: {
     user_id: string;
     provider: string;
@@ -130,9 +76,7 @@ export class OAuthCredential extends DBModel {
       return existing;
     }
 
-    return (await (
-      OAuthCredential as unknown as ModelClass<OAuthCredential>
-    ).create({
+    return OAuthCredential.create<OAuthCredential>({
       user_id: opts.user_id,
       provider: opts.provider,
       account_id: opts.account_id,
@@ -143,56 +87,41 @@ export class OAuthCredential extends DBModel {
       scope: opts.scope ?? null,
       received_at: opts.received_at,
       expires_at: opts.expires_at ?? null,
-    })) as OAuthCredential;
+    });
   }
 
-  /**
-   * Find a credential by user, provider and account.
-   */
+  /** Find a credential by user, provider and account. */
   static async findByAccount(
     userId: string,
     provider: string,
     accountId: string,
   ): Promise<OAuthCredential | null> {
-    const cond = field("user_id")
-      .equals(userId)
-      .and(field("provider").equals(provider))
-      .and(field("account_id").equals(accountId));
-
-    const [results] = await (
-      OAuthCredential as unknown as ModelClass<OAuthCredential>
-    ).query({ condition: cond, limit: 1 });
-
-    return results.length > 0 ? results[0] : null;
+    const db = getDb();
+    const row = db.select().from(oauthCredentials)
+      .where(and(
+        eq(oauthCredentials.user_id, userId),
+        eq(oauthCredentials.provider, provider),
+        eq(oauthCredentials.account_id, accountId),
+      ))
+      .limit(1)
+      .get();
+    return row ? new OAuthCredential(row as Record<string, unknown>) : null;
   }
 
-  /**
-   * List all credentials for a user and provider.
-   */
+  /** List all credentials for a user and provider. */
   static async listForUserAndProvider(
     userId: string,
     provider: string,
   ): Promise<OAuthCredential[]> {
-    const cond = field("user_id")
-      .equals(userId)
-      .and(field("provider").equals(provider));
-
-    const [results] = await (
-      OAuthCredential as unknown as ModelClass<OAuthCredential>
-    ).query({
-      condition: cond,
-      orderBy: "updated_at",
-      reverse: true,
-    });
-
-    return results;
+    const db = getDb();
+    const rows = db.select().from(oauthCredentials)
+      .where(and(eq(oauthCredentials.user_id, userId), eq(oauthCredentials.provider, provider)))
+      .orderBy(desc(oauthCredentials.updated_at))
+      .all();
+    return rows.map(r => new OAuthCredential(r as Record<string, unknown>));
   }
 
-  /**
-   * Create a new credential with encrypted tokens.
-   *
-   * Encrypts access_token and optionally refresh_token before storing.
-   */
+  /** Create a new credential with encrypted tokens. */
   static async createEncrypted(opts: {
     user_id: string;
     provider: string;
@@ -211,9 +140,7 @@ export class OAuthCredential extends DBModel {
       ? encrypt(masterKey, opts.user_id, opts.refresh_token)
       : null;
 
-    return (await (
-      OAuthCredential as unknown as ModelClass<OAuthCredential>
-    ).create({
+    return OAuthCredential.create<OAuthCredential>({
       user_id: opts.user_id,
       provider: opts.provider,
       account_id: opts.account_id,
@@ -224,12 +151,10 @@ export class OAuthCredential extends DBModel {
       scope: opts.scope ?? null,
       received_at: opts.received_at ?? new Date().toISOString(),
       expires_at: opts.expires_at ?? null,
-    })) as OAuthCredential;
+    });
   }
 
-  /**
-   * Decrypt and return the access token.
-   */
+  /** Decrypt and return the access token. */
   async getDecryptedAccessToken(): Promise<string> {
     const masterKey = await initMasterKey();
     try {
@@ -239,9 +164,7 @@ export class OAuthCredential extends DBModel {
     }
   }
 
-  /**
-   * Decrypt and return the refresh token, or null if not set.
-   */
+  /** Decrypt and return the refresh token, or null if not set. */
   async getDecryptedRefreshToken(): Promise<string | null> {
     if (!this.encrypted_refresh_token) return null;
     const masterKey = await initMasterKey();
@@ -252,9 +175,7 @@ export class OAuthCredential extends DBModel {
     }
   }
 
-  /**
-   * Update tokens with new encrypted values.
-   */
+  /** Update tokens with new encrypted values. */
   async updateTokens(opts: {
     accessToken: string;
     refreshToken?: string | null;
@@ -283,9 +204,7 @@ export class OAuthCredential extends DBModel {
     await this.save();
   }
 
-  /**
-   * Return a safe dictionary representation without encrypted tokens.
-   */
+  /** Return a safe dictionary representation without encrypted tokens. */
   toSafeObject(): Record<string, unknown> {
     return {
       id: this.id,

@@ -1,21 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { RunNodeState } from "../src/run-node-state.js";
 import { RunEvent } from "../src/run-event.js";
 import { RunLease } from "../src/run-lease.js";
 import { Prediction } from "../src/prediction.js";
-import type { ModelClass } from "../src/base-model.js";
 
-const factory = new MemoryAdapterFactory();
-
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await (RunNodeState as unknown as ModelClass).createTable();
-  await (RunEvent as unknown as ModelClass).createTable();
-  await (RunLease as unknown as ModelClass).createTable();
-  await (Prediction as unknown as ModelClass).createTable();
+function setup() {
+  initTestDb();
 }
 
 // ── RunNodeState ──────────────────────────────────────────────────────
@@ -25,9 +17,7 @@ describe("RunNodeState model", () => {
   afterEach(() => ModelObserver.clear());
 
   it("creates with defaults", async () => {
-    const state = await (
-      RunNodeState as unknown as ModelClass<RunNodeState>
-    ).create({
+    const state = await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "node1",
     });
@@ -37,8 +27,17 @@ describe("RunNodeState model", () => {
     expect(state.id).toBe("run1::node1");
   });
 
+  it("coerces legacy numeric retryable values to booleans", () => {
+    const state = new RunNodeState({
+      run_id: "run1",
+      node_id: "node1",
+      retryable: 1,
+    });
+    expect(state.retryable).toBe(true);
+  });
+
   it("getNodeState returns state or null", async () => {
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "node1",
     });
@@ -121,17 +120,17 @@ describe("RunNodeState model", () => {
   });
 
   it("getIncompleteNodes", async () => {
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n1",
       status: "scheduled",
     });
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n2",
       status: "running",
     });
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n3",
       status: "completed",
@@ -143,12 +142,12 @@ describe("RunNodeState model", () => {
   });
 
   it("getSuspendedNodes", async () => {
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n1",
       status: "suspended",
     });
-    await (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    await RunNodeState.create<RunNodeState>({
       run_id: "run1",
       node_id: "n2",
       status: "running",
@@ -222,6 +221,16 @@ describe("RunEvent model", () => {
     expect(events[0].seq).toBe(1);
   });
 
+  it("getEvents with seqLte filter", async () => {
+    await RunEvent.appendEvent("run1", "RunCreated", {});
+    await RunEvent.appendEvent("run1", "NodeScheduled", {});
+    await RunEvent.appendEvent("run1", "NodeStarted", {});
+
+    const events = await RunEvent.getEvents("run1", { seqLte: 1 });
+    expect(events).toHaveLength(2);
+    expect(events.at(-1)?.seq).toBe(1);
+  });
+
   it("getEvents with eventType filter", async () => {
     await RunEvent.appendEvent("run1", "RunCreated", {});
     await RunEvent.appendEvent("run1", "NodeScheduled", {}, "n1");
@@ -256,6 +265,12 @@ describe("RunEvent model", () => {
     });
     expect(lastForType).not.toBeNull();
     expect(lastForType!.event_type).toBe("NodeScheduled");
+
+    const lastForNode = await RunEvent.getLastEvent("run1", {
+      nodeId: "n1",
+    });
+    expect(lastForNode).not.toBeNull();
+    expect(lastForNode!.node_id).toBe("n1");
 
     const noMatch = await RunEvent.getLastEvent("run99");
     expect(noMatch).toBeNull();
@@ -301,9 +316,7 @@ describe("Prediction model", () => {
   afterEach(() => ModelObserver.clear());
 
   it("find returns a prediction by ID", async () => {
-    const created = await (
-      Prediction as unknown as ModelClass<Prediction>
-    ).create({
+    const created = await Prediction.create<Prediction>({
       user_id: "u1",
       node_id: "n1",
       provider: "openai",

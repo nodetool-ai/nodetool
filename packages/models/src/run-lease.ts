@@ -2,64 +2,28 @@
  * RunLease model -- TTL-based distributed lock per workflow run.
  *
  * Port of Python's `nodetool.models.run_lease`.
- *
- * Leases prevent multiple workers from processing the same run concurrently.
- * They automatically expire after a TTL, allowing recovery if a worker crashes.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
-
-// ── Schema ───────────────────────────────────────────────────────────
-
-const RUN_LEASE_SCHEMA: TableSchema = {
-  table_name: "run_leases",
-  primary_key: "run_id",
-  columns: {
-    run_id: { type: "string" },
-    worker_id: { type: "string" },
-    acquired_at: { type: "datetime" },
-    expires_at: { type: "datetime" },
-  },
-};
-
-const RUN_LEASE_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_run_leases_expires",
-    columns: ["expires_at"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
+import { lt } from "drizzle-orm";
+import { DBModel } from "./base-model.js";
+import { getDb } from "./db.js";
+import { runLeases } from "./schema/run-leases.js";
 
 export class RunLease extends DBModel {
-  static override schema = RUN_LEASE_SCHEMA;
-  static override indexes = RUN_LEASE_INDEXES;
+  static override table = runLeases;
+  static override primaryKey = "run_id";
 
   declare run_id: string;
   declare worker_id: string;
   declare acquired_at: string;
   declare expires_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
-    const now = new Date().toISOString();
-    this.acquired_at ??= now;
+    this.acquired_at ??= new Date().toISOString();
   }
 
-  // ── Static methods ────────────────────────────────────────────────
-
-  /**
-   * Acquire a lease on a run.
-   * Returns the lease if acquired, null if already held by another worker.
-   */
+  /** Acquire a lease on a run. Returns the lease if acquired, null if already held. */
   static async acquire(
     runId: string,
     workerId: string,
@@ -68,25 +32,20 @@ export class RunLease extends DBModel {
     const now = new Date();
     const expires = new Date(now.getTime() + ttlSeconds * 1000);
 
-    const existing = await (
-      RunLease as unknown as ModelClass<RunLease>
-    ).get(runId);
+    const existing = await RunLease.get<RunLease>(runId);
 
     if (existing) {
       if (new Date(existing.expires_at) < now) {
-        // Expired -- take over
         existing.worker_id = workerId;
         existing.acquired_at = now.toISOString();
         existing.expires_at = expires.toISOString();
         await existing.save();
         return existing;
       }
-      // Still held by another worker
       return null;
     }
 
-    // No existing lease -- create new one
-    return (RunLease as unknown as ModelClass<RunLease>).create({
+    return RunLease.create<RunLease>({
       run_id: runId,
       worker_id: workerId,
       acquired_at: now.toISOString(),
@@ -119,15 +78,13 @@ export class RunLease extends DBModel {
   /** Remove all expired leases from the database. Returns count removed. */
   static async cleanupExpired(): Promise<number> {
     const now = new Date().toISOString();
+    const db = getDb();
+    const expired = db.select().from(runLeases)
+      .where(lt(runLeases.expires_at, now))
+      .all();
 
-    const [expired] = await (
-      RunLease as unknown as ModelClass<RunLease>
-    ).query({
-      condition: field("expires_at").lessThan(now),
-      limit: 1000,
-    });
-
-    for (const lease of expired) {
+    for (const row of expired) {
+      const lease = new RunLease(row as Record<string, unknown>);
       await lease.delete();
     }
 

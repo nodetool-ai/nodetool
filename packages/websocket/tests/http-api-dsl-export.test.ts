@@ -1,16 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
 } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 describe("HTTP API: workflow DSL export", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("exports a workflow as TypeScript DSL source", async () => {

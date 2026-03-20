@@ -65,7 +65,12 @@ export default defineConfig(async ({ mode }) => {
           plugins: ["@emotion/babel-plugin"]
         }
       }),
-      viteTsconfigPaths(),
+      viteTsconfigPaths({
+        // Skip Electron build output directories — they contain bundled npm
+        // packages with tsconfig.json files whose "extends" targets (e.g.
+        // @ljharb/tsconfig) are not installed in the stripped bundle.
+        ignoreConfigErrors: true,
+      }),
       svgr()
     ],
     build: {

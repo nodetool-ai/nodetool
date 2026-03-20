@@ -1,24 +1,19 @@
 /**
  * Tests for the WorkflowVersion model.
  *
- * Covers: createTable, defaults, listForWorkflow, findByVersion,
+ * Covers: defaults, listForWorkflow, findByVersion,
  * nextVersion, pruneOldVersions, and delete behaviour.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { WorkflowVersion } from "../src/workflow-version.js";
-import type { ModelClass } from "../src/base-model.js";
 
 // ── Setup ────────────────────────────────────────────────────────────
 
-const factory = new MemoryAdapterFactory();
-
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await (WorkflowVersion as unknown as ModelClass).createTable();
+function setup() {
+  initTestDb();
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -29,7 +24,7 @@ async function createVersion(
   version: number,
   saveType = "manual",
 ): Promise<WorkflowVersion> {
-  return (WorkflowVersion as unknown as ModelClass<WorkflowVersion>).create({
+  return WorkflowVersion.create<WorkflowVersion>({
     workflow_id: workflowId,
     user_id: userId,
     version,
@@ -60,7 +55,7 @@ describe("WorkflowVersion model", () => {
   it("creates with explicit fields", async () => {
     const graph = { nodes: [{ id: "n1" }], edges: [] };
     const meta = { auto: true };
-    const wv = await (WorkflowVersion as unknown as ModelClass<WorkflowVersion>).create({
+    const wv = await WorkflowVersion.create<WorkflowVersion>({
       workflow_id: "wf2",
       user_id: "u2",
       version: 3,

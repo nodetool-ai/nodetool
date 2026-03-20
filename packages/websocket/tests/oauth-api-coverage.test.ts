@@ -7,14 +7,12 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   OAuthCredential,
 } from "@nodetool/models";
 import {
   oauthStateStore,
   handleOAuthRequest,
-  resetOAuthTableInit,
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -27,11 +25,8 @@ async function jsonBody(response: Response): Promise<unknown> {
 }
 
 describe("OAuth API: HuggingFace refresh", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
     oauthStateStore.clear();
   });
 
@@ -246,11 +241,9 @@ describe("OAuth API: HuggingFace refresh", () => {
 });
 
 describe("OAuth API: HuggingFace whoami", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -421,11 +414,9 @@ describe("OAuth API: HuggingFace whoami", () => {
 });
 
 describe("OAuth API: HuggingFace callback with valid state and token exchange", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -622,11 +613,9 @@ describe("OAuth API: HuggingFace callback with valid state and token exchange", 
 });
 
 describe("OAuth API: HuggingFace tokens with toTokenMetadata", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
   });
 
   it("GET /api/oauth/hf/tokens returns token metadata fields", async () => {
@@ -668,11 +657,9 @@ describe("OAuth API: HuggingFace tokens with toTokenMetadata", () => {
 });
 
 describe("OAuth API: GitHub callback", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -945,11 +932,9 @@ describe("OAuth API: GitHub callback", () => {
 });
 
 describe("OAuth API: GitHub user", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -1105,11 +1090,9 @@ describe("OAuth API: GitHub user", () => {
 });
 
 describe("OAuth API: method not allowed and trailing slash", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -1157,11 +1140,9 @@ describe("OAuth API: method not allowed and trailing slash", () => {
 });
 
 describe("OAuth API: HuggingFace start host handling", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -1217,11 +1198,9 @@ describe("OAuth API: HuggingFace start host handling", () => {
 });
 
 describe("OAuth API: pruneExpiredStates", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 

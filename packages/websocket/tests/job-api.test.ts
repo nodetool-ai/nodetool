@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Job,
 } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
@@ -12,10 +11,8 @@ async function jsonBody(response: Response): Promise<unknown> {
 }
 
 describe("HTTP API: jobs", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Job.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/jobs returns empty list when no jobs exist", async () => {

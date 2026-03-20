@@ -21,4 +21,4 @@ dependencies:
   - pandoc
   - uv
   - lua
-  - nodejs>=20
+  - nodejs>=24

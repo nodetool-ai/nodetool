@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Secret,
 } from "@nodetool/models";
 import { setMasterKey } from "@nodetool/security";
@@ -34,11 +33,9 @@ function makeRequest(
 }
 
 describe("HTTP API: settings/secrets", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  beforeEach(() => {
+    initTestDb();
     setMasterKey(TEST_MASTER_KEY);
-    await Secret.createTable();
   });
 
   it("GET /api/settings/secrets returns all registry secrets initially (none configured)", async () => {

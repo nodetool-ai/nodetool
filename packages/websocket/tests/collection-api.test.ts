@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
 } from "@nodetool/models";
 import { SqliteVecStore, resetDefaultStore } from "@nodetool/vectorstore";
@@ -32,9 +31,7 @@ describe("Collection API (sqlite-vec)", () => {
     process.env.VECTORSTORE_DB_PATH = dbPath;
     resetDefaultStore();
 
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+    initTestDb();
   });
 
   afterEach(() => {
