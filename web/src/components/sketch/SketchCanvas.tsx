@@ -17,6 +17,7 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import {
   SketchDocument,
   SketchTool,
@@ -26,6 +27,7 @@ import {
   ShapeSettings,
   FillSettings,
   BlurSettings,
+  GradientSettings,
   Point,
   BlendMode,
   isShapeTool
@@ -68,6 +70,8 @@ export interface SketchCanvasRef {
   flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
   mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => string | undefined;
   flattenVisible: () => string;
+  cropCanvas: (x: number, y: number, width: number, height: number) => void;
+  applyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -84,6 +88,8 @@ export interface SketchCanvasProps {
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
   onBrushSizeChange?: (size: number) => void;
+  onContextMenu?: (x: number, y: number) => void;
+  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -120,7 +126,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onPanChange,
       onStrokeStart,
       onStrokeEnd,
-      onBrushSizeChange
+      onBrushSizeChange,
+      onContextMenu,
+      onCropComplete
     } = props;
 
     const theme = useTheme();
@@ -149,6 +157,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Move tool state
     const moveStartRef = useRef<Point | null>(null);
     const moveLayerSnapshotRef = useRef<HTMLCanvasElement | null>(null);
+
+    // Gradient tool state
+    const gradientStartRef = useRef<Point | null>(null);
+
+    // Crop tool state
+    const cropStartRef = useRef<Point | null>(null);
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -360,6 +374,35 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       []
     );
 
+    // ─── Gradient Drawing ─────────────────────────────────────────────
+
+    const drawGradient = useCallback(
+      (
+        ctx: CanvasRenderingContext2D,
+        start: Point,
+        end: Point,
+        settings: GradientSettings
+      ) => {
+        ctx.save();
+        let gradient: CanvasGradient;
+        if (settings.type === "radial") {
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const radius = Math.sqrt(dx * dx + dy * dy);
+          // Minimum radius of 1 prevents invalid gradient when start/end points overlap
+          gradient = ctx.createRadialGradient(start.x, start.y, 0, start.x, start.y, Math.max(radius, 1));
+        } else {
+          gradient = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+        }
+        gradient.addColorStop(0, settings.startColor);
+        gradient.addColorStop(1, settings.endColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+      },
+      []
+    );
+
     // ─── Shape Drawing ────────────────────────────────────────────────
 
     /** Apply shift-constraint to shape end point */
@@ -562,6 +605,53 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [activeTool, doc.toolSettings.shape, drawShapeOnCtx]
     );
 
+    const drawOverlayGradient = useCallback(
+      (start: Point, end: Point) => {
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) { return; }
+        const ctx = overlay.getContext("2d");
+        if (!ctx) { return; }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        drawGradient(ctx, start, end, doc.toolSettings.gradient);
+        // Draw guide line
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+        ctx.restore();
+      },
+      [doc.toolSettings.gradient, drawGradient]
+    );
+
+    const drawOverlayCrop = useCallback(
+      (start: Point, end: Point) => {
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) { return; }
+        const ctx = overlay.getContext("2d");
+        if (!ctx) { return; }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        const x = Math.min(start.x, end.x);
+        const y = Math.min(start.y, end.y);
+        const w = Math.abs(end.x - start.x);
+        const h = Math.abs(end.y - start.y);
+        // Dim outside selection
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 0, overlay.width, overlay.height);
+        ctx.clearRect(x, y, w, h);
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+      },
+      []
+    );
+
     // ─── Coordinate Transform ─────────────────────────────────────────
 
     const screenToCanvas = useCallback(
@@ -715,6 +805,23 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "gradient") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          gradientStartRef.current = pt;
+          isDrawingRef.current = true;
+          onStrokeStart();
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
+        if (activeTool === "crop") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          cropStartRef.current = pt;
+          isDrawingRef.current = true;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
         isDrawingRef.current = true;
         const pt = screenToCanvas(e.clientX, e.clientY);
         lastPointRef.current = pt;
@@ -804,6 +911,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "gradient" && gradientStartRef.current) {
+          drawOverlayGradient(gradientStartRef.current, pt);
+          return;
+        }
+
+        if (activeTool === "crop" && cropStartRef.current) {
+          drawOverlayCrop(cropStartRef.current, pt);
+          return;
+        }
+
         if (!lastPointRef.current) {
           return;
         }
@@ -846,7 +963,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onPanChange, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        drawOverlayShape, redraw, withMirror
+        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror
       ]
     );
 
@@ -888,6 +1005,40 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           shapeStartRef.current = null;
         }
 
+        if (activeTool === "gradient" && gradientStartRef.current && activeLayer) {
+          // Commit gradient from overlay to layer
+          const overlay = overlayCanvasRef.current;
+          if (overlay) {
+            const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+            const ctx = layerCanvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(overlay, 0, 0);
+              clearOverlay();
+              redraw();
+            }
+          }
+          gradientStartRef.current = null;
+        }
+
+        if (activeTool === "crop" && cropStartRef.current) {
+          const pt = screenToCanvas(
+            mousePositionRef.current.x + (containerRef.current?.getBoundingClientRect().left ?? 0),
+            mousePositionRef.current.y + (containerRef.current?.getBoundingClientRect().top ?? 0)
+          );
+          const x1 = Math.round(Math.min(cropStartRef.current.x, pt.x));
+          const y1 = Math.round(Math.min(cropStartRef.current.y, pt.y));
+          const x2 = Math.round(Math.max(cropStartRef.current.x, pt.x));
+          const y2 = Math.round(Math.max(cropStartRef.current.y, pt.y));
+          const w = x2 - x1;
+          const h = y2 - y1;
+          clearOverlay();
+          cropStartRef.current = null;
+          if (w > 1 && h > 1 && onCropComplete) {
+            onCropComplete(x1, y1, w, h);
+          }
+          return;
+        }
+
         lastPointRef.current = null;
 
         if (activeLayer) {
@@ -896,7 +1047,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           onStrokeEnd(activeLayer.id, data);
         }
       },
-      [doc.layers, doc.activeLayerId, activeTool, onStrokeEnd, getOrCreateLayerCanvas, clearOverlay, redraw]
+      [doc.layers, doc.activeLayerId, activeTool, onStrokeEnd, onCropComplete, getOrCreateLayerCanvas, clearOverlay, redraw, screenToCanvas]
     );
 
     // ─── Wheel zoom ──────────────────────────────────────────────────
@@ -904,7 +1055,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const handleWheel = useCallback(
       (e: React.WheelEvent) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        const factor = 1.15;
+        const delta = e.deltaY > 0 ? 1 / factor : factor;
         const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
         const container = containerRef.current;
         if (container) {
@@ -1057,6 +1209,52 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             }
           }
           return canvas.toDataURL("image/png");
+        },
+        cropCanvas: (x: number, y: number, width: number, height: number) => {
+          // Crop all layer canvases and display canvas
+          for (const [id, layerCanvas] of layerCanvasesRef.current) {
+            const ctx = layerCanvas.getContext("2d");
+            if (!ctx) { continue; }
+            const imgData = ctx.getImageData(x, y, width, height);
+            layerCanvas.width = width;
+            layerCanvas.height = height;
+            ctx.putImageData(imgData, 0, 0);
+          }
+          const displayCanvas = displayCanvasRef.current;
+          if (displayCanvas) {
+            displayCanvas.width = width;
+            displayCanvas.height = height;
+          }
+          const overlay = overlayCanvasRef.current;
+          if (overlay) {
+            overlay.width = width;
+            overlay.height = height;
+          }
+          redraw();
+        },
+        applyAdjustments: (brightness: number, contrast: number, saturation: number) => {
+          const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+          if (!activeLayer) { return; }
+          const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
+          if (!layerCanvas) { return; }
+          const ctx = layerCanvas.getContext("2d");
+          if (!ctx) { return; }
+          // Map slider values (-100..100) to CSS filter multipliers.
+          // Clamped to non-negative: CSS filter values must be >= 0
+          // (brightness(0) = black, contrast(0) = gray, saturate(0) = grayscale)
+          const b = Math.max(0, 1 + brightness / 100);
+          const c = Math.max(0, 1 + contrast / 100);
+          const s = Math.max(0, 1 + saturation / 100);
+          const tmp = window.document.createElement("canvas");
+          tmp.width = layerCanvas.width;
+          tmp.height = layerCanvas.height;
+          const tmpCtx = tmp.getContext("2d");
+          if (!tmpCtx) { return; }
+          tmpCtx.filter = `brightness(${b}) contrast(${c}) saturate(${s})`;
+          tmpCtx.drawImage(layerCanvas, 0, 0);
+          ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+          ctx.drawImage(tmp, 0, 0);
+          redraw();
         }
       }),
       [doc, getOrCreateLayerCanvas, redraw]
@@ -1142,12 +1340,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       }
     }, []);
 
+    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      if (onContextMenu) {
+        onContextMenu(e.clientX, e.clientY);
+      }
+    }, [onContextMenu]);
+
     // Determine cursor style based on tool
     const cursorStyle = activeTool === "move"
       ? "move"
-      : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "blur")
-        ? "none"
-        : "crosshair";
+      : activeTool === "crop"
+        ? "crosshair"
+        : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "blur")
+          ? "none"
+          : "crosshair";
 
     return (
       <div
@@ -1160,6 +1367,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onWheel={handleWheel}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={handleContextMenu}
       >
         <canvas
           ref={displayCanvasRef}
@@ -1167,7 +1375,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           height={doc.canvas.height}
           style={canvasStyle}
         />
-        {/* Overlay canvas for shape preview */}
+        {/* Overlay canvas for shape/gradient/crop preview */}
         <canvas
           ref={overlayCanvasRef}
           width={doc.canvas.width}
@@ -1179,6 +1387,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ref={cursorCanvasRef}
           className="cursor-overlay"
         />
+        {/* Canvas info bar */}
+        <Box sx={{
+          position: "absolute",
+          bottom: 8,
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "rgba(0,0,0,0.6)",
+          color: "#ccc",
+          padding: "2px 12px",
+          borderRadius: "4px",
+          fontSize: "0.7rem",
+          pointerEvents: "none",
+          zIndex: 5,
+          display: "flex",
+          gap: "12px"
+        }}>
+          <span>{doc.canvas.width} × {doc.canvas.height}</span>
+          <span>{Math.round(zoom * 100)}%</span>
+        </Box>
       </div>
     );
   }

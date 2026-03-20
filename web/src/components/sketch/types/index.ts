@@ -41,7 +41,9 @@ export type SketchTool =
   | "rectangle"
   | "ellipse"
   | "arrow"
-  | "blur";
+  | "blur"
+  | "gradient"
+  | "crop";
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
@@ -81,6 +83,12 @@ export interface BlurSettings {
   strength: number;
 }
 
+export interface GradientSettings {
+  startColor: string;
+  endColor: string;
+  type: "linear" | "radial";
+}
+
 export interface ToolSettings {
   brush: BrushSettings;
   pencil: PencilSettings;
@@ -88,6 +96,7 @@ export interface ToolSettings {
   shape: ShapeSettings;
   fill: FillSettings;
   blur: BlurSettings;
+  gradient: GradientSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
@@ -227,13 +236,20 @@ export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
   strength: 5
 };
 
+export const DEFAULT_GRADIENT_SETTINGS: GradientSettings = {
+  startColor: "#ffffff",
+  endColor: "#000000",
+  type: "linear"
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
   eraser: DEFAULT_ERASER_SETTINGS,
   shape: DEFAULT_SHAPE_SETTINGS,
   fill: DEFAULT_FILL_SETTINGS,
-  blur: DEFAULT_BLUR_SETTINGS
+  blur: DEFAULT_BLUR_SETTINGS,
+  gradient: DEFAULT_GRADIENT_SETTINGS
 };
 
 export function generateLayerId(): string {

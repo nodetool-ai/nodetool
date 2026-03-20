@@ -18,6 +18,7 @@ import {
   ShapeSettings,
   FillSettings,
   BlurSettings,
+  GradientSettings,
   BlendMode,
   createDefaultDocument,
   createDefaultLayer,
@@ -49,6 +50,7 @@ export interface SketchStore {
   setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setFillSettings: (settings: Partial<FillSettings>) => void;
   setBlurSettings: (settings: Partial<BlurSettings>) => void;
+  setGradientSettings: (settings: Partial<GradientSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -79,6 +81,9 @@ export interface SketchStore {
   // ─── UI State ─────────────────────────────────────────────────────────────
   panelsHidden: boolean;
   togglePanelsHidden: () => void;
+
+  // ─── Canvas Background ────────────────────────────────────────────────────
+  setCanvasBackgroundColor: (color: string) => void;
 
   // ─── History Actions ──────────────────────────────────────────────────────
   pushHistory: (action: string) => void;
@@ -207,6 +212,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           blur: { ...state.document.toolSettings.blur, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setGradientSettings: (settings: Partial<GradientSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          gradient: { ...state.document.toolSettings.gradient, ...settings }
         },
         metadata: {
           ...state.document.metadata,
@@ -460,6 +480,19 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── UI State ───────────────────────────────────────────────────────────
   togglePanelsHidden: () =>
     set((state) => ({ panelsHidden: !state.panelsHidden })),
+
+  // ─── Canvas Background ─────────────────────────────────────────────────
+  setCanvasBackgroundColor: (color: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        canvas: { ...state.document.canvas, backgroundColor: color },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
 
   // ─── History Actions ──────────────────────────────────────────────────
   pushHistory: (action: string) => {

@@ -10,7 +10,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box, Menu, MenuItem, Divider as MuiDivider } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
@@ -43,6 +43,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const canvasRef = useRef<SketchCanvasRef>(null);
   const [mirrorX, setMirrorX] = useState(false);
   const [mirrorY, setMirrorY] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -57,6 +58,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
   const setFillSettings = useSketchStore((s) => s.setFillSettings);
   const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
+  const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -85,6 +87,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const resetColors = useSketchStore((s) => s.resetColors);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
+  const setCanvasBackgroundColor = useSketchStore((s) => s.setCanvasBackgroundColor);
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
@@ -299,6 +302,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "o": setActiveTool("ellipse"); break;
           case "a": setActiveTool("arrow"); break;
           case "q": setActiveTool("blur"); break;
+          case "t": setActiveTool("gradient"); break;
+          case "c": setActiveTool("crop"); break;
           case "m": setMirrorX((prev) => !prev); break;
           case "v": setActiveTool("move"); break;
           case "x": swapColors(); break;
@@ -363,8 +368,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   }, []);
 
   // ─── Zoom handlers ─────────────────────────────────────────────────
-  const handleZoomIn = useCallback(() => setZoom(zoom * 1.2), [zoom, setZoom]);
-  const handleZoomOut = useCallback(() => setZoom(zoom * 0.8), [zoom, setZoom]);
+  const handleZoomIn = useCallback(() => setZoom(zoom * 1.15), [zoom, setZoom]);
+  const handleZoomOut = useCallback(() => setZoom(zoom / 1.15), [zoom, setZoom]);
   const handleZoomReset = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -389,6 +394,70 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [reorderLayers]
   );
 
+  // ─── Apply adjustments ──────────────────────────────────────────
+  const handleApplyAdjustments = useCallback(
+    (brightness: number, contrast: number, saturation: number) => {
+      if (!canvasRef.current) { return; }
+      pushHistory("adjustments");
+      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
+      const layerId = document.activeLayerId;
+      if (layerId) {
+        const data = canvasRef.current.getLayerData(layerId);
+        updateLayerData(layerId, data);
+      }
+    },
+    [pushHistory, document.activeLayerId, updateLayerData]
+  );
+
+  // ─── Background preset ─────────────────────────────────────────
+  const handleBackgroundPreset = useCallback(
+    (color: string) => {
+      setCanvasBackgroundColor(color);
+    },
+    [setCanvasBackgroundColor]
+  );
+
+  // ─── Context menu ──────────────────────────────────────────────
+  const handleContextMenu = useCallback(
+    (x: number, y: number) => {
+      setContextMenu({ x, y });
+    },
+    []
+  );
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  // ─── Crop completion ───────────────────────────────────────────
+  const handleCropComplete = useCallback(
+    (x: number, y: number, width: number, height: number) => {
+      if (!canvasRef.current) { return; }
+      pushHistory("crop");
+      canvasRef.current.cropCanvas(x, y, width, height);
+      // Update document dimensions
+      const state = useSketchStore.getState();
+      setDocument({
+        ...state.document,
+        canvas: {
+          ...state.document.canvas,
+          width,
+          height
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      // Update layer data for all layers
+      for (const layer of state.document.layers) {
+        const data = canvasRef.current.getLayerData(layer.id);
+        updateLayerData(layer.id, data);
+      }
+    },
+    [pushHistory, setDocument, updateLayerData]
+  );
+
   return (
     <Box css={styles(theme)}>
       {!panelsHidden && (
@@ -400,6 +469,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           shapeSettings={document.toolSettings.shape}
           fillSettings={document.toolSettings.fill}
           blurSettings={document.toolSettings.blur}
+          gradientSettings={document.toolSettings.gradient}
           zoom={zoom}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
@@ -414,6 +484,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onShapeSettingsChange={setShapeSettings}
           onFillSettingsChange={setFillSettings}
           onBlurSettingsChange={setBlurSettings}
+          onGradientSettingsChange={setGradientSettings}
           onMirrorXChange={setMirrorX}
           onMirrorYChange={setMirrorY}
           onUndo={handleUndo}
@@ -431,6 +502,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onBackgroundColorChange={setBackgroundColor}
           onSwapColors={swapColors}
           onResetColors={resetColors}
+          onApplyAdjustments={handleApplyAdjustments}
+          onBackgroundPreset={handleBackgroundPreset}
         />
       )}
 
@@ -448,6 +521,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onStrokeStart={handleStrokeStart}
           onStrokeEnd={handleStrokeEnd}
           onBrushSizeChange={handleBrushSizeChange}
+          onContextMenu={handleContextMenu}
+          onCropComplete={handleCropComplete}
         />
       </Box>
 
@@ -472,6 +547,43 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onFlattenVisible={handleFlattenVisible}
         />
       )}
+
+      {/* ── Right-click context menu ────────────────────────────────── */}
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleContextMenuClose}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null ? { top: contextMenu.y, left: contextMenu.x } : undefined
+        }
+      >
+        <MenuItem onClick={() => { setActiveTool("brush"); handleContextMenuClose(); }}>
+          Brush (B)
+        </MenuItem>
+        <MenuItem onClick={() => { setActiveTool("pencil"); handleContextMenuClose(); }}>
+          Pencil (P)
+        </MenuItem>
+        <MenuItem onClick={() => { setActiveTool("eraser"); handleContextMenuClose(); }}>
+          Eraser (E)
+        </MenuItem>
+        <MenuItem onClick={() => { setActiveTool("fill"); handleContextMenuClose(); }}>
+          Fill (G)
+        </MenuItem>
+        <MuiDivider />
+        <MenuItem onClick={() => { handleUndo(); handleContextMenuClose(); }} disabled={!canUndo()}>
+          Undo
+        </MenuItem>
+        <MenuItem onClick={() => { handleRedo(); handleContextMenuClose(); }} disabled={!canRedo()}>
+          Redo
+        </MenuItem>
+        <MuiDivider />
+        <MenuItem onClick={() => { handleClearLayer(); handleContextMenuClose(); }}>
+          Clear Layer
+        </MenuItem>
+        <MenuItem onClick={() => { handleExportPng(); handleContextMenuClose(); }}>
+          Export PNG
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };
