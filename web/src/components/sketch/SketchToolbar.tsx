@@ -657,36 +657,22 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           fullWidth
         />
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
-          <Tooltip title="Black Background">
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => onBackgroundPreset("#000000")}
-              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
-            >
-              Black
-            </Button>
-          </Tooltip>
-          <Tooltip title="White Background">
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => onBackgroundPreset("#ffffff")}
-              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
-            >
-              White
-            </Button>
-          </Tooltip>
-          <Tooltip title="Gray Background">
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => onBackgroundPreset("#808080")}
-              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
-            >
-              Gray
-            </Button>
-          </Tooltip>
+          {([
+            { label: "Black", color: "#000000" },
+            { label: "White", color: "#ffffff" },
+            { label: "Gray", color: "#808080" }
+          ] as const).map(({ label, color }) => (
+            <Tooltip key={color} title={`${label} Background`}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => onBackgroundPreset(color)}
+                sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
+              >
+                {label}
+              </Button>
+            </Tooltip>
+          ))}
         </Box>
       </ToolbarSection>
 

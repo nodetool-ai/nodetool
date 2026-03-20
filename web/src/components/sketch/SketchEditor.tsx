@@ -368,8 +368,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   }, []);
 
   // ─── Zoom handlers ─────────────────────────────────────────────────
-  const handleZoomIn = useCallback(() => setZoom(zoom * 1.4), [zoom, setZoom]);
-  const handleZoomOut = useCallback(() => setZoom(zoom / 1.4), [zoom, setZoom]);
+  const handleZoomIn = useCallback(() => setZoom(zoom * 1.15), [zoom, setZoom]);
+  const handleZoomOut = useCallback(() => setZoom(zoom / 1.15), [zoom, setZoom]);
   const handleZoomReset = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });

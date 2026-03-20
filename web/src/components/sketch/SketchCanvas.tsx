@@ -389,6 +389,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const dx = end.x - start.x;
           const dy = end.y - start.y;
           const radius = Math.sqrt(dx * dx + dy * dy);
+          // Minimum radius of 1 prevents invalid gradient when start/end points overlap
           gradient = ctx.createRadialGradient(start.x, start.y, 0, start.x, start.y, Math.max(radius, 1));
         } else {
           gradient = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
@@ -1238,7 +1239,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           if (!layerCanvas) { return; }
           const ctx = layerCanvas.getContext("2d");
           if (!ctx) { return; }
-          // Map slider values (-100..100) to CSS filter values, clamped to non-negative
+          // Map slider values (-100..100) to CSS filter multipliers.
+          // Clamped to non-negative: CSS filter values must be >= 0
+          // (brightness(0) = black, contrast(0) = gray, saturate(0) = grayscale)
           const b = Math.max(0, 1 + brightness / 100);
           const c = Math.max(0, 1 + contrast / 100);
           const s = Math.max(0, 1 + saturation / 100);
