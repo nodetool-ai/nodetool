@@ -1,6 +1,8 @@
 // nodetool/electron/src/WorkspaceDevServer.ts
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
+import { BrowserWindow } from 'electron';
+import { IpcChannels } from './types.d';
 
 export type DevServerStatus = 'starting' | 'running' | 'error' | 'stopped';
 
@@ -44,6 +46,10 @@ export class WorkspaceDevServer {
         if (!line) return;
         entry.logs.push(line);
         if (entry.logs.length > MAX_LOGS) entry.logs.shift();
+        // Stream to all renderer windows
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, { workspacePath, line });
+        }
       };
 
       const timeoutHandle = setTimeout(() => {

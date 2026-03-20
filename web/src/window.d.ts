@@ -313,6 +313,8 @@ declare global {
           model: string;
           workspacePath?: string;
           resumeSessionId?: string;
+          systemPrompt?: string;
+          useStandardTools?: boolean;
         }) => Promise<string>;
         listModels: (options?: {
           provider?: "claude" | "codex";
@@ -404,12 +406,15 @@ declare global {
           status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
           logs: (workspacePath: string) => Promise<string[]>;
           ensureInstalled: (workspacePath: string) => Promise<void>;
+          onLog: (callback: (event: { workspacePath: string; line: string }) => void) => () => void;
         };
         file?: {
           /** Write content to a relative path inside workspacePath */
           write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
           /** Read content from a relative path inside workspacePath */
           read: (workspacePath: string, relPath: string) => Promise<string>;
+          /** List files and directories at a relative path inside workspacePath */
+          list: (workspacePath: string, relPath: string) => Promise<Array<{ name: string; path: string; isDir: boolean; size: number }>>;
         };
       };
 

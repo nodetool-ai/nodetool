@@ -676,12 +676,19 @@ const api = {
         ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_LOGS, { workspacePath }),
       ensureInstalled: (workspacePath: string) =>
         ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED, { workspacePath }),
+      onLog: (callback: (event: { workspacePath: string; line: string }) => void) => {
+        const handler = (_event: any, data: { workspacePath: string; line: string }) => callback(data);
+        ipcRenderer.on(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, handler);
+        return () => { ipcRenderer.removeListener(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, handler); };
+      },
     },
     file: {
       write: (workspacePath: string, relPath: string, content: string) =>
         ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_WRITE, { workspacePath, relPath, content }),
       read: (workspacePath: string, relPath: string) =>
         ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_READ, { workspacePath, relPath }),
+      list: (workspacePath: string, relPath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_LIST, { workspacePath, relPath }),
     },
   },
 

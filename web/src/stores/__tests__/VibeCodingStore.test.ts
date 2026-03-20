@@ -12,8 +12,6 @@ describe('VibeCodingStore', () => {
     expect(session.workspaceId).toBe('unknown');
     expect(session.port).toBeNull();
     expect(session.serverStatus).toBe('stopped');
-    expect(session.messages).toEqual([]);
-    expect(session.chatStatus).toBe('idle');
     expect(session.isPublished).toBe(false);
     expect(session.workspacePath).toBe('');
   });
@@ -46,43 +44,6 @@ describe('VibeCodingStore', () => {
     expect(logs.length).toBe(100);
     expect(logs[0]).toBe('line 5');
     expect(logs[99]).toBe('line 104');
-  });
-
-  it('addMessage appends message', () => {
-    const { result } = renderHook(() => useVibeCodingStore());
-    act(() => {
-      result.current.initSession('ws-1', '/path');
-      result.current.addMessage('ws-1', {
-        type: 'message', role: 'user', name: '',
-        content: [{ type: 'text', text: 'hello' }],
-        created_at: new Date().toISOString(),
-      });
-    });
-    expect(result.current.getSession('ws-1').messages).toHaveLength(1);
-  });
-
-  it('updateLastMessage updates last message text', () => {
-    const { result } = renderHook(() => useVibeCodingStore());
-    act(() => {
-      result.current.initSession('ws-1', '/path');
-      result.current.addMessage('ws-1', {
-        type: 'message', role: 'assistant', name: '',
-        content: [{ type: 'text', text: '' }],
-        created_at: new Date().toISOString(),
-      });
-      result.current.updateLastMessage('ws-1', 'updated content');
-    });
-    const [msg] = result.current.getSession('ws-1').messages;
-    expect((msg.content as Array<{type: string; text: string}>)[0].text).toBe('updated content');
-  });
-
-  it('setChatStatus updates chatStatus', () => {
-    const { result } = renderHook(() => useVibeCodingStore());
-    act(() => {
-      result.current.initSession('ws-1', '/path');
-      result.current.setChatStatus('ws-1', 'streaming');
-    });
-    expect(result.current.getSession('ws-1').chatStatus).toBe('streaming');
   });
 
   it('setIsPublished updates isPublished', () => {

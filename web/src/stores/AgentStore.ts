@@ -75,6 +75,10 @@ interface AgentState {
   workspacePath: string | null;
   /** Workspace id selected in UI (if available) */
   workspaceId: string | null;
+  /** Custom system prompt for the session (e.g. VibeCoding context) */
+  systemPrompt: string | null;
+  /** When true, use standard Claude Code tools instead of custom MCP/UI tools */
+  useStandardTools: boolean;
   /** Recently used Claude session IDs for resume */
   sessionHistory: AgentSessionHistoryEntry[];
   /** In-memory transcript cache keyed by session id */
@@ -88,11 +92,14 @@ interface AgentState {
     workspacePath?: string;
     workspaceId?: string;
     resumeSessionId?: string;
+    systemPrompt?: string;
+    useStandardTools?: boolean;
   }) => Promise<void>;
   /** Set current workspace context for future/new sessions */
   setWorkspaceContext: (
     workspaceId: string | null,
-    workspacePath: string | null
+    workspacePath: string | null,
+    options?: { systemPrompt?: string | null; useStandardTools?: boolean }
   ) => void;
   /** Close current session and start a fresh one in the selected workspace */
   startNewSession: () => Promise<void>;
@@ -195,6 +202,8 @@ const useAgentStore = create<AgentState>((set, get) => ({
   hasAssistantInCurrentTurn: false,
   workspacePath: null,
   workspaceId: null,
+  systemPrompt: null,
+  useStandardTools: false,
   sessionHistory: [],
   sessionMessages: {},
 
@@ -234,8 +243,13 @@ const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
 
-  setWorkspaceContext: (workspaceId, workspacePath) => {
-    set({ workspaceId, workspacePath });
+  setWorkspaceContext: (workspaceId, workspacePath, options) => {
+    set({
+      workspaceId,
+      workspacePath,
+      ...(options?.systemPrompt !== undefined && { systemPrompt: options.systemPrompt }),
+      ...(options?.useStandardTools !== undefined && { useStandardTools: options.useStandardTools })
+    });
   },
 
   createSession: async (options) => {
@@ -279,7 +293,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
         provider,
         model,
         workspacePath: selectedWorkspacePath,
-        resumeSessionId
+        resumeSessionId,
+        systemPrompt: options?.systemPrompt,
+        useStandardTools: options?.useStandardTools
       });
       const now = new Date().toISOString();
 
@@ -461,7 +477,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
         // Call createSession directly to set up streaming and get the sessionId
         await get().createSession({
           preserveMessages: true,
-          preserveStatus: true
+          preserveStatus: true,
+          systemPrompt: get().systemPrompt ?? undefined,
+          useStandardTools: get().useStandardTools
         });
         // Get the new sessionId from state
         currentSessionId = get().sessionId!;
@@ -548,7 +566,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
             }
           : get().sessionMessages
     });
-    await get().createSession();
+    await get().createSession({
+      systemPrompt: get().systemPrompt ?? undefined,
+      useStandardTools: get().useStandardTools
+    });
   },
 
   resumeSession: async (targetSessionId: string) => {
@@ -591,6 +612,8 @@ const useAgentStore = create<AgentState>((set, get) => ({
       preserveMessages: true,
       workspacePath: target.workspacePath,
       workspaceId: target.workspaceId,
+      systemPrompt: get().systemPrompt ?? undefined,
+      useStandardTools: get().useStandardTools,
       resumeSessionId: targetSessionId
     });
   }

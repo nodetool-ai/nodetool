@@ -17,6 +17,7 @@ import {
   type FrontendToolManifest,
 } from "./types.d";
 import { CodexQuerySession, listCodexModels } from "./codexAgent";
+import { workspaceDevServer } from "./WorkspaceDevServer";
 import { app, ipcMain, type WebContents } from "electron";
 import path from "node:path";
 import { existsSync } from "node:fs";
@@ -329,6 +330,74 @@ function buildMcpServer(
   return createSdkMcpServer({ name: "nodetool-ui", version: "1.0.0", tools: mcpTools });
 }
 
+/**
+ * Build an MCP server with dev server management tools for VibeCoding sessions.
+ * These tools let the Claude agent check server status, read build errors,
+ * and restart the dev server when needed.
+ */
+function buildVibeCodingMcpServer(
+  workspacePath: string,
+  devServer: typeof import("./WorkspaceDevServer").workspaceDevServer,
+): ReturnType<typeof createSdkMcpServer> {
+  const mcpTools = [
+    tool(
+      "devserver_status",
+      "Get the current dev server status, port, and whether it is running. Use this to check if the preview server is healthy.",
+      { type: "object" as const, properties: {}, required: [] as string[] },
+      async () => {
+        const status = devServer.getStatus(workspacePath);
+        const port = devServer.getPort(workspacePath);
+        const running = devServer.isRunning(workspacePath);
+        const text = JSON.stringify({ status, port, running });
+        return { content: [{ type: "text" as const, text }] };
+      },
+    ),
+    tool(
+      "devserver_logs",
+      "Get the last N lines of dev server output. Use this to diagnose build errors, compilation failures, or see what the server is doing. Call this when the user reports the preview is broken or after making changes that might cause build errors.",
+      {
+        type: "object" as const,
+        properties: {
+          lines: {
+            type: "number",
+            description: "Number of recent log lines to return (default: 50, max: 100)",
+          },
+        },
+        required: [] as string[],
+      },
+      async (args: { lines?: number }) => {
+        const logs = devServer.getLogs(workspacePath);
+        const n = Math.min(Math.max(args.lines ?? 50, 1), 100);
+        const recent = logs.slice(-n);
+        const text = recent.length > 0
+          ? recent.join("\n")
+          : "(no log output yet)";
+        return { content: [{ type: "text" as const, text }] };
+      },
+    ),
+    tool(
+      "devserver_restart",
+      "Restart the Next.js dev server. Use this when: the server crashed, you installed new npm packages and need a full restart, or the user reports the preview is not updating. The server will be killed and respawned on the same port.",
+      { type: "object" as const, properties: {}, required: [] as string[] },
+      async () => {
+        const port = devServer.getPort(workspacePath);
+        if (!port) {
+          return { content: [{ type: "text" as const, text: "Error: no server is running for this workspace — cannot restart." }] };
+        }
+        try {
+          const newPort = await devServer.respawn(workspacePath, port);
+          return { content: [{ type: "text" as const, text: `Server restarted successfully on port ${newPort}.` }] };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return { content: [{ type: "text" as const, text: `Failed to restart server: ${msg}` }] };
+        }
+      },
+    ),
+  ];
+
+  return createSdkMcpServer({ name: "vibecoding-devserver", version: "1.0.0", tools: mcpTools });
+}
+
 function convertSdkMessage(
   msg: { type: string; [key: string]: unknown },
   sessionId: string,
@@ -434,6 +503,7 @@ class ClaudeAgentSession implements AgentQuerySession {
   private readonly model: string;
   private readonly workspacePath: string;
   private readonly systemPrompt: string;
+  private readonly useStandardTools: boolean;
   private resolvedSessionId: string | null;
   private inFlight = false;
   private activeQuery: Query | null = null;
@@ -443,10 +513,12 @@ class ClaudeAgentSession implements AgentQuerySession {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    useStandardTools?: boolean;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
     this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
+    this.useStandardTools = options.useStandardTools ?? false;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
@@ -467,13 +539,20 @@ class ClaudeAgentSession implements AgentQuerySession {
     this.inFlight = true;
 
     try {
-      const mcpServer = webContents
-        ? buildMcpServer(webContents, sessionId)
-        : undefined;
+      // Build the appropriate MCP server based on session mode
+      let mcpServers: Record<string, ReturnType<typeof createSdkMcpServer>> | undefined;
+      let allowedTools: string[] = [];
 
-      const allowedTools = mcpServer
-        ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
-        : [];
+      if (this.useStandardTools) {
+        // VibeCoding mode: provide dev server management tools
+        const vibeMcp = buildVibeCodingMcpServer(this.workspacePath, workspaceDevServer);
+        mcpServers = { "vibecoding-devserver": vibeMcp };
+      } else if (webContents) {
+        // Workflow mode: provide UI tools
+        const uiMcp = buildMcpServer(webContents, sessionId);
+        mcpServers = { "nodetool-ui": uiMcp };
+        allowedTools = Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`);
+      }
 
       const queryHandle = query({
         prompt: message,
@@ -487,10 +566,12 @@ class ClaudeAgentSession implements AgentQuerySession {
           },
           permissionMode: "bypassPermissions",
           allowDangerouslySkipPermissions: true,
-          disallowedTools: CLAUDE_DISALLOWED_TOOLS,
-          allowedTools,
+          ...(this.useStandardTools ? {} : {
+            disallowedTools: CLAUDE_DISALLOWED_TOOLS,
+            allowedTools,
+          }),
           maxTurns: 50,
-          ...(mcpServer && { mcpServers: { "nodetool-ui": mcpServer } }),
+          ...(mcpServers && { mcpServers }),
           ...(this.resolvedSessionId && { resume: this.resolvedSessionId }),
         },
       });
@@ -572,6 +653,7 @@ class ClaudeCliSession {
   private readonly model: string;
   private readonly workspacePath: string;
   private readonly systemPrompt: string;
+  private readonly useStandardTools: boolean;
   private inFlight = false;
   private activeProcess: ChildProcessWithoutNullStreams | null = null;
   private interruptRequested = false;
@@ -581,17 +663,19 @@ class ClaudeCliSession {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    useStandardTools?: boolean;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
     this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
+    this.useStandardTools = options.useStandardTools ?? false;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
   private createClaudeProcess(
     manifest: FrontendToolManifest[],
   ): ChildProcessWithoutNullStreams {
-    const allowedTools = manifest.map((tool) => tool.name);
+    const allowedTools = this.useStandardTools ? [] : manifest.map((tool) => tool.name);
     const args = [
       "-p",
       "--verbose",
@@ -613,7 +697,9 @@ class ClaudeCliSession {
     if (allowedTools.length > 0) {
       args.push("--allowedTools", allowedTools.join(","));
     }
-    args.push("--disallowedTools", CLAUDE_DISALLOWED_TOOLS.join(","));
+    if (!this.useStandardTools) {
+      args.push("--disallowedTools", CLAUDE_DISALLOWED_TOOLS.join(","));
+    }
 
     const executable = getClaudeCodeExecutablePath();
     logMessage(
@@ -1275,32 +1361,33 @@ export async function createAgentSession(
 
   const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
 
+  const defaultClaudePrompt =
+    process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+      ? HELP_SYSTEM_PROMPT
+      : FAST_WORKFLOW_SYSTEM_PROMPT;
+
   const session: AgentQuerySession =
     provider === "codex"
       ? new CodexQuerySession({
           model: options.model,
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
-          systemPrompt: CODEX_SYSTEM_PROMPT,
+          systemPrompt: options.systemPrompt ?? CODEX_SYSTEM_PROMPT,
         })
       : useCliAgent
         ? new ClaudeCliSession({
             model: options.model,
             workspacePath: options.workspacePath,
             resumeSessionId: options.resumeSessionId,
-            systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-                ? HELP_SYSTEM_PROMPT
-                : FAST_WORKFLOW_SYSTEM_PROMPT,
+            systemPrompt: options.systemPrompt ?? defaultClaudePrompt,
+            useStandardTools: options.useStandardTools,
           })
         : new ClaudeAgentSession({
             model: options.model,
             workspacePath: options.workspacePath,
             resumeSessionId: options.resumeSessionId,
-            systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-                ? HELP_SYSTEM_PROMPT
-                : FAST_WORKFLOW_SYSTEM_PROMPT,
+            systemPrompt: options.systemPrompt ?? defaultClaudePrompt,
+            useStandardTools: options.useStandardTools,
           });
 
   activeSessions.set(tempId, session);

@@ -1,8 +1,6 @@
 import { create } from "zustand";
-import { Message } from "./ApiTypes";
 
 export type ServerStatus = "starting" | "running" | "error" | "stopped";
-export type ChatStatus = "idle" | "streaming" | "error";
 
 export interface VibeCodingSession {
   workspaceId: string;
@@ -11,8 +9,6 @@ export interface VibeCodingSession {
   serverStatus: ServerStatus;
   serverLogs: string[];
   isPublished: boolean;
-  messages: Message[];
-  chatStatus: ChatStatus;
 }
 
 const MAX_LOGS = 100;
@@ -24,8 +20,6 @@ const defaultSession = (workspaceId: string): VibeCodingSession => ({
   serverStatus: "stopped",
   serverLogs: [],
   isPublished: false,
-  messages: [],
-  chatStatus: "idle",
 });
 
 interface VibeCodingState {
@@ -35,10 +29,6 @@ interface VibeCodingState {
   clearSession: (workspaceId: string) => void;
   setServerStatus: (workspaceId: string, status: ServerStatus, port?: number | null) => void;
   appendServerLog: (workspaceId: string, line: string) => void;
-  addMessage: (workspaceId: string, message: Message) => void;
-  updateLastMessage: (workspaceId: string, content: string) => void;
-  clearMessages: (workspaceId: string) => void;
-  setChatStatus: (workspaceId: string, status: ChatStatus) => void;
   setIsPublished: (workspaceId: string, published: boolean) => void;
 }
 
@@ -85,39 +75,6 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
         const logs = [...s.serverLogs, line];
         return { serverLogs: logs.length > MAX_LOGS ? logs.slice(-MAX_LOGS) : logs };
       }),
-    })),
-
-  addMessage: (workspaceId, message) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workspaceId, (s) => ({
-        messages: [...s.messages, message],
-      })),
-    })),
-
-  updateLastMessage: (workspaceId, content) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workspaceId, (s) => {
-        if (!s.messages.length) { return {}; }
-        const messages = [...s.messages];
-        const last = { ...messages[messages.length - 1] };
-        if (Array.isArray(last.content)) {
-          last.content = last.content.map((c) =>
-            c.type === "text" ? { ...c, text: content } : c
-          );
-        }
-        messages[messages.length - 1] = last;
-        return { messages };
-      }),
-    })),
-
-  clearMessages: (workspaceId) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workspaceId, () => ({ messages: [] })),
-    })),
-
-  setChatStatus: (workspaceId, status) =>
-    set((state) => ({
-      sessions: patch(state.sessions, workspaceId, () => ({ chatStatus: status })),
     })),
 
   setIsPublished: (workspaceId, published) =>
