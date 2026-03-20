@@ -94,16 +94,18 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 
 ### Drawing tools (baseline + parity gaps)
 
-| Tool                     | NodeTool today                                | Parity / gaps                                                                                                |
-| ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Brush (B)                | Size, opacity, hardness, color                | [ ] **Pressure** from pointer events / tablet; [ ] optional **roundness** + **angle** (oval brush footprint) |
-| Pencil (P)               | Size 1–10, square caps, pixel-aligned strokes | [ ] True **1px anti-aliased pencil** mode (always 1px feel at any zoom)                                      |
-| Line (L)                 | Free line + arrow                             | [ ] **Shift**: horizontal / vertical / 45° constraint while dragging                                         |
-| Ellipse (O) (“circle”)   | Ellipse + fill options                        | [ ] **Shift**: **perfect circle** from bounding box                                                          |
-| Rectangle (R) (“square”) | Rectangle + fill options                      | [ ] **Shift**: **perfect square**                                                                            |
-| Fill (G)                 | Tolerance + color                             | Done (tune UX vs. reference)                                                                                 |
-| Eraser (E)               | Size, opacity, hardness                       | Done                                                                                                         |
-| Eyedropper (I)           | Samples composited canvas                     | Done                                                                                                         |
+| Tool                     | NodeTool today                                | Parity / gaps                                                                                                                                 |
+| ------------------------ | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brush (B)                | Size, opacity, hardness, color                | [ ] **Pressure** from pointer events / tablet; [ ] optional **roundness** + **angle** (oval brush footprint)                                  |
+| Pencil (P)               | Size 1–10, square caps, pixel-aligned strokes | [ ] True **1px anti-aliased pencil** mode (always 1px feel at any zoom)                                                                       |
+| Line (L)                 | Free line + arrow                             | [ ] **Shift**: horizontal / vertical / 45° constraint while dragging                                                                          |
+| Ellipse (O) (“circle”)   | Ellipse + fill options                        | [ ] **Shift**: **perfect circle** from bounding box                                                                                           |
+| Rectangle (R) (“square”) | Rectangle + fill options                      | [ ] **Shift**: **perfect square**                                                                                                             |
+| Fill (G)                 | Tolerance + color                             | Done (tune UX vs. reference)                                                                                                                  |
+| Eraser (E)               | Size, opacity, hardness                       | Done                                                                                                                                          |
+| Eyedropper (I)           | Samples composited canvas                     | Done                                                                                                                                          |
+| Clone / copy brush       | —                                             | [ ] **Alt+click** (or chord) sets source; stroke copies pixels at offset — clone stamp; sample from composited or active layer only (specify) |
+| Healing brush            | —                                             | [ ] Spot-heal / texture blend: sample region + paint destination with luminance/edge-aware mix (scope: “good enough” vs full Photoshop)       |
 
 - [x] Shape tools: line, rectangle, ellipse, arrow
 - [x] Shape settings: stroke color, stroke width, optional fill + fill color
@@ -116,6 +118,8 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 - [ ] Crop tool
 - [ ] Gradient tool / gradient fill
 - [ ] Blur Brush
+- [ ] **Clone / copy brush** — clone stamp: pick source point, paint copies along stroke; hardness/size/opacity; align with layer vs composited source (define UX)
+- [ ] **Healing brush** — retouch by sampling nearby (or Alt+picked) texture and blending into brush area; optional content-aware backend later
 - [ ] **Brush engine variants** (see “Brush types” below)
 
 ### Brush types (engine / presets)
@@ -145,6 +149,7 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 - [ ] **Merge down** / merge selected / flatten visible (pick one minimal set first)
 - [ ] **Drag-and-drop layer reordering** (list reorder, not only up/down buttons)
 - [ ] Group/folder layers
+- [ ] **Segmentation → layers** — see Phase 3 **SAM / Segment Anything** (promote each mask to its own raster layer)
 
 ### Canvas & view
 
@@ -204,6 +209,17 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 - [ ] Vector/pen tool
 - [ ] Text layers with font settings
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types / Round–Spray table)
+
+### SAM / Segment Anything → layers
+
+> Requires a **segmentation backend** (Python job, preferably local model, or Replicate/FAL/HF). The sketch UI orchestrates prompts and turns masks into document layers.
+> stretch goal: Optional output mode: promote each segment as a full raster layer (cropped or full-canvas with transparency) so you get separated image data per region, not only grayscale/alpha masks.
+
+- [ ] Run **SAM** (or API-compatible successor) on **composited canvas** and/or **input image** — support prompt modes the backend allows: **points** (+/−), **box**, optional **auto / everything** masks
+- [ ] **Promote segments to layers** — each chosen mask becomes a **new raster layer** (filled region or cut-out with transparency); sensible default names (`Segment 1`… or label from class if available)
+- [ ] **Overlay UX** — hover/select candidate regions, toggle visibility, merge two segments before commit, discard slivers (min area threshold)
+- [ ] **Commit strategies** — **add layers** vs **replace non-base layers**; never drop locked **input_image** base without confirmation
+- [ ] **Integration** — job progress/errors in modal; cache last result for re-pick; document **latency, cost, and auth** (same patterns as other AI nodes in nodetool)
 
 ---
 
@@ -300,14 +316,16 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 Not implemented yet — see Phase 2 **Gesture shortcuts** for **X**, **S+drag**, **O+drag** conflicts and proposed resolutions.
 
-| Key / gesture                | Planned action                                                         |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| X                            | Swap foreground / background (needs dual color model)                  |
-| S + drag on canvas           | Adjust brush (or active paint tool) size                               |
-| O + drag                     | Adjust opacity — **conflicts with O = ellipse**; needs alternate chord |
-| Space + drag                 | Pan (if unified with reference)                                        |
-| Tab or Space (tap)           | Hide toolbars / panels (choose one; avoid breaking pan)                |
-| Shift (while drawing shapes) | Constrain line angles; square / circle bounds                          |
+| Key / gesture                | Planned action                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| X                            | Swap foreground / background (needs dual color model)                                                                   |
+| S + drag on canvas           | Adjust brush (or active paint tool) size                                                                                |
+| O + drag                     | Adjust opacity — **conflicts with O = ellipse**; needs alternate chord                                                  |
+| Space + drag                 | Pan (if unified with reference)                                                                                         |
+| Tab or Space (tap)           | Hide toolbars / panels (choose one; avoid breaking pan)                                                                 |
+| Shift (while drawing shapes) | Constrain line angles; square / circle bounds                                                                           |
+| J                            | Healing brush — when implemented                                                                                        |
+| (TBD)                        | Clone / copy brush — **avoid bare `S`** (conflicts with **Ctrl+S** export + **S+drag** size); e.g. **K** or **Shift+S** |
 
 ---
 
@@ -406,10 +424,38 @@ Alt+click for eyedropper works mid-stroke while the Brush is active — you don'
 ## Recommended Follow-ups
 
 - Extract tool logic from SketchCanvas into modular tool classes (`tools/` directory)
+- Retouch tools: **clone/copy brush**, **healing brush** (see Phase 2); wire shortcuts without clashing **S**
+- SAM / segmentation: backend job + **masks → new layers** (see Phase 3)
 - Add selection tools for copy/paste/transform workflows
 - Layer thumbnail previews in the layers panel
 - Import PNG into layer / new layer
 - Items now tracked in Phase 2: DnD layer reorder, user color presets (`localStorage`), preset canvas sizes, merge layers, full color wheel + hex/RGB/HSL, panel layout persistence
+
+### Backlog candidates (worth tracking — not in Phase 2/3 yet)
+
+- [ ] **Alt + click / long-press** temporary eyedropper while Brush/Pencil/Eraser is active (Photoshop-style; reduces tool switching)
+- [ ] **Keyboard shortcut for vertical mirror** — today **M** toggles horizontal only; vertical is toolbar-only
+- [ ] **Touch / tablet**: pinch-zoom, two-finger pan; optional palm rejection hooks
+- [ ] **Pixel workflow**: optional pixel grid overlay, snap-to-pixel, nearest-neighbor view at high zoom
+- [ ] **Rulers + draggable guides** (pairs with Photoshop “View” appendix; useful for layout-heavy masks)
+- [ ] **Performance guardrails**: max canvas megapixels warning; history memory estimate or cap by pixel count; throttle compositing on huge documents
+- [ ] **Accessibility**: focus trap + `Esc` closes modal consistently; visible focus in layer list; screen-reader labels on tools
+- [ ] **QA**: Playwright (or RTL) smoke test — open sketch from node, draw stroke, assert serialized output / no graph shortcut bleed
+- [ ] **Export options**: explicit “PNG with alpha” vs opaque flatten; optional JPEG for lighter previews
+
+### Krita-inspired candidates (high-signal for masks & painting)
+
+Krita is a full painting app; these are the ideas that tend to matter most for **clean masks, iteration speed, and texture-style outputs** without copying the whole product.
+
+- [ ] **Stroke stabilizer / lazy smoothing** — damp pointer jitter (especially tablets); strength slider
+- [ ] **Rotate canvas (view only)** — spin the _viewport_ for a comfortable wrist angle; does not bake rotation into pixels until export if undesired
+- [ ] **Wrap-around / tiling mode** — draw with edges wrapping so seams stay continuous (tiles, patterns, seamless textures for downstream nodes)
+- [ ] **Alpha lock** (“lock transparency”) per layer — brush/fill only where pixels already exist; essential for refining masks without growing halos
+- [ ] **Isolate / solo layer** — temporarily show only the active layer against checkerboard (or dim others) for edge cleanup
+- [ ] **Pop-up palette** (radial HUD) — quick color + tool/size picks via shortcut or right-click; optional `localStorage` for recent colors
+- [ ] **Smudge / color-smudge brush** — push/blend existing pixels (distinct from blur-everything brush); pairs with mask cleanup and painterly strokes
+- [ ] **Extended symmetry** — optional N-fold rotational symmetry or multi-point mirror (beyond current H/V mirror while drawing)
+- [ ] **Gamut / color sanity in picker** — optional “limit to sRGB slice” or warn when color is out of gamut for 8-bit export (lower priority)
 
 ## Target UX tips (workflow parity)
 
@@ -432,10 +478,10 @@ These mirror common guidance but apply to **SketchInput** / **SketchProperty** i
 - [ ] Clipping masks / clipping groups
 - [ ] Layer effects / filters (blur, sharpen, etc.)
 - [ ] Custom plugin / tool extensibility system
-
 - [ ] Better project persistence (localStorage backup / file export)
 - [ ] Import PNG into current layer
 - [ ] Export project file (JSON + embedded images)
-- [ ] **Sketch-only light/dark** toggle (sun/moon) **inside the modal** when product wants independence from global theme
-- [ ] **Draggable / dockable panels** (toolbar, layers, color) + **collapse** (−)
 - [ ] SVG import/export
+- [ ] SAM / Segment Anything (or equivalent) → **automatic layer split** from segmentation masks
+
+(See Phase 2 for sketch-local theme toggle and draggable/collapsible panels — avoid duplicating here.)
