@@ -56,6 +56,7 @@ import Button from "@mui/material/Button";
 import {
   SketchTool,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
@@ -687,6 +688,27 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       >
         {activeTool === "brush" && (
           <>
+            <ToggleButtonGroup
+              value={brushSettings.brushType || "round"}
+              exclusive
+              onChange={(_, v) => { if (v) { onBrushSettingsChange({ brushType: v as BrushType }); } }}
+              size="small"
+              fullWidth
+              sx={{ mb: "4px" }}
+            >
+              <ToggleButton value="round" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Round
+              </ToggleButton>
+              <ToggleButton value="soft" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Soft
+              </ToggleButton>
+              <ToggleButton value="airbrush" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Air
+              </ToggleButton>
+              <ToggleButton value="spray" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Spray
+              </ToggleButton>
+            </ToggleButtonGroup>
             <Box className="setting-row">
               <Typography className="setting-label">Color</Typography>
               <input
@@ -1183,6 +1205,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <dt>D</dt><dd>Reset colors</dd>
           <dt>Tab</dt><dd>Toggle UI</dd>
           <dt>[ / ]</dt><dd>Brush size</dd>
+          <dt>Shift+[/]</dt><dd>Hardness</dd>
+          <dt>0–9</dt><dd>Opacity</dd>
+          <dt>Alt+Click</dt><dd>Pick color</dd>
           <dt>Shift</dt><dd>Constrain</dd>
           <dt>Space</dt><dd>Pan</dd>
           <dt>+ / −</dt><dd>Zoom</dd>

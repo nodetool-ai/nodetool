@@ -22,6 +22,7 @@ import {
   SketchDocument,
   SketchTool,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
@@ -90,6 +91,7 @@ export interface SketchCanvasProps {
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onEyedropperPick?: (color: string) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -128,7 +130,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeEnd,
       onBrushSizeChange,
       onContextMenu,
-      onCropComplete
+      onCropComplete,
+      onEyedropperPick
     } = props;
 
     const theme = useTheme();
@@ -286,6 +289,47 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const drawBrushStroke = useCallback(
       (from: Point, to: Point, settings: BrushSettings, ctx: CanvasRenderingContext2D) => {
+        const brushType = settings.brushType || "round";
+
+        if (brushType === "spray") {
+          // Spray: scatter random dots within brush radius
+          ctx.save();
+          ctx.globalAlpha = settings.opacity;
+          ctx.fillStyle = settings.color;
+          const density = Math.max(5, Math.round(settings.size * 0.8));
+          const r = settings.size / 2;
+          for (let i = 0; i < density; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * r;
+            const px = to.x + Math.cos(angle) * dist;
+            const py = to.y + Math.sin(angle) * dist;
+            const dotSize = Math.max(1, Math.random() * 2);
+            ctx.beginPath();
+            ctx.arc(px, py, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+          return;
+        }
+
+        if (brushType === "airbrush") {
+          // Airbrush: low-opacity radial dab that accumulates over time
+          ctx.save();
+          const dabOpacity = settings.opacity * 0.15;
+          ctx.globalAlpha = dabOpacity;
+          const r = settings.size / 2;
+          const grad = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, r);
+          grad.addColorStop(0, settings.color);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+
+        // Round / Soft brush — standard stroke approach
         ctx.save();
         ctx.globalAlpha = settings.opacity;
         ctx.globalCompositeOperation = "source-over";
@@ -293,8 +337,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineWidth = settings.size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        if (settings.hardness < 1) {
-          ctx.filter = `blur(${(1 - settings.hardness) * settings.size * 0.3}px)`;
+        const effectiveHardness = brushType === "soft"
+          ? Math.min(settings.hardness, 0.3)
+          : settings.hardness;
+        if (effectiveHardness < 1) {
+          ctx.filter = `blur(${(1 - effectiveHardness) * settings.size * 0.3}px)`;
         }
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
@@ -347,28 +394,82 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const ctx = layerCanvas.getContext("2d");
         if (!ctx) { return; }
         const r = Math.round(settings.size / 2);
-        const x = Math.round(point.x) - r;
-        const y = Math.round(point.y) - r;
-        const w = r * 2;
-        const h = r * 2;
+        // Use a larger sample region to avoid clipping the blur filter
+        const pad = Math.ceil(settings.strength * 2);
+        const x = Math.round(point.x) - r - pad;
+        const y = Math.round(point.y) - r - pad;
+        const w = (r + pad) * 2;
+        const h = (r + pad) * 2;
         // Clamp to canvas bounds
         const sx = Math.max(0, x);
         const sy = Math.max(0, y);
         const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
         const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
         if (sw <= 0 || sh <= 0) { return; }
-        // Read, blur via temp canvas, write back
+
+        // Read original pixels
         const imgData = ctx.getImageData(sx, sy, sw, sh);
+
+        // Create temp canvas for blurred version
         const tmp = window.document.createElement("canvas");
         tmp.width = sw;
         tmp.height = sh;
         const tmpCtx = tmp.getContext("2d");
         if (!tmpCtx) { return; }
         tmpCtx.putImageData(imgData, 0, 0);
+
+        // Create blurred version on a second temp canvas
+        const blurred = window.document.createElement("canvas");
+        blurred.width = sw;
+        blurred.height = sh;
+        const blurCtx = blurred.getContext("2d");
+        if (!blurCtx) { return; }
+        blurCtx.filter = `blur(${settings.strength}px)`;
+        blurCtx.drawImage(tmp, 0, 0);
+
+        // Blend blurred result into original using a circular gradient mask.
+        // This avoids the hard edges from clearRect.
+        const cx = Math.round(point.x) - sx;
+        const cy = Math.round(point.y) - sy;
+        const maskCanvas = window.document.createElement("canvas");
+        maskCanvas.width = sw;
+        maskCanvas.height = sh;
+        const maskCtx = maskCanvas.getContext("2d");
+        if (!maskCtx) { return; }
+
+        // Draw original pixels first
+        maskCtx.putImageData(imgData, 0, 0);
+
+        // Draw blurred pixels with a circular clip and radial gradient alpha
+        maskCtx.save();
+        maskCtx.beginPath();
+        maskCtx.arc(cx, cy, r, 0, Math.PI * 2);
+        maskCtx.clip();
+
+        // Use a radial gradient to soft-blend the edges
+        const grad = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.7, "rgba(255,255,255,0.8)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+
+        // Clear and draw blurred
+        maskCtx.globalCompositeOperation = "source-over";
+        maskCtx.clearRect(cx - r, cy - r, r * 2, r * 2);
+        maskCtx.drawImage(blurred, 0, 0);
+
+        // Apply radial gradient fade using destination-in
+        maskCtx.globalCompositeOperation = "destination-in";
+        maskCtx.fillStyle = grad;
+        maskCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+        maskCtx.restore();
+
+        // Now composite: put original back, then overlay masked blur
         ctx.save();
         ctx.clearRect(sx, sy, sw, sh);
-        ctx.filter = `blur(${settings.strength}px)`;
-        ctx.drawImage(tmp, sx, sy);
+        ctx.putImageData(imgData, sx, sy);
+        // Draw the soft-blurred circle on top
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(maskCanvas, sx, sy);
         ctx.restore();
       },
       []
@@ -705,6 +806,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
+        // Alt+click: eyedropper sampling (Photoshop convention) for painting tools
+        const isPaintingTool = activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "fill";
+        if (e.button === 0 && e.altKey && isPaintingTool && onEyedropperPick) {
+          const displayCanvas = displayCanvasRef.current;
+          if (displayCanvas) {
+            const ctx = displayCanvas.getContext("2d");
+            if (ctx) {
+              const pt = screenToCanvas(e.clientX, e.clientY);
+              const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
+              const hex = `#${pixel[0].toString(16).padStart(2, "0")}${pixel[1].toString(16).padStart(2, "0")}${pixel[2].toString(16).padStart(2, "0")}`;
+              onEyedropperPick(hex);
+            }
+          }
+          return;
+        }
+
         if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeldRef.current)) {
           isPanningRef.current = true;
           if (spaceHeldRef.current) {
@@ -859,7 +976,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        floodFill, redraw, withMirror
+        floodFill, redraw, withMirror, onEyedropperPick
       ]
     );
 

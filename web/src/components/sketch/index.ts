@@ -21,6 +21,7 @@ export type {
   LayerType,
   BlendMode,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,

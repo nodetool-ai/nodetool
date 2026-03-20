@@ -47,11 +47,14 @@ export type SketchTool =
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
+export type BrushType = "round" | "soft" | "airbrush" | "spray";
+
 export interface BrushSettings {
   size: number;
   opacity: number;
   hardness: number;
   color: string;
+  brushType: BrushType;
 }
 
 export interface PencilSettings {
@@ -204,7 +207,8 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   size: 12,
   opacity: 1,
   hardness: 0.8,
-  color: "#ffffff"
+  color: "#ffffff",
+  brushType: "round"
 };
 
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {

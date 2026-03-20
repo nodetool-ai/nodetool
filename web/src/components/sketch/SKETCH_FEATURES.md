@@ -33,23 +33,23 @@ Reference parity: **ComfySketch** maps **C** → circle and **R** → rectangle;
 Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to date)**.
 
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
-- [ ] imporove Blur brush: currently smears the image when dragging due to creating hard edges
+- [x] improve Blur brush: fixed hard edges by using circular radial-gradient mask blending
 - [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
 - [x] Crop tool (C key, drag to select crop region)
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
-- [ ] **Brush engine variants** (see **Brush types** below)
+- [x] **Brush engine variants** (see **Brush types** below)
 
 #### Brush types (engine / presets)
 
-> Today the brush is one radial gradient stamp. Split **Round / Soft / Airbrush / Spray** into distinct behaviors or presets.
+> Brush type selector (Round / Soft / Airbrush / Spray) in toolbar. Each type has distinct drawing behavior.
 
-| Type     | Target settings            | Status                                                     |
-| -------- | -------------------------- | ---------------------------------------------------------- |
-| Round    | Hardness, roundness, angle | [ ] Roundness + angle on stamp; hardness already           |
-| Soft     | Hardness, roundness, angle | [ ] Softer default falloff / separate preset from Round    |
-| Airbrush | Flow, softness             | [ ] Low-flow accumulation (opacity buildup per dab / time) |
-| Spray    | Density                    | [ ] Particle scatter (stochastic dots within brush disk)   |
+| Type     | Target settings            | Status                                                            |
+| -------- | -------------------------- | ----------------------------------------------------------------- |
+| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [ ] roundness + angle     |
+| Soft     | Hardness, roundness, angle | [x] Softer default falloff (hardness capped at 0.3)              |
+| Airbrush | Flow, softness             | [x] Low-opacity radial dab accumulation per point                 |
+| Spray    | Density                    | [x] Particle scatter (stochastic dots within brush disk)          |
 
 #### Color system
 
@@ -163,13 +163,16 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | Space (hold) + drag      | Pan canvas                                       |
 | Shift (shape tools)      | Constrain line (H/V/45°); square / circle bounds |
 | [ / ]                    | Decrease / increase brush size                   |
+| Shift+[ / Shift+]        | Decrease / increase hardness                     |
+| 0–9                      | Set brush opacity (0=100%, 1=10%…9=90%)          |
+| Alt+Click (paint tools)  | Eyedropper pick (stays on current tool)          |
 | + / −                    | Zoom in / out                                    |
 | Delete / Backspace       | Clear active layer                               |
 | Ctrl+Z                   | Undo                                             |
 | Ctrl+Shift+Z / Ctrl+Y    | Redo                                             |
 | Ctrl+0                   | Reset view (zoom + pan)                          |
 | Ctrl+S                   | Export PNG                                       |
-| Alt+Click / Middle-click | Pan canvas                                       |
+| Alt+Click / Middle-click | Pan canvas (non-paint tools)                     |
 | Scroll wheel             | Zoom                                             |
 | Right-click              | Context menu                                     |
 
@@ -328,7 +331,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 ### Backlog candidates
 
-- [ ] **Alt + click / long-press** temporary eyedropper while Brush/Pencil/Eraser is active
+- [x] **Alt + click** temporary eyedropper while Brush/Pencil/Eraser/Fill is active — picks color without switching tool
 - [ ] **Keyboard shortcut for vertical mirror** — **M** = horizontal only today; vertical is toolbar-only
 - [ ] **Touch / tablet**: pinch-zoom, two-finger pan; optional palm rejection
 - [ ] **Pixel workflow**: pixel grid overlay, snap-to-pixel, crisp view at high zoom
@@ -490,6 +493,11 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Smoother zoom** — symmetric 1.15x factor for wheel + button zoom
 - [x] **Background presets** — black / white / gray quick buttons in Colors section
 - [x] **S + drag brush size** — horizontal drag while S held adjusts brush/pencil/eraser/blur size
+- [x] **Brush engine variants** — Round / Soft / Airbrush / Spray brush types with toolbar selector
+- [x] **Improved blur brush** — circular radial-gradient mask for soft blending (no more hard edges)
+- [x] **Alt+click eyedropper** — picks color while painting without switching tool (Photoshop convention)
+- [x] **Shift+[ / Shift+]** — decrease / increase hardness for brush and eraser
+- [x] **Number keys 0-9** — set brush/pencil/eraser opacity (0=100%, 1=10%…9=90%, Photoshop convention)
 
 ### Node / SketchInput
 
