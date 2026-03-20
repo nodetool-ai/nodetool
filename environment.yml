@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python>=3.11,<3.13
   - ffmpeg>=6,<7
   - cairo
   - git
