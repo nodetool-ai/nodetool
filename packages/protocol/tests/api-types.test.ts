@@ -650,6 +650,7 @@ describe("SecretResponse", () => {
     expect(secret.key).toBe("OPENAI_API_KEY");
     expect(secret.is_configured).toBe(true);
     expect(secret.id).toBeUndefined();
+    expect(secret.is_unreadable).toBeUndefined();
   });
 });
 
