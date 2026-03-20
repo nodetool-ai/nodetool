@@ -8,7 +8,9 @@
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
+    "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",
+    "dev:fast": "node ../../scripts/run-websocket-dev.mjs server stale",
     "test-ui": "node ../../scripts/run-websocket-dev.mjs test-ui",
     "devserver": "npm run test-ui",
     "test": "vitest run",

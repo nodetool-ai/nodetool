@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const mode = process.argv[2] ?? "server";
+const buildMode = process.argv[3] ?? "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const websocketDir = resolve(rootDir, "packages", "websocket");
@@ -18,8 +19,18 @@ const entrypoints = {
   "test-ui": "dist/test-ui-server.js",
 };
 
+const buildCommands = {
+  all: ["run", "build:all", "--workspace", "@nodetool/websocket"],
+  stale: ["run", "build:stale", "--workspace", "@nodetool/websocket"],
+};
+
 if (!(mode in entrypoints)) {
   console.error(`Unknown websocket dev mode: ${mode}`);
+  process.exit(1);
+}
+
+if (!(buildMode in buildCommands)) {
+  console.error(`Unknown websocket build mode: ${buildMode}`);
   process.exit(1);
 }
 
@@ -71,5 +82,5 @@ if (await isPortInUse(host, port)) {
   process.exit(0);
 }
 
-await run(npmCommand, ["run", "build:all", "--workspace", "@nodetool/websocket"], rootDir);
+await run(npmCommand, buildCommands[buildMode], rootDir);
 await run(process.execPath, [entrypoints[mode]], websocketDir);

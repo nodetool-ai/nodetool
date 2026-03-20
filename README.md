@@ -93,11 +93,21 @@ npm run build:packages
 npm run dev
 ```
 
+For day-to-day development, you can use the faster startup path:
+
+```bash
+# Rebuild only stale backend workspaces, then start backend + frontend
+npm run dev:fast
+```
+
+Use `npm run dev` when you want the original clean startup that rebuilds the full TypeScript backend dependency chain. Use `npm run dev:fast` when you want a shorter local edit/run loop.
+
 Or start servers individually:
 
 ```bash
 # Terminal 1: TypeScript backend server
 npm run dev:server   # PORT=7777 node packages/websocket/dist/server.js
+npm run dev:server:fast
 
 # Terminal 2: Web frontend
 npm run dev:web      # cd web && npm start
