@@ -64,6 +64,9 @@ export interface SketchCanvasRef {
   flattenToDataUrl: () => string;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
+  flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
+  mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => string | undefined;
+  flattenVisible: () => string;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -126,9 +129,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const isDrawingRef = useRef(false);
     const lastPointRef = useRef<Point | null>(null);
     const isPanningRef = useRef(false);
+    const isSpacePanningRef = useRef(false);
     const panStartRef = useRef<Point>({ x: 0, y: 0 });
     const panOffsetRef = useRef<Point>(pan);
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
+    const shiftHeldRef = useRef(false);
+    const spaceHeldRef = useRef(false);
 
     // Shape tool state
     const shapeStartRef = useRef<Point | null>(null);
@@ -140,6 +146,29 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
+
+    // Track Shift and Space key state for constraints and panning
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Shift") { shiftHeldRef.current = true; }
+        if (e.key === " ") { spaceHeldRef.current = true; }
+      };
+      const handleKeyUp = (e: KeyboardEvent) => {
+        if (e.key === "Shift") { shiftHeldRef.current = false; }
+        if (e.key === " ") {
+          spaceHeldRef.current = false;
+          if (isSpacePanningRef.current) {
+            isSpacePanningRef.current = false;
+          }
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("keyup", handleKeyUp);
+      };
+    }, []);
 
     // ─── Layer Canvas Management ──────────────────────────────────────
 
@@ -289,6 +318,37 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Shape Drawing ────────────────────────────────────────────────
 
+    /** Apply shift-constraint to shape end point */
+    const constrainEnd = useCallback(
+      (start: Point, end: Point, tool: SketchTool): Point => {
+        if (!shiftHeldRef.current) { return end; }
+        if (tool === "rectangle" || tool === "ellipse") {
+          // Constrain to square / circle
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const size = Math.max(Math.abs(dx), Math.abs(dy));
+          return {
+            x: start.x + size * Math.sign(dx || 1),
+            y: start.y + size * Math.sign(dy || 1)
+          };
+        }
+        if (tool === "line" || tool === "arrow") {
+          // Snap to nearest 45° angle
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const angle = Math.atan2(dy, dx);
+          const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          return {
+            x: start.x + dist * Math.cos(snapped),
+            y: start.y + dist * Math.sin(snapped)
+          };
+        }
+        return end;
+      },
+      []
+    );
+
     const drawShapeOnCtx = useCallback(
       (
         ctx: CanvasRenderingContext2D,
@@ -297,6 +357,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         end: Point,
         settings: ShapeSettings
       ) => {
+        const constrained = constrainEnd(start, end, tool);
         ctx.save();
         ctx.strokeStyle = settings.strokeColor;
         ctx.lineWidth = settings.strokeWidth;
@@ -306,10 +367,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         switch (tool) {
           case "rectangle": {
-            const x = Math.min(start.x, end.x);
-            const y = Math.min(start.y, end.y);
-            const w = Math.abs(end.x - start.x);
-            const h = Math.abs(end.y - start.y);
+            const x = Math.min(start.x, constrained.x);
+            const y = Math.min(start.y, constrained.y);
+            const w = Math.abs(constrained.x - start.x);
+            const h = Math.abs(constrained.y - start.y);
             if (settings.filled) {
               ctx.fillRect(x, y, w, h);
             }
@@ -317,10 +378,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             break;
           }
           case "ellipse": {
-            const cx = (start.x + end.x) / 2;
-            const cy = (start.y + end.y) / 2;
-            const rx = Math.abs(end.x - start.x) / 2;
-            const ry = Math.abs(end.y - start.y) / 2;
+            const cx = (start.x + constrained.x) / 2;
+            const cy = (start.y + constrained.y) / 2;
+            const rx = Math.abs(constrained.x - start.x) / 2;
+            const ry = Math.abs(constrained.y - start.y) / 2;
             ctx.beginPath();
             ctx.ellipse(cx, cy, Math.max(rx, 0.1), Math.max(ry, 0.1), 0, 0, Math.PI * 2);
             if (settings.filled) {
@@ -332,27 +393,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           case "line": {
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
+            ctx.lineTo(constrained.x, constrained.y);
             ctx.stroke();
             break;
           }
           case "arrow": {
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
+            ctx.lineTo(constrained.x, constrained.y);
             ctx.stroke();
-            const angle = Math.atan2(end.y - start.y, end.x - start.x);
+            const angle = Math.atan2(constrained.y - start.y, constrained.x - start.x);
             const headLen = Math.max(settings.strokeWidth * 3, 10);
             ctx.beginPath();
-            ctx.moveTo(end.x, end.y);
+            ctx.moveTo(constrained.x, constrained.y);
             ctx.lineTo(
-              end.x - headLen * Math.cos(angle - Math.PI / 6),
-              end.y - headLen * Math.sin(angle - Math.PI / 6)
+              constrained.x - headLen * Math.cos(angle - Math.PI / 6),
+              constrained.y - headLen * Math.sin(angle - Math.PI / 6)
             );
-            ctx.moveTo(end.x, end.y);
+            ctx.moveTo(constrained.x, constrained.y);
             ctx.lineTo(
-              end.x - headLen * Math.cos(angle + Math.PI / 6),
-              end.y - headLen * Math.sin(angle + Math.PI / 6)
+              constrained.x - headLen * Math.cos(angle + Math.PI / 6),
+              constrained.y - headLen * Math.sin(angle + Math.PI / 6)
             );
             ctx.stroke();
             break;
@@ -360,7 +421,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         ctx.restore();
       },
-      []
+      [constrainEnd]
     );
 
     // ─── Flood Fill ───────────────────────────────────────────────────
@@ -510,8 +571,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
-        if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeldRef.current)) {
           isPanningRef.current = true;
+          if (spaceHeldRef.current) {
+            isSpacePanningRef.current = true;
+          }
           panStartRef.current = {
             x: e.clientX - panOffsetRef.current.x,
             y: e.clientY - panOffsetRef.current.y
@@ -833,6 +897,69 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               redraw();
             }
           }
+        },
+        flipLayer: (layerId: string, direction: "horizontal" | "vertical") => {
+          const canvas = layerCanvasesRef.current.get(layerId);
+          if (!canvas) { return; }
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { return; }
+          const temp = window.document.createElement("canvas");
+          temp.width = canvas.width;
+          temp.height = canvas.height;
+          const tempCtx = temp.getContext("2d");
+          if (!tempCtx) { return; }
+          tempCtx.drawImage(canvas, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.save();
+          if (direction === "horizontal") {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+          } else {
+            ctx.translate(0, canvas.height);
+            ctx.scale(1, -1);
+          }
+          ctx.drawImage(temp, 0, 0);
+          ctx.restore();
+          redraw();
+        },
+        mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => {
+          const upperCanvas = layerCanvasesRef.current.get(upperLayerId);
+          const lowerCanvas = layerCanvasesRef.current.get(lowerLayerId);
+          if (!upperCanvas || !lowerCanvas) { return; }
+          const lowerCtx = lowerCanvas.getContext("2d");
+          if (!lowerCtx) { return; }
+          const upperLayer = doc.layers.find((l) => l.id === upperLayerId);
+          if (upperLayer) {
+            lowerCtx.save();
+            lowerCtx.globalAlpha = upperLayer.opacity;
+            lowerCtx.globalCompositeOperation = blendModeToComposite(upperLayer.blendMode || "normal");
+            lowerCtx.drawImage(upperCanvas, 0, 0);
+            lowerCtx.restore();
+          }
+          layerCanvasesRef.current.delete(upperLayerId);
+          redraw();
+          return lowerCanvas.toDataURL("image/png");
+        },
+        flattenVisible: () => {
+          const canvas = window.document.createElement("canvas");
+          canvas.width = doc.canvas.width;
+          canvas.height = doc.canvas.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { return ""; }
+          ctx.fillStyle = doc.canvas.backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          for (const layer of doc.layers) {
+            if (!layer.visible) { continue; }
+            const layerCanvas = layerCanvasesRef.current.get(layer.id);
+            if (layerCanvas) {
+              ctx.save();
+              ctx.globalAlpha = layer.opacity;
+              ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
+              ctx.drawImage(layerCanvas, 0, 0);
+              ctx.restore();
+            }
+          }
+          return canvas.toDataURL("image/png");
         }
       }),
       [doc, getOrCreateLayerCanvas, redraw]

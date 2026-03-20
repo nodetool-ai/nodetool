@@ -33,6 +33,10 @@ export type {
   SketchEditorState
 } from "./types";
 
+export type {
+  CanvasPreset
+} from "./types";
+
 export {
   SKETCH_FORMAT_VERSION,
   DEFAULT_BRUSH_SETTINGS,
@@ -42,6 +46,7 @@ export {
   DEFAULT_FILL_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
   DEFAULT_SWATCHES,
+  CANVAS_PRESETS,
   createDefaultDocument,
   createDefaultLayer,
   generateLayerId,

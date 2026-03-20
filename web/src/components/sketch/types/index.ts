@@ -115,6 +115,24 @@ export interface Layer {
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────
 
+// ─── Canvas Preset Sizes ──────────────────────────────────────────────────
+
+export interface CanvasPreset {
+  label: string;
+  width: number;
+  height: number;
+}
+
+export const CANVAS_PRESETS: CanvasPreset[] = [
+  { label: "512 × 512", width: 512, height: 512 },
+  { label: "512 × 768", width: 512, height: 768 },
+  { label: "768 × 512", width: 768, height: 512 },
+  { label: "1024 × 1024", width: 1024, height: 1024 },
+  { label: "1920 × 1080", width: 1920, height: 1080 }
+];
+
+// ─── Color Swatches ───────────────────────────────────────────────────────────
+
 export const DEFAULT_SWATCHES: string[] = [
   "#ffffff", "#c0c0c0", "#808080", "#404040", "#000000",
   "#ff0000", "#ff8000", "#ffff00", "#80ff00", "#00ff00",
