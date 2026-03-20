@@ -29,6 +29,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MasksIcon from "@mui/icons-material/Masks";
+import CallMergeIcon from "@mui/icons-material/CallMerge";
+import LayersIcon from "@mui/icons-material/Layers";
 import { Layer, BlendMode } from "./types";
 
 const styles = (theme: Theme) =>
@@ -105,6 +107,8 @@ export interface SketchLayersPanelProps {
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
+  onMergeDown: () => void;
+  onFlattenVisible: () => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -121,7 +125,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onSetMaskLayer,
   onLayerOpacityChange,
   onLayerBlendModeChange,
-  onRenameLayer
+  onRenameLayer,
+  onMergeDown,
+  onFlattenVisible
 }) => {
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -194,6 +200,16 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             color={maskLayerId === activeLayerId ? "warning" : "default"}
           >
             <MasksIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Merge Down">
+          <IconButton size="small" onClick={onMergeDown}>
+            <CallMergeIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Flatten Visible">
+          <IconButton size="small" onClick={onFlattenVisible}>
+            <LayersIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>

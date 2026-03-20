@@ -40,6 +40,11 @@ import FitScreenIcon from "@mui/icons-material/FitScreen";
 import FlipIcon from "@mui/icons-material/Flip";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import MergeIcon from "@mui/icons-material/CallMerge";
+import FlattenIcon from "@mui/icons-material/Layers";
+import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import TextField from "@mui/material/TextField";
 import {
   SketchTool,
   BrushSettings,
@@ -48,6 +53,7 @@ import {
   ShapeSettings,
   FillSettings,
   DEFAULT_SWATCHES,
+  CANVAS_PRESETS,
   isShapeTool
 } from "./types";
 
@@ -118,6 +124,47 @@ const styles = (theme: Theme) =>
         transform: "scale(1.2)",
         zIndex: 1
       }
+    },
+    "& .fg-bg-container": {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px"
+    },
+    "& .fg-bg-swatches": {
+      position: "relative",
+      width: "44px",
+      height: "44px",
+      flexShrink: 0,
+      "& .bg-swatch": {
+        position: "absolute",
+        right: 0,
+        bottom: 0,
+        width: "26px",
+        height: "26px",
+        border: `2px solid ${theme.vars.palette.grey[600]}`,
+        borderRadius: "3px",
+        cursor: "pointer"
+      },
+      "& .fg-swatch": {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: "26px",
+        height: "26px",
+        border: `2px solid ${theme.vars.palette.grey[400]}`,
+        borderRadius: "3px",
+        cursor: "pointer",
+        zIndex: 1
+      }
+    },
+    "& .hex-input": {
+      "& .MuiInputBase-root": {
+        fontSize: "0.7rem",
+        height: "28px"
+      },
+      "& .MuiInputBase-input": {
+        padding: "4px 8px"
+      }
     }
   });
 
@@ -133,6 +180,8 @@ export interface SketchToolbarProps {
   mirrorY: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  foregroundColor: string;
+  backgroundColor: string;
   onToolChange: (tool: SketchTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onPencilSettingsChange: (settings: Partial<PencilSettings>) => void;
@@ -148,6 +197,14 @@ export interface SketchToolbarProps {
   onZoomReset: () => void;
   onClearLayer: () => void;
   onExportPng: () => void;
+  onFlipHorizontal: () => void;
+  onFlipVertical: () => void;
+  onMergeDown: () => void;
+  onFlattenVisible: () => void;
+  onForegroundColorChange: (color: string) => void;
+  onBackgroundColorChange: (color: string) => void;
+  onSwapColors: () => void;
+  onResetColors: () => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -162,6 +219,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   mirrorY,
   canUndo,
   canRedo,
+  foregroundColor,
+  backgroundColor,
   onToolChange,
   onBrushSettingsChange,
   onPencilSettingsChange,
@@ -176,7 +235,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onZoomOut,
   onZoomReset,
   onClearLayer,
-  onExportPng
+  onExportPng,
+  onFlipHorizontal,
+  onFlipVertical,
+  onMergeDown,
+  onFlattenVisible,
+  onForegroundColorChange,
+  onBackgroundColorChange,
+  onSwapColors,
+  onResetColors
 }) => {
   const theme = useTheme();
 
@@ -191,6 +258,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
   const handleSwatchClick = useCallback(
     (color: string) => {
+      onForegroundColorChange(color);
       if (activeTool === "brush") {
         onBrushSettingsChange({ color });
       } else if (activeTool === "pencil") {
@@ -200,11 +268,20 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       } else if (isShapeTool(activeTool)) {
         onShapeSettingsChange({ strokeColor: color });
       } else {
-        // Default: set brush color
         onBrushSettingsChange({ color });
       }
     },
-    [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange]
+    [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange, onForegroundColorChange]
+  );
+
+  const handleHexInput = useCallback(
+    (hex: string) => {
+      const cleaned = hex.startsWith("#") ? hex : `#${hex}`;
+      if (/^#[0-9a-fA-F]{6}$/.test(cleaned)) {
+        handleSwatchClick(cleaned.toLowerCase());
+      }
+    },
+    [handleSwatchClick]
   );
 
   return (
@@ -332,7 +409,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       </Box>
 
       {/* Actions */}
-      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+      <Box sx={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
         <Tooltip title="Clear Layer (Delete)">
           <IconButton size="small" onClick={onClearLayer}>
             <DeleteOutlineIcon fontSize="small" />
@@ -343,7 +420,85 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <SaveAltIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Flip Layer Horizontal">
+          <IconButton size="small" onClick={onFlipHorizontal}>
+            <FlipCameraAndroidIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Flip Layer Vertical">
+          <IconButton size="small" onClick={onFlipVertical}>
+            <FlipCameraAndroidIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
+          </IconButton>
+        </Tooltip>
       </Box>
+
+      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+        <Tooltip title="Merge Down">
+          <IconButton size="small" onClick={onMergeDown}>
+            <MergeIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Flatten Visible">
+          <IconButton size="small" onClick={onFlattenVisible}>
+            <FlattenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <Divider />
+
+      {/* Foreground / Background Colors */}
+      <Typography className="section-label">Colors</Typography>
+      <Box className="fg-bg-container">
+        <Box className="fg-bg-swatches">
+          <input
+            type="color"
+            className="fg-swatch"
+            value={foregroundColor}
+            onChange={(e) => {
+              onForegroundColorChange(e.target.value);
+              if (activeTool === "brush") {
+                onBrushSettingsChange({ color: e.target.value });
+              } else if (activeTool === "pencil") {
+                onPencilSettingsChange({ color: e.target.value });
+              } else if (activeTool === "fill") {
+                onFillSettingsChange({ color: e.target.value });
+              } else if (isShapeTool(activeTool)) {
+                onShapeSettingsChange({ strokeColor: e.target.value });
+              }
+            }}
+            title="Foreground Color"
+          />
+          <input
+            type="color"
+            className="bg-swatch"
+            value={backgroundColor}
+            onChange={(e) => onBackgroundColorChange(e.target.value)}
+            title="Background Color"
+          />
+        </Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <Tooltip title="Swap Colors (X)">
+            <IconButton size="small" onClick={onSwapColors} sx={{ padding: "2px" }}>
+              <SwapHorizIcon sx={{ fontSize: "16px" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Reset to B/W (D)">
+            <IconButton size="small" onClick={onResetColors} sx={{ padding: "2px" }}>
+              <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, lineHeight: 1 }}>D</Typography>
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+      <TextField
+        className="hex-input"
+        size="small"
+        placeholder="#ffffff"
+        value={foregroundColor}
+        onChange={(e) => handleHexInput(e.target.value)}
+        inputProps={{ maxLength: 7 }}
+        fullWidth
+      />
 
       <Divider />
 
@@ -574,13 +729,16 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       {/* Keyboard Shortcuts Reference */}
       <Divider />
       <Typography className="section-label">Shortcuts</Typography>
-      <Typography sx={{ fontSize: "0.6rem", color: "grey.500", lineHeight: 1.6 }}>
-        V — Move tool<br />
-        [ / ] — Brush size<br />
-        + / − — Zoom<br />
-        Delete — Clear layer<br />
-        Ctrl+S — Export PNG<br />
-        Ctrl+0 — Reset view
+      <Typography sx={{ fontSize: "0.65rem", color: "grey.500", lineHeight: 1.6 }}>
+        V — Move &nbsp; B — Brush &nbsp; P — Pencil<br />
+        E — Eraser &nbsp; G — Fill &nbsp; I — Eyedropper<br />
+        L — Line &nbsp; R — Rect &nbsp; O — Ellipse<br />
+        M — Mirror &nbsp; X — Swap colors<br />
+        D — Reset colors &nbsp; Tab — Toggle UI<br />
+        [ / ] — Brush size &nbsp; Shift — Constrain<br />
+        Space+Drag — Pan canvas<br />
+        + / − — Zoom &nbsp; Ctrl+0 — Reset view<br />
+        Delete — Clear layer &nbsp; Ctrl+S — Export
       </Typography>
     </Box>
   );

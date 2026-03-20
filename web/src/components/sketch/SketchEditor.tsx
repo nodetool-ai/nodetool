@@ -74,6 +74,16 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const redo = useSketchStore((s) => s.redo);
   const canUndo = useSketchStore((s) => s.canUndo);
   const canRedo = useSketchStore((s) => s.canRedo);
+  const mergeLayerDown = useSketchStore((s) => s.mergeLayerDown);
+  const flattenVisible = useSketchStore((s) => s.flattenVisible);
+  const foregroundColor = useSketchStore((s) => s.foregroundColor);
+  const backgroundColor = useSketchStore((s) => s.backgroundColor);
+  const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
+  const setBackgroundColor = useSketchStore((s) => s.setBackgroundColor);
+  const swapColors = useSketchStore((s) => s.swapColors);
+  const resetColors = useSketchStore((s) => s.resetColors);
+  const panelsHidden = useSketchStore((s) => s.panelsHidden);
+  const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
@@ -169,7 +179,60 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     link.click();
   }, []);
 
+  // ─── Flip active layer ─────────────────────────────────────────────
+  const handleFlipHorizontal = useCallback(() => {
+    const layerId = document.activeLayerId;
+    if (!layerId || !canvasRef.current) { return; }
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer || layer.locked) { return; }
+    pushHistory("flip horizontal");
+    canvasRef.current.flipLayer(layerId, "horizontal");
+    const data = canvasRef.current.getLayerData(layerId);
+    updateLayerData(layerId, data);
+  }, [document.activeLayerId, document.layers, pushHistory, updateLayerData]);
+
+  const handleFlipVertical = useCallback(() => {
+    const layerId = document.activeLayerId;
+    if (!layerId || !canvasRef.current) { return; }
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer || layer.locked) { return; }
+    pushHistory("flip vertical");
+    canvasRef.current.flipLayer(layerId, "vertical");
+    const data = canvasRef.current.getLayerData(layerId);
+    updateLayerData(layerId, data);
+  }, [document.activeLayerId, document.layers, pushHistory, updateLayerData]);
+
+  // ─── Merge / Flatten ───────────────────────────────────────────────
+  const handleMergeDown = useCallback(() => {
+    const layers = document.layers;
+    const idx = layers.findIndex((l) => l.id === document.activeLayerId);
+    if (idx <= 0 || !canvasRef.current) { return; }
+    const upper = layers[idx];
+    const lower = layers[idx - 1];
+    if (lower.locked) { return; }
+    pushHistory("merge down");
+    const mergedData = canvasRef.current.mergeLayerDown(upper.id, lower.id);
+    mergeLayerDown(upper.id);
+    if (mergedData) {
+      updateLayerData(lower.id, mergedData);
+    }
+  }, [document.layers, document.activeLayerId, pushHistory, mergeLayerDown, updateLayerData]);
+
+  const handleFlattenVisible = useCallback(() => {
+    if (!canvasRef.current) { return; }
+    pushHistory("flatten visible");
+    const flatData = canvasRef.current.flattenVisible();
+    flattenVisible();
+    // Set the data on the new flattened layer
+    const newState = useSketchStore.getState();
+    if (newState.document.layers.length > 0 && flatData) {
+      updateLayerData(newState.document.layers[0].id, flatData);
+      canvasRef.current.setLayerData(newState.document.layers[0].id, flatData);
+    }
+  }, [pushHistory, flattenVisible, updateLayerData]);
+
   // ─── Keyboard shortcuts ────────────────────────────────────────────
+  // Capture phase handler prevents shortcuts from reaching the node editor
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -179,6 +242,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       ) {
         return;
       }
+
+      // Prevent sketch shortcuts from bleeding to node editor
+      e.stopPropagation();
 
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
@@ -214,8 +280,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "a": setActiveTool("arrow"); break;
           case "m": setMirrorX((prev) => !prev); break;
           case "v": setActiveTool("move"); break;
+          case "x": swapColors(); break;
+          case "d": resetColors(); break;
+          case "Tab":
+            e.preventDefault();
+            togglePanelsHidden();
+            break;
           case "[": {
-            // Decrease brush/pencil/eraser size
             const store = useSketchStore.getState();
             const tool = store.activeTool;
             if (tool === "brush") {
@@ -231,7 +302,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             break;
           }
           case "]": {
-            // Increase brush/pencil/eraser size
             const store = useSketchStore.getState();
             const tool = store.activeTool;
             if (tool === "brush") {
@@ -260,8 +330,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         }
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -294,34 +364,46 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
   return (
     <Box css={styles(theme)}>
-      <SketchToolbar
-        activeTool={activeTool}
-        brushSettings={document.toolSettings.brush}
-        pencilSettings={document.toolSettings.pencil}
-        eraserSettings={document.toolSettings.eraser}
-        shapeSettings={document.toolSettings.shape}
-        fillSettings={document.toolSettings.fill}
-        zoom={zoom}
-        mirrorX={mirrorX}
-        mirrorY={mirrorY}
-        canUndo={canUndo()}
-        canRedo={canRedo()}
-        onToolChange={setActiveTool}
-        onBrushSettingsChange={setBrushSettings}
-        onPencilSettingsChange={setPencilSettings}
-        onEraserSettingsChange={setEraserSettings}
-        onShapeSettingsChange={setShapeSettings}
-        onFillSettingsChange={setFillSettings}
-        onMirrorXChange={setMirrorX}
-        onMirrorYChange={setMirrorY}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-        onClearLayer={handleClearLayer}
-        onExportPng={handleExportPng}
-      />
+      {!panelsHidden && (
+        <SketchToolbar
+          activeTool={activeTool}
+          brushSettings={document.toolSettings.brush}
+          pencilSettings={document.toolSettings.pencil}
+          eraserSettings={document.toolSettings.eraser}
+          shapeSettings={document.toolSettings.shape}
+          fillSettings={document.toolSettings.fill}
+          zoom={zoom}
+          mirrorX={mirrorX}
+          mirrorY={mirrorY}
+          canUndo={canUndo()}
+          canRedo={canRedo()}
+          foregroundColor={foregroundColor}
+          backgroundColor={backgroundColor}
+          onToolChange={setActiveTool}
+          onBrushSettingsChange={setBrushSettings}
+          onPencilSettingsChange={setPencilSettings}
+          onEraserSettingsChange={setEraserSettings}
+          onShapeSettingsChange={setShapeSettings}
+          onFillSettingsChange={setFillSettings}
+          onMirrorXChange={setMirrorX}
+          onMirrorYChange={setMirrorY}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onClearLayer={handleClearLayer}
+          onExportPng={handleExportPng}
+          onFlipHorizontal={handleFlipHorizontal}
+          onFlipVertical={handleFlipVertical}
+          onMergeDown={handleMergeDown}
+          onFlattenVisible={handleFlattenVisible}
+          onForegroundColorChange={setForegroundColor}
+          onBackgroundColorChange={setBackgroundColor}
+          onSwapColors={swapColors}
+          onResetColors={resetColors}
+        />
+      )}
 
       <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <SketchCanvas
@@ -339,22 +421,26 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         />
       </Box>
 
-      <SketchLayersPanel
-        layers={document.layers}
-        activeLayerId={document.activeLayerId}
-        maskLayerId={document.maskLayerId}
-        onSelectLayer={setActiveLayer}
-        onToggleVisibility={toggleLayerVisibility}
-        onAddLayer={() => addLayer()}
-        onRemoveLayer={removeLayer}
-        onDuplicateLayer={duplicateLayer}
-        onMoveLayerUp={handleMoveLayerUp}
-        onMoveLayerDown={handleMoveLayerDown}
-        onSetMaskLayer={setMaskLayer}
-        onLayerOpacityChange={setLayerOpacity}
-        onLayerBlendModeChange={setLayerBlendMode}
-        onRenameLayer={renameLayer}
-      />
+      {!panelsHidden && (
+        <SketchLayersPanel
+          layers={document.layers}
+          activeLayerId={document.activeLayerId}
+          maskLayerId={document.maskLayerId}
+          onSelectLayer={setActiveLayer}
+          onToggleVisibility={toggleLayerVisibility}
+          onAddLayer={() => addLayer()}
+          onRemoveLayer={removeLayer}
+          onDuplicateLayer={duplicateLayer}
+          onMoveLayerUp={handleMoveLayerUp}
+          onMoveLayerDown={handleMoveLayerDown}
+          onSetMaskLayer={setMaskLayer}
+          onLayerOpacityChange={setLayerOpacity}
+          onLayerBlendModeChange={setLayerBlendMode}
+          onRenameLayer={renameLayer}
+          onMergeDown={handleMergeDown}
+          onFlattenVisible={handleFlattenVisible}
+        />
+      )}
     </Box>
   );
 };

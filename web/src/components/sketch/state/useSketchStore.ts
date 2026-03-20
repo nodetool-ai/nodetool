@@ -63,6 +63,20 @@ export interface SketchStore {
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setMaskLayer: (layerId: string | null) => void;
+  mergeLayerDown: (layerId: string) => void;
+  flattenVisible: () => void;
+
+  // ─── Foreground / Background Colors ───────────────────────────────────────
+  foregroundColor: string;
+  backgroundColor: string;
+  setForegroundColor: (color: string) => void;
+  setBackgroundColor: (color: string) => void;
+  swapColors: () => void;
+  resetColors: () => void;
+
+  // ─── UI State ─────────────────────────────────────────────────────────────
+  panelsHidden: boolean;
+  togglePanelsHidden: () => void;
 
   // ─── History Actions ──────────────────────────────────────────────────────
   pushHistory: (action: string) => void;
@@ -81,6 +95,9 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   isDrawing: false,
   history: [],
   historyIndex: -1,
+  foregroundColor: "#ffffff",
+  backgroundColor: "#000000",
+  panelsHidden: false,
 
   // ─── Document Actions ─────────────────────────────────────────────────
   setDocument: (doc: SketchDocument) => {
@@ -356,6 +373,76 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         }
       };
     }),
+
+  mergeLayerDown: (layerId: string) =>
+    set((state) => {
+      const { layers, activeLayerId, maskLayerId } = state.document;
+      const idx = layers.findIndex((l) => l.id === layerId);
+      if (idx <= 0) {
+        return state; // Can't merge first layer or not found
+      }
+      const upper = layers[idx];
+      const lower = layers[idx - 1];
+      if (lower.locked) {
+        return state; // Don't merge into locked layer
+      }
+      // Merge upper layer data into lower layer (actual compositing
+      // happens on the canvas side — store just marks the merge by
+      // removing the upper layer).
+      const newLayers = layers.filter((l) => l.id !== layerId);
+      const newActiveId = activeLayerId === layerId ? lower.id : activeLayerId;
+      const newMaskId = maskLayerId === layerId ? null : maskLayerId;
+      return {
+        document: {
+          ...state.document,
+          layers: newLayers,
+          activeLayerId: newActiveId,
+          maskLayerId: newMaskId,
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
+    }),
+
+  flattenVisible: () =>
+    set((state) => {
+      const visibleLayers = state.document.layers.filter((l) => l.visible);
+      if (visibleLayers.length === 0) {
+        return state;
+      }
+      // Keep only one layer — actual pixel compositing is done on the
+      // canvas side before calling this action
+      const flatLayer = createDefaultLayer("Flattened", "raster");
+      return {
+        document: {
+          ...state.document,
+          layers: [flatLayer],
+          activeLayerId: flatLayer.id,
+          maskLayerId: null,
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
+    }),
+
+  // ─── Foreground / Background Colors ─────────────────────────────────────
+  setForegroundColor: (color: string) => set({ foregroundColor: color }),
+  setBackgroundColor: (color: string) => set({ backgroundColor: color }),
+  swapColors: () =>
+    set((state) => ({
+      foregroundColor: state.backgroundColor,
+      backgroundColor: state.foregroundColor
+    })),
+  resetColors: () =>
+    set({ foregroundColor: "#ffffff", backgroundColor: "#000000" }),
+
+  // ─── UI State ───────────────────────────────────────────────────────────
+  togglePanelsHidden: () =>
+    set((state) => ({ panelsHidden: !state.panelsHidden })),
 
   // ─── History Actions ──────────────────────────────────────────────────
   pushHistory: (action: string) => {
