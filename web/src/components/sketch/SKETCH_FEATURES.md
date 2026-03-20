@@ -112,7 +112,7 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 - [ ] **Flip active layer** horizontal / vertical (destructive edit on layer pixels — distinct from mirror symmetry while drawing)
 - [x] Clear active layer (Delete/Backspace shortcut + toolbar button)
 - [x] Export canvas as PNG download (toolbar button)
-- [ ] Selection tools (rectangle select, lasso, magic wand)
+- [ ] Selection tools (rectangle select, lasso, magic wand with photoshop style options)
 - [ ] Crop tool
 - [ ] Gradient tool / gradient fill
 - [ ] Blur Brush
@@ -158,16 +158,14 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 ### UI & Interaction
 
 - [x] Dark-mode MUI styling (follows nodetool app theme)
-- [ ] **Sketch-only light/dark** toggle (sun/moon) **inside the modal** when product wants independence from global theme
-- [ ] **Draggable / dockable panels** (toolbar, layers, color) + **collapse** (−)
+- [ ] Prevent shortcuts being applied to node editor while sketch editor is open
+- [ ] improve Shortcuts reference panel in toolbar: slightly bigger font, toggle hidden
 - [ ] **Panel layout persistence** (positions + collapsed state in `localStorage` or sketch session)
 - [x] Tool-specific settings panels (dynamic per active tool)
 - [ ] **Double-click tool icon** → open or focus that tool’s settings
-- [ ] improve Shortcuts reference panel in toolbar: slightly bigger font, toggle hidden
 - [x] Color swatches (28 preset colors)
 - [x] Keyboard shortcuts — B/P/E/G/I/L/R/O/A/V/M, [/], +/−, Delete, Ctrl+Z/Y/0/S
 - [x] Brush cursor preview (size indicator on canvas)
-- [ ] Prevent shortcuts being applied to node editor while sketch editor is open
 - [ ] add context-sensitive right click menu for tools like draw, select, etc.
 
 ### Gesture shortcuts **shortcut conflicts**
@@ -439,3 +437,5 @@ These mirror common guidance but apply to **SketchInput** / **SketchProperty** i
 - [ ] Better project persistence (localStorage backup / file export)
 - [ ] Import PNG into current layer
 - [ ] Export project file (JSON + embedded images)
+- [ ] **Sketch-only light/dark** toggle (sun/moon) **inside the modal** when product wants independence from global theme
+- [ ] **Draggable / dockable panels** (toolbar, layers, color) + **collapse** (−)
