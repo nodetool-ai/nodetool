@@ -1482,4 +1482,40 @@ export function initializeIpcHandlers(): void {
       return fs.readFile(fullPath, 'utf-8');
     }
   );
+
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_FILE_LIST,
+    async (_event, { workspacePath, relPath }) => {
+      const resolvedBase = path.resolve(workspacePath);
+      const fullPath = path.resolve(workspacePath, relPath);
+      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
+        throw new Error('Path traversal detected');
+      }
+      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      const results = [];
+      for (const entry of entries) {
+        if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === '.next') continue;
+        const entryPath = path.join(relPath, entry.name);
+        let size = 0;
+        if (!entry.isDirectory()) {
+          try {
+            const stat = await fs.stat(path.join(fullPath, entry.name));
+            size = stat.size;
+          } catch {}
+        }
+        results.push({
+          name: entry.name,
+          path: entryPath,
+          isDir: entry.isDirectory(),
+          size,
+        });
+      }
+      // Sort: directories first, then alphabetical
+      results.sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+      return results;
+    }
+  );
 }

@@ -250,10 +250,12 @@ declare global {
           status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
           logs: (workspacePath: string) => Promise<string[]>;
           ensureInstalled: (workspacePath: string) => Promise<void>;
+          onLog: (callback: (event: { workspacePath: string; line: string }) => void) => () => void;
         };
         file: {
           write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
           read: (workspacePath: string, relPath: string) => Promise<string>;
+          list: (workspacePath: string, relPath: string) => Promise<Array<{ name: string; path: string; isDir: boolean; size: number }>>;
         };
       };
 
@@ -627,6 +629,8 @@ export enum IpcChannels {
   // Workspace file I/O
   WORKSPACE_FILE_WRITE = "workspace-file-write",
   WORKSPACE_FILE_READ = "workspace-file-read",
+  WORKSPACE_FILE_LIST = "workspace-file-list",
+  WORKSPACE_SERVER_LOG_STREAM = "workspace-server-log-stream",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -814,6 +818,7 @@ export interface IpcRequest {
   [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: { workspacePath: string };
   [IpcChannels.WORKSPACE_FILE_WRITE]: { workspacePath: string; relPath: string; content: string };
   [IpcChannels.WORKSPACE_FILE_READ]: { workspacePath: string; relPath: string };
+  [IpcChannels.WORKSPACE_FILE_LIST]: { workspacePath: string; relPath: string };
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -929,6 +934,7 @@ export interface IpcResponse {
   [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: void;
   [IpcChannels.WORKSPACE_FILE_WRITE]: void;
   [IpcChannels.WORKSPACE_FILE_READ]: string;
+  [IpcChannels.WORKSPACE_FILE_LIST]: Array<{ name: string; path: string; isDir: boolean; size: number }>;
 }
 
 // Event types for each IPC channel
@@ -952,6 +958,7 @@ export interface IpcEvents {
   [IpcChannels.FRONTEND_TOOLS_CALL_REQUEST]: FrontendToolsCallRequestEvent;
   [IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE]: FrontendToolsCallResponseEvent;
   [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
+  [IpcChannels.WORKSPACE_SERVER_LOG_STREAM]: { workspacePath: string; line: string };
 }
 
 export type PythonPackages = string[];
@@ -1042,6 +1049,9 @@ export interface AgentSessionOptions {
   model: string;
   workspacePath?: string;
   resumeSessionId?: string;
+  systemPrompt?: string;
+  /** When true, skip MCP UI tools and allow standard Claude Code tools (Bash, Read, Write, etc.) */
+  useStandardTools?: boolean;
 }
 
 export type AgentProvider = "claude" | "codex";

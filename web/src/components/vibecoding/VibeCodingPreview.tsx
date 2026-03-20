@@ -1,5 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
-import { useTheme } from "@mui/material/styles";
+import React, { useCallback, memo } from "react";
 import { Box, Typography, IconButton, Tooltip, keyframes } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -7,11 +6,11 @@ import { ServerStatus } from "../../stores/VibeCodingStore";
 
 const pulse = keyframes`
   0%   { opacity: 1; }
-  50%  { opacity: 0.3; }
+  50%  { opacity: 0.4; }
   100% { opacity: 1; }
 `;
 
-interface VibeCodingPreviewProps {
+export interface VibeCodingPreviewProps {
   port: number | null;
   serverStatus: ServerStatus;
   serverLogs: string[];
@@ -24,39 +23,24 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   serverLogs,
   onRestart
 }) => {
-  const theme = useTheme();
-  const blobUrlCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Status dot color
-  const dotColor =
-    serverStatus === "running"
-      ? theme.palette.success.main
-      : serverStatus === "starting"
-        ? theme.palette.warning.main
-        : serverStatus === "error"
-          ? theme.palette.error.main
-          : theme.palette.text.disabled;
-
   const isStarting = serverStatus === "starting";
   const isRunning = serverStatus === "running";
-
   const iframeUrl =
     isRunning && port != null ? `http://localhost:${port}` : null;
 
-  // Open in new tab
   const handleOpenInNew = useCallback(() => {
-    if (!iframeUrl) return;
+    if (!iframeUrl) {return;}
     window.open(iframeUrl, "_blank", "noopener,noreferrer");
   }, [iframeUrl]);
 
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      if (blobUrlCleanupRef.current) {
-        clearTimeout(blobUrlCleanupRef.current);
-      }
-    };
-  }, []);
+  const dotColor =
+    serverStatus === "running"
+      ? "#50FA7B"
+      : serverStatus === "starting"
+        ? "#FFB86C"
+        : serverStatus === "error"
+          ? "#FF5555"
+          : "rgba(255,255,255,0.4)";
 
   return (
     <Box
@@ -64,8 +48,6 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        backgroundColor: "background.default",
-        borderRadius: "8px",
         overflow: "hidden"
       }}
     >
@@ -75,49 +57,47 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          px: 1.5,
-          py: 0.75,
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          backgroundColor: "background.paper"
+          px: "12px",
+          minHeight: 32,
+          borderBottom: 1,
+          borderColor: "divider",
+          bgcolor: "background.paper"
         }}
       >
-        {/* Left: dot + URL */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Box
             sx={{
-              width: 8,
-              height: 8,
+              width: 7,
+              height: 7,
               borderRadius: "50%",
-              backgroundColor: dotColor,
+              bgcolor: dotColor,
               flexShrink: 0,
               animation: isStarting
-                ? `${pulse} 1.2s ease-in-out infinite`
+                ? `${pulse} 2s ease-in-out infinite`
                 : "none"
             }}
           />
           <Typography
-            variant="body2"
             sx={{
               fontFamily: "fontFamily2",
-              color: isRunning ? "text.primary" : "text.disabled",
-              fontSize: "12px"
+              color: isRunning ? "text.secondary" : "text.disabled",
+              fontSize: "0.6875rem"
             }}
           >
             {isRunning && port != null
               ? `localhost:${port}`
               : serverStatus === "starting"
-                ? "starting…"
+                ? "starting\u2026"
                 : serverStatus === "error"
                   ? "error"
                   : "stopped"}
           </Typography>
         </Box>
 
-        {/* Right: actions */}
-        <Box sx={{ display: "flex", gap: 0.5 }}>
+        <Box sx={{ display: "flex", gap: "2px" }}>
           <Tooltip title="Restart server">
-            <IconButton size="small" onClick={onRestart}>
-              <RefreshIcon fontSize="small" />
+            <IconButton size="small" onClick={onRestart} sx={{ p: "4px" }}>
+              <RefreshIcon sx={{ fontSize: 15 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Open in new tab">
@@ -126,8 +106,9 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
                 size="small"
                 onClick={handleOpenInNew}
                 disabled={!isRunning || port == null}
+                sx={{ p: "4px" }}
               >
-                <OpenInNewIcon fontSize="small" />
+                <OpenInNewIcon sx={{ fontSize: 15 }} />
               </IconButton>
             </span>
           </Tooltip>
@@ -135,8 +116,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
       </Box>
 
       {/* Preview area */}
-      <Box sx={{ flex: 1, position: "relative", backgroundColor: "background.paper" }}>
-        {/* Iframe when running */}
+      <Box sx={{ flex: 1, position: "relative", bgcolor: "background.paper" }}>
         {iframeUrl && (
           <Box
             component="iframe"
@@ -152,33 +132,38 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
           />
         )}
 
-        {/* Error logs */}
         {serverStatus === "error" && serverLogs.length > 0 && (
           <Box
             sx={{
               position: "absolute",
               inset: 0,
               overflowY: "auto",
-              p: 2,
-              backgroundColor: "background.default"
+              p: "12px",
+              bgcolor: "background.default",
+              "&::-webkit-scrollbar": { width: 6 },
+              "&::-webkit-scrollbar-thumb": {
+                background: "#535353",
+                borderRadius: 0
+              }
             }}
           >
-            <Typography
-              variant="caption"
+            <Box
+              component="pre"
               sx={{
-                display: "block",
+                m: 0,
                 fontFamily: "fontFamily2",
-                color: "error.main",
+                fontSize: "0.6875rem",
+                color: "#FF5555",
                 whiteSpace: "pre-wrap",
-                wordBreak: "break-all"
+                wordBreak: "break-all",
+                lineHeight: 1.6
               }}
             >
               {serverLogs.join("\n")}
-            </Typography>
+            </Box>
           </Box>
         )}
 
-        {/* Stopped / starting placeholder */}
         {!iframeUrl && serverStatus !== "error" && (
           <Box
             sx={{
@@ -187,21 +172,51 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
-              color: "text.secondary",
               textAlign: "center",
               p: 3
             }}
           >
-            <Typography variant="body1" gutterBottom>
-              {serverStatus === "starting"
-                ? "Starting preview server…"
-                : "Preview server is stopped"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {serverStatus === "starting"
-                ? "Please wait a moment"
-                : "Click the restart button to start the server"}
-            </Typography>
+            {serverStatus === "starting" ? (
+              <>
+                {/* Dual-ring spinner matching project conventions */}
+                <Box sx={{ position: "relative", width: 40, height: 40, mb: 2 }}>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: "50%",
+                      border: "2px solid rgba(95,138,200,0.15)"
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: "50%",
+                      border: "2px solid transparent",
+                      borderTopColor: "#5f8ac8",
+                      animation: "spin 1.9s linear infinite",
+                      "@keyframes spin": {
+                        "0%": { transform: "rotate(0deg)" },
+                        "100%": { transform: "rotate(360deg)" }
+                      }
+                    }}
+                  />
+                </Box>
+                <Typography sx={{ fontSize: "0.8125rem", color: "text.secondary" }}>
+                  Starting preview server...
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography sx={{ fontSize: "0.8125rem", color: "text.disabled", mb: 0.5 }}>
+                  Preview server is stopped
+                </Typography>
+                <Typography sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
+                  Click restart to start the server
+                </Typography>
+              </>
+            )}
           </Box>
         )}
       </Box>
@@ -209,4 +224,4 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   );
 };
 
-export default VibeCodingPreview;
+export default memo(VibeCodingPreview);
