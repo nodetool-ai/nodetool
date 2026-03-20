@@ -144,6 +144,31 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     }
   }, [redo]);
 
+  // ─── Clear active layer ────────────────────────────────────────────
+  const handleClearLayer = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    if (activeLayerId && canvasRef.current) {
+      pushHistory("clear layer");
+      canvasRef.current.clearLayer(activeLayerId);
+      updateLayerData(activeLayerId, null);
+    }
+  }, [document.activeLayerId, pushHistory, updateLayerData]);
+
+  // ─── Export PNG download ───────────────────────────────────────────
+  const handleExportPng = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const dataUrl = canvasRef.current.flattenToDataUrl();
+    if (!dataUrl) {
+      return;
+    }
+    const link = window.document.createElement("a");
+    link.download = "sketch-export.png";
+    link.href = dataUrl;
+    link.click();
+  }, []);
+
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -171,6 +196,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         if (e.key === "0") {
           e.preventDefault();
           handleZoomReset();
+        }
+        if (e.key === "s") {
+          e.preventDefault();
+          handleExportPng();
         }
       } else {
         switch (e.key) {
@@ -223,6 +252,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             break;
           case "-":
             handleZoomOut();
+            break;
+          case "Delete":
+          case "Backspace":
+            handleClearLayer();
             break;
         }
       }
@@ -286,6 +319,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onZoomReset={handleZoomReset}
+        onClearLayer={handleClearLayer}
+        onExportPng={handleExportPng}
       />
 
       <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>

@@ -38,6 +38,8 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import FlipIcon from "@mui/icons-material/Flip";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import {
   SketchTool,
   BrushSettings,
@@ -144,6 +146,8 @@ export interface SketchToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onClearLayer: () => void;
+  onExportPng: () => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -170,7 +174,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onRedo,
   onZoomIn,
   onZoomOut,
-  onZoomReset
+  onZoomReset,
+  onClearLayer,
+  onExportPng
 }) => {
   const theme = useTheme();
 
@@ -321,6 +327,20 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             color={mirrorY ? "primary" : "default"}
           >
             <FlipIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Actions */}
+      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+        <Tooltip title="Clear Layer (Delete)">
+          <IconButton size="small" onClick={onClearLayer}>
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Export PNG (Ctrl+S)">
+          <IconButton size="small" onClick={onExportPng}>
+            <SaveAltIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
@@ -558,6 +578,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         V — Move tool<br />
         [ / ] — Brush size<br />
         + / − — Zoom<br />
+        Delete — Clear layer<br />
+        Ctrl+S — Export PNG<br />
         Ctrl+0 — Reset view
       </Typography>
     </Box>
