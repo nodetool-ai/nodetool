@@ -49,7 +49,10 @@ import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import GradientIcon from "@mui/icons-material/Gradient";
+import CropIcon from "@mui/icons-material/Crop";
 import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 import {
   SketchTool,
   BrushSettings,
@@ -58,6 +61,7 @@ import {
   ShapeSettings,
   FillSettings,
   BlurSettings,
+  GradientSettings,
   DEFAULT_SWATCHES,
   CANVAS_PRESETS,
   isShapeTool
@@ -73,7 +77,8 @@ type SectionKey =
   | "actions"
   | "swatches"
   | "view"
-  | "shortcuts";
+  | "shortcuts"
+  | "adjustments";
 
 function loadCollapsedSections(): Record<SectionKey, boolean> {
   try {
@@ -91,7 +96,8 @@ function loadCollapsedSections(): Record<SectionKey, boolean> {
     actions: false,
     swatches: false,
     view: false,
-    shortcuts: true
+    shortcuts: true,
+    adjustments: true
   };
 }
 
@@ -298,6 +304,8 @@ function getToolSettingsLabel(tool: SketchTool): string {
     case "eraser": return "Eraser";
     case "fill": return "Fill";
     case "blur": return "Blur Brush";
+    case "gradient": return "Gradient";
+    case "crop": return "Crop";
     case "line":
     case "rectangle":
     case "ellipse":
@@ -314,6 +322,7 @@ export interface SketchToolbarProps {
   shapeSettings: ShapeSettings;
   fillSettings: FillSettings;
   blurSettings: BlurSettings;
+  gradientSettings: GradientSettings;
   zoom: number;
   mirrorX: boolean;
   mirrorY: boolean;
@@ -328,6 +337,7 @@ export interface SketchToolbarProps {
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
+  onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onMirrorXChange: (mirrorX: boolean) => void;
   onMirrorYChange: (mirrorY: boolean) => void;
   onUndo: () => void;
@@ -345,6 +355,8 @@ export interface SketchToolbarProps {
   onBackgroundColorChange: (color: string) => void;
   onSwapColors: () => void;
   onResetColors: () => void;
+  onApplyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
+  onBackgroundPreset: (color: string) => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -355,6 +367,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   shapeSettings,
   fillSettings,
   blurSettings,
+  gradientSettings,
   zoom,
   mirrorX,
   mirrorY,
@@ -369,6 +382,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onShapeSettingsChange,
   onFillSettingsChange,
   onBlurSettingsChange,
+  onGradientSettingsChange,
   onMirrorXChange,
   onMirrorYChange,
   onUndo,
@@ -385,7 +399,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onForegroundColorChange,
   onBackgroundColorChange,
   onSwapColors,
-  onResetColors
+  onResetColors,
+  onApplyAdjustments,
+  onBackgroundPreset
 }) => {
   const theme = useTheme();
 
@@ -401,6 +417,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       return next;
     });
   }, []);
+
+  // ─── Adjustment sliders state ─────────────────────────────────────
+  const [adjBrightness, setAdjBrightness] = useState(0);
+  const [adjContrast, setAdjContrast] = useState(0);
+  const [adjSaturation, setAdjSaturation] = useState(0);
 
   // ─── User color presets (8 slots, persisted in localStorage) ──────
   const USER_PRESETS_KEY = "nodetool-sketch-color-presets";
@@ -449,11 +470,13 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         onFillSettingsChange({ color });
       } else if (isShapeTool(activeTool)) {
         onShapeSettingsChange({ strokeColor: color });
+      } else if (activeTool === "gradient") {
+        onGradientSettingsChange({ startColor: color });
       } else {
         onBrushSettingsChange({ color });
       }
     },
-    [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange, onForegroundColorChange]
+    [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange, onGradientSettingsChange, onForegroundColorChange]
   );
 
   const handlePresetClick = useCallback(
@@ -562,6 +585,16 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <ArrowRightAltIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
+        <ToggleButton value="gradient" aria-label="Gradient">
+          <Tooltip title="Gradient (T)">
+            <GradientIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="crop" aria-label="Crop">
+          <Tooltip title="Crop (C)">
+            <CropIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
       </ToggleButtonGroup>
 
       <Divider />
@@ -623,6 +656,38 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           inputProps={{ maxLength: 7 }}
           fullWidth
         />
+        <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+          <Tooltip title="Black Background">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onBackgroundPreset("#000000")}
+              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
+            >
+              Black
+            </Button>
+          </Tooltip>
+          <Tooltip title="White Background">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onBackgroundPreset("#ffffff")}
+              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
+            >
+              White
+            </Button>
+          </Tooltip>
+          <Tooltip title="Gray Background">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onBackgroundPreset("#808080")}
+              sx={{ minWidth: 0, flex: 1, fontSize: "0.6rem", padding: "1px 4px", color: "grey.400", borderColor: "grey.600" }}
+            >
+              Gray
+            </Button>
+          </Tooltip>
+        </Box>
       </ToolbarSection>
 
       <Divider />
@@ -832,6 +897,49 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           </>
         )}
 
+        {activeTool === "gradient" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Start</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={gradientSettings.startColor}
+                onChange={(e) => onGradientSettingsChange({ startColor: e.target.value })}
+              />
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">End</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={gradientSettings.endColor}
+                onChange={(e) => onGradientSettingsChange({ endColor: e.target.value })}
+              />
+            </Box>
+            <ToggleButtonGroup
+              value={gradientSettings.type}
+              exclusive
+              onChange={(_, v) => { if (v) { onGradientSettingsChange({ type: v }); } }}
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="linear" sx={{ fontSize: "0.65rem", py: "2px" }}>
+                Linear
+              </ToggleButton>
+              <ToggleButton value="radial" sx={{ fontSize: "0.65rem", py: "2px" }}>
+                Radial
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </>
+        )}
+
+        {activeTool === "crop" && (
+          <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
+            Drag on canvas to select crop area.
+          </Typography>
+        )}
+
         {(activeTool === "move" || activeTool === "eyedropper") && (
           <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
             No settings for this tool.
@@ -999,6 +1107,58 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
       <Divider />
 
+      {/* ── Adjustments (collapsible) ──────────────────────────────── */}
+      <ToolbarSection
+        title="Adjustments"
+        sectionKey="adjustments"
+        collapsed={collapsedSections.adjustments}
+        onToggle={handleToggleSection}
+      >
+        <Box className="setting-row">
+          <Typography className="setting-label">Bright</Typography>
+          <Slider
+            size="small" min={-100} max={100}
+            value={adjBrightness}
+            onChange={(_, v) => setAdjBrightness(v as number)}
+          />
+          <Typography className="setting-value">{adjBrightness}</Typography>
+        </Box>
+        <Box className="setting-row">
+          <Typography className="setting-label">Contrast</Typography>
+          <Slider
+            size="small" min={-100} max={100}
+            value={adjContrast}
+            onChange={(_, v) => setAdjContrast(v as number)}
+          />
+          <Typography className="setting-value">{adjContrast}</Typography>
+        </Box>
+        <Box className="setting-row">
+          <Typography className="setting-label">Satur.</Typography>
+          <Slider
+            size="small" min={-100} max={100}
+            value={adjSaturation}
+            onChange={(_, v) => setAdjSaturation(v as number)}
+          />
+          <Typography className="setting-value">{adjSaturation}</Typography>
+        </Box>
+        <Button
+          size="small"
+          variant="contained"
+          fullWidth
+          onClick={() => {
+            onApplyAdjustments(adjBrightness, adjContrast, adjSaturation);
+            setAdjBrightness(0);
+            setAdjContrast(0);
+            setAdjSaturation(0);
+          }}
+          sx={{ mt: "4px", fontSize: "0.7rem", py: "2px" }}
+        >
+          Apply
+        </Button>
+      </ToolbarSection>
+
+      <Divider />
+
       {/* ── Shortcuts reference (collapsible, collapsed by default) ─ */}
       <ToolbarSection
         title="Shortcuts"
@@ -1030,6 +1190,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <dt>R</dt><dd>Rect</dd>
           <dt>O</dt><dd>Ellipse</dd>
           <dt>A</dt><dd>Arrow</dd>
+          <dt>T</dt><dd>Gradient</dd>
+          <dt>C</dt><dd>Crop</dd>
           <dt>M</dt><dd>Mirror</dd>
           <dt>X</dt><dd>Swap colors</dd>
           <dt>D</dt><dd>Reset colors</dd>
