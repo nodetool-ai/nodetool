@@ -1024,14 +1024,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             mousePositionRef.current.x + (containerRef.current?.getBoundingClientRect().left ?? 0),
             mousePositionRef.current.y + (containerRef.current?.getBoundingClientRect().top ?? 0)
           );
-          const x = Math.round(Math.min(cropStartRef.current.x, pt.x));
-          const y = Math.round(Math.min(cropStartRef.current.y, pt.y));
-          const w = Math.round(Math.abs(pt.x - cropStartRef.current.x));
-          const h = Math.round(Math.abs(pt.y - cropStartRef.current.y));
+          const x1 = Math.round(Math.min(cropStartRef.current.x, pt.x));
+          const y1 = Math.round(Math.min(cropStartRef.current.y, pt.y));
+          const x2 = Math.round(Math.max(cropStartRef.current.x, pt.x));
+          const y2 = Math.round(Math.max(cropStartRef.current.y, pt.y));
+          const w = x2 - x1;
+          const h = y2 - y1;
           clearOverlay();
           cropStartRef.current = null;
           if (w > 1 && h > 1 && onCropComplete) {
-            onCropComplete(x, y, w, h);
+            onCropComplete(x1, y1, w, h);
           }
           return;
         }
@@ -1052,7 +1054,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const handleWheel = useCallback(
       (e: React.WheelEvent) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.85 : 1.15;
+        const factor = 1.15;
+        const delta = e.deltaY > 0 ? 1 / factor : factor;
         const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
         const container = containerRef.current;
         if (container) {
@@ -1235,10 +1238,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           if (!layerCanvas) { return; }
           const ctx = layerCanvas.getContext("2d");
           if (!ctx) { return; }
-          // Map slider values (-100..100) to CSS filter values
-          const b = 1 + brightness / 100;
-          const c = 1 + contrast / 100;
-          const s = 1 + saturation / 100;
+          // Map slider values (-100..100) to CSS filter values, clamped to non-negative
+          const b = Math.max(0, 1 + brightness / 100);
+          const c = Math.max(0, 1 + contrast / 100);
+          const s = Math.max(0, 1 + saturation / 100);
           const tmp = window.document.createElement("canvas");
           tmp.width = layerCanvas.width;
           tmp.height = layerCanvas.height;
