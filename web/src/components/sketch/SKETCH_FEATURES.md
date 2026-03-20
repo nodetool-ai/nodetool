@@ -33,10 +33,11 @@ Reference parity: **ComfySketch** maps **C** → circle and **R** → rectangle;
 Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to date)**.
 
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
+- [ ] imporove Blur brush: currently smears the image when dragging due to creating hard edges
 - [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
 - [ ] Crop tool
 - [ ] Gradient tool / gradient fill
-- [ ] Blur brush
+- [ ] Adjustment section with sliders for: brightness, contrast, saturation, exposure, blur
 - [ ] **Brush engine variants** (see **Brush types** below)
 
 #### Brush types (engine / presets)
@@ -52,23 +53,20 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 #### Color system
 
-- [ ] **HSV color wheel** (hue ring + saturation/value square)
-- [ ] **HSL / RGB sliders** + live numeric fields
-- [x] **Hex input** (`#RRGGBB`) validated in picker
-- [x] **Foreground / background** colors with **X** swap (optional **D** = reset black/white, Photoshop-style)
-- [ ] **User color presets** (e.g. 6–8 slots) in `localStorage` (separate from fixed palette)
+- [ ] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger.
 
 #### Layers — extra parity
 
 - [x] **Merge down** / merge selected / flatten visible
-- [ ] **Drag-and-drop layer reordering**
+- [ ] **Drag-and-drop layer reordering**: limit to vertical dragging.
 - [ ] Group / folder layers
 - [ ] **Segmentation → layers** — see Phase 3 **SAM** subsection below
 
 #### Canvas & view
 
 - [x] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
-- [ ] Zoom to cursor — see `ImageViewer.tsx` for reference implementation
+- [ ] Zoom 2x faster and a bit smoother
+- [ ] canvas size: set with presets and custom, new small info row at center bottom to show canvas size + img / asset info (asset name, type)
 - [x] **Space + drag** to pan from any tool (in addition to middle mouse)
 - [x] **Toggle UI / panels** shortcut (**Tab**)
 
@@ -79,7 +77,6 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Panel layout persistence** (collapsed state in `localStorage`)
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
-- [ ] **Double-click tool icon** → focus that tool’s settings
 - [ ] **Context-sensitive** right-click menu (draw, select, etc.)
 
 #### Gesture shortcuts (parity — open conflicts)
@@ -96,6 +93,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
 - [ ] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
 - [ ] Fix input image not showing up as layer
+- [ ] add "Expose" layer feature that creates additional dynamic inputs in node using layer name
 - [ ] Cleaner node UI styling
 
 ---
@@ -107,8 +105,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [ ] Photoshop-style shortcuts **only where implemented** — keep **Keyboard Shortcuts** + **Photoshop appendix** sections in sync as tools ship
 - [ ] Selection tools with transform (scale, rotate, skew)
 - [ ] Vector / pen tool
-- [ ] Text layers with font settings
+- [ ] Text layers with font settings. global font system with 20 well selected google fonts.
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types)
+- [ ] replace ImageEditor.tsx to use the new SketchEditor instead - ImageEditor can then be deleted
 
 ### SAM: Segment Anything (layers from segmentation)
 
