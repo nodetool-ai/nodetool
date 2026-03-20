@@ -58,7 +58,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 #### Layers — extra parity
 
 - [x] **Merge down** / merge selected / flatten visible
-- [ ] **Drag-and-drop layer reordering**: limit to vertical dragging.
+- [x] **Drag-and-drop layer reordering**: vertical drag with drop indicator
+- [x] **Layer thumbnails**: small preview images in layers panel
+- [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
 - [ ] Group / folder layers
 - [ ] **Segmentation → layers** — see Phase 3 **SAM** subsection below
 
@@ -156,6 +158,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | O                        | Ellipse                                          |
 | A                        | Arrow                                            |
 | M                        | Toggle mirror horizontal                         |
+| Shift+M                  | Toggle mirror vertical                           |
 | Tab                      | Toggle sketch UI / panels                        |
 | X                        | Swap foreground / background                     |
 | D                        | Reset colors to black / white                    |
@@ -166,6 +169,8 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | Shift+[ / Shift+]        | Decrease / increase hardness                     |
 | 0–9                      | Set brush opacity (0=100%, 1=10%…9=90%)          |
 | Alt+Click (paint tools)  | Eyedropper pick (stays on current tool)          |
+| Alt+Backspace            | Fill layer with foreground color                 |
+| Ctrl+Backspace           | Fill layer with background color                 |
 | + / −                    | Zoom in / out                                    |
 | Delete / Backspace       | Clear active layer                               |
 | Ctrl+Z                   | Undo                                             |
@@ -332,7 +337,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 ### Backlog candidates
 
 - [x] **Alt + click** temporary eyedropper while Brush/Pencil/Eraser/Fill is active — picks color without switching tool
-- [ ] **Keyboard shortcut for vertical mirror** — **M** = horizontal only today; vertical is toolbar-only
+- [x] **Keyboard shortcut for vertical mirror** — **Shift+M** = vertical; **M** = horizontal
 - [ ] **Touch / tablet**: pinch-zoom, two-finger pan; optional palm rejection
 - [ ] **Pixel workflow**: pixel grid overlay, snap-to-pixel, crisp view at high zoom
 - [ ] **Rulers + draggable guides**
@@ -343,10 +348,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 ### Krita-inspired candidates
 
-- [ ] **Stroke stabilizer / lazy smoothing**
+- [x] **Stroke stabilizer / lazy smoothing** — moving-average smoothing (window=4) for brush strokes
 - [ ] **Rotate canvas (view only)**
 - [ ] **Wrap-around / tiling mode**
-- [ ] **Alpha lock** (“lock transparency”) per layer
+- [x] **Alpha lock** — painting only affects existing opaque pixels; lock transparency indicator in layers panel
 - [ ] **Isolate / solo layer**
 - [ ] **Pop-up palette** (radial HUD)
 - [ ] **Smudge / color-smudge brush**
@@ -498,6 +503,12 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Alt+click eyedropper** — picks color while painting without switching tool (Photoshop convention)
 - [x] **Shift+[ / Shift+]** — decrease / increase hardness for brush and eraser
 - [x] **Number keys 0-9** — set brush/pencil/eraser opacity (0=100%, 1=10%…9=90%, Photoshop convention)
+- [x] **Layer thumbnails** — small preview images of layer content in layers panel
+- [x] **Alpha lock per layer** — lock transparency; painting only affects existing opaque pixels (🔒 indicator)
+- [x] **Shift+M** — toggle vertical mirror (M = horizontal)
+- [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
+- [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
+- [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
 
 ### Node / SketchInput
 

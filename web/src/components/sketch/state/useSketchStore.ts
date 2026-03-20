@@ -67,6 +67,7 @@ export interface SketchStore {
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setMaskLayer: (layerId: string | null) => void;
+  toggleAlphaLock: (layerId: string) => void;
   mergeLayerDown: (layerId: string) => void;
   flattenVisible: () => void;
 
@@ -410,6 +411,16 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         }
       };
     }),
+
+  toggleAlphaLock: (layerId: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, alphaLock: !l.alphaLock } : l
+        )
+      }
+    })),
 
   mergeLayerDown: (layerId: string) =>
     set((state) => {

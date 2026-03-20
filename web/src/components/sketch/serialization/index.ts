@@ -43,6 +43,12 @@ export function deserializeDocument(
       if (parsed.toolSettings?.brush && !parsed.toolSettings.brush.brushType) {
         parsed.toolSettings.brush.brushType = DEFAULT_BRUSH_SETTINGS.brushType;
       }
+      // Ensure alphaLock exists on all layers (migration from pre-alphaLock documents)
+      for (const layer of parsed.layers) {
+        if (layer.alphaLock === undefined) {
+          layer.alphaLock = false;
+        }
+      }
       return parsed;
     }
     return null;

@@ -73,6 +73,7 @@ export interface SketchCanvasRef {
   flattenVisible: () => string;
   cropCanvas: (x: number, y: number, width: number, height: number) => void;
   applyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
+  fillLayerWithColor: (layerId: string, color: string) => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -166,6 +167,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Crop tool state
     const cropStartRef = useRef<Point | null>(null);
+
+    // Alpha lock: snapshot of layer alpha before stroke starts
+    const alphaSnapshotRef = useRef<ImageData | null>(null);
+
+    // Stroke stabilizer: circular buffer of recent points for smoothing
+    const stabilizerBufferRef = useRef<Point[]>([]);
+    const STABILIZER_WINDOW = 4; // Number of points to average
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -806,6 +814,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Pointer Events ──────────────────────────────────────────────
 
+    /** Smooth a raw pointer point using a moving-average stabilizer */
+    const stabilizePoint = useCallback(
+      (raw: Point): Point => {
+        const buf = stabilizerBufferRef.current;
+        buf.push(raw);
+        if (buf.length > STABILIZER_WINDOW) {
+          buf.shift();
+        }
+        if (buf.length === 1) {
+          return raw;
+        }
+        let sx = 0, sy = 0;
+        for (const p of buf) {
+          sx += p.x;
+          sy += p.y;
+        }
+        return { x: sx / buf.length, y: sy / buf.length };
+      },
+      []
+    );
+
     /** Convert RGB pixel values to a hex color string */
     const rgbToHex = useCallback(
       (r: number, g: number, b: number): string =>
@@ -955,6 +984,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         lastPointRef.current = pt;
         onStrokeStart();
 
+        // Reset stroke stabilizer buffer for a fresh stroke
+        stabilizerBufferRef.current = [];
+
+        // Alpha lock: snapshot original alpha channel before drawing
+        if (activeLayer.alphaLock) {
+          const layerCanvasForSnapshot = getOrCreateLayerCanvas(activeLayer.id);
+          const snapCtx = layerCanvasForSnapshot.getContext("2d");
+          if (snapCtx) {
+            alphaSnapshotRef.current = snapCtx.getImageData(
+              0, 0, layerCanvasForSnapshot.width, layerCanvasForSnapshot.height
+            );
+          }
+        } else {
+          alphaSnapshotRef.current = null;
+        }
+
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
@@ -1064,10 +1109,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "brush") {
+          const smoothPt = stabilizePoint(pt);
+          const smoothLast = lastPointRef.current;
           withMirror(
             ctx,
             (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
-            lastPointRef.current, pt
+            smoothLast, smoothPt
           );
         } else if (activeTool === "pencil") {
           withMirror(
@@ -1091,7 +1138,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onPanChange, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror
+        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror, stabilizePoint
       ]
     );
 
@@ -1168,6 +1215,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         lastPointRef.current = null;
+
+        // Alpha lock: restore original alpha channel after drawing
+        if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
+          const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
+          if (layerCanvas) {
+            const ctx = layerCanvas.getContext("2d");
+            if (ctx) {
+              const currentData = ctx.getImageData(0, 0, layerCanvas.width, layerCanvas.height);
+              const snapshot = alphaSnapshotRef.current;
+              // Replace alpha channel of drawn pixels with original alpha
+              for (let i = 3; i < currentData.data.length; i += 4) {
+                currentData.data[i] = Math.min(currentData.data[i], snapshot.data[i]);
+              }
+              ctx.putImageData(currentData, 0, 0);
+              redraw();
+            }
+          }
+          alphaSnapshotRef.current = null;
+        }
 
         if (activeLayer) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
@@ -1382,6 +1448,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           tmpCtx.drawImage(layerCanvas, 0, 0);
           ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
           ctx.drawImage(tmp, 0, 0);
+          redraw();
+        },
+        fillLayerWithColor: (layerId: string, color: string) => {
+          const canvas = getOrCreateLayerCanvas(layerId);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { return; }
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
           redraw();
         }
       }),

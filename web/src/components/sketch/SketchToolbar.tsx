@@ -1200,7 +1200,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <dt>A</dt><dd>Arrow</dd>
           <dt>T</dt><dd>Gradient</dd>
           <dt>C</dt><dd>Crop</dd>
-          <dt>M</dt><dd>Mirror</dd>
+          <dt>M</dt><dd>Mirror H</dd>
+          <dt>Shift+M</dt><dd>Mirror V</dd>
           <dt>X</dt><dd>Swap colors</dd>
           <dt>D</dt><dd>Reset colors</dd>
           <dt>Tab</dt><dd>Toggle UI</dd>
@@ -1208,6 +1209,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <dt>Shift+[/]</dt><dd>Hardness</dd>
           <dt>0–9</dt><dd>Opacity</dd>
           <dt>Alt+Click</dt><dd>Pick color</dd>
+          <dt>Alt+⌫</dt><dd>Fill FG</dd>
+          <dt>Ctrl+⌫</dt><dd>Fill BG</dd>
           <dt>Shift</dt><dd>Constrain</dd>
           <dt>Space</dt><dd>Pan</dd>
           <dt>+ / −</dt><dd>Zoom</dd>

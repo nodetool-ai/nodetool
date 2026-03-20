@@ -127,6 +127,8 @@ export interface Layer {
   visible: boolean;
   opacity: number;
   locked: boolean;
+  /** When true, painting only affects existing opaque pixels (Krita/Photoshop "Lock Transparency") */
+  alphaLock: boolean;
   blendMode: BlendMode;
   /** Base64-encoded PNG data for the layer content */
   data: string | null;
@@ -271,6 +273,7 @@ export function createDefaultLayer(
     visible: true,
     opacity: 1,
     locked: false,
+    alphaLock: false,
     blendMode: "normal",
     data: null
   };

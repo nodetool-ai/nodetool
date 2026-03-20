@@ -72,6 +72,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const renameLayer = useSketchStore((s) => s.renameLayer);
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
+  const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
   const redo = useSketchStore((s) => s.redo);
@@ -203,6 +204,20 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     }
   }, [document.activeLayerId, pushHistory, updateLayerData]);
 
+  // ─── Fill layer with color ─────────────────────────────────────────
+  const handleFillLayerWithColor = useCallback(
+    (color: string) => {
+      const activeLayerId = document.activeLayerId;
+      const layer = document.layers.find((l) => l.id === activeLayerId);
+      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) { return; }
+      pushHistory("fill layer");
+      canvasRef.current.fillLayerWithColor(activeLayerId, color);
+      const data = canvasRef.current.getLayerData(activeLayerId);
+      updateLayerData(activeLayerId, data);
+    },
+    [document.activeLayerId, document.layers, pushHistory, updateLayerData]
+  );
+
   // ─── Export PNG download ───────────────────────────────────────────
   const handleExportPng = useCallback(() => {
     if (!canvasRef.current) {
@@ -306,7 +321,22 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           e.preventDefault();
           handleExportPng();
         }
+        // Ctrl+Backspace → fill with background color (Photoshop convention)
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          handleFillLayerWithColor(useSketchStore.getState().backgroundColor);
+        }
+      } else if (e.altKey) {
+        // Alt+Backspace → fill with foreground color (Photoshop convention)
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          handleFillLayerWithColor(useSketchStore.getState().foregroundColor);
+        }
       } else if (e.shiftKey) {
+        // Shift+M → toggle vertical mirror
+        if (e.key === "M") {
+          setMirrorY((prev) => !prev);
+        }
         // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
         if (e.key === "{") {
           const store = useSketchStore.getState();
@@ -596,6 +626,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onMoveLayerDown={handleMoveLayerDown}
           onReorderLayers={reorderLayers}
           onSetMaskLayer={setMaskLayer}
+          onToggleAlphaLock={toggleAlphaLock}
           onLayerOpacityChange={setLayerOpacity}
           onLayerBlendModeChange={setLayerBlendMode}
           onRenameLayer={renameLayer}
