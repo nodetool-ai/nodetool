@@ -394,7 +394,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const ctx = layerCanvas.getContext("2d");
         if (!ctx) { return; }
         const r = Math.round(settings.size / 2);
-        // Use a larger sample region to avoid clipping the blur filter
+        // Pad the sample region by 2× the blur strength so the CSS blur
+        // filter doesn't clip at the edges (the filter kernel extends beyond
+        // the drawn region by roughly 2× its radius).
         const pad = Math.ceil(settings.strength * 2);
         const x = Math.round(point.x) - r - pad;
         const y = Math.round(point.y) - r - pad;
@@ -804,9 +806,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Pointer Events ──────────────────────────────────────────────
 
+    /** Convert RGB pixel values to a hex color string */
+    const rgbToHex = useCallback(
+      (r: number, g: number, b: number): string =>
+        `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`,
+      []
+    );
+
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
-        // Alt+click: eyedropper sampling (Photoshop convention) for painting tools
+        // Alt+click on a painting tool samples color (Photoshop eyedropper).
+        // This check MUST come before the Alt+click pan check below so that
+        // painting tools get eyedropper behavior instead of panning.
         const isPaintingTool = activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "fill";
         if (e.button === 0 && e.altKey && isPaintingTool && onEyedropperPick) {
           const displayCanvas = displayCanvasRef.current;
@@ -815,13 +826,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               const pt = screenToCanvas(e.clientX, e.clientY);
               const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
-              const hex = `#${pixel[0].toString(16).padStart(2, "0")}${pixel[1].toString(16).padStart(2, "0")}${pixel[2].toString(16).padStart(2, "0")}`;
-              onEyedropperPick(hex);
+              onEyedropperPick(rgbToHex(pixel[0], pixel[1], pixel[2]));
             }
           }
           return;
         }
 
+        // Alt+click (non-painting tools) or middle-click or Space+drag: pan canvas
         if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeldRef.current)) {
           isPanningRef.current = true;
           if (spaceHeldRef.current) {
@@ -871,7 +882,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               const pt = screenToCanvas(e.clientX, e.clientY);
               const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
-              const hex = `#${pixel[0].toString(16).padStart(2, "0")}${pixel[1].toString(16).padStart(2, "0")}${pixel[2].toString(16).padStart(2, "0")}`;
+              const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
               containerRef.current?.dispatchEvent(
                 new CustomEvent("sketch-eyedropper", { detail: { color: hex }, bubbles: true })
               );
@@ -976,7 +987,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        floodFill, redraw, withMirror, onEyedropperPick
+        floodFill, redraw, withMirror, onEyedropperPick, rgbToHex
       ]
     );
 
