@@ -17,8 +17,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Thread,
   Message,
   Workflow,
@@ -50,8 +49,7 @@ class MockWS implements WebSocketConnection {
 const noop = () => ({ async process() { return {}; } });
 
 function setupModels() {
-  const factory = new MemoryAdapterFactory();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  initTestDb();
 }
 
 function sentMsgs(ws: MockWS): Record<string, unknown>[] {
@@ -123,12 +121,8 @@ function streamingResolver(nodeType: string) {
 describe("Routing priority: workflow_id/workflow_target before agent_mode", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -397,12 +391,8 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
 describe("handleWorkflowMessage: workflow execution and response", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -531,12 +521,8 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
 describe("detectMessageInputNames: scans graph for input node types", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -606,12 +592,8 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
 describe("createResponseMessage: converts workflow outputs to typed content", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -770,12 +752,8 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
 describe("handleWorkflowMessage: error handling", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -830,12 +808,8 @@ describe("handleWorkflowMessage: error handling", () => {
 describe("Chat workflow routing: run_mode='chat'", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 
@@ -888,12 +862,8 @@ describe("Chat workflow routing: run_mode='chat'", () => {
 describe("handleWorkflowMessage: message persistence", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
-    await Workflow.createTable();
-    await Job.createTable();
     ws = new MockWS();
   });
 

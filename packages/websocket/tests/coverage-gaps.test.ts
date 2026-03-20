@@ -12,8 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import { Readable } from "node:stream";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Thread,
   Message,
   Workflow,
@@ -122,8 +121,7 @@ const resolveExecutor = () => ({
 });
 
 function setupModels() {
-  const factory = new MemoryAdapterFactory();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  initTestDb();
 }
 
 // ── UnifiedWebSocketRunner: chat_message with valid thread_id ────────
@@ -132,10 +130,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
   let ws: MockWebSocket;
   let runner: UnifiedWebSocketRunner;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWebSocket();
   });
 
@@ -332,10 +328,8 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
 // ── UnifiedWebSocketRunner: getWorkflowGraph with workflow_id ────────
 
 describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
-    await Job.createTable();
   });
 
   it("run_job with workflow_id loads graph from database", async () => {
@@ -656,9 +650,8 @@ describe("OpenAI API: SSE stream error", () => {
 // ── http-api.ts: handleNodeHttpRequest ───────────────────────────────
 
 describe("HTTP API: handleNodeHttpRequest", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
   });
 
   it("handles a basic GET request through Node.js http interface", async () => {
@@ -781,11 +774,8 @@ describe("HTTP API: createHttpApiServer", () => {
 // ── http-api.ts: 204 response (no body) ─────────────────────────────
 
 describe("HTTP API: handleNodeHttpRequest with 204 response", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
-    await Thread.createTable();
-    await Message.createTable();
   });
 
   it("handles DELETE that returns 204 (no body)", async () => {
@@ -842,9 +832,8 @@ describe("HTTP API: node metadata endpoint", () => {
 // ── http-api.ts: normalizePath edge case ─────────────────────────────
 
 describe("HTTP API: trailing slash normalization", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
   });
 
   it("handles path with trailing slash", async () => {
@@ -873,9 +862,8 @@ describe("HTTP API: unknown route", () => {
 // ── http-api.ts: readNodeRequestBody with string chunks ──────────────
 
 describe("HTTP API: handleNodeHttpRequest with string chunks", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
   });
 
   it("handles string body chunks in POST request", async () => {

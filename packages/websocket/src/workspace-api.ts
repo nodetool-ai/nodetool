@@ -86,13 +86,6 @@ function guessContentType(filename: string): string {
   return map[ext] ?? "application/octet-stream";
 }
 
-let workspaceTableInitialized = false;
-
-async function ensureWorkspaceTable(): Promise<void> {
-  if (workspaceTableInitialized) return;
-  await Workspace.createTable();
-  workspaceTableInitialized = true;
-}
 
 interface WorkspaceCreateBody {
   name: string;
@@ -116,7 +109,6 @@ export async function handleWorkspaceRequest(
   if (!pathname.startsWith("/api/workspaces")) return null;
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkspaceTable();
 
   // GET /api/workspaces/workflow/{workflowId}/files?path=.
   const workflowFilesMatch = pathname.match(

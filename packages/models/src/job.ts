@@ -4,15 +4,10 @@
  * Port of Python's `nodetool.models.job`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, desc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { jobs } from "./schema/jobs.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -26,62 +21,8 @@ export type JobStatus =
   | "cancelled"
   | "recovering";
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const JOB_SCHEMA: TableSchema = {
-  table_name: "nodetool_jobs",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    job_type: { type: "string" },
-    workflow_id: { type: "string" },
-    status: { type: "string" },
-    name: { type: "string", optional: true },
-    graph: { type: "json", optional: true },
-    params: { type: "json", optional: true },
-    worker_id: { type: "string", optional: true },
-    heartbeat_at: { type: "datetime", optional: true },
-    started_at: { type: "datetime", optional: true },
-    finished_at: { type: "datetime", optional: true },
-    completed_at: { type: "datetime", optional: true },
-    failed_at: { type: "datetime", optional: true },
-    error: { type: "string", optional: true },
-    error_message: { type: "string", optional: true },
-    cost: { type: "number", optional: true },
-    logs: { type: "json", optional: true },
-    retry_count: { type: "number" },
-    max_retries: { type: "number" },
-    version: { type: "number" },
-    suspended_node_id: { type: "string", optional: true },
-    suspension_reason: { type: "string", optional: true },
-    suspension_state_json: { type: "json", optional: true },
-    suspension_metadata_json: { type: "json", optional: true },
-    execution_strategy: { type: "string", optional: true },
-    execution_id: { type: "string", optional: true },
-    metadata_json: { type: "json", optional: true },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const JOB_INDEXES: IndexSpec[] = [
-  { name: "idx_jobs_status", columns: ["status"], unique: false },
-  { name: "idx_jobs_updated_at", columns: ["updated_at"], unique: false },
-  { name: "idx_jobs_worker_id", columns: ["worker_id"], unique: false },
-  { name: "idx_jobs_heartbeat_at", columns: ["heartbeat_at"], unique: false },
-  {
-    name: "idx_jobs_recovery",
-    columns: ["status", "heartbeat_at"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class Job extends DBModel {
-  static override schema = JOB_SCHEMA;
-  static override indexes = JOB_INDEXES;
+  static override table = jobs;
 
   declare id: string;
   declare user_id: string;
@@ -114,7 +55,7 @@ export class Job extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -194,7 +135,6 @@ export class Job extends DBModel {
 
   markResumed(): void {
     this.status = "running";
-    // Keep suspension fields for audit trail (matches Python)
   }
 
   markPaused(): void {
@@ -238,9 +178,7 @@ export class Job extends DBModel {
   }
 
   isResumable(): boolean {
-    return ["running", "suspended", "paused", "recovering", "failed"].includes(
-      this.status,
-    );
+    return ["running", "suspended", "paused", "recovering", "failed"].includes(this.status);
   }
 
   isPaused(): boolean {
@@ -277,7 +215,7 @@ export class Job extends DBModel {
     userId: string,
     jobId: string,
   ): Promise<Job | null> {
-    const job = (await (Job as unknown as ModelClass<Job>).get(jobId)) as Job | null;
+    const job = await Job.get<Job>(jobId);
     if (!job || job.user_id !== userId) return null;
     return job;
   }
@@ -292,15 +230,22 @@ export class Job extends DBModel {
     } = {},
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId } = opts;
-    let cond = field("user_id").equals(userId);
-    if (status) cond = cond.and(field("status").equals(status));
-    if (workflowId) cond = cond.and(field("workflow_id").equals(workflowId));
+    const db = getDb();
 
-    return (Job as unknown as ModelClass<Job>).query({
-      condition: cond,
-      orderBy: "updated_at",
-      reverse: true,
-      limit,
-    });
+    const conditions = [eq(jobs.user_id, userId)];
+    if (status) conditions.push(eq(jobs.status, status));
+    if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
+
+    const rows = db.select().from(jobs)
+      .where(and(...conditions))
+      .orderBy(desc(jobs.updated_at))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Job(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 }

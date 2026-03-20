@@ -16,8 +16,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Thread,
   Message,
 } from "@nodetool/models";
@@ -47,8 +46,7 @@ class MockWS implements WebSocketConnection {
 const noop = () => ({ async process() { return {}; } });
 
 function setupModels() {
-  const factory = new MemoryAdapterFactory();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  initTestDb();
 }
 
 /** Create a mock provider that yields the given items from generateMessagesTraced */
@@ -80,10 +78,8 @@ function sentMsgs(ws: MockWS): Record<string, unknown>[] {
 describe("handleChatMessage: system prompt", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -128,10 +124,8 @@ describe("handleChatMessage: system prompt", () => {
 describe("handleChatMessage: done chunk and final message", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -188,10 +182,8 @@ describe("handleChatMessage: done chunk and final message", () => {
 describe("handleChatMessage: tool call loop", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -255,10 +247,8 @@ describe("handleChatMessage: tool call loop", () => {
 describe("handleChatMessage: error handling", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -310,10 +300,8 @@ describe("addCollectionContext", () => {
 describe("processToolResult", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -395,10 +383,8 @@ describe("processToolResult", () => {
 describe("dbMessageToProviderMessage filtering", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -504,10 +490,8 @@ vi.mock("@nodetool/agents", () => {
 describe("handleAgentMessage", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -683,10 +667,8 @@ describe("handleAgentMessage", () => {
 describe("handleAgentMessage: error handling", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -745,10 +727,8 @@ describe("handleAgentMessage: error handling", () => {
 describe("saveMessageToDb", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 
@@ -788,10 +768,8 @@ describe("saveMessageToDb", () => {
 describe("handleChatMessage: request sequence cancellation", () => {
   let ws: MockWS;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
     ws = new MockWS();
   });
 

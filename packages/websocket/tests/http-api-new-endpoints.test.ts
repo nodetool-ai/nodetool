@@ -3,8 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
   Job,
   Message,
@@ -21,10 +20,8 @@ async function jsonBody(response: Response): Promise<unknown> {
 // ── T-WS-1 — Workflow API ────────────────────────────────────────────
 
 describe("T-WS-1: Workflow API — autosave + names", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("PUT /api/workflows/{id}/autosave updates without incrementing version", async () => {
@@ -153,10 +150,8 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
 // ── T-WS-2 — Job API ────────────────────────────────────────────────
 
 describe("T-WS-2: Job API — running + delete", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Job.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/jobs/running/all returns only running jobs", async () => {
@@ -249,10 +244,8 @@ describe("T-WS-2: Job API — running + delete", () => {
 // ── T-WS-3 — Asset API ──────────────────────────────────────────────
 
 describe("T-WS-3: Asset API — search + children", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Asset.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/assets/search?query=foo searches assets", async () => {
@@ -348,11 +341,8 @@ describe("T-WS-3: Asset API — search + children", () => {
 // ── T-WS-4 — Message API ────────────────────────────────────────────
 
 describe("T-WS-4: Message API — delete", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Message.createTable();
-    await Thread.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("DELETE /api/messages/{id} returns 204", async () => {
@@ -420,10 +410,8 @@ describe("T-WS-4: Message API — delete", () => {
 // ── T-WS-5 — Thread API (PUT already exists, tested here for completeness) ──
 
 describe("T-WS-5: Thread API — update title", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Thread.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("PUT /api/threads/{id} updates title", async () => {
@@ -461,10 +449,8 @@ describe("T-WS-7: Node API — replicate_status", () => {
 // ── T-WS-8 — Workflow generate-name ────────────────────────────────────
 
 describe("T-WS-8: Workflow generate-name", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/workflows/{id}/generate-name returns a name", async () => {
@@ -547,10 +533,8 @@ describe("T-WS-8: Workflow generate-name", () => {
 // ── T-WS-9 — Workflow DSL export ────────────────────────────────────────
 
 describe("T-WS-9: Workflow DSL export", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/workflows/{id}/dsl-export returns 501 in standalone mode", async () => {
@@ -598,10 +582,8 @@ describe("T-WS-9: Workflow DSL export", () => {
 // ── T-WS-10 — Workflow Gradio export ────────────────────────────────────
 
 describe("T-WS-10: Workflow Gradio export", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/workflows/{id}/gradio-export returns 501 in standalone mode", async () => {
@@ -651,11 +633,8 @@ describe("T-WS-10: Workflow Gradio export", () => {
 // ── T-WS-11 — Thread summarize ────────────────────────────────────────────
 
 describe("T-WS-11: Thread summarize", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Thread.createTable();
-    await Message.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/threads/{id}/summarize returns title derived from messages", async () => {
