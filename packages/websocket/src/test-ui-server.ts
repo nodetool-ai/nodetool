@@ -12,16 +12,7 @@ import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
 import { ScriptedProvider, autoScript } from "@nodetool/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import {
-  SQLiteAdapterFactory,
-  setGlobalAdapterResolver,
-  Secret,
-  Workflow,
-  Job,
-  Message,
-  Thread,
-  Asset,
-} from "@nodetool/models";
+import { initDb } from "@nodetool/models";
 
 const log = createLogger("nodetool.websocket.server");
 
@@ -1216,16 +1207,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // Initialize SQLite adapter pointing at the same DB as the Python side
   const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".config", "nodetool", "nodetool.sqlite3");
   try {
-    const factory = new SQLiteAdapterFactory(dbPath);
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Promise.all([
-      Secret.createTable(),
-      Workflow.createTable(),
-      Job.createTable(),
-      Message.createTable(),
-      Thread.createTable(),
-      Asset.createTable(),
-    ]);
+    initDb(dbPath);
   } catch {
     // DB unavailable — secrets will appear unconfigured
   }

@@ -5,33 +5,25 @@
  * consumers need to define, query and persist data models.
  */
 
-// ── Condition Builder ────────────────────────────────────────────────
+// ── Database Connection ─────────────────────────────────────────────
+export { initDb, initTestDb, getDb, getRawDb, closeDb } from "./db.js";
+
+// ── Drizzle Schema (for consumers needing raw queries) ──────────────
 export {
-  Operator,
-  LogicalOperator,
-  Variable,
-  Condition,
-  ConditionGroup,
-  Field,
-  ConditionBuilder,
-  field,
-} from "./condition-builder.js";
-export type { ConditionValue } from "./condition-builder.js";
-
-// ── Database Adapter ─────────────────────────────────────────────────
-export type {
-  DatabaseAdapter,
-  TableSchema,
-  FieldDef,
-  IndexDef,
-  Row,
-} from "./database-adapter.js";
-
-// ── In-memory Adapter ────────────────────────────────────────────────
-export { MemoryAdapter, MemoryAdapterFactory } from "./memory-adapter.js";
-
-// ── SQLite Adapter ──────────────────────────────────────────────────
-export { SQLiteAdapter, SQLiteAdapterFactory } from "./sqlite-adapter.js";
+  workflows,
+  jobs,
+  messages,
+  threads,
+  assets,
+  secrets,
+  workspaces,
+  workflowVersions,
+  oauthCredentials,
+  runNodeState,
+  predictions,
+  runEvents,
+  runLeases,
+} from "./schema/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────
 export {
@@ -40,14 +32,10 @@ export {
   ModelChangeEvent,
   createTimeOrderedUuid,
   computeEtag,
-  setGlobalAdapterResolver,
-  getGlobalAdapterResolver,
 } from "./base-model.js";
 export type {
-  ModelClass,
   ModelObserverCallback,
-  IndexSpec,
-  AdapterResolver,
+  DrizzleTable,
 } from "./base-model.js";
 
 // ── Domain Models ────────────────────────────────────────────────────
@@ -74,6 +62,14 @@ export type { AggregateResult, ProviderAggregateResult, ModelAggregateResult } f
 
 export { Workspace } from "./workspace.js";
 
+export { RunNodeState } from "./run-node-state.js";
+export type { NodeStatus } from "./run-node-state.js";
+
+export { RunEvent } from "./run-event.js";
+export type { EventType } from "./run-event.js";
+
+export { RunLease } from "./run-lease.js";
+
 // ── API Graph ───────────────────────────────────────────────────────
 export {
   toApiNode,
@@ -83,7 +79,7 @@ export {
 } from "./api-graph.js";
 export type { ApiNode, ApiEdge, ApiGraph } from "./api-graph.js";
 
-// ── Migrations ─────────────────────────────────────────────────────
+// ── Migrations (transition period — will be removed) ────────────────
 export {
   MigrationError,
   LockError,
@@ -110,3 +106,35 @@ export type {
   AppliedMigration,
   MigrationStatus,
 } from "./migrations/index.js";
+
+// ── Legacy Compatibility (deprecated — will be removed) ─────────────
+// These re-exports allow existing consumer code to keep compiling during
+// the transition. They are no-ops or thin wrappers.
+export { MemoryAdapterFactory, MemoryAdapter } from "./memory-adapter.js";
+export { SQLiteAdapter, SQLiteAdapterFactory } from "./sqlite-adapter.js";
+export type { DatabaseAdapter, TableSchema, FieldDef, IndexDef, Row } from "./database-adapter.js";
+export {
+  Operator,
+  LogicalOperator,
+  Variable,
+  Condition,
+  ConditionGroup,
+  Field,
+  ConditionBuilder,
+  field,
+} from "./condition-builder.js";
+export type { ConditionValue } from "./condition-builder.js";
+
+// Legacy adapter resolver — now a no-op since models use getDb() directly.
+// Kept for API compatibility during transition.
+let _legacyResolver: ((schema: unknown) => unknown) | null = null;
+export function setGlobalAdapterResolver(resolver: (schema: unknown) => unknown): void {
+  _legacyResolver = resolver;
+}
+export function getGlobalAdapterResolver(): ((schema: unknown) => unknown) | null {
+  return _legacyResolver;
+}
+
+// Legacy types kept for API compat
+export type { IndexSpec } from "./legacy-compat.js";
+export type { ModelClass, AdapterResolver } from "./legacy-compat.js";

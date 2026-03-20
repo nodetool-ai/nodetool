@@ -4,52 +4,13 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
-
-// ── Schema ───────────────────────────────────────────────────────────
-
-const ASSET_SCHEMA: TableSchema = {
-  table_name: "nodetool_assets",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    parent_id: { type: "string", optional: true },
-    file_id: { type: "string", optional: true },
-    name: { type: "string" },
-    content_type: { type: "string" },
-    size: { type: "number", optional: true },
-    duration: { type: "number", optional: true },
-    metadata: { type: "json", optional: true },
-    workflow_id: { type: "string", optional: true },
-    node_id: { type: "string", optional: true },
-    job_id: { type: "string", optional: true },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const ASSET_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_assets_user_parent",
-    columns: ["user_id", "parent_id"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
+import { eq, and, like, desc, isNull } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { assets } from "./schema/assets.js";
 
 export class Asset extends DBModel {
-  static override schema = ASSET_SCHEMA;
-  static override indexes = ASSET_INDEXES;
+  static override table = assets;
 
   declare id: string;
   declare user_id: string;
@@ -66,7 +27,7 @@ export class Asset extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -111,7 +72,7 @@ export class Asset extends DBModel {
     userId: string,
     assetId: string,
   ): Promise<Asset | null> {
-    const asset = (await (Asset as unknown as ModelClass<Asset>).get(assetId)) as Asset | null;
+    const asset = await Asset.get<Asset>(assetId);
     if (!asset || asset.user_id !== userId) return null;
     return asset;
   }
@@ -129,29 +90,40 @@ export class Asset extends DBModel {
     } = {},
   ): Promise<[Asset[], string]> {
     const { parentId, contentType, workflowId, nodeId, jobId, limit = 50 } = opts;
-    let cond = field("user_id").equals(userId);
+    const db = getDb();
+
+    const conditions = [eq(assets.user_id, userId)];
     if (parentId !== undefined) {
-      cond = cond.and(field("parent_id").equals(parentId));
+      if (parentId === null) {
+        conditions.push(isNull(assets.parent_id));
+      } else {
+        conditions.push(eq(assets.parent_id, parentId));
+      }
     }
     if (contentType) {
-      cond = cond.and(field("content_type").equals(contentType));
+      conditions.push(eq(assets.content_type, contentType));
     }
     if (workflowId) {
-      cond = cond.and(field("workflow_id").equals(workflowId));
+      conditions.push(eq(assets.workflow_id, workflowId));
     }
     if (nodeId) {
-      cond = cond.and(field("node_id").equals(nodeId));
+      conditions.push(eq(assets.node_id, nodeId));
     }
     if (jobId) {
-      cond = cond.and(field("job_id").equals(jobId));
+      conditions.push(eq(assets.job_id, jobId));
     }
 
-    return (Asset as unknown as ModelClass<Asset>).query({
-      condition: cond,
-      orderBy: "created_at",
-      reverse: true,
-      limit,
-    });
+    const rows = db.select().from(assets)
+      .where(and(...conditions))
+      .orderBy(desc(assets.created_at))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Asset(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 
   /** Get children of a folder. */
@@ -160,8 +132,8 @@ export class Asset extends DBModel {
     parentId: string,
     limit = 100,
   ): Promise<Asset[]> {
-    const [assets] = await Asset.paginate(userId, { parentId, limit });
-    return assets;
+    const [assetList] = await Asset.paginate(userId, { parentId, limit });
+    return assetList;
   }
 
   /**
@@ -178,24 +150,28 @@ export class Asset extends DBModel {
   ): Promise<[Asset[], string, Array<Record<string, string>>]> {
     const { contentType, limit = 100 } = opts;
     const sanitized = query.trim();
+    const db = getDb();
 
-    let cond = field("user_id")
-      .equals(userId)
-      .and(field("name").like(`%${sanitized}%`));
-
+    const conditions = [
+      eq(assets.user_id, userId),
+      like(assets.name, `%${sanitized}%`),
+    ];
     if (contentType) {
-      cond = cond.and(field("content_type").like(`${contentType}%`));
+      conditions.push(like(assets.content_type, `${contentType}%`));
     }
 
-    const [assets, cursor] = await (Asset as unknown as ModelClass<Asset>).query({
-      condition: cond,
-      limit,
-    });
+    const rows = db.select().from(assets)
+      .where(and(...conditions))
+      .limit(limit)
+      .all();
 
-    const pathInfo = await Asset.getAssetPathInfo(userId, assets.map((a) => a.id));
+    const items = rows.map(r => new Asset(r as Record<string, unknown>));
+    const cursor = "";
+
+    const pathInfo = await Asset.getAssetPathInfo(userId, items.map(a => a.id));
 
     const folderPaths: Array<Record<string, string>> = [];
-    for (const asset of assets) {
+    for (const asset of items) {
       if (pathInfo[asset.id]) {
         folderPaths.push(pathInfo[asset.id]);
       } else {
@@ -207,12 +183,11 @@ export class Asset extends DBModel {
       }
     }
 
-    return [assets, cursor, folderPaths];
+    return [items, cursor, folderPaths];
   }
 
   /**
    * Get folder path information for given asset IDs.
-   * Returns a map from asset_id to { folder_name, folder_path, folder_id }.
    */
   static async getAssetPathInfo(
     userId: string,
@@ -222,21 +197,18 @@ export class Asset extends DBModel {
 
     const result: Record<string, Record<string, string>> = {};
 
-    // Fetch all requested assets
     const assetMap = new Map<string, Asset>();
     for (const id of assetIds) {
       const asset = await Asset.find(userId, id);
       if (asset) assetMap.set(id, asset);
     }
 
-    // Cache for parent folders
     const parentCache = new Map<string, Asset>();
 
     for (const assetId of assetIds) {
       const asset = assetMap.get(assetId);
       if (!asset) continue;
 
-      // Root folder
       if (!asset.parent_id || asset.parent_id === userId) {
         result[assetId] = {
           folder_name: "Home",
@@ -246,7 +218,6 @@ export class Asset extends DBModel {
         continue;
       }
 
-      // Walk up the folder hierarchy
       const pathParts: string[] = [];
       const pathIds: string[] = [];
       let currentId: string | null = asset.parent_id;
@@ -268,8 +239,8 @@ export class Asset extends DBModel {
       pathParts.reverse();
       pathIds.reverse();
 
-      const immediateName = pathParts[pathParts.length - 1] ?? "Home";
-      const immediateId = pathIds[pathIds.length - 1] ?? userId;
+      const immediateName = pathParts[pathParts.length - 1];
+      const immediateId = pathIds[pathIds.length - 1];
 
       result[assetId] = {
         folder_name: immediateName,
@@ -292,13 +263,12 @@ export class Asset extends DBModel {
     if (!folder) return { assets: [] };
 
     async function recursiveFetch(currentFolderId: string): Promise<Record<string, unknown>[]> {
-      const [assets] = await Asset.paginate(userId, {
+      const [assetList] = await Asset.paginate(userId, {
         parentId: currentFolderId,
         limit: 10000,
       });
       const result: Record<string, unknown>[] = [];
-      for (const asset of assets) {
-        if (asset.user_id !== userId) continue;
+      for (const asset of assetList) {
         const dict = asset.toRow();
         if (asset.content_type === "folder") {
           dict.children = await recursiveFetch(asset.id);

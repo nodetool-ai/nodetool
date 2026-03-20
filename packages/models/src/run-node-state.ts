@@ -2,19 +2,12 @@
  * RunNodeState model -- per-node execution state for workflow runs.
  *
  * Port of Python's `nodetool.models.run_node_state`.
- *
- * This is the authoritative source of truth for node execution state.
- * Recovery and scheduling read directly from this model.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, inArray } from "drizzle-orm";
+import { DBModel } from "./base-model.js";
+import { getDb } from "./db.js";
+import { runNodeState } from "./schema/run-node-state.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -27,49 +20,8 @@ export type NodeStatus =
   | "failed"
   | "suspended";
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const RUN_NODE_STATE_SCHEMA: TableSchema = {
-  table_name: "run_node_state",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    run_id: { type: "string" },
-    node_id: { type: "string" },
-    status: { type: "string" },
-    attempt: { type: "number" },
-    scheduled_at: { type: "datetime", optional: true },
-    started_at: { type: "datetime", optional: true },
-    completed_at: { type: "datetime", optional: true },
-    failed_at: { type: "datetime", optional: true },
-    suspended_at: { type: "datetime", optional: true },
-    updated_at: { type: "datetime" },
-    last_error: { type: "string", optional: true },
-    retryable: { type: "boolean" },
-    suspension_reason: { type: "string", optional: true },
-    resume_state_json: { type: "json", optional: true },
-    outputs_json: { type: "json", optional: true },
-  },
-};
-
-const RUN_NODE_STATE_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_run_node_state_run_status",
-    columns: ["run_id", "status"],
-    unique: false,
-  },
-  {
-    name: "idx_run_node_state_run_node",
-    columns: ["run_id", "node_id"],
-    unique: true,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class RunNodeState extends DBModel {
-  static override schema = RUN_NODE_STATE_SCHEMA;
-  static override indexes = RUN_NODE_STATE_INDEXES;
+  static override table = runNodeState;
 
   declare id: string;
   declare run_id: string;
@@ -88,7 +40,7 @@ export class RunNodeState extends DBModel {
   declare resume_state_json: Record<string, unknown> | null;
   declare outputs_json: Record<string, unknown> | null;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= "";
@@ -105,7 +57,7 @@ export class RunNodeState extends DBModel {
     this.resume_state_json ??= null;
     this.outputs_json ??= null;
 
-    // SQLite stores booleans as 0/1
+    // Handle raw integer booleans from legacy data
     if (typeof this.retryable === "number") {
       this.retryable = this.retryable !== 0;
     }
@@ -126,18 +78,12 @@ export class RunNodeState extends DBModel {
     runId: string,
     nodeId: string,
   ): Promise<RunNodeState | null> {
-    const cond = field("run_id")
-      .equals(runId)
-      .and(field("node_id").equals(nodeId));
-
-    const [results] = await (
-      RunNodeState as unknown as ModelClass<RunNodeState>
-    ).query({
-      condition: cond,
-      limit: 1,
-    });
-
-    return results.length > 0 ? results[0] : null;
+    const db = getDb();
+    const row = db.select().from(runNodeState)
+      .where(and(eq(runNodeState.run_id, runId), eq(runNodeState.node_id, nodeId)))
+      .limit(1)
+      .get();
+    return row ? new RunNodeState(row as Record<string, unknown>) : null;
   }
 
   /** Get existing node state or create an idle one. */
@@ -148,7 +94,7 @@ export class RunNodeState extends DBModel {
     const existing = await RunNodeState.getNodeState(runId, nodeId);
     if (existing) return existing;
 
-    return (RunNodeState as unknown as ModelClass<RunNodeState>).create({
+    return RunNodeState.create<RunNodeState>({
       run_id: runId,
       node_id: nodeId,
       status: "idle",
@@ -160,36 +106,27 @@ export class RunNodeState extends DBModel {
   static async getIncompleteNodes(
     runId: string,
   ): Promise<RunNodeState[]> {
-    const cond = field("run_id")
-      .equals(runId)
-      .and(field("status").inList(["scheduled", "running"]));
-
-    const [results] = await (
-      RunNodeState as unknown as ModelClass<RunNodeState>
-    ).query({
-      condition: cond,
-      limit: 10000,
-    });
-
-    return results;
+    const db = getDb();
+    const rows = db.select().from(runNodeState)
+      .where(and(
+        eq(runNodeState.run_id, runId),
+        inArray(runNodeState.status, ["scheduled", "running"]),
+      ))
+      .limit(10000)
+      .all();
+    return rows.map(r => new RunNodeState(r as Record<string, unknown>));
   }
 
   /** Get all suspended nodes for a run. */
   static async getSuspendedNodes(
     runId: string,
   ): Promise<RunNodeState[]> {
-    const cond = field("run_id")
-      .equals(runId)
-      .and(field("status").equals("suspended"));
-
-    const [results] = await (
-      RunNodeState as unknown as ModelClass<RunNodeState>
-    ).query({
-      condition: cond,
-      limit: 10000,
-    });
-
-    return results;
+    const db = getDb();
+    const rows = db.select().from(runNodeState)
+      .where(and(eq(runNodeState.run_id, runId), eq(runNodeState.status, "suspended")))
+      .limit(10000)
+      .all();
+    return rows.map(r => new RunNodeState(r as Record<string, unknown>));
   }
 
   // ── State transitions ─────────────────────────────────────────────

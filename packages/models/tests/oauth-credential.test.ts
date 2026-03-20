@@ -1,18 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { OAuthCredential } from "../src/oauth-credential.js";
-import type { ModelClass } from "../src/base-model.js";
-import { setMasterKey } from "@nodetool/security";
+import { encryptFernet, setMasterKey } from "@nodetool/security";
 
-const factory = new MemoryAdapterFactory();
 const TEST_MASTER_KEY = "dGVzdC1tYXN0ZXIta2V5LWZvci11bml0LXRlc3Rz"; // base64
 
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+function setup() {
+  initTestDb();
   setMasterKey(TEST_MASTER_KEY);
-  await (OAuthCredential as unknown as ModelClass).createTable();
 }
 
 describe("OAuthCredential model", () => {
@@ -20,7 +16,7 @@ describe("OAuthCredential model", () => {
   afterEach(() => ModelObserver.clear());
 
   it("creates with defaults", async () => {
-    const cred = await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    const cred = await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -61,7 +57,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("beforeSave updates updated_at", async () => {
-    const cred = await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    const cred = await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -78,7 +74,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("findByAccount returns matching credential", async () => {
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -98,7 +94,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("findByAccount scoped to user/provider/account", async () => {
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -121,7 +117,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("listForUserAndProvider returns all matching credentials", async () => {
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -129,7 +125,7 @@ describe("OAuthCredential model", () => {
       token_type: "Bearer",
       received_at: new Date().toISOString(),
     });
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc2",
@@ -137,7 +133,7 @@ describe("OAuthCredential model", () => {
       token_type: "Bearer",
       received_at: new Date().toISOString(),
     });
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "github",
       account_id: "acc3",
@@ -145,7 +141,7 @@ describe("OAuthCredential model", () => {
       token_type: "Bearer",
       received_at: new Date().toISOString(),
     });
-    await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    await OAuthCredential.create<OAuthCredential>({
       user_id: "u2",
       provider: "google",
       account_id: "acc4",
@@ -212,6 +208,24 @@ describe("OAuthCredential model", () => {
     expect(updated.expires_at).toBe("2025-01-01T00:00:00.000Z");
   });
 
+  it("decrypts Fernet-encrypted tokens for backward compatibility", async () => {
+    const accessToken = encryptFernet(TEST_MASTER_KEY, "u1", "legacy-access");
+    const refreshToken = encryptFernet(TEST_MASTER_KEY, "u1", "legacy-refresh");
+
+    const cred = await OAuthCredential.create<OAuthCredential>({
+      user_id: "u1",
+      provider: "google",
+      account_id: "acc-legacy",
+      encrypted_access_token: accessToken,
+      encrypted_refresh_token: refreshToken,
+      token_type: "Bearer",
+      received_at: new Date().toISOString(),
+    });
+
+    await expect(cred.getDecryptedAccessToken()).resolves.toBe("legacy-access");
+    await expect(cred.getDecryptedRefreshToken()).resolves.toBe("legacy-refresh");
+  });
+
   it("upsert preserves existing optional fields if not provided in update", async () => {
     await OAuthCredential.upsert({
       user_id: "u1",
@@ -243,7 +257,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("delete removes a credential", async () => {
-    const cred = await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    const cred = await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -259,7 +273,7 @@ describe("OAuthCredential model", () => {
   });
 
   it("get retrieves by primary key", async () => {
-    const cred = await (OAuthCredential as unknown as ModelClass<OAuthCredential>).create({
+    const cred = await OAuthCredential.create<OAuthCredential>({
       user_id: "u1",
       provider: "google",
       account_id: "acc1",
@@ -268,9 +282,9 @@ describe("OAuthCredential model", () => {
       received_at: new Date().toISOString(),
     });
 
-    const found = await (OAuthCredential as unknown as ModelClass<OAuthCredential>).get(cred.id);
+    const found = await OAuthCredential.get<OAuthCredential>(cred.id);
     expect(found).not.toBeNull();
-    expect((found as OAuthCredential).provider).toBe("google");
+    expect(found!.provider).toBe("google");
   });
 });
 

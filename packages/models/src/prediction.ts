@@ -4,15 +4,10 @@
  * Port of Python's `nodetool.models.prediction`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, desc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { predictions } from "./schema/predictions.js";
 
 // ── Aggregate result types ──────────────────────────────────────────
 
@@ -46,63 +41,8 @@ export interface ModelAggregateResult {
   call_count: number;
 }
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const PREDICTION_SCHEMA: TableSchema = {
-  table_name: "nodetool_predictions",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    node_id: { type: "string" },
-    provider: { type: "string" },
-    model: { type: "string" },
-    workflow_id: { type: "string", optional: true },
-    error: { type: "string", optional: true },
-    logs: { type: "string", optional: true },
-    status: { type: "string" },
-    cost: { type: "number", optional: true },
-    input_tokens: { type: "number", optional: true },
-    output_tokens: { type: "number", optional: true },
-    total_tokens: { type: "number", optional: true },
-    cached_tokens: { type: "number", optional: true },
-    reasoning_tokens: { type: "number", optional: true },
-    created_at: { type: "datetime", optional: true },
-    started_at: { type: "datetime", optional: true },
-    completed_at: { type: "datetime", optional: true },
-    duration: { type: "number", optional: true },
-    hardware: { type: "string", optional: true },
-    input_size: { type: "number", optional: true },
-    output_size: { type: "number", optional: true },
-    parameters: { type: "json", optional: true },
-    metadata: { type: "json", optional: true },
-  },
-};
-
-const PREDICTION_INDEXES: IndexSpec[] = [
-  { name: "idx_predictions_user_id", columns: ["user_id"], unique: false },
-  {
-    name: "idx_predictions_user_provider",
-    columns: ["user_id", "provider"],
-    unique: false,
-  },
-  {
-    name: "idx_prediction_created_at",
-    columns: ["created_at"],
-    unique: false,
-  },
-  {
-    name: "idx_prediction_user_model",
-    columns: ["user_id", "model"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class Prediction extends DBModel {
-  static override schema = PREDICTION_SCHEMA;
-  static override indexes = PREDICTION_INDEXES;
+  static override table = predictions;
 
   declare id: string;
   declare user_id: string;
@@ -129,7 +69,7 @@ export class Prediction extends DBModel {
   declare parameters: Record<string, unknown> | null;
   declare metadata: Record<string, unknown> | null;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -157,13 +97,9 @@ export class Prediction extends DBModel {
     this.metadata ??= null;
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
   /** Find a prediction by ID. */
   static async find(predictionId: string): Promise<Prediction | null> {
-    return (await (Prediction as unknown as ModelClass<Prediction>).get(
-      predictionId,
-    )) as Prediction | null;
+    return Prediction.get<Prediction>(predictionId);
   }
 
   static async paginate(
@@ -176,40 +112,49 @@ export class Prediction extends DBModel {
     } = {},
   ): Promise<[Prediction[], string]> {
     const { limit = 50, provider, model } = opts;
-    let cond = field("user_id").equals(userId);
-    if (provider) cond = cond.and(field("provider").equals(provider));
-    if (model) cond = cond.and(field("model").equals(model));
+    const db = getDb();
 
-    return (Prediction as unknown as ModelClass<Prediction>).query({
-      condition: cond,
-      orderBy: "created_at",
-      reverse: true,
-      limit,
-    });
+    const conditions = [eq(predictions.user_id, userId)];
+    if (provider) conditions.push(eq(predictions.provider, provider));
+    if (model) conditions.push(eq(predictions.model, model));
+
+    const rows = db.select().from(predictions)
+      .where(and(...conditions))
+      .orderBy(desc(predictions.created_at))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Prediction(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 
   static async aggregateByUser(
     userId: string,
     opts?: { provider?: string | null; model?: string | null },
   ): Promise<AggregateResult> {
-    let cond = field("user_id").equals(userId);
-    if (opts?.provider) cond = cond.and(field("provider").equals(opts.provider));
-    if (opts?.model) cond = cond.and(field("model").equals(opts.model));
+    const db = getDb();
+    const conditions = [eq(predictions.user_id, userId)];
+    if (opts?.provider) conditions.push(eq(predictions.provider, opts.provider));
+    if (opts?.model) conditions.push(eq(predictions.model, opts.model));
 
-    const [predictions] = await (
-      Prediction as unknown as ModelClass<Prediction>
-    ).query({ condition: cond, limit: 10000 });
+    const rows = db.select().from(predictions)
+      .where(and(...conditions))
+      .limit(10000)
+      .all();
 
     let total_cost = 0;
     let total_input_tokens = 0;
     let total_output_tokens = 0;
     let total_tokens = 0;
 
-    for (const p of predictions) {
-      total_cost += p.cost ?? 0;
-      total_input_tokens += p.input_tokens ?? 0;
-      total_output_tokens += p.output_tokens ?? 0;
-      total_tokens += p.total_tokens ?? 0;
+    for (const p of rows) {
+      total_cost += (p.cost as number) ?? 0;
+      total_input_tokens += (p.input_tokens as number) ?? 0;
+      total_output_tokens += (p.output_tokens as number) ?? 0;
+      total_tokens += (p.total_tokens as number) ?? 0;
     }
 
     return {
@@ -220,36 +165,31 @@ export class Prediction extends DBModel {
       total_input_tokens,
       total_output_tokens,
       total_tokens,
-      call_count: predictions.length,
+      call_count: rows.length,
     };
   }
 
   static async aggregateByProvider(
     userId: string,
   ): Promise<ProviderAggregateResult[]> {
-    const cond = field("user_id").equals(userId);
-    const [predictions] = await (
-      Prediction as unknown as ModelClass<Prediction>
-    ).query({ condition: cond, limit: 10000 });
+    const db = getDb();
+    const rows = db.select().from(predictions)
+      .where(eq(predictions.user_id, userId))
+      .limit(10000)
+      .all();
 
     const groups = new Map<string, ProviderAggregateResult>();
-    for (const p of predictions) {
-      let entry = groups.get(p.provider);
+    for (const p of rows) {
+      const prov = p.provider as string;
+      let entry = groups.get(prov);
       if (!entry) {
-        entry = {
-          provider: p.provider,
-          total_cost: 0,
-          total_input_tokens: 0,
-          total_output_tokens: 0,
-          total_tokens: 0,
-          call_count: 0,
-        };
-        groups.set(p.provider, entry);
+        entry = { provider: prov, total_cost: 0, total_input_tokens: 0, total_output_tokens: 0, total_tokens: 0, call_count: 0 };
+        groups.set(prov, entry);
       }
-      entry.total_cost += p.cost ?? 0;
-      entry.total_input_tokens += p.input_tokens ?? 0;
-      entry.total_output_tokens += p.output_tokens ?? 0;
-      entry.total_tokens += p.total_tokens ?? 0;
+      entry.total_cost += (p.cost as number) ?? 0;
+      entry.total_input_tokens += (p.input_tokens as number) ?? 0;
+      entry.total_output_tokens += (p.output_tokens as number) ?? 0;
+      entry.total_tokens += (p.total_tokens as number) ?? 0;
       entry.call_count += 1;
     }
 
@@ -260,33 +200,29 @@ export class Prediction extends DBModel {
     userId: string,
     opts?: { provider?: string | null },
   ): Promise<ModelAggregateResult[]> {
-    let cond = field("user_id").equals(userId);
-    if (opts?.provider) cond = cond.and(field("provider").equals(opts.provider));
+    const db = getDb();
+    const conditions = [eq(predictions.user_id, userId)];
+    if (opts?.provider) conditions.push(eq(predictions.provider, opts.provider));
 
-    const [predictions] = await (
-      Prediction as unknown as ModelClass<Prediction>
-    ).query({ condition: cond, limit: 10000 });
+    const rows = db.select().from(predictions)
+      .where(and(...conditions))
+      .limit(10000)
+      .all();
 
     const groups = new Map<string, ModelAggregateResult>();
-    for (const p of predictions) {
-      const key = `${p.provider}::${p.model}`;
+    for (const p of rows) {
+      const prov = p.provider as string;
+      const mod = p.model as string;
+      const key = `${prov}::${mod}`;
       let entry = groups.get(key);
       if (!entry) {
-        entry = {
-          provider: p.provider,
-          model: p.model,
-          total_cost: 0,
-          total_input_tokens: 0,
-          total_output_tokens: 0,
-          total_tokens: 0,
-          call_count: 0,
-        };
+        entry = { provider: prov, model: mod, total_cost: 0, total_input_tokens: 0, total_output_tokens: 0, total_tokens: 0, call_count: 0 };
         groups.set(key, entry);
       }
-      entry.total_cost += p.cost ?? 0;
-      entry.total_input_tokens += p.input_tokens ?? 0;
-      entry.total_output_tokens += p.output_tokens ?? 0;
-      entry.total_tokens += p.total_tokens ?? 0;
+      entry.total_cost += (p.cost as number) ?? 0;
+      entry.total_input_tokens += (p.input_tokens as number) ?? 0;
+      entry.total_output_tokens += (p.output_tokens as number) ?? 0;
+      entry.total_tokens += (p.total_tokens as number) ?? 0;
       entry.call_count += 1;
     }
 

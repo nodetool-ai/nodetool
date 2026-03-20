@@ -57,17 +57,7 @@ import {
   ReadAssetTool,
 } from "@nodetool/agents";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import {
-  SQLiteAdapterFactory,
-  setGlobalAdapterResolver,
-  Secret,
-  Workflow,
-  WorkflowVersion,
-  Job,
-  Message,
-  Thread,
-  Asset,
-} from "@nodetool/models";
+import { initDb } from "@nodetool/models";
 
 const log = createLogger("nodetool.websocket.server");
 
@@ -82,17 +72,7 @@ async function resolveProvider(providerId: string) {
 
 const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
 try {
-  const factory = new SQLiteAdapterFactory(dbPath);
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await Promise.all([
-    Workflow.createTable(),
-    WorkflowVersion.createTable(),
-    Job.createTable(),
-    Message.createTable(),
-    Thread.createTable(),
-    Asset.createTable(),
-    Secret.createTable(),
-  ]);
+  initDb(dbPath);
   log.info("Database ready", { path: dbPath });
 
   // Wire up the provider registry so it can resolve secrets from the DB

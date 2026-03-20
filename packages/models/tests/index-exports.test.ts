@@ -2,7 +2,31 @@ import { describe, it, expect } from "vitest";
 import * as models from "../src/index.js";
 
 describe("models index exports", () => {
-  it("exports ConditionBuilder utilities", () => {
+  it("exports database connection utilities", () => {
+    expect(models.initDb).toBeDefined();
+    expect(models.initTestDb).toBeDefined();
+    expect(models.getDb).toBeDefined();
+    expect(models.getRawDb).toBeDefined();
+    expect(models.closeDb).toBeDefined();
+  });
+
+  it("exports Drizzle schema tables", () => {
+    expect(models.workflows).toBeDefined();
+    expect(models.jobs).toBeDefined();
+    expect(models.messages).toBeDefined();
+    expect(models.threads).toBeDefined();
+    expect(models.assets).toBeDefined();
+    expect(models.secrets).toBeDefined();
+    expect(models.workspaces).toBeDefined();
+    expect(models.workflowVersions).toBeDefined();
+    expect(models.oauthCredentials).toBeDefined();
+    expect(models.runNodeState).toBeDefined();
+    expect(models.predictions).toBeDefined();
+    expect(models.runEvents).toBeDefined();
+    expect(models.runLeases).toBeDefined();
+  });
+
+  it("exports ConditionBuilder utilities (legacy compat)", () => {
     expect(models.Operator).toBeDefined();
     expect(models.LogicalOperator).toBeDefined();
     expect(models.Variable).toBeDefined();
@@ -13,12 +37,9 @@ describe("models index exports", () => {
     expect(models.field).toBeDefined();
   });
 
-  it("exports MemoryAdapter", () => {
+  it("exports adapter utilities (legacy compat)", () => {
     expect(models.MemoryAdapter).toBeDefined();
     expect(models.MemoryAdapterFactory).toBeDefined();
-  });
-
-  it("exports SQLiteAdapter", () => {
     expect(models.SQLiteAdapter).toBeDefined();
     expect(models.SQLiteAdapterFactory).toBeDefined();
   });
@@ -33,6 +54,12 @@ describe("models index exports", () => {
     expect(models.getGlobalAdapterResolver).toBeDefined();
   });
 
+  it("round-trips the legacy adapter resolver shim", () => {
+    const resolver = (schema: unknown) => schema;
+    models.setGlobalAdapterResolver(resolver);
+    expect(models.getGlobalAdapterResolver()).toBe(resolver);
+  });
+
   it("exports domain models", () => {
     expect(models.Job).toBeDefined();
     expect(models.Workflow).toBeDefined();
@@ -44,6 +71,9 @@ describe("models index exports", () => {
     expect(models.OAuthCredential).toBeDefined();
     expect(models.Prediction).toBeDefined();
     expect(models.Workspace).toBeDefined();
+    expect(models.RunNodeState).toBeDefined();
+    expect(models.RunEvent).toBeDefined();
+    expect(models.RunLease).toBeDefined();
   });
 
   it("exports api-graph utilities", () => {

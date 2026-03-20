@@ -1,15 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { Asset } from "../src/asset.js";
-import type { ModelClass } from "../src/base-model.js";
 
-const factory = new MemoryAdapterFactory();
-
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await (Asset as unknown as ModelClass).createTable();
+function setup() {
+  initTestDb();
 }
 
 describe("Asset.find", () => {
@@ -17,7 +12,7 @@ describe("Asset.find", () => {
   afterEach(() => ModelObserver.clear());
 
   it("returns asset when user matches", async () => {
-    const asset = await (Asset as unknown as ModelClass<Asset>).create({
+    const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "test.jpg",
       content_type: "image/jpeg",
@@ -30,7 +25,7 @@ describe("Asset.find", () => {
   });
 
   it("returns null when user does not match", async () => {
-    const asset = await (Asset as unknown as ModelClass<Asset>).create({
+    const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "test.jpg",
       content_type: "image/jpeg",
@@ -51,13 +46,13 @@ describe("Asset.paginate – additional filters", () => {
   afterEach(() => ModelObserver.clear());
 
   it("filters by workflowId", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
       workflow_id: "wf1",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
@@ -70,13 +65,13 @@ describe("Asset.paginate – additional filters", () => {
   });
 
   it("filters by nodeId", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
       node_id: "n1",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
@@ -89,13 +84,13 @@ describe("Asset.paginate – additional filters", () => {
   });
 
   it("filters by jobId", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "a.txt",
       content_type: "text/plain",
       job_id: "j1",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "b.txt",
       content_type: "text/plain",
@@ -106,6 +101,49 @@ describe("Asset.paginate – additional filters", () => {
     expect(results).toHaveLength(1);
     expect(results[0].name).toBe("a.txt");
   });
+
+  it("supports filtering root assets with parentId=null", async () => {
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "root.txt",
+      content_type: "text/plain",
+      parent_id: null,
+    });
+    const folder = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "Folder",
+      content_type: "folder",
+      parent_id: "u1",
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "nested.txt",
+      content_type: "text/plain",
+      parent_id: folder.id,
+    });
+
+    const [results] = await Asset.paginate("u1", { parentId: null });
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("root.txt");
+  });
+
+  it("returns a cursor when paginated results exceed the limit", async () => {
+    await Asset.create<Asset>({ user_id: "u1", name: "a.txt", content_type: "text/plain" });
+    await Asset.create<Asset>({ user_id: "u1", name: "b.txt", content_type: "text/plain" });
+    await Asset.create<Asset>({ user_id: "u1", name: "c.txt", content_type: "text/plain" });
+
+    const [results, cursor] = await Asset.paginate("u1", { limit: 2 });
+    expect(results).toHaveLength(2);
+    expect(cursor).toBeTruthy();
+  });
+
+  it("returns an empty page and empty cursor when limit is zero", async () => {
+    await Asset.create<Asset>({ user_id: "u1", name: "a.txt", content_type: "text/plain" });
+
+    const [results, cursor] = await Asset.paginate("u1", { limit: 0 });
+    expect(results).toEqual([]);
+    expect(cursor).toBe("");
+  });
 });
 
 describe("Asset.searchAssetsGlobal", () => {
@@ -113,17 +151,17 @@ describe("Asset.searchAssetsGlobal", () => {
   afterEach(() => ModelObserver.clear());
 
   it("searches by name substring", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "vacation-photo.jpg",
       content_type: "image/jpeg",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "work-doc.pdf",
       content_type: "application/pdf",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "photo-album.zip",
       content_type: "application/zip",
@@ -137,17 +175,17 @@ describe("Asset.searchAssetsGlobal", () => {
   });
 
   it("filters by contentType", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
       content_type: "image/jpeg",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.png",
       content_type: "image/png",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "photo-notes.txt",
       content_type: "text/plain",
@@ -160,7 +198,7 @@ describe("Asset.searchAssetsGlobal", () => {
   });
 
   it("returns empty for no matches", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "doc.txt",
       content_type: "text/plain",
@@ -171,12 +209,12 @@ describe("Asset.searchAssetsGlobal", () => {
   });
 
   it("scoped to user", async () => {
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "shared-file.txt",
       content_type: "text/plain",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u2",
       name: "shared-file.txt",
       content_type: "text/plain",
@@ -186,6 +224,46 @@ describe("Asset.searchAssetsGlobal", () => {
     expect(results).toHaveLength(1);
     expect(results[0].user_id).toBe("u1");
   });
+
+  it("uses the Unknown fallback when a parent folder cannot be resolved", async () => {
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "orphaned.txt",
+      content_type: "text/plain",
+      parent_id: "missing-folder",
+    });
+
+    const pathInfoSpy = vi.spyOn(Asset, "getAssetPathInfo").mockResolvedValue({});
+    const [, , paths] = await Asset.searchAssetsGlobal("u1", "orphaned");
+    expect(paths).toEqual([
+      {
+        folder_name: "Unknown",
+        folder_path: "Unknown",
+        folder_id: "missing-folder",
+      },
+    ]);
+    pathInfoSpy.mockRestore();
+  });
+
+  it("uses an empty fallback folder id when the asset has no parent", async () => {
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "root-level.txt",
+      content_type: "text/plain",
+      parent_id: null,
+    });
+
+    const pathInfoSpy = vi.spyOn(Asset, "getAssetPathInfo").mockResolvedValue({});
+    const [, , paths] = await Asset.searchAssetsGlobal("u1", "root-level");
+    expect(paths).toEqual([
+      {
+        folder_name: "Unknown",
+        folder_path: "Unknown",
+        folder_id: "",
+      },
+    ]);
+    pathInfoSpy.mockRestore();
+  });
 });
 
 describe("Asset.getAssetPathInfo", () => {
@@ -193,7 +271,7 @@ describe("Asset.getAssetPathInfo", () => {
   afterEach(() => ModelObserver.clear());
 
   it("returns Home for root-level assets", async () => {
-    const asset = await (Asset as unknown as ModelClass<Asset>).create({
+    const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "root-file.txt",
       content_type: "text/plain",
@@ -209,13 +287,13 @@ describe("Asset.getAssetPathInfo", () => {
   });
 
   it("returns folder path for nested assets", async () => {
-    const folder = await (Asset as unknown as ModelClass<Asset>).create({
+    const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Photos",
       content_type: "folder",
       parent_id: "u1",
     });
-    const file = await (Asset as unknown as ModelClass<Asset>).create({
+    const file = await Asset.create<Asset>({
       user_id: "u1",
       name: "sunset.jpg",
       content_type: "image/jpeg",
@@ -234,19 +312,19 @@ describe("Asset.getAssetPathInfo", () => {
   });
 
   it("handles deeply nested folders", async () => {
-    const f1 = await (Asset as unknown as ModelClass<Asset>).create({
+    const f1 = await Asset.create<Asset>({
       user_id: "u1",
       name: "Level1",
       content_type: "folder",
       parent_id: "u1",
     });
-    const f2 = await (Asset as unknown as ModelClass<Asset>).create({
+    const f2 = await Asset.create<Asset>({
       user_id: "u1",
       name: "Level2",
       content_type: "folder",
       parent_id: f1.id,
     });
-    const file = await (Asset as unknown as ModelClass<Asset>).create({
+    const file = await Asset.create<Asset>({
       user_id: "u1",
       name: "deep.txt",
       content_type: "text/plain",
@@ -256,6 +334,23 @@ describe("Asset.getAssetPathInfo", () => {
     const info = await Asset.getAssetPathInfo("u1", [file.id]);
     expect(info[file.id].folder_path).toBe("Home / Level1 / Level2");
     expect(info[file.id].folder_name).toBe("Level2");
+  });
+
+  it("skips missing assets and falls back to Home when a parent folder is missing", async () => {
+    const orphaned = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "orphaned.txt",
+      content_type: "text/plain",
+      parent_id: "missing-folder",
+    });
+
+    const info = await Asset.getAssetPathInfo("u1", [orphaned.id, "nonexistent-id"]);
+    expect(info).not.toHaveProperty("nonexistent-id");
+    expect(info[orphaned.id]).toEqual({
+      folder_name: "Home",
+      folder_path: "Home",
+      folder_id: "u1",
+    });
   });
 });
 
@@ -269,24 +364,24 @@ describe("Asset.getAssetsRecursive", () => {
   });
 
   it("recursively fetches nested assets", async () => {
-    const folder = await (Asset as unknown as ModelClass<Asset>).create({
+    const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Root Folder",
       content_type: "folder",
     });
-    const subfolder = await (Asset as unknown as ModelClass<Asset>).create({
+    const subfolder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Sub Folder",
       content_type: "folder",
       parent_id: folder.id,
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "file1.txt",
       content_type: "text/plain",
       parent_id: folder.id,
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "file2.txt",
       content_type: "text/plain",

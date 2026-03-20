@@ -1,27 +1,23 @@
 /**
  * Tests for the Workspace model.
  *
- * Covers: createTable, defaults, beforeSave (updated_at), isAccessible,
+ * Covers: defaults, beforeSave (updated_at), isAccessible,
  * find, paginate, getDefault, hasLinkedWorkflows, unsetOtherDefaults.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { Workspace } from "../src/workspace.js";
 import { Workflow } from "../src/workflow.js";
-import type { ModelClass } from "../src/base-model.js";
 import * as os from "node:os";
+import { chmodSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
 // ── Setup ────────────────────────────────────────────────────────────
 
-const factory = new MemoryAdapterFactory();
-
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await (Workspace as unknown as ModelClass).createTable();
-  await (Workflow as unknown as ModelClass).createTable();
+function setup() {
+  initTestDb();
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -32,7 +28,7 @@ async function createWorkspace(
   path = "/tmp/ws",
   isDefault = false,
 ): Promise<Workspace> {
-  return (Workspace as unknown as ModelClass<Workspace>).create({
+  return Workspace.create<Workspace>({
     user_id: userId,
     name,
     path,
@@ -90,6 +86,36 @@ describe("Workspace model", () => {
     expect(ws.isAccessible()).toBe(false);
   });
 
+  it("coerces legacy numeric is_default values to booleans", () => {
+    const ws = new Workspace({
+      id: "x",
+      user_id: "u1",
+      name: "legacy",
+      path: "/tmp/ws",
+      is_default: 1,
+    });
+    expect(ws.is_default).toBe(true);
+  });
+
+  it("isAccessible returns false when accessSync throws", () => {
+    const lockedDir = mkdtempSync(join(os.tmpdir(), "workspace-access-"));
+    chmodSync(lockedDir, 0o400);
+
+    try {
+      const ws = new Workspace({
+        user_id: "u1",
+        name: "ws",
+        path: lockedDir,
+        id: "x",
+      });
+
+      expect(ws.isAccessible()).toBe(false);
+    } finally {
+      chmodSync(lockedDir, 0o700);
+      rmSync(lockedDir, { recursive: true, force: true });
+    }
+  });
+
   it("find returns workspace scoped to user", async () => {
     const ws = await createWorkspace("u1", "WS");
     const found = await Workspace.find("u1", ws.id);
@@ -128,6 +154,24 @@ describe("Workspace model", () => {
     expect(workspaces).toHaveLength(2);
   });
 
+  it("paginate returns a cursor when the limit is exceeded", async () => {
+    await createWorkspace("u1", "WS-A");
+    await createWorkspace("u1", "WS-B");
+    await createWorkspace("u1", "WS-C");
+
+    const [workspaces, cursor] = await Workspace.paginate("u1", { limit: 2 });
+    expect(workspaces).toHaveLength(2);
+    expect(cursor).toBeTruthy();
+  });
+
+  it("paginate returns an empty page and empty cursor when limit is zero", async () => {
+    await createWorkspace("u1", "WS-A");
+
+    const [workspaces, cursor] = await Workspace.paginate("u1", { limit: 0 });
+    expect(workspaces).toEqual([]);
+    expect(cursor).toBe("");
+  });
+
   it("paginate returns empty array when user has no workspaces", async () => {
     const [workspaces] = await Workspace.paginate("nobody");
     expect(workspaces).toHaveLength(0);
@@ -162,7 +206,7 @@ describe("Workspace model", () => {
 
   it("hasLinkedWorkflows returns true when a workflow references the workspace", async () => {
     const ws = await createWorkspace("u1", "WS");
-    await (Workflow as unknown as ModelClass<Workflow>).create({
+    await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Linked Workflow",
       workspace_id: ws.id,
