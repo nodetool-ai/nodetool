@@ -131,13 +131,12 @@ jobs:
           DEBUG: electron-builder
         run: |
           cd electron
-          npm ci
           npm run download-micromamba
           npm run vite:build
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
       - name: Resolve Windows artifacts (paths)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -165,7 +164,7 @@ jobs:
           echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
 
       - name: Decide whether to sign (skip test tags)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -178,7 +177,7 @@ jobs:
           echo "Windows signing enabled: ${SHOULD_SIGN}"
 
       - name: Sign main app exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -192,7 +191,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed app exe back to unpacked directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -206,7 +205,7 @@ jobs:
           echo "Moved signed exe to ${APP_EXE}"
 
       - name: Build NSIS installer from prepackaged app (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -217,7 +216,7 @@ jobs:
           npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
 
       - name: Sign installer exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -231,7 +230,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed installer back to dist directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -245,7 +244,7 @@ jobs:
           echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -303,7 +302,7 @@ jobs:
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -337,7 +336,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd electron
-          npm ci
           npm run download-micromamba
           npm run vite:build
           npx electron-builder --config electron-builder.json --publish never
