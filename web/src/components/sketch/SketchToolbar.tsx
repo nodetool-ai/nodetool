@@ -84,6 +84,7 @@ function loadCollapsedSections(): Record<SectionKey, boolean> {
   } catch {
     // localStorage parse failed, use defaults
   }
+  // Shortcuts collapsed by default to save vertical space — users can expand when needed
   return {
     colors: false,
     toolSettings: false,
@@ -289,6 +290,21 @@ const styles = (theme: Theme) =>
       }
     }
   });
+
+function getToolSettingsLabel(tool: SketchTool): string {
+  switch (tool) {
+    case "brush": return "Brush";
+    case "pencil": return "Pencil";
+    case "eraser": return "Eraser";
+    case "fill": return "Fill";
+    case "blur": return "Blur Brush";
+    case "line":
+    case "rectangle":
+    case "ellipse":
+    case "arrow": return "Shape";
+    default: return "Settings";
+  }
+}
 
 export interface SketchToolbarProps {
   activeTool: SketchTool;
@@ -613,15 +629,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
       {/* ── Tool Settings (collapsible, contextual) ───────────────── */}
       <ToolbarSection
-        title={
-          activeTool === "brush" ? "Brush"
-            : activeTool === "pencil" ? "Pencil"
-              : activeTool === "eraser" ? "Eraser"
-                : activeTool === "fill" ? "Fill"
-                  : activeTool === "blur" ? "Blur Brush"
-                    : isShapeTool(activeTool) ? "Shape"
-                      : "Settings"
-        }
+        title={getToolSettingsLabel(activeTool)}
         sectionKey="toolSettings"
         collapsed={collapsedSections.toolSettings}
         onToggle={handleToggleSection}
@@ -998,17 +1006,42 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         collapsed={collapsedSections.shortcuts}
         onToggle={handleToggleSection}
       >
-        <Typography sx={{ fontSize: "0.72rem", color: "grey.400", lineHeight: 1.7 }}>
-          <strong>V</strong> Move &nbsp; <strong>B</strong> Brush &nbsp; <strong>P</strong> Pencil<br />
-          <strong>E</strong> Eraser &nbsp; <strong>G</strong> Fill &nbsp; <strong>I</strong> Eyedropper<br />
-          <strong>Q</strong> Blur &nbsp; <strong>L</strong> Line &nbsp; <strong>R</strong> Rect<br />
-          <strong>O</strong> Ellipse &nbsp; <strong>M</strong> Mirror &nbsp; <strong>X</strong> Swap<br />
-          <strong>D</strong> Reset colors &nbsp; <strong>Tab</strong> Toggle UI<br />
-          <strong>[ / ]</strong> Size &nbsp; <strong>S+Drag</strong> Adj. size<br />
-          <strong>Shift</strong> Constrain &nbsp; <strong>Space+Drag</strong> Pan<br />
-          <strong>+ / −</strong> Zoom &nbsp; <strong>Ctrl+0</strong> Reset view<br />
-          <strong>Delete</strong> Clear layer &nbsp; <strong>Ctrl+S</strong> Export
-        </Typography>
+        <Box
+          component="dl"
+          sx={{
+            fontSize: "0.72rem",
+            color: "grey.400",
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            gap: "1px 6px",
+            m: 0,
+            "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
+            "& dd": { m: 0 }
+          }}
+        >
+          <dt>V</dt><dd>Move</dd>
+          <dt>B</dt><dd>Brush</dd>
+          <dt>P</dt><dd>Pencil</dd>
+          <dt>E</dt><dd>Eraser</dd>
+          <dt>G</dt><dd>Fill</dd>
+          <dt>I</dt><dd>Eyedropper</dd>
+          <dt>Q</dt><dd>Blur</dd>
+          <dt>L</dt><dd>Line</dd>
+          <dt>R</dt><dd>Rect</dd>
+          <dt>O</dt><dd>Ellipse</dd>
+          <dt>A</dt><dd>Arrow</dd>
+          <dt>M</dt><dd>Mirror</dd>
+          <dt>X</dt><dd>Swap colors</dd>
+          <dt>D</dt><dd>Reset colors</dd>
+          <dt>Tab</dt><dd>Toggle UI</dd>
+          <dt>[ / ]</dt><dd>Brush size</dd>
+          <dt>Shift</dt><dd>Constrain</dd>
+          <dt>Space</dt><dd>Pan</dd>
+          <dt>+ / −</dt><dd>Zoom</dd>
+          <dt>Ctrl+0</dt><dd>Reset view</dd>
+          <dt>Del</dt><dd>Clear layer</dd>
+          <dt>Ctrl+S</dt><dd>Export</dd>
+        </Box>
       </ToolbarSection>
     </Box>
   );
