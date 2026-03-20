@@ -5,7 +5,7 @@
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
   "scripts": {
-    "prebuild": "node scripts/download-micromamba.cjs",
+    "prebuild": "node scripts/verify-lock-files.cjs && node scripts/download-micromamba.cjs",
     "download-micromamba": "node scripts/download-micromamba.cjs",
     "start": "electron .",
     "start:devmode": "electron .",
