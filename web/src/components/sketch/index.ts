@@ -54,6 +54,7 @@ export {
   createDefaultLayer,
   generateLayerId,
   isShapeTool,
+  isPaintingTool,
   MAX_HISTORY_SIZE
 } from "./types";
 

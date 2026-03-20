@@ -309,4 +309,9 @@ export function isShapeTool(tool: SketchTool): tool is ShapeToolType {
   return tool === "line" || tool === "rectangle" || tool === "ellipse" || tool === "arrow";
 }
 
+/** Check if a tool is a painting tool (supports Alt+click eyedropper) */
+export function isPaintingTool(tool: SketchTool): boolean {
+  return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill";
+}
+
 export const MAX_HISTORY_SIZE = 30;

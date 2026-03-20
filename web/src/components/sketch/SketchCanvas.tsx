@@ -31,7 +31,8 @@ import {
   GradientSettings,
   Point,
   BlendMode,
-  isShapeTool
+  isShapeTool,
+  isPaintingTool
 } from "./types";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -847,8 +848,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // Alt+click on a painting tool samples color (Photoshop eyedropper).
         // This check MUST come before the Alt+click pan check below so that
         // painting tools get eyedropper behavior instead of panning.
-        const isPaintingTool = activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "fill";
-        if (e.button === 0 && e.altKey && isPaintingTool && onEyedropperPick) {
+        if (e.button === 0 && e.altKey && isPaintingTool(activeTool) && onEyedropperPick) {
           const displayCanvas = displayCanvasRef.current;
           if (displayCanvas) {
             const ctx = displayCanvas.getContext("2d");
@@ -1216,7 +1216,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         lastPointRef.current = null;
 
-        // Alpha lock: restore original alpha channel after drawing
+        // Alpha lock: restore original alpha channel after drawing.
+        // Note: iterates all pixels; for very large canvases a dirty-rect
+        // optimization could limit this to the stroke bounding box.
         if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
           if (layerCanvas) {
