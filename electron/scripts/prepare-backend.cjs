@@ -1,163 +1,260 @@
 /**
  * Prepares a self-contained backend bundle for the Electron app.
  *
- * This script:
- * 1. Aggregates third-party production dependencies from all workspace packages.
- * 2. Runs `npm install --omit=dev` to fetch them.
- * 3. Copies all workspace packages (dist/ + package.json) into the bundle.
- * 4. Renames node_modules to "modules" to avoid electron-builder filtering.
- *
- * At runtime, NODE_PATH is set to the "modules" directory so that
- * Node.js module resolution works as normal.
+ * The bundle lives under backend/modules/node_modules so electron-builder will
+ * keep the directory tree and Node can use its normal module resolution in the
+ * packaged app.
  */
 
 const fs = require("fs");
 const fsp = fs.promises;
+const Module = require("module");
 const path = require("path");
-const { execSync } = require("child_process");
 
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_NODE_MODULES_DIR = path.join(ROOT_DIR, "node_modules");
 const ELECTRON_DIR = path.resolve(__dirname, "..");
 const BUNDLE_DIR = path.join(ELECTRON_DIR, "backend-bundle");
+const BUNDLE_MODULES_DIR = path.join(BUNDLE_DIR, "modules");
+const BUNDLE_NODE_MODULES_DIR = path.join(BUNDLE_MODULES_DIR, "node_modules");
 const PACKAGES_DIR = path.join(ROOT_DIR, "packages");
+const WORKSPACE_SCOPE = "@nodetool/";
+const ENTRY_PACKAGE = "@nodetool/websocket";
 
-async function copyDir(src, dest) {
-  await fsp.mkdir(dest, { recursive: true });
-  const entries = await fsp.readdir(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      await copyDir(srcPath, destPath);
-    } else {
-      await fsp.copyFile(srcPath, destPath);
-    }
-  }
+async function readJson(filePath) {
+  return JSON.parse(await fsp.readFile(filePath, "utf8"));
 }
 
-/**
- * Scans all workspace packages and returns:
- * - packageInfos: array of { scopedName, shortName, pkgPath, pkgJson }
- * - allDeps: aggregated third-party dependencies
- */
-async function scanWorkspacePackages() {
+async function copyDir(src, dest, { excludeNodeModules = false } = {}) {
+  await fsp.cp(src, dest, {
+    recursive: true,
+    force: true,
+    preserveTimestamps: true,
+    filter: (source) => {
+      if (!excludeNodeModules) {
+        return true;
+      }
+      return path.basename(source) !== "node_modules";
+    },
+  });
+}
+
+async function loadWorkspacePackages() {
   const packageDirs = (await fsp.readdir(PACKAGES_DIR, { withFileTypes: true }))
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 
-  const allDeps = {};
-  const packageInfos = [];
+  const packageMap = new Map();
 
-  for (const pkgDir of packageDirs) {
-    const pkgPath = path.join(PACKAGES_DIR, pkgDir);
+  for (const packageDir of packageDirs) {
+    const pkgPath = path.join(PACKAGES_DIR, packageDir);
     const pkgJsonPath = path.join(pkgPath, "package.json");
 
-    if (!fs.existsSync(pkgJsonPath)) continue;
+    if (!fs.existsSync(pkgJsonPath)) {
+      continue;
+    }
 
-    const pkgJson = JSON.parse(await fsp.readFile(pkgJsonPath, "utf8"));
+    const pkgJson = await readJson(pkgJsonPath);
     const scopedName = pkgJson.name;
+    if (!scopedName || !scopedName.startsWith(WORKSPACE_SCOPE)) {
+      continue;
+    }
 
-    if (!scopedName || !scopedName.startsWith("@nodetool/")) continue;
+    packageMap.set(scopedName, {
+      scopedName,
+      shortName: scopedName.slice(WORKSPACE_SCOPE.length),
+      pkgPath,
+      pkgJson,
+    });
+  }
 
-    const shortName = scopedName.replace("@nodetool/", "");
-    packageInfos.push({ scopedName, shortName, pkgPath, pkgJson });
+  return packageMap;
+}
 
-    // Collect third-party dependencies
-    if (pkgJson.dependencies) {
-      for (const [dep, version] of Object.entries(pkgJson.dependencies)) {
-        if (dep.startsWith("@nodetool/")) continue;
-        if (version === "*") continue;
-        if (!allDeps[dep] || allDeps[dep] === "*") {
-          allDeps[dep] = version;
-        }
+function getRuntimeDependencies(pkgJson) {
+  return {
+    ...(pkgJson.dependencies ?? {}),
+    ...(pkgJson.optionalDependencies ?? {}),
+  };
+}
+
+function collectReachableWorkspacePackages(packageMap, entryPackageName) {
+  const reachable = [];
+  const seen = new Set();
+  const stack = [entryPackageName];
+
+  while (stack.length > 0) {
+    const packageName = stack.pop();
+    if (!packageName || seen.has(packageName)) {
+      continue;
+    }
+
+    const packageInfo = packageMap.get(packageName);
+    if (!packageInfo) {
+      throw new Error(`Missing workspace package ${packageName}`);
+    }
+
+    seen.add(packageName);
+    reachable.push(packageInfo);
+
+    for (const dependencyName of Object.keys(getRuntimeDependencies(packageInfo.pkgJson))) {
+      if (dependencyName.startsWith(WORKSPACE_SCOPE)) {
+        stack.push(dependencyName);
       }
     }
   }
 
-  return { packageInfos, allDeps };
+  return reachable;
+}
+
+function resolveInstalledDependency(fromDir, bundleDir, dependencyName) {
+  const sourceSearchPaths = Module._nodeModulePaths(fromDir);
+  const bundleSearchPaths = Module._nodeModulePaths(bundleDir);
+
+  for (let index = 0; index < sourceSearchPaths.length; index += 1) {
+    const candidate = path.join(
+      sourceSearchPaths[index],
+      dependencyName,
+      "package.json"
+    );
+    if (fs.existsSync(candidate)) {
+      const bundleNodeModulesPath = bundleSearchPaths[index];
+      if (!bundleNodeModulesPath) {
+        throw new Error(
+          `No bundle node_modules path available for ${dependencyName} from ${bundleDir}`
+        );
+      }
+
+      return {
+        packageRoot: path.dirname(candidate),
+        bundleRoot: path.join(bundleNodeModulesPath, dependencyName),
+      };
+    }
+  }
+
+  return null;
+}
+
+async function copyWorkspacePackage(packageInfo) {
+  const destDir = path.join(BUNDLE_NODE_MODULES_DIR, packageInfo.scopedName);
+  const distPath = path.join(packageInfo.pkgPath, "dist");
+
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Workspace package ${packageInfo.scopedName} has no dist directory. Run npm run build:packages first.`
+    );
+  }
+
+  await fsp.mkdir(destDir, { recursive: true });
+  await copyDir(distPath, path.join(destDir, "dist"));
+  await fsp.copyFile(
+    path.join(packageInfo.pkgPath, "package.json"),
+    path.join(destDir, "package.json")
+  );
+
+  return destDir;
+}
+
+async function collectThirdPartyPackages(workspacePackages) {
+  const packagesToCopy = new Map();
+  const processed = new Set();
+  const queue = [];
+
+  function enqueueDependencies(packageRoot, bundleRoot, pkgJson) {
+    for (const [dependencyName] of Object.entries(getRuntimeDependencies(pkgJson))) {
+      if (dependencyName.startsWith(WORKSPACE_SCOPE)) {
+        continue;
+      }
+
+      const dependency = resolveInstalledDependency(
+        packageRoot,
+        bundleRoot,
+        dependencyName
+      );
+      const isOptional = Boolean(pkgJson.optionalDependencies?.[dependencyName]);
+
+      if (!dependency) {
+        if (isOptional) {
+          console.warn(`  Warning: optional dependency ${dependencyName} was not installed`);
+          continue;
+        }
+        throw new Error(
+          `Could not resolve dependency ${dependencyName} from ${packageRoot}`
+        );
+      }
+
+      const bundleKey = path.relative(BUNDLE_DIR, dependency.bundleRoot);
+      if (processed.has(bundleKey)) {
+        continue;
+      }
+
+      processed.add(bundleKey);
+      packagesToCopy.set(bundleKey, dependency);
+      queue.push(dependency);
+    }
+  }
+
+  for (const workspacePackage of workspacePackages) {
+    enqueueDependencies(
+      workspacePackage.pkgPath,
+      workspacePackage.bundleRoot,
+      workspacePackage.pkgJson
+    );
+  }
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const pkgJsonPath = path.join(current.packageRoot, "package.json");
+    const pkgJson = await readJson(pkgJsonPath);
+    enqueueDependencies(current.packageRoot, current.bundleRoot, pkgJson);
+  }
+
+  return packagesToCopy;
 }
 
 async function main() {
   console.log("Preparing backend bundle for Electron...\n");
 
-  // Clean previous bundle
+  if (!fs.existsSync(ROOT_NODE_MODULES_DIR)) {
+    throw new Error("Root node_modules directory not found. Run npm ci first.");
+  }
+
   if (fs.existsSync(BUNDLE_DIR)) {
     console.log("Cleaning previous bundle...");
-    await fsp.rm(BUNDLE_DIR, { recursive: true });
+    await fsp.rm(BUNDLE_DIR, { recursive: true, force: true });
   }
-  await fsp.mkdir(BUNDLE_DIR, { recursive: true });
+  await fsp.mkdir(BUNDLE_NODE_MODULES_DIR, { recursive: true });
 
-  // Step 1: Scan packages and collect deps
-  const { packageInfos, allDeps } = await scanWorkspacePackages();
-
-  // Step 2: Install third-party dependencies
-  const bundlePackageJson = {
-    name: "nodetool-backend-bundle",
-    version: "1.0.0",
-    private: true,
-    dependencies: allDeps,
-  };
-
-  const bundlePkgPath = path.join(BUNDLE_DIR, "package.json");
-  await fsp.writeFile(
-    bundlePkgPath,
-    JSON.stringify(bundlePackageJson, null, 2)
+  const workspacePackages = await loadWorkspacePackages();
+  const reachableWorkspacePackages = collectReachableWorkspacePackages(
+    workspacePackages,
+    ENTRY_PACKAGE
   );
 
-  console.log(
-    `Installing ${Object.keys(allDeps).length} third-party dependencies...`
+  console.log(`Copying ${reachableWorkspacePackages.length} workspace packages...`);
+  for (const packageInfo of reachableWorkspacePackages) {
+    packageInfo.bundleRoot = await copyWorkspacePackage(packageInfo);
+    console.log(`  Copied ${packageInfo.scopedName}`);
+  }
+
+  const thirdPartyPackages = await collectThirdPartyPackages(
+    reachableWorkspacePackages
   );
-  execSync("npm install --omit=dev", {
-    cwd: BUNDLE_DIR,
-    stdio: "inherit",
-  });
 
-  // Step 3: Copy workspace packages into node_modules/@nodetool/
-  const nodetoolDir = path.join(BUNDLE_DIR, "node_modules", "@nodetool");
-  await fsp.mkdir(nodetoolDir, { recursive: true });
-
-  let copiedCount = 0;
-  for (const { scopedName, shortName, pkgPath } of packageInfos) {
-    const destDir = path.join(nodetoolDir, shortName);
-    await fsp.mkdir(destDir, { recursive: true });
-
-    // Copy dist/
-    const distPath = path.join(pkgPath, "dist");
-    if (fs.existsSync(distPath)) {
-      await copyDir(distPath, path.join(destDir, "dist"));
-      console.log(`  Copied ${scopedName}`);
-      copiedCount++;
-    } else {
-      console.warn(`  Warning: ${scopedName} has no dist/ directory`);
-    }
-
-    // Copy package.json (needed for ESM "type" field and "exports")
-    await fsp.copyFile(
-      path.join(pkgPath, "package.json"),
-      path.join(destDir, "package.json")
+  console.log(`\nCopying ${thirdPartyPackages.size} third-party packages...`);
+  for (const dependency of thirdPartyPackages.values()) {
+    await copyDir(
+      dependency.packageRoot,
+      dependency.bundleRoot,
+      { excludeNodeModules: true }
     );
-  }
-
-  console.log(`\nCopied ${copiedCount} workspace packages.`);
-
-  // Step 4: Rename node_modules → modules
-  // electron-builder filters out "node_modules" from extraResources
-  const nodeModulesPath = path.join(BUNDLE_DIR, "node_modules");
-  const modulesPath = path.join(BUNDLE_DIR, "modules");
-  await fsp.rename(nodeModulesPath, modulesPath);
-
-  // Clean up build artifacts
-  for (const f of ["package.json", "package-lock.json"]) {
-    try {
-      await fsp.unlink(path.join(BUNDLE_DIR, f));
-    } catch {
-      // ignore
-    }
   }
 
   console.log("\nBackend bundle prepared successfully!");
   console.log(`  Location: ${BUNDLE_DIR}`);
-  console.log(`  Entry:    modules/@nodetool/websocket/dist/server.js`);
+  console.log(
+    "  Entry:    modules/node_modules/@nodetool/websocket/dist/server.js"
+  );
 }
 
 main().catch((err) => {
