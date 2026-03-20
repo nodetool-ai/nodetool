@@ -19,6 +19,10 @@
             "to": "web"
         },
         {
+            "from": "backend-bundle",
+            "to": "backend"
+        },
+        {
             "from": "resources/environment.lock.yml",
             "to": "environment.lock.yml"
         },
