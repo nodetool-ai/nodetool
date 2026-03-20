@@ -181,6 +181,7 @@ describe("Sketch Types", () => {
       expect(isShapeTool("eraser")).toBe(false);
       expect(isShapeTool("eyedropper")).toBe(false);
       expect(isShapeTool("fill")).toBe(false);
+      expect(isShapeTool("move")).toBe(false);
     });
   });
 });

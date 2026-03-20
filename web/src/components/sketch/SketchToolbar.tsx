@@ -31,12 +31,15 @@ import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
+import OpenWithIcon from "@mui/icons-material/OpenWith";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import FlipIcon from "@mui/icons-material/Flip";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import {
   SketchTool,
   BrushSettings,
@@ -143,6 +146,8 @@ export interface SketchToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onClearLayer: () => void;
+  onExportPng: () => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -169,7 +174,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onRedo,
   onZoomIn,
   onZoomOut,
-  onZoomReset
+  onZoomReset,
+  onClearLayer,
+  onExportPng
 }) => {
   const theme = useTheme();
 
@@ -202,6 +209,22 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
   return (
     <Box css={styles(theme)}>
+      {/* Move Tool */}
+      <Typography className="section-label">Transform</Typography>
+      <ToggleButtonGroup
+        value={activeTool}
+        exclusive
+        onChange={handleToolChange}
+        size="small"
+        className="tool-group"
+      >
+        <ToggleButton value="move" aria-label="Move">
+          <Tooltip title="Move (V)">
+            <OpenWithIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
+
       {/* Drawing Tools */}
       <Typography className="section-label">Draw</Typography>
       <ToggleButtonGroup
@@ -297,13 +320,27 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <FlipIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Mirror Vertical (V)">
+        <Tooltip title="Mirror Vertical">
           <IconButton
             size="small"
             onClick={() => onMirrorYChange(!mirrorY)}
             color={mirrorY ? "primary" : "default"}
           >
             <FlipIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Actions */}
+      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+        <Tooltip title="Clear Layer (Delete)">
+          <IconButton size="small" onClick={onClearLayer}>
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Export PNG (Ctrl+S)">
+          <IconButton size="small" onClick={onExportPng}>
+            <SaveAltIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
@@ -538,8 +575,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       <Divider />
       <Typography className="section-label">Shortcuts</Typography>
       <Typography sx={{ fontSize: "0.6rem", color: "grey.500", lineHeight: 1.6 }}>
+        V — Move tool<br />
         [ / ] — Brush size<br />
         + / − — Zoom<br />
+        Delete — Clear layer<br />
+        Ctrl+S — Export PNG<br />
         Ctrl+0 — Reset view
       </Typography>
     </Box>

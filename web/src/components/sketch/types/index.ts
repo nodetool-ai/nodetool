@@ -31,6 +31,7 @@ export interface Color {
 // ─── Tool Types ───────────────────────────────────────────────────────────────
 
 export type SketchTool =
+  | "move"
   | "brush"
   | "pencil"
   | "eraser"

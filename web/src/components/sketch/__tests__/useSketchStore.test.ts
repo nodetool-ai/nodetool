@@ -208,6 +208,20 @@ describe("useSketchStore", () => {
         "data:image/png;base64,test"
       );
     });
+
+    it("clears layer data (set to null)", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().updateLayerData(layerId, "data:image/png;base64,test");
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(
+        "data:image/png;base64,test"
+      );
+      act(() => {
+        useSketchStore.getState().updateLayerData(layerId, null);
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBeNull();
+    });
   });
 
   describe("document actions", () => {
@@ -371,6 +385,13 @@ describe("useSketchStore", () => {
   });
 
   describe("new tool types", () => {
+    it("sets move tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("move");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("move");
+    });
+
     it("sets fill tool", () => {
       act(() => {
         useSketchStore.getState().setActiveTool("fill");
