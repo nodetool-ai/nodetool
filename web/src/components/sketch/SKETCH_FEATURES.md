@@ -1,7 +1,7 @@
 # Sketch Editor — Comprehensive Feature Checklist
 
-> **Status**: Phase 1 complete, Phase 2 in progress  
-> **Last updated**: 2026-03-21
+> **Status**: Phase 1 complete, Phase 2 nearing completion  
+> **Last updated**: 2026-03-20
 
 **How to read this doc:** **Remaining work** first → **Defaults** & **Keyboard shortcuts** → **Architecture** → **Recommended follow-ups** (backlog, Krita, tips) → **Appendices** (shipped Phase 1 & 2) → **Stretch goals** last.
 
@@ -35,9 +35,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
 - [ ] imporove Blur brush: currently smears the image when dragging due to creating hard edges
 - [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
-- [ ] Crop tool
-- [ ] Gradient tool / gradient fill
-- [ ] Adjustment section with sliders for: brightness, contrast, saturation, exposure, blur
+- [x] Crop tool (C key, drag to select crop region)
+- [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
+- [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [ ] **Brush engine variants** (see **Brush types** below)
 
 #### Brush types (engine / presets)
@@ -65,8 +65,8 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 #### Canvas & view
 
 - [x] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
-- [ ] Zoom 2x faster and a bit smoother
-- [ ] canvas size: set with presets and custom, new small info row at center bottom to show canvas size + img / asset info (asset name, type)
+- [x] Zoom 2x faster and a bit smoother (symmetric 1.15x factor)
+- [x] canvas size: set with presets and custom, new small info row at center bottom to show canvas size + img / asset info (asset name, type)
 - [x] **Space + drag** to pan from any tool (in addition to middle mouse)
 - [x] **Toggle UI / panels** shortcut (**Tab**)
 
@@ -77,13 +77,13 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Panel layout persistence** (collapsed state in `localStorage`)
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
-- [ ] **Context-sensitive** right-click menu (draw, select, etc.)
+- [x] **Context-sensitive** right-click menu (draw, select, etc.)
 
 #### Gesture shortcuts (parity — open conflicts)
 
 | Reference    | Intent            | NodeTool plan                                                                       |
 | ------------ | ----------------- | ----------------------------------------------------------------------------------- |
-| **S** + drag | Adjust brush size | [ ] Canvas drag while **S** held (do **not** break **Ctrl+S** save).                |
+| **S** + drag | Adjust brush size | [x] Canvas drag while **S** held (do **not** break **Ctrl+S** save).                |
 | **O** + drag | Adjust opacity    | [ ] **Conflict:** **O** = ellipse. Use **Alt+O** / **Shift+O** / opacity ring only. |
 | **X**        | Swap FG/BG        | [x] Shipped (with FG/BG color model).                                               |
 | **Space**    | Pan / panels      | [x] **Space+drag** = pan; **Tab** = toggle panel visibility.                        |
@@ -91,7 +91,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 #### Node behavior & SketchInput
 
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
-- [ ] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
+- [x] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
 - [ ] Fix input image not showing up as layer
 - [ ] add "Expose" layer feature that creates additional dynamic inputs in node using layer name
 - [ ] Cleaner node UI styling
@@ -148,6 +148,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | E                        | Eraser                                           |
 | G                        | Fill                                             |
 | I                        | Eyedropper                                       |
+| Q                        | Blur brush                                       |
+| T                        | Gradient tool                                    |
+| C                        | Crop tool                                        |
 | L                        | Line                                             |
 | R                        | Rectangle                                        |
 | O                        | Ellipse                                          |
@@ -155,6 +158,8 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | M                        | Toggle mirror horizontal                         |
 | Tab                      | Toggle sketch UI / panels                        |
 | X                        | Swap foreground / background                     |
+| D                        | Reset colors to black / white                    |
+| S (hold) + drag          | Adjust brush size                                |
 | Space (hold) + drag      | Pan canvas                                       |
 | Shift (shape tools)      | Constrain line (H/V/45°); square / circle bounds |
 | [ / ]                    | Decrease / increase brush size                   |
@@ -166,14 +171,14 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | Ctrl+S                   | Export PNG                                       |
 | Alt+Click / Middle-click | Pan canvas                                       |
 | Scroll wheel             | Zoom                                             |
+| Right-click              | Context menu                                     |
 
 ### Planned (not implemented yet)
 
-See **Gesture shortcuts** under Phase 2 for **S+drag** and **O+drag**. **X**, **Tab**, **Space+drag**, and **Shift** shape constraints are implemented — see table above.
+See **Gesture shortcuts** under Phase 2 for **O+drag**. **X**, **Tab**, **Space+drag**, **Shift** shape constraints, and **S+drag** are implemented — see table above.
 
 | Key / gesture      | Planned action                                                                                            |
 | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| S + drag on canvas | Adjust brush (or active paint tool) size                                                                  |
 | O + drag           | Adjust opacity — conflicts with **O** = ellipse; needs alternate chord                                    |
 | J                  | Healing brush — when implemented                                                                          |
 | (TBD)              | Clone / copy brush — avoid bare **S** (conflicts with **Ctrl+S** + **S+drag**); e.g. **K** or **Shift+S** |
@@ -477,6 +482,14 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Collapsible toolbar sections** with `localStorage` persistence (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (Move, Draw, and Shape tools in one "Tools" section)
 - [x] **Improved shortcuts reference** (larger font, bold keys, collapsible — collapsed by default)
+- [x] **Gradient tool** (T key) — linear + radial gradient fill between two drag points
+- [x] **Crop tool** (C key) — drag to select crop region, resizes canvas + all layers
+- [x] **Adjustment sliders** — brightness, contrast, saturation with Apply button (collapsible Adjustments section)
+- [x] **Canvas info bar** — bottom-center overlay showing canvas dimensions + zoom %
+- [x] **Right-click context menu** — tool switching, undo/redo, clear/export actions
+- [x] **Smoother zoom** — symmetric 1.15x factor for wheel + button zoom
+- [x] **Background presets** — black / white / gray quick buttons in Colors section
+- [x] **S + drag brush size** — horizontal drag while S held adjusts brush/pencil/eraser/blur size
 
 ### Node / SketchInput
 
@@ -485,6 +498,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] Output: flattened **image** + **mask** (PNG / data URL pipeline)
 - [x] Input image auto-loading with canvas resize
 - [x] Canvas **preset** dropdown + **custom W×H** on node / property widgets
+- [x] **Background presets** — black / white / gray quick buttons in node / toolbar
 
 ---
 
