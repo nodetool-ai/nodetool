@@ -7,8 +7,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
   Message,
   Thread,
@@ -46,10 +45,8 @@ function makeRequest(
 }
 
 describe("HTTP API: public workflows", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/workflows/public returns public workflows", async () => {
@@ -123,10 +120,8 @@ describe("HTTP API: public workflows", () => {
 });
 
 describe("HTTP API: workflow access control", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/workflows/:id allows public access by another user", async () => {
@@ -229,10 +224,8 @@ describe("HTTP API: workflow access control", () => {
 });
 
 describe("HTTP API: workflow validation", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/workflows without graph defaults to empty graph", async () => {
@@ -357,13 +350,8 @@ describe("HTTP API: not found routes", () => {
 });
 
 describe("HTTP API: method not allowed for various endpoints", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
-    await Job.createTable();
-    await Message.createTable();
-    await Thread.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("DELETE /api/messages returns 405", async () => {
@@ -510,10 +498,8 @@ describe("HTTP API: method not allowed for various endpoints", () => {
 });
 
 describe("HTTP API: handleNodeHttpRequest", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   function createMockNodeReq(
@@ -702,11 +688,8 @@ describe("HTTP API: createHttpApiServer", () => {
 });
 
 describe("HTTP API: POST /api/messages with invalid body returns 400", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Thread.createTable();
-    await Message.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("returns 400 for missing role", async () => {
@@ -732,10 +715,8 @@ describe("HTTP API: POST /api/messages with invalid body returns 400", () => {
 });
 
 describe("HTTP API: POST /api/assets with invalid body returns 400", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Asset.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("returns 400 for non-json body", async () => {
@@ -751,10 +732,8 @@ describe("HTTP API: POST /api/assets with invalid body returns 400", () => {
 });
 
 describe("HTTP API: PUT /api/assets/:id with invalid body", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Asset.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("returns 400 for non-json body on update", async () => {
@@ -782,10 +761,8 @@ describe("HTTP API: PUT /api/assets/:id with invalid body", () => {
 });
 
 describe("HTTP API: workflow run_mode filter", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("GET /api/workflows?run_mode=tool filters workflows", async () => {
@@ -825,10 +802,8 @@ describe("HTTP API: workflow run_mode filter", () => {
 });
 
 describe("HTTP API: POST /api/workflows with non-json content type", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("returns 400 for non-json POST body", async () => {
@@ -844,10 +819,8 @@ describe("HTTP API: POST /api/workflows with non-json content type", () => {
 });
 
 describe("HTTP API: job cancel returns 404 for wrong user", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Job.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/jobs/:id/cancel returns 404 for wrong user", async () => {
@@ -869,9 +842,7 @@ describe("HTTP API: job cancel returns 404 for wrong user", () => {
 
 describe("HTTP API: trailing slash normalization", () => {
   it("normalizes trailing slash on paths", async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+    initTestDb();
 
     const res = await handleApiRequest(
       makeRequest("/api/workflows/")
@@ -881,10 +852,8 @@ describe("HTTP API: trailing slash normalization", () => {
 });
 
 describe("HTTP API: getUserId fallback", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("defaults to '1' when no user id header", async () => {

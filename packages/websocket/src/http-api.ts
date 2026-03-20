@@ -13,9 +13,6 @@ import {
   Thread,
   Asset,
   Secret,
-  MemoryAdapterFactory,
-  getGlobalAdapterResolver,
-  setGlobalAdapterResolver,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 import { getSecret } from "@nodetool/security";
@@ -104,73 +101,9 @@ export interface WorkflowRequestBody {
   html_app?: string | null;
 }
 
-const defaultMemoryFactory = new MemoryAdapterFactory();
-let workflowTableInitialized = false;
-let workflowVersionTableInitialized = false;
-let messageTableInitialized = false;
-let threadTableInitialized = false;
-let jobTableInitialized = false;
-let assetTableInitialized = false;
-let secretTableInitialized = false;
-
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
-
-function ensureAdapterResolver(): void {
-  if (!getGlobalAdapterResolver()) {
-    setGlobalAdapterResolver((schema) => defaultMemoryFactory.getAdapter(schema));
-  }
-}
-
-async function ensureWorkflowTable(): Promise<void> {
-  if (workflowTableInitialized) return;
-  ensureAdapterResolver();
-  await Workflow.createTable();
-  workflowTableInitialized = true;
-}
-
-async function ensureWorkflowVersionTable(): Promise<void> {
-  if (workflowVersionTableInitialized) return;
-  ensureAdapterResolver();
-  await WorkflowVersion.createTable();
-  workflowVersionTableInitialized = true;
-}
-
-async function ensureMessageTable(): Promise<void> {
-  if (messageTableInitialized) return;
-  ensureAdapterResolver();
-  await Message.createTable();
-  messageTableInitialized = true;
-}
-
-async function ensureThreadTable(): Promise<void> {
-  if (threadTableInitialized) return;
-  ensureAdapterResolver();
-  await Thread.createTable();
-  threadTableInitialized = true;
-}
-
-async function ensureJobTable(): Promise<void> {
-  if (jobTableInitialized) return;
-  ensureAdapterResolver();
-  await Job.createTable();
-  jobTableInitialized = true;
-}
-
-async function ensureSecretTable(): Promise<void> {
-  if (secretTableInitialized) return;
-  ensureAdapterResolver();
-  await Secret.createTable();
-  secretTableInitialized = true;
-}
-
-async function ensureAssetTable(): Promise<void> {
-  if (assetTableInitialized) return;
-  ensureAdapterResolver();
-  await Asset.createTable();
-  assetTableInitialized = true;
-}
 
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -373,7 +306,6 @@ async function handleWorkflowAutosave(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
@@ -405,7 +337,6 @@ async function handleWorkflowAutosave(
   // Create a version and prune old ones if WorkflowVersion table is available
   const version: JsonObject | null = null;
   try {
-    await ensureWorkflowVersionTable();
     await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
   } catch {
     // non-fatal
@@ -421,7 +352,6 @@ async function handleWorkflowTools(request: Request, options: HttpApiOptions): P
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
   const [workflows] = await Workflow.paginateTools(userId, { limit });
@@ -576,7 +506,6 @@ async function handleWorkflowGenerateName(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
   if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
@@ -596,7 +525,6 @@ async function handleWorkflowDslExport(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) {
@@ -633,7 +561,6 @@ async function handleWorkflowGradioExport(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
   if (workflow.user_id !== userId) {
@@ -671,8 +598,6 @@ async function handleWorkflowVersions(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
-  await ensureWorkflowVersionTable();
 
   if (request.method === "POST") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -709,8 +634,6 @@ async function handleWorkflowVersionByNumber(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
-  await ensureWorkflowVersionTable();
 
   if (request.method === "GET") {
     const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
@@ -746,7 +669,6 @@ async function handleWorkflowVersionDeleteById(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowVersionTable();
   const version = (await WorkflowVersion.get(versionId)) as WorkflowVersion | null;
   if (!version) return errorResponse(404, "Version not found");
   if (version.user_id !== userId) return errorResponse(404, "Version not found");
@@ -759,7 +681,6 @@ async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): P
   const url = new URL(request.url);
 
   if (request.method === "GET") {
-    await ensureWorkflowTable();
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode") ?? undefined;
     // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
@@ -772,7 +693,6 @@ async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): P
   }
 
   if (request.method === "POST") {
-    await ensureWorkflowTable();
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
@@ -791,7 +711,6 @@ async function handlePublicWorkflows(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  await ensureWorkflowTable();
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
   const [workflows] = await Workflow.paginatePublic({ limit });
@@ -805,7 +724,6 @@ async function handlePublicWorkflowById(request: Request, workflowId: string): P
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow || workflow.access !== "public") {
     return errorResponse(404, "Workflow not found");
@@ -819,7 +737,6 @@ async function handleWorkflowById(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   if (request.method === "GET") {
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -885,8 +802,6 @@ async function handleMessagesRoot(request: Request, options: HttpApiOptions): Pr
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
-    await ensureThreadTable();
-    await ensureMessageTable();
     const body = await parseJsonBody<MessageCreateBody>(request);
     if (!body || typeof body.role !== "string" || body.content === undefined) {
       return errorResponse(400, "Invalid JSON body");
@@ -914,7 +829,6 @@ async function handleMessagesRoot(request: Request, options: HttpApiOptions): Pr
   }
 
   if (request.method === "GET") {
-    await ensureMessageTable();
     const url = new URL(request.url);
     const threadId = url.searchParams.get("thread_id");
     if (!threadId) {
@@ -946,7 +860,6 @@ async function handleMessageById(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureMessageTable();
   const msg = (await Message.get(messageId)) as Message | null;
   if (!msg || msg.user_id !== userId) {
     return errorResponse(404, "Message not found");
@@ -989,7 +902,6 @@ async function handleThreadsRoot(request: Request, options: HttpApiOptions): Pro
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
-    await ensureThreadTable();
     const body = await parseJsonBody<ThreadCreateBody>(request);
     const title = body?.title ?? "New Thread";
     const thread = (await Thread.create({
@@ -1000,7 +912,6 @@ async function handleThreadsRoot(request: Request, options: HttpApiOptions): Pro
   }
 
   if (request.method === "GET") {
-    await ensureThreadTable();
     const url = new URL(request.url);
     const limit = parseLimit(url, 10);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
@@ -1022,7 +933,6 @@ async function handleThreadById(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureThreadTable();
 
   if (request.method === "GET") {
     const thread = await Thread.find(userId, threadId);
@@ -1046,7 +956,6 @@ async function handleThreadById(
     const thread = await Thread.find(userId, threadId);
     if (!thread) return errorResponse(404, "Thread not found");
     // Delete all messages in the thread
-    await ensureMessageTable();
     while (true) {
       const [messages] = await Message.paginate(threadId, { limit: 100 });
       if (!messages.length) break;
@@ -1077,7 +986,6 @@ const THREAD_TITLE_TRUNC_LEN = THREAD_TITLE_MAX_LEN - 3;
  * a title from the first user message instead.
  */
 async function deriveThreadTitle(threadId: string): Promise<string> {
-  await ensureMessageTable();
   const [messages] = await Message.paginate(threadId, { limit: 10 });
   for (const msg of messages) {
     const content = msg.content;
@@ -1119,7 +1027,6 @@ async function handleThreadSummarize(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureThreadTable();
   const thread = await Thread.find(userId, threadId);
   if (!thread) return errorResponse(404, "Thread not found");
 
@@ -1162,7 +1069,6 @@ async function handleJobsRoot(request: Request, options: HttpApiOptions): Promis
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
@@ -1186,7 +1092,6 @@ async function handleJobById(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const job = (await Job.get(jobId)) as Job | null;
   if (!job || job.user_id !== userId) {
@@ -1212,7 +1117,6 @@ async function handleJobCancel(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const job = (await Job.get(jobId)) as Job | null;
   if (!job || job.user_id !== userId) {
@@ -1296,7 +1200,6 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureSecretTable();
 
   const [configuredSecrets] = await Secret.listForUser(userId, 1000);
   const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
@@ -1339,7 +1242,6 @@ async function handleSecretByKey(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureSecretTable();
 
   if (request.method === "GET") {
     const secret = await Secret.find(userId, key);
@@ -1472,7 +1374,6 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
 
 async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
 
   if (request.method === "GET") {
     const url = new URL(request.url);
@@ -1590,7 +1491,6 @@ async function handleAssetById(
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
 
   if (request.method === "GET") {
     // Special case: home folder
@@ -1672,7 +1572,6 @@ async function handleAssetById(
 async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const url = new URL(request.url);
   const query = url.searchParams.get("query") ?? "";
   if (query.length < 2) {
@@ -1704,7 +1603,6 @@ async function handleAssetRecursive(
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const assets = await getAllAssetsRecursive(userId, folderId);
   return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)) });
 }
@@ -1717,7 +1615,6 @@ async function handleAssetByFilename(
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   if (!filename) return errorResponse(400, "filename is required");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const [assets] = await Asset.paginate(userId, { limit: 10000 });
   const asset = assets.find((a) => a.name === filename) ?? null;
   if (!asset) return errorResponse(404, "Asset not found");
@@ -1735,7 +1632,6 @@ async function handleAssetThumbnail(
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const asset = await Asset.find(userId, assetId);
   if (!asset) return errorResponse(404, "Asset not found");
 
@@ -1933,7 +1829,6 @@ export async function handleApiRequest(
     if (inner && !inner.includes("/")) {
       if (request.method !== "GET") return errorResponse(405, "Method not allowed");
       const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-      await ensureAssetTable();
       const url = new URL(request.url);
       const limit = parseLimit(url, 100);
       const [assets] = await Asset.paginate(userId, { parentId: decodeURIComponent(inner), limit });
@@ -1967,7 +1862,6 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/api/jobs/running/all") {
-    await ensureJobTable();
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [jobs] = await Job.paginate(userId, { limit: 500 });
     const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
@@ -2038,7 +1932,6 @@ export async function handleApiRequest(
   if (pathname === "/api/workflows/names") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-    await ensureWorkflowTable();
     const [workflows] = await Workflow.paginate(userId, { limit: 1000 });
     const names: Record<string, string> = {};
     for (const wf of workflows) names[wf.id] = wf.name;

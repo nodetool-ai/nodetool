@@ -5,41 +5,14 @@
  */
 
 import { existsSync, accessSync, constants } from "node:fs";
-import type { TableSchema, Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
-import { Workflow } from "./workflow.js";
-
-// ── Schema ───────────────────────────────────────────────────────────
-
-const WORKSPACE_SCHEMA: TableSchema = {
-  table_name: "nodetool_workspaces",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    name: { type: "string" },
-    path: { type: "string" },
-    is_default: { type: "boolean" },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const WORKSPACE_INDEXES: IndexSpec[] = [
-  { name: "idx_workspaces_user_id", columns: ["user_id"], unique: false },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
+import { eq, and } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { workspaces } from "./schema/workspaces.js";
+import { workflows } from "./schema/workflows.js";
 
 export class Workspace extends DBModel {
-  static override schema = WORKSPACE_SCHEMA;
-  static override indexes = WORKSPACE_INDEXES;
+  static override table = workspaces;
 
   declare id: string;
   declare user_id: string;
@@ -49,11 +22,11 @@ export class Workspace extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
-    // SQLite stores booleans as 0/1
+    // Drizzle handles boolean<->integer conversion, but handle raw DB reads too
     if (typeof this.is_default === "number") {
       this.is_default = (this.is_default as unknown as number) !== 0;
     }
@@ -77,23 +50,17 @@ export class Workspace extends DBModel {
     }
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
   /** Find a workspace by user_id and workspace id. */
   static async find(
     userId: string,
     workspaceId: string,
   ): Promise<Workspace | null> {
-    const condition = field("user_id")
-      .equals(userId)
-      .and(field("id").equals(workspaceId));
-    const [results] = await (
-      Workspace as unknown as ModelClass<Workspace>
-    ).query({
-      condition,
-      limit: 1,
-    });
-    return results.length > 0 ? results[0] : null;
+    const db = getDb();
+    const row = db.select().from(workspaces)
+      .where(and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId)))
+      .limit(1)
+      .get();
+    return row ? new Workspace(row as Record<string, unknown>) : null;
   }
 
   /** Paginate workspaces for a user. */
@@ -102,45 +69,47 @@ export class Workspace extends DBModel {
     opts: { limit?: number; startKey?: string } = {},
   ): Promise<[Workspace[], string]> {
     const { limit = 50 } = opts;
-    const condition = field("user_id").equals(userId);
-    return (Workspace as unknown as ModelClass<Workspace>).query({
-      condition,
-      limit,
-    });
+    const db = getDb();
+    const rows = db.select().from(workspaces)
+      .where(eq(workspaces.user_id, userId))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Workspace(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 
   /** Get the default workspace for a user. */
   static async getDefault(userId: string): Promise<Workspace | null> {
-    const condition = field("user_id")
-      .equals(userId)
-      .and(field("is_default").equals(true));
-    const [results] = await (
-      Workspace as unknown as ModelClass<Workspace>
-    ).query({
-      condition,
-      limit: 1,
-    });
-    return results.length > 0 ? results[0] : null;
+    const db = getDb();
+    const row = db.select().from(workspaces)
+      .where(and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true)))
+      .limit(1)
+      .get();
+    return row ? new Workspace(row as Record<string, unknown>) : null;
   }
 
   /** Check if any workflows are linked to a workspace. */
   static async hasLinkedWorkflows(workspaceId: string): Promise<boolean> {
-    const [rows] = await (
-      Workflow as unknown as ModelClass<Workflow>
-    ).query({
-      condition: field("workspace_id").equals(workspaceId),
-      limit: 1,
-    });
-    return rows.length > 0;
+    const db = getDb();
+    const row = db.select({ id: workflows.id }).from(workflows)
+      .where(eq(workflows.workspace_id, workspaceId))
+      .limit(1)
+      .get();
+    return row != null;
   }
 
   /** Unset is_default on all workspaces for a user. */
   static async unsetOtherDefaults(userId: string): Promise<void> {
-    const condition = field("user_id").equals(userId);
-    const [workspaces] = await (
-      Workspace as unknown as ModelClass<Workspace>
-    ).query({ condition });
-    for (const ws of workspaces) {
+    const db = getDb();
+    const rows = db.select().from(workspaces)
+      .where(eq(workspaces.user_id, userId))
+      .all();
+    for (const row of rows) {
+      const ws = new Workspace(row as Record<string, unknown>);
       if (ws.is_default) {
         ws.is_default = false;
         await ws.save();

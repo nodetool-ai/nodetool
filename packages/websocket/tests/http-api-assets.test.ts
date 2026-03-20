@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Asset,
 } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
@@ -30,10 +29,8 @@ function makeRequest(
 }
 
 describe("HTTP API: assets", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Asset.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("creates an asset via POST /api/assets", async () => {

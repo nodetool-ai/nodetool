@@ -3,8 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
   Message,
   Thread,
@@ -17,10 +16,8 @@ async function jsonBody(response: Response): Promise<unknown> {
 }
 
 describe("HTTP API: metadata + workflows", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("serves /api/nodes/metadata from Python package metadata files", async () => {
@@ -244,12 +241,8 @@ describe("HTTP API: metadata + workflows", () => {
 });
 
 describe("HTTP API: messages", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
-    await Message.createTable();
-    await Thread.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/messages creates a message and auto-creates thread", async () => {
@@ -391,12 +384,8 @@ describe("HTTP API: messages", () => {
 });
 
 describe("HTTP API: threads", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
-    await Message.createTable();
-    await Thread.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("POST /api/threads creates a thread", async () => {

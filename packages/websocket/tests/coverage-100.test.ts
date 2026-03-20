@@ -6,8 +6,7 @@ import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Thread,
   Message,
   Workflow,
@@ -42,8 +41,7 @@ class MockWS implements WebSocketConnection {
 }
 
 function setup() {
-  const factory = new MemoryAdapterFactory();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  initTestDb();
 }
 
 // =====================================================================
@@ -226,12 +224,8 @@ describe("Models API: additional coverage", () => {
 // =====================================================================
 
 describe("HTTP API: additional coverage", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Workflow.createTable();
-    await Thread.createTable();
-    await Message.createTable();
-    await Job.createTable();
   });
 
   it("ensureAdapterResolver default path", async () => {
@@ -304,9 +298,8 @@ describe("HTTP API: additional coverage", () => {
 });
 
 describe("HTTP API: secret error paths", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Secret.createTable();
   });
 
   it("GET /api/settings/secrets/:key?decrypt=true returns 500 on decrypt failure (line 671)", async () => {
@@ -355,11 +348,8 @@ describe("HTTP API: createHttpApiServer error handler (line 1067)", () => {
 // =====================================================================
 
 describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Job.createTable();
-    await Thread.createTable();
-    await Message.createTable();
   });
 
   it("clearModels returns message (line 580)", async () => {
@@ -499,9 +489,8 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
 // =====================================================================
 
 describe("UnifiedWebSocketRunner: output type inference (lines 128-132)", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Job.createTable();
   });
 
   it("exercises all inferOutputType branches via different output types", async () => {
@@ -613,9 +602,8 @@ describe("HTTP API: createHttpApiServer with real request (lines 1067-1074)", ()
 // =====================================================================
 
 describe("UnifiedWebSocketRunner: resolveOutputNodeForKey fallback", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Job.createTable();
   });
 
   it("falls back when output key doesn't match any node (line 146)", async () => {
@@ -650,10 +638,8 @@ describe("UnifiedWebSocketRunner: resolveOutputNodeForKey fallback", () => {
 // =====================================================================
 
 describe("UnifiedWebSocketRunner: chat_message without thread_id", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setup();
-    await Thread.createTable();
-    await Message.createTable();
   });
 
   it("creates new thread when thread_id is missing (lines 496-498)", async () => {

@@ -3,8 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Workflow,
   Job,
   Asset,
@@ -47,12 +46,8 @@ function makeMetadataRoot(): string {
 }
 
 describe("MCP Server", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Workflow.createTable();
-    await Job.createTable();
-    await Asset.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("creates a server instance", () => {

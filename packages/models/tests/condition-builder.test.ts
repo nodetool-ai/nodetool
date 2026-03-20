@@ -68,6 +68,16 @@ describe("ConditionBuilder", () => {
       expect(c.operator).toBe(Operator.LIKE);
       expect(c.value).toBe("%John%");
     });
+
+    it("creates null-check conditions", () => {
+      const isNull = field("deleted_at").isNull().build().conditions[0] as Condition;
+      expect(isNull.operator).toBe(Operator.IS_NULL);
+      expect(isNull.value).toBeNull();
+
+      const isNotNull = field("deleted_at").isNotNull().build().conditions[0] as Condition;
+      expect(isNotNull.operator).toBe(Operator.IS_NOT_NULL);
+      expect(isNotNull.value).toBeNull();
+    });
   });
 
   // ── Chaining ───────────────────────────────────────────────────────

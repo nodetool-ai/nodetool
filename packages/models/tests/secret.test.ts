@@ -1,18 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { MemoryAdapterFactory } from "../src/memory-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
-import type { ModelClass } from "../src/base-model.js";
 import { setMasterKey } from "@nodetool/security";
 
-const factory = new MemoryAdapterFactory();
 const TEST_MASTER_KEY = "dGVzdC1tYXN0ZXIta2V5LWZvci11bml0LXRlc3Rz"; // base64
 
-async function setup() {
-  factory.clear();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+function setup() {
+  initTestDb();
   setMasterKey(TEST_MASTER_KEY);
-  await (Secret as unknown as ModelClass).createTable();
 }
 
 describe("Secret model", () => {
@@ -79,6 +75,62 @@ describe("Secret model", () => {
     expect(decrypted).toBe("updated-value");
   });
 
+  it("upsert normalizes a null description to an empty string on update", async () => {
+    await Secret.upsert({
+      userId: "user-1",
+      key: "NULL_DESCRIPTION",
+      value: "initial",
+      description: "before",
+    });
+
+    const updated = await Secret.upsert({
+      userId: "user-1",
+      key: "NULL_DESCRIPTION",
+      value: "after",
+      description: null as unknown as string,
+    });
+
+    expect(updated.description).toBe("");
+  });
+
+  it("upsertEncrypted updates an existing secret without re-encrypting", async () => {
+    const created = await Secret.upsertEncrypted({
+      userId: "user-1",
+      key: "ENCRYPTED_KEY",
+      encryptedValue: "ciphertext-1",
+      description: "Original",
+    });
+
+    const updated = await Secret.upsertEncrypted({
+      userId: "user-1",
+      key: "ENCRYPTED_KEY",
+      encryptedValue: "ciphertext-2",
+      description: "Updated",
+    });
+
+    expect(updated.id).toBe(created.id);
+    expect(updated.encrypted_value).toBe("ciphertext-2");
+    expect(updated.description).toBe("Updated");
+  });
+
+  it("upsertEncrypted normalizes a null description to an empty string on update", async () => {
+    await Secret.upsertEncrypted({
+      userId: "user-1",
+      key: "NULL_ENCRYPTED_DESCRIPTION",
+      encryptedValue: "ciphertext-1",
+      description: "before",
+    });
+
+    const updated = await Secret.upsertEncrypted({
+      userId: "user-1",
+      key: "NULL_ENCRYPTED_DESCRIPTION",
+      encryptedValue: "ciphertext-2",
+      description: null as unknown as string,
+    });
+
+    expect(updated.description).toBe("");
+  });
+
   it("deletes a secret", async () => {
     await Secret.upsert({
       userId: "user-1",
@@ -118,6 +170,24 @@ describe("Secret model", () => {
     expect(secrets.length).toBe(2);
     const keys = secrets.map((s) => s.key).sort();
     expect(keys).toEqual(["KEY_A", "KEY_B"]);
+  });
+
+  it("listForUser returns a cursor when the result exceeds the limit", async () => {
+    await Secret.upsert({ userId: "user-1", key: "KEY_A", value: "a" });
+    await Secret.upsert({ userId: "user-1", key: "KEY_B", value: "b" });
+    await Secret.upsert({ userId: "user-1", key: "KEY_C", value: "c" });
+
+    const [secrets, cursor] = await Secret.listForUser("user-1", 2);
+    expect(secrets).toHaveLength(2);
+    expect(cursor).toBeTruthy();
+  });
+
+  it("listForUser returns an empty page and empty cursor when limit is zero", async () => {
+    await Secret.upsert({ userId: "user-1", key: "KEY_A", value: "a" });
+
+    const [secrets, cursor] = await Secret.listForUser("user-1", 0);
+    expect(secrets).toEqual([]);
+    expect(cursor).toBe("");
   });
 
   it("isolates secrets between users", async () => {
@@ -170,5 +240,15 @@ describe("Secret model", () => {
     expect(safe.description).toBe("safe test");
     expect(safe).not.toHaveProperty("encrypted_value");
     expect(safe).not.toHaveProperty("value");
+  });
+
+  it("throws when neither AES-GCM nor Fernet decryption can decode the value", async () => {
+    const secret = await Secret.upsertEncrypted({
+      userId: "user-1",
+      key: "BROKEN_SECRET",
+      encryptedValue: "not-a-valid-ciphertext",
+    });
+
+    await expect(secret.getDecryptedValue()).rejects.toBeTruthy();
   });
 });

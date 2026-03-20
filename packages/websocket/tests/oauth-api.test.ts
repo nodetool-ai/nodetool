@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   OAuthCredential,
 } from "@nodetool/models";
 import {
@@ -9,7 +8,6 @@ import {
   generateState,
   oauthStateStore,
   handleOAuthRequest,
-  resetOAuthTableInit,
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -76,11 +74,9 @@ describe("OAuth state store TTL", () => {
 });
 
 describe("OAuth API: HuggingFace endpoints", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -180,11 +176,9 @@ describe("OAuth API: HuggingFace endpoints", () => {
 });
 
 describe("OAuth API: GitHub endpoints", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
+
     oauthStateStore.clear();
   });
 
@@ -255,10 +249,8 @@ describe("OAuth API: GitHub endpoints", () => {
 });
 
 describe("OAuthCredential model CRUD", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await OAuthCredential.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("creates and retrieves a credential", async () => {

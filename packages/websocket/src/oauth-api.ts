@@ -156,20 +156,6 @@ function oauthHtmlResponse(opts: {
   return htmlResponse(html);
 }
 
-// ── Credential table initialisation ──────────────────────────────────
-
-let oauthTableInitialized = false;
-
-async function ensureOAuthTable(): Promise<void> {
-  if (oauthTableInitialized) return;
-  await OAuthCredential.createTable();
-  oauthTableInitialized = true;
-}
-
-/** Reset the table-init flag (useful in tests). */
-export function resetOAuthTableInit(): void {
-  oauthTableInitialized = false;
-}
 
 // ── Token metadata helper ────────────────────────────────────────────
 
@@ -350,7 +336,6 @@ async function handleHfCallback(request: Request): Promise<Response> {
       expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
     }
 
-    await ensureOAuthTable();
     await OAuthCredential.upsert({
       user_id: userId,
       provider: "huggingface",
@@ -382,7 +367,7 @@ async function handleHfCallback(request: Request): Promise<Response> {
 }
 
 async function handleHfTokens(getUserId: () => string): Promise<Response> {
-  await ensureOAuthTable();
+
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
@@ -404,7 +389,7 @@ async function handleHfRefresh(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-  await ensureOAuthTable();
+
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
@@ -488,7 +473,7 @@ async function handleHfWhoami(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-  await ensureOAuthTable();
+
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
@@ -718,7 +703,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
 
     const now = new Date().toISOString();
 
-    await ensureOAuthTable();
+  
     await OAuthCredential.upsert({
       user_id: userId,
       provider: "github",
@@ -750,7 +735,7 @@ async function handleGithubCallback(request: Request): Promise<Response> {
 }
 
 async function handleGithubTokens(getUserId: () => string): Promise<Response> {
-  await ensureOAuthTable();
+
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
@@ -771,7 +756,7 @@ async function handleGithubUser(
   const accountId = url.searchParams.get("account_id");
   if (!accountId) return errorResponse(400, "Missing account_id parameter");
 
-  await ensureOAuthTable();
+
   const userId = getUserId();
   const credential = await OAuthCredential.findByAccount(
     userId,
