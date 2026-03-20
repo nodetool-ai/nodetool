@@ -371,6 +371,13 @@ describe("useSketchStore", () => {
   });
 
   describe("new tool types", () => {
+    it("sets move tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("move");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("move");
+    });
+
     it("sets fill tool", () => {
       act(() => {
         useSketchStore.getState().setActiveTool("fill");

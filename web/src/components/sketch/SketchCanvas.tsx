@@ -133,6 +133,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Shape tool state
     const shapeStartRef = useRef<Point | null>(null);
 
+    // Move tool state
+    const moveStartRef = useRef<Point | null>(null);
+    const moveLayerSnapshotRef = useRef<HTMLCanvasElement | null>(null);
+
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
@@ -541,6 +545,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "move") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          moveStartRef.current = pt;
+          isDrawingRef.current = true;
+          onStrokeStart();
+          // Snapshot the current layer content before moving
+          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+          const snapshot = window.document.createElement("canvas");
+          snapshot.width = layerCanvas.width;
+          snapshot.height = layerCanvas.height;
+          const snapCtx = snapshot.getContext("2d");
+          if (snapCtx) {
+            snapCtx.drawImage(layerCanvas, 0, 0);
+          }
+          moveLayerSnapshotRef.current = snapshot;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
         if (activeTool === "fill") {
           const pt = screenToCanvas(e.clientX, e.clientY);
           const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
@@ -621,6 +644,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         const pt = screenToCanvas(e.clientX, e.clientY);
 
+        if (activeTool === "move" && moveStartRef.current && moveLayerSnapshotRef.current) {
+          const dx = pt.x - moveStartRef.current.x;
+          const dy = pt.y - moveStartRef.current.y;
+          const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+          if (activeLayer) {
+            const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+            const ctx = layerCanvas.getContext("2d");
+            if (ctx) {
+              ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+              ctx.drawImage(moveLayerSnapshotRef.current, dx, dy);
+              redraw();
+            }
+          }
+          return;
+        }
+
         if (isShapeTool(activeTool) && shapeStartRef.current) {
           drawOverlayShape(shapeStartRef.current, pt);
           return;
@@ -683,6 +722,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         isDrawingRef.current = false;
 
         const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+
+        if (activeTool === "move") {
+          moveStartRef.current = null;
+          moveLayerSnapshotRef.current = null;
+        }
 
         if (isShapeTool(activeTool) && shapeStartRef.current && activeLayer) {
           const overlay = overlayCanvasRef.current;
@@ -873,7 +917,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     }, []);
 
     // Determine cursor style based on tool
-    const cursorStyle = (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser") ? "none" : "crosshair";
+    const cursorStyle = activeTool === "move"
+      ? "move"
+      : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser")
+        ? "none"
+        : "crosshair";
 
     return (
       <div

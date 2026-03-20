@@ -184,7 +184,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "o": setActiveTool("ellipse"); break;
           case "a": setActiveTool("arrow"); break;
           case "m": setMirrorX((prev) => !prev); break;
-          case "v": setMirrorY((prev) => !prev); break;
+          case "v": setActiveTool("move"); break;
           case "[": {
             // Decrease brush/pencil/eraser size
             const store = useSketchStore.getState();
