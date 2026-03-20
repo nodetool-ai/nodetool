@@ -56,6 +56,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setEraserSettings = useSketchStore((s) => s.setEraserSettings);
   const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
   const setFillSettings = useSketchStore((s) => s.setFillSettings);
+  const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -134,6 +135,25 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     window.addEventListener("sketch-eyedropper", handler);
     return () => window.removeEventListener("sketch-eyedropper", handler);
   }, [setBrushSettings, setActiveTool]);
+
+  // ─── S + drag brush size change ────────────────────────────────────
+  const handleBrushSizeChange = useCallback(
+    (size: number) => {
+      const tool = activeTool;
+      if (tool === "brush") {
+        setBrushSettings({ size });
+      } else if (tool === "pencil") {
+        setPencilSettings({ size });
+      } else if (tool === "eraser") {
+        setEraserSettings({ size });
+      } else if (tool === "blur") {
+        setBlurSettings({ size });
+      } else {
+        setBrushSettings({ size });
+      }
+    },
+    [activeTool, setBrushSettings, setPencilSettings, setEraserSettings, setBlurSettings]
+  );
 
   // ─── Undo/Redo handlers ────────────────────────────────────────────
   const handleUndo = useCallback(() => {
@@ -278,6 +298,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "r": setActiveTool("rectangle"); break;
           case "o": setActiveTool("ellipse"); break;
           case "a": setActiveTool("arrow"); break;
+          case "q": setActiveTool("blur"); break;
           case "m": setMirrorX((prev) => !prev); break;
           case "v": setActiveTool("move"); break;
           case "x": swapColors(); break;
@@ -298,6 +319,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             } else if (tool === "eraser") {
               const newSize = Math.max(1, store.document.toolSettings.eraser.size - 5);
               setEraserSettings({ size: newSize });
+            } else if (tool === "blur") {
+              const newSize = Math.max(1, store.document.toolSettings.blur.size - 5);
+              setBlurSettings({ size: newSize });
             }
             break;
           }
@@ -313,6 +337,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             } else if (tool === "eraser") {
               const newSize = Math.min(200, store.document.toolSettings.eraser.size + 5);
               setEraserSettings({ size: newSize });
+            } else if (tool === "blur") {
+              const newSize = Math.min(200, store.document.toolSettings.blur.size + 5);
+              setBlurSettings({ size: newSize });
             }
             break;
           }
@@ -372,6 +399,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           eraserSettings={document.toolSettings.eraser}
           shapeSettings={document.toolSettings.shape}
           fillSettings={document.toolSettings.fill}
+          blurSettings={document.toolSettings.blur}
           zoom={zoom}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
@@ -385,6 +413,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onEraserSettingsChange={setEraserSettings}
           onShapeSettingsChange={setShapeSettings}
           onFillSettingsChange={setFillSettings}
+          onBlurSettingsChange={setBlurSettings}
           onMirrorXChange={setMirrorX}
           onMirrorYChange={setMirrorY}
           onUndo={handleUndo}
@@ -418,6 +447,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onPanChange={setPan}
           onStrokeStart={handleStrokeStart}
           onStrokeEnd={handleStrokeEnd}
+          onBrushSizeChange={handleBrushSizeChange}
         />
       </Box>
 
@@ -433,6 +463,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onDuplicateLayer={duplicateLayer}
           onMoveLayerUp={handleMoveLayerUp}
           onMoveLayerDown={handleMoveLayerDown}
+          onReorderLayers={reorderLayers}
           onSetMaskLayer={setMaskLayer}
           onLayerOpacityChange={setLayerOpacity}
           onLayerBlendModeChange={setLayerBlendMode}

@@ -6,7 +6,8 @@
  */
 
 import {
-  SketchDocument
+  SketchDocument,
+  DEFAULT_BLUR_SETTINGS
 } from "../types";
 
 /**
@@ -33,7 +34,10 @@ export function deserializeDocument(
       typeof parsed.version === "number" &&
       Array.isArray(parsed.layers)
     ) {
-      // Version migration could go here in the future
+      // Ensure blur settings exist (migration from pre-blur documents)
+      if (parsed.toolSettings && !parsed.toolSettings.blur) {
+        parsed.toolSettings.blur = { ...DEFAULT_BLUR_SETTINGS };
+      }
       return parsed;
     }
     return null;

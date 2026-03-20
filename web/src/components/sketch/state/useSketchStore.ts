@@ -17,6 +17,7 @@ import {
   EraserSettings,
   ShapeSettings,
   FillSettings,
+  BlurSettings,
   BlendMode,
   createDefaultDocument,
   createDefaultLayer,
@@ -47,6 +48,7 @@ export interface SketchStore {
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
   setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setFillSettings: (settings: Partial<FillSettings>) => void;
+  setBlurSettings: (settings: Partial<BlurSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -190,6 +192,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           fill: { ...state.document.toolSettings.fill, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setBlurSettings: (settings: Partial<BlurSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          blur: { ...state.document.toolSettings.blur, ...settings }
         },
         metadata: {
           ...state.document.metadata,

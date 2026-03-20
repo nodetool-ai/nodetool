@@ -7,7 +7,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -44,6 +44,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import MergeIcon from "@mui/icons-material/CallMerge";
 import FlattenIcon from "@mui/icons-material/Layers";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import BlurOnIcon from "@mui/icons-material/BlurOn";
 import TextField from "@mui/material/TextField";
 import {
   SketchTool,
@@ -52,6 +53,7 @@ import {
   EraserSettings,
   ShapeSettings,
   FillSettings,
+  BlurSettings,
   DEFAULT_SWATCHES,
   CANVAS_PRESETS,
   isShapeTool
@@ -125,6 +127,28 @@ const styles = (theme: Theme) =>
         zIndex: 1
       }
     },
+    "& .user-presets-grid": {
+      display: "grid",
+      gridTemplateColumns: "repeat(8, 1fr)",
+      gap: "2px"
+    },
+    "& .user-preset": {
+      width: "20px",
+      height: "20px",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderRadius: "2px",
+      cursor: "pointer",
+      padding: 0,
+      position: "relative",
+      "&:hover": {
+        transform: "scale(1.2)",
+        zIndex: 1
+      },
+      "&.empty": {
+        border: `1px dashed ${theme.vars.palette.grey[600]}`,
+        backgroundColor: "transparent"
+      }
+    },
     "& .fg-bg-container": {
       display: "flex",
       alignItems: "center",
@@ -175,6 +199,7 @@ export interface SketchToolbarProps {
   eraserSettings: EraserSettings;
   shapeSettings: ShapeSettings;
   fillSettings: FillSettings;
+  blurSettings: BlurSettings;
   zoom: number;
   mirrorX: boolean;
   mirrorY: boolean;
@@ -188,6 +213,7 @@ export interface SketchToolbarProps {
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
+  onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onMirrorXChange: (mirrorX: boolean) => void;
   onMirrorYChange: (mirrorY: boolean) => void;
   onUndo: () => void;
@@ -214,6 +240,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   eraserSettings,
   shapeSettings,
   fillSettings,
+  blurSettings,
   zoom,
   mirrorX,
   mirrorY,
@@ -227,6 +254,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onEraserSettingsChange,
   onShapeSettingsChange,
   onFillSettingsChange,
+  onBlurSettingsChange,
   onMirrorXChange,
   onMirrorYChange,
   onUndo,
@@ -246,6 +274,33 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onResetColors
 }) => {
   const theme = useTheme();
+
+  // ─── User color presets (8 slots, persisted in localStorage) ──────
+  const USER_PRESETS_KEY = "nodetool-sketch-color-presets";
+  const PRESET_COUNT = 8;
+
+  const [userPresets, setUserPresets] = useState<(string | null)[]>(() => {
+    try {
+      const stored = localStorage.getItem(USER_PRESETS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as (string | null)[];
+        if (Array.isArray(parsed) && parsed.length === PRESET_COUNT) {
+          return parsed;
+        }
+      }
+    } catch {
+      // localStorage parse failed, use defaults
+    }
+    return Array(PRESET_COUNT).fill(null) as (string | null)[];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(userPresets));
+    } catch {
+      // localStorage write failed, ignore
+    }
+  }, [userPresets]);
 
   const handleToolChange = useCallback(
     (_: React.MouseEvent<HTMLElement>, value: string | null) => {
@@ -272,6 +327,27 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       }
     },
     [activeTool, onBrushSettingsChange, onPencilSettingsChange, onFillSettingsChange, onShapeSettingsChange, onForegroundColorChange]
+  );
+
+  const handlePresetClick = useCallback(
+    (index: number) => {
+      const color = userPresets[index];
+      if (color) {
+        handleSwatchClick(color);
+      }
+    },
+    [userPresets, handleSwatchClick]
+  );
+
+  const handlePresetSave = useCallback(
+    (index: number) => {
+      setUserPresets((prev) => {
+        const next = [...prev];
+        next[index] = foregroundColor;
+        return next;
+      });
+    },
+    [foregroundColor]
   );
 
   const handleHexInput = useCallback(
@@ -334,6 +410,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="eyedropper" aria-label="Eyedropper">
           <Tooltip title="Eyedropper (I)">
             <ColorizeIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="blur" aria-label="Blur Brush">
+          <Tooltip title="Blur Brush (Q)">
+            <BlurOnIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
       </ToggleButtonGroup>
@@ -683,9 +764,31 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         </>
       )}
 
-      <Divider />
+      {activeTool === "blur" && (
+        <>
+          <Typography className="section-label">Blur Brush</Typography>
+          <Box className="setting-row">
+            <Typography className="setting-label">Size</Typography>
+            <Slider
+              size="small" min={1} max={200}
+              value={blurSettings.size}
+              onChange={(_, v) => onBlurSettingsChange({ size: v as number })}
+            />
+            <Typography className="setting-value">{blurSettings.size}</Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Strength</Typography>
+            <Slider
+              size="small" min={1} max={20}
+              value={blurSettings.strength}
+              onChange={(_, v) => onBlurSettingsChange({ strength: v as number })}
+            />
+            <Typography className="setting-value">{blurSettings.strength}</Typography>
+          </Box>
+        </>
+      )}
 
-      {/* Color Swatches */}
+      <Divider />
       <Typography className="section-label">Swatches</Typography>
       <Box className="swatch-grid">
         {DEFAULT_SWATCHES.map((color) => (
@@ -695,6 +798,29 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             style={{ backgroundColor: color }}
             onClick={() => handleSwatchClick(color)}
             aria-label={`Color ${color}`}
+          />
+        ))}
+      </Box>
+
+      {/* User Color Presets */}
+      <Typography className="section-label" sx={{ mt: "2px" }}>
+        Presets
+        <Typography component="span" sx={{ fontSize: "0.55rem", color: "grey.500", ml: "4px" }}>
+          right-click to save
+        </Typography>
+      </Typography>
+      <Box className="user-presets-grid">
+        {userPresets.map((color, idx) => (
+          <button
+            key={idx}
+            className={`user-preset${color ? "" : " empty"}`}
+            style={color ? { backgroundColor: color } : undefined}
+            onClick={() => handlePresetClick(idx)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handlePresetSave(idx);
+            }}
+            aria-label={color ? `Preset color ${color}` : `Empty preset slot ${idx + 1}`}
           />
         ))}
       </Box>
@@ -732,11 +858,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       <Typography sx={{ fontSize: "0.65rem", color: "grey.500", lineHeight: 1.6 }}>
         V — Move &nbsp; B — Brush &nbsp; P — Pencil<br />
         E — Eraser &nbsp; G — Fill &nbsp; I — Eyedropper<br />
-        L — Line &nbsp; R — Rect &nbsp; O — Ellipse<br />
-        M — Mirror &nbsp; X — Swap colors<br />
+        Q — Blur &nbsp; L — Line &nbsp; R — Rect<br />
+        O — Ellipse &nbsp; M — Mirror &nbsp; X — Swap<br />
         D — Reset colors &nbsp; Tab — Toggle UI<br />
-        [ / ] — Brush size &nbsp; Shift — Constrain<br />
-        Space+Drag — Pan canvas<br />
+        [ / ] — Size &nbsp; S+Drag — Adj. size<br />
+        Shift — Constrain &nbsp; Space+Drag — Pan<br />
         + / − — Zoom &nbsp; Ctrl+0 — Reset view<br />
         Delete — Clear layer &nbsp; Ctrl+S — Export
       </Typography>
