@@ -75,8 +75,10 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 #### UI & interaction
 
 - [x] Prevent shortcuts from firing in the node editor while the sketch modal is open
-- [ ] **Improve** shortcuts reference panel (slightly larger font, optional hide)
-- [ ] **Panel layout persistence** (positions + collapsed state in `localStorage` or session)
+- [x] **Improve** shortcuts reference panel (slightly larger font, collapsible)
+- [x] **Panel layout persistence** (collapsed state in `localStorage`)
+- [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
+- [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
 - [ ] **Double-click tool icon** → focus that tool’s settings
 - [ ] **Context-sensitive** right-click menu (draw, select, etc.)
 
@@ -318,7 +320,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - Selection tools for copy/paste/transform workflows
 - Layer thumbnail previews in the layers panel
 - Import PNG into layer / new layer
-- Phase 2 backlog still includes: DnD layer reorder, user color presets, full HSV wheel + HSL/RGB sliders, panel layout persistence
+- Phase 2 backlog still includes: DnD layer reorder, user color presets, full HSV wheel + HSL/RGB sliders
 
 ### Backlog candidates
 
@@ -473,6 +475,9 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] Keyboard shortcuts — B/P/E/G/I/L/R/O/A/V/M, Tab, X, Space+drag, Shift (shapes), [/], +/−, Delete, Ctrl+Z/Y/0/S
 - [x] Brush cursor preview on canvas
 - [x] Shortcuts do not propagate to the node editor while the sketch modal is open
+- [x] **Collapsible toolbar sections** with `localStorage` persistence (Colors, Settings, Actions, Swatches, View, Shortcuts)
+- [x] **Unified tool grouping** (Move, Draw, and Shape tools in one "Tools" section)
+- [x] **Improved shortcuts reference** (larger font, bold keys, collapsible — collapsed by default)
 
 ### Node / SketchInput
 

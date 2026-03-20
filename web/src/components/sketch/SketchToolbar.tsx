@@ -3,6 +3,8 @@
  *
  * Toolbar for the sketch editor with tool selection, settings panels for
  * brush/eraser/shape/fill, undo/redo, zoom, color swatches, and mirror toggle.
+ *
+ * Sections are collapsible with state persisted to localStorage.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -45,6 +47,8 @@ import MergeIcon from "@mui/icons-material/CallMerge";
 import FlattenIcon from "@mui/icons-material/Layers";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TextField from "@mui/material/TextField";
 import {
   SketchTool,
@@ -58,6 +62,101 @@ import {
   CANVAS_PRESETS,
   isShapeTool
 } from "./types";
+
+// ─── Collapsible section persistence ──────────────────────────────────────
+
+const COLLAPSED_SECTIONS_KEY = "nodetool-sketch-toolbar-collapsed";
+
+type SectionKey =
+  | "colors"
+  | "toolSettings"
+  | "actions"
+  | "swatches"
+  | "view"
+  | "shortcuts";
+
+function loadCollapsedSections(): Record<SectionKey, boolean> {
+  try {
+    const stored = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+    if (stored) {
+      return JSON.parse(stored) as Record<SectionKey, boolean>;
+    }
+  } catch {
+    // localStorage parse failed, use defaults
+  }
+  // Shortcuts collapsed by default to save vertical space — users can expand when needed
+  return {
+    colors: false,
+    toolSettings: false,
+    actions: false,
+    swatches: false,
+    view: false,
+    shortcuts: true
+  };
+}
+
+function saveCollapsedSections(state: Record<SectionKey, boolean>): void {
+  try {
+    localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(state));
+  } catch {
+    // localStorage write failed, ignore
+  }
+}
+
+// ─── Collapsible ToolbarSection component ─────────────────────────────────
+
+interface ToolbarSectionProps {
+  title: string;
+  sectionKey: SectionKey;
+  collapsed: boolean;
+  onToggle: (key: SectionKey) => void;
+  children: React.ReactNode;
+}
+
+const ToolbarSection = memo(function ToolbarSection({
+  title,
+  sectionKey,
+  collapsed,
+  onToggle,
+  children
+}: ToolbarSectionProps) {
+  const handleClick = useCallback(() => {
+    onToggle(sectionKey);
+  }, [sectionKey, onToggle]);
+
+  return (
+    <>
+      <Box
+        onClick={handleClick}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          cursor: "pointer",
+          userSelect: "none",
+          mt: "2px",
+          "&:hover": {
+            "& .section-label": { color: "grey.200" },
+            "& .collapse-icon": { color: "grey.200" }
+          }
+        }}
+      >
+        {collapsed ? (
+          <ChevronRightIcon
+            className="collapse-icon"
+            sx={{ fontSize: "0.85rem", color: "grey.500", mr: "2px" }}
+          />
+        ) : (
+          <ExpandMoreIcon
+            className="collapse-icon"
+            sx={{ fontSize: "0.85rem", color: "grey.500", mr: "2px" }}
+          />
+        )}
+        <Typography className="section-label">{title}</Typography>
+      </Box>
+      {!collapsed && children}
+    </>
+  );
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -192,6 +291,21 @@ const styles = (theme: Theme) =>
     }
   });
 
+function getToolSettingsLabel(tool: SketchTool): string {
+  switch (tool) {
+    case "brush": return "Brush";
+    case "pencil": return "Pencil";
+    case "eraser": return "Eraser";
+    case "fill": return "Fill";
+    case "blur": return "Blur Brush";
+    case "line":
+    case "rectangle":
+    case "ellipse":
+    case "arrow": return "Shape";
+    default: return "Settings";
+  }
+}
+
 export interface SketchToolbarProps {
   activeTool: SketchTool;
   brushSettings: BrushSettings;
@@ -274,6 +388,19 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onResetColors
 }) => {
   const theme = useTheme();
+
+  // ─── Collapsible section state (persisted in localStorage) ────────
+  const [collapsedSections, setCollapsedSections] = useState<Record<SectionKey, boolean>>(
+    loadCollapsedSections
+  );
+
+  const handleToggleSection = useCallback((key: SectionKey) => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveCollapsedSections(next);
+      return next;
+    });
+  }, []);
 
   // ─── User color presets (8 slots, persisted in localStorage) ──────
   const USER_PRESETS_KEY = "nodetool-sketch-color-presets";
@@ -362,8 +489,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
   return (
     <Box css={styles(theme)}>
-      {/* Move Tool */}
-      <Typography className="section-label">Transform</Typography>
+      {/* ── Tools (always visible, not collapsible) ───────────────── */}
+      <Typography className="section-label">Tools</Typography>
       <ToggleButtonGroup
         value={activeTool}
         exclusive
@@ -376,17 +503,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <OpenWithIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
-      </ToggleButtonGroup>
-
-      {/* Drawing Tools */}
-      <Typography className="section-label">Draw</Typography>
-      <ToggleButtonGroup
-        value={activeTool}
-        exclusive
-        onChange={handleToolChange}
-        size="small"
-        className="tool-group"
-      >
         <ToggleButton value="brush" aria-label="Brush">
           <Tooltip title="Brush (B)">
             <BrushIcon fontSize="small" />
@@ -419,8 +535,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         </ToggleButton>
       </ToggleButtonGroup>
 
-      {/* Shape Tools */}
-      <Typography className="section-label">Shapes</Typography>
       <ToggleButtonGroup
         value={activeTool}
         exclusive
@@ -452,420 +566,483 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
       <Divider />
 
-      {/* Undo / Redo / Mirror */}
-      <Typography className="section-label">History</Typography>
-      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-        <Tooltip title="Undo (Ctrl+Z)">
-          <span>
-            <IconButton size="small" onClick={onUndo} disabled={!canUndo}>
-              <UndoIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Redo (Ctrl+Y)">
-          <span>
-            <IconButton size="small" onClick={onRedo} disabled={!canRedo}>
-              <RedoIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Mirror Horizontal (M)">
-          <IconButton
-            size="small"
-            onClick={() => onMirrorXChange(!mirrorX)}
-            color={mirrorX ? "primary" : "default"}
-          >
-            <FlipIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Mirror Vertical">
-          <IconButton
-            size="small"
-            onClick={() => onMirrorYChange(!mirrorY)}
-            color={mirrorY ? "primary" : "default"}
-          >
-            <FlipIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      {/* Actions */}
-      <Box sx={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
-        <Tooltip title="Clear Layer (Delete)">
-          <IconButton size="small" onClick={onClearLayer}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Export PNG (Ctrl+S)">
-          <IconButton size="small" onClick={onExportPng}>
-            <SaveAltIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Flip Layer Horizontal">
-          <IconButton size="small" onClick={onFlipHorizontal}>
-            <FlipCameraAndroidIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Flip Layer Vertical">
-          <IconButton size="small" onClick={onFlipVertical}>
-            <FlipCameraAndroidIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-        <Tooltip title="Merge Down">
-          <IconButton size="small" onClick={onMergeDown}>
-            <MergeIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Flatten Visible">
-          <IconButton size="small" onClick={onFlattenVisible}>
-            <FlattenIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      <Divider />
-
-      {/* Foreground / Background Colors */}
-      <Typography className="section-label">Colors</Typography>
-      <Box className="fg-bg-container">
-        <Box className="fg-bg-swatches">
-          <input
-            type="color"
-            className="fg-swatch"
-            value={foregroundColor}
-            onChange={(e) => {
-              onForegroundColorChange(e.target.value);
-              if (activeTool === "brush") {
-                onBrushSettingsChange({ color: e.target.value });
-              } else if (activeTool === "pencil") {
-                onPencilSettingsChange({ color: e.target.value });
-              } else if (activeTool === "fill") {
-                onFillSettingsChange({ color: e.target.value });
-              } else if (isShapeTool(activeTool)) {
-                onShapeSettingsChange({ strokeColor: e.target.value });
-              }
-            }}
-            title="Foreground Color"
-          />
-          <input
-            type="color"
-            className="bg-swatch"
-            value={backgroundColor}
-            onChange={(e) => onBackgroundColorChange(e.target.value)}
-            title="Background Color"
-          />
-        </Box>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <Tooltip title="Swap Colors (X)">
-            <IconButton size="small" onClick={onSwapColors} sx={{ padding: "2px" }}>
-              <SwapHorizIcon sx={{ fontSize: "16px" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Reset to B/W (D)">
-            <IconButton size="small" onClick={onResetColors} sx={{ padding: "2px" }}>
-              <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, lineHeight: 1 }}>D</Typography>
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-      <TextField
-        className="hex-input"
-        size="small"
-        placeholder="#ffffff"
-        value={foregroundColor}
-        onChange={(e) => handleHexInput(e.target.value)}
-        inputProps={{ maxLength: 7 }}
-        fullWidth
-      />
-
-      <Divider />
-
-      {/* Tool-specific Settings */}
-      {activeTool === "brush" && (
-        <>
-          <Typography className="section-label">Brush</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Color</Typography>
+      {/* ── Colors (collapsible) ──────────────────────────────────── */}
+      <ToolbarSection
+        title="Colors"
+        sectionKey="colors"
+        collapsed={collapsedSections.colors}
+        onToggle={handleToggleSection}
+      >
+        <Box className="fg-bg-container">
+          <Box className="fg-bg-swatches">
             <input
               type="color"
-              className="color-input"
-              value={brushSettings.color}
-              onChange={(e) => onBrushSettingsChange({ color: e.target.value })}
-            />
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Size</Typography>
-            <Slider
-              size="small" min={1} max={200}
-              value={brushSettings.size}
-              onChange={(_, v) => onBrushSettingsChange({ size: v as number })}
-            />
-            <Typography className="setting-value">{brushSettings.size}</Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Opacity</Typography>
-            <Slider
-              size="small" min={0} max={1} step={0.01}
-              value={brushSettings.opacity}
-              onChange={(_, v) => onBrushSettingsChange({ opacity: v as number })}
-            />
-            <Typography className="setting-value">
-              {Math.round(brushSettings.opacity * 100)}%
-            </Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Hard</Typography>
-            <Slider
-              size="small" min={0} max={1} step={0.01}
-              value={brushSettings.hardness}
-              onChange={(_, v) => onBrushSettingsChange({ hardness: v as number })}
-            />
-            <Typography className="setting-value">
-              {Math.round(brushSettings.hardness * 100)}%
-            </Typography>
-          </Box>
-        </>
-      )}
-
-      {activeTool === "pencil" && (
-        <>
-          <Typography className="section-label">Pencil</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Color</Typography>
-            <input
-              type="color"
-              className="color-input"
-              value={pencilSettings.color}
-              onChange={(e) => onPencilSettingsChange({ color: e.target.value })}
-            />
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Size</Typography>
-            <Slider
-              size="small" min={1} max={10}
-              value={pencilSettings.size}
-              onChange={(_, v) => onPencilSettingsChange({ size: v as number })}
-            />
-            <Typography className="setting-value">{pencilSettings.size}</Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Opacity</Typography>
-            <Slider
-              size="small" min={0} max={1} step={0.01}
-              value={pencilSettings.opacity}
-              onChange={(_, v) => onPencilSettingsChange({ opacity: v as number })}
-            />
-            <Typography className="setting-value">
-              {Math.round(pencilSettings.opacity * 100)}%
-            </Typography>
-          </Box>
-        </>
-      )}
-
-      {activeTool === "eraser" && (
-        <>
-          <Typography className="section-label">Eraser</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Size</Typography>
-            <Slider
-              size="small" min={1} max={200}
-              value={eraserSettings.size}
-              onChange={(_, v) => onEraserSettingsChange({ size: v as number })}
-            />
-            <Typography className="setting-value">{eraserSettings.size}</Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Opacity</Typography>
-            <Slider
-              size="small" min={0} max={1} step={0.01}
-              value={eraserSettings.opacity}
-              onChange={(_, v) => onEraserSettingsChange({ opacity: v as number })}
-            />
-            <Typography className="setting-value">
-              {Math.round(eraserSettings.opacity * 100)}%
-            </Typography>
-          </Box>
-        </>
-      )}
-
-      {isShapeTool(activeTool) && (
-        <>
-          <Typography className="section-label">Shape</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Stroke</Typography>
-            <input
-              type="color"
-              className="color-input"
-              value={shapeSettings.strokeColor}
-              onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
-            />
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Width</Typography>
-            <Slider
-              size="small" min={1} max={50}
-              value={shapeSettings.strokeWidth}
-              onChange={(_, v) => onShapeSettingsChange({ strokeWidth: v as number })}
-            />
-            <Typography className="setting-value">{shapeSettings.strokeWidth}</Typography>
-          </Box>
-          {(activeTool === "rectangle" || activeTool === "ellipse") && (
-            <>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={shapeSettings.filled}
-                    onChange={(e) => onShapeSettingsChange({ filled: e.target.checked })}
-                  />
+              className="fg-swatch"
+              value={foregroundColor}
+              onChange={(e) => {
+                onForegroundColorChange(e.target.value);
+                if (activeTool === "brush") {
+                  onBrushSettingsChange({ color: e.target.value });
+                } else if (activeTool === "pencil") {
+                  onPencilSettingsChange({ color: e.target.value });
+                } else if (activeTool === "fill") {
+                  onFillSettingsChange({ color: e.target.value });
+                } else if (isShapeTool(activeTool)) {
+                  onShapeSettingsChange({ strokeColor: e.target.value });
                 }
-                label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
-              />
-              {shapeSettings.filled && (
-                <Box className="setting-row">
-                  <Typography className="setting-label">Fill</Typography>
-                  <input
-                    type="color"
-                    className="color-input"
-                    value={shapeSettings.fillColor}
-                    onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
-                  />
-                </Box>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      {activeTool === "fill" && (
-        <>
-          <Typography className="section-label">Fill</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Color</Typography>
+              }}
+              title="Foreground Color"
+            />
             <input
               type="color"
-              className="color-input"
-              value={fillSettings.color}
-              onChange={(e) => onFillSettingsChange({ color: e.target.value })}
+              className="bg-swatch"
+              value={backgroundColor}
+              onChange={(e) => onBackgroundColorChange(e.target.value)}
+              title="Background Color"
             />
           </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Tolerance</Typography>
-            <Slider
-              size="small" min={0} max={128}
-              value={fillSettings.tolerance}
-              onChange={(_, v) => onFillSettingsChange({ tolerance: v as number })}
-            />
-            <Typography className="setting-value">{fillSettings.tolerance}</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <Tooltip title="Swap Colors (X)">
+              <IconButton size="small" onClick={onSwapColors} sx={{ padding: "2px" }}>
+                <SwapHorizIcon sx={{ fontSize: "16px" }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Reset to B/W (D)">
+              <IconButton size="small" onClick={onResetColors} sx={{ padding: "2px" }}>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, lineHeight: 1 }}>D</Typography>
+              </IconButton>
+            </Tooltip>
           </Box>
-        </>
-      )}
-
-      {activeTool === "blur" && (
-        <>
-          <Typography className="section-label">Blur Brush</Typography>
-          <Box className="setting-row">
-            <Typography className="setting-label">Size</Typography>
-            <Slider
-              size="small" min={1} max={200}
-              value={blurSettings.size}
-              onChange={(_, v) => onBlurSettingsChange({ size: v as number })}
-            />
-            <Typography className="setting-value">{blurSettings.size}</Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography className="setting-label">Strength</Typography>
-            <Slider
-              size="small" min={1} max={20}
-              value={blurSettings.strength}
-              onChange={(_, v) => onBlurSettingsChange({ strength: v as number })}
-            />
-            <Typography className="setting-value">{blurSettings.strength}</Typography>
-          </Box>
-        </>
-      )}
+        </Box>
+        <TextField
+          className="hex-input"
+          size="small"
+          placeholder="#ffffff"
+          value={foregroundColor}
+          onChange={(e) => handleHexInput(e.target.value)}
+          inputProps={{ maxLength: 7 }}
+          fullWidth
+        />
+      </ToolbarSection>
 
       <Divider />
-      <Typography className="section-label">Swatches</Typography>
-      <Box className="swatch-grid">
-        {DEFAULT_SWATCHES.map((color) => (
-          <button
-            key={color}
-            className="swatch"
-            style={{ backgroundColor: color }}
-            onClick={() => handleSwatchClick(color)}
-            aria-label={`Color ${color}`}
-          />
-        ))}
-      </Box>
 
-      {/* User Color Presets */}
-      <Typography className="section-label" sx={{ mt: "2px" }}>
-        Presets
-        <Typography component="span" sx={{ fontSize: "0.55rem", color: "grey.500", ml: "4px" }}>
-          right-click to save
+      {/* ── Tool Settings (collapsible, contextual) ───────────────── */}
+      <ToolbarSection
+        title={getToolSettingsLabel(activeTool)}
+        sectionKey="toolSettings"
+        collapsed={collapsedSections.toolSettings}
+        onToggle={handleToggleSection}
+      >
+        {activeTool === "brush" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Color</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={brushSettings.color}
+                onChange={(e) => onBrushSettingsChange({ color: e.target.value })}
+              />
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Size</Typography>
+              <Slider
+                size="small" min={1} max={200}
+                value={brushSettings.size}
+                onChange={(_, v) => onBrushSettingsChange({ size: v as number })}
+              />
+              <Typography className="setting-value">{brushSettings.size}</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Opacity</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={brushSettings.opacity}
+                onChange={(_, v) => onBrushSettingsChange({ opacity: v as number })}
+              />
+              <Typography className="setting-value">
+                {Math.round(brushSettings.opacity * 100)}%
+              </Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Hard</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={brushSettings.hardness}
+                onChange={(_, v) => onBrushSettingsChange({ hardness: v as number })}
+              />
+              <Typography className="setting-value">
+                {Math.round(brushSettings.hardness * 100)}%
+              </Typography>
+            </Box>
+          </>
+        )}
+
+        {activeTool === "pencil" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Color</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={pencilSettings.color}
+                onChange={(e) => onPencilSettingsChange({ color: e.target.value })}
+              />
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Size</Typography>
+              <Slider
+                size="small" min={1} max={10}
+                value={pencilSettings.size}
+                onChange={(_, v) => onPencilSettingsChange({ size: v as number })}
+              />
+              <Typography className="setting-value">{pencilSettings.size}</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Opacity</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={pencilSettings.opacity}
+                onChange={(_, v) => onPencilSettingsChange({ opacity: v as number })}
+              />
+              <Typography className="setting-value">
+                {Math.round(pencilSettings.opacity * 100)}%
+              </Typography>
+            </Box>
+          </>
+        )}
+
+        {activeTool === "eraser" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Size</Typography>
+              <Slider
+                size="small" min={1} max={200}
+                value={eraserSettings.size}
+                onChange={(_, v) => onEraserSettingsChange({ size: v as number })}
+              />
+              <Typography className="setting-value">{eraserSettings.size}</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Opacity</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={eraserSettings.opacity}
+                onChange={(_, v) => onEraserSettingsChange({ opacity: v as number })}
+              />
+              <Typography className="setting-value">
+                {Math.round(eraserSettings.opacity * 100)}%
+              </Typography>
+            </Box>
+          </>
+        )}
+
+        {isShapeTool(activeTool) && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Stroke</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={shapeSettings.strokeColor}
+                onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
+              />
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Width</Typography>
+              <Slider
+                size="small" min={1} max={50}
+                value={shapeSettings.strokeWidth}
+                onChange={(_, v) => onShapeSettingsChange({ strokeWidth: v as number })}
+              />
+              <Typography className="setting-value">{shapeSettings.strokeWidth}</Typography>
+            </Box>
+            {(activeTool === "rectangle" || activeTool === "ellipse") && (
+              <>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={shapeSettings.filled}
+                      onChange={(e) => onShapeSettingsChange({ filled: e.target.checked })}
+                    />
+                  }
+                  label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
+                />
+                {shapeSettings.filled && (
+                  <Box className="setting-row">
+                    <Typography className="setting-label">Fill</Typography>
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={shapeSettings.fillColor}
+                      onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {activeTool === "fill" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Color</Typography>
+              <input
+                type="color"
+                className="color-input"
+                value={fillSettings.color}
+                onChange={(e) => onFillSettingsChange({ color: e.target.value })}
+              />
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Tolerance</Typography>
+              <Slider
+                size="small" min={0} max={128}
+                value={fillSettings.tolerance}
+                onChange={(_, v) => onFillSettingsChange({ tolerance: v as number })}
+              />
+              <Typography className="setting-value">{fillSettings.tolerance}</Typography>
+            </Box>
+          </>
+        )}
+
+        {activeTool === "blur" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Size</Typography>
+              <Slider
+                size="small" min={1} max={200}
+                value={blurSettings.size}
+                onChange={(_, v) => onBlurSettingsChange({ size: v as number })}
+              />
+              <Typography className="setting-value">{blurSettings.size}</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Strength</Typography>
+              <Slider
+                size="small" min={1} max={20}
+                value={blurSettings.strength}
+                onChange={(_, v) => onBlurSettingsChange({ strength: v as number })}
+              />
+              <Typography className="setting-value">{blurSettings.strength}</Typography>
+            </Box>
+          </>
+        )}
+
+        {(activeTool === "move" || activeTool === "eyedropper") && (
+          <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
+            No settings for this tool.
+          </Typography>
+        )}
+      </ToolbarSection>
+
+      <Divider />
+
+      {/* ── Actions (collapsible) — History + Layer ops ────────────── */}
+      <ToolbarSection
+        title="Actions"
+        sectionKey="actions"
+        collapsed={collapsedSections.actions}
+        onToggle={handleToggleSection}
+      >
+        <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+          <Tooltip title="Undo (Ctrl+Z)">
+            <span>
+              <IconButton size="small" onClick={onUndo} disabled={!canUndo}>
+                <UndoIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo (Ctrl+Y)">
+            <span>
+              <IconButton size="small" onClick={onRedo} disabled={!canRedo}>
+                <RedoIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Mirror Horizontal (M)">
+            <IconButton
+              size="small"
+              onClick={() => onMirrorXChange(!mirrorX)}
+              color={mirrorX ? "primary" : "default"}
+            >
+              <FlipIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Mirror Vertical">
+            <IconButton
+              size="small"
+              onClick={() => onMirrorYChange(!mirrorY)}
+              color={mirrorY ? "primary" : "default"}
+            >
+              <FlipIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+          <Tooltip title="Clear Layer (Delete)">
+            <IconButton size="small" onClick={onClearLayer}>
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Export PNG (Ctrl+S)">
+            <IconButton size="small" onClick={onExportPng}>
+              <SaveAltIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Flip Layer Horizontal">
+            <IconButton size="small" onClick={onFlipHorizontal}>
+              <FlipCameraAndroidIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Flip Layer Vertical">
+            <IconButton size="small" onClick={onFlipVertical}>
+              <FlipCameraAndroidIcon fontSize="small" sx={{ transform: "rotate(90deg)" }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+          <Tooltip title="Merge Down">
+            <IconButton size="small" onClick={onMergeDown}>
+              <MergeIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Flatten Visible">
+            <IconButton size="small" onClick={onFlattenVisible}>
+              <FlattenIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </ToolbarSection>
+
+      <Divider />
+
+      {/* ── Swatches & Presets (collapsible) ──────────────────────── */}
+      <ToolbarSection
+        title="Swatches"
+        sectionKey="swatches"
+        collapsed={collapsedSections.swatches}
+        onToggle={handleToggleSection}
+      >
+        <Box className="swatch-grid">
+          {DEFAULT_SWATCHES.map((color) => (
+            <button
+              key={color}
+              className="swatch"
+              style={{ backgroundColor: color }}
+              onClick={() => handleSwatchClick(color)}
+              aria-label={`Color ${color}`}
+            />
+          ))}
+        </Box>
+
+        <Typography className="section-label" sx={{ mt: "4px" }}>
+          Presets
+          <Typography component="span" sx={{ fontSize: "0.55rem", color: "grey.500", ml: "4px" }}>
+            right-click to save
+          </Typography>
         </Typography>
-      </Typography>
-      <Box className="user-presets-grid">
-        {userPresets.map((color, idx) => (
-          <button
-            key={idx}
-            className={`user-preset${color ? "" : " empty"}`}
-            style={color ? { backgroundColor: color } : undefined}
-            onClick={() => handlePresetClick(idx)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              handlePresetSave(idx);
-            }}
-            aria-label={color ? `Preset color ${color}` : `Empty preset slot ${idx + 1}`}
-          />
-        ))}
-      </Box>
+        <Box className="user-presets-grid">
+          {userPresets.map((color, idx) => (
+            <button
+              key={idx}
+              className={`user-preset${color ? "" : " empty"}`}
+              style={color ? { backgroundColor: color } : undefined}
+              onClick={() => handlePresetClick(idx)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                handlePresetSave(idx);
+              }}
+              aria-label={color ? `Preset color ${color}` : `Empty preset slot ${idx + 1}`}
+            />
+          ))}
+        </Box>
+      </ToolbarSection>
 
       <Divider />
 
-      {/* Zoom */}
-      <Typography className="section-label">View</Typography>
-      <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-        <Tooltip title="Zoom Out (−)">
-          <IconButton size="small" onClick={onZoomOut}>
-            <ZoomOutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Typography
-          sx={{ fontSize: "0.75rem", minWidth: "40px", textAlign: "center" }}
+      {/* ── View / Zoom (collapsible) ─────────────────────────────── */}
+      <ToolbarSection
+        title="View"
+        sectionKey="view"
+        collapsed={collapsedSections.view}
+        onToggle={handleToggleSection}
+      >
+        <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+          <Tooltip title="Zoom Out (−)">
+            <IconButton size="small" onClick={onZoomOut}>
+              <ZoomOutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Typography
+            sx={{ fontSize: "0.75rem", minWidth: "40px", textAlign: "center" }}
+          >
+            {Math.round(zoom * 100)}%
+          </Typography>
+          <Tooltip title="Zoom In (+)">
+            <IconButton size="small" onClick={onZoomIn}>
+              <ZoomInIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Reset View (Ctrl+0)">
+            <IconButton size="small" onClick={onZoomReset}>
+              <FitScreenIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </ToolbarSection>
+
+      <Divider />
+
+      {/* ── Shortcuts reference (collapsible, collapsed by default) ─ */}
+      <ToolbarSection
+        title="Shortcuts"
+        sectionKey="shortcuts"
+        collapsed={collapsedSections.shortcuts}
+        onToggle={handleToggleSection}
+      >
+        <Box
+          component="dl"
+          sx={{
+            fontSize: "0.72rem",
+            color: "grey.400",
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            gap: "1px 6px",
+            m: 0,
+            "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
+            "& dd": { m: 0 }
+          }}
         >
-          {Math.round(zoom * 100)}%
-        </Typography>
-        <Tooltip title="Zoom In (+)">
-          <IconButton size="small" onClick={onZoomIn}>
-            <ZoomInIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Reset View (Ctrl+0)">
-          <IconButton size="small" onClick={onZoomReset}>
-            <FitScreenIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      {/* Keyboard Shortcuts Reference */}
-      <Divider />
-      <Typography className="section-label">Shortcuts</Typography>
-      <Typography sx={{ fontSize: "0.65rem", color: "grey.500", lineHeight: 1.6 }}>
-        V — Move &nbsp; B — Brush &nbsp; P — Pencil<br />
-        E — Eraser &nbsp; G — Fill &nbsp; I — Eyedropper<br />
-        Q — Blur &nbsp; L — Line &nbsp; R — Rect<br />
-        O — Ellipse &nbsp; M — Mirror &nbsp; X — Swap<br />
-        D — Reset colors &nbsp; Tab — Toggle UI<br />
-        [ / ] — Size &nbsp; S+Drag — Adj. size<br />
-        Shift — Constrain &nbsp; Space+Drag — Pan<br />
-        + / − — Zoom &nbsp; Ctrl+0 — Reset view<br />
-        Delete — Clear layer &nbsp; Ctrl+S — Export
-      </Typography>
+          <dt>V</dt><dd>Move</dd>
+          <dt>B</dt><dd>Brush</dd>
+          <dt>P</dt><dd>Pencil</dd>
+          <dt>E</dt><dd>Eraser</dd>
+          <dt>G</dt><dd>Fill</dd>
+          <dt>I</dt><dd>Eyedropper</dd>
+          <dt>Q</dt><dd>Blur</dd>
+          <dt>L</dt><dd>Line</dd>
+          <dt>R</dt><dd>Rect</dd>
+          <dt>O</dt><dd>Ellipse</dd>
+          <dt>A</dt><dd>Arrow</dd>
+          <dt>M</dt><dd>Mirror</dd>
+          <dt>X</dt><dd>Swap colors</dd>
+          <dt>D</dt><dd>Reset colors</dd>
+          <dt>Tab</dt><dd>Toggle UI</dd>
+          <dt>[ / ]</dt><dd>Brush size</dd>
+          <dt>Shift</dt><dd>Constrain</dd>
+          <dt>Space</dt><dd>Pan</dd>
+          <dt>+ / −</dt><dd>Zoom</dd>
+          <dt>Ctrl+0</dt><dd>Reset view</dd>
+          <dt>Del</dt><dd>Clear layer</dd>
+          <dt>Ctrl+S</dt><dd>Export</dd>
+        </Box>
+      </ToolbarSection>
     </Box>
   );
 };
