@@ -203,7 +203,6 @@ Reference parity note: sketch maps **C** → circle and **R** → rectangle; Nod
 - [ ] Selection tools with transform (scale, rotate, skew)
 - [ ] Vector/pen tool
 - [ ] Text layers with font settings
-- [ ] SVG import/export
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types / Round–Spray table)
 
 ---
@@ -439,3 +438,4 @@ These mirror common guidance but apply to **SketchInput** / **SketchProperty** i
 - [ ] Export project file (JSON + embedded images)
 - [ ] **Sketch-only light/dark** toggle (sun/moon) **inside the modal** when product wants independence from global theme
 - [ ] **Draggable / dockable panels** (toolbar, layers, color) + **collapse** (−)
+- [ ] SVG import/export
