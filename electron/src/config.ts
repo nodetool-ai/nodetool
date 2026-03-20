@@ -22,15 +22,15 @@ const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
   Record<NodeJS.Platform, Record<string, string>>
 > = {
   darwin: {
-    x64: "environment-osx-64.lock.yml",
-    arm64: "environment-osx-arm64.lock.yml",
+    x64: "environment-osx-64.yml",
+    arm64: "environment-osx-arm64.yml",
   },
   linux: {
-    x64: "environment-linux-64.lock.yml",
-    arm64: "environment-linux-aarch64.lock.yml",
+    x64: "environment-linux-64.yml",
+    arm64: "environment-linux-aarch64.yml",
   },
   win32: {
-    x64: "environment-win-64.lock.yml",
+    x64: "environment-win-64.yml",
   },
 };
 

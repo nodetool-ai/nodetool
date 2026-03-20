@@ -341,7 +341,7 @@ describe('Config', () => {
       );
 
       expect(path.dirname(result)).toBe(expectedResourcesDir);
-      expect(path.basename(result)).toMatch(/^environment.*\.lock\.yml$/);
+      expect(path.basename(result)).toMatch(/^environment.*\.yml$/);
     });
   });
 
