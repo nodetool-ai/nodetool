@@ -164,6 +164,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(null);
   const documentRef = useRef<SketchDocument | null>(null);
   const inputImageLoadedRef = useRef<string | null>(null);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
@@ -309,7 +310,11 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   }, [sketchDoc, props.id, updateNodeProperties]);
 
   const handleOpenEditor = useCallback(() => {
-    documentRef.current = sketchDoc;
+    // Use documentRef if available (may include async-loaded input image),
+    // fall back to sketchDoc from serialized properties
+    const docToOpen = documentRef.current || sketchDoc;
+    documentRef.current = docToOpen;
+    setEditorDocument(docToOpen);
     setIsModalOpen(true);
   }, [sketchDoc]);
 
@@ -452,7 +457,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       <SketchModal
         open={isModalOpen}
         title="Sketch Editor"
-        initialDocument={sketchDoc}
+        initialDocument={editorDocument || sketchDoc}
         onClose={handleCloseEditor}
         onSave={handleSave}
         onDocumentChange={handleDocumentChange}

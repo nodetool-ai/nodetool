@@ -312,7 +312,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [doc.layers.length, doc.canvas.width, doc.canvas.height]);
+    }, [doc.layers.length, doc.layers.map((l) => l.id).join(","), doc.canvas.width, doc.canvas.height]);
 
     // ─── Composite and redraw display canvas ──────────────────────────
 
