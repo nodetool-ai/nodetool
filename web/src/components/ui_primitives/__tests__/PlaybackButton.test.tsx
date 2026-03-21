@@ -145,6 +145,33 @@ describe("PlaybackButton", () => {
     expect(screen.getByRole("button")).toHaveClass("nodrag");
   });
 
+  it("has tabIndex 0 by default", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlaybackButton
+          state="stopped"
+          onPlay={mockOnPlay}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("respects tabIndex prop", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlaybackButton
+          state="stopped"
+          onPlay={mockOnPlay}
+          tabIndex={-1}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabindex", "-1");
+  });
+
   it("applies state as class", () => {
     render(
       <ThemeProvider theme={mockTheme}>

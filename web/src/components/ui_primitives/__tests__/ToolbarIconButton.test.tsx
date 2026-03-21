@@ -79,6 +79,35 @@ describe("ToolbarIconButton", () => {
     expect(screen.getByRole("button")).toHaveClass("nodrag");
   });
 
+  it("has tabIndex 0 by default", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          onClick={mockOnClick}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("respects tabIndex prop", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          onClick={mockOnClick}
+          tabIndex={-1}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabindex", "-1");
+  });
+
   it("does not apply nodrag class when nodrag is false", () => {
     render(
       <ThemeProvider theme={mockTheme}>
