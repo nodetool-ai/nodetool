@@ -144,7 +144,7 @@ jobs:
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
       - name: Resolve Windows artifacts (paths)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -170,6 +170,17 @@ jobs:
           echo "WIN_UNPACKED_DIR=${WIN_UNPACKED_DIR}" >> "${GITHUB_ENV}"
           echo "APP_EXE=${APP_EXE}" >> "${GITHUB_ENV}"
           echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Create Windows unpacked archive
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          ARCHIVE_PATH="${DIST_DIR}/Nodetool-win-unpacked-${VERSION}.zip"
+          rm -f "${ARCHIVE_PATH}"
+          cd "${WIN_UNPACKED_DIR}"
+          powershell.exe -NoLogo -NoProfile -Command "Compress-Archive -Path * -DestinationPath '${ARCHIVE_PATH}' -Force"
+          echo "WIN_UNPACKED_ARCHIVE=${ARCHIVE_PATH}" >> "${GITHUB_ENV}"
 
       - name: Decide whether to sign (skip test tags)
         if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
@@ -382,5 +393,4 @@ jobs:
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.exe
-            electron/dist/win-unpacked/*.exe
             electron/dist/latest*.yml
