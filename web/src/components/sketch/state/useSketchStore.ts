@@ -11,6 +11,7 @@ import {
   SketchTool,
   Layer,
   HistoryEntry,
+  LayerStructureSnapshot,
   Point,
   Selection,
   ColorMode,
@@ -570,8 +571,23 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     for (const layer of state.document.layers) {
       snapshot[layer.id] = layer.data;
     }
+    const layerStructure: LayerStructureSnapshot[] = state.document.layers.map(
+      (l) => ({
+        id: l.id,
+        name: l.name,
+        type: l.type,
+        visible: l.visible,
+        opacity: l.opacity,
+        locked: l.locked,
+        alphaLock: l.alphaLock,
+        blendMode: l.blendMode
+      })
+    );
     const entry: HistoryEntry = {
       layerSnapshots: snapshot,
+      layerStructure,
+      activeLayerId: state.document.activeLayerId,
+      maskLayerId: state.document.maskLayerId,
       action,
       timestamp: Date.now()
     };
@@ -602,14 +618,30 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       return null;
     }
 
-    // Restore layer data from snapshot
-    const layers = state.document.layers.map((l) => ({
-      ...l,
-      data: entry.layerSnapshots[l.id] ?? l.data
-    }));
+    // Restore full layer structure if available, otherwise fall back to data-only restore
+    let layers: Layer[];
+    if (entry.layerStructure && entry.layerStructure.length > 0) {
+      layers = entry.layerStructure.map((ls) => ({
+        ...ls,
+        data: entry.layerSnapshots[ls.id] ?? null
+      }));
+    } else {
+      layers = state.document.layers.map((l) => ({
+        ...l,
+        data: entry.layerSnapshots[l.id] ?? l.data
+      }));
+    }
 
     set({
-      document: { ...state.document, layers },
+      document: {
+        ...state.document,
+        layers,
+        activeLayerId: entry.activeLayerId ?? state.document.activeLayerId,
+        maskLayerId:
+          entry.maskLayerId !== undefined
+            ? entry.maskLayerId
+            : state.document.maskLayerId
+      },
       historyIndex: newIndex
     });
     return entry;
@@ -626,14 +658,30 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       return null;
     }
 
-    // Restore layer data from snapshot
-    const layers = state.document.layers.map((l) => ({
-      ...l,
-      data: entry.layerSnapshots[l.id] ?? l.data
-    }));
+    // Restore full layer structure if available, otherwise fall back to data-only restore
+    let layers: Layer[];
+    if (entry.layerStructure && entry.layerStructure.length > 0) {
+      layers = entry.layerStructure.map((ls) => ({
+        ...ls,
+        data: entry.layerSnapshots[ls.id] ?? null
+      }));
+    } else {
+      layers = state.document.layers.map((l) => ({
+        ...l,
+        data: entry.layerSnapshots[l.id] ?? l.data
+      }));
+    }
 
     set({
-      document: { ...state.document, layers },
+      document: {
+        ...state.document,
+        layers,
+        activeLayerId: entry.activeLayerId ?? state.document.activeLayerId,
+        maskLayerId:
+          entry.maskLayerId !== undefined
+            ? entry.maskLayerId
+            : state.document.maskLayerId
+      },
       historyIndex: newIndex
     });
     return entry;

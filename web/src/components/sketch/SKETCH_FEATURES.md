@@ -37,7 +37,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [ ] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
+- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
 
 #### Brush types (engine / presets)
 
@@ -87,10 +87,12 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
 - [ ] **Sketch command palette** (canvas right-click) — redesign as the primary in-canvas hub: compact tool DNA, icon-forward tool switcher, bold intentional chrome (see **Sketch command palette** below)
 - [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
+- [x] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
+- [x] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
+- [x] improve **Color Select Buttons** hex, rgb, hsl buttons — bolder, larger, better contrast selected state
 - [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
-
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
-- [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
+- [x] **fix undo history** layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
 #### Sketch command palette (canvas context menu)
 
@@ -123,12 +125,12 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 Note: section 1 is conceptually the **current-state header**, but it should likely be **unlabeled in the actual UI**. The user should understand it immediately from the active tool, numeric readout, and color chips, without needing a literal "Now" heading.
 
-| #     | Section      | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ----- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **Current state** | Anchor the user immediately. Show **active tool**, a compact status line with the 1-3 values that matter most (example: `Brush · 18 px · 72% · Soft`), plus **FG / BG chips** and **swap** when color matters. This section should answer "where am I?" in under a second. In the actual UI, this can remain **unlabeled** if the hierarchy is obvious.                                                                                                                                                                             |
+| #     | Section            | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Current state**  | Anchor the user immediately. Show **active tool**, a compact status line with the 1-3 values that matter most (example: `Brush · 18 px · 72% · Soft`), plus **FG / BG chips** and **swap** when color matters. This section should answer "where am I?" in under a second. In the actual UI, this can remain **unlabeled** if the hierarchy is obvious.                                                                                                                   |
 | **2** | **Quick controls** | Show the current tool's most important controls in a **compressed but friendly** format. This is the only section that changes meaningfully per tool. Examples: brush/pencil = size, opacity, hardness/type; fill = tolerance, contiguous/global; shape tools = stroke/fill, border width; blur/smudge = strength; crop = commit/cancel actions. Prefer **chip rows**, **segmented controls**, **thin sliders with visible value**, or **toggle + numeric** combinations. |
-| **3** | **Tools**    | Provide a **compact icon grid** in toolbar order so tool switching becomes recognition-based. Active tool gets a strong selected state. Show shortcut badges in a muted but legible style. On hover/focus, label appears clearly; at rest, the grid should stay visually light and fast to scan.                                                                                                                                                                          |
-| **4** | **Canvas**   | House document-level actions that are still part of drawing flow: **Undo / Redo** as a paired control, **Clear layer**, **Export PNG**, and later **Fit**, **100%**, **Toggle UI**. Keep this section tight and utility-focused so it does not compete with the tool sections.                                                                                                                                                                                            |
+| **3** | **Tools**          | Provide a **compact icon grid** in toolbar order so tool switching becomes recognition-based. Active tool gets a strong selected state. Show shortcut badges in a muted but legible style. On hover/focus, label appears clearly; at rest, the grid should stay visually light and fast to scan.                                                                                                                                                                          |
+| **4** | **Canvas**         | House document-level actions that are still part of drawing flow: **Undo / Redo** as a paired control, **Clear layer**, **Export PNG**, and later **Fit**, **100%**, **Toggle UI**. Keep this section tight and utility-focused so it does not compete with the tool sections.                                                                                                                                                                                            |
 
 **Compact control patterns (important):**
 
@@ -614,6 +616,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
 - [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
 - [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
+- [x] **Shift+click straight lines** — hold Shift and click to draw a straight line from the last stroke endpoint to the click point (Photoshop convention; works for brush, pencil, eraser, blur)
+- [x] **Undo history for layer operations** — layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
+- [x] **Context menu two-column layout** — left side for active tool presets (size/opacity), right side for tool switching + actions; bolder header, section labels, shortcut hints
+- [x] **Color mode buttons** — bolder HEX/RGB/HSL toggle buttons with improved contrast and selected state
 
 ### Node / SketchInput
 
