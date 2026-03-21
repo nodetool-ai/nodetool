@@ -32,20 +32,20 @@ const closeHoverStyle: React.CSSProperties = {
 
 const TitleBar: React.FC = memo(function TitleBar() {
   const minimize = useCallback(() => {
-    window.api?.windowControls?.minimize?.();
+    (window as any)?.api?.windowControls?.minimize?.();
   }, []);
 
   const maximize = useCallback(() => {
-    window.api?.windowControls?.maximize?.();
+    (window as any)?.api?.windowControls?.maximize?.();
   }, []);
 
   const close = useCallback(() => {
-    window.api?.windowControls?.close?.();
+    (window as any)?.api?.windowControls?.close?.();
   }, []);
 
   return (
     <div
-      style={{ ...containerStyle, WebkitAppRegion: "no-drag" } as React.CSSProperties & { WebkitAppRegion: string }}
+      style={{ ...(containerStyle as any), WebkitAppRegion: "no-drag" } as any}
     >
       <button
         style={baseButtonStyle}

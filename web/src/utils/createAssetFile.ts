@@ -112,10 +112,10 @@ const toUint8Array = (input: any): Uint8Array => {
   }
   if (typeof input === "object") {
     if ("data" in input) {
-      return toUint8Array((input as { data: unknown }).data);
+      return toUint8Array((input as any).data);
     }
     if ("content" in input) {
-      return toUint8Array((input as { content: unknown }).content);
+      return toUint8Array((input as any).content);
     }
     return new Uint8Array(Object.values(input as Record<string, number>));
   }

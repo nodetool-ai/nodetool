@@ -163,17 +163,17 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
       (onChangeRows as (newData: unknown) => void)(
-        (data as unknown[]).filter((_, index) => {
+        (data as any[]).filter((_, index) => {
           return !selectedRows.some(
             (selectedRow) => selectedRow.getData().rownum === index
           );
         })
       );
     } else {
-      const newData = { ...data } as Record<string, unknown>;
+      const newData = { ...data };
       selectedRows.forEach((row) => {
         const key = row.getData().key;
-        delete newData[key];
+        delete (newData as any)[key];
       });
       (onChangeRows as (newData: unknown) => void)(newData);
     }
@@ -224,7 +224,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     } else {
         reindexedData = (newData as DictTableRow[]).map((row, index) => ({ ...row, rownum: index }));
     }
-    onChangeRows(reindexedData as TableData);
+    onChangeRows(reindexedData as any);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,

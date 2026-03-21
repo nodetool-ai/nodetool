@@ -118,3 +118,46 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: Optimize Zustand record filtering
+
+## 💡 What
+Replaced expensive `Object.fromEntries(Object.entries(record).filter(...))` patterns in `ErrorStore`, `ExecutionTimeStore`, and `VibeCodingStore` with optimized `for...in` loops and shallow-copy-and-delete mechanisms.
+
+## 🎯 Why
+`Object.entries().filter()` operations on large Zustand store state dictionaries create expensive intermediate arrays, which negatively impact performance and garbage collection, especially during rapid store updates or UI re-renders. Replacing them with `for...in` iteration prevents these allocations.
+
+## 📊 Impact
+- **Improves Memory Efficiency:** Eliminates O(N) intermediate array allocations during record cleanup operations.
+- **Reduces Main Thread Work:** Directly assigns objects to a pre-allocated cache map.
+- **Enhances Best Practices:** Standardizes record filtering methods across multiple critical Zustand stores (and updates `ZUSTAND_BEST_PRACTICES.md` to guide future developers).
+
+## 🔬 Measurement
+Verify by capturing a memory allocation profile while triggering operations like `clearErrors` or `clearTimings`. Notice the elimination of `Array` allocations associated with the `Object.entries` conversions in these code paths.
+
+## 🧪 Testing
+- `npm run lint` and `npm run typecheck` run inside the `web` folder.
+- Store test files confirm logic parity.
+
+# ⚡ Bolt: Complete Rollout of useIsConnectedSelector for Node Properties
+
+## 💡 What
+Replaced direct subscriptions to the entire `state.edges` array with the memoized `useIsConnectedSelector` hook in the remaining property components:
+- `CollectionProperty.tsx`
+- `StringProperty.tsx` (standardized to use the shared hook instead of inline implementation)
+
+## 🎯 Why
+`CollectionProperty` was previously evaluating `state.edges.some(...)` via `useNodes(state => state.edges)` on every single store update (e.g. 60fps during node drag). This means the component would constantly re-render whenever *any* unrelated edge in the entire graph changed or during any drag operation, wasting CPU cycles and causing UI jank.
+
+## 📊 Impact
+- **Eliminates O(E) filter iterations:** Prevents the `.some()` check from running 60 times a second on all nodes during drag operations.
+- **Prevents Unnecessary Re-renders:** Properties now only re-render when their *specific* connection state changes, completely decoupling them from unrelated graph updates.
+- **Improves Responsiveness:** Smoother graph interactions, particularly on larger workflows with many collection or string inputs.
+
+## 🔬 Measurement
+Verify by adding a `console.log` inside a `CollectionProperty` or `StringProperty` render. Drag an unrelated node across the canvas. Before this patch, it would log on every frame; after this patch, it logs zero times during the drag operation.
+
+## 🧪 Testing
+- Ran `cd web && pnpm run typecheck`: Passed.
+- Ran `cd web && pnpm run lint`: Passed.
+- Ran `cd web && pnpm test`: All relevant property tests passed.

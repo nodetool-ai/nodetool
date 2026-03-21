@@ -424,11 +424,6 @@ declare global {
       off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
     __UPDATES__?: Record<string, unknown>[];
-    // Debug globals exposed by ApiClient
-    isProduction?: boolean;
-    isLocalhost?: boolean;
-    isElectron?: boolean;
-    setForceLocalhost?: (force: boolean | null) => void;
   }
 }
 

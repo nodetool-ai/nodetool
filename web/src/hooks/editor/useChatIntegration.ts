@@ -137,8 +137,8 @@ export function useChatIntegration(params: {
           type: "message",
           name: "",
           role: "user",
-          provider: selectedModel?.provider,
-          model: selectedModel?.id,
+          provider: (selectedModel as any)?.provider,
+          model: (selectedModel as any)?.id,
           content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
@@ -146,7 +146,7 @@ export function useChatIntegration(params: {
           agent_mode: false,
           help_mode: false,
           workflow_assistant: true
-        } as Message);
+        } as any);
       } catch {
         /* empty */
       }
@@ -190,12 +190,12 @@ export function useChatIntegration(params: {
       }
 
       let responseText = "";
-      const content = last.content;
+      const content = last.content as any;
       if (typeof content === "string") {
         responseText = content;
       } else if (Array.isArray(content)) {
-        const textItem = content.find((c) => (c as { type?: string }).type === "text");
-        responseText = (textItem as { text?: string } | undefined)?.text || "";
+        const textItem = content.find((c: any) => c?.type === "text");
+        responseText = textItem?.text || "";
       }
       if (!responseText) {
         return;

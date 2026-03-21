@@ -1,3 +1,4 @@
+import log from "loglevel";
 // Shared Web Audio helpers for streaming PCM16 audio chunks
 
 let sharedAudioContext: AudioContext | null = null;
@@ -5,9 +6,8 @@ let sharedNextStartTime = 0;
 
 export function getAudioContext(): AudioContext {
   if (typeof window === "undefined") {throw new Error("No window");}
-  type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
-  const Ctx: typeof AudioContext =
-    window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
+  const Ctx =
+    (window as any).AudioContext || (window as any).webkitAudioContext;
   if (!sharedAudioContext) {
     sharedAudioContext = new Ctx();
     if (!sharedAudioContext) {throw new Error("Failed to create AudioContext");}
@@ -45,7 +45,7 @@ export function playPcm16Base64(
   const ctx = getAudioContext();
   ctx.resume().catch((err) => {
     // Audio context resume can fail if user hasn't interacted with page yet
-    console.warn("Failed to resume AudioContext:", err);
+    log.warn("Failed to resume AudioContext:", err);
   });
 
   const u8 = base64ToUint8Array(base64);

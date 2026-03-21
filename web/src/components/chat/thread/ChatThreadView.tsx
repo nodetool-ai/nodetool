@@ -442,10 +442,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const map: Record<string, { name?: string | null; content: any }> = {};
     for (const m of messages) {
       // Tool result messages carry tool_call_id to link back to the originating tool call
-      if (m.role === "tool" && m.tool_call_id) {
-        map[String(m.tool_call_id)] = {
-          name: m.name ?? undefined,
-          content: m.content
+      const anyMsg: any = m as any;
+      if (m.role === "tool" && anyMsg.tool_call_id) {
+        map[String(anyMsg.tool_call_id)] = {
+          name: anyMsg.name ?? undefined,
+          content: m.content as any
         };
       }
     }
@@ -607,9 +608,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
       // Clear the flag after a short delay to allow the scroll to complete
       // but still prevent immediate auto-scroll during streaming
-      setTimeout(() => {
+      const scrollFlagTimeoutId = setTimeout(() => {
         scrolledToUserMessageRef.current = false;
       }, 1000);
+      return () => clearTimeout(scrollFlagTimeoutId);
     }
   }, [messages, scrollToLastUserMessage]);
 

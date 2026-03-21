@@ -1,16 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useState, useCallback, memo, useMemo } from "react";
+import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
 import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
-import type { Edge } from "@xyflow/react";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -79,23 +79,8 @@ const StringProperty = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const isConnected = useNodes(
-    useMemo(() => {
-      let lastEdges: Edge[] | null = null;
-      let lastResult = false;
-      return (state: import("../../stores/NodeStore").NodeStoreState) => {
-        if (state.edges === lastEdges) {
-          return lastResult;
-        }
-        lastEdges = state.edges;
-        lastResult = state.edges.some(
-          (edge: Edge) =>
-            edge.target === nodeId && edge.targetHandle === property.name
-        );
-        return lastResult;
-      };
-    }, [nodeId, property.name])
-  );
+  const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   const codeLanguage = determineCodeLanguage(nodeType);
   const stringValue = typeof value === "string" ? value : "";
@@ -140,7 +125,7 @@ const StringProperty = ({
         {isHovered && (
           <div className="string-action-buttons">
             <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand}>
+              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
                 <OpenInFullIcon />
               </IconButton>
             </Tooltip>

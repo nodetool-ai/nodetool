@@ -29,7 +29,7 @@ function EmbeddingModelMenuDialog({
       onModelChange={onModelChange}
       title="Select Embedding Model"
       searchPlaceholder="Search embedding models..."
-      storeHook={useEmbeddingModelMenuStore}
+      storeHook={useEmbeddingModelMenuStore as any}
     />
   );
 }

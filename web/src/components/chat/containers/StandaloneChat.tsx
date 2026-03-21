@@ -18,6 +18,7 @@ import useGlobalChatStore, {
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import log from "loglevel";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -129,14 +130,14 @@ const StandaloneChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      console.error("Failed to connect GlobalChatStore:", err);
+      log.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        console.error("Error during GlobalChatStore disconnect:", err);
+        log.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -232,7 +233,7 @@ const StandaloneChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          console.error("Failed to handle thread logic:", error);
+          log.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -261,9 +262,12 @@ const StandaloneChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) {return;}
 
+    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      setTimeout(() => {
+      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
+      viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -283,17 +287,17 @@ const StandaloneChat: React.FC = () => {
     };
 
     // Use Visual Viewport API for better keyboard handling
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener(
+    if ((window as any).visualViewport) {
+      (window as any).visualViewport.addEventListener(
         "resize",
         handleViewportChange
       );
       return () => {
-        vv.removeEventListener(
+        (window as any).visualViewport.removeEventListener(
           "resize",
           handleViewportChange
         );
+        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
@@ -310,7 +314,7 @@ const StandaloneChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/standalone-chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 

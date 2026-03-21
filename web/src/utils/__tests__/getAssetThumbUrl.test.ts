@@ -1,4 +1,3 @@
-import log from "loglevel";
 /**
  * @jest-environment node
  */
@@ -10,13 +9,13 @@ import { AssetRef } from '../../stores/ApiTypes';
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
 
 // Mock console.error to avoid noise in tests
-const originalLogError = log.error;
+const originalConsoleError = console.error;
 beforeAll(() => {
-  log.error = jest.fn();
+  console.error = jest.fn();
 });
 
 afterAll(() => {
-  log.error = originalLogError;
+  console.error = originalConsoleError;
 });
 
 describe('getAssetThumbUrl', () => {
@@ -105,7 +104,7 @@ describe('getAssetThumbUrl', () => {
 
       const result = getAssetThumbUrl(asset);
       
-      expect(log.error).toHaveBeenCalledWith(
+      expect(console.error).toHaveBeenCalledWith(
         'Failed to create thumbnail URL from binary data:',
         expect.any(Error)
       );

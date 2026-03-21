@@ -17,6 +17,7 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
+import log from "loglevel";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -60,7 +61,7 @@ export const useLanguageModelsByProvider = (options?: {
         const { data, error } = await client.GET("/api/models/llm/{provider}", {
           params: {
             path: {
-              provider: providerValue
+              provider: providerValue as any
             }
           }
         });
@@ -137,16 +138,17 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
       queryKey: ["image-models", provider.provider],
       queryFn: async () => {
         try {
-          const providerValue = provider.provider;
+          // Convert Provider enum to string for API path parameter
+          const providerValue = String(provider.provider);
           const { data, error } = await client.GET("/api/models/image/{provider}", {
             params: {
               path: {
-                provider: providerValue
+                provider: providerValue as any
               }
             }
           });
           if (error) {
-            console.error(`Error fetching image models for provider ${providerValue}:`, error);
+            log.error(`Error fetching image models for provider ${providerValue}:`, error);
             throw error;
           }
           return {
@@ -154,10 +156,10 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
             models: (data || []) as ImageModel[]
           };
         } catch (err) {
-          console.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
+          log.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
           // Return empty array for this provider instead of failing completely
           return {
-            provider: provider.provider,
+            provider: String(provider.provider),
             models: [] as ImageModel[]
           };
         }
@@ -179,7 +181,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
   // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
   }
 
   // Debug logging removed
@@ -215,7 +217,7 @@ export const useTTSModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/tts/{provider}", {
           params: {
             path: {
-              provider: providerValue
+              provider: providerValue as any
             }
           }
         });
@@ -270,7 +272,7 @@ export const useASRModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/asr/{provider}", {
           params: {
             path: {
-              provider: providerValue
+              provider: providerValue as any
             }
           }
         });
@@ -325,7 +327,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
         const { data, error } = await client.GET("/api/models/video/{provider}", {
           params: {
             path: {
-              provider: providerValue
+              provider: providerValue as any
             }
           }
         });
@@ -351,7 +353,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
   }
 
   const refetch = useMemo(
@@ -467,6 +469,6 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
     id: model.id || model.repo_id || "",
     name: model.name || model.repo_id || model.id || "",
     path: model.path || undefined,
-    supported_tasks: pipelineTask ? [pipelineTask] : []
+    supported_tasks: pipelineTask ? [pipelineTask as any] : []
   };
 };

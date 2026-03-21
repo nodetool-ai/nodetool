@@ -24,7 +24,7 @@ export const useWorkflow = <T = Workflow>(id: string | null | undefined, options
     queryFn: () => fetchWorkflowById(id as string),
     enabled: !!id,
     staleTime: 60 * 1000,
-    ...options
+    ...options as any
   });
 
   const setWorkflowCache = (workflow: Workflow) => {

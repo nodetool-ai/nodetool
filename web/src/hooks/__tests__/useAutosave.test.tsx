@@ -1,4 +1,3 @@
-import log from "loglevel";
 import React from "react";
 import { renderHook, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -243,7 +242,7 @@ describe("useAutosave", () => {
     });
 
     it("handles fetch errors gracefully", async () => {
-      const consoleSpy = jest.spyOn(log, "error").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });

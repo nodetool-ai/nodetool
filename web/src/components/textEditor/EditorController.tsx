@@ -18,26 +18,7 @@ import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
-
-// CSS Custom Highlight API (experimental)
-type CSSWithHighlights = typeof CSS & {
-  highlights?: {
-    set(name: string, highlight: unknown): void;
-    delete(name: string): void;
-  };
-};
-
-// Highlight constructor (experimental)
-type WindowWithHighlight = Window & {
-  Highlight?: new (...ranges: Range[]) => unknown;
-};
-
-// Text Fragment Directive (experimental polyfill)
-type DocumentWithFragmentDirective = Document & {
-  fragmentDirective?: {
-    show(fragments: unknown[]): void;
-  };
-};
+import log from "loglevel";
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -95,8 +76,8 @@ const EditorController = ({
 
   const clearHighlights = useCallback(() => {
     // Clear both native and polyfilled highlights
-    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightAllName);
-    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightCurrentName);
+    (CSS as any)?.highlights?.delete?.(highlightAllName);
+    (CSS as any)?.highlights?.delete?.(highlightCurrentName);
 
     // No DOM-wrapper fallback anymore; CSS Highlight API handles highlight
     // clearing via CSS.highlights.delete above.
@@ -207,7 +188,7 @@ const EditorController = ({
     (matchIndexes: number[], matchLength: number, currentIndex: number) => {
       clearHighlights();
 
-      const hs = (CSS as CSSWithHighlights)?.highlights;
+      const hs = (CSS as any)?.highlights;
 
       // Native CSS Highlight API is preferred
       if (hs && typeof hs.set === "function") {
@@ -218,14 +199,13 @@ const EditorController = ({
           if (r) {ranges.push(r);}
         }
         if (ranges.length > 0) {
-          const HighlightCtor = (window as WindowWithHighlight).Highlight!;
-          hs.set(highlightAllName, new HighlightCtor(...ranges));
+          hs.set(highlightAllName, new (window as any).Highlight(...ranges));
 
           const currentRange = ranges[currentIndex] || ranges[0];
           if (currentRange) {
             hs.set(
               highlightCurrentName,
-              new HighlightCtor(currentRange)
+              new (window as any).Highlight(currentRange)
             );
             currentRange.startContainer?.parentElement?.scrollIntoView({
               block: "center"
@@ -251,9 +231,9 @@ const EditorController = ({
 
         if (
           fragments.length > 0 &&
-          typeof (document as DocumentWithFragmentDirective).fragmentDirective?.show === "function"
+          typeof (document as any).fragmentDirective.show === "function"
         ) {
-          (document as DocumentWithFragmentDirective).fragmentDirective!.show(fragments);
+          (document as any).fragmentDirective.show(fragments);
 
           // The polyfill doesn't have a concept of a "current" match,
           // so we can't style it differently or scroll to it.
@@ -571,7 +551,7 @@ const EditorController = ({
                 node.setTextContent(newText);
                 anyReplaced = true;
               } catch (err) {
-                console.error("Error performing regex replace:", err);
+                log.error("Error performing regex replace:", err);
               }
             }
           }
@@ -616,7 +596,7 @@ const EditorController = ({
   // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
-      setTimeout(() => {
+      const initTimeoutId = setTimeout(() => {
         editor.update(() => {
           const root = $getRoot();
           const currentText = root.getTextContent();
@@ -631,6 +611,7 @@ const EditorController = ({
         });
         setInitialContentSet(true);
       }, 0);
+      return () => clearTimeout(initTimeoutId);
     }
   }, [editor, initialContent, initialContentSet]);
 

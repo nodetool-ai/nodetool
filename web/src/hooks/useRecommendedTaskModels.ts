@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { BASE_URL } from "../stores/BASE_URL";
-import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel, Provider } from "../stores/ApiTypes";
+import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel } from "../stores/ApiTypes";
 
 /**
  * Task type for model recommendations.
@@ -33,7 +33,7 @@ const mapUnifiedToImageModel = (u: UnifiedModel): ImageModel => ({
   type: "image_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as Provider,
+  provider: inferProvider(u) as any,
 });
 
 /**
@@ -46,7 +46,7 @@ const mapUnifiedToLanguageModel = (u: UnifiedModel): LanguageModel => ({
   type: "language_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as Provider,
+  provider: inferProvider(u) as any,
 });
 
 /**
@@ -59,7 +59,7 @@ const mapUnifiedToASRModel = (u: UnifiedModel): ASRModel => ({
   type: "asr_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as Provider,
+  provider: inferProvider(u) as any,
 });
 
 /**
@@ -72,7 +72,7 @@ const mapUnifiedToTTSModel = (u: UnifiedModel): TTSModel => ({
   type: "tts_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as Provider,
+  provider: inferProvider(u) as any,
   voices: [],
   selected_voice: "",
 });

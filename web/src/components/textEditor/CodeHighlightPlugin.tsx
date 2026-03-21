@@ -6,9 +6,8 @@ import { registerCodeHighlighting } from "@lexical/code";
 // Import Prism and attach to global scope so @lexical/code can access it.
 import Prism from "prismjs";
 
-const globalWithPrism = globalThis as typeof globalThis & { Prism?: typeof Prism };
-if (typeof globalWithPrism.Prism === "undefined") {
-  globalWithPrism.Prism = Prism;
+if (typeof (globalThis as any).Prism === "undefined") {
+  (globalThis as any).Prism = Prism;
 }
 
 // Load additional languages (tree-shaken by bundler if unused)

@@ -1,4 +1,3 @@
-import log from "loglevel";
 /**
  * @jest-environment jsdom
  */
@@ -20,7 +19,7 @@ jest.mock("../icons/assistant.svg?react", () => {
 });
 
 // Mock console.warn to test error handling
-const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
 describe("useDynamicSvgImport", () => {
   beforeEach(() => {

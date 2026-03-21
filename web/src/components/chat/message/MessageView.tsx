@@ -9,14 +9,6 @@ import {
   TaskUpdate,
   StepResult
 } from "../../../stores/ApiTypes";
-
-/** Shape of a parsed execution-event content object. */
-type ExecutionEventContent = {
-  type?: string;
-  severity?: string;
-  content?: React.ReactNode;
-  [key: string]: unknown;
-};
 import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
 import { ThoughtSection } from "./thought/ThoughtSection";
@@ -76,7 +68,7 @@ const ToolCallCard: React.FC<{
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const hasArgs = tc.args && Object.keys(tc.args).length > 0;
+  const hasArgs = (tc as any)?.args && Object.keys((tc as any).args).length > 0;
   const hasDetails = !!hasArgs;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
 
@@ -118,7 +110,7 @@ const ToolCallCard: React.FC<{
             <Typography variant="caption" className="tool-section-title">
               Arguments
             </Typography>
-            <PrettyJson value={tc.args} />
+            <PrettyJson value={(tc as any).args} />
           </Box>
         )}
       </Collapse>
@@ -151,7 +143,7 @@ export const MessageView: React.FC<
   // Memoize JSON parsing to avoid repeated parsing on every render
   // Use string comparison to avoid re-parsing identical content
   const { executionContent, executionEventType } = useMemo(() => {
-    let executionContent: ExecutionEventContent | string | null = message.content as ExecutionEventContent | string | null;
+    let executionContent = message.content as any;
     let executionEventType = message.execution_event_type;
 
     // Fast path: if content is not a string, no parsing needed
@@ -162,7 +154,7 @@ export const MessageView: React.FC<
         typeof executionContent === "object" &&
         "type" in executionContent
       ) {
-        executionEventType = executionContent.type;
+        executionEventType = (executionContent as any).type;
       }
       return { executionContent, executionEventType };
     }
@@ -188,7 +180,7 @@ export const MessageView: React.FC<
       typeof executionContent === "object" &&
       "type" in executionContent
     ) {
-      executionEventType = executionContent.type;
+      executionEventType = (executionContent as any).type;
     }
 
     return { executionContent, executionEventType };

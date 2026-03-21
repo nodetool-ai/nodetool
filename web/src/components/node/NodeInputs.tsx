@@ -223,18 +223,14 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       let resolvedType: TypeMetadata;
       let description: string | undefined;
       if (inputMeta) {
-          type DynMeta = typeof inputMeta & { enum?: (string | number)[] };
-          type DynTypeArg = TypeMetadata & { enum?: (string | number)[] };
-          const meta = inputMeta as DynMeta;
-          const arg0 = inputMeta.type_args?.[0] as DynTypeArg | undefined;
-          resolvedType = {
-            ...inputMeta,
-            type: inputMeta.type,
-            type_args: inputMeta.type_args ?? [],
-            optional: inputMeta.optional ?? false,
-            values: inputMeta.values || meta.enum || arg0?.values || arg0?.enum,
-          } as TypeMetadata;
-          description = inputMeta.description;
+        resolvedType = {
+          ...inputMeta,
+          type: inputMeta.type,
+          type_args: inputMeta.type_args ?? [],
+          optional: inputMeta.optional ?? false,
+          values: inputMeta.values || (inputMeta as any).enum || (inputMeta.type_args?.[0] as any)?.values || (inputMeta.type_args?.[0] as any)?.enum,
+        } as TypeMetadata;
+        description = inputMeta.description;
       } else {
         resolvedType = {
           type: "any",

@@ -33,6 +33,7 @@ import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
 import { CloseButton, DialogActionButtons } from "../ui_primitives";
+import log from "loglevel";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -168,7 +169,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           setCompareVersion(null);
         }
       } catch (error) {
-        console.error("Failed to delete version:", error);
+        log.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
@@ -189,7 +190,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         onRestore(version);
         setHistoryPanelOpen(false);
       } catch (error) {
-        console.error("Failed to restore version:", error);
+        log.error("Failed to restore version:", error);
       }
     },
     [restoreVersion, onRestore, setHistoryPanelOpen]

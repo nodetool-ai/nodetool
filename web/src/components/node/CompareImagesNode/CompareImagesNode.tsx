@@ -122,7 +122,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
     if (!result || typeof result !== "object") {
       return null;
     }
-    if ((result as { type?: string }).type !== "image_comparison") {
+    if ((result as any).type !== "image_comparison") {
       return null;
     }
     return result as {

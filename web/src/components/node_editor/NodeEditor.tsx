@@ -169,7 +169,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               backgroundColor: theme.vars.palette.c_editor_bg_color,
               // Used by structural CSS / node components (e.g. `nodes.base.css`, `BaseNode.tsx`)
               // Keep it defined even if ThemeNodetool changes.
-              "--rounded-node": theme.rounded?.node ?? "8px"
+              ["--rounded-node" as any]: theme.rounded?.node ?? "8px"
             } as React.CSSProperties
           }
         >
