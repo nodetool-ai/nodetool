@@ -110,8 +110,8 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
     anchorOrigin: PopoverOrigin;
     transformOrigin: PopoverOrigin;
   }>({
-    anchorOrigin: { vertical: "bottom", horizontal: "left" },
-    transformOrigin: { vertical: "top", horizontal: "left" }
+    anchorOrigin: { vertical: "bottom", horizontal: "left" } as PopoverOrigin,
+    transformOrigin: { vertical: "top", horizontal: "left" } as PopoverOrigin
   });
 
   const updatePosition = useCallback(() => {

@@ -9,7 +9,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "output",
         target: "node-2",
-        targetHandle: "input"
+        targetHandle: "input-1",
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -18,7 +19,7 @@ describe("graphEdgeToReactFlowEdge", () => {
       expect(result.source).toBe("node-1");
       expect(result.sourceHandle).toBe("output");
       expect(result.target).toBe("node-2");
-      expect(result.targetHandle).toBe("input");
+      expect(result.targetHandle).toBe("input-1");
     });
 
     it("generates id using uuidv4 when id is not provided", () => {
@@ -26,7 +27,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "output",
         target: "node-2",
-        targetHandle: "input"
+      targetHandle: "input-1",
+      edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -41,7 +43,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: null as any,
         target: "node-2",
-        targetHandle: null as any
+      targetHandle: null as any,
+      edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -56,7 +59,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "",
         target: "node-2",
-        targetHandle: ""
+        targetHandle: "",
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -74,7 +78,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         sourceHandle: "output",
         target: "node-2",
         targetHandle: "input",
-        ui_properties: { className: "custom-edge" }
+        ui_properties: { className: "custom-edge" },
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -88,7 +93,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "output",
         target: "node-2",
-        targetHandle: "input"
+      targetHandle: "input-1",
+      edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -103,7 +109,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         sourceHandle: "output",
         target: "node-2",
         targetHandle: "input",
-        ui_properties: { otherProperty: "value" }
+        ui_properties: { otherProperty: "value" },
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -119,7 +126,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "",
         target: "node-2",
-        targetHandle: ""
+        targetHandle: "",
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);
@@ -134,7 +142,8 @@ describe("graphEdgeToReactFlowEdge", () => {
         source: "node-1",
         sourceHandle: "out-1",
         target: "node-2",
-        targetHandle: "in-1"
+        targetHandle: "in-1",
+        edge_type: "data"
       };
 
       const result = graphEdgeToReactFlowEdge(graphEdge);

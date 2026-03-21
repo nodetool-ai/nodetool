@@ -229,7 +229,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       output_schema: {},
       the_model_info: {},
       recommended_models: [],
-      is_streaming_output: false
+      is_streaming_output: false,
+      required_settings: []
     }),
     [
       computedHeaderTitle,

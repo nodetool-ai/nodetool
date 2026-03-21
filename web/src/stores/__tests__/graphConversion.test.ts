@@ -8,6 +8,7 @@ const createMockGraphEdge = (overrides?: Partial<GraphEdge>): GraphEdge => ({
   sourceHandle: "output-1",
   target: "node-2",
   targetHandle: "input-1",
+  edge_type: "data" as const,
   ...overrides
 });
 
@@ -112,7 +113,8 @@ describe("reactFlowEdgeToGraphEdge", () => {
       source: "node-1",
       sourceHandle: "output-1",
       target: "node-2",
-      targetHandle: "input-1"
+      targetHandle: "input-1",
+      data: { edge_type: "data" }
     };
     const result = reactFlowEdgeToGraphEdge(edge);
 

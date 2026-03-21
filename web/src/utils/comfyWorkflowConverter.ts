@@ -130,7 +130,8 @@ function comfyLinkToNodeToolEdge(
     source: String(link.origin_id),
     target: String(link.target_id),
     sourceHandle,
-    targetHandle
+    targetHandle,
+    edge_type: "data"
   };
 }
 
@@ -436,7 +437,8 @@ export function comfyPromptToNodeToolGraph(prompt: ComfyUIPrompt): Graph {
           source: sourceNodeId,
           target: nodeId,
           sourceHandle: `output_${outputSlot}`,
-          targetHandle: inputName
+          targetHandle: inputName,
+          edge_type: "data"
         });
       } else {
         properties[inputName] = inputValue;

@@ -11,14 +11,12 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CompareIcon from "@mui/icons-material/Compare";
-import TabIcon from "@mui/icons-material/Tab";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 
@@ -78,9 +76,6 @@ const AssetItemContextMenu = () => {
     )
   );
 
-  // FileTabsStore subscription
-  const openFileTab = useFileTabsStore((state) => state.openFileTab);
-
   // Check if any selected items are folders
   const isFolder = selectedAssets.some(
     (asset) => asset.content_type === "folder"
@@ -96,11 +91,6 @@ const AssetItemContextMenu = () => {
   const isTwoImages =
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
-
-  // Check if a single non-folder asset is selected (for "Open as Tab")
-  const isSingleNonFolderAsset =
-    selectedAssets.length === 1 &&
-    selectedAssets[0]?.content_type !== "folder";
 
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
@@ -186,12 +176,6 @@ const AssetItemContextMenu = () => {
     }
   });
 
-  const handleOpenAsTab = withMenuClose(() => {
-    if (isSingleNonFolderAsset && selectedAssets[0]) {
-      openFileTab(selectedAssets[0]);
-    }
-  });
-
   if (!menuPosition) {return null;}
   return (
     <>
@@ -224,14 +208,6 @@ const AssetItemContextMenu = () => {
           IconComponent={<DriveFileRenameOutlineIcon />}
           tooltip="Rename selected assets"
         />
-        {isSingleNonFolderAsset && (
-          <ContextMenuItem
-            onClick={handleOpenAsTab}
-            label="Open as Tab"
-            IconComponent={<TabIcon />}
-            tooltip="Open this asset in a new editor tab"
-          />
-        )}
         <Divider />
         <ContextMenuItem
           onClick={openMoveDialog}

@@ -238,7 +238,7 @@ const CollectionList = () => {
                         status: "idle",
                         submittedAt: 0,
                         variables: undefined
-                      } as any
+                      } as unknown as any
                     }
                   />
                 ))}

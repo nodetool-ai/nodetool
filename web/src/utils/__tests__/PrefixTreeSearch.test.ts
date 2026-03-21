@@ -34,7 +34,8 @@ describe("PrefixTreeSearch", () => {
     is_dynamic: false,
     expose_as_tool: false,
     supports_dynamic_outputs: false,
-    is_streaming_output: false,
+  is_streaming_output: false,
+  required_settings: []
   });
 
   const mockNodes: NodeMetadata[] = [

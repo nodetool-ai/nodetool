@@ -9,6 +9,7 @@ export const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
     sourceHandle: edge.sourceHandle || null,
     target: edge.target,
     targetHandle: edge.targetHandle || null,
-    className: edge.ui_properties?.className
+    className: edge.ui_properties?.className,
+    data: { edge_type: edge.edge_type }
   };
 };

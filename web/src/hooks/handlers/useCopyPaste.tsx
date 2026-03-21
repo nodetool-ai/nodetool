@@ -42,7 +42,7 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { handleContentPaste, readClipboardContent } = useClipboardContentPaste();
+  const { handleContentPaste, readClipboardText } = useClipboardContentPaste();
 
   const selectedNodes = useMemo(() => {
     return nodes.filter((node) => node.selected);
@@ -132,53 +132,21 @@ export const useCopyPaste = () => {
       return;
     }
 
-    const clipboardContent = await readClipboardContent();
     let clipboardData: string | null = null;
 
-    // 1. Content is an Image or File -> Handle as content immediately
-    if (clipboardContent.type === "image" || clipboardContent.type === "file") {
-      await handleContentPaste();
-      return;
-    }
+    // Try to get data from Author's clipboard first using robust reader
+    clipboardData = await readClipboardText();
 
-    // 2. Content is Text/HTML/RTF -> Check if it is valid Node Data
-    if (
-      clipboardContent.type === "text" ||
-      clipboardContent.type === "html" ||
-      clipboardContent.type === "rtf"
-    ) {
-      if (typeof clipboardContent.data === "string") {
-        try {
-          const parsed = JSON.parse(clipboardContent.data);
-          if (
-            parsed &&
-            typeof parsed === "object" &&
-            Array.isArray((parsed as any).nodes) &&
-            Array.isArray((parsed as any).edges) &&
-            (parsed as any).nodes.every(isValidNode) &&
-            (parsed as any).edges.every(isValidEdge)
-          ) {
-            // It is valid node data, so use it
-            clipboardData = clipboardContent.data;
-          }
-        } catch {
-          // Not JSON
-        }
-      }
-
-      // If it is NOT valid nodes data, handle as content (string node)
-      if (!clipboardData) {
-        await handleContentPaste();
-        return;
-      }
-    }
-
-    // 3. Fallback to localStorage if system clipboard matches nothing known
-    if (clipboardContent.type === "unknown" && !clipboardData) {
+    if (!clipboardData) {
       clipboardData = localStorage.getItem("copiedNodesData");
     }
 
+    // If no text clipboard data, try to handle as content (image, html, rtf, text)
     if (!clipboardData) {
+      const handled = await handleContentPaste();
+      if (handled) {
+        return;
+      }
       log.debug("No valid data found in clipboard or localStorage");
       return;
     }
@@ -187,6 +155,12 @@ export const useCopyPaste = () => {
     try {
       parsedData = JSON.parse(clipboardData);
     } catch {
+      // JSON parse failed, try to handle as clipboard content
+      log.debug("Clipboard data is not valid JSON, trying content paste");
+      const handled = await handleContentPaste();
+      if (!handled) {
+        setIsClipboardValid(false);
+      }
       return;
     }
 
@@ -198,6 +172,14 @@ export const useCopyPaste = () => {
       !(parsedData as any).nodes.every(isValidNode) ||
       !(parsedData as any).edges.every(isValidEdge)
     ) {
+      // Not valid node data, try to handle as clipboard content
+      log.debug(
+        "Clipboard data does not contain valid nodes/edges, trying content paste"
+      );
+      const handled = await handleContentPaste();
+      if (!handled) {
+        setIsClipboardValid(false);
+      }
       return;
     }
 
@@ -264,9 +246,9 @@ export const useCopyPaste = () => {
           workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
-              x: positionAbsolute.x + offset.x,
-              y: positionAbsolute.y + offset.y
-            }
+                x: positionAbsolute.x + offset.x,
+                y: positionAbsolute.y + offset.y
+              }
             : undefined
         },
         position: {
@@ -315,10 +297,10 @@ export const useCopyPaste = () => {
     edges,
     setNodes,
     setEdges,
-
+    setIsClipboardValid,
     workflowId,
     handleContentPaste,
-    readClipboardContent
+    readClipboardText
   ]);
 
   return { handleCopy, handleCut, handlePaste };
