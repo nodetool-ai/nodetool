@@ -56,7 +56,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger.
 - [x] fix HEX, RGB, HSL buttons not showing color input — each mode now shows its own input fields (hex text input, R/G/B number fields, H/S/L number fields)
 - [x] make the default palette nicer: 7 rows × 7 columns — 1 gray row (black→white) + 6 hue rows (red, orange, green, cyan, blue, purple) with dark-to-light variations
-- [ ] add alpha support. also for gradients
+- [x] add alpha support. also for gradients
 
 #### Layers — extra parity
 
@@ -83,8 +83,14 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
 - [ ] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
-- [ ] improve **Context-sensitive** right-click menu: add quick options for currently active tool
-- [ ] adjustments without apply button - apply directly on change with small debounce like 100ms
+- [ ] improve **Context-sensitive menu** right-click menu: add quick options for currently active tool
+- [ ] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
+- [ ] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
+- [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
+- [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
+
+- [ ] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
+- [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
 
 #### Gesture shortcuts (parity — open conflicts)
 
@@ -113,6 +119,8 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [ ] Selection tools with transform (scale, rotate, skew)
 - [ ] Vector / pen tool
 - [ ] Text layers with font settings. global font system with 20 well selected google fonts.
+- [ ] Fix Brush behaviour: research how a good brush should look, currently feels too simple
+- [ ] Fix Blur Brush behaviour: research how a good blur should look and act when drawing, currently smears and destroys the image
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types)
 - [ ] replace ImageEditor.tsx to use the new SketchEditor instead - ImageEditor can then be deleted
 

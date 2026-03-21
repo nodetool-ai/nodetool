@@ -15,7 +15,7 @@ import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useSketchStore } from "./state";
-import { SketchDocument } from "./types";
+import { SketchDocument, mergeRgbHexIntoColor } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -135,25 +135,30 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.color) {
-        setBrushSettings({ color: detail.color });
+        const fg = useSketchStore.getState().foregroundColor;
+        const merged = mergeRgbHexIntoColor(detail.color, fg);
+        setForegroundColor(merged);
+        setBrushSettings({ color: merged });
         setActiveTool("brush");
       }
     };
     window.addEventListener("sketch-eyedropper", handler);
     return () => window.removeEventListener("sketch-eyedropper", handler);
-  }, [setBrushSettings, setActiveTool]);
+  }, [setBrushSettings, setActiveTool, setForegroundColor]);
 
   // ─── Alt+click eyedropper pick (stays on current tool) ─────────────
   const handleEyedropperPick = useCallback(
     (color: string) => {
-      setForegroundColor(color);
+      const fg = useSketchStore.getState().foregroundColor;
+      const merged = mergeRgbHexIntoColor(color, fg);
+      setForegroundColor(merged);
       const tool = activeTool;
       if (tool === "brush") {
-        setBrushSettings({ color });
+        setBrushSettings({ color: merged });
       } else if (tool === "pencil") {
-        setPencilSettings({ color });
+        setPencilSettings({ color: merged });
       } else if (tool === "fill") {
-        setFillSettings({ color });
+        setFillSettings({ color: merged });
       }
     },
     [activeTool, setForegroundColor, setBrushSettings, setPencilSettings, setFillSettings]

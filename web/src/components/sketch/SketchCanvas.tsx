@@ -32,7 +32,8 @@ import {
   Point,
   BlendMode,
   isShapeTool,
-  isPaintingTool
+  isPaintingTool,
+  parseColorToRgba
 } from "./types";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -307,8 +308,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
       drawCheckerboard(ctx, displayCanvas.width, displayCanvas.height);
 
-      ctx.fillStyle = doc.canvas.backgroundColor;
-      ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
+      const hasVisibleLayer = doc.layers.some((layer) => layer.visible);
+      if (hasVisibleLayer) {
+        ctx.fillStyle = doc.canvas.backgroundColor;
+        ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
+      }
 
       for (const layer of doc.layers) {
         if (!layer.visible) {
@@ -730,9 +734,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
-        const fillR = parseInt(settings.color.slice(1, 3), 16);
-        const fillG = parseInt(settings.color.slice(3, 5), 16);
-        const fillB = parseInt(settings.color.slice(5, 7), 16);
+        const fillParsed = parseColorToRgba(settings.color);
+        const fillR = fillParsed.r;
+        const fillG = fillParsed.g;
+        const fillB = fillParsed.b;
+        const fillA = Math.round(Math.max(0, Math.min(1, fillParsed.a)) * 255);
 
         const idx = (sy * w + sx) * 4;
         const targetR = data[idx];
@@ -744,7 +750,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           targetR === fillR &&
           targetG === fillG &&
           targetB === fillB &&
-          targetA === 255
+          targetA === fillA
         ) {
           return;
         }
@@ -776,7 +782,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           data[i] = fillR;
           data[i + 1] = fillG;
           data[i + 2] = fillB;
-          data[i + 3] = 255;
+          data[i + 3] = fillA;
 
           stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
         }

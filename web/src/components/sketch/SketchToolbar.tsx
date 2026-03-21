@@ -72,8 +72,18 @@ import {
   hexToRgb,
   rgbToHex,
   rgbToHsl,
-  hslToRgb
+  hslToRgb,
+  parseColorToRgba,
+  rgbaToCss,
+  colorToHex6
 } from "./types";
+
+/** Native color input returns #rrggbb; keep existing alpha from stored CSS color. */
+function mergeHexPickerRgbPreserveAlpha(stored: string, pickerHex: string): string {
+  const { a } = parseColorToRgba(stored);
+  const { r, g, b } = parseColorToRgba(pickerHex);
+  return rgbaToCss({ r, g, b, a });
+}
 
 // ─── Collapsible section persistence ──────────────────────────────────────
 
@@ -274,6 +284,11 @@ const styles = (theme: Theme) =>
       width: "44px",
       height: "44px",
       flexShrink: 0,
+      backgroundColor: "#2a2a2a",
+      backgroundImage: `linear-gradient(45deg, #3a3a3a 25%, transparent 25%), linear-gradient(-45deg, #3a3a3a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #3a3a3a 75%), linear-gradient(-45deg, transparent 75%, #3a3a3a 75%)`,
+      backgroundSize: "8px 8px",
+      backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0px",
+      borderRadius: "4px",
       "& .bg-swatch": {
         position: "absolute",
         right: 0,
@@ -526,25 +541,28 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     (hex: string) => {
       const cleaned = hex.startsWith("#") ? hex : `#${hex}`;
       if (/^#[0-9a-fA-F]{6}$/.test(cleaned)) {
-        handleSwatchClick(cleaned.toLowerCase());
+        const { a } = parseColorToRgba(foregroundColor);
+        const { r, g, b } = parseColorToRgba(cleaned.toLowerCase());
+        handleSwatchClick(rgbaToCss({ r, g, b, a }));
       }
     },
-    [handleSwatchClick]
+    [foregroundColor, handleSwatchClick]
   );
 
   // ─── RGB / HSL input handlers ─────────────────────────────────────
   const handleRgbInput = useCallback(
     (channel: "r" | "g" | "b", value: number) => {
+      const { a } = parseColorToRgba(foregroundColor);
       const rgb = hexToRgb(foregroundColor);
       rgb[channel] = Math.max(0, Math.min(255, value));
-      const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
-      handleSwatchClick(hex);
+      handleSwatchClick(rgbaToCss({ r: rgb.r, g: rgb.g, b: rgb.b, a }));
     },
     [foregroundColor, handleSwatchClick]
   );
 
   const handleHslInput = useCallback(
     (channel: "h" | "s" | "l", value: number) => {
+      const { a } = parseColorToRgba(foregroundColor);
       const rgb = hexToRgb(foregroundColor);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       if (channel === "h") {
@@ -555,8 +573,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         hsl.l = Math.max(0, Math.min(100, value));
       }
       const newRgb = hslToRgb(hsl.h, hsl.s, hsl.l);
-      const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
-      handleSwatchClick(hex);
+      handleSwatchClick(
+        rgbaToCss({ r: newRgb.r, g: newRgb.g, b: newRgb.b, a })
+      );
     },
     [foregroundColor, handleSwatchClick]
   );
@@ -581,6 +600,10 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   // ─── Derived color values for RGB / HSL inputs ────────────────────
   const fgRgb = useMemo(() => hexToRgb(foregroundColor), [foregroundColor]);
   const fgHsl = useMemo(() => rgbToHsl(fgRgb.r, fgRgb.g, fgRgb.b), [fgRgb]);
+  const fgHex6 = useMemo(
+    () => colorToHex6(foregroundColor),
+    [foregroundColor]
+  );
 
   return (
     <Box css={styles(theme)}>
@@ -688,26 +711,28 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             <input
               type="color"
               className="fg-swatch"
-              value={foregroundColor}
+              value={fgHex6}
               onChange={(e) => {
-                onForegroundColorChange(e.target.value);
-                if (activeTool === "brush") {
-                  onBrushSettingsChange({ color: e.target.value });
-                } else if (activeTool === "pencil") {
-                  onPencilSettingsChange({ color: e.target.value });
-                } else if (activeTool === "fill") {
-                  onFillSettingsChange({ color: e.target.value });
-                } else if (isShapeTool(activeTool)) {
-                  onShapeSettingsChange({ strokeColor: e.target.value });
-                }
+                const c = mergeHexPickerRgbPreserveAlpha(
+                  foregroundColor,
+                  e.target.value
+                );
+                handleSwatchClick(c);
               }}
               title="Foreground Color"
             />
             <input
               type="color"
               className="bg-swatch"
-              value={backgroundColor}
-              onChange={(e) => onBackgroundColorChange(e.target.value)}
+              value={colorToHex6(backgroundColor)}
+              onChange={(e) => {
+                onBackgroundColorChange(
+                  mergeHexPickerRgbPreserveAlpha(
+                    backgroundColor,
+                    e.target.value
+                  )
+                );
+              }}
               title="Background Color"
             />
           </Box>
@@ -741,7 +766,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             className="hex-input"
             size="small"
             placeholder="#ffffff"
-            value={foregroundColor}
+            value={fgHex6}
             onChange={(e) => handleHexInput(e.target.value)}
             inputProps={{ maxLength: 7 }}
             fullWidth
@@ -799,6 +824,44 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             />
           </Box>
         )}
+        <Box sx={{ mt: "6px" }}>
+          <Typography
+            sx={{ fontSize: "0.65rem", color: "grey.500", mb: "2px" }}
+          >
+            Foreground opacity
+          </Typography>
+          <Slider
+            size="small"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(parseColorToRgba(foregroundColor).a * 100)}
+            onChange={(_, v) => {
+              const a = (v as number) / 100;
+              const { r, g, b } = parseColorToRgba(foregroundColor);
+              handleSwatchClick(rgbaToCss({ r, g, b, a }));
+            }}
+          />
+        </Box>
+        <Box sx={{ mt: "4px" }}>
+          <Typography
+            sx={{ fontSize: "0.65rem", color: "grey.500", mb: "2px" }}
+          >
+            Background opacity
+          </Typography>
+          <Slider
+            size="small"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(parseColorToRgba(backgroundColor).a * 100)}
+            onChange={(_, v) => {
+              const a = (v as number) / 100;
+              const { r, g, b } = parseColorToRgba(backgroundColor);
+              onBackgroundColorChange(rgbaToCss({ r, g, b, a }));
+            }}
+          />
+        </Box>
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
           {([
             { label: "Black", color: "#000000" },
@@ -856,8 +919,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={brushSettings.color}
-                onChange={(e) => onBrushSettingsChange({ color: e.target.value })}
+                value={colorToHex6(brushSettings.color)}
+                onChange={(e) =>
+                  onBrushSettingsChange({
+                    color: mergeHexPickerRgbPreserveAlpha(
+                      brushSettings.color,
+                      e.target.value
+                    )
+                  })
+                }
               />
             </Box>
             <Box className="setting-row">
@@ -901,8 +971,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={pencilSettings.color}
-                onChange={(e) => onPencilSettingsChange({ color: e.target.value })}
+                value={colorToHex6(pencilSettings.color)}
+                onChange={(e) =>
+                  onPencilSettingsChange({
+                    color: mergeHexPickerRgbPreserveAlpha(
+                      pencilSettings.color,
+                      e.target.value
+                    )
+                  })
+                }
               />
             </Box>
             <Box className="setting-row">
@@ -960,8 +1037,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={shapeSettings.strokeColor}
-                onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
+                value={colorToHex6(shapeSettings.strokeColor)}
+                onChange={(e) =>
+                  onShapeSettingsChange({
+                    strokeColor: mergeHexPickerRgbPreserveAlpha(
+                      shapeSettings.strokeColor,
+                      e.target.value
+                    )
+                  })
+                }
               />
             </Box>
             <Box className="setting-row">
@@ -991,8 +1075,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
                     <input
                       type="color"
                       className="color-input"
-                      value={shapeSettings.fillColor}
-                      onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                      value={colorToHex6(shapeSettings.fillColor)}
+                      onChange={(e) =>
+                        onShapeSettingsChange({
+                          fillColor: mergeHexPickerRgbPreserveAlpha(
+                            shapeSettings.fillColor,
+                            e.target.value
+                          )
+                        })
+                      }
                     />
                   </Box>
                 )}
@@ -1008,8 +1099,15 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={fillSettings.color}
-                onChange={(e) => onFillSettingsChange({ color: e.target.value })}
+                value={colorToHex6(fillSettings.color)}
+                onChange={(e) =>
+                  onFillSettingsChange({
+                    color: mergeHexPickerRgbPreserveAlpha(
+                      fillSettings.color,
+                      e.target.value
+                    )
+                  })
+                }
               />
             </Box>
             <Box className="setting-row">
@@ -1054,8 +1152,38 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={gradientSettings.startColor}
-                onChange={(e) => onGradientSettingsChange({ startColor: e.target.value })}
+                value={colorToHex6(gradientSettings.startColor)}
+                onChange={(e) =>
+                  onGradientSettingsChange({
+                    startColor: mergeHexPickerRgbPreserveAlpha(
+                      gradientSettings.startColor,
+                      e.target.value
+                    )
+                  })
+                }
+              />
+            </Box>
+            <Box sx={{ px: "4px", mb: "4px" }}>
+              <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
+                Start opacity
+              </Typography>
+              <Slider
+                size="small"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(
+                  parseColorToRgba(gradientSettings.startColor).a * 100
+                )}
+                onChange={(_, v) => {
+                  const a = (v as number) / 100;
+                  const { r, g, b } = parseColorToRgba(
+                    gradientSettings.startColor
+                  );
+                  onGradientSettingsChange({
+                    startColor: rgbaToCss({ r, g, b, a })
+                  });
+                }}
               />
             </Box>
             <Box className="setting-row">
@@ -1063,8 +1191,38 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               <input
                 type="color"
                 className="color-input"
-                value={gradientSettings.endColor}
-                onChange={(e) => onGradientSettingsChange({ endColor: e.target.value })}
+                value={colorToHex6(gradientSettings.endColor)}
+                onChange={(e) =>
+                  onGradientSettingsChange({
+                    endColor: mergeHexPickerRgbPreserveAlpha(
+                      gradientSettings.endColor,
+                      e.target.value
+                    )
+                  })
+                }
+              />
+            </Box>
+            <Box sx={{ px: "4px", mb: "4px" }}>
+              <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
+                End opacity
+              </Typography>
+              <Slider
+                size="small"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(
+                  parseColorToRgba(gradientSettings.endColor).a * 100
+                )}
+                onChange={(_, v) => {
+                  const a = (v as number) / 100;
+                  const { r, g, b } = parseColorToRgba(
+                    gradientSettings.endColor
+                  );
+                  onGradientSettingsChange({
+                    endColor: rgbaToCss({ r, g, b, a })
+                  });
+                }}
               />
             </Box>
             <ToggleButtonGroup
