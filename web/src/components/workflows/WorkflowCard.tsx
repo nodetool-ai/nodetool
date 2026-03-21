@@ -8,11 +8,12 @@ import {
   Tooltip
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
 
 interface WorkflowCardProps {
@@ -40,7 +41,7 @@ const cardStyles = (theme: Theme) =>
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
-      boxShadow: `0 8px 24px ${alpha(theme.vars.palette.common.black, 0.3)}`
+      boxShadow: `0 8px 24px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
     },
 
     "&:hover .chips-container": {
@@ -61,7 +62,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.75),
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.75),
       backdropFilter: "blur(4px)",
       zIndex: 10,
       borderRadius: "12px"
@@ -97,7 +98,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "0.65rem",
       fontWeight: 600,
       letterSpacing: "0.5px",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.6),
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.6),
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: "4px 8px",
@@ -201,7 +202,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             padding: "10px 14px",
             maxWidth: 300,
             borderRadius: "8px",
-            boxShadow: `0 4px 20px ${alpha(theme.vars.palette.common.black, 0.3)}`
+            boxShadow: `0 4px 20px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
           }
         },
         arrow: {

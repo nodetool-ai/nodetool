@@ -4,7 +4,7 @@ import { memo, useCallback, useState, useMemo, useRef, ChangeEvent } from "react
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { IconButton, Tooltip, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -12,6 +12,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import log from "loglevel";
@@ -39,7 +40,7 @@ const styles = (theme: Theme) =>
     ".text-item": {
       position: "relative",
       width: "100%",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.2),
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.2),
       borderRadius: "6px",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -76,7 +77,7 @@ const styles = (theme: Theme) =>
     ".remove-button": {
       opacity: 0,
       transition: "opacity 0.2s ease",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.7),
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.7),
       color: theme.vars.palette.grey[100],
       padding: "2px",
       width: "20px",
@@ -100,7 +101,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.2s ease",
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.2),
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.2),
       borderRadius: "6px",
       display: "flex",
       alignItems: "center",
@@ -108,7 +109,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: alpha(theme.vars.palette.common.black, 0.3)
+        backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.3)
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
