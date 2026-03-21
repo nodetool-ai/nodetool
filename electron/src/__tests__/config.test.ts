@@ -75,6 +75,27 @@ describe('Config', () => {
       expect(mockReadSettings).toHaveBeenCalled();
     });
 
+    it('should ignore activated conda env outside dev mode', () => {
+      const customPath = '/custom/conda/path';
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      delete process.env.NT_ELECTRON_DEV_MODE;
+      mockReadSettings.mockReturnValue({ CONDA_ENV: customPath });
+
+      const result = getCondaEnvPath();
+
+      expect(result).toBe(customPath);
+    });
+
+    it('should use activated conda env in explicit dev mode', () => {
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      process.env.NT_ELECTRON_DEV_MODE = '1';
+      mockReadSettings.mockReturnValue({ CONDA_ENV: '/custom/conda/path' });
+
+      const result = getCondaEnvPath();
+
+      expect(result).toBe('/active/conda/env');
+    });
+
     it('should return default path when settings is empty', () => {
       mockReadSettings.mockReturnValue({});
 
@@ -323,7 +344,8 @@ describe('Config', () => {
         tempResourcesDir = null;
       }
       if (renamedLockFilePath && backupLockFilePath && fs.existsSync(backupLockFilePath)) {
-        fs.renameSync(backupLockFilePath, renamedLockFilePath);
+        fs.copyFileSync(backupLockFilePath, renamedLockFilePath);
+        fs.rmSync(backupLockFilePath, { force: true });
       }
       renamedLockFilePath = null;
       backupLockFilePath = null;
@@ -421,7 +443,8 @@ describe('Config', () => {
       renamedLockFilePath = path.join(expectedResourcesDir, linuxLockFileName);
       backupLockFilePath = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'));
       backupLockFilePath = path.join(backupLockFilePath, linuxLockFileName);
-      fs.renameSync(renamedLockFilePath, backupLockFilePath);
+      fs.copyFileSync(renamedLockFilePath, backupLockFilePath);
+      fs.rmSync(renamedLockFilePath);
 
       const result = getCondaLockFilePath();
 
@@ -507,6 +530,20 @@ describe('Config', () => {
       expect(result.OBJECT_VAR).toBeUndefined();
     });
 
+    it('should remove inherited conda and virtualenv markers', () => {
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      process.env.CONDA_DEFAULT_ENV = 'base';
+      process.env.VIRTUAL_ENV = '/venv/path';
+      process.env.UV_PYTHON = '/wrong/python';
+
+      const result = getProcessEnv();
+
+      expect(result.CONDA_PREFIX).toBeUndefined();
+      expect(result.CONDA_DEFAULT_ENV).toBeUndefined();
+      expect(result.VIRTUAL_ENV).toBeUndefined();
+      expect(result.UV_PYTHON).toBeUndefined();
+    });
+
     it('should set HOME from os.homedir() when not in environment', () => {
       delete process.env.HOME;
 
@@ -523,8 +560,8 @@ describe('Config', () => {
       expect(result.UV_CACHE_DIR).toBeDefined();
       expect(result.UV_CACHE_DIR).toContain('uv-cache');
       // UV_CACHE_DIR should be inside userData directory
-      const userDataPath = app.getPath('userData');
-      expect(result.UV_CACHE_DIR).toContain(userDataPath);
+      const userDataPath = app.getPath('userData').replace(/\\/g, '/');
+      expect((result.UV_CACHE_DIR ?? '').replace(/\\/g, '/')).toContain(userDataPath);
     });
   });
 });
