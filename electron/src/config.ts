@@ -62,20 +62,15 @@ const getDefaultCondaEnvPath = (): string => {
   }
 };
 
-let cachedCondaEnvPath: string | null = null;
-
 const getCondaEnvPath = (): string => {
-  // Return cached path if available
-  if (cachedCondaEnvPath !== null) {
-    return cachedCondaEnvPath;
-  }
-
-  // Detect if a conda environment is already activated in the shell
-  if (process.env.CONDA_PREFIX) {
-    const activeEnv = process.env.CONDA_PREFIX;
-    logMessage(`Using activated conda environment: ${activeEnv}`, "warn");
-    cachedCondaEnvPath = activeEnv;
-    return activeEnv;
+  // In explicit dev mode, prefer an already-activated conda environment so
+  // local Electron development can reuse the shell environment.
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    const activeEnv = process.env.CONDA_PREFIX?.trim();
+    if (activeEnv) {
+      logMessage(`Using activated conda environment in dev mode: ${activeEnv}`, "warn");
+      return activeEnv;
+    }
   }
 
   let settings: Record<string, unknown> = {};
@@ -88,7 +83,6 @@ const getCondaEnvPath = (): string => {
     );
     const fallbackOnError = getDefaultCondaEnvPath();
     logMessage(`Conda path fallback: ${fallbackOnError}`);
-    cachedCondaEnvPath = fallbackOnError;
     return fallbackOnError;
   }
 
@@ -99,7 +93,6 @@ const getCondaEnvPath = (): string => {
     condaPathFromSettings.trim().length > 0
   ) {
     logMessage(`Conda env path: ${condaPathFromSettings}`);
-    cachedCondaEnvPath = condaPathFromSettings;
     return condaPathFromSettings;
   }
 
@@ -119,7 +112,6 @@ const getCondaEnvPath = (): string => {
     );
   }
 
-  cachedCondaEnvPath = fallbackPath;
   return fallbackPath;
 };
 
@@ -280,6 +272,32 @@ const getProcessEnv = (): ProcessEnv => {
     if (typeof value === "string") {
       baseEnv[key] = value;
     }
+  }
+
+  const envKeysToClear = [
+    "CONDA_PREFIX",
+    "CONDA_DEFAULT_ENV",
+    "CONDA_PROMPT_MODIFIER",
+    "CONDA_SHLVL",
+    "CONDA_EXE",
+    "CONDA_PYTHON_EXE",
+    "_CE_CONDA",
+    "_CE_M",
+    "VIRTUAL_ENV",
+    "PYTHONHOME",
+    "PYTHONPATH",
+    "UV_PYTHON",
+    "UV_PROJECT_ENVIRONMENT",
+  ] as const;
+
+  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] === "string");
+  for (const key of envKeysToClear) {
+    delete baseEnv[key];
+  }
+  if (clearedKeys.length > 0) {
+    logMessage(
+      `Cleared inherited environment markers before launching bundled runtime: ${clearedKeys.join(", ")}`
+    );
   }
 
   const pathSegmentsWin = [
