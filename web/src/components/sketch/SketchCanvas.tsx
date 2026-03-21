@@ -165,6 +165,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Gradient tool state
     const gradientStartRef = useRef<Point | null>(null);
+    const gradientEndRef = useRef<Point | null>(null);
 
     // Crop tool state
     const cropStartRef = useRef<Point | null>(null);
@@ -701,6 +702,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       }
     }, []);
 
+    useEffect(() => {
+      if (activeTool !== "gradient") {
+        gradientStartRef.current = null;
+        gradientEndRef.current = null;
+        clearOverlay();
+      }
+    }, [activeTool, clearOverlay]);
+
     const drawOverlayShape = useCallback(
       (start: Point, end: Point) => {
         const overlay = overlayCanvasRef.current;
@@ -965,6 +974,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (activeTool === "gradient") {
           const pt = screenToCanvas(e.clientX, e.clientY);
           gradientStartRef.current = pt;
+          gradientEndRef.current = pt;
           isDrawingRef.current = true;
           onStrokeStart();
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -1085,6 +1095,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "gradient" && gradientStartRef.current) {
+          gradientEndRef.current = pt;
           drawOverlayGradient(gradientStartRef.current, pt);
           return;
         }
@@ -1181,18 +1192,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "gradient" && gradientStartRef.current && activeLayer) {
-          // Commit gradient from overlay to layer
-          const overlay = overlayCanvasRef.current;
-          if (overlay) {
-            const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-            const ctx = layerCanvas.getContext("2d");
-            if (ctx) {
-              ctx.drawImage(overlay, 0, 0);
-              clearOverlay();
-              redraw();
-            }
+          const start = gradientStartRef.current;
+          const end = gradientEndRef.current ?? start;
+          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+          const ctx = layerCanvas.getContext("2d");
+          if (ctx) {
+            drawGradient(ctx, start, end, doc.toolSettings.gradient);
+            clearOverlay();
+            redraw();
           }
           gradientStartRef.current = null;
+          gradientEndRef.current = null;
         }
 
         if (activeTool === "crop" && cropStartRef.current) {
