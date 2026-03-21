@@ -145,7 +145,6 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "0.5em 1.2em 1.2em 1.2em",
     margin: "1.5em 0 1.5em 0",
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
-    // border: `2px solid ${theme.vars.palette.divider}`,
     border: "0 none",
 
     width: "100%",
