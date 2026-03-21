@@ -357,11 +357,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       redraw();
     }, [redraw, doc.layers]);
 
-    // Redraw selection overlay when selection changes
-    useEffect(() => {
-      drawSelectionOverlay();
-    }, [drawSelectionOverlay]);
-
     // ─── Drawing Functions ────────────────────────────────────────────
 
     const drawBrushStroke = useCallback(
@@ -1019,6 +1014,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.strokeRect(x, y, width, height);
       ctx.restore();
     }, [selection]);
+
+    // Redraw selection overlay when selection changes
+    useEffect(() => {
+      drawSelectionOverlay();
+    }, [drawSelectionOverlay]);
 
     // ─── Coordinate Transform ─────────────────────────────────────────
 
