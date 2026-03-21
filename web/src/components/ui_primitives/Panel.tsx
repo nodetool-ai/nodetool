@@ -98,7 +98,7 @@ export const Panel: React.FC<PanelProps> = ({
   const theme = useTheme();
 
   // Generate unique ID for accessibility using a ref to ensure stability
-  const idRef = useRef<string>();
+  const idRef = useRef<string | undefined>(undefined);
   if (!idRef.current) {
     idRef.current = `panel-content-${Math.random().toString(36).substr(2, 9)}`;
   }

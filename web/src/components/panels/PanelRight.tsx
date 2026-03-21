@@ -16,7 +16,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
-import { createNodeStore, type NodeStore } from "../../stores/NodeStore";
+import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
@@ -31,8 +31,6 @@ import AgentPanel from "./AgentPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
-const EMPTY_NODE_STORE = createNodeStore();
-
 const styles = (theme: Theme) =>
   css({
     // Main container - fixed to right edge of viewport
@@ -235,7 +233,7 @@ const ChatAgentTabbedPanel = memo(function ChatAgentTabbedPanel({
   );
 });
 
-const PanelRight = () => {
+const PanelRight: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const {
@@ -258,7 +256,9 @@ const PanelRight = () => {
 
   // Get the current workflow reactively for the WorkflowForm
   // Note: This is only used when activeNodeStore exists and workflow panel is active
-  const currentWorkflow = (activeNodeStore ?? EMPTY_NODE_STORE)((state) => state.getWorkflow());
+  const currentWorkflow = activeNodeStore
+    ? activeNodeStore((state) => state.getWorkflow())
+    : null;
   const {
     openWorkflows,
     currentWorkflowId,
@@ -508,7 +508,7 @@ const PanelRight = () => {
                     />
                   ) : null
                 ) : activeView === "workflow" ? (
-                  activeNodeStore && currentWorkflowId ? (
+                  activeNodeStore && currentWorkflowId && currentWorkflow ? (
                     <Box
                       className="workflow-panel"
                       sx={{

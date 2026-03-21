@@ -138,7 +138,7 @@ const styles = (theme: Theme) =>
 interface QuickAddNodeDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
 }
 
 const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({

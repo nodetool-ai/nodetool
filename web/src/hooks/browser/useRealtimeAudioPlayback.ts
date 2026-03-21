@@ -58,8 +58,9 @@ export const useRealtimeAudioPlayback = ({
 
   // Initialize AudioContext and routing
   useEffect(() => {
-    const Ctx =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
+    type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctx: typeof AudioContext =
+      window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
     const ctx: AudioContext = new Ctx();
     audioContextRef.current = ctx;
     const streamDest = ctx.createMediaStreamDestination();
@@ -118,7 +119,7 @@ export const useRealtimeAudioPlayback = ({
           srcIndex += channels * 2;
         }
         const floatData = int16ToFloat32(channelData);
-        buffer.copyToChannel(floatData, ch);
+        buffer.copyToChannel(floatData as Float32Array<ArrayBuffer>, ch);
       }
       const source = ctx.createBufferSource();
       source.buffer = buffer;

@@ -333,7 +333,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
       // Handle potential response structures (array or object with models property)
       if (Array.isArray(data)) { return data; }
 
-      const responseData = data as any;
+      const responseData = data as { models?: unknown[] };
       if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
       return [];
     },
@@ -505,7 +505,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
             >
               <FlexRow gap={3} align="flex-start">
                 <Box className="step-icon-container">
-                  {React.cloneElement(step.icon as React.ReactElement, {
+                  {React.cloneElement(step.icon as React.ReactElement<{ className?: string }>, {
                     className: "step-icon"
                   })}
                 </Box>

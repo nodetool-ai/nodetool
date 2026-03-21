@@ -403,28 +403,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the assets in the folder.
    */
   getAllAssetsInFolder: async (folderId: string): Promise<Asset[]> => {
-    const assets: Asset[] = [];
-    const queue: string[] = [folderId];
+    const tree = await get().getAssetsRecursive(folderId);
 
-    while (queue.length > 0) {
-      const currentFolderId = queue.shift()!;
-      const { data, error } = await client.GET("/api/assets/", {
-        params: { query: { parent_id: currentFolderId } }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to load assets in folder");
-      }
-      const assetList = data as { assets: Asset[] };
-      for (const asset of assetList.assets) {
-        assets.push(asset);
-        if (asset.content_type === "folder") {
-          queue.push(asset.id);
+    const flatten = (nodes: AssetTreeNode[]): Asset[] => {
+      let result: Asset[] = [];
+      for (const node of nodes) {
+        // Create a copy without children to return as a flat asset
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { children, ...asset } = node;
+        result.push(asset);
+        if (node.children && node.children.length > 0) {
+          result = result.concat(flatten(node.children));
         }
       }
-    }
+      return result;
+    };
 
-    return assets;
+    return flatten(tree);
   },
   /**
    * Delete an asset from the store and the server.

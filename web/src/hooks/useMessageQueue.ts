@@ -16,7 +16,7 @@ interface UseMessageQueueOptions {
     agentMode: boolean
   ) => void;
   onStop?: () => void;
-  textareaRef?: React.RefObject<HTMLTextAreaElement>;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 interface UseMessageQueueReturn {

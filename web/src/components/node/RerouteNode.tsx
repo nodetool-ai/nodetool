@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { NodeProps, Handle, Position } from "@xyflow/react";
+import { NodeProps, Handle, Position, type Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -158,7 +158,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       return fallback;
     }
 
-    const sourceNode = { type: sourceType, data: sourceData } as any;
+    const sourceNode = { type: sourceType, data: sourceData } as Node<NodeData>;
 
     const outHandle = findOutputHandle(
       sourceNode,

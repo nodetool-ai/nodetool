@@ -114,24 +114,24 @@ function formatRelativeTime(ms: number): string {
 function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
   return (
     <div>
-      {detail.messages && (
+      {detail.messages ? (
         <div className="llm-section">
           <div className="llm-label">Request ({(detail.messages as unknown[]).length} messages)</div>
           <pre>{JSON.stringify(detail.messages, null, 2)}</pre>
         </div>
-      )}
-      {detail.response && (
+      ) : null}
+      {detail.response ? (
         <div className="llm-section">
           <div className="llm-label">Response</div>
           <pre>{typeof detail.response === "string" ? detail.response : JSON.stringify(detail.response, null, 2)}</pre>
         </div>
-      )}
-      {detail.tool_calls && (detail.tool_calls as unknown[]).length > 0 && (
+      ) : null}
+      {detail.tool_calls && (detail.tool_calls as unknown[]).length > 0 ? (
         <div className="llm-section">
           <div className="llm-label">Tool Calls</div>
           <pre>{JSON.stringify(detail.tool_calls, null, 2)}</pre>
         </div>
-      )}
+      ) : null}
       <div className="llm-section">
         <div className="llm-label">
           {[
@@ -144,12 +144,12 @@ function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
             .join(" · ")}
         </div>
       </div>
-      {detail.error && (
+      {detail.error ? (
         <div className="llm-section">
           <div className="llm-label" style={{ color: "var(--palette-error-main)" }}>Error</div>
           <pre>{String(detail.error)}</pre>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

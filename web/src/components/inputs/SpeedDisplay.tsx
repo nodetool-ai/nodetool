@@ -1,6 +1,6 @@
+import log from "loglevel";
 import React from "react";
 import { createPortal } from "react-dom";
-import log from "loglevel";
 
 interface SpeedDisplayProps {
   speedFactor: number;
@@ -14,7 +14,9 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
   isDragging
 }) => {
   // Hide entirely if not dragging or if slowdown is not active (speedFactor ~ 1)
-  if (!isDragging || speedFactor >= 0.999) {return null;}
+  if (!isDragging || speedFactor >= 0.999) {
+    return null;
+  }
 
   const speedDisplay = (
     <div
