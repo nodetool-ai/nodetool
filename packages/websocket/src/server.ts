@@ -59,6 +59,14 @@ import type { HttpApiOptions } from "./http-api.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
+import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
+
+// Auth: extend FastifyRequest with userId
+declare module "fastify" {
+  interface FastifyRequest {
+    userId: string | null;
+  }
+}
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
@@ -269,6 +277,60 @@ const app: FastifyInstance = (Fastify as any)({
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
   ignoreTrailingSlash: true,
+});
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+const supabaseUrl = process.env["SUPABASE_URL"];
+const supabaseKey = process.env["SUPABASE_KEY"];
+const supabaseMode = Boolean(supabaseUrl && supabaseKey);
+const supabaseProvider = supabaseMode
+  ? new SupabaseAuthProvider({ supabaseUrl: supabaseUrl!, supabaseKey: supabaseKey! })
+  : null;
+
+app.decorateRequest("userId", null);
+
+app.addHook("onRequest", async (req, reply) => {
+  // Public routes — no auth required
+  const pathname = req.url.split("?")[0];
+  if (pathname === "/health" || req.url.startsWith("/api/oauth/")) {
+    return;
+  }
+
+  // Extract token from the appropriate source
+  const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
+  const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
+  const provider = supabaseProvider ?? new LocalAuthProvider();
+  const token = isWs
+    ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
+    : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
+
+  if (supabaseMode) {
+    if (!token) {
+      reply.status(401).send({ error: "Unauthorized" });
+      return;
+    }
+    const result = await supabaseProvider!.verifyToken(token);
+    if (!result.ok) {
+      reply.status(401).send({ error: result.error ?? "Unauthorized" });
+      return;
+    }
+    req.userId = result.userId ?? null;
+    return;
+  }
+
+  // Dev mode: localhost only
+  // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
+  // makes req.ip reflect x-forwarded-for (spoofable).
+  const remoteAddr = req.socket.remoteAddress ?? "";
+  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+  if (!isLocalhost) {
+    reply.status(401).send({ error: "Remote access requires authentication" });
+    return;
+  }
+  req.userId = "1";
 });
 
 // CORS
