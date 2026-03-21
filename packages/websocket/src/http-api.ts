@@ -126,7 +126,7 @@ function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, { status });
 }
 
-function getUserId(request: Request, headerName: string): string {
+export function getUserId(request: Request, headerName: string): string {
   return request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1";
 }
 
@@ -169,7 +169,7 @@ function toWorkflowResponse(workflow: Workflow): JsonObject {
   };
 }
 
-async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -191,7 +191,7 @@ async function handleNodeMetadata(request: Request, options: HttpApiOptions): Pr
   return jsonResponse(nodes);
 }
 
-function parseLimit(url: URL, defaultLimit = 100): number {
+export function parseLimit(url: URL, defaultLimit = 100): number {
   const raw = url.searchParams.get("limit");
   if (!raw) return defaultLimit;
   const parsed = Number.parseInt(raw, 10);
@@ -297,7 +297,7 @@ interface AutosaveBody {
   max_versions?: number;
 }
 
-async function handleWorkflowAutosave(
+export async function handleWorkflowAutosave(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -347,7 +347,7 @@ async function handleWorkflowAutosave(
 
 // ── Workflow tools ─────────────────────────────────────────────────────
 
-async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -414,7 +414,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   return workflows;
 }
 
-async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -422,7 +422,7 @@ async function handleWorkflowExamples(request: Request, options: HttpApiOptions)
   return jsonResponse({ workflows, next: null });
 }
 
-async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -443,7 +443,7 @@ async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOp
 
 // ── Workflow app page ──────────────────────────────────────────────────
 
-async function handleWorkflowApp(
+export async function handleWorkflowApp(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -497,7 +497,7 @@ function deriveWorkflowName(workflow: Workflow): string {
   return `${label} Workflow`;
 }
 
-async function handleWorkflowGenerateName(
+export async function handleWorkflowGenerateName(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -515,7 +515,7 @@ async function handleWorkflowGenerateName(
 
 // ── Workflow DSL export (stub) ─────────────────────────────────────────
 
-async function handleWorkflowDslExport(
+export async function handleWorkflowDslExport(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -552,7 +552,7 @@ async function handleWorkflowDslExport(
 
 // ── Workflow Gradio export (stub) ──────────────────────────────────────
 
-async function handleWorkflowGradioExport(
+export async function handleWorkflowGradioExport(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -592,7 +592,7 @@ interface VersionCreateBody {
   description?: string;
 }
 
-async function handleWorkflowVersions(
+export async function handleWorkflowVersions(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -627,7 +627,7 @@ async function handleWorkflowVersions(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleWorkflowVersionByNumber(
+export async function handleWorkflowVersionByNumber(
   request: Request,
   workflowId: string,
   versionNumber: number,
@@ -659,7 +659,7 @@ async function handleWorkflowVersionByNumber(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleWorkflowVersionDeleteById(
+export async function handleWorkflowVersionDeleteById(
   request: Request,
   _workflowId: string,
   versionId: string,
@@ -676,7 +676,7 @@ async function handleWorkflowVersionDeleteById(
   return new Response(null, { status: 204 });
 }
 
-async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
 
@@ -707,7 +707,7 @@ async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): P
   return errorResponse(405, "Method not allowed");
 }
 
-async function handlePublicWorkflows(request: Request): Promise<Response> {
+export async function handlePublicWorkflows(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -720,7 +720,7 @@ async function handlePublicWorkflows(request: Request): Promise<Response> {
   });
 }
 
-async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
+export async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -731,7 +731,7 @@ async function handlePublicWorkflowById(request: Request, workflowId: string): P
   return jsonResponse(toWorkflowResponse(workflow));
 }
 
-async function handleWorkflowById(
+export async function handleWorkflowById(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -798,7 +798,7 @@ function toMessageResponse(msg: Message): JsonObject {
   };
 }
 
-async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
@@ -854,7 +854,7 @@ async function handleMessagesRoot(request: Request, options: HttpApiOptions): Pr
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleMessageById(
+export async function handleMessageById(
   request: Request,
   messageId: string,
   options: HttpApiOptions
@@ -898,7 +898,7 @@ function toThreadResponse(thread: Thread): JsonObject {
   };
 }
 
-async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
@@ -927,7 +927,7 @@ async function handleThreadsRoot(request: Request, options: HttpApiOptions): Pro
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleThreadById(
+export async function handleThreadById(
   request: Request,
   threadId: string,
   options: HttpApiOptions
@@ -1018,7 +1018,7 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
   return "New Thread";
 }
 
-async function handleThreadSummarize(
+export async function handleThreadSummarize(
   request: Request,
   threadId: string,
   options: HttpApiOptions
@@ -1063,7 +1063,7 @@ function toBackgroundJobResponse(job: Job): JsonObject {
   };
 }
 
-async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1082,7 +1082,7 @@ async function handleJobsRoot(request: Request, options: HttpApiOptions): Promis
   });
 }
 
-async function handleJobById(
+export async function handleJobById(
   request: Request,
   jobId: string,
   options: HttpApiOptions
@@ -1107,7 +1107,7 @@ async function handleJobById(
   return new Response(null, { status: 204 });
 }
 
-async function handleJobCancel(
+export async function handleJobCancel(
   request: Request,
   jobId: string,
   options: HttpApiOptions
@@ -1131,14 +1131,14 @@ async function handleJobCancel(
 
 // ── Trigger job stubs ─────────────────────────────────────────────
 
-async function handleTriggersRunning(request: Request): Promise<Response> {
+export async function handleTriggersRunning(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   return jsonResponse({ workflows: [] });
 }
 
-async function handleTriggerStart(
+export async function handleTriggerStart(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
@@ -1148,7 +1148,7 @@ async function handleTriggerStart(
   return errorResponse(501, "Trigger workflows not available in standalone mode");
 }
 
-async function handleTriggerStop(
+export async function handleTriggerStop(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
@@ -1160,7 +1160,7 @@ async function handleTriggerStop(
 
 // ── Nodes dummy ───────────────────────────────────────────────────
 
-async function handleNodesDummy(request: Request): Promise<Response> {
+export async function handleNodesDummy(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1195,7 +1195,7 @@ async function toSecretResponse(secret: Secret): Promise<JsonObject> {
   };
 }
 
-async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1236,7 +1236,7 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
   });
 }
 
-async function handleSecretByKey(
+export async function handleSecretByKey(
   request: Request,
   key: string,
   options: HttpApiOptions
@@ -1372,7 +1372,7 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
   return collected;
 }
 
-async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "GET") {
@@ -1485,7 +1485,7 @@ async function handleAssetsRoot(request: Request, options: HttpApiOptions): Prom
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleAssetById(
+export async function handleAssetById(
   request: Request,
   assetId: string,
   options: HttpApiOptions
@@ -1569,7 +1569,7 @@ async function handleAssetById(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
@@ -1596,7 +1596,7 @@ async function handleAssetsSearch(request: Request, options: HttpApiOptions): Pr
   });
 }
 
-async function handleAssetRecursive(
+export async function handleAssetRecursive(
   request: Request,
   folderId: string,
   options: HttpApiOptions,
@@ -1607,7 +1607,7 @@ async function handleAssetRecursive(
   return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)) });
 }
 
-async function handleAssetByFilename(
+export async function handleAssetByFilename(
   request: Request,
   filename: string,
   options: HttpApiOptions,
@@ -1621,7 +1621,7 @@ async function handleAssetByFilename(
   return jsonResponse(toAssetResponse(asset));
 }
 
-async function handleAssetThumbnail(
+export async function handleAssetThumbnail(
   request: Request,
   assetId: string,
   options: HttpApiOptions,
