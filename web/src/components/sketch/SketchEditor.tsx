@@ -10,12 +10,18 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Menu, MenuItem, Divider as MuiDivider } from "@mui/material";
+import {
+  Box,
+  Menu,
+  MenuItem,
+  Divider as MuiDivider,
+  ListSubheader
+} from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useSketchStore } from "./state";
-import { SketchDocument, mergeRgbHexIntoColor } from "./types";
+import { SketchDocument, isShapeTool, mergeRgbHexIntoColor } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -43,7 +49,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const canvasRef = useRef<SketchCanvasRef>(null);
   const [mirrorX, setMirrorX] = useState(false);
   const [mirrorY, setMirrorY] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const adjustmentBaseRef = useRef<string | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -88,7 +98,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const resetColors = useSketchStore((s) => s.resetColors);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
-  const setCanvasBackgroundColor = useSketchStore((s) => s.setCanvasBackgroundColor);
+  const setCanvasBackgroundColor = useSketchStore(
+    (s) => s.setCanvasBackgroundColor
+  );
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
   const colorMode = useSketchStore((s) => s.colorMode);
   const setColorMode = useSketchStore((s) => s.setColorMode);
@@ -161,7 +173,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         setFillSettings({ color: merged });
       }
     },
-    [activeTool, setForegroundColor, setBrushSettings, setPencilSettings, setFillSettings]
+    [
+      activeTool,
+      setForegroundColor,
+      setBrushSettings,
+      setPencilSettings,
+      setFillSettings
+    ]
   );
 
   // ─── S + drag brush size change ────────────────────────────────────
@@ -180,7 +198,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         setBrushSettings({ size });
       }
     },
-    [activeTool, setBrushSettings, setPencilSettings, setEraserSettings, setBlurSettings]
+    [
+      activeTool,
+      setBrushSettings,
+      setPencilSettings,
+      setEraserSettings,
+      setBlurSettings
+    ]
   );
 
   // ─── Undo/Redo handlers ────────────────────────────────────────────
@@ -217,7 +241,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     (color: string) => {
       const activeLayerId = document.activeLayerId;
       const layer = document.layers.find((l) => l.id === activeLayerId);
-      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) { return; }
+      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
+        return;
+      }
       pushHistory("fill layer");
       canvasRef.current.fillLayerWithColor(activeLayerId, color);
       const data = canvasRef.current.getLayerData(activeLayerId);
@@ -244,9 +270,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   // ─── Flip active layer ─────────────────────────────────────────────
   const handleFlipHorizontal = useCallback(() => {
     const layerId = document.activeLayerId;
-    if (!layerId || !canvasRef.current) { return; }
+    if (!layerId || !canvasRef.current) {
+      return;
+    }
     const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer || layer.locked) { return; }
+    if (!layer || layer.locked) {
+      return;
+    }
     pushHistory("flip horizontal");
     canvasRef.current.flipLayer(layerId, "horizontal");
     const data = canvasRef.current.getLayerData(layerId);
@@ -255,9 +285,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
   const handleFlipVertical = useCallback(() => {
     const layerId = document.activeLayerId;
-    if (!layerId || !canvasRef.current) { return; }
+    if (!layerId || !canvasRef.current) {
+      return;
+    }
     const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer || layer.locked) { return; }
+    if (!layer || layer.locked) {
+      return;
+    }
     pushHistory("flip vertical");
     canvasRef.current.flipLayer(layerId, "vertical");
     const data = canvasRef.current.getLayerData(layerId);
@@ -268,20 +302,32 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const handleMergeDown = useCallback(() => {
     const layers = document.layers;
     const idx = layers.findIndex((l) => l.id === document.activeLayerId);
-    if (idx <= 0 || !canvasRef.current) { return; }
+    if (idx <= 0 || !canvasRef.current) {
+      return;
+    }
     const upper = layers[idx];
     const lower = layers[idx - 1];
-    if (lower.locked) { return; }
+    if (lower.locked) {
+      return;
+    }
     pushHistory("merge down");
     const mergedData = canvasRef.current.mergeLayerDown(upper.id, lower.id);
     mergeLayerDown(upper.id);
     if (mergedData) {
       updateLayerData(lower.id, mergedData);
     }
-  }, [document.layers, document.activeLayerId, pushHistory, mergeLayerDown, updateLayerData]);
+  }, [
+    document.layers,
+    document.activeLayerId,
+    pushHistory,
+    mergeLayerDown,
+    updateLayerData
+  ]);
 
   const handleFlattenVisible = useCallback(() => {
-    if (!canvasRef.current) { return; }
+    if (!canvasRef.current) {
+      return;
+    }
     pushHistory("flatten visible");
     const flatData = canvasRef.current.flattenVisible();
     flattenVisible();
@@ -350,21 +396,37 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           const store = useSketchStore.getState();
           const tool = store.activeTool;
           if (tool === "brush") {
-            const newHardness = Math.max(0, store.document.toolSettings.brush.hardness - 0.1);
+            const newHardness = Math.max(
+              0,
+              store.document.toolSettings.brush.hardness - 0.1
+            );
             setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
           } else if (tool === "eraser") {
-            const newHardness = Math.max(0, store.document.toolSettings.eraser.hardness - 0.1);
-            setEraserSettings({ hardness: Math.round(newHardness * 100) / 100 });
+            const newHardness = Math.max(
+              0,
+              store.document.toolSettings.eraser.hardness - 0.1
+            );
+            setEraserSettings({
+              hardness: Math.round(newHardness * 100) / 100
+            });
           }
         } else if (e.key === "}") {
           const store = useSketchStore.getState();
           const tool = store.activeTool;
           if (tool === "brush") {
-            const newHardness = Math.min(1, store.document.toolSettings.brush.hardness + 0.1);
+            const newHardness = Math.min(
+              1,
+              store.document.toolSettings.brush.hardness + 0.1
+            );
             setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
           } else if (tool === "eraser") {
-            const newHardness = Math.min(1, store.document.toolSettings.eraser.hardness + 0.1);
-            setEraserSettings({ hardness: Math.round(newHardness * 100) / 100 });
+            const newHardness = Math.min(
+              1,
+              store.document.toolSettings.eraser.hardness + 0.1
+            );
+            setEraserSettings({
+              hardness: Math.round(newHardness * 100) / 100
+            });
           }
         }
       } else {
@@ -383,81 +445,137 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             setEraserSettings({ opacity });
           }
         } else {
-        switch (e.key) {
-          case "b": setActiveTool("brush"); break;
-          case "p": setActiveTool("pencil"); break;
-          case "e": setActiveTool("eraser"); break;
-          case "i": setActiveTool("eyedropper"); break;
-          case "g": setActiveTool("fill"); break;
-          case "l": setActiveTool("line"); break;
-          case "r": setActiveTool("rectangle"); break;
-          case "o": setActiveTool("ellipse"); break;
-          case "a": setActiveTool("arrow"); break;
-          case "q": setActiveTool("blur"); break;
-          case "t": setActiveTool("gradient"); break;
-          case "c": setActiveTool("crop"); break;
-          case "m": setMirrorX((prev) => !prev); break;
-          case "v": setActiveTool("move"); break;
-          case "x": swapColors(); break;
-          case "d": resetColors(); break;
-          case "Tab":
-            e.preventDefault();
-            togglePanelsHidden();
-            break;
-          case "[": {
-            const store = useSketchStore.getState();
-            const tool = store.activeTool;
-            if (tool === "brush") {
-              const newSize = Math.max(1, store.document.toolSettings.brush.size - 5);
-              setBrushSettings({ size: newSize });
-            } else if (tool === "pencil") {
-              const newSize = Math.max(1, store.document.toolSettings.pencil.size - 1);
-              setPencilSettings({ size: newSize });
-            } else if (tool === "eraser") {
-              const newSize = Math.max(1, store.document.toolSettings.eraser.size - 5);
-              setEraserSettings({ size: newSize });
-            } else if (tool === "blur") {
-              const newSize = Math.max(1, store.document.toolSettings.blur.size - 5);
-              setBlurSettings({ size: newSize });
+          switch (e.key) {
+            case "b":
+              setActiveTool("brush");
+              break;
+            case "p":
+              setActiveTool("pencil");
+              break;
+            case "e":
+              setActiveTool("eraser");
+              break;
+            case "i":
+              setActiveTool("eyedropper");
+              break;
+            case "g":
+              setActiveTool("fill");
+              break;
+            case "l":
+              setActiveTool("line");
+              break;
+            case "r":
+              setActiveTool("rectangle");
+              break;
+            case "o":
+              setActiveTool("ellipse");
+              break;
+            case "a":
+              setActiveTool("arrow");
+              break;
+            case "q":
+              setActiveTool("blur");
+              break;
+            case "t":
+              setActiveTool("gradient");
+              break;
+            case "c":
+              setActiveTool("crop");
+              break;
+            case "m":
+              setMirrorX((prev) => !prev);
+              break;
+            case "v":
+              setActiveTool("move");
+              break;
+            case "x":
+              swapColors();
+              break;
+            case "d":
+              resetColors();
+              break;
+            case "Tab":
+              e.preventDefault();
+              togglePanelsHidden();
+              break;
+            case "[": {
+              const store = useSketchStore.getState();
+              const tool = store.activeTool;
+              if (tool === "brush") {
+                const newSize = Math.max(
+                  1,
+                  store.document.toolSettings.brush.size - 5
+                );
+                setBrushSettings({ size: newSize });
+              } else if (tool === "pencil") {
+                const newSize = Math.max(
+                  1,
+                  store.document.toolSettings.pencil.size - 1
+                );
+                setPencilSettings({ size: newSize });
+              } else if (tool === "eraser") {
+                const newSize = Math.max(
+                  1,
+                  store.document.toolSettings.eraser.size - 5
+                );
+                setEraserSettings({ size: newSize });
+              } else if (tool === "blur") {
+                const newSize = Math.max(
+                  1,
+                  store.document.toolSettings.blur.size - 5
+                );
+                setBlurSettings({ size: newSize });
+              }
+              break;
             }
-            break;
-          }
-          case "]": {
-            const store = useSketchStore.getState();
-            const tool = store.activeTool;
-            if (tool === "brush") {
-              const newSize = Math.min(200, store.document.toolSettings.brush.size + 5);
-              setBrushSettings({ size: newSize });
-            } else if (tool === "pencil") {
-              const newSize = Math.min(10, store.document.toolSettings.pencil.size + 1);
-              setPencilSettings({ size: newSize });
-            } else if (tool === "eraser") {
-              const newSize = Math.min(200, store.document.toolSettings.eraser.size + 5);
-              setEraserSettings({ size: newSize });
-            } else if (tool === "blur") {
-              const newSize = Math.min(200, store.document.toolSettings.blur.size + 5);
-              setBlurSettings({ size: newSize });
+            case "]": {
+              const store = useSketchStore.getState();
+              const tool = store.activeTool;
+              if (tool === "brush") {
+                const newSize = Math.min(
+                  200,
+                  store.document.toolSettings.brush.size + 5
+                );
+                setBrushSettings({ size: newSize });
+              } else if (tool === "pencil") {
+                const newSize = Math.min(
+                  10,
+                  store.document.toolSettings.pencil.size + 1
+                );
+                setPencilSettings({ size: newSize });
+              } else if (tool === "eraser") {
+                const newSize = Math.min(
+                  200,
+                  store.document.toolSettings.eraser.size + 5
+                );
+                setEraserSettings({ size: newSize });
+              } else if (tool === "blur") {
+                const newSize = Math.min(
+                  200,
+                  store.document.toolSettings.blur.size + 5
+                );
+                setBlurSettings({ size: newSize });
+              }
+              break;
             }
-            break;
+            case "=":
+            case "+":
+              handleZoomIn();
+              break;
+            case "-":
+              handleZoomOut();
+              break;
+            case "Delete":
+            case "Backspace":
+              handleClearLayer();
+              break;
           }
-          case "=":
-          case "+":
-            handleZoomIn();
-            break;
-          case "-":
-            handleZoomOut();
-            break;
-          case "Delete":
-          case "Backspace":
-            handleClearLayer();
-            break;
-        }
         }
       }
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── Zoom handlers ─────────────────────────────────────────────────
@@ -487,20 +605,58 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [reorderLayers]
   );
 
-  // ─── Apply adjustments ──────────────────────────────────────────
-  const handleApplyAdjustments = useCallback(
+  // ─── Adjustment preview (auto-apply with snapshot) ──────────────
+  const handleAdjustmentPreview = useCallback(
     (brightness: number, contrast: number, saturation: number) => {
-      if (!canvasRef.current) { return; }
-      pushHistory("adjustments");
-      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
-      const layerId = document.activeLayerId;
-      if (layerId) {
-        const data = canvasRef.current.getLayerData(layerId);
-        updateLayerData(layerId, data);
+      if (!canvasRef.current) {
+        return;
       }
+      const layerId = document.activeLayerId;
+      if (!layerId) {
+        return;
+      }
+
+      const allZero = brightness === 0 && contrast === 0 && saturation === 0;
+
+      if (allZero) {
+        // Restore original and clear base
+        if (adjustmentBaseRef.current !== null) {
+          canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+          updateLayerData(layerId, adjustmentBaseRef.current);
+          adjustmentBaseRef.current = null;
+        }
+        return;
+      }
+
+      // Save base snapshot on first non-zero call
+      if (adjustmentBaseRef.current === null) {
+        adjustmentBaseRef.current = canvasRef.current.getLayerData(layerId);
+        pushHistory("adjustments");
+      }
+
+      // Restore from base, then apply adjustments
+      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
+      const data = canvasRef.current.getLayerData(layerId);
+      updateLayerData(layerId, data);
     },
     [pushHistory, document.activeLayerId, updateLayerData]
   );
+
+  const handleResetAdjustments = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const layerId = document.activeLayerId;
+    if (!layerId) {
+      return;
+    }
+    if (adjustmentBaseRef.current !== null) {
+      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+      updateLayerData(layerId, adjustmentBaseRef.current);
+      adjustmentBaseRef.current = null;
+    }
+  }, [document.activeLayerId, updateLayerData]);
 
   // ─── Background preset ─────────────────────────────────────────
   const handleBackgroundPreset = useCallback(
@@ -520,12 +676,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   );
 
   // ─── Context menu ──────────────────────────────────────────────
-  const handleContextMenu = useCallback(
-    (x: number, y: number) => {
-      setContextMenu({ x, y });
-    },
-    []
-  );
+  const handleContextMenu = useCallback((x: number, y: number) => {
+    setContextMenu({ x, y });
+  }, []);
 
   const handleContextMenuClose = useCallback(() => {
     setContextMenu(null);
@@ -534,7 +687,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   // ─── Crop completion ───────────────────────────────────────────
   const handleCropComplete = useCallback(
     (x: number, y: number, width: number, height: number) => {
-      if (!canvasRef.current) { return; }
+      if (!canvasRef.current) {
+        return;
+      }
       pushHistory("crop");
       canvasRef.current.cropCanvas(x, y, width, height);
       // Update document dimensions
@@ -559,6 +714,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     },
     [pushHistory, setDocument, updateLayerData]
   );
+
+  // Compute the settings updater for brush/pencil context menu
+  const brushOrPencilUpdater =
+    activeTool === "brush" ? setBrushSettings : setPencilSettings;
 
   return (
     <Box css={styles(theme)}>
@@ -604,13 +763,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onBackgroundColorChange={setBackgroundColor}
           onSwapColors={swapColors}
           onResetColors={resetColors}
-          onApplyAdjustments={handleApplyAdjustments}
+          onApplyAdjustments={handleAdjustmentPreview}
+          onResetAdjustments={handleResetAdjustments}
           onBackgroundPreset={handleBackgroundPreset}
           colorMode={colorMode}
           onColorModeChange={setColorMode}
-          canvasWidth={document.canvas.width}
-          canvasHeight={document.canvas.height}
-          onCanvasResize={handleCanvasResize}
         />
       )}
 
@@ -654,6 +811,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onRenameLayer={renameLayer}
           onMergeDown={handleMergeDown}
           onFlattenVisible={handleFlattenVisible}
+          canvasWidth={document.canvas.width}
+          canvasHeight={document.canvas.height}
+          onCanvasResize={handleCanvasResize}
         />
       )}
 
@@ -663,33 +823,402 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         onClose={handleContextMenuClose}
         anchorReference="anchorPosition"
         anchorPosition={
-          contextMenu !== null ? { top: contextMenu.y, left: contextMenu.x } : undefined
+          contextMenu !== null
+            ? { top: contextMenu.y, left: contextMenu.x }
+            : undefined
         }
       >
-        <MenuItem onClick={() => { setActiveTool("brush"); handleContextMenuClose(); }}>
+        {/* Tool name header */}
+        <ListSubheader
+          sx={{
+            lineHeight: "28px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            textTransform: "capitalize"
+          }}
+        >
+          {activeTool}
+        </ListSubheader>
+
+        {/* ── Brush / Pencil context options ── */}
+        {(activeTool === "brush" || activeTool === "pencil") && [
+          <MenuItem
+            key="s5"
+            onClick={() => {
+              brushOrPencilUpdater({ size: 5 });
+              handleContextMenuClose();
+            }}
+          >
+            Small (5)
+          </MenuItem>,
+          <MenuItem
+            key="s12"
+            onClick={() => {
+              brushOrPencilUpdater({ size: 12 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (12)
+          </MenuItem>,
+          <MenuItem
+            key="s30"
+            onClick={() => {
+              brushOrPencilUpdater({ size: 30 });
+              handleContextMenuClose();
+            }}
+          >
+            Large (30)
+          </MenuItem>,
+          <MenuItem
+            key="s50"
+            onClick={() => {
+              brushOrPencilUpdater({ size: 50 });
+              handleContextMenuClose();
+            }}
+          >
+            XL (50)
+          </MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem
+            key="o25"
+            onClick={() => {
+              brushOrPencilUpdater({ opacity: 0.25 });
+              handleContextMenuClose();
+            }}
+          >
+            25% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o50"
+            onClick={() => {
+              brushOrPencilUpdater({ opacity: 0.5 });
+              handleContextMenuClose();
+            }}
+          >
+            50% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o75"
+            onClick={() => {
+              brushOrPencilUpdater({ opacity: 0.75 });
+              handleContextMenuClose();
+            }}
+          >
+            75% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o100"
+            onClick={() => {
+              brushOrPencilUpdater({ opacity: 1 });
+              handleContextMenuClose();
+            }}
+          >
+            100% Opacity
+          </MenuItem>
+        ]}
+
+        {/* ── Eraser context options ── */}
+        {activeTool === "eraser" && [
+          <MenuItem
+            key="s5"
+            onClick={() => {
+              setEraserSettings({ size: 5 });
+              handleContextMenuClose();
+            }}
+          >
+            Small (5)
+          </MenuItem>,
+          <MenuItem
+            key="s20"
+            onClick={() => {
+              setEraserSettings({ size: 20 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (20)
+          </MenuItem>,
+          <MenuItem
+            key="s50"
+            onClick={() => {
+              setEraserSettings({ size: 50 });
+              handleContextMenuClose();
+            }}
+          >
+            Large (50)
+          </MenuItem>,
+          <MenuItem
+            key="s100"
+            onClick={() => {
+              setEraserSettings({ size: 100 });
+              handleContextMenuClose();
+            }}
+          >
+            XL (100)
+          </MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem
+            key="o25"
+            onClick={() => {
+              setEraserSettings({ opacity: 0.25 });
+              handleContextMenuClose();
+            }}
+          >
+            25% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o50"
+            onClick={() => {
+              setEraserSettings({ opacity: 0.5 });
+              handleContextMenuClose();
+            }}
+          >
+            50% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o75"
+            onClick={() => {
+              setEraserSettings({ opacity: 0.75 });
+              handleContextMenuClose();
+            }}
+          >
+            75% Opacity
+          </MenuItem>,
+          <MenuItem
+            key="o100"
+            onClick={() => {
+              setEraserSettings({ opacity: 1 });
+              handleContextMenuClose();
+            }}
+          >
+            100% Opacity
+          </MenuItem>
+        ]}
+
+        {/* ── Shape tool context options ── */}
+        {isShapeTool(activeTool) && [
+          <MenuItem
+            key="sw1"
+            onClick={() => {
+              setShapeSettings({ strokeWidth: 1 });
+              handleContextMenuClose();
+            }}
+          >
+            Thin (1)
+          </MenuItem>,
+          <MenuItem
+            key="sw2"
+            onClick={() => {
+              setShapeSettings({ strokeWidth: 2 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (2)
+          </MenuItem>,
+          <MenuItem
+            key="sw4"
+            onClick={() => {
+              setShapeSettings({ strokeWidth: 4 });
+              handleContextMenuClose();
+            }}
+          >
+            Thick (4)
+          </MenuItem>,
+          <MenuItem
+            key="sw8"
+            onClick={() => {
+              setShapeSettings({ strokeWidth: 8 });
+              handleContextMenuClose();
+            }}
+          >
+            Heavy (8)
+          </MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem
+            key="fill"
+            onClick={() => {
+              setShapeSettings({ filled: !document.toolSettings.shape.filled });
+              handleContextMenuClose();
+            }}
+          >
+            Toggle Fill
+          </MenuItem>
+        ]}
+
+        {/* ── Fill tool context options ── */}
+        {activeTool === "fill" && [
+          <MenuItem
+            key="t0"
+            onClick={() => {
+              setFillSettings({ tolerance: 0 });
+              handleContextMenuClose();
+            }}
+          >
+            Exact (0)
+          </MenuItem>,
+          <MenuItem
+            key="t16"
+            onClick={() => {
+              setFillSettings({ tolerance: 16 });
+              handleContextMenuClose();
+            }}
+          >
+            Low (16)
+          </MenuItem>,
+          <MenuItem
+            key="t32"
+            onClick={() => {
+              setFillSettings({ tolerance: 32 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (32)
+          </MenuItem>,
+          <MenuItem
+            key="t64"
+            onClick={() => {
+              setFillSettings({ tolerance: 64 });
+              handleContextMenuClose();
+            }}
+          >
+            High (64)
+          </MenuItem>
+        ]}
+
+        {/* ── Blur tool context options ── */}
+        {activeTool === "blur" && [
+          <MenuItem
+            key="s10"
+            onClick={() => {
+              setBlurSettings({ size: 10 });
+              handleContextMenuClose();
+            }}
+          >
+            Small (10)
+          </MenuItem>,
+          <MenuItem
+            key="s20"
+            onClick={() => {
+              setBlurSettings({ size: 20 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (20)
+          </MenuItem>,
+          <MenuItem
+            key="s40"
+            onClick={() => {
+              setBlurSettings({ size: 40 });
+              handleContextMenuClose();
+            }}
+          >
+            Large (40)
+          </MenuItem>,
+          <MenuItem
+            key="s60"
+            onClick={() => {
+              setBlurSettings({ size: 60 });
+              handleContextMenuClose();
+            }}
+          >
+            XL (60)
+          </MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem
+            key="i2"
+            onClick={() => {
+              setBlurSettings({ strength: 2 });
+              handleContextMenuClose();
+            }}
+          >
+            Light (2)
+          </MenuItem>,
+          <MenuItem
+            key="i5"
+            onClick={() => {
+              setBlurSettings({ strength: 5 });
+              handleContextMenuClose();
+            }}
+          >
+            Medium (5)
+          </MenuItem>,
+          <MenuItem
+            key="i10"
+            onClick={() => {
+              setBlurSettings({ strength: 10 });
+              handleContextMenuClose();
+            }}
+          >
+            Strong (10)
+          </MenuItem>
+        ]}
+
+        <MuiDivider />
+        <MenuItem
+          onClick={() => {
+            setActiveTool("brush");
+            handleContextMenuClose();
+          }}
+        >
           Brush (B)
         </MenuItem>
-        <MenuItem onClick={() => { setActiveTool("pencil"); handleContextMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            setActiveTool("pencil");
+            handleContextMenuClose();
+          }}
+        >
           Pencil (P)
         </MenuItem>
-        <MenuItem onClick={() => { setActiveTool("eraser"); handleContextMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            setActiveTool("eraser");
+            handleContextMenuClose();
+          }}
+        >
           Eraser (E)
         </MenuItem>
-        <MenuItem onClick={() => { setActiveTool("fill"); handleContextMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            setActiveTool("fill");
+            handleContextMenuClose();
+          }}
+        >
           Fill (G)
         </MenuItem>
         <MuiDivider />
-        <MenuItem onClick={() => { handleUndo(); handleContextMenuClose(); }} disabled={!canUndo()}>
+        <MenuItem
+          onClick={() => {
+            handleUndo();
+            handleContextMenuClose();
+          }}
+          disabled={!canUndo()}
+        >
           Undo
         </MenuItem>
-        <MenuItem onClick={() => { handleRedo(); handleContextMenuClose(); }} disabled={!canRedo()}>
+        <MenuItem
+          onClick={() => {
+            handleRedo();
+            handleContextMenuClose();
+          }}
+          disabled={!canRedo()}
+        >
           Redo
         </MenuItem>
         <MuiDivider />
-        <MenuItem onClick={() => { handleClearLayer(); handleContextMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            handleClearLayer();
+            handleContextMenuClose();
+          }}
+        >
           Clear Layer
         </MenuItem>
-        <MenuItem onClick={() => { handleExportPng(); handleContextMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            handleExportPng();
+            handleContextMenuClose();
+          }}
+        >
           Export PNG
         </MenuItem>
       </Menu>

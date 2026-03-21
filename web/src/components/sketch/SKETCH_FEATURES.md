@@ -83,14 +83,14 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Panel layout persistence** (collapsed state in `localStorage`)
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
-- [ ] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
-- [ ] improve **Context-sensitive menu** right-click menu: add quick options for currently active tool
+- [x] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
+- [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
 - [ ] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
 - [ ] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
 - [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
 - [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
 
-- [ ] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
+- [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
 - [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
 
 #### Gesture shortcuts (parity — open conflicts)
