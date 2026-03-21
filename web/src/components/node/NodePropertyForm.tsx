@@ -122,7 +122,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           })}
         >
           <Tooltip title="Add input">
-            <IconButton size="small" onClick={handleShowInputDialog}>
+            <IconButton size="small" onClick={handleShowInputDialog} aria-label="Add input">
               <Add fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -147,6 +147,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               <IconButton
                 size="small"
                 onClick={handleShowOutputDialog}
+                aria-label="Add output"
               >
                 <Add fontSize="small" />
               </IconButton>

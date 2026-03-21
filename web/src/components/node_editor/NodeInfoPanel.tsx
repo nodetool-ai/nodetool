@@ -281,6 +281,7 @@ const NodeInfoPanel: React.FC = memo(() => {
             <IconButton
               size="small"
               onClick={handleClose}
+              aria-label="Close"
               sx={{ color: "text.secondary" }}>
               <CloseIcon fontSize="small" />
             </IconButton>

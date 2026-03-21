@@ -175,6 +175,11 @@ export interface CircularActionButtonProps {
    * @default 0
    */
   tabIndex?: number;
+  /**
+   * Accessible label for the button (overrides tooltip-derived label)
+   * Use when tooltip is a ReactNode instead of a plain string
+   */
+  ariaLabel?: string;
 }
 
 const getThemeColor = (theme: Theme, colorKey: string): string => {
@@ -230,7 +235,8 @@ export const CircularActionButton = memo(
         className,
         sx,
         disableRipple = false,
-        tabIndex = 0
+        tabIndex = 0,
+        ariaLabel
       },
       ref
     ) => {
@@ -304,7 +310,7 @@ export const CircularActionButton = memo(
         <IconButton
           ref={ref}
           tabIndex={tabIndex}
-          aria-label={typeof tooltip === "string" ? tooltip : undefined}
+          aria-label={ariaLabel ?? (typeof tooltip === "string" ? tooltip : undefined)}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,

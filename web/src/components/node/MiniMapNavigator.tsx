@@ -180,6 +180,7 @@ const MiniMapNavigator: React.FC = () => {
             {colorMode === "type" && showLegend && (
               <Tooltip title="Node Type Legend" arrow>
                 <IconButton
+                  aria-label="Node Type Legend"
                   size="small"
                   onClick={handleOpenLegend}
                   sx={{
@@ -198,6 +199,7 @@ const MiniMapNavigator: React.FC = () => {
             )}
             <Tooltip title="Color Mode Settings" arrow>
               <IconButton
+                aria-label="Color Mode Settings"
                 size="small"
                 onClick={handleOpenSettings}
                 sx={{

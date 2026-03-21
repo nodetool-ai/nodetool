@@ -232,6 +232,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             transition: "transform 0.3s"
           }}
           size="small"
+          aria-label={expanded ? "Collapse" : "Expand"}
         >
           <ExpandMoreIcon />
         </IconButton>

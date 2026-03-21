@@ -462,13 +462,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {editable && (
         <>
           <Tooltip title="Add new row">
-            <IconButton onClick={handleAddRow}>
+            <IconButton aria-label="Add new row" onClick={handleAddRow}>
               <AddIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Delete selected rows">
             <IconButton
+              aria-label="Delete selected rows"
               className={selectedRows.length === 0 ? "disabled" : ""}
               onClick={handleDeleteRowsClick}
             >
@@ -479,6 +480,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           {isModalMode && (
             <Tooltip title="Duplicate selected rows">
               <IconButton
+                aria-label="Duplicate selected rows"
                 className={selectedRows.length === 0 ? "disabled" : ""}
                 onClick={handleDuplicateRows}
               >
@@ -491,7 +493,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {showSortingButton && (
         <Tooltip title="Reset table sorting">
-          <IconButton onClick={handleResetSorting}>
+          <IconButton aria-label="Reset table sorting" onClick={handleResetSorting}>
             <RestartAltIcon sx={{ fontSize: 12 }} />
           </IconButton>
         </Tooltip>
@@ -502,7 +504,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Undo (Ctrl+Z)">
             <span>
-              <IconButton 
+              <IconButton
+                aria-label="Undo (Ctrl+Z)"
                 onClick={handleUndo} 
                 disabled={!canUndo}
                 className={!canUndo ? "disabled" : ""}
@@ -513,7 +516,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           </Tooltip>
           <Tooltip title="Redo (Ctrl+Y)">
             <span>
-              <IconButton 
+              <IconButton
+                aria-label="Redo (Ctrl+Y)"
                 onClick={handleRedo}
                 disabled={!canRedo}
                 className={!canRedo ? "disabled" : ""}
@@ -524,7 +528,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           </Tooltip>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Paste from clipboard">
-            <IconButton onClick={handlePaste}>
+            <IconButton aria-label="Paste from clipboard" onClick={handlePaste}>
               <ContentPasteIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
@@ -535,7 +539,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Export as CSV">
-            <IconButton onClick={handleExportCSV}>
+            <IconButton aria-label="Export as CSV" onClick={handleExportCSV}>
               <FileDownloadIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
@@ -544,6 +548,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       <Tooltip title="Show Select column">
         <IconButton
+          aria-label="Show Select column"
           onClick={handleToggleSelect}
           color={showSelect ? "primary" : "default"}
         >
@@ -554,6 +559,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <Tooltip title="Show Row Numbers">
           <IconButton
+            aria-label="Show Row Numbers"
             onClick={handleToggleRowNumbers}
             color={showRowNumbers ? "primary" : "default"}
           >
@@ -563,7 +569,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       )}
 
       <Tooltip title="Copy table data to clipboard">
-        <IconButton onClick={handleCopyData}>
+        <IconButton aria-label="Copy table data to clipboard" onClick={handleCopyData}>
           <ContentCopyIcon sx={{ fontSize: 12 }} />
         </IconButton>
       </Tooltip>

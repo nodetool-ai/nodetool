@@ -152,6 +152,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           <IconButton
             onClick={handleZoomOut}
             size="small"
+            aria-label="Zoom out"
             sx={{
               padding: "2px",
               color: theme.vars.palette.text.secondary,
@@ -209,6 +210,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           <IconButton
             onClick={handleZoomIn}
             size="small"
+            aria-label="Zoom in"
             sx={{
               padding: "2px",
               color: theme.vars.palette.text.secondary,
@@ -239,6 +241,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           <IconButton
             onClick={handleFitView}
             size="small"
+            aria-label="Fit view"
             sx={{
               padding: "2px",
               color: theme.vars.palette.text.secondary,

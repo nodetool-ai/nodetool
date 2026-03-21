@@ -345,7 +345,7 @@ export const DownloadProgress: React.FC<{
           {name}
         </Typography>
         <Tooltip title={getCloseButtonTooltip()}>
-          <IconButton onClick={handleRemove} size="small">
+          <IconButton onClick={handleRemove} size="small" aria-label={getCloseButtonTooltip()}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Tooltip>

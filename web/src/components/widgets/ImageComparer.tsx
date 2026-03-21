@@ -333,6 +333,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
             className="toggle-button"
             onClick={toggleMode}
             size="small"
+            aria-label={mode === "horizontal" ? "Switch to vertical" : "Switch to horizontal"}
           >
             {mode === "horizontal" ? (
               <SwapVertIcon fontSize="small" />

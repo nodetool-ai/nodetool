@@ -64,6 +64,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
       {hasSessionHistory && nodeId && workflowId && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="View History" placement="left">
           <IconButton
+            aria-label="View History"
             size="small"
             onClick={handleOpenHistory}
             sx={{

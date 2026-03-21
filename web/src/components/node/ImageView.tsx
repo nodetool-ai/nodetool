@@ -174,6 +174,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         />
         <Tooltip title="Download" placement="top">
           <IconButton
+            aria-label="Download"
             size="small"
             onClick={handleDownload}
             sx={iconButtonStyle}
@@ -183,6 +184,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         </Tooltip>
         <Tooltip title="Open in Viewer (double-click)" placement="top">
           <IconButton
+            aria-label="Open in Viewer"
             size="small"
             onClick={handleOpenInViewer}
             sx={iconButtonStyle}

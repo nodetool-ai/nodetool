@@ -69,7 +69,7 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
     <div css={styles(theme)} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
         <Tooltip title="Open in Full View" placement="bottom">
-          <IconButton size="small" onClick={toggleExpand}>
+          <IconButton aria-label="Open in Full View" size="small" onClick={toggleExpand}>
             <OpenInFullIcon />
           </IconButton>
         </Tooltip>
