@@ -9,11 +9,11 @@ const RESOURCES_DIR = path.join(__dirname, "..", "resources");
 
 const LOCK_FILES = [
   "environment.lock.yml",
-  "environment-osx-64.yml",
-  "environment-osx-arm64.yml",
-  "environment-linux-64.yml",
-  "environment-linux-aarch64.yml",
-  "environment-win-64.yml",
+  "environment-osx-64.lock.yml",
+  "environment-osx-arm64.lock.yml",
+  "environment-linux-64.lock.yml",
+  "environment-linux-aarch64.lock.yml",
+  "environment-win-64.lock.yml",
 ];
 
 const REQUIRED_DEPS = ["python", "uv"];
