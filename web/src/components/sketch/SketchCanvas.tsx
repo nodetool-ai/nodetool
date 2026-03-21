@@ -399,7 +399,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ctx.fill();
           }
           ctx.restore();
-          if (needsTransform) { ctx.restore(); }
+          if (needsTransform) {
+            ctx.restore();
+          }
           return;
         }
 
@@ -417,7 +419,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
-          if (needsTransform) { ctx.restore(); }
+          if (needsTransform) {
+            ctx.restore();
+          }
           return;
         }
 
@@ -441,7 +445,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineTo(to.x, to.y);
         ctx.stroke();
         ctx.restore();
-        if (needsTransform) { ctx.restore(); }
+        if (needsTransform) {
+          ctx.restore();
+        }
       },
       []
     );
