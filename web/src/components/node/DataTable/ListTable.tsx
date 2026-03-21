@@ -6,8 +6,7 @@ import {
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType,
-  RowComponent
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -70,7 +69,7 @@ const ListTable: React.FC<ListTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
 
-  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
 
   const columns = useMemo(
@@ -88,7 +87,7 @@ const ListTable: React.FC<ListTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: UIEvent, cell: CellComponent) {
+              cellClick: function (_e: MouseEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,

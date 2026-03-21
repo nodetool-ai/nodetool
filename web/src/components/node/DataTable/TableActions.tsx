@@ -1,9 +1,6 @@
 import React, { useCallback, memo } from "react";
 import { Tooltip, IconButton, Divider } from "@mui/material";
-import {
-  TabulatorFull as Tabulator,
-  RowComponent as TabulatorRowComponent
-} from "tabulator-tables";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
@@ -46,7 +43,7 @@ export type TableData =
 /**
  * RowComponent type from Tabulator - exported for use in other components
  */
-export type RowComponent = TabulatorRowComponent;
+export type RowComponent = Tabulator.RowComponent;
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -96,11 +93,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   const handleCopyData = () => {
     let dataToStringify: unknown;
     if (isListTable) {
-      dataToStringify = Array.isArray(data) ? data : Object.values(data as object);
+      dataToStringify = Array.isArray(data) ? data : Object.values(data);
     } else {
       dataToStringify = Array.isArray(data)
         ? data.map((row) => {
-            const newRow = { ...(row as object) } as Record<string, unknown>;
+            const newRow = { ...row };
             delete newRow.rownum;
             return newRow;
           })
@@ -146,18 +143,18 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               defaultValue = "";
           }
         }
-        (onChangeRows as (newData: unknown) => void)([...(data as unknown[]), defaultValue]);
+        (onChangeRows as (newData: unknown) => void)([...data, defaultValue]);
       } else {
-        const newKey = `new_key_${Object.keys(data as object).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...(data as object), [newKey]: "" });
+        const newKey = `new_key_${Object.keys(data).length}`;
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
         const newRow = defaultRow(dataframeColumns);
-        (onChangeRows as (newData: unknown) => void)([...(data as unknown[]), newRow]);
+        (onChangeRows as (newData: unknown) => void)([...data, newRow]);
       } else if (!Array.isArray(data)) {
-        const newKey = `new_key_${Object.keys(data as object).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...(data as object), [newKey]: "" });
+        const newKey = `new_key_${Object.keys(data).length}`;
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     }
   };
@@ -165,14 +162,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
       (onChangeRows as (newData: unknown) => void)(
-        (data as unknown[]).filter((_, index) => {
+        data.filter((_, index) => {
           return !selectedRows.some(
             (selectedRow) => selectedRow.getData().rownum === index
           );
         })
       );
     } else {
-      const newData = { ...(data as object) } as Record<string, unknown>;
+      const newData = { ...data };
       selectedRows.forEach((row) => {
         const key = row.getData().key;
         delete newData[key];
@@ -206,8 +203,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (!Array.isArray(data) || selectedRows.length === 0) {return;}
 
     const duplicatedRows = selectedRows.map((row) => {
-      const rowData = { ...(row.getData() as DictTableRow) };
-      delete (rowData as Partial<DictTableRow>).rownum; // Remove rownum, will be reassigned
+      const rowData = { ...row.getData() };
+      delete rowData.rownum; // Remove rownum, will be reassigned
       return rowData;
     });
 
@@ -217,7 +214,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
-    const reindexedData = newData.map((row, index) => ({ ...(row as object), rownum: index })) as unknown as TableDataChange;
+    const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
     onChangeRows(reindexedData);
 
     addNotification({
@@ -366,14 +363,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         // Insert at selection point or append to end
         const insertIndex = selectedRows.length > 0
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
-          : (data as unknown[]).length;
+          : data.length;
 
-        const newData = [...(data as unknown[])];
+        const newData = [...data];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
-        const reindexedData = newData.map((row, index) => ({ ...(row as object), rownum: index }));
-        onChangeRows(reindexedData as unknown as TableDataChange);
+        const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+        onChangeRows(reindexedData);
         
         addNotification({
           content: `Pasted ${newRows.length} row(s)`,

@@ -14,8 +14,7 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType,
-  RowComponent
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -128,7 +127,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -193,7 +192,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: UIEvent, cell: CellComponent) {
+              cellClick: function (_e: MouseEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -220,7 +219,7 @@ const DataTable: React.FC<DataTableProps> = ({
       ...cols.map((col) => ({
         title: col.name,
         field: col.name,
-        headerTooltip: true,
+        headerTooltip: col.data_type,
         editable: editable,
         resizable: true,
         formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
@@ -343,7 +342,7 @@ const DataTable: React.FC<DataTableProps> = ({
         }));
         tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
       } else {
-        tabulatorRef.current.clearFilter(true);
+        tabulatorRef.current.clearFilter();
       }
     }
   }, [searchFilter, isTableReady]);
