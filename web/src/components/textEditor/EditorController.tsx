@@ -18,6 +18,7 @@ import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
+import log from "loglevel";
 
 // CSS Custom Highlight API (experimental)
 type CSSWithHighlights = typeof CSS & {
@@ -571,7 +572,7 @@ const EditorController = ({
                 node.setTextContent(newText);
                 anyReplaced = true;
               } catch (err) {
-                console.error("Error performing regex replace:", err);
+                log.error("Error performing regex replace:", err);
               }
             }
           }
@@ -616,7 +617,7 @@ const EditorController = ({
   // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
-      setTimeout(() => {
+      const initTimeoutId = setTimeout(() => {
         editor.update(() => {
           const root = $getRoot();
           const currentText = root.getTextContent();
@@ -631,6 +632,7 @@ const EditorController = ({
         });
         setInitialContentSet(true);
       }, 0);
+      return () => clearTimeout(initTimeoutId);
     }
   }, [editor, initialContent, initialContentSet]);
 

@@ -13,6 +13,7 @@ import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
+import log from "loglevel";
 
 export const createPanelComponents = () => ({
   "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
@@ -117,7 +118,7 @@ export const createPanelComponents = () => ({
         if (panel) {
             panel.update({ params: { ...props.params, workflowId } });
         } else {
-            console.error("Could not find panel to update");
+            log.error("Could not find panel to update");
         }
       }}
     />

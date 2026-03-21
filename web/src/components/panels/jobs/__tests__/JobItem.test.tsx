@@ -9,6 +9,7 @@ import { useJobAssets } from "../../../../serverState/useJobAssets";
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
 import { client } from "../../../../stores/ApiClient";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 // Mock all external dependencies
 jest.mock("react-router-dom", () => ({
@@ -88,8 +89,7 @@ describe("JobItem", () => {
     jest.useFakeTimers();
 
     // Setup default mock implementations
-    const { useNavigate } = require("react-router-dom");
-    useNavigate.mockReturnValue(mockNavigate);
+    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
 
     mockUseWorkflow.mockReturnValue({ data: mockWorkflow } as any);
     mockUseJobAssets.mockReturnValue({ data: [], isLoading: false, error: null } as any);

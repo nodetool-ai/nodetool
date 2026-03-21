@@ -35,6 +35,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
+import log from "loglevel";
 
 const containerStyles = (_theme: Theme) =>
   css({
@@ -284,7 +285,7 @@ const AgentPanel: React.FC = () => {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error("Failed to load models:", err);
+          log.error("Failed to load models:", err);
           setDraftModels([]);
         }
       })
@@ -398,7 +399,7 @@ const AgentPanel: React.FC = () => {
       }
       setNewSessionDialogOpen(false);
     } catch (err) {
-      console.error("Failed to start Agent session:", err);
+      log.error("Failed to start Agent session:", err);
     } finally {
       setCreatingSession(false);
     }
@@ -589,7 +590,7 @@ const AgentPanel: React.FC = () => {
                   onClick={() => {
                     setResumeAnchorEl(null);
                     handleResumeSession(entry.id).catch((err) => {
-                      console.error(
+                      log.error(
                         "Failed to resume Agent session:",
                         err
                       );
