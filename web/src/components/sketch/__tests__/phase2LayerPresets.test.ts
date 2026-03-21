@@ -29,14 +29,14 @@ describe("Phase 2 Layer Presets", () => {
     });
 
     it("addLayer creates a transparent layer and returns its id", () => {
-      let newLayerId: string;
+      let newLayerId = "";
       act(() => {
         newLayerId = useSketchStore.getState().addLayer();
       });
       const state = useSketchStore.getState();
       expect(state.document.layers).toHaveLength(2);
       const newLayer = state.document.layers.find(
-        (l) => l.id === newLayerId!
+        (l) => l.id === newLayerId
       );
       expect(newLayer).toBeDefined();
       expect(newLayer!.data).toBeNull();
@@ -44,12 +44,12 @@ describe("Phase 2 Layer Presets", () => {
     });
 
     it("addLayer makes the new layer active", () => {
-      let newLayerId: string;
+      let newLayerId = "";
       act(() => {
         newLayerId = useSketchStore.getState().addLayer();
       });
       expect(useSketchStore.getState().document.activeLayerId).toBe(
-        newLayerId!
+        newLayerId
       );
     });
 

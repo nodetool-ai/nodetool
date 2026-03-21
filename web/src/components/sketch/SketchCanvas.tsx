@@ -263,6 +263,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           isSizeDraggingRef.current = false;
         }
       };
+      // Use capture phase (third arg = true) so these handlers fire BEFORE the
+      // SketchEditor's capture-phase handler that calls stopPropagation().
+      // Without this, Shift/Space/S key state would never be tracked.
       window.addEventListener("keydown", handleKeyDown, true);
       window.addEventListener("keyup", handleKeyUp, true);
       return () => {

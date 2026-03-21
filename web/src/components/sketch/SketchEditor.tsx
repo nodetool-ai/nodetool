@@ -292,7 +292,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     (fillColor?: string | null) => {
       pushHistory("add layer");
       const newLayerId = addLayer();
-      // Fill the new layer canvas with the specified color (if any)
+      // Fill the new layer canvas with the specified color.
+      // When fillColor is null/undefined, the layer stays transparent (no fill).
       if (fillColor && canvasRef.current) {
         // Use requestAnimationFrame to ensure the layer canvas is created first
         requestAnimationFrame(() => {
