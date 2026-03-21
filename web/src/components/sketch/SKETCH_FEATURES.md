@@ -399,7 +399,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 9 test suites, 215+ tests
+└── __tests__/                # 13 test suites, 267+ tests
 ```
 
 ### Integration Points
@@ -628,6 +628,11 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Brush roundness + angle** — elliptical brush footprints via `roundness` (0.1–1.0) and `angle` (0–360°) settings for Round/Soft brush types
 - [x] **Rectangle selection tool** — marquee select with marching ants overlay; Escape deselects; Delete clears selection area on active layer
 - [x] **Fix input image loading** — fixed stale document reference when opening editor; input image now reliably appears as locked base layer
+- [x] **Layer color presets** — transparent / black / white / gray color swatch buttons in layers panel for quick layer creation with fill
+- [x] **Improved mask icon** — replaced MasksIcon with GradientIcon for better visual clarity in layers panel
+- [x] **Fix Shift+click straight lines** — fixed capture-phase key listener blocking; Shift/Space/S key tracking now works correctly alongside SketchEditor shortcuts
+- [x] **Eraser uses destination-out** — confirmed eraser paints transparent (not black); erased areas reveal canvas background color as expected
+- [x] **rAF-batched redraw** — pointer move redraws coalesced via `requestAnimationFrame` for smoother drawing on large canvases
 
 ### Node / SketchInput
 
