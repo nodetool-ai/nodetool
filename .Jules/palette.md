@@ -17,7 +17,3 @@
 ## 2024-03-04 - ARIA Labels on Material-UI Switch Components
 **Learning:** For Material UI `<Switch>` components, particularly those without wrapping `FormControlLabel` (like icon toggles), an `inputProps={{ "aria-label": "..." }}` must be explicitly provided for screen readers to recognize the toggle's purpose.
 **Action:** When adding or auditing `<Switch>` components that toggle visual modes or act as standalone icons, always apply descriptive `inputProps` for accessibility.
-
-## 2024-03-06 - Missing ARIA labels on IconButtons in JobItem
-**Learning:** Found that `<IconButton>` elements for expanding/collapsing and stopping jobs in the jobs panel lacked accessible labels, a common pattern in components with dynamic states.
-**Action:** Always verify that `<IconButton>` elements have an `aria-label` or are appropriately labelled, especially when they represent actions like "Expand/Collapse" or "Stop" which change contextually. Use ternary operators (e.g., `aria-label={expanded ? "Collapse" : "Expand"}`) for stateful buttons.
