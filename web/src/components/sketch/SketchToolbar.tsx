@@ -9,7 +9,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useMemo, useState, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -67,7 +67,6 @@ import {
   GradientSettings,
   ColorMode,
   DEFAULT_SWATCHES,
-  CANVAS_PRESETS,
   isShapeTool,
   hexToRgb,
   rgbToHex,
@@ -366,13 +365,11 @@ export interface SketchToolbarProps {
   onSwapColors: () => void;
   onResetColors: () => void;
   onApplyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
+  onResetAdjustments: () => void;
   onBackgroundPreset: (color: string) => void;
   colorMode: ColorMode;
   onColorModeChange: (mode: ColorMode) => void;
   onImportImage?: (file: File) => void;
-  canvasWidth: number;
-  canvasHeight: number;
-  onCanvasResize: (width: number, height: number) => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -417,13 +414,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onSwapColors,
   onResetColors,
   onApplyAdjustments,
+  onResetAdjustments,
   onBackgroundPreset,
   colorMode,
   onColorModeChange,
-  onImportImage,
-  canvasWidth,
-  canvasHeight,
-  onCanvasResize
+  onImportImage
 }) => {
   const theme = useTheme();
 
@@ -444,6 +439,23 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   const [adjBrightness, setAdjBrightness] = useState(0);
   const [adjContrast, setAdjContrast] = useState(0);
   const [adjSaturation, setAdjSaturation] = useState(0);
+  const adjustDebounceRef = useRef<number | null>(null);
+
+  // Auto-apply adjustments with 100ms debounce
+  useEffect(() => {
+    if (adjustDebounceRef.current !== null) {
+      clearTimeout(adjustDebounceRef.current);
+    }
+    adjustDebounceRef.current = window.setTimeout(() => {
+      onApplyAdjustments(adjBrightness, adjContrast, adjSaturation);
+      adjustDebounceRef.current = null;
+    }, 100);
+    return () => {
+      if (adjustDebounceRef.current !== null) {
+        clearTimeout(adjustDebounceRef.current);
+      }
+    };
+  }, [adjBrightness, adjContrast, adjSaturation, onApplyAdjustments]);
 
   // ─── User color presets (8 slots, persisted in localStorage) ──────
   const USER_PRESETS_KEY = "nodetool-sketch-color-presets";
@@ -560,23 +572,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     },
     [foregroundColor, handleSwatchClick]
   );
-
-  // ─── Custom canvas size state ─────────────────────────────────────
-  const [customWidth, setCustomWidth] = useState(String(canvasWidth));
-  const [customHeight, setCustomHeight] = useState(String(canvasHeight));
-
-  useEffect(() => {
-    setCustomWidth(String(canvasWidth));
-    setCustomHeight(String(canvasHeight));
-  }, [canvasWidth, canvasHeight]);
-
-  const handleApplyCustomSize = useCallback(() => {
-    const w = parseInt(customWidth, 10);
-    const h = parseInt(customHeight, 10);
-    if (w > 0 && h > 0 && w <= 4096 && h <= 4096) {
-      onCanvasResize(w, h);
-    }
-  }, [customWidth, customHeight, onCanvasResize]);
 
   // ─── Derived color values for RGB / HSL inputs ────────────────────
   const fgRgb = useMemo(() => hexToRgb(foregroundColor), [foregroundColor]);
@@ -1257,69 +1252,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
 
       <Divider />
 
-      {/* ── Canvas Size (collapsible, collapsed by default) ────────── */}
-      <ToolbarSection
-        title="Canvas Size"
-        sectionKey="canvasSize"
-        collapsed={collapsedSections.canvasSize}
-        onToggle={handleToggleSection}
-      >
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
-          {CANVAS_PRESETS.map((preset) => (
-            <Button
-              key={preset.label}
-              size="small"
-              variant={canvasWidth === preset.width && canvasHeight === preset.height ? "contained" : "outlined"}
-              onClick={() => onCanvasResize(preset.width, preset.height)}
-              sx={{
-                fontSize: "0.6rem",
-                py: "2px",
-                px: "6px",
-                minWidth: 0,
-                color: canvasWidth === preset.width && canvasHeight === preset.height ? undefined : "grey.400",
-                borderColor: "grey.600"
-              }}
-            >
-              {preset.label}
-            </Button>
-          ))}
-        </Box>
-        <Box sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}>
-          <TextField
-            className="hex-input"
-            size="small"
-            label="W"
-            type="number"
-            value={customWidth}
-            onChange={(e) => setCustomWidth(e.target.value)}
-            inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
-          />
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.500" }}>×</Typography>
-          <TextField
-            className="hex-input"
-            size="small"
-            label="H"
-            type="number"
-            value={customHeight}
-            onChange={(e) => setCustomHeight(e.target.value)}
-            inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
-          />
-        </Box>
-        <Button
-          size="small"
-          variant="contained"
-          fullWidth
-          onClick={handleApplyCustomSize}
-          sx={{ mt: "4px", fontSize: "0.7rem", py: "2px" }}
-        >
-          Apply
-        </Button>
-      </ToolbarSection>
-
-      <Divider />
-
       {/* ── Adjustments (collapsible) ──────────────────────────────── */}
       <ToolbarSection
         title="Adjustments"
@@ -1356,73 +1288,18 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         </Box>
         <Button
           size="small"
-          variant="contained"
+          variant="outlined"
           fullWidth
           onClick={() => {
-            onApplyAdjustments(adjBrightness, adjContrast, adjSaturation);
             setAdjBrightness(0);
             setAdjContrast(0);
             setAdjSaturation(0);
+            onResetAdjustments();
           }}
           sx={{ mt: "4px", fontSize: "0.7rem", py: "2px" }}
         >
-          Apply
+          Reset
         </Button>
-      </ToolbarSection>
-
-      <Divider />
-
-      {/* ── Shortcuts reference (collapsible, collapsed by default) ─ */}
-      <ToolbarSection
-        title="Shortcuts"
-        sectionKey="shortcuts"
-        collapsed={collapsedSections.shortcuts}
-        onToggle={handleToggleSection}
-      >
-        <Box
-          component="dl"
-          sx={{
-            fontSize: "0.72rem",
-            color: "grey.400",
-            display: "grid",
-            gridTemplateColumns: "auto 1fr",
-            gap: "1px 6px",
-            m: 0,
-            "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
-            "& dd": { m: 0 }
-          }}
-        >
-          <dt>V</dt><dd>Move</dd>
-          <dt>B</dt><dd>Brush</dd>
-          <dt>P</dt><dd>Pencil</dd>
-          <dt>E</dt><dd>Eraser</dd>
-          <dt>G</dt><dd>Fill</dd>
-          <dt>I</dt><dd>Eyedropper</dd>
-          <dt>Q</dt><dd>Blur</dd>
-          <dt>L</dt><dd>Line</dd>
-          <dt>R</dt><dd>Rect</dd>
-          <dt>O</dt><dd>Ellipse</dd>
-          <dt>A</dt><dd>Arrow</dd>
-          <dt>T</dt><dd>Gradient</dd>
-          <dt>C</dt><dd>Crop</dd>
-          <dt>M</dt><dd>Mirror H</dd>
-          <dt>Shift+M</dt><dd>Mirror V</dd>
-          <dt>X</dt><dd>Swap colors</dd>
-          <dt>D</dt><dd>Reset colors</dd>
-          <dt>Tab</dt><dd>Toggle UI</dd>
-          <dt>[ / ]</dt><dd>Brush size</dd>
-          <dt>Shift+[/]</dt><dd>Hardness</dd>
-          <dt>0–9</dt><dd>Opacity</dd>
-          <dt>Alt+Click</dt><dd>Pick color</dd>
-          <dt>Alt+⌫</dt><dd>Fill FG</dd>
-          <dt>Ctrl+⌫</dt><dd>Fill BG</dd>
-          <dt>Shift</dt><dd>Constrain</dd>
-          <dt>Space</dt><dd>Pan</dd>
-          <dt>+ / −</dt><dd>Zoom</dd>
-          <dt>Ctrl+0</dt><dd>Reset view</dd>
-          <dt>Del</dt><dd>Clear layer</dd>
-          <dt>Ctrl+S</dt><dd>Export</dd>
-        </Box>
       </ToolbarSection>
     </Box>
   );

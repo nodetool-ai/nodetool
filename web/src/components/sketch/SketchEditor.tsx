@@ -10,12 +10,12 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Menu, MenuItem, Divider as MuiDivider } from "@mui/material";
+import { Box, Menu, MenuItem, Divider as MuiDivider, Typography, ListSubheader } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useSketchStore } from "./state";
-import { SketchDocument } from "./types";
+import { SketchDocument, isShapeTool } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -44,6 +44,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const [mirrorX, setMirrorX] = useState(false);
   const [mirrorY, setMirrorY] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const adjustmentBaseRef = useRef<string | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -482,20 +483,50 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [reorderLayers]
   );
 
-  // ─── Apply adjustments ──────────────────────────────────────────
-  const handleApplyAdjustments = useCallback(
+  // ─── Adjustment preview (auto-apply with snapshot) ──────────────
+  const handleAdjustmentPreview = useCallback(
     (brightness: number, contrast: number, saturation: number) => {
       if (!canvasRef.current) { return; }
-      pushHistory("adjustments");
-      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
       const layerId = document.activeLayerId;
-      if (layerId) {
-        const data = canvasRef.current.getLayerData(layerId);
-        updateLayerData(layerId, data);
+      if (!layerId) { return; }
+
+      const allZero = brightness === 0 && contrast === 0 && saturation === 0;
+
+      if (allZero) {
+        // Restore original and clear base
+        if (adjustmentBaseRef.current !== null) {
+          canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+          updateLayerData(layerId, adjustmentBaseRef.current);
+          adjustmentBaseRef.current = null;
+        }
+        return;
       }
+
+      // Save base snapshot on first non-zero call
+      if (adjustmentBaseRef.current === null) {
+        adjustmentBaseRef.current = canvasRef.current.getLayerData(layerId);
+        pushHistory("adjustments");
+      }
+
+      // Restore from base, then apply adjustments
+      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
+      const data = canvasRef.current.getLayerData(layerId);
+      updateLayerData(layerId, data);
     },
     [pushHistory, document.activeLayerId, updateLayerData]
   );
+
+  const handleResetAdjustments = useCallback(() => {
+    if (!canvasRef.current) { return; }
+    const layerId = document.activeLayerId;
+    if (!layerId) { return; }
+    if (adjustmentBaseRef.current !== null) {
+      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+      updateLayerData(layerId, adjustmentBaseRef.current);
+      adjustmentBaseRef.current = null;
+    }
+  }, [document.activeLayerId, updateLayerData]);
 
   // ─── Background preset ─────────────────────────────────────────
   const handleBackgroundPreset = useCallback(
@@ -555,6 +586,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [pushHistory, setDocument, updateLayerData]
   );
 
+  // Compute the settings updater for brush/pencil context menu
+  const brushOrPencilUpdater = activeTool === "brush" ? setBrushSettings : setPencilSettings;
+
   return (
     <Box css={styles(theme)}>
       {!panelsHidden && (
@@ -599,13 +633,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onBackgroundColorChange={setBackgroundColor}
           onSwapColors={swapColors}
           onResetColors={resetColors}
-          onApplyAdjustments={handleApplyAdjustments}
+          onApplyAdjustments={handleAdjustmentPreview}
+          onResetAdjustments={handleResetAdjustments}
           onBackgroundPreset={handleBackgroundPreset}
           colorMode={colorMode}
           onColorModeChange={setColorMode}
-          canvasWidth={document.canvas.width}
-          canvasHeight={document.canvas.height}
-          onCanvasResize={handleCanvasResize}
         />
       )}
 
@@ -649,6 +681,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onRenameLayer={renameLayer}
           onMergeDown={handleMergeDown}
           onFlattenVisible={handleFlattenVisible}
+          canvasWidth={document.canvas.width}
+          canvasHeight={document.canvas.height}
+          onCanvasResize={handleCanvasResize}
         />
       )}
 
@@ -661,6 +696,68 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           contextMenu !== null ? { top: contextMenu.y, left: contextMenu.x } : undefined
         }
       >
+        {/* Tool name header */}
+        <ListSubheader sx={{ lineHeight: "28px", fontSize: "0.75rem", fontWeight: 700, textTransform: "capitalize" }}>
+          {activeTool}
+        </ListSubheader>
+
+        {/* ── Brush / Pencil context options ── */}
+        {(activeTool === "brush" || activeTool === "pencil") && [
+          <MenuItem key="s5" onClick={() => { brushOrPencilUpdater({ size: 5 }); handleContextMenuClose(); }}>Small (5)</MenuItem>,
+          <MenuItem key="s12" onClick={() => { brushOrPencilUpdater({ size: 12 }); handleContextMenuClose(); }}>Medium (12)</MenuItem>,
+          <MenuItem key="s30" onClick={() => { brushOrPencilUpdater({ size: 30 }); handleContextMenuClose(); }}>Large (30)</MenuItem>,
+          <MenuItem key="s50" onClick={() => { brushOrPencilUpdater({ size: 50 }); handleContextMenuClose(); }}>XL (50)</MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem key="o25" onClick={() => { brushOrPencilUpdater({ opacity: 0.25 }); handleContextMenuClose(); }}>25% Opacity</MenuItem>,
+          <MenuItem key="o50" onClick={() => { brushOrPencilUpdater({ opacity: 0.5 }); handleContextMenuClose(); }}>50% Opacity</MenuItem>,
+          <MenuItem key="o75" onClick={() => { brushOrPencilUpdater({ opacity: 0.75 }); handleContextMenuClose(); }}>75% Opacity</MenuItem>,
+          <MenuItem key="o100" onClick={() => { brushOrPencilUpdater({ opacity: 1 }); handleContextMenuClose(); }}>100% Opacity</MenuItem>,
+        ]}
+
+        {/* ── Eraser context options ── */}
+        {activeTool === "eraser" && [
+          <MenuItem key="s5" onClick={() => { setEraserSettings({ size: 5 }); handleContextMenuClose(); }}>Small (5)</MenuItem>,
+          <MenuItem key="s20" onClick={() => { setEraserSettings({ size: 20 }); handleContextMenuClose(); }}>Medium (20)</MenuItem>,
+          <MenuItem key="s50" onClick={() => { setEraserSettings({ size: 50 }); handleContextMenuClose(); }}>Large (50)</MenuItem>,
+          <MenuItem key="s100" onClick={() => { setEraserSettings({ size: 100 }); handleContextMenuClose(); }}>XL (100)</MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem key="o25" onClick={() => { setEraserSettings({ opacity: 0.25 }); handleContextMenuClose(); }}>25% Opacity</MenuItem>,
+          <MenuItem key="o50" onClick={() => { setEraserSettings({ opacity: 0.5 }); handleContextMenuClose(); }}>50% Opacity</MenuItem>,
+          <MenuItem key="o75" onClick={() => { setEraserSettings({ opacity: 0.75 }); handleContextMenuClose(); }}>75% Opacity</MenuItem>,
+          <MenuItem key="o100" onClick={() => { setEraserSettings({ opacity: 1 }); handleContextMenuClose(); }}>100% Opacity</MenuItem>,
+        ]}
+
+        {/* ── Shape tool context options ── */}
+        {isShapeTool(activeTool) && [
+          <MenuItem key="sw1" onClick={() => { setShapeSettings({ strokeWidth: 1 }); handleContextMenuClose(); }}>Thin (1)</MenuItem>,
+          <MenuItem key="sw2" onClick={() => { setShapeSettings({ strokeWidth: 2 }); handleContextMenuClose(); }}>Medium (2)</MenuItem>,
+          <MenuItem key="sw4" onClick={() => { setShapeSettings({ strokeWidth: 4 }); handleContextMenuClose(); }}>Thick (4)</MenuItem>,
+          <MenuItem key="sw8" onClick={() => { setShapeSettings({ strokeWidth: 8 }); handleContextMenuClose(); }}>Heavy (8)</MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem key="fill" onClick={() => { setShapeSettings({ filled: !document.toolSettings.shape.filled }); handleContextMenuClose(); }}>Toggle Fill</MenuItem>,
+        ]}
+
+        {/* ── Fill tool context options ── */}
+        {activeTool === "fill" && [
+          <MenuItem key="t0" onClick={() => { setFillSettings({ tolerance: 0 }); handleContextMenuClose(); }}>Exact (0)</MenuItem>,
+          <MenuItem key="t16" onClick={() => { setFillSettings({ tolerance: 16 }); handleContextMenuClose(); }}>Low (16)</MenuItem>,
+          <MenuItem key="t32" onClick={() => { setFillSettings({ tolerance: 32 }); handleContextMenuClose(); }}>Medium (32)</MenuItem>,
+          <MenuItem key="t64" onClick={() => { setFillSettings({ tolerance: 64 }); handleContextMenuClose(); }}>High (64)</MenuItem>,
+        ]}
+
+        {/* ── Blur tool context options ── */}
+        {activeTool === "blur" && [
+          <MenuItem key="s10" onClick={() => { setBlurSettings({ size: 10 }); handleContextMenuClose(); }}>Small (10)</MenuItem>,
+          <MenuItem key="s20" onClick={() => { setBlurSettings({ size: 20 }); handleContextMenuClose(); }}>Medium (20)</MenuItem>,
+          <MenuItem key="s40" onClick={() => { setBlurSettings({ size: 40 }); handleContextMenuClose(); }}>Large (40)</MenuItem>,
+          <MenuItem key="s60" onClick={() => { setBlurSettings({ size: 60 }); handleContextMenuClose(); }}>XL (60)</MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem key="i2" onClick={() => { setBlurSettings({ strength: 2 }); handleContextMenuClose(); }}>Light (2)</MenuItem>,
+          <MenuItem key="i5" onClick={() => { setBlurSettings({ strength: 5 }); handleContextMenuClose(); }}>Medium (5)</MenuItem>,
+          <MenuItem key="i10" onClick={() => { setBlurSettings({ strength: 10 }); handleContextMenuClose(); }}>Strong (10)</MenuItem>,
+        ]}
+
+        <MuiDivider />
         <MenuItem onClick={() => { setActiveTool("brush"); handleContextMenuClose(); }}>
           Brush (B)
         </MenuItem>
