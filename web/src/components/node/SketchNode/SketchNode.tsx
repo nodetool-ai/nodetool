@@ -188,6 +188,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return createDefaultDocument();
   }, [props.data.properties?.sketch_data]);
 
+  // ─── Compute exposed layer handles ────────────────────────────────
+  const exposedInputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsInput),
+    [sketchDoc.layers]
+  );
+  const exposedOutputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
+    [sketchDoc.layers]
+  );
+
   // ─── Resolve input_image from upstream connections ────────────────
   const inputImageUri = useMemo((): string | null => {
     // Check upstream result first (from workflow execution)
@@ -300,6 +310,20 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               mask: { type: "image", uri: maskDataUrl, asset_id: null, data: null }
             });
           }
+
+          // Export individual layers marked as exposedAsOutput
+          for (const layer of sketchDoc.layers) {
+            if (layer.exposedAsOutput && layer.data) {
+              updateNodeProperties(props.id, {
+                [`layer_out_${layer.name}`]: {
+                  type: "image",
+                  uri: layer.data,
+                  asset_id: null,
+                  data: null
+                }
+              });
+            }
+          }
         })
         .catch(() => {
           // Preview generation failed
@@ -388,6 +412,29 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           </HandleTooltip>
         </div>
 
+        {/* Dynamic input handles for exposed layers */}
+        {exposedInputLayers.map((layer, idx) => (
+          <div
+            key={`input-${layer.id}`}
+            className="handle-popup"
+            style={{ position: "absolute", left: 0, top: `${100 + idx * 40}px` }}
+          >
+            <HandleTooltip
+              typeMetadata={imageTypeMetadata}
+              paramName={`layer_in_${layer.name}`}
+              handlePosition="left"
+            >
+              <Handle
+                type="target"
+                id={`layer_in_${layer.name}`}
+                position={Position.Left}
+                isConnectable={true}
+                className={Slugify("image")}
+              />
+            </HandleTooltip>
+          </div>
+        ))}
+
         {/* Output handles */}
         <div className="output-handles">
           <div className="handle-popup output-image" style={{ position: "absolute", right: 0, top: "60px" }}>
@@ -420,6 +467,29 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               />
             </HandleTooltip>
           </div>
+
+          {/* Dynamic output handles for exposed layers */}
+          {exposedOutputLayers.map((layer, idx) => (
+            <div
+              key={`output-${layer.id}`}
+              className="handle-popup"
+              style={{ position: "absolute", right: 0, top: `${140 + idx * 40}px` }}
+            >
+              <HandleTooltip
+                typeMetadata={outputImageTypeMetadata}
+                paramName={`layer_out_${layer.name}`}
+                handlePosition="right"
+              >
+                <Handle
+                  type="source"
+                  id={`layer_out_${layer.name}`}
+                  position={Position.Right}
+                  isConnectable={true}
+                  className={Slugify("image")}
+                />
+              </HandleTooltip>
+            </div>
+          ))}
         </div>
 
         <NodeHeader

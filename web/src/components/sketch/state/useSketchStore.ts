@@ -72,6 +72,8 @@ export interface SketchStore {
   updateLayerData: (layerId: string, data: string | null) => void;
   setMaskLayer: (layerId: string | null) => void;
   toggleAlphaLock: (layerId: string) => void;
+  toggleLayerExposedInput: (layerId: string) => void;
+  toggleLayerExposedOutput: (layerId: string) => void;
   mergeLayerDown: (layerId: string) => void;
   flattenVisible: () => void;
 
@@ -441,6 +443,26 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         layers: state.document.layers.map((l) =>
           l.id === layerId ? { ...l, alphaLock: !l.alphaLock } : l
+        )
+      }
+    })),
+
+  toggleLayerExposedInput: (layerId: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, exposedAsInput: !l.exposedAsInput } : l
+        )
+      }
+    })),
+
+  toggleLayerExposedOutput: (layerId: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, exposedAsOutput: !l.exposedAsOutput } : l
         )
       }
     })),

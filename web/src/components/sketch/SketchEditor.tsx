@@ -89,6 +89,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
   const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
+  const toggleLayerExposedInput = useSketchStore((s) => s.toggleLayerExposedInput);
+  const toggleLayerExposedOutput = useSketchStore((s) => s.toggleLayerExposedOutput);
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
   const redo = useSketchStore((s) => s.redo);
@@ -382,6 +384,20 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       toggleAlphaLock(layerId);
     },
     [pushHistory, toggleAlphaLock]
+  );
+
+  const handleToggleExposedInput = useCallback(
+    (layerId: string) => {
+      toggleLayerExposedInput(layerId);
+    },
+    [toggleLayerExposedInput]
+  );
+
+  const handleToggleExposedOutput = useCallback(
+    (layerId: string) => {
+      toggleLayerExposedOutput(layerId);
+    },
+    [toggleLayerExposedOutput]
   );
 
   // ─── Export PNG download ───────────────────────────────────────────
@@ -942,6 +958,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onSetMaskLayer={handleSetMaskLayer}
           onToggleAlphaLock={handleToggleAlphaLock}
           onToggleIsolateLayer={toggleIsolateLayer}
+          onToggleExposedInput={handleToggleExposedInput}
+          onToggleExposedOutput={handleToggleExposedOutput}
           onLayerOpacityChange={handleSetLayerOpacity}
           onLayerBlendModeChange={handleSetLayerBlendMode}
           onRenameLayer={handleRenameLayer}

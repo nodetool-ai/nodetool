@@ -36,6 +36,8 @@ import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
 import FilterNoneIcon from "@mui/icons-material/FilterNone";
+import InputIcon from "@mui/icons-material/Input";
+import OutputIcon from "@mui/icons-material/Output";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
@@ -232,6 +234,8 @@ export interface SketchLayersPanelProps {
   onSetMaskLayer: (layerId: string | null) => void;
   onToggleAlphaLock: (layerId: string) => void;
   onToggleIsolateLayer: (layerId: string) => void;
+  onToggleExposedInput: (layerId: string) => void;
+  onToggleExposedOutput: (layerId: string) => void;
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
@@ -258,6 +262,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onSetMaskLayer,
   onToggleAlphaLock,
   onToggleIsolateLayer,
+  onToggleExposedInput,
+  onToggleExposedOutput,
   onLayerOpacityChange,
   onLayerBlendModeChange,
   onRenameLayer,
@@ -612,6 +618,43 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                     {layer.alphaLock && " 🔒"}
                   </Typography>
                 )}
+
+                <Box sx={{ display: "flex", gap: 0, ml: "auto" }}>
+                  <Tooltip title={layer.exposedAsInput ? "Remove input handle" : "Expose as input"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleExposedInput(layer.id);
+                      }}
+                      sx={{
+                        padding: "1px",
+                        color: layer.exposedAsInput ? "info.main" : "grey.600",
+                        opacity: layer.exposedAsInput ? 1 : 0.5,
+                        "&:hover": { opacity: 1 }
+                      }}
+                    >
+                      <InputIcon sx={{ fontSize: "11px" }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={layer.exposedAsOutput ? "Remove output handle" : "Expose as output"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleExposedOutput(layer.id);
+                      }}
+                      sx={{
+                        padding: "1px",
+                        color: layer.exposedAsOutput ? "success.main" : "grey.600",
+                        opacity: layer.exposedAsOutput ? 1 : 0.5,
+                        "&:hover": { opacity: 1 }
+                      }}
+                    >
+                      <OutputIcon sx={{ fontSize: "11px" }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
 
                 <Box sx={{ display: "flex", gap: 0 }}>
                   <IconButton
