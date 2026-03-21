@@ -608,6 +608,7 @@ async function createEnvironmentWithMicromamba(
     destinationPrefix,
     "--file",
     lockFilePath,
+    "--override-channels",
     "--strict-channel-priority",
   ];
 
@@ -778,6 +779,7 @@ async function installCondaPackages(
     "--prefix",
     envPrefix,
     ...packageSpecs,
+    "--override-channels",
     "--strict-channel-priority",
   ];
   for (const channel of CONDA_CHANNELS) {
