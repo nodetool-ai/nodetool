@@ -150,6 +150,10 @@ export interface Layer {
   blendMode: BlendMode;
   /** Base64-encoded PNG data for the layer content */
   data: string | null;
+  /** When true, this layer creates a dynamic input handle on the SketchNode */
+  exposedAsInput?: boolean;
+  /** When true, this layer creates a dynamic output handle on the SketchNode */
+  exposedAsOutput?: boolean;
 }
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────

@@ -89,6 +89,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
   const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
+  const toggleLayerExposedInput = useSketchStore((s) => s.toggleLayerExposedInput);
+  const toggleLayerExposedOutput = useSketchStore((s) => s.toggleLayerExposedOutput);
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
   const redo = useSketchStore((s) => s.redo);
@@ -112,6 +114,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setColorMode = useSketchStore((s) => s.setColorMode);
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
+  const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
+  const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
 
   // Defensively merge defaults so older/incomplete documents cannot break render.
   const toolSettings = {
@@ -288,10 +292,27 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   );
 
   // ─── Layer operations with undo history ─────────────────────────────
-  const handleAddLayer = useCallback(() => {
-    pushHistory("add layer");
-    addLayer();
-  }, [pushHistory, addLayer]);
+  const handleAddLayer = useCallback(
+    (fillColor?: string | null) => {
+      pushHistory("add layer");
+      const newLayerId = addLayer();
+      // Fill the new layer canvas with the specified color.
+      // When fillColor is null/undefined, the layer stays transparent (no fill).
+      if (fillColor && canvasRef.current) {
+        // Use requestAnimationFrame to ensure the layer canvas is created first
+        requestAnimationFrame(() => {
+          if (canvasRef.current) {
+            canvasRef.current.fillLayerWithColor(newLayerId, fillColor);
+            const data = canvasRef.current.getLayerData(newLayerId);
+            if (data) {
+              updateLayerData(newLayerId, data);
+            }
+          }
+        });
+      }
+    },
+    [pushHistory, addLayer, updateLayerData]
+  );
 
   const handleRemoveLayer = useCallback(
     (layerId: string) => {
@@ -363,6 +384,20 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       toggleAlphaLock(layerId);
     },
     [pushHistory, toggleAlphaLock]
+  );
+
+  const handleToggleExposedInput = useCallback(
+    (layerId: string) => {
+      toggleLayerExposedInput(layerId);
+    },
+    [toggleLayerExposedInput]
+  );
+
+  const handleToggleExposedOutput = useCallback(
+    (layerId: string) => {
+      toggleLayerExposedOutput(layerId);
+    },
+    [toggleLayerExposedOutput]
   );
 
   // ─── Export PNG download ───────────────────────────────────────────
@@ -892,6 +927,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           pan={pan}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
+          isolatedLayerId={isolatedLayerId}
           onZoomChange={setZoom}
           onPanChange={setPan}
           onStrokeStart={handleStrokeStart}
@@ -910,6 +946,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           layers={document.layers}
           activeLayerId={document.activeLayerId}
           maskLayerId={document.maskLayerId}
+          isolatedLayerId={isolatedLayerId}
           onSelectLayer={setActiveLayer}
           onToggleVisibility={handleToggleVisibility}
           onAddLayer={handleAddLayer}
@@ -920,6 +957,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onReorderLayers={handleReorderLayers}
           onSetMaskLayer={handleSetMaskLayer}
           onToggleAlphaLock={handleToggleAlphaLock}
+          onToggleIsolateLayer={toggleIsolateLayer}
+          onToggleExposedInput={handleToggleExposedInput}
+          onToggleExposedOutput={handleToggleExposedOutput}
           onLayerOpacityChange={handleSetLayerOpacity}
           onLayerBlendModeChange={handleSetLayerBlendMode}
           onRenameLayer={handleRenameLayer}

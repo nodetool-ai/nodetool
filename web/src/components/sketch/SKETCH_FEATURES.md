@@ -37,9 +37,11 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [!] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. implemented but not working!
-- [ ] **Eraser** should paint transparent not black
-- [ ] **Performance** improve performance with big canvas. 2K - 4K gets so slow that brushes do not draw lines but spooted dots
+- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. Fixed: capture-phase key listeners so Shift key state is properly tracked.
+- [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this is correct behavior matching Photoshop.
+- [x] **Performance** rAF-batched redraw coalesces layer compositing during active drawing (one redraw per animation frame instead of per pointer move event); reduces jank on large canvases
+- [x] **Performance** blur tool: cached temporary canvases (avoids 3 canvas allocations per pointer move); checkerboard: cached as CanvasPattern (avoids 262K fillRect calls per redraw on 4K canvases)
+- [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes may still feel slow
 
 #### Brush types (engine / presets)
 
@@ -65,10 +67,11 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Drag-and-drop layer reordering**: vertical drag with drop indicator
 - [x] **Layer thumbnails**: small preview images in layers panel
 - [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
+- [x] **Isolate / solo layer**: solo button per layer in layers panel — shows only the soloed layer on canvas; toggle again to show all
 - [ ] Group / folder layers
-- [ ] new layers should be created as transparent as default.
-- [ ] the layer colors [transparent], BLACK, WHITE, GRAY should be in right panel in first row with the + to add a new layer - and just show as colors, no text
-- [ ] find a better icon for mask button in right panel
+- [x] new layers are created as transparent by default. Layer color presets (transparent, black, white, gray) available as buttons in the layers panel.
+- [x] the layer colors [transparent], BLACK, WHITE, GRAY are in right panel in first row with the + to add a new layer — shown as color swatches, no text
+- [x] improved mask button icon in right panel (uses Gradient icon instead of Masks icon for better visual clarity)
 
 #### Canvas & view
 
@@ -92,7 +95,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
 - [x] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
 - [x] improve **Color Select Buttons** hex, rgb, hsl buttons — bolder, larger, better contrast selected state
-- [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
+- [x] improve **Color Select Buttons** allow holding mouse pressed and drag over swatches to preview colors; release to confirm. Also works on user preset swatches.
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
 - [x] **fix undo history** layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
@@ -201,8 +204,8 @@ Note: section 1 is conceptually the **current-state header**, but it should like
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
 - [x] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
 - [x] Fix input image not showing up as layer
-- [ ] add small buttons for "Expose input" and "Expose Output" to layers. this creates additional dynamic inputs and output handles in the node using the layer name. one fixed output should always output the composite canvas. see other dynamic nodes for reference.
-- [ ] Cleaner node UI styling
+- [x] add small buttons for "Expose input" and "Expose Output" to layers. this creates additional dynamic inputs and output handles in the node using the layer name. one fixed output always outputs the composite canvas.
+- [x] Cleaner node UI styling — improved hover state, edit overlay with label, handle labels for exposed layers, rounded corners
 
 ---
 
@@ -398,7 +401,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 9 test suites, 215+ tests
+└── __tests__/                # 15 test suites, 291+ tests
 ```
 
 ### Integration Points
@@ -462,7 +465,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [ ] **Rotate canvas (view only)**
 - [ ] **Wrap-around / tiling mode**
 - [x] **Alpha lock** — painting only affects existing opaque pixels; lock transparency indicator in layers panel
-- [ ] **Isolate / solo layer**
+- [x] **Isolate / solo layer**
 - [ ] **Pop-up palette** (radial HUD)
 - [ ] **Smudge / color-smudge brush**
 - [ ] **Extended symmetry** (N-fold / multi-point)
@@ -627,6 +630,17 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Brush roundness + angle** — elliptical brush footprints via `roundness` (0.1–1.0) and `angle` (0–360°) settings for Round/Soft brush types
 - [x] **Rectangle selection tool** — marquee select with marching ants overlay; Escape deselects; Delete clears selection area on active layer
 - [x] **Fix input image loading** — fixed stale document reference when opening editor; input image now reliably appears as locked base layer
+- [x] **Layer color presets** — transparent / black / white / gray color swatch buttons in layers panel for quick layer creation with fill
+- [x] **Improved mask icon** — replaced MasksIcon with GradientIcon for better visual clarity in layers panel
+- [x] **Fix Shift+click straight lines** — fixed capture-phase key listener blocking; Shift/Space/S key tracking now works correctly alongside SketchEditor shortcuts
+- [x] **Eraser uses destination-out** — confirmed eraser paints transparent (not black); erased areas reveal canvas background color as expected
+- [x] **rAF-batched redraw** — pointer move redraws coalesced via `requestAnimationFrame` for smoother drawing on large canvases
+- [x] **Blur tool cached canvases** — reuse temporary canvases for blur strokes instead of 3 allocations per pointer move
+- [x] **Checkerboard pattern caching** — cached as `CanvasPattern` instead of per-pixel `fillRect` loops (262K calls → 1 call on 4K canvases)
+- [x] **Isolate / solo layer** — solo button per layer in layers panel; canvas redraw skips non-isolated layers; toggle to return to all-layers view
+- [x] **Color swatch hold-to-drag** — press and hold on a swatch, drag over others to preview colors in real-time, release to confirm
+- [x] **Expose layer input/output** — per-layer "Expose Input" / "Expose Output" toggle buttons in layers panel; creates dynamic input/output handles on SketchNode using layer names; fixed composite output always present
+- [x] **Cleaner SketchNode UI** — improved hover state with border highlight, edit overlay with "Edit Sketch" label, handle labels for exposed layers, rounded corners on content area
 
 ### Node / SketchInput
 

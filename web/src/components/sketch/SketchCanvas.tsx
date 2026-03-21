@@ -102,6 +102,7 @@ export interface SketchCanvasProps {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  isolatedLayerId?: string | null;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -167,6 +168,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      isolatedLayerId,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -228,6 +230,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Pressure sensitivity: store current pointer pressure
     const currentPressureRef = useRef<number>(0.5);
 
+    // Performance: rAF-batched redraw to avoid recompositing on every pointer move
+    const redrawRequestRef = useRef<number | null>(null);
+
+    // Performance: reusable temp canvases for blur tool (avoids 3 allocs per stroke)
+    const blurTmpCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const blurBlurredCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const blurMaskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
@@ -260,11 +270,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           isSizeDraggingRef.current = false;
         }
       };
-      window.addEventListener("keydown", handleKeyDown);
-      window.addEventListener("keyup", handleKeyUp);
+      // Use capture phase (third arg = true) so these handlers fire BEFORE the
+      // SketchEditor's capture-phase handler that calls stopPropagation().
+      // Without this, Shift/Space/S key state would never be tracked, which
+      // breaks Shift+click straight lines, Space+drag panning, and S+drag
+      // brush size adjustment. See SKETCH_FEATURES.md "Fix Shift+click".
+      window.addEventListener("keydown", handleKeyDown, true);
+      window.addEventListener("keyup", handleKeyUp, true);
       return () => {
-        window.removeEventListener("keydown", handleKeyDown);
-        window.removeEventListener("keyup", handleKeyUp);
+        window.removeEventListener("keydown", handleKeyDown, true);
+        window.removeEventListener("keyup", handleKeyUp, true);
+      };
+    }, []);
+
+    // Cleanup rAF on unmount
+    useEffect(() => {
+      return () => {
+        if (redrawRequestRef.current !== null) {
+          cancelAnimationFrame(redrawRequestRef.current);
+        }
       };
     }, []);
 
@@ -344,6 +368,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (!layer.visible) {
           continue;
         }
+        // When a layer is isolated/solo'd, skip all other layers
+        if (isolatedLayerId && layer.id !== isolatedLayerId) {
+          continue;
+        }
         const layerCanvas = layerCanvasesRef.current.get(layer.id);
         if (!layerCanvas) {
           continue;
@@ -356,7 +384,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.restore();
       }
-    }, [doc.layers, doc.canvas.backgroundColor]);
+    }, [doc.layers, doc.canvas.backgroundColor, isolatedLayerId]);
+
+    /**
+     * Batched redraw using requestAnimationFrame.
+     * During active drawing, multiple pointer move events can fire per frame.
+     * This coalesces redraws so we only composite layers once per animation frame.
+     */
+    const requestRedraw = useCallback(() => {
+      if (redrawRequestRef.current === null) {
+        redrawRequestRef.current = requestAnimationFrame(() => {
+          redrawRequestRef.current = null;
+          redraw();
+        });
+      }
+    }, [redraw]);
 
     useEffect(() => {
       redraw();
@@ -568,24 +610,47 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // Read original pixels
         const imgData = ctx.getImageData(sx, sy, sw, sh);
 
-        // Create temp canvas for blurred version
-        const tmp = window.document.createElement("canvas");
-        tmp.width = sw;
-        tmp.height = sh;
+        // Reuse cached temp canvases instead of allocating new ones per call
+        if (!blurTmpCanvasRef.current) {
+          blurTmpCanvasRef.current = window.document.createElement("canvas");
+        }
+        if (!blurBlurredCanvasRef.current) {
+          blurBlurredCanvasRef.current = window.document.createElement("canvas");
+        }
+        if (!blurMaskCanvasRef.current) {
+          blurMaskCanvasRef.current = window.document.createElement("canvas");
+        }
+        const tmp = blurTmpCanvasRef.current;
+        const blurred = blurBlurredCanvasRef.current;
+        const maskCanvas = blurMaskCanvasRef.current;
+
+        // Resize only when needed
+        if (tmp.width !== sw || tmp.height !== sh) {
+          tmp.width = sw;
+          tmp.height = sh;
+        }
+        if (blurred.width !== sw || blurred.height !== sh) {
+          blurred.width = sw;
+          blurred.height = sh;
+        }
+        if (maskCanvas.width !== sw || maskCanvas.height !== sh) {
+          maskCanvas.width = sw;
+          maskCanvas.height = sh;
+        }
+
         const tmpCtx = tmp.getContext("2d");
         if (!tmpCtx) {
           return;
         }
+        tmpCtx.clearRect(0, 0, sw, sh);
         tmpCtx.putImageData(imgData, 0, 0);
 
-        // Create blurred version on a second temp canvas
-        const blurred = window.document.createElement("canvas");
-        blurred.width = sw;
-        blurred.height = sh;
+        // Create blurred version on the second temp canvas
         const blurCtx = blurred.getContext("2d");
         if (!blurCtx) {
           return;
         }
+        blurCtx.clearRect(0, 0, sw, sh);
         blurCtx.filter = `blur(${settings.strength}px)`;
         blurCtx.drawImage(tmp, 0, 0);
 
@@ -593,15 +658,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // This avoids the hard edges from clearRect.
         const cx = Math.round(point.x) - sx;
         const cy = Math.round(point.y) - sy;
-        const maskCanvas = window.document.createElement("canvas");
-        maskCanvas.width = sw;
-        maskCanvas.height = sh;
         const maskCtx = maskCanvas.getContext("2d");
         if (!maskCtx) {
           return;
         }
 
         // Draw original pixels first
+        maskCtx.clearRect(0, 0, sw, sh);
         maskCtx.putImageData(imgData, 0, 0);
 
         // Draw blurred pixels with a circular clip and radial gradient alpha
@@ -1448,7 +1511,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
               ctx.drawImage(moveLayerSnapshotRef.current, dx, dy);
-              redraw();
+              requestRedraw();
             }
           }
           return;
@@ -1517,7 +1580,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         lastPointRef.current = pt;
-        redraw();
+        requestRedraw();
       },
       [
         doc,
@@ -1533,7 +1596,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawOverlayShape,
         drawOverlayGradient,
         drawOverlayCrop,
-        redraw,
+        requestRedraw,
         withMirror,
         stabilizePoint,
         drawOverlaySelection
@@ -2158,21 +2221,38 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Cache the checkerboard tile canvas to avoid recreating it on every redraw.
+// The CanvasPattern itself is created per-call since it's context-specific.
+let cachedCheckerboardTile: HTMLCanvasElement | null = null;
+
 function drawCheckerboard(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number
 ) {
   const size = 8;
-  ctx.fillStyle = "#2a2a2a";
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#3a3a3a";
-  for (let y = 0; y < height; y += size) {
-    for (let x = 0; x < width; x += size) {
-      if ((Math.floor(x / size) + Math.floor(y / size)) % 2 === 0) {
-        ctx.fillRect(x, y, size, size);
-      }
+  // Create the tile canvas once, reuse globally
+  if (!cachedCheckerboardTile) {
+    cachedCheckerboardTile = document.createElement("canvas");
+    cachedCheckerboardTile.width = size * 2;
+    cachedCheckerboardTile.height = size * 2;
+    const pCtx = cachedCheckerboardTile.getContext("2d");
+    if (pCtx) {
+      pCtx.fillStyle = "#2a2a2a";
+      pCtx.fillRect(0, 0, size * 2, size * 2);
+      pCtx.fillStyle = "#3a3a3a";
+      pCtx.fillRect(0, 0, size, size);
+      pCtx.fillRect(size, size, size, size);
     }
+  }
+  const pattern = ctx.createPattern(cachedCheckerboardTile, "repeat");
+  if (pattern) {
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    // Fallback: solid background
+    ctx.fillStyle = "#2a2a2a";
+    ctx.fillRect(0, 0, width, height);
   }
 }
 

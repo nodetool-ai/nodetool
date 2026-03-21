@@ -58,7 +58,11 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-node)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
-      position: "relative"
+      position: "relative",
+      transition: "border-color 0.15s ease",
+      "&:hover": {
+        borderColor: theme.vars.palette.grey[500]
+      }
     },
     ".sketch-node-content": {
       position: "absolute",
@@ -80,6 +84,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       cursor: "pointer",
+      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)",
       "&:hover .edit-overlay": {
         opacity: 1
       }
@@ -96,11 +101,20 @@ const styles = (theme: Theme) =>
       right: 0,
       bottom: 0,
       display: "flex",
+      flexDirection: "column",
+      gap: "4px",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.4)",
+      backgroundColor: "rgba(0,0,0,0.45)",
       opacity: 0,
-      transition: "opacity 0.2s"
+      transition: "opacity 0.2s",
+      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)"
+    },
+    ".edit-overlay-label": {
+      fontSize: "0.7rem",
+      fontWeight: 500,
+      color: "rgba(255,255,255,0.85)",
+      letterSpacing: "0.02em"
     },
     ".hint": {
       position: "absolute",
@@ -132,6 +146,26 @@ const styles = (theme: Theme) =>
     },
     ".handle-popup.output-mask": {
       top: "100px"
+    },
+    // Handle labels for dynamic exposed layers
+    ".handle-label": {
+      position: "absolute",
+      fontSize: "0.6rem",
+      fontWeight: 500,
+      color: theme.vars.palette.grey[400],
+      whiteSpace: "nowrap",
+      pointerEvents: "none",
+      lineHeight: 1
+    },
+    ".handle-label.left": {
+      left: "12px",
+      top: "50%",
+      transform: "translateY(-50%)"
+    },
+    ".handle-label.right": {
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)"
     }
   });
 
@@ -141,6 +175,11 @@ const imageTypeMetadata = {
   type_args: [],
   optional: true
 };
+
+// Handle layout constants
+const DYNAMIC_HANDLE_START_TOP = 100;
+const DYNAMIC_HANDLE_SPACING = 40;
+const DYNAMIC_OUTPUT_START_TOP = 140;
 
 const outputImageTypeMetadata = {
   type: "image",
@@ -187,6 +226,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     }
     return createDefaultDocument();
   }, [props.data.properties?.sketch_data]);
+
+  // ─── Compute exposed layer handles ────────────────────────────────
+  const exposedInputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsInput),
+    [sketchDoc.layers]
+  );
+  const exposedOutputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
+    [sketchDoc.layers]
+  );
 
   // ─── Resolve input_image from upstream connections ────────────────
   const inputImageUri = useMemo((): string | null => {
@@ -287,19 +336,32 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           const imageDataUrl = canvasToDataUrl(canvas);
           setPreviewUrl(imageDataUrl);
 
-          // Store flattened image as output property for downstream nodes
-          updateNodeProperties(props.id, {
+          // Build all output properties in a single batch
+          const outputProps: Record<string, unknown> = {
             image: { type: "image", uri: imageDataUrl, asset_id: null, data: null }
-          });
+          };
 
           // Export mask if designated
           const maskCanvas = await exportMask(sketchDoc);
           if (maskCanvas) {
             const maskDataUrl = canvasToDataUrl(maskCanvas);
-            updateNodeProperties(props.id, {
-              mask: { type: "image", uri: maskDataUrl, asset_id: null, data: null }
-            });
+            outputProps.mask = { type: "image", uri: maskDataUrl, asset_id: null, data: null };
           }
+
+          // Export individual layers marked as exposedAsOutput
+          for (const layer of sketchDoc.layers) {
+            if (layer.exposedAsOutput && layer.data) {
+              outputProps[`layer_out_${layer.name}`] = {
+                type: "image",
+                uri: layer.data,
+                asset_id: null,
+                data: null
+              };
+            }
+          }
+
+          // Single batched update
+          updateNodeProperties(props.id, outputProps);
         })
         .catch(() => {
           // Preview generation failed
@@ -388,6 +450,30 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           </HandleTooltip>
         </div>
 
+        {/* Dynamic input handles for exposed layers */}
+        {exposedInputLayers.map((layer, idx) => (
+          <div
+            key={`input-${layer.id}`}
+            className="handle-popup"
+            style={{ position: "absolute", left: 0, top: `${DYNAMIC_HANDLE_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
+          >
+            <HandleTooltip
+              typeMetadata={imageTypeMetadata}
+              paramName={`layer_in_${layer.name}`}
+              handlePosition="left"
+            >
+              <Handle
+                type="target"
+                id={`layer_in_${layer.name}`}
+                position={Position.Left}
+                isConnectable={true}
+                className={Slugify("image")}
+              />
+            </HandleTooltip>
+            <span className="handle-label left">{layer.name}</span>
+          </div>
+        ))}
+
         {/* Output handles */}
         <div className="output-handles">
           <div className="handle-popup output-image" style={{ position: "absolute", right: 0, top: "60px" }}>
@@ -420,6 +506,30 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               />
             </HandleTooltip>
           </div>
+
+          {/* Dynamic output handles for exposed layers */}
+          {exposedOutputLayers.map((layer, idx) => (
+            <div
+              key={`output-${layer.id}`}
+              className="handle-popup"
+              style={{ position: "absolute", right: 0, top: `${DYNAMIC_OUTPUT_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
+            >
+              <HandleTooltip
+                typeMetadata={outputImageTypeMetadata}
+                paramName={`layer_out_${layer.name}`}
+                handlePosition="right"
+              >
+                <Handle
+                  type="source"
+                  id={`layer_out_${layer.name}`}
+                  position={Position.Right}
+                  isConnectable={true}
+                  className={Slugify("image")}
+                />
+              </HandleTooltip>
+              <span className="handle-label right">{layer.name}</span>
+            </div>
+          ))}
         </div>
 
         <NodeHeader
@@ -440,7 +550,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <>
               <img className="preview-image" src={previewUrl} alt="Sketch preview" />
               <div className="edit-overlay">
-                <EditIcon sx={{ fontSize: 40, color: "white" }} />
+                <EditIcon sx={{ fontSize: 32, color: "white" }} />
+                <span className="edit-overlay-label">Edit Sketch</span>
               </div>
             </>
           ) : (
