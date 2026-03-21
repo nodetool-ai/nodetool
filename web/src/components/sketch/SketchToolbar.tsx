@@ -550,6 +550,35 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     [foregroundColor]
   );
 
+  // Hold-to-drag swatch interaction: press on a swatch, drag over others
+  // to preview, release to confirm
+  const swatchDraggingRef = useRef(false);
+
+  const handleSwatchMouseDown = useCallback(
+    (color: string) => {
+      swatchDraggingRef.current = true;
+      handleSwatchClick(color);
+    },
+    [handleSwatchClick]
+  );
+
+  const handleSwatchMouseEnter = useCallback(
+    (color: string) => {
+      if (swatchDraggingRef.current) {
+        handleSwatchClick(color);
+      }
+    },
+    [handleSwatchClick]
+  );
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      swatchDraggingRef.current = false;
+    };
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
+  }, []);
+
   const handleHexInput = useCallback(
     (hex: string) => {
       const cleaned = hex.startsWith("#") ? hex : `#${hex}`;
@@ -1417,6 +1446,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               key={color}
               className="swatch"
               style={{ backgroundColor: color }}
+              onMouseDown={() => handleSwatchMouseDown(color)}
+              onMouseEnter={() => handleSwatchMouseEnter(color)}
               onClick={() => handleSwatchClick(color)}
               aria-label={`Color ${color}`}
             />
@@ -1435,6 +1466,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
               key={idx}
               className={`user-preset${color ? "" : " empty"}`}
               style={color ? { backgroundColor: color } : undefined}
+              onMouseDown={() => { if (color) { handleSwatchMouseDown(color); } }}
+              onMouseEnter={() => { if (color) { handleSwatchMouseEnter(color); } }}
               onClick={() => handlePresetClick(idx)}
               onContextMenu={(e) => {
                 e.preventDefault();
