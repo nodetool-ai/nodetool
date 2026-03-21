@@ -12,7 +12,6 @@ import React, {
   useRef,
   useEffect,
   useCallback,
-  useMemo,
   forwardRef,
   useImperativeHandle
 } from "react";
@@ -151,6 +150,12 @@ function blendModeToComposite(mode: BlendMode): GlobalCompositeOperation {
   }
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+const STABILIZER_WINDOW = 4; // Number of points to average
+const MIN_PRESSURE_FACTOR = 0.2; // Minimum pressure scaling (20% of full size/opacity)
+const SELECTION_DASH_LENGTH = 4;
+const SELECTION_DASH_OFFSET = SELECTION_DASH_LENGTH;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
@@ -219,15 +224,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Stroke stabilizer: circular buffer of recent points for smoothing
     const stabilizerBufferRef = useRef<Point[]>([]);
-    const STABILIZER_WINDOW = 4; // Number of points to average
 
     // Pressure sensitivity: store current pointer pressure
     const currentPressureRef = useRef<number>(0.5);
-    const MIN_PRESSURE_FACTOR = 0.2; // Minimum pressure scaling (20% of full size/opacity)
-
-    // Selection overlay constants
-    const SELECTION_DASH_LENGTH = 4;
-    const SELECTION_DASH_OFFSET = SELECTION_DASH_LENGTH;
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -1394,7 +1393,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         redraw,
         withMirror,
         onEyedropperPick,
-        rgbToHex
+        rgbToHex,
+        onSelectionChange
       ]
     );
 
@@ -1535,7 +1535,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawOverlayCrop,
         redraw,
         withMirror,
-        stabilizePoint
+        stabilizePoint,
+        drawOverlaySelection
       ]
     );
 
@@ -1684,13 +1685,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc.layers,
         doc.activeLayerId,
+        doc.toolSettings.gradient,
         activeTool,
         onStrokeEnd,
         onCropComplete,
         getOrCreateLayerCanvas,
         clearOverlay,
         redraw,
-        screenToCanvas
+        screenToCanvas,
+        drawGradient,
+        onSelectionChange
       ]
     );
 
