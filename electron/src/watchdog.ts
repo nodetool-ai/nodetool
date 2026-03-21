@@ -9,6 +9,7 @@ export interface WatchdogOptions {
   command: string;
   args: string[];
   env?: NodeJS.ProcessEnv;
+  cwd?: string;
   pidFilePath: string;
   healthUrl: string; // HTTP endpoint for health checks (e.g., "http://127.0.0.1:7777/health")
   healthPort?: number; // Port to check for TCP connectivity during startup (optional, extracted from healthUrl if not provided)
@@ -246,6 +247,7 @@ export class Watchdog {
         stdio: "pipe",
         shell: false,
         env: this.opts.env,
+        cwd: this.opts.cwd,
         detached: false,
         windowsHide: true,
       });
