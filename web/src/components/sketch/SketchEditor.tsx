@@ -10,19 +10,24 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  Box,
-  Menu,
-  MenuItem,
-  Divider as MuiDivider,
-  ListSubheader,
-  Typography
-} from "@mui/material";
+import { Box } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
+import SketchCanvasContextMenu from "./SketchCanvasContextMenu";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useSketchStore } from "./state";
-import { SketchDocument, BlendMode, isShapeTool, mergeRgbHexIntoColor } from "./types";
+import {
+  SketchDocument,
+  BlendMode,
+  DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
+  DEFAULT_ERASER_SETTINGS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_FILL_SETTINGS,
+  DEFAULT_BLUR_SETTINGS,
+  DEFAULT_GRADIENT_SETTINGS,
+  mergeRgbHexIntoColor
+} from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -32,22 +37,6 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     overflow: "hidden"
   });
-
-/** Shared context menu styles */
-const CTX_SECTION_LABEL_SX = {
-  fontSize: "0.65rem",
-  fontWeight: 700,
-  textTransform: "uppercase",
-  color: "grey.500",
-  px: "12px",
-  pt: "8px",
-  pb: "2px"
-} as const;
-
-const CTX_SHORTCUT_SX = {
-  color: "grey.500",
-  fontSize: "0.7rem"
-} as const;
 
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
@@ -124,6 +113,19 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
 
+  // Defensively merge defaults so older/incomplete documents cannot break render.
+  const toolSettings = {
+    brush: { ...DEFAULT_BRUSH_SETTINGS, ...document.toolSettings?.brush },
+    pencil: { ...DEFAULT_PENCIL_SETTINGS, ...document.toolSettings?.pencil },
+    eraser: { ...DEFAULT_ERASER_SETTINGS, ...document.toolSettings?.eraser },
+    shape: { ...DEFAULT_SHAPE_SETTINGS, ...document.toolSettings?.shape },
+    fill: { ...DEFAULT_FILL_SETTINGS, ...document.toolSettings?.fill },
+    blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
+    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient }
+  };
+  const safeForegroundColor = foregroundColor || "#ffffff";
+  const safeBackgroundColor = backgroundColor || "#000000";
+
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
   useEffect(() => {
@@ -170,12 +172,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         const merged = mergeRgbHexIntoColor(detail.color, fg);
         setForegroundColor(merged);
         setBrushSettings({ color: merged });
-        setActiveTool("brush");
       }
     };
     window.addEventListener("sketch-eyedropper", handler);
     return () => window.removeEventListener("sketch-eyedropper", handler);
-  }, [setBrushSettings, setActiveTool, setForegroundColor]);
+  }, [setBrushSettings, setForegroundColor]);
 
   // ─── Alt+click eyedropper pick (stays on current tool) ─────────────
   const handleEyedropperPick = useCallback(
@@ -830,29 +831,25 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [pushHistory, setDocument, updateLayerData]
   );
 
-  // Compute the settings updater for brush/pencil context menu
-  const brushOrPencilUpdater =
-    activeTool === "brush" ? setBrushSettings : setPencilSettings;
-
   return (
     <Box css={styles(theme)}>
       {!panelsHidden && (
         <SketchToolbar
           activeTool={activeTool}
-          brushSettings={document.toolSettings.brush}
-          pencilSettings={document.toolSettings.pencil}
-          eraserSettings={document.toolSettings.eraser}
-          shapeSettings={document.toolSettings.shape}
-          fillSettings={document.toolSettings.fill}
-          blurSettings={document.toolSettings.blur}
-          gradientSettings={document.toolSettings.gradient}
+          brushSettings={toolSettings.brush}
+          pencilSettings={toolSettings.pencil}
+          eraserSettings={toolSettings.eraser}
+          shapeSettings={toolSettings.shape}
+          fillSettings={toolSettings.fill}
+          blurSettings={toolSettings.blur}
+          gradientSettings={toolSettings.gradient}
           zoom={zoom}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
           canUndo={canUndo()}
           canRedo={canRedo()}
-          foregroundColor={foregroundColor}
-          backgroundColor={backgroundColor}
+          foregroundColor={safeForegroundColor}
+          backgroundColor={safeBackgroundColor}
           onToolChange={setActiveTool}
           onBrushSettingsChange={setBrushSettings}
           onPencilSettingsChange={setPencilSettings}
@@ -934,500 +931,37 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         />
       )}
 
-      {/* ── Right-click context menu (two-column layout) ──────────── */}
-      <Menu
+      <SketchCanvasContextMenu
         open={contextMenu !== null}
+        position={contextMenu}
+        activeTool={activeTool}
+        brushSettings={toolSettings.brush}
+        pencilSettings={toolSettings.pencil}
+        eraserSettings={toolSettings.eraser}
+        shapeSettings={toolSettings.shape}
+        fillSettings={toolSettings.fill}
+        blurSettings={toolSettings.blur}
+        gradientSettings={toolSettings.gradient}
+        foregroundColor={safeForegroundColor}
+        backgroundColor={safeBackgroundColor}
+        canUndo={canUndo()}
+        canRedo={canRedo()}
         onClose={handleContextMenuClose}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.y, left: contextMenu.x }
-            : undefined
-        }
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 320,
-              maxWidth: 400,
-              p: 0,
-              "& .MuiMenuItem-root": {
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                py: "6px",
-                px: "12px",
-                minHeight: "32px"
-              }
-            }
-          }
-        }}
-      >
-        {/* Tool name header */}
-        <ListSubheader
-          sx={{
-            lineHeight: "32px",
-            fontSize: "0.85rem",
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            bgcolor: "grey.900",
-            color: "grey.300"
-          }}
-        >
-          {activeTool}
-        </ListSubheader>
-
-        {/* ── Two-column body ─────────────────────────────────── */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0,
-            "& > .ctx-col": { flex: 1, minWidth: 0 }
-          }}
-        >
-          {/* LEFT: Active tool settings */}
-          <Box className="ctx-col">
-            <Typography sx={CTX_SECTION_LABEL_SX}>
-              Size
-            </Typography>
-
-            {/* ── Brush / Pencil size & opacity ── */}
-            {(activeTool === "brush" || activeTool === "pencil") && [
-              <MenuItem
-                key="s5"
-                onClick={() => {
-                  brushOrPencilUpdater({ size: 5 });
-                  handleContextMenuClose();
-                }}
-              >
-                S — 5
-              </MenuItem>,
-              <MenuItem
-                key="s12"
-                onClick={() => {
-                  brushOrPencilUpdater({ size: 12 });
-                  handleContextMenuClose();
-                }}
-              >
-                M — 12
-              </MenuItem>,
-              <MenuItem
-                key="s30"
-                onClick={() => {
-                  brushOrPencilUpdater({ size: 30 });
-                  handleContextMenuClose();
-                }}
-              >
-                L — 30
-              </MenuItem>,
-              <MenuItem
-                key="s50"
-                onClick={() => {
-                  brushOrPencilUpdater({ size: 50 });
-                  handleContextMenuClose();
-                }}
-              >
-                XL — 50
-              </MenuItem>,
-              <Typography
-                key="olabel"
-                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
-              >
-                Opacity
-              </Typography>,
-              <MenuItem
-                key="o25"
-                onClick={() => {
-                  brushOrPencilUpdater({ opacity: 0.25 });
-                  handleContextMenuClose();
-                }}
-              >
-                25%
-              </MenuItem>,
-              <MenuItem
-                key="o50"
-                onClick={() => {
-                  brushOrPencilUpdater({ opacity: 0.5 });
-                  handleContextMenuClose();
-                }}
-              >
-                50%
-              </MenuItem>,
-              <MenuItem
-                key="o75"
-                onClick={() => {
-                  brushOrPencilUpdater({ opacity: 0.75 });
-                  handleContextMenuClose();
-                }}
-              >
-                75%
-              </MenuItem>,
-              <MenuItem
-                key="o100"
-                onClick={() => {
-                  brushOrPencilUpdater({ opacity: 1 });
-                  handleContextMenuClose();
-                }}
-              >
-                100%
-              </MenuItem>
-            ]}
-
-            {/* ── Eraser size & opacity ── */}
-            {activeTool === "eraser" && [
-              <MenuItem
-                key="s5"
-                onClick={() => {
-                  setEraserSettings({ size: 5 });
-                  handleContextMenuClose();
-                }}
-              >
-                S — 5
-              </MenuItem>,
-              <MenuItem
-                key="s20"
-                onClick={() => {
-                  setEraserSettings({ size: 20 });
-                  handleContextMenuClose();
-                }}
-              >
-                M — 20
-              </MenuItem>,
-              <MenuItem
-                key="s50"
-                onClick={() => {
-                  setEraserSettings({ size: 50 });
-                  handleContextMenuClose();
-                }}
-              >
-                L — 50
-              </MenuItem>,
-              <MenuItem
-                key="s100"
-                onClick={() => {
-                  setEraserSettings({ size: 100 });
-                  handleContextMenuClose();
-                }}
-              >
-                XL — 100
-              </MenuItem>,
-              <Typography
-                key="olabel"
-                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
-              >
-                Opacity
-              </Typography>,
-              <MenuItem
-                key="o25"
-                onClick={() => {
-                  setEraserSettings({ opacity: 0.25 });
-                  handleContextMenuClose();
-                }}
-              >
-                25%
-              </MenuItem>,
-              <MenuItem
-                key="o50"
-                onClick={() => {
-                  setEraserSettings({ opacity: 0.5 });
-                  handleContextMenuClose();
-                }}
-              >
-                50%
-              </MenuItem>,
-              <MenuItem
-                key="o75"
-                onClick={() => {
-                  setEraserSettings({ opacity: 0.75 });
-                  handleContextMenuClose();
-                }}
-              >
-                75%
-              </MenuItem>,
-              <MenuItem
-                key="o100"
-                onClick={() => {
-                  setEraserSettings({ opacity: 1 });
-                  handleContextMenuClose();
-                }}
-              >
-                100%
-              </MenuItem>
-            ]}
-
-            {/* ── Shape tool width & fill ── */}
-            {isShapeTool(activeTool) && [
-              <MenuItem
-                key="sw1"
-                onClick={() => {
-                  setShapeSettings({ strokeWidth: 1 });
-                  handleContextMenuClose();
-                }}
-              >
-                Thin — 1
-              </MenuItem>,
-              <MenuItem
-                key="sw2"
-                onClick={() => {
-                  setShapeSettings({ strokeWidth: 2 });
-                  handleContextMenuClose();
-                }}
-              >
-                Medium — 2
-              </MenuItem>,
-              <MenuItem
-                key="sw4"
-                onClick={() => {
-                  setShapeSettings({ strokeWidth: 4 });
-                  handleContextMenuClose();
-                }}
-              >
-                Thick — 4
-              </MenuItem>,
-              <MenuItem
-                key="sw8"
-                onClick={() => {
-                  setShapeSettings({ strokeWidth: 8 });
-                  handleContextMenuClose();
-                }}
-              >
-                Heavy — 8
-              </MenuItem>,
-              <MuiDivider key="d1" />,
-              <MenuItem
-                key="fill"
-                onClick={() => {
-                  setShapeSettings({
-                    filled: !document.toolSettings.shape.filled
-                  });
-                  handleContextMenuClose();
-                }}
-                sx={{ fontWeight: 600 }}
-              >
-                {document.toolSettings.shape.filled
-                  ? "✓ Fill On"
-                  : "○ Fill Off"}
-              </MenuItem>
-            ]}
-
-            {/* ── Fill tool tolerance ── */}
-            {activeTool === "fill" && [
-              <MenuItem
-                key="t0"
-                onClick={() => {
-                  setFillSettings({ tolerance: 0 });
-                  handleContextMenuClose();
-                }}
-              >
-                Exact — 0
-              </MenuItem>,
-              <MenuItem
-                key="t16"
-                onClick={() => {
-                  setFillSettings({ tolerance: 16 });
-                  handleContextMenuClose();
-                }}
-              >
-                Low — 16
-              </MenuItem>,
-              <MenuItem
-                key="t32"
-                onClick={() => {
-                  setFillSettings({ tolerance: 32 });
-                  handleContextMenuClose();
-                }}
-              >
-                Medium — 32
-              </MenuItem>,
-              <MenuItem
-                key="t64"
-                onClick={() => {
-                  setFillSettings({ tolerance: 64 });
-                  handleContextMenuClose();
-                }}
-              >
-                High — 64
-              </MenuItem>
-            ]}
-
-            {/* ── Blur tool size & strength ── */}
-            {activeTool === "blur" && [
-              <MenuItem
-                key="s10"
-                onClick={() => {
-                  setBlurSettings({ size: 10 });
-                  handleContextMenuClose();
-                }}
-              >
-                S — 10
-              </MenuItem>,
-              <MenuItem
-                key="s20"
-                onClick={() => {
-                  setBlurSettings({ size: 20 });
-                  handleContextMenuClose();
-                }}
-              >
-                M — 20
-              </MenuItem>,
-              <MenuItem
-                key="s40"
-                onClick={() => {
-                  setBlurSettings({ size: 40 });
-                  handleContextMenuClose();
-                }}
-              >
-                L — 40
-              </MenuItem>,
-              <MenuItem
-                key="s60"
-                onClick={() => {
-                  setBlurSettings({ size: 60 });
-                  handleContextMenuClose();
-                }}
-              >
-                XL — 60
-              </MenuItem>,
-              <Typography
-                key="ilabel"
-                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
-              >
-                Strength
-              </Typography>,
-              <MenuItem
-                key="i2"
-                onClick={() => {
-                  setBlurSettings({ strength: 2 });
-                  handleContextMenuClose();
-                }}
-              >
-                Light — 2
-              </MenuItem>,
-              <MenuItem
-                key="i5"
-                onClick={() => {
-                  setBlurSettings({ strength: 5 });
-                  handleContextMenuClose();
-                }}
-              >
-                Medium — 5
-              </MenuItem>,
-              <MenuItem
-                key="i10"
-                onClick={() => {
-                  setBlurSettings({ strength: 10 });
-                  handleContextMenuClose();
-                }}
-              >
-                Strong — 10
-              </MenuItem>
-            ]}
-
-            {/* Fallback for tools with no size settings */}
-            {(activeTool === "eyedropper" ||
-              activeTool === "gradient" ||
-              activeTool === "crop" ||
-              activeTool === "move") && (
-              <MenuItem disabled sx={{ color: "grey.600" }}>
-                No size options
-              </MenuItem>
-            )}
-          </Box>
-
-          {/* Vertical divider */}
-          <MuiDivider orientation="vertical" flexItem />
-
-          {/* RIGHT: Tool selection + actions */}
-          <Box className="ctx-col">
-            <Typography sx={CTX_SECTION_LABEL_SX}>
-              Switch Tool
-            </Typography>
-            <MenuItem
-              selected={activeTool === "brush"}
-              onClick={() => {
-                setActiveTool("brush");
-                handleContextMenuClose();
-              }}
-            >
-              Brush &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>B</Typography>
-            </MenuItem>
-            <MenuItem
-              selected={activeTool === "pencil"}
-              onClick={() => {
-                setActiveTool("pencil");
-                handleContextMenuClose();
-              }}
-            >
-              Pencil &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>P</Typography>
-            </MenuItem>
-            <MenuItem
-              selected={activeTool === "eraser"}
-              onClick={() => {
-                setActiveTool("eraser");
-                handleContextMenuClose();
-              }}
-            >
-              Eraser &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>E</Typography>
-            </MenuItem>
-            <MenuItem
-              selected={activeTool === "fill"}
-              onClick={() => {
-                setActiveTool("fill");
-                handleContextMenuClose();
-              }}
-            >
-              Fill &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>G</Typography>
-            </MenuItem>
-            <MenuItem
-              selected={activeTool === "blur"}
-              onClick={() => {
-                setActiveTool("blur");
-                handleContextMenuClose();
-              }}
-            >
-              Blur &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>Q</Typography>
-            </MenuItem>
-
-            <Typography sx={CTX_SECTION_LABEL_SX}>
-              Actions
-            </Typography>
-            <MenuItem
-              onClick={() => {
-                handleUndo();
-                handleContextMenuClose();
-              }}
-              disabled={!canUndo()}
-            >
-              Undo &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>⌘Z</Typography>
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleRedo();
-                handleContextMenuClose();
-              }}
-              disabled={!canRedo()}
-            >
-              Redo &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>⌘⇧Z</Typography>
-            </MenuItem>
-            <MuiDivider />
-            <MenuItem
-              onClick={() => {
-                handleClearLayer();
-                handleContextMenuClose();
-              }}
-            >
-              Clear Layer
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleExportPng();
-                handleContextMenuClose();
-              }}
-            >
-              Export PNG
-            </MenuItem>
-          </Box>
-        </Box>
-      </Menu>
+        onToolChange={setActiveTool}
+        onForegroundColorChange={setForegroundColor}
+        onBrushSettingsChange={setBrushSettings}
+        onPencilSettingsChange={setPencilSettings}
+        onEraserSettingsChange={setEraserSettings}
+        onShapeSettingsChange={setShapeSettings}
+        onFillSettingsChange={setFillSettings}
+        onBlurSettingsChange={setBlurSettings}
+        onGradientSettingsChange={setGradientSettings}
+        onSwapColors={swapColors}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onClearLayer={handleClearLayer}
+        onExportPng={handleExportPng}
+      />
     </Box>
   );
 };
