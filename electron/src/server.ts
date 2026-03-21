@@ -518,7 +518,7 @@ async function startServer(): Promise<void> {
     backendEntryPoint,
   ];
 
-  logMessage(`Starting backend server with command: node ${args.join(" ")}`);
+  logMessage(`Starting backend server with command: ${nodeExecutable} ${args.join(" ")}`);
   emitBootMessage("Starting backend server...");
 
   const backendEnv: Record<string, string> = {
