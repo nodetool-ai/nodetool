@@ -3,6 +3,7 @@ import type { Stats } from "fs";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
+  installRequiredPythonPackages,
   runCommand,
 } from "./python";
 
@@ -648,6 +649,8 @@ async function provisionCondaEnvironment(
     installOllama: options?.installOllama,
     installLlamaCpp: options?.installLlamaCpp,
   });
+
+  await installRequiredPythonPackages();
 
   const shouldInstallLlamaCpp =
     options?.installLlamaCpp ?? modelBackend === "llama_cpp";
