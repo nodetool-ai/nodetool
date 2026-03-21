@@ -20,5 +20,13 @@
     "@types/node": "^25.3.3",
     "typescript": "^5.4.0",
     "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   }
 }

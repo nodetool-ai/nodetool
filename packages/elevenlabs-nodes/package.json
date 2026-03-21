@@ -21,5 +21,12 @@
     "@types/ws": "^8.5.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   }
 }
