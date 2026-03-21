@@ -382,4 +382,5 @@ jobs:
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.exe
+            electron/dist/win-unpacked/*.exe
             electron/dist/latest*.yml
