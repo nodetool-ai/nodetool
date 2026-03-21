@@ -541,7 +541,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           </Tooltip>
         </ToggleButton>
         <ToggleButton value="select" aria-label="Select">
-          <Tooltip title="Select (S̃)">
+          <Tooltip title="Select">
             <SelectAllIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
@@ -675,6 +675,18 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           inputProps={{ maxLength: 7 }}
           fullWidth
         />
+        <ToggleButtonGroup
+          value={colorMode}
+          exclusive
+          onChange={(_e, val) => { if (val) { onColorModeChange(val); } }}
+          size="small"
+          fullWidth
+          sx={{ mt: "4px", "& .MuiToggleButton-root": { flex: 1, fontSize: "0.65rem", py: "2px" } }}
+        >
+          <ToggleButton value="hex" aria-label="HEX mode">HEX</ToggleButton>
+          <ToggleButton value="rgb" aria-label="RGB mode">RGB</ToggleButton>
+          <ToggleButton value="hsl" aria-label="HSL mode">HSL</ToggleButton>
+        </ToggleButtonGroup>
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
           {([
             { label: "Black", color: "#000000" },

@@ -89,6 +89,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const setCanvasBackgroundColor = useSketchStore((s) => s.setCanvasBackgroundColor);
+  const colorMode = useSketchStore((s) => s.colorMode);
+  const setColorMode = useSketchStore((s) => s.setColorMode);
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
@@ -589,6 +591,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onResetColors={resetColors}
           onApplyAdjustments={handleApplyAdjustments}
           onBackgroundPreset={handleBackgroundPreset}
+          colorMode={colorMode}
+          onColorModeChange={setColorMode}
         />
       )}
 

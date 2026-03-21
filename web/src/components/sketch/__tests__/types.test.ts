@@ -15,7 +15,12 @@ import {
   DEFAULT_TOOL_SETTINGS,
   DEFAULT_SWATCHES,
   MAX_HISTORY_SIZE,
-  isShapeTool
+  isShapeTool,
+  isPaintingTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb
 } from "../types";
 
 describe("Sketch Types", () => {
@@ -182,6 +187,89 @@ describe("Sketch Types", () => {
       expect(isShapeTool("eyedropper")).toBe(false);
       expect(isShapeTool("fill")).toBe(false);
       expect(isShapeTool("move")).toBe(false);
+    });
+  });
+
+  describe("isPaintingTool", () => {
+    it("returns true for painting tools", () => {
+      expect(isPaintingTool("brush")).toBe(true);
+      expect(isPaintingTool("pencil")).toBe(true);
+      expect(isPaintingTool("eraser")).toBe(true);
+    });
+
+    it("returns false for non-painting tools", () => {
+      expect(isPaintingTool("move")).toBe(false);
+      expect(isPaintingTool("select")).toBe(false);
+      expect(isPaintingTool("eyedropper")).toBe(false);
+    });
+  });
+
+  describe("hexToRgb", () => {
+    it("converts white", () => {
+      expect(hexToRgb("#ffffff")).toEqual({ r: 255, g: 255, b: 255 });
+    });
+
+    it("converts black", () => {
+      expect(hexToRgb("#000000")).toEqual({ r: 0, g: 0, b: 0 });
+    });
+
+    it("converts red", () => {
+      expect(hexToRgb("#ff0000")).toEqual({ r: 255, g: 0, b: 0 });
+    });
+
+    it("works without hash prefix", () => {
+      expect(hexToRgb("00ff00")).toEqual({ r: 0, g: 255, b: 0 });
+    });
+  });
+
+  describe("rgbToHex", () => {
+    it("converts white", () => {
+      expect(rgbToHex(255, 255, 255)).toBe("#ffffff");
+    });
+
+    it("converts black", () => {
+      expect(rgbToHex(0, 0, 0)).toBe("#000000");
+    });
+
+    it("clamps out-of-range values", () => {
+      expect(rgbToHex(300, -10, 128)).toBe("#ff0080");
+    });
+  });
+
+  describe("rgbToHsl", () => {
+    it("converts white", () => {
+      expect(rgbToHsl(255, 255, 255)).toEqual({ h: 0, s: 0, l: 100 });
+    });
+
+    it("converts black", () => {
+      expect(rgbToHsl(0, 0, 0)).toEqual({ h: 0, s: 0, l: 0 });
+    });
+
+    it("converts pure red", () => {
+      expect(rgbToHsl(255, 0, 0)).toEqual({ h: 0, s: 100, l: 50 });
+    });
+  });
+
+  describe("hslToRgb", () => {
+    it("converts white", () => {
+      expect(hslToRgb(0, 0, 100)).toEqual({ r: 255, g: 255, b: 255 });
+    });
+
+    it("converts black", () => {
+      expect(hslToRgb(0, 0, 0)).toEqual({ r: 0, g: 0, b: 0 });
+    });
+
+    it("converts pure red", () => {
+      expect(hslToRgb(0, 100, 50)).toEqual({ r: 255, g: 0, b: 0 });
+    });
+
+    it("round-trips with rgbToHsl", () => {
+      const { h, s, l } = rgbToHsl(128, 64, 200);
+      const { r, g, b } = hslToRgb(h, s, l);
+      // Allow ±1 rounding tolerance
+      expect(Math.abs(r - 128)).toBeLessThanOrEqual(1);
+      expect(Math.abs(g - 64)).toBeLessThanOrEqual(1);
+      expect(Math.abs(b - 200)).toBeLessThanOrEqual(1);
     });
   });
 });

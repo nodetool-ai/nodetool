@@ -147,13 +147,14 @@ describe("Phase 2 Continued Features", () => {
   // ─── Opacity via Number Keys ─────────────────────────────────────────
 
   describe("opacity via number keys (0-9)", () => {
+    /** Replicates the keyboard-handler logic: digit 0 → 100%, others → digit×10% */
+    const digitToOpacity = (digit: number): number => digit === 0 ? 1 : digit / 10;
+
     it("key 0 sets opacity to 100%", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity: 0.5 });
       });
-      // Simulate what the keyboard handler does: digit 0 → 1.0
-      const digit = 0;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(0);
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
@@ -161,8 +162,7 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("key 5 sets opacity to 50%", () => {
-      const digit = 5;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(5);
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
@@ -170,8 +170,7 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("key 1 sets opacity to 10%", () => {
-      const digit = 1;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(1);
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
@@ -179,8 +178,7 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("key 9 sets opacity to 90%", () => {
-      const digit = 9;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(9);
       act(() => {
         useSketchStore.getState().setBrushSettings({ opacity });
       });
@@ -188,8 +186,7 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("number keys work for pencil opacity", () => {
-      const digit = 3;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(3);
       act(() => {
         useSketchStore.getState().setPencilSettings({ opacity });
       });
@@ -197,8 +194,7 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("number keys work for eraser opacity", () => {
-      const digit = 7;
-      const opacity = digit === 0 ? 1 : digit / 10;
+      const opacity = digitToOpacity(7);
       act(() => {
         useSketchStore.getState().setEraserSettings({ opacity });
       });
@@ -261,6 +257,120 @@ describe("Phase 2 Continued Features", () => {
         useSketchStore.getState().setActiveTool("brush");
       });
       expect(useSketchStore.getState().document.toolSettings.brush.brushType).toBe("spray");
+    });
+  });
+
+  // ─── Color Mode ─────────────────────────────────────────────────────
+
+  describe("color mode", () => {
+    it("defaults to hex", () => {
+      expect(useSketchStore.getState().colorMode).toBe("hex");
+    });
+
+    it("can be set to rgb", () => {
+      act(() => {
+        useSketchStore.getState().setColorMode("rgb");
+      });
+      expect(useSketchStore.getState().colorMode).toBe("rgb");
+    });
+
+    it("can be set to hsl", () => {
+      act(() => {
+        useSketchStore.getState().setColorMode("hsl");
+      });
+      expect(useSketchStore.getState().colorMode).toBe("hsl");
+    });
+
+    it("can cycle back to hex", () => {
+      act(() => {
+        useSketchStore.getState().setColorMode("rgb");
+        useSketchStore.getState().setColorMode("hex");
+      });
+      expect(useSketchStore.getState().colorMode).toBe("hex");
+    });
+  });
+
+  // ─── Selection ──────────────────────────────────────────────────────
+
+  describe("selection", () => {
+    it("defaults to null", () => {
+      expect(useSketchStore.getState().selection).toBeNull();
+    });
+
+    it("can set a selection region", () => {
+      act(() => {
+        useSketchStore.getState().setSelection({ x: 10, y: 20, width: 100, height: 50 });
+      });
+      const sel = useSketchStore.getState().selection;
+      expect(sel).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+    });
+
+    it("can clear selection", () => {
+      act(() => {
+        useSketchStore.getState().setSelection({ x: 0, y: 0, width: 50, height: 50 });
+        useSketchStore.getState().setSelection(null);
+      });
+      expect(useSketchStore.getState().selection).toBeNull();
+    });
+
+    it("selectAll sets selection to canvas dimensions", () => {
+      act(() => {
+        useSketchStore.getState().selectAll();
+      });
+      const sel = useSketchStore.getState().selection;
+      const { width, height } = useSketchStore.getState().document.canvas;
+      expect(sel).toEqual({ x: 0, y: 0, width, height });
+    });
+  });
+
+  // ─── Layer Isolation ────────────────────────────────────────────────
+
+  describe("layer isolation", () => {
+    it("defaults to null", () => {
+      expect(useSketchStore.getState().isolatedLayerId).toBeNull();
+    });
+
+    it("toggleIsolateLayer sets isolatedLayerId", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().toggleIsolateLayer(layerId);
+      });
+      expect(useSketchStore.getState().isolatedLayerId).toBe(layerId);
+    });
+
+    it("toggleIsolateLayer clears isolation when toggled again", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().toggleIsolateLayer(layerId);
+        useSketchStore.getState().toggleIsolateLayer(layerId);
+      });
+      expect(useSketchStore.getState().isolatedLayerId).toBeNull();
+    });
+
+    it("toggleIsolateLayer switches to a different layer", () => {
+      act(() => {
+        useSketchStore.getState().addLayer();
+      });
+      const layers = useSketchStore.getState().document.layers;
+      act(() => {
+        useSketchStore.getState().toggleIsolateLayer(layers[0].id);
+      });
+      expect(useSketchStore.getState().isolatedLayerId).toBe(layers[0].id);
+      act(() => {
+        useSketchStore.getState().toggleIsolateLayer(layers[1].id);
+      });
+      expect(useSketchStore.getState().isolatedLayerId).toBe(layers[1].id);
+    });
+  });
+
+  // ─── Select Tool ────────────────────────────────────────────────────
+
+  describe("select tool", () => {
+    it("can set active tool to select", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("select");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("select");
     });
   });
 });
