@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 import { renderHook } from "@testing-library/react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionHandlers from "../useConnectionHandlers";
@@ -273,7 +276,7 @@ describe("useConnectionHandlers", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
       mockFindNode.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = log.warn as jest.Mock;
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "nonexistent",
@@ -283,7 +286,7 @@ describe("useConnectionHandlers", () => {
 
       result.current.onConnectStart({} as any, connectStartParams);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(log.warn).toHaveBeenCalledWith(
         "Node with id nonexistent not found"
       );
       expect(mockStartConnecting).not.toHaveBeenCalled();
@@ -297,7 +300,7 @@ describe("useConnectionHandlers", () => {
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = log.warn as jest.Mock;
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "node1",
@@ -307,7 +310,7 @@ describe("useConnectionHandlers", () => {
 
       result.current.onConnectStart({} as any, connectStartParams);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(log.warn).toHaveBeenCalledWith(
         "Metadata for node type test.node not found"
       );
       expect(mockStartConnecting).not.toHaveBeenCalled();
@@ -318,7 +321,7 @@ describe("useConnectionHandlers", () => {
     it("should handle missing required parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = log.warn as jest.Mock;
 
       // Missing nodeId
       result.current.onConnectStart(
@@ -330,7 +333,7 @@ describe("useConnectionHandlers", () => {
         } as OnConnectStartParams
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(log.warn).toHaveBeenCalledWith(
         "Missing required data for connection start"
       );
       expect(mockStartConnecting).not.toHaveBeenCalled();
@@ -478,7 +481,7 @@ describe("useConnectionHandlers", () => {
       mockFindOutputHandle.mockReturnValue(undefined);
       mockFindInputHandle.mockReturnValue(undefined);
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = log.warn as jest.Mock;
 
       const connection: Connection = {
         source: "source",
@@ -489,7 +492,7 @@ describe("useConnectionHandlers", () => {
 
       result.current.handleOnConnect(connection);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(log.warn).toHaveBeenCalledWith(
         "Invalid source handle. Source: invalid_output"
       );
       expect(mockOnConnect).not.toHaveBeenCalled();

@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 import React from "react";
 import { renderHook, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -243,7 +246,7 @@ describe("useAutosave", () => {
     });
 
     it("handles fetch errors gracefully", async () => {
-      const consoleSpy = jest.spyOn(log, "error").mockImplementation();
+      const consoleSpy = log.error as jest.Mock;
       (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
@@ -252,7 +255,7 @@ describe("useAutosave", () => {
         await result.current.triggerAutosave();
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
+      expect(log.error).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
       consoleSpy.mockRestore();
     });
   });

@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 /**
  * Tests for useChatService.ts
  * Tests unified chat interface combining GlobalChatStore operations with navigation
@@ -280,7 +283,7 @@ describe("useChatService", () => {
 
     it("should not send message if no model selected", async () => {
       const consoleErrorSpy = jest
-        .spyOn(log, "error")
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const { result } = renderHook(() => useChatService(null), {
@@ -294,14 +297,14 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("No model selected");
+      expect(log.error).toHaveBeenCalledWith("No model selected");
 
       consoleErrorSpy.mockRestore();
     });
 
     it("should handle errors when sending message", async () => {
       const consoleErrorSpy = jest
-        .spyOn(log, "error")
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
@@ -325,7 +328,7 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(log.error).toHaveBeenCalledWith(
         "Failed to send message:",
         expect.any(Error)
       );
@@ -366,7 +369,7 @@ describe("useChatService", () => {
 
     it("should handle errors when creating new thread", async () => {
       const consoleErrorSpy = jest
-        .spyOn(log, "error")
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));
@@ -390,7 +393,7 @@ describe("useChatService", () => {
 
       await result.current.onNewThread();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(log.error).toHaveBeenCalledWith(
         "Failed to create new thread:",
         expect.any(Error)
       );

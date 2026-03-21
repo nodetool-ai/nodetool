@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -351,7 +354,7 @@ describe("ChatView", () => {
 
     it("handles sendMessage errors gracefully", async () => {
       const consoleSpy = jest
-        .spyOn(log, "error")
+        .spyOn(console, "error")
         .mockImplementation(() => {});
       mockSendMessage.mockRejectedValueOnce(new Error("Send failed"));
 
@@ -361,7 +364,7 @@ describe("ChatView", () => {
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
+        expect(log.error).toHaveBeenCalledWith(
           "Error sending message:",
           expect.any(Error)
         );

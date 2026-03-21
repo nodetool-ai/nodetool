@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 /**
  * @jest-environment node
  */
@@ -9,14 +12,14 @@ import { AssetRef } from '../../stores/ApiTypes';
 // Mock URL.createObjectURL since it's not available in Node
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
 
-// Mock console.error to avoid noise in tests
-const originalLogError = log.error;
+// Mock log.error to avoid noise in tests
+const originalConsoleError = log.error;
 beforeAll(() => {
   log.error = jest.fn();
 });
 
 afterAll(() => {
-  log.error = originalLogError;
+  log.error = originalConsoleError;
 });
 
 describe('getAssetThumbUrl', () => {

@@ -1,4 +1,12 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({
+  default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn()
+}));
+
 import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
 import {
   openInExplorer,
@@ -21,8 +29,8 @@ describe("fileExplorer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(log, "warn").mockImplementation(() => {});
-    jest.spyOn(log, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
     (useNotificationStore.setState as any)((state: any) => ({
       ...state,
       addNotification

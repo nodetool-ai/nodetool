@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 import { downloadPreviewAssets } from "../downloadPreviewAssets";
 import { createAssetFile } from "../createAssetFile";
 
@@ -102,7 +105,7 @@ describe("downloadPreviewAssets", () => {
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
 
-    const consoleWarnSpy = jest.spyOn(log, "warn").mockImplementation();
+    const consoleWarnSpy = log.warn as jest.Mock;
 
     await downloadPreviewAssets({
       nodeId: "test-node",
@@ -135,7 +138,7 @@ describe("downloadPreviewAssets", () => {
     const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
-    const consoleWarnSpy = jest.spyOn(log, "warn").mockImplementation();
+    const consoleWarnSpy = log.warn as jest.Mock;
 
     await downloadPreviewAssets({
       nodeId: "test-node",

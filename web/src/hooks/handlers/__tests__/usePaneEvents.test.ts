@@ -1,4 +1,7 @@
 import log from "loglevel";
+
+jest.mock("loglevel", () => ({ default: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() }, error: jest.fn(), warn: jest.fn(), debug: jest.fn() }));
+
 import { renderHook, act } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
@@ -196,7 +199,7 @@ describe("usePaneEvents", () => {
 
     it("cancels placement and logs warning when metadata not found", () => {
       mockGetMetadata.mockReturnValue(null);
-      const consoleWarn = jest.spyOn(log, "warn").mockImplementation(() => {});
+      const consoleWarn = log.warn as jest.Mock;
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.MissingNode",
@@ -214,7 +217,7 @@ describe("usePaneEvents", () => {
 
       result.current.handlePaneClick(mockEvent);
 
-      expect(consoleWarn).toHaveBeenCalledWith(
+      expect(log.warn).toHaveBeenCalledWith(
         expect.stringContaining("Metadata not found")
       );
       expect(mockCancelPlacement).toHaveBeenCalled();
