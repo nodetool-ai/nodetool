@@ -1,31 +1,28 @@
 #!/usr/bin/env node
 /**
- * NodeTool WebSocket + HTTP server entry point.
+ * NodeTool WebSocket + HTTP server entry point — Fastify edition.
  *
- * Uses real LLM providers resolved from environment variables / encrypted DB secrets.
+ * TLS: set TLS_CERT and TLS_KEY to paths of cert.pem / key.pem.
+ *      An HTTP→HTTPS redirect server starts on port 80 when TLS is active.
  * Connect the CLI with: npm run chat -- --url ws://localhost:7777/ws
  */
 
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve, dirname } from "node:path";
 import { homedir } from "node:os";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { createLogger } from "@nodetool/config";
-import { WebSocketServer } from "ws";
-import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
-  getProvider,
   setSecretResolver,
   PythonBridge,
-  PythonNodeExecutor,
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
-import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
-import { registerPythonProviders } from "./models-api.js";
+import { initDb } from "@nodetool/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -56,33 +53,51 @@ import {
   SaveAssetTool,
   ReadAssetTool,
 } from "@nodetool/agents";
-import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import { initDb } from "@nodetool/models";
+import { registerPythonProviders } from "./models-api.js";
+import type { HttpApiOptions } from "./http-api.js";
+
+import Fastify, { type FastifyInstance } from "fastify";
+import fastifyWebSocket from "@fastify/websocket";
+import fastifyCors from "@fastify/cors";
+
+import websocketPlugin from "./plugins/websocket.js";
+import healthRoute from "./routes/health.js";
+import assetsRoutes from "./routes/assets.js";
+import workflowsRoutes from "./routes/workflows.js";
+import jobsRoutes from "./routes/jobs.js";
+import messagesRoutes from "./routes/messages.js";
+import threadsRoutes from "./routes/threads.js";
+import nodesRoutes from "./routes/nodes.js";
+import settingsRoutes from "./routes/settings.js";
+import storageRoutes from "./routes/storage.js";
+import usersRoutes from "./routes/users.js";
+import openaiRoutes from "./routes/openai.js";
+import oauthRoutes from "./routes/oauth.js";
+import workspaceRoutes from "./routes/workspace.js";
+import filesRoutes from "./routes/files.js";
+import costsRoutes from "./routes/costs.js";
+import skillsRoutes from "./routes/skills.js";
+import collectionsRoutes from "./routes/collections.js";
+import modelsRoutes from "./routes/models.js";
 
 const log = createLogger("nodetool.websocket.server");
-
-/** Resolve a provider by ID using the runtime's single provider registry. */
-async function resolveProvider(providerId: string) {
-  return getProvider(providerId.toLowerCase());
-}
 
 // ---------------------------------------------------------------------------
 // Database setup
 // ---------------------------------------------------------------------------
 
-const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
+const dbPath =
+  process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
 try {
   initDb(dbPath);
   log.info("Database ready", { path: dbPath });
-
-  // Wire up the provider registry so it can resolve secrets from the DB
   setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));
 } catch (err) {
   log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
 }
 
 // ---------------------------------------------------------------------------
-// Metadata root detection — find Python package_metadata directories
+// Metadata root detection
 // ---------------------------------------------------------------------------
 
 function hasMetadataLayout(root: string): boolean {
@@ -106,8 +121,6 @@ function detectMetadataRoots(): string[] {
     cur = parent;
   }
 
-  // Also check siblings in the workspace root (e.g. nodetool-* repos)
-  // Walk up from cwd to find the workspace root
   cur = resolve(process.cwd());
   for (let i = 0; i < 6; i++) {
     try {
@@ -141,10 +154,9 @@ registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
 registerFalNodes(registry);
 registerReplicateNodes(registry);
-const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
 // ---------------------------------------------------------------------------
-// Python bridge — connects to nodetool_worker for HF / MLX / other Python nodes
+// Python bridge
 // ---------------------------------------------------------------------------
 
 const pythonBridge = new PythonBridge({
@@ -166,10 +178,8 @@ pythonBridge.on("exit", (code: number) => {
   pythonBridgeReady = false;
 });
 
-// Bridge connection is awaited at server startup (see bottom of file)
-
 // ---------------------------------------------------------------------------
-// Built-in tool registry for chat tool execution
+// Tool registry
 // ---------------------------------------------------------------------------
 
 const builtinToolClasses: (new () => Tool)[] = [
@@ -208,216 +218,123 @@ for (const cls of builtinToolClasses) {
   toolClassMap.set(instance.name, cls);
 }
 
-async function resolveTools(toolNames: string[]): Promise<Tool[]> {
-  const tools: Tool[] = [];
-  for (const name of toolNames) {
-    const cls = toolClassMap.get(name);
-    if (cls) {
-      tools.push(new cls());
-    }
-  }
-  return tools;
+// ---------------------------------------------------------------------------
+// TLS configuration
+// ---------------------------------------------------------------------------
+
+const tlsCertPath = process.env["TLS_CERT"];
+const tlsKeyPath = process.env["TLS_KEY"];
+const tlsEnabled = Boolean(tlsCertPath && tlsKeyPath);
+
+let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
+if (tlsEnabled && tlsCertPath && tlsKeyPath) {
+  httpsOptions = {
+    cert: readFileSync(tlsCertPath),
+    key: readFileSync(tlsKeyPath),
+  };
+  log.info("TLS enabled", { cert: tlsCertPath, key: tlsKeyPath });
 }
 
 // ---------------------------------------------------------------------------
-// HTTP + WebSocket server
+// Host / port
 // ---------------------------------------------------------------------------
 
-const host = process.env["HOST"] ?? "127.0.0.1";
 const port = Number(process.env["PORT"] ?? 7777);
+// In production (TLS), bind to 0.0.0.0 unless HOST is explicitly set
+const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
+
+// ---------------------------------------------------------------------------
+// Fastify app
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const app: FastifyInstance = (Fastify as any)({
+  ...(httpsOptions ? { https: httpsOptions } : {}),
+  trustProxy: true,
+  bodyLimit: 100 * 1024 * 1024, // 100 MB
+  logger: false,
+  ignoreTrailingSlash: true,
+});
+
+// CORS
+await app.register(fastifyCors, { origin: true });
+
+// WebSocket support
+await app.register(fastifyWebSocket);
+
+// Parse all request bodies as raw Buffer — the Web API handlers do their own parsing
+app.removeAllContentTypeParsers();
+app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
+  done(null, body);
+});
+
+// ---------------------------------------------------------------------------
+// API options for HTTP route handlers
+// ---------------------------------------------------------------------------
 
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
 
-// Adapter: bridge ws.WebSocket to WebSocketConnection interface
-class WsAdapter implements WebSocketConnection {
-  clientState: "connected" | "disconnected" = "connected";
-  applicationState: "connected" | "disconnected" = "connected";
+// ---------------------------------------------------------------------------
+// Register route plugins
+// ---------------------------------------------------------------------------
 
-  private queue: Array<{ type: string; bytes?: Uint8Array | null; text?: string | null }> = [];
-  private waiters: Array<(frame: { type: string; bytes?: Uint8Array | null; text?: string | null }) => void> = [];
+await app.register(websocketPlugin, {
+  registry,
+  pythonBridge,
+  getPythonBridgeReady: () => pythonBridgeReady,
+  toolClassMap,
+});
 
-  constructor(private socket: any) {
-    socket.on("message", (raw: any, isBinary: boolean) => {
-      const frame = isBinary
-        ? { type: "websocket.message", bytes: raw instanceof Uint8Array ? raw : new Uint8Array(raw as Buffer) }
-        : { type: "websocket.message", text: raw.toString() };
-      const waiter = this.waiters.shift();
-      if (waiter) waiter(frame);
-      else this.queue.push(frame);
-    });
+await app.register(healthRoute);
 
-    socket.on("close", () => {
-      this.clientState = "disconnected";
-      this.applicationState = "disconnected";
-      const waiter = this.waiters.shift();
-      if (waiter) waiter({ type: "websocket.disconnect" });
-    });
-  }
+// All HTTP API routes receive apiOptions
+const routeOpts = { apiOptions };
 
-  async accept(): Promise<void> {}
+await app.register(assetsRoutes, routeOpts);
+await app.register(workflowsRoutes, routeOpts);
+await app.register(jobsRoutes, routeOpts);
+await app.register(messagesRoutes, routeOpts);
+await app.register(threadsRoutes, routeOpts);
+await app.register(nodesRoutes, routeOpts);
+await app.register(settingsRoutes, routeOpts);
+await app.register(storageRoutes, routeOpts);
+await app.register(usersRoutes, routeOpts);
+await app.register(openaiRoutes, routeOpts);
+await app.register(oauthRoutes, routeOpts);
+await app.register(workspaceRoutes, routeOpts);
+await app.register(filesRoutes, routeOpts);
+await app.register(costsRoutes, routeOpts);
+await app.register(skillsRoutes, routeOpts);
+await app.register(collectionsRoutes, routeOpts);
+await app.register(modelsRoutes, routeOpts);
 
-  async receive(): Promise<{ type: string; bytes?: Uint8Array | null; text?: string | null }> {
-    const next = this.queue.shift();
-    if (next) return next;
-    return new Promise((resolve) => this.waiters.push(resolve));
-  }
+// Log all 404s so we can identify missing routes
+app.setNotFoundHandler((req, reply) => {
+  log.warn(`404 Not Found: ${req.method} ${req.url}`);
+  reply.status(404).send({ detail: "Not found" });
+});
 
-  async sendBytes(data: Uint8Array): Promise<void> {
-    this.socket.send(data);
-  }
+// ---------------------------------------------------------------------------
+// HTTP → HTTPS redirect server (when TLS is active)
+// ---------------------------------------------------------------------------
 
-  async sendText(data: string): Promise<void> {
-    this.socket.send(data);
-  }
-
-  async close(code?: number, reason?: string): Promise<void> {
-    this.clientState = "disconnected";
-    this.applicationState = "disconnected";
-    this.socket.close(code, reason);
-  }
+if (tlsEnabled) {
+  const redirectServer = createHttpServer((req, res) => {
+    const host = req.headers.host?.split(":")[0] ?? "localhost";
+    const location = `https://${host}:${port}${req.url ?? "/"}`;
+    res.statusCode = 301;
+    res.setHeader("Location", location);
+    res.end();
+  });
+  redirectServer.listen(80, "0.0.0.0", () => {
+    log.info("HTTP → HTTPS redirect server listening on :80");
+  });
 }
 
-const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-  if (req.url === "/health") {
-    res.statusCode = 200;
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ status: "ok" }));
-    return;
-  }
-  if (req.url?.startsWith("/api/") || req.url?.startsWith("/v1/") || req.url?.startsWith("/admin/")) {
-    void handleNodeHttpRequest(req, res, apiOptions);
-    return;
-  }
-  res.statusCode = 404;
-  res.setHeader("content-type", "application/json");
-  res.end(JSON.stringify({ detail: "Not found" }));
-});
+// ---------------------------------------------------------------------------
+// Start Python bridge, then start Fastify
+// ---------------------------------------------------------------------------
 
-const wss = new WebSocketServer({ noServer: true });
-
-wss.on("error", (error: Error) => {
-  log.error("WebSocketServer error", error);
-});
-
-server.on("upgrade", (request, socket, head) => {
-  const url = new URL(request.url ?? "/", `http://${host}:${port}`);
-
-  if (url.pathname === "/ws") {
-    wss.handleUpgrade(request, socket, head, (ws: any) => {
-      ws.on("error", (error: Error) => {
-        log.error("WebSocket client error", error);
-      });
-      const runner = new UnifiedWebSocketRunner({
-        resolveExecutor: (node) => {
-          // Try TS registry first — if we have a class, use it
-          if (registry.has(node.type)) {
-            return registry.resolve(node);
-          }
-          // No TS class — route through Python bridge
-          if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
-            const meta = pythonBridge
-              .getNodeMetadata()
-              .find((n) => n.node_type === node.type);
-            const nodeRec = node as Record<string, unknown>;
-            const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<string, unknown>;
-            return new PythonNodeExecutor(
-              pythonBridge,
-              node.type,
-              props,
-              Object.fromEntries(
-                (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
-              ),
-              meta?.required_settings ?? [],
-            );
-          }
-          // Node has metadata but no class and bridge not ready
-          if (registry.getMetadata(node.type) && !registry.has(node.type)) {
-            throw new Error(
-              `Python node "${node.type}" cannot execute: Python worker is not connected. ` +
-              `Ensure NODETOOL_PYTHON points to a Python with nodetool-core installed, ` +
-              `or activate the conda nodetool environment before starting the server.`,
-            );
-          }
-          return registry.resolve(node);
-        },
-        resolveNodeType: graphNodeTypeResolver,
-        resolveProvider,
-        resolveTools,
-      });
-      log.info("WebSocket client connected");
-      void runner.run(new WsAdapter(ws)).catch((error) => {
-        log.error("Runner crashed", error instanceof Error ? error : new Error(String(error)));
-      });
-    });
-    return;
-  }
-
-  if (url.pathname === "/ws/terminal") {
-    wss.handleUpgrade(request, socket, head, (ws: any) => {
-      ws.on("error", (error: Error) => {
-        log.error("Terminal WebSocket error", error);
-      });
-      log.info("Terminal WebSocket client connected");
-      ws.send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
-      ws.on("message", (raw: any) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          if (msg.type === "input") {
-            // Echo input back for now
-            ws.send(JSON.stringify({ type: "output", data: msg.data }));
-          }
-        } catch {
-          // ignore non-JSON messages
-        }
-      });
-    });
-    return;
-  }
-
-  if (url.pathname === "/ws/download") {
-    wss.handleUpgrade(request, socket, head, (ws: any) => {
-      ws.on("error", (error: Error) => {
-        log.error("Download WebSocket error", error);
-      });
-      log.info("Download WebSocket client connected");
-
-      // Lazy import to avoid circular deps at module level
-      import("@nodetool/huggingface").then(({ getDownloadManager }) => {
-        ws.on("message", async (raw: any) => {
-          try {
-            const msg = JSON.parse(raw.toString());
-            if (msg.command === "start_download") {
-              const manager = await getDownloadManager();
-              await manager.startDownload(msg.repo_id ?? "", {
-                path: msg.path ?? null,
-                allowPatterns: msg.allow_patterns ?? null,
-                ignorePatterns: msg.ignore_patterns ?? null,
-                cacheDir: msg.cache_dir ?? null,
-                modelType: msg.model_type ?? null,
-                onProgress: (update) => {
-                  try { ws.send(JSON.stringify(update)); } catch { /* client gone */ }
-                },
-              });
-            } else if (msg.command === "cancel_download") {
-              const manager = await getDownloadManager();
-              manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
-            }
-          } catch (err) {
-            const error = err instanceof Error ? err.message : String(err);
-            ws.send(JSON.stringify({ status: "error", error }));
-          }
-        });
-      }).catch((err: unknown) => {
-        log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
-      });
-    });
-    return;
-  }
-
-  socket.destroy();
-});
-
-// Start Python bridge, then listen
 pythonBridge
   .connect()
   .then(() => {
@@ -425,8 +342,6 @@ pythonBridge
     const meta = pythonBridge.getNodeMetadata();
     log.info(`Python bridge connected — ${meta.length} Python nodes available`);
 
-    // Register Python-only providers (HuggingFace Local, MLX) for model discovery.
-    // Fire-and-forget — don't block server startup.
     registerPythonProviders(pythonBridge)
       .then((registered) => {
         if (registered.length > 0) {
@@ -444,8 +359,13 @@ pythonBridge
     );
   })
   .finally(() => {
-    server.listen(port, host, () => {
-      log.info(`Server listening on http://${host}:${port}`);
-      log.info(`WebSocket endpoint: ws://${host}:${port}/ws`);
+    const proto = tlsEnabled ? "https" : "http";
+    app.listen({ port, host }, (err) => {
+      if (err) {
+        log.error("Failed to start server", err);
+        process.exit(1);
+      }
+      log.info(`Server listening on ${proto}://${host}:${port}`);
+      log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
     });
   });
