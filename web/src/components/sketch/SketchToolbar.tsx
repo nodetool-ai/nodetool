@@ -750,7 +750,22 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           onChange={(_e, val) => { if (val) { onColorModeChange(val); } }}
           size="small"
           fullWidth
-          sx={{ mt: "4px", "& .MuiToggleButton-root": { flex: 1, fontSize: "0.7rem", py: "4px" } }}
+          sx={{
+            mt: "6px",
+            "& .MuiToggleButton-root": {
+              flex: 1,
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              py: "5px",
+              letterSpacing: "0.05em",
+              borderColor: "grey.700",
+              "&.Mui-selected": {
+                bgcolor: "grey.700",
+                color: "common.white",
+                "&:hover": { bgcolor: "grey.600" }
+              }
+            }
+          }}
         >
           <ToggleButton value="hex" aria-label="HEX mode">HEX</ToggleButton>
           <ToggleButton value="rgb" aria-label="RGB mode">RGB</ToggleButton>

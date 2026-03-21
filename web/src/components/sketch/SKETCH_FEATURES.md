@@ -39,7 +39,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [ ] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
+- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
 
 #### Brush types (engine / presets)
 
@@ -85,13 +85,13 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
 - [x] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
 - [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
-- [ ] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
-- [ ] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
-- [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
+- [x] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
+- [x] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
+- [x] improve **Color Select Buttons** hex, rgb, hsl buttons — bolder, larger, better contrast selected state
 - [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
 
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
-- [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
+- [x] **fix undo history** layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
 #### Gesture shortcuts (parity — open conflicts)
 
@@ -526,6 +526,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
 - [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
 - [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
+- [x] **Shift+click straight lines** — hold Shift and click to draw a straight line from the last stroke endpoint to the click point (Photoshop convention; works for brush, pencil, eraser, blur)
+- [x] **Undo history for layer operations** — layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
+- [x] **Context menu two-column layout** — left side for active tool presets (size/opacity), right side for tool switching + actions; bolder header, section labels, shortcut hints
+- [x] **Color mode buttons** — bolder HEX/RGB/HSL toggle buttons with improved contrast and selected state
 
 ### Node / SketchInput
 

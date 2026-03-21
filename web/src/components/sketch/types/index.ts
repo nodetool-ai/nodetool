@@ -212,9 +212,27 @@ export interface SketchDocument {
 
 // ─── History ──────────────────────────────────────────────────────────────────
 
+/** Layer metadata snapshot (pixel data excluded — stored separately in layerSnapshots) */
+export interface LayerStructureSnapshot {
+  id: string;
+  name: string;
+  type: LayerType;
+  visible: boolean;
+  opacity: number;
+  locked: boolean;
+  alphaLock: boolean;
+  blendMode: BlendMode;
+}
+
 export interface HistoryEntry {
-  /** Snapshot of layers data */
+  /** Snapshot of layers data (pixel data URLs keyed by layer ID) */
   layerSnapshots: Record<string, string | null>;
+  /** Snapshot of layer structure (order + metadata) */
+  layerStructure: LayerStructureSnapshot[];
+  /** Active layer ID at the time of the snapshot */
+  activeLayerId: string;
+  /** Mask layer ID at the time of the snapshot */
+  maskLayerId: string | null;
   action: string;
   timestamp: number;
 }
