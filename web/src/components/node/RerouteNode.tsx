@@ -158,7 +158,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       return fallback;
     }
 
-    const sourceNode = { type: sourceType, data: sourceData } as Node<NodeData>;
+    const sourceNode = { type: sourceType, data: sourceData, id: "", position: { x: 0, y: 0 } } as import("@xyflow/react").Node<NodeData>;
 
     const outHandle = findOutputHandle(
       sourceNode,
