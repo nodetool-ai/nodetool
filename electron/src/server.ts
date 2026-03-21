@@ -16,7 +16,7 @@ import {
 
 /**
  * Resolves the path to the Node.js-based backend server entry point.
- * In packaged mode: resources/backend/modules/node_modules/@nodetool/websocket/dist/server.js
+ * In packaged mode: resources/backend/server.mjs
  * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
  */
 function getNodeBackendPath(): string {
@@ -519,7 +519,14 @@ async function startServer(): Promise<void> {
   ];
 
   logMessage(`Starting backend server with command: ${nodeExecutable} ${args.join(" ")}`);
+  logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
+
+  // afterPack promotes the staged backend/_modules directory to a real
+  // backend/node_modules directory so Node.js can resolve externalized
+  // ESM packages with standard package resolution.
+  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
+  logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
 
   const backendEnv: Record<string, string> = {
     ...getProcessEnv(),
@@ -529,6 +536,7 @@ async function startServer(): Promise<void> {
     OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: "production",
+    NODE_PATH: backendNodeModules,
   };
 
   backendWatchdog = new Watchdog({
@@ -536,6 +544,7 @@ async function startServer(): Promise<void> {
     command: nodeExecutable,
     args,
     env: backendEnv,
+    cwd: path.dirname(backendEntryPoint),
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => handleServerOutput(Buffer.from(line)),

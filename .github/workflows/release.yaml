@@ -149,6 +149,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION_NO_V="${VERSION#v}"
+          VERSION_NO_V="${VERSION_NO_V//\//-}"
           DIST_DIR="${GITHUB_WORKSPACE}/electron/dist"
           WIN_UNPACKED_DIR="${DIST_DIR}/win-unpacked"
           INSTALLER_PATH="${DIST_DIR}/Nodetool-Setup-${VERSION_NO_V}.exe"
@@ -354,7 +355,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          ulimit -n 4096
+          ulimit -n 65536
           cd electron
           npm run download-micromamba
           npm run vite:build

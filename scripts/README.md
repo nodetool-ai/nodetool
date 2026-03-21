@@ -9,6 +9,45 @@ Utility scripts used during development and release.
 
 These scripts are typically executed manually by maintainers.
 
+## start-production.sh
+
+Starts the NodeTool API server in production using pm2 for process management (auto-restart, log rotation, memory limits).
+
+**Prerequisites:**
+- Node.js and npm
+- pm2 (`npm install -g pm2`)
+- Built packages (`npm run build --workspaces --if-present`)
+- TLS certs: auto-detected from sibling `nodetool-core/cert.pem` and `key.pem`, or set `TLS_CERT`/`TLS_KEY`
+
+**Usage:**
+
+```bash
+# Start or restart the server (default: https://0.0.0.0:8443)
+./scripts/start-production.sh
+
+# Custom port
+PORT=9443 ./scripts/start-production.sh
+
+# Stop
+./scripts/start-production.sh stop
+
+# View logs
+./scripts/start-production.sh logs
+
+# Process status
+./scripts/start-production.sh status
+
+# Persist across reboots (run once)
+pm2 startup
+pm2 save
+```
+
+**Features:**
+- HTTPS/WSS with CloudFlare Origin SSL certs (auto-discovered)
+- Auto-restart on crash with exponential backoff
+- 2 GB memory limit with automatic restart
+- Works with CloudFlare proxy on port 8443
+
 ## compact-memory.py
 
 Compacts the memory files in `.memory/` to keep them manageable and prevent context window bloating.
