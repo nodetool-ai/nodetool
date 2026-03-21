@@ -12,7 +12,6 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
-import { hexToRgba } from "../../utils/ColorUtils";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import log from "loglevel";
@@ -40,7 +39,7 @@ const styles = (theme: Theme) =>
     ".text-item": {
       position: "relative",
       width: "100%",
-      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.2),
+      backgroundColor: "rgba(0 0 0 / 0.2)",
       borderRadius: "6px",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -77,7 +76,7 @@ const styles = (theme: Theme) =>
     ".remove-button": {
       opacity: 0,
       transition: "opacity 0.2s ease",
-      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.7),
+      backgroundColor: "rgba(0 0 0 / 0.7)",
       color: theme.vars.palette.grey[100],
       padding: "2px",
       width: "20px",
@@ -101,7 +100,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.2s ease",
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
-      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.2),
+      backgroundColor: "rgba(0 0 0 / 0.2)",
       borderRadius: "6px",
       display: "flex",
       alignItems: "center",
@@ -109,7 +108,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.3)
+        backgroundColor: "rgba(0 0 0 / 0.3)"
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],

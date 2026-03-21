@@ -13,7 +13,6 @@ import { memo, useCallback, useMemo } from "react";
 
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
-import { hexToRgba } from "../../utils/ColorUtils";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
 
 interface WorkflowCardProps {
@@ -41,7 +40,7 @@ const cardStyles = (theme: Theme) =>
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
-      boxShadow: `0 8px 24px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
+      boxShadow: "0 8px 24px rgba(0 0 0 / 0.3)"
     },
 
     "&:hover .chips-container": {
@@ -62,7 +61,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.75),
+      backgroundColor: "rgba(0 0 0 / 0.75)",
       backdropFilter: "blur(4px)",
       zIndex: 10,
       borderRadius: "12px"
@@ -98,7 +97,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "0.65rem",
       fontWeight: 600,
       letterSpacing: "0.5px",
-      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.6),
+      backgroundColor: "rgba(0 0 0 / 0.6)",
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: "4px 8px",
@@ -165,13 +164,13 @@ const cardStyles = (theme: Theme) =>
     }
   });
 
-const WorkflowCard: React.FC<WorkflowCardProps> = ({
+const WorkflowCard = ({
   workflow,
   matchedNodes,
   nodesOnlySearch,
   isLoading,
   onClick
-}) => {
+}: WorkflowCardProps) => {
   const theme = useTheme();
 
   const handleClick = useCallback(() => {
@@ -202,7 +201,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             padding: "10px 14px",
             maxWidth: 300,
             borderRadius: "8px",
-            boxShadow: `0 4px 20px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
+            boxShadow: "0 4px 20px rgba(0 0 0 / 0.3)"
           }
         },
         arrow: {
