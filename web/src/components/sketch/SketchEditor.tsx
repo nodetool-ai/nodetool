@@ -21,7 +21,7 @@ import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useSketchStore } from "./state";
-import { SketchDocument, isShapeTool, mergeRgbHexIntoColor } from "./types";
+import { SketchDocument, BlendMode, isShapeTool, mergeRgbHexIntoColor } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -250,6 +250,84 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       updateLayerData(activeLayerId, data);
     },
     [document.activeLayerId, document.layers, pushHistory, updateLayerData]
+  );
+
+  // ─── Layer operations with undo history ─────────────────────────────
+  const handleAddLayer = useCallback(() => {
+    pushHistory("add layer");
+    addLayer();
+  }, [pushHistory, addLayer]);
+
+  const handleRemoveLayer = useCallback(
+    (layerId: string) => {
+      pushHistory("remove layer");
+      removeLayer(layerId);
+    },
+    [pushHistory, removeLayer]
+  );
+
+  const handleDuplicateLayer = useCallback(
+    (layerId: string) => {
+      pushHistory("duplicate layer");
+      duplicateLayer(layerId);
+    },
+    [pushHistory, duplicateLayer]
+  );
+
+  const handleReorderLayers = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      pushHistory("reorder layers");
+      reorderLayers(fromIndex, toIndex);
+    },
+    [pushHistory, reorderLayers]
+  );
+
+  const handleToggleVisibility = useCallback(
+    (layerId: string) => {
+      pushHistory("toggle visibility");
+      toggleLayerVisibility(layerId);
+    },
+    [pushHistory, toggleLayerVisibility]
+  );
+
+  const handleSetLayerOpacity = useCallback(
+    (layerId: string, opacity: number) => {
+      pushHistory("change opacity");
+      setLayerOpacity(layerId, opacity);
+    },
+    [pushHistory, setLayerOpacity]
+  );
+
+  const handleSetLayerBlendMode = useCallback(
+    (layerId: string, blendMode: BlendMode) => {
+      pushHistory("change blend mode");
+      setLayerBlendMode(layerId, blendMode);
+    },
+    [pushHistory, setLayerBlendMode]
+  );
+
+  const handleRenameLayer = useCallback(
+    (layerId: string, name: string) => {
+      pushHistory("rename layer");
+      renameLayer(layerId, name);
+    },
+    [pushHistory, renameLayer]
+  );
+
+  const handleSetMaskLayer = useCallback(
+    (layerId: string | null) => {
+      pushHistory("set mask layer");
+      setMaskLayer(layerId);
+    },
+    [pushHistory, setMaskLayer]
+  );
+
+  const handleToggleAlphaLock = useCallback(
+    (layerId: string) => {
+      pushHistory("toggle alpha lock");
+      toggleAlphaLock(layerId);
+    },
+    [pushHistory, toggleAlphaLock]
   );
 
   // ─── Export PNG download ───────────────────────────────────────────
@@ -590,19 +668,19 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const handleMoveLayerUp = useCallback(
     (index: number) => {
       if (index < document.layers.length - 1) {
-        reorderLayers(index, index + 1);
+        handleReorderLayers(index, index + 1);
       }
     },
-    [document.layers.length, reorderLayers]
+    [document.layers.length, handleReorderLayers]
   );
 
   const handleMoveLayerDown = useCallback(
     (index: number) => {
       if (index > 0) {
-        reorderLayers(index, index - 1);
+        handleReorderLayers(index, index - 1);
       }
     },
-    [reorderLayers]
+    [handleReorderLayers]
   );
 
   // ─── Adjustment preview (auto-apply with snapshot) ──────────────
@@ -797,18 +875,18 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           activeLayerId={document.activeLayerId}
           maskLayerId={document.maskLayerId}
           onSelectLayer={setActiveLayer}
-          onToggleVisibility={toggleLayerVisibility}
-          onAddLayer={() => addLayer()}
-          onRemoveLayer={removeLayer}
-          onDuplicateLayer={duplicateLayer}
+          onToggleVisibility={handleToggleVisibility}
+          onAddLayer={handleAddLayer}
+          onRemoveLayer={handleRemoveLayer}
+          onDuplicateLayer={handleDuplicateLayer}
           onMoveLayerUp={handleMoveLayerUp}
           onMoveLayerDown={handleMoveLayerDown}
-          onReorderLayers={reorderLayers}
-          onSetMaskLayer={setMaskLayer}
-          onToggleAlphaLock={toggleAlphaLock}
-          onLayerOpacityChange={setLayerOpacity}
-          onLayerBlendModeChange={setLayerBlendMode}
-          onRenameLayer={renameLayer}
+          onReorderLayers={handleReorderLayers}
+          onSetMaskLayer={handleSetMaskLayer}
+          onToggleAlphaLock={handleToggleAlphaLock}
+          onLayerOpacityChange={handleSetLayerOpacity}
+          onLayerBlendModeChange={handleSetLayerBlendMode}
+          onRenameLayer={handleRenameLayer}
           onMergeDown={handleMergeDown}
           onFlattenVisible={handleFlattenVisible}
           canvasWidth={document.canvas.width}

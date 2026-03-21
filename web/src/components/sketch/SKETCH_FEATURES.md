@@ -39,7 +39,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [ ] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
+- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
 
 #### Brush types (engine / presets)
 
@@ -91,7 +91,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
 
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
-- [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
+- [x] **fix undo history** layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
 #### Gesture shortcuts (parity — open conflicts)
 
@@ -526,6 +526,8 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
 - [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
 - [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
+- [x] **Shift+click straight lines** — hold Shift and click to draw a straight line from the last stroke endpoint to the click point (Photoshop convention; works for brush, pencil, eraser, blur)
+- [x] **Undo history for layer operations** — layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
 ### Node / SketchInput
 

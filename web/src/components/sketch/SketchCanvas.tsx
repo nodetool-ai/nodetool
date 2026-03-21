@@ -198,6 +198,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Alpha lock: snapshot of layer alpha before stroke starts
     const alphaSnapshotRef = useRef<ImageData | null>(null);
 
+    // Shift+click straight line: persists the end point of the last stroke
+    const lastStrokeEndRef = useRef<Point | null>(null);
+
     // Stroke stabilizer: circular buffer of recent points for smoothing
     const stabilizerBufferRef = useRef<Point[]>([]);
     const STABILIZER_WINDOW = 4; // Number of points to average
@@ -1144,29 +1147,75 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
-          if (activeTool === "brush") {
-            withMirror(
-              ctx,
-              (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
-              pt,
-              pt
-            );
-          } else if (activeTool === "pencil") {
-            withMirror(
-              ctx,
-              (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
-              pt,
-              pt
-            );
-          } else if (activeTool === "eraser") {
-            withMirror(
-              ctx,
-              (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
-              pt,
-              pt
-            );
-          } else if (activeTool === "blur") {
-            drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
+          // Shift+click straight line: draw from last stroke endpoint to click point
+          if (shiftHeldRef.current && lastStrokeEndRef.current) {
+            const from = lastStrokeEndRef.current;
+            const dx = pt.x - from.x;
+            const dy = pt.y - from.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            // Interpolate points along the line for smooth stroke
+            const step = Math.max(1, Math.min(4, dist / 100));
+            const steps = Math.max(1, Math.ceil(dist / step));
+            let prev = from;
+            for (let i = 1; i <= steps; i++) {
+              const t = i / steps;
+              const current = { x: from.x + dx * t, y: from.y + dy * t };
+              if (activeTool === "brush") {
+                withMirror(
+                  ctx,
+                  (f, to, c) =>
+                    drawBrushStroke(f, to, doc.toolSettings.brush, c),
+                  prev,
+                  current
+                );
+              } else if (activeTool === "pencil") {
+                withMirror(
+                  ctx,
+                  (f, to, c) =>
+                    drawPencilStroke(f, to, doc.toolSettings.pencil, c),
+                  prev,
+                  current
+                );
+              } else if (activeTool === "eraser") {
+                withMirror(
+                  ctx,
+                  (f, to, c) =>
+                    drawEraserStroke(f, to, doc.toolSettings.eraser, c),
+                  prev,
+                  current
+                );
+              } else if (activeTool === "blur") {
+                drawBlurStroke(current, doc.toolSettings.blur, layerCanvas);
+              }
+              prev = current;
+            }
+          } else {
+            if (activeTool === "brush") {
+              withMirror(
+                ctx,
+                (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+                pt,
+                pt
+              );
+            } else if (activeTool === "pencil") {
+              withMirror(
+                ctx,
+                (f, t, c) =>
+                  drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+                pt,
+                pt
+              );
+            } else if (activeTool === "eraser") {
+              withMirror(
+                ctx,
+                (f, t, c) =>
+                  drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+                pt,
+                pt
+              );
+            } else if (activeTool === "blur") {
+              drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
+            }
           }
           redraw();
         }
@@ -1329,7 +1378,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     );
 
     const handlePointerUp = useCallback(
-      (_e: React.PointerEvent) => {
+      (e: React.PointerEvent) => {
         if (isPanningRef.current) {
           isPanningRef.current = false;
           return;
@@ -1403,6 +1452,15 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             onCropComplete(x1, y1, w, h);
           }
           return;
+        }
+
+        // Save the stroke endpoint for Shift+click straight line feature
+        // (must be done before lastPointRef is nulled)
+        if (isPaintingTool(activeTool)) {
+          lastStrokeEndRef.current = screenToCanvas(
+            e.clientX,
+            e.clientY
+          );
         }
 
         lastPointRef.current = null;
