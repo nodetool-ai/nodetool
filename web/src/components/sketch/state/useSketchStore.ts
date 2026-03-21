@@ -102,6 +102,9 @@ export interface SketchStore {
   // ─── Canvas Background ────────────────────────────────────────────────────
   setCanvasBackgroundColor: (color: string) => void;
 
+  // ─── Canvas Resize ─────────────────────────────────────────────────────────
+  resizeCanvas: (width: number, height: number) => void;
+
   // ─── History Actions ──────────────────────────────────────────────────────
   pushHistory: (action: string) => void;
   undo: () => HistoryEntry | null;
@@ -540,6 +543,19 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       document: {
         ...state.document,
         canvas: { ...state.document.canvas, backgroundColor: color },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  // ─── Canvas Resize ───────────────────────────────────────────────────────
+  resizeCanvas: (width: number, height: number) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        canvas: { ...state.document.canvas, width, height },
         metadata: {
           ...state.document.metadata,
           updatedAt: new Date().toISOString()

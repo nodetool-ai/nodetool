@@ -1261,7 +1261,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const handleWheel = useCallback(
       (e: React.WheelEvent) => {
         e.preventDefault();
-        const factor = 1.15;
+        const factor = 1.3;
         const delta = e.deltaY > 0 ? 1 / factor : factor;
         const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
         const container = containerRef.current;
