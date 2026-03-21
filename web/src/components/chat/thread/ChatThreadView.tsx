@@ -442,11 +442,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const map: Record<string, { name?: string | null; content: any }> = {};
     for (const m of messages) {
       // Tool result messages carry tool_call_id to link back to the originating tool call
-      const anyMsg: any = m as any;
-      if (m.role === "tool" && anyMsg.tool_call_id) {
-        map[String(anyMsg.tool_call_id)] = {
-          name: anyMsg.name ?? undefined,
-          content: m.content as any
+      if (m.role === "tool" && m.tool_call_id) {
+        map[String(m.tool_call_id)] = {
+          name: m.name ?? undefined,
+          content: m.content
         };
       }
     }

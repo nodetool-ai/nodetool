@@ -117,6 +117,7 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
   artifact_component?: string | null;
   artifact_confidence?: number | null;
   artifact_evidence?: string[] | null;
+  provider?: string | null;
 };
 
 // Model property value types for use in component onChange handlers
@@ -278,6 +279,7 @@ export interface ResourceChangeUpdate {
 
 // Job types
 export type Job = JobResponse;
+export type RunStateInfo = components["schemas"]["RunStateInfo"];
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];

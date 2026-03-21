@@ -242,28 +242,28 @@ const getCopySource = (value: any): any => {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    (value as any).type === "text" &&
-    typeof (value as any).data === "string"
+    value.type === "text" &&
+    typeof value.data === "string"
   ) {
-    return (value as any).data;
+    return value.data;
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "output" in value &&
-    (value as any).output !== undefined
+    value.output !== undefined
   ) {
-    return getCopySource((value as any).output);
+    return getCopySource(value.output);
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "value" in value &&
-    (value as any).value !== undefined
+    value.value !== undefined
   ) {
-    return getCopySource((value as any).value);
+    return getCopySource(value.value);
   }
 
   return value;

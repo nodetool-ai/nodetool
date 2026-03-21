@@ -265,13 +265,14 @@ const GlobalChat: React.FC = () => {
     };
 
     // Use Visual Viewport API for better keyboard handling
-    if ((window as any).visualViewport) {
-      (window as any).visualViewport.addEventListener(
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener(
         "resize",
         handleViewportChange
       );
       return () => {
-        (window as any).visualViewport.removeEventListener(
+        vv.removeEventListener(
           "resize",
           handleViewportChange
         );

@@ -20,7 +20,7 @@ export function graphNodeToReactFlowNode(
   ) {
     log.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
-      (node.data as any).workflow_id,
+      (node.data as Record<string, unknown>).workflow_id,
       "will use:",
       workflow.id
     );
