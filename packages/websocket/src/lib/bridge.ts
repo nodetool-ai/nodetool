@@ -28,8 +28,8 @@ export async function bridge(
     }
   }
   // Forward authenticated userId as x-user-id header for route handlers
-  if ((req as { userId?: string | null }).userId != null) {
-    headers.set("x-user-id", (req as { userId: string }).userId);
+  if (req.userId != null) {
+    headers.set("x-user-id", req.userId);
   }
 
   const method = req.method;
