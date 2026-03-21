@@ -36,6 +36,15 @@ const statsBoxSx = {
   cursor: "pointer"
 } as const;
 
+// ARIA labels for accessibility
+const STATS_ARIA_LABELS = {
+  cpu: "CPU usage",
+  memory: "Memory usage",
+  gpu: "GPU Memory usage",
+  statsTrigger: "View detailed system stats",
+  statsPopover: "Detailed system statistics"
+} as const;
+
 const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const systemStats = useSystemStatsStore((state) => state.stats);
@@ -44,15 +53,18 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
     () => [
       {
         label: "CPU",
-        value: systemStats?.cpu_percent ?? 0
+        value: systemStats?.cpu_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.cpu
       },
       {
         label: "Memory",
-        value: systemStats?.memory_percent ?? 0
+        value: systemStats?.memory_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.memory
       },
       {
         label: "GPU Memory",
-        value: systemStats?.vram_percent ?? 0
+        value: systemStats?.vram_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.gpu
       }
     ],
     [systemStats]
@@ -62,18 +74,41 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
     setAnchorEl(event.currentTarget);
   }, []);
 
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setAnchorEl(event.currentTarget);
+    }
+  }, []);
+
   const handleClose = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
   if (!systemStats) {return null;}
 
+  const popoverId = "system-stats-popover";
+  const triggerId = "system-stats-trigger";
+
   return (
-    <Box className="system-stats" sx={{ mr: 2 }}>
+    <Box
+      className="system-stats"
+      sx={{ mr: 2 }}
+      role="region"
+      aria-label="System resource usage"
+    >
       <Tooltip title="System Stats">
         <Box
+          id={triggerId}
           onClick={handleClick}
+          onKeyDown={handleKeyDown}
           sx={statsBoxSx}
+          tabIndex={0}
+          role="button"
+          aria-label={STATS_ARIA_LABELS.statsTrigger}
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(anchorEl)}
+          aria-controls={popoverId}
         >
           {stats.map((stat) => (
             <LinearProgress
@@ -81,11 +116,16 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
               variant="determinate"
               value={stat.value}
               sx={progressSx}
+              aria-label={stat.ariaLabel}
+              aria-valuenow={stat.value}
+              aria-valuemin={0}
+              aria-valuemax={100}
             />
           ))}
         </Box>
       </Tooltip>
       <Popover
+        id={popoverId}
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={handleClose}
@@ -97,8 +137,14 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
           vertical: "top",
           horizontal: "center"
         }}
+        slotProps={{
+          paper: {
+            role: "dialog",
+            "aria-label": STATS_ARIA_LABELS.statsPopover
+          }
+        }}
       >
-        <Box sx={{ p: 2, minWidth: 150 }}>
+        <Box sx={{ p: 2, minWidth: 150 }} role="region" aria-live="polite">
           {stats.map((stat) => (
             <StatItem key={stat.label} label={stat.label} value={stat.value} />
           ))}
@@ -112,8 +158,25 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
   label,
   value
 }) {
+  const getAriaLabel = (itemLabel: string): string => {
+    switch (itemLabel) {
+      case "CPU":
+        return STATS_ARIA_LABELS.cpu;
+      case "Memory":
+        return STATS_ARIA_LABELS.memory;
+      case "GPU Memory":
+        return STATS_ARIA_LABELS.gpu;
+      default:
+        return `${itemLabel} usage`;
+    }
+  };
+
   return (
-    <Box className="system-stats-popover">
+    <Box
+      className="system-stats-popover"
+      role="group"
+      aria-label={`${label}: ${value.toFixed(0)}%`}
+    >
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
         <Typography variant="caption" sx={{ opacity: 0.7 }}>
           {label}
@@ -126,6 +189,10 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
         variant="determinate"
         value={value}
         sx={popoverProgressSx}
+        aria-label={getAriaLabel(label)}
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={100}
       />
     </Box>
   );
