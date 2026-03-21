@@ -21,16 +21,7 @@ import {
  */
 function getNodeBackendPath(): string {
   if (app.isPackaged) {
-    return path.join(
-      process.resourcesPath,
-      "backend",
-      "modules",
-      "node_modules",
-      "@nodetool",
-      "websocket",
-      "dist",
-      "server.js"
-    );
+    return path.join(process.resourcesPath, "backend", "server.mjs");
   }
   return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
 }
