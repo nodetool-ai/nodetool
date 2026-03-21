@@ -288,10 +288,26 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   );
 
   // ─── Layer operations with undo history ─────────────────────────────
-  const handleAddLayer = useCallback(() => {
-    pushHistory("add layer");
-    addLayer();
-  }, [pushHistory, addLayer]);
+  const handleAddLayer = useCallback(
+    (fillColor?: string | null) => {
+      pushHistory("add layer");
+      const newLayerId = addLayer();
+      // Fill the new layer canvas with the specified color (if any)
+      if (fillColor && canvasRef.current) {
+        // Use requestAnimationFrame to ensure the layer canvas is created first
+        requestAnimationFrame(() => {
+          if (canvasRef.current) {
+            canvasRef.current.fillLayerWithColor(newLayerId, fillColor);
+            const data = canvasRef.current.getLayerData(newLayerId);
+            if (data) {
+              updateLayerData(newLayerId, data);
+            }
+          }
+        });
+      }
+    },
+    [pushHistory, addLayer, updateLayerData]
+  );
 
   const handleRemoveLayer = useCallback(
     (layerId: string) => {

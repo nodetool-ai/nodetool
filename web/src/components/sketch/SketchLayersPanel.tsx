@@ -31,7 +31,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import MasksIcon from "@mui/icons-material/Masks";
+import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
@@ -217,7 +217,7 @@ export interface SketchLayersPanelProps {
   maskLayerId: string | null;
   onSelectLayer: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
-  onAddLayer: () => void;
+  onAddLayer: (fillColor?: string | null) => void;
   onRemoveLayer: (layerId: string) => void;
   onDuplicateLayer: (layerId: string) => void;
   onMoveLayerUp: (index: number) => void;
@@ -355,13 +355,71 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     <Box css={styles(theme)}>
       <Typography className="section-label">Layers</Typography>
 
-      {/* Layer actions */}
-      <Box className="layer-actions">
-        <Tooltip title="Add Layer">
-          <IconButton size="small" onClick={onAddLayer}>
-            <AddIcon fontSize="small" />
+      {/* Add layer with color presets */}
+      <Box className="layer-actions" sx={{ gap: "3px !important" }}>
+        <Tooltip title="Add Transparent Layer">
+          <IconButton
+            size="small"
+            onClick={() => onAddLayer(null)}
+            sx={{
+              width: 22,
+              height: 22,
+              padding: 0,
+              borderRadius: "3px",
+              border: `1px solid ${theme.vars.palette.grey[500]}`,
+              background: `repeating-conic-gradient(${theme.vars.palette.grey[600]} 0% 25%, ${theme.vars.palette.grey[800]} 0% 50%) 50% / 8px 8px`,
+              "&:hover": { borderColor: theme.vars.palette.grey[300] }
+            }}
+          >
+            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[400] }} />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Add Black Layer">
+          <IconButton
+            size="small"
+            onClick={() => onAddLayer("#000000")}
+            sx={{
+              width: 22,
+              height: 22,
+              padding: 0,
+              borderRadius: "3px",
+              border: `1px solid ${theme.vars.palette.grey[500]}`,
+              backgroundColor: "#000000",
+              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#111111" }
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Add White Layer">
+          <IconButton
+            size="small"
+            onClick={() => onAddLayer("#ffffff")}
+            sx={{
+              width: 22,
+              height: 22,
+              padding: 0,
+              borderRadius: "3px",
+              border: `1px solid ${theme.vars.palette.grey[500]}`,
+              backgroundColor: "#ffffff",
+              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#eeeeee" }
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Add Gray Layer">
+          <IconButton
+            size="small"
+            onClick={() => onAddLayer("#808080")}
+            sx={{
+              width: 22,
+              height: 22,
+              padding: 0,
+              borderRadius: "3px",
+              border: `1px solid ${theme.vars.palette.grey[500]}`,
+              backgroundColor: "#808080",
+              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#999999" }
+            }}
+          />
+        </Tooltip>
+        <Box sx={{ width: "4px" }} />
         <Tooltip title="Delete Layer">
           <span>
             <IconButton
@@ -397,7 +455,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             }
             color={maskLayerId === activeLayerId ? "warning" : "default"}
           >
-            <MasksIcon fontSize="small" />
+            <GradientIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip
