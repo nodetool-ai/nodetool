@@ -4,7 +4,6 @@
 
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - _openmp_mutex=4.5=20_gnu
   - aom=3.12.1=h419075a_0
