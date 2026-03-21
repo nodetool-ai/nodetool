@@ -12,6 +12,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   forwardRef,
   useImperativeHandle
 } from "react";
@@ -222,6 +223,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Pressure sensitivity: store current pointer pressure
     const currentPressureRef = useRef<number>(0.5);
+    const MIN_PRESSURE_FACTOR = 0.2; // Minimum pressure scaling (20% of full size/opacity)
+
+    // Selection overlay constants
+    const SELECTION_DASH_LENGTH = 4;
+    const SELECTION_DASH_OFFSET = SELECTION_DASH_LENGTH;
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -373,7 +379,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         let effectiveSize = settings.size;
         let effectiveOpacity = settings.opacity;
         if (settings.pressureSensitivity && pressure !== undefined && pressure > 0) {
-          const pressureFactor = Math.max(0.2, pressure);
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
           if (settings.pressureAffects === "size" || settings.pressureAffects === "both") {
             effectiveSize = settings.size * pressureFactor;
           }
@@ -478,7 +484,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         let effectiveSize = settings.size;
         let effectiveOpacity = settings.opacity;
         if (pressure !== undefined && pressure > 0) {
-          const pressureFactor = Math.max(0.2, pressure);
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
           effectiveSize = settings.size * pressureFactor;
           effectiveOpacity = settings.opacity * pressureFactor;
         }
@@ -510,7 +516,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         let effectiveSize = settings.size;
         let effectiveOpacity = settings.opacity;
         if (pressure !== undefined && pressure > 0) {
-          const pressureFactor = Math.max(0.2, pressure);
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
           effectiveSize = settings.size * pressureFactor;
           effectiveOpacity = settings.opacity * pressureFactor;
         }
@@ -979,10 +985,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.save();
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
+        ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
         ctx.strokeRect(x, y, w, h);
         ctx.strokeStyle = "#000000";
-        ctx.lineDashOffset = 4;
+        ctx.lineDashOffset = SELECTION_DASH_OFFSET;
         ctx.strokeRect(x, y, w, h);
         ctx.restore();
       },
@@ -1007,10 +1013,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.clearRect(0, 0, overlay.width, overlay.height);
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
       ctx.strokeRect(x, y, width, height);
       ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = 4;
+      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
       ctx.strokeRect(x, y, width, height);
       ctx.restore();
     }, [selection]);
