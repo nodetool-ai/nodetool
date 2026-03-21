@@ -7,8 +7,7 @@
 
 import {
   SketchDocument,
-  DEFAULT_BLUR_SETTINGS,
-  DEFAULT_BRUSH_SETTINGS
+  normalizeSketchDocument
 } from "../types";
 
 /**
@@ -35,21 +34,7 @@ export function deserializeDocument(
       typeof parsed.version === "number" &&
       Array.isArray(parsed.layers)
     ) {
-      // Ensure blur settings exist (migration from pre-blur documents)
-      if (parsed.toolSettings && !parsed.toolSettings.blur) {
-        parsed.toolSettings.blur = { ...DEFAULT_BLUR_SETTINGS };
-      }
-      // Ensure brushType exists (migration from pre-brushType documents)
-      if (parsed.toolSettings?.brush && !parsed.toolSettings.brush.brushType) {
-        parsed.toolSettings.brush.brushType = DEFAULT_BRUSH_SETTINGS.brushType;
-      }
-      // Ensure alphaLock exists on all layers (migration from pre-alphaLock documents)
-      for (const layer of parsed.layers) {
-        if (layer.alphaLock === undefined) {
-          layer.alphaLock = false;
-        }
-      }
-      return parsed;
+      return normalizeSketchDocument(parsed);
     }
     return null;
   } catch {

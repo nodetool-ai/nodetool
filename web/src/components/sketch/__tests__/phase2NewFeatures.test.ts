@@ -93,6 +93,25 @@ describe("Phase 2 New Features", () => {
       expect(updatedAt).toBeTruthy();
       expect(new Date(updatedAt).getTime()).toBeGreaterThan(0);
     });
+
+    it("normalizes missing gradient settings when loading a document", () => {
+      const doc = useSketchStore.getState().document;
+      const legacyDoc = {
+        ...doc,
+        toolSettings: {
+          ...doc.toolSettings
+        }
+      };
+      delete legacyDoc.toolSettings.gradient;
+
+      act(() => {
+        useSketchStore.getState().setDocument(legacyDoc);
+      });
+
+      expect(useSketchStore.getState().document.toolSettings.gradient).toEqual(
+        DEFAULT_GRADIENT_SETTINGS
+      );
+    });
   });
 
   describe("gradient tool type", () => {

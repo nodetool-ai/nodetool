@@ -80,5 +80,19 @@ describe("Sketch Serialization", () => {
       expect(restored?.maskLayerId).toBe(original.maskLayerId);
       expect(restored?.layers[1].type).toBe("mask");
     });
+
+    it("migrates documents missing gradient settings", () => {
+      const doc = createDefaultDocument();
+      const parsed = JSON.parse(serializeDocument(doc));
+      delete parsed.toolSettings.gradient;
+
+      const restored = deserializeDocument(JSON.stringify(parsed));
+
+      expect(restored?.toolSettings.gradient).toEqual({
+        startColor: "#ffffff",
+        endColor: "#000000",
+        type: "linear"
+      });
+    });
   });
 });

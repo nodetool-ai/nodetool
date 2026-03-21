@@ -318,6 +318,85 @@ export function createDefaultDocument(
   };
 }
 
+/**
+ * Normalize a sketch document so older serialized payloads can still be used
+ * after new tool settings or layer fields are added.
+ */
+export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
+  const baseDocument = createDefaultDocument(
+    doc.canvas?.width ?? 512,
+    doc.canvas?.height ?? 512
+  );
+
+  const layers = Array.isArray(doc.layers) && doc.layers.length > 0
+    ? doc.layers.map((layer) => ({
+        ...layer,
+        type: layer.type ?? "raster",
+        visible: layer.visible ?? true,
+        opacity: layer.opacity ?? 1,
+        locked: layer.locked ?? false,
+        alphaLock: layer.alphaLock ?? false,
+        blendMode: layer.blendMode ?? "normal",
+        data: layer.data ?? null
+      }))
+    : baseDocument.layers;
+
+  const activeLayerId = layers.some((layer) => layer.id === doc.activeLayerId)
+    ? doc.activeLayerId
+    : layers[layers.length - 1]?.id ?? baseDocument.activeLayerId;
+
+  const maskLayerId =
+    doc.maskLayerId && layers.some((layer) => layer.id === doc.maskLayerId)
+      ? doc.maskLayerId
+      : null;
+
+  return {
+    ...baseDocument,
+    ...doc,
+    canvas: {
+      ...baseDocument.canvas,
+      ...doc.canvas
+    },
+    layers,
+    activeLayerId,
+    maskLayerId,
+    toolSettings: {
+      brush: {
+        ...DEFAULT_BRUSH_SETTINGS,
+        ...doc.toolSettings?.brush
+      },
+      pencil: {
+        ...DEFAULT_PENCIL_SETTINGS,
+        ...doc.toolSettings?.pencil
+      },
+      eraser: {
+        ...DEFAULT_ERASER_SETTINGS,
+        ...doc.toolSettings?.eraser
+      },
+      shape: {
+        ...DEFAULT_SHAPE_SETTINGS,
+        ...doc.toolSettings?.shape
+      },
+      fill: {
+        ...DEFAULT_FILL_SETTINGS,
+        ...doc.toolSettings?.fill
+      },
+      blur: {
+        ...DEFAULT_BLUR_SETTINGS,
+        ...doc.toolSettings?.blur
+      },
+      gradient: {
+        ...DEFAULT_GRADIENT_SETTINGS,
+        ...doc.toolSettings?.gradient
+      }
+    },
+    metadata: {
+      ...baseDocument.metadata,
+      ...doc.metadata
+    }
+  };
+}
+
 /** Check if a tool is a shape tool */
 export function isShapeTool(tool: SketchTool): tool is ShapeToolType {
   return tool === "line" || tool === "rectangle" || tool === "ellipse" || tool === "arrow";

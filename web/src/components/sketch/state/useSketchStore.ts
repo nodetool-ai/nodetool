@@ -23,6 +23,7 @@ import {
   GradientSettings,
   BlendMode,
   createDefaultDocument,
+  normalizeSketchDocument,
   createDefaultLayer,
   generateLayerId,
   MAX_HISTORY_SIZE
@@ -128,7 +129,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── Document Actions ─────────────────────────────────────────────────
   setDocument: (doc: SketchDocument) => {
     set({
-      document: doc,
+      document: normalizeSketchDocument(doc),
       history: [],
       historyIndex: -1
     });
