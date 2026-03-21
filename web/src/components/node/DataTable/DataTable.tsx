@@ -22,6 +22,7 @@ import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 
 import TableActions from "./TableActions";
+import type { TableData } from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
@@ -164,13 +165,15 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: TableDataChange) => {
+    (newData: TableData | TableDataChange) => {
       if (onChange && Array.isArray(newData)) {
         const currentDf = dataframeRef.current;
+        // Only process if data is in dict table format
+        const dictRows = newData as DictTableRow[];
         onChange({
           ...currentDf,
-          data: newData.map(
-            (row) => currentDf.columns?.map((col) => row[col.name]) || []
+          data: dictRows.map(
+            (row) => row && currentDf.columns?.map((col) => row[col.name]) || []
           )
         });
       }

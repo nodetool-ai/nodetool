@@ -55,7 +55,7 @@ interface TableActionsProps {
   setShowRowNumbers?: (show: boolean) => void;
   editable?: boolean;
   dataframeColumns?: ColumnDef[];
-  onChangeRows: (newData: TableDataChange) => void;
+  onChangeRows: (newData: TableData | TableDataChange) => void;
   isListTable?: boolean;
   showResetSortingButton?: boolean;
   showRowNumbersButton?: boolean;
@@ -217,14 +217,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
-    let reindexedData;
+    let reindexedData: TableData;
     if (isListTable) {
         // List table data is just values, no reindexing needed in the data itself
-        reindexedData = newData;
+        reindexedData = newData as ListCellValue[];
     } else {
         reindexedData = (newData as DictTableRow[]).map((row, index) => ({ ...row, rownum: index }));
     }
-    onChangeRows(reindexedData as TableData);
+    onChangeRows(reindexedData);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,

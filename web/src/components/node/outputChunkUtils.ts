@@ -5,7 +5,7 @@ export const isTextLikeChunk = (chunk: Chunk | null | undefined): boolean => {
   return (
     contentType === undefined ||
     contentType === null ||
-    contentType === "" ||
+    (contentType as string) === "" ||
     contentType === "text"
   );
 };

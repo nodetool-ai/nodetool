@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { NodeProps, Handle, Position } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

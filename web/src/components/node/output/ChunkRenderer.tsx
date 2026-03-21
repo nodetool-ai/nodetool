@@ -16,7 +16,8 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
   const contentType = chunk.content_type;
 
-  if (contentType === "html") {
+  // Check for html content type (outside the type definition for backward compatibility)
+  if ((contentType as string) === "html") {
     return (
       <iframe
         srcDoc={(chunk.content as string) ?? ""}
@@ -35,8 +36,8 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
       return (
         <StreamPcm16Player
           base64={chunk.content as string}
-          sampleRate={meta?.sample_rate || 22000}
-          channels={meta?.channels || 1}
+          sampleRate={(meta?.sample_rate as number) ?? 22000}
+          channels={(meta?.channels as number) ?? 1}
         />
       );
     }
