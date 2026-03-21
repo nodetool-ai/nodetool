@@ -5,11 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 lock_files=(
   "electron/resources/environment.lock.yml"
-  "electron/resources/environment-osx-64.yml"
-  "electron/resources/environment-osx-arm64.yml"
-  "electron/resources/environment-linux-64.yml"
-  "electron/resources/environment-linux-aarch64.yml"
-  "electron/resources/environment-win-64.yml"
+  "electron/resources/environment-osx-64.lock.yml"
+  "electron/resources/environment-osx-arm64.lock.yml"
+  "electron/resources/environment-linux-64.lock.yml"
+  "electron/resources/environment-linux-aarch64.lock.yml"
+  "electron/resources/environment-win-64.lock.yml"
 )
 
 missing=0

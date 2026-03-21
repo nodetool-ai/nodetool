@@ -12,6 +12,8 @@ import {
 } from '../config';
 import { readSettings } from '../settings';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { app } from 'electron';
 
 // Mock dependencies
@@ -301,11 +303,30 @@ describe('Config', () => {
 
   describe('getCondaLockFilePath', () => {
     const fallbackLockFileName = 'environment.lock.yml';
+    const linuxLockFileName = 'environment-linux-64.lock.yml';
     const originalIsPackaged = app.isPackaged;
     const originalResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath;
+    const originalArch = process.arch;
+    let tempResourcesDir: string | null = null;
+    let renamedLockFilePath: string | null = null;
+    let backupLockFilePath: string | null = null;
 
     afterEach(() => {
       (app as unknown as { isPackaged: boolean }).isPackaged = originalIsPackaged;
+      Object.defineProperty(process, 'arch', {
+        value: originalArch,
+        configurable: true,
+      });
+
+      if (tempResourcesDir) {
+        fs.rmSync(tempResourcesDir, { recursive: true, force: true });
+        tempResourcesDir = null;
+      }
+      if (renamedLockFilePath && backupLockFilePath && fs.existsSync(backupLockFilePath)) {
+        fs.renameSync(backupLockFilePath, renamedLockFilePath);
+      }
+      renamedLockFilePath = null;
+      backupLockFilePath = null;
 
       if (typeof originalResourcesPath === 'undefined') {
         delete (process as unknown as { resourcesPath?: string }).resourcesPath;
@@ -318,30 +339,93 @@ describe('Config', () => {
       }
     });
 
-    it('should resolve to packaged resources path when bundled', () => {
+    it('should resolve the packaged platform-specific lock file when present', () => {
       (app as unknown as { isPackaged: boolean }).isPackaged = true;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
       Object.defineProperty(process, 'resourcesPath', {
-        value: '/mock/resources',
+        value: (tempResourcesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'))),
         configurable: true,
         writable: true,
       });
+      fs.writeFileSync(path.join(tempResourcesDir, linuxLockFileName), 'dependencies:\n  - python=3\n  - uv=1\n');
 
       const result = getCondaLockFilePath();
 
-      expect(result).toBe(path.join('/mock/resources', fallbackLockFileName));
+      expect(result).toBe(path.join(tempResourcesDir, linuxLockFileName));
     });
 
-    it('should resolve to the local resources path during development', () => {
+    it('should fall back to the packaged generic lock file when the platform file is missing', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = true;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'resourcesPath', {
+        value: (tempResourcesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'))),
+        configurable: true,
+        writable: true,
+      });
+      fs.writeFileSync(path.join(tempResourcesDir, fallbackLockFileName), 'dependencies:\n  - python=3\n  - uv=1\n');
+
+      const result = getCondaLockFilePath();
+
+      expect(result).toBe(path.join(tempResourcesDir, fallbackLockFileName));
+    });
+
+    it('should resolve the local platform-specific lock file during development', () => {
       (app as unknown as { isPackaged: boolean }).isPackaged = false;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
 
       const result = getCondaLockFilePath();
       const expectedResourcesDir = path.join(
         path.resolve(__dirname, '..', '..'),
         'resources'
       );
+      const expectedLockPath = path.join(expectedResourcesDir, linuxLockFileName);
 
-      expect(path.dirname(result)).toBe(expectedResourcesDir);
-      expect(path.basename(result)).toMatch(/^environment.*\.lock\.yml$/);
+      expect(result).toBe(expectedLockPath);
+    });
+
+    it('should fall back to the local generic lock file during development when the platform file is missing', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = false;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
+      const expectedResourcesDir = path.join(
+        path.resolve(__dirname, '..', '..'),
+        'resources'
+      );
+      renamedLockFilePath = path.join(expectedResourcesDir, linuxLockFileName);
+      backupLockFilePath = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'));
+      backupLockFilePath = path.join(backupLockFilePath, linuxLockFileName);
+      fs.renameSync(renamedLockFilePath, backupLockFilePath);
+
+      const result = getCondaLockFilePath();
+
+      expect(result).toBe(path.join(expectedResourcesDir, fallbackLockFileName));
     });
   });
 
