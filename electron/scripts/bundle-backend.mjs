@@ -33,6 +33,12 @@ const ENTRY_POINT = path.join(
 // External allowlist — packages that stay out of the bundle
 // ---------------------------------------------------------------------------
 
+// Packages that MUST be found and copied — build fails if any are missing.
+const REQUIRED_EXTERNAL_PACKAGES = [
+  "sharp",
+  "better-sqlite3",
+];
+
 const EXTERNAL_PACKAGES = [
   // Native modules (contain .node binaries)
   "better-sqlite3",
@@ -209,6 +215,8 @@ async function copyExternalPackages() {
   const queued = new Set();
   // Queue items: { name, resolveFrom } where resolveFrom is the parent dir
   const queue = [];
+  // Track which required packages were successfully copied
+  const copiedPackages = new Set();
 
   // Expand all external patterns and seed the queue
   for (const pattern of EXTERNAL_PACKAGES) {
@@ -238,6 +246,8 @@ async function copyExternalPackages() {
       console.warn(`  Warning: external package ${pkgName} not found, skipping`);
       continue;
     }
+
+    copiedPackages.add(pkgName);
 
     const destRoot = path.join(bundleNodeModules, pkgName);
 
@@ -269,6 +279,17 @@ async function copyExternalPackages() {
     } catch {
       // If we can't read package.json, just skip transitive deps
     }
+  }
+
+  // Verify all required packages were copied
+  const missingRequired = REQUIRED_EXTERNAL_PACKAGES.filter(
+    (pkg) => !copiedPackages.has(pkg)
+  );
+  if (missingRequired.length > 0) {
+    throw new Error(
+      `Required external packages not found: ${missingRequired.join(", ")}. ` +
+      `Run 'npm install' in the workspace root first.`
+    );
   }
 
   return copiedCount;
