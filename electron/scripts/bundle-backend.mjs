@@ -33,6 +33,12 @@ const ENTRY_POINT = path.join(
 // External allowlist — packages that stay out of the bundle
 // ---------------------------------------------------------------------------
 
+// Packages that MUST be found and copied — build fails if any are missing.
+const REQUIRED_EXTERNAL_PACKAGES = [
+  "sharp",
+  "better-sqlite3",
+];
+
 const EXTERNAL_PACKAGES = [
   // Native modules (contain .node binaries)
   "better-sqlite3",
@@ -132,6 +138,11 @@ function resolvePackageRoot(packageName) {
       return candidate;
     }
   }
+  // Check electron directory's own node_modules (native deps listed in electron/package.json)
+  const electronNM = path.join(ELECTRON_DIR, "node_modules", packageName);
+  if (fs.existsSync(path.join(electronNM, "package.json"))) {
+    return electronNM;
+  }
   // Fallback: search nested node_modules inside workspace packages
   const packagesDir = path.join(ROOT_DIR, "packages");
   if (fs.existsSync(packagesDir)) {
@@ -169,12 +180,31 @@ function expandWildcardPattern(pattern) {
   const regexStr = "^" + namePattern.replace(/\*/g, ".*") + "$";
   const regex = new RegExp(regexStr);
 
-  const scopeDir = path.join(ROOT_DIR, "node_modules", scope);
-  if (!fs.existsSync(scopeDir)) return [];
+  // Search in root, electron, and workspace package node_modules
+  const searchDirs = [
+    path.join(ROOT_DIR, "node_modules", scope),
+    path.join(ELECTRON_DIR, "node_modules", scope),
+  ];
 
-  for (const entry of fs.readdirSync(scopeDir)) {
-    if (regex.test(entry)) {
-      matches.push(`${scope}/${entry}`);
+  // Also search workspace packages
+  const packagesDir = path.join(ROOT_DIR, "packages");
+  if (fs.existsSync(packagesDir)) {
+    for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        searchDirs.push(
+          path.join(packagesDir, entry.name, "node_modules", scope)
+        );
+      }
+    }
+  }
+
+  for (const scopeDir of searchDirs) {
+    if (!fs.existsSync(scopeDir)) continue;
+    for (const entry of fs.readdirSync(scopeDir)) {
+      const fullName = `${scope}/${entry}`;
+      if (regex.test(entry) && !matches.includes(fullName)) {
+        matches.push(fullName);
+      }
     }
   }
   return matches;
@@ -209,6 +239,8 @@ async function copyExternalPackages() {
   const queued = new Set();
   // Queue items: { name, resolveFrom } where resolveFrom is the parent dir
   const queue = [];
+  // Track which required packages were successfully copied
+  const copiedPackages = new Set();
 
   // Expand all external patterns and seed the queue
   for (const pattern of EXTERNAL_PACKAGES) {
@@ -238,6 +270,8 @@ async function copyExternalPackages() {
       console.warn(`  Warning: external package ${pkgName} not found, skipping`);
       continue;
     }
+
+    copiedPackages.add(pkgName);
 
     const destRoot = path.join(bundleNodeModules, pkgName);
 
@@ -269,6 +303,17 @@ async function copyExternalPackages() {
     } catch {
       // If we can't read package.json, just skip transitive deps
     }
+  }
+
+  // Verify all required packages were copied
+  const missingRequired = REQUIRED_EXTERNAL_PACKAGES.filter(
+    (pkg) => !copiedPackages.has(pkg)
+  );
+  if (missingRequired.length > 0) {
+    throw new Error(
+      `Required external packages not found: ${missingRequired.join(", ")}. ` +
+      `Run 'npm install' in the workspace root first.`
+    );
   }
 
   return copiedCount;
