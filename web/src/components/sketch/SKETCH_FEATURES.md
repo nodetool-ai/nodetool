@@ -39,6 +39,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
+- [ ] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
 
 #### Brush types (engine / presets)
 
