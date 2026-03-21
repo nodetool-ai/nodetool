@@ -31,6 +31,7 @@ import {
   GradientSettings,
   Point,
   BlendMode,
+  Selection,
   isShapeTool,
   isPaintingTool,
   parseColorToRgba
@@ -70,6 +71,13 @@ export interface SketchCanvasRef {
   flattenToDataUrl: () => string;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
+  clearLayerRect: (
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
   flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
   mergeLayerDown: (
     upperLayerId: string,
@@ -107,6 +115,8 @@ export interface SketchCanvasProps {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
+  selection?: Selection | null;
+  onSelectionChange?: (sel: Selection | null) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -158,7 +168,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
-      onEyedropperPick
+      onEyedropperPick,
+      selection,
+      onSelectionChange
     } = props;
 
     const theme = useTheme();
@@ -194,6 +206,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Crop tool state
     const cropStartRef = useRef<Point | null>(null);
+
+    // Select tool state
+    const selectStartRef = useRef<Point | null>(null);
 
     // Alpha lock: snapshot of layer alpha before stroke starts
     const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -341,6 +356,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     useEffect(() => {
       redraw();
     }, [redraw, doc.layers]);
+
+    // Redraw selection overlay when selection changes
+    useEffect(() => {
+      drawSelectionOverlay();
+    }, [drawSelectionOverlay]);
 
     // ─── Drawing Functions ────────────────────────────────────────────
 
@@ -942,6 +962,64 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.restore();
     }, []);
 
+    const drawOverlaySelection = useCallback(
+      (start: Point, end: Point) => {
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) {
+          return;
+        }
+        const ctx = overlay.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        const x = Math.min(start.x, end.x);
+        const y = Math.min(start.y, end.y);
+        const w = Math.abs(end.x - start.x);
+        const h = Math.abs(end.y - start.y);
+        if (w < 1 || h < 1) {
+          return;
+        }
+        // Marching ants: white dashes + offset black dashes
+        ctx.save();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.strokeStyle = "#000000";
+        ctx.lineDashOffset = 4;
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+      },
+      []
+    );
+
+    const drawSelectionOverlay = useCallback(() => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay || !selection) {
+        return;
+      }
+      // Don't draw persistent selection while actively dragging a new one
+      if (selectStartRef.current) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      const { x, y, width, height } = selection;
+      ctx.save();
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(x, y, width, height);
+      ctx.strokeStyle = "#000000";
+      ctx.lineDashOffset = 4;
+      ctx.strokeRect(x, y, width, height);
+      ctx.restore();
+    }, [selection]);
+
     // ─── Coordinate Transform ─────────────────────────────────────────
 
     const screenToCanvas = useCallback(
@@ -1178,6 +1256,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "select") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          selectStartRef.current = pt;
+          isDrawingRef.current = true;
+          // Clear existing selection when starting a new one
+          if (onSelectionChange) {
+            onSelectionChange(null);
+          }
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
         isDrawingRef.current = true;
         const pt = screenToCanvas(e.clientX, e.clientY);
         lastPointRef.current = pt;
@@ -1374,6 +1464,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "select" && selectStartRef.current) {
+          drawOverlaySelection(selectStartRef.current, pt);
+          return;
+        }
+
         if (!lastPointRef.current) {
           return;
         }
@@ -1511,6 +1606,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           cropStartRef.current = null;
           if (w > 1 && h > 1 && onCropComplete) {
             onCropComplete(x1, y1, w, h);
+          }
+          return;
+        }
+
+        if (activeTool === "select" && selectStartRef.current) {
+          const pt = screenToCanvas(
+            mousePositionRef.current.x +
+              (containerRef.current?.getBoundingClientRect().left ?? 0),
+            mousePositionRef.current.y +
+              (containerRef.current?.getBoundingClientRect().top ?? 0)
+          );
+          const x = Math.round(Math.min(selectStartRef.current.x, pt.x));
+          const y = Math.round(Math.min(selectStartRef.current.y, pt.y));
+          const w = Math.round(Math.abs(pt.x - selectStartRef.current.x));
+          const h = Math.round(Math.abs(pt.y - selectStartRef.current.y));
+          clearOverlay();
+          selectStartRef.current = null;
+          if (w > 1 && h > 1 && onSelectionChange) {
+            onSelectionChange({ x, y, width: w, height: h });
           }
           return;
         }
@@ -1669,6 +1783,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.clearRect(0, 0, canvas.width, canvas.height);
+              redraw();
+            }
+          }
+        },
+        clearLayerRect: (
+          layerId: string,
+          x: number,
+          y: number,
+          width: number,
+          height: number
+        ) => {
+          const canvas = layerCanvasesRef.current.get(layerId);
+          if (canvas) {
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.clearRect(x, y, width, height);
               redraw();
             }
           }
@@ -1951,7 +2081,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const cursorStyle =
       activeTool === "move"
         ? "move"
-        : activeTool === "crop"
+        : activeTool === "crop" || activeTool === "select"
           ? "crosshair"
           : activeTool === "brush" ||
               activeTool === "pencil" ||

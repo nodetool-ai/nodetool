@@ -121,6 +121,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
   const colorMode = useSketchStore((s) => s.colorMode);
   const setColorMode = useSketchStore((s) => s.setColorMode);
+  const selection = useSketchStore((s) => s.selection);
+  const setSelection = useSketchStore((s) => s.setSelection);
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
@@ -243,10 +245,25 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     }
   }, [redo]);
 
-  // ─── Clear active layer ────────────────────────────────────────────
+  // ─── Clear active layer (or selection area) ────────────────────────
   const handleClearLayer = useCallback(() => {
     const activeLayerId = document.activeLayerId;
-    if (activeLayerId && canvasRef.current) {
+    if (!activeLayerId || !canvasRef.current) {
+      return;
+    }
+    const sel = useSketchStore.getState().selection;
+    if (sel && sel.width > 0 && sel.height > 0) {
+      pushHistory("clear selection");
+      canvasRef.current.clearLayerRect(
+        activeLayerId,
+        sel.x,
+        sel.y,
+        sel.width,
+        sel.height
+      );
+      const data = canvasRef.current.getLayerData(activeLayerId);
+      updateLayerData(activeLayerId, data);
+    } else {
       pushHistory("clear layer");
       canvasRef.current.clearLayer(activeLayerId);
       updateLayerData(activeLayerId, null);
@@ -541,6 +558,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           }
         } else {
           switch (e.key) {
+            case "Escape":
+              useSketchStore.getState().setSelection(null);
+              break;
             case "b":
               setActiveTool("brush");
               break;
@@ -883,6 +903,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onContextMenu={handleContextMenu}
           onCropComplete={handleCropComplete}
           onEyedropperPick={handleEyedropperPick}
+          selection={selection}
+          onSelectionChange={setSelection}
         />
       </Box>
 
