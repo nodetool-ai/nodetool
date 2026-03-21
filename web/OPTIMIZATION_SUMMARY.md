@@ -1,3 +1,31 @@
+
+# ⚡ Bolt: NodeInputs Performance Optimization
+
+## 💡 What
+Refactored `NodeInputs.tsx` to use a custom memoized selector `useConnectedEdgesSelector` instead of subscribing directly to `state.edges` via `useNodes` and filtering inline.
+
+## 🎯 Why
+`NodeInputs` previously subscribed to the entire `state.edges` array. Because React Flow updates the node/edge state on every frame during drag operations (60fps), `state.edges` constantly changed reference.
+This caused all node input components to fully re-render on *any* graph edge change, even if the new edge was completely unrelated to that node.
+By using a dedicated selector that returns a stable array reference when connected edges are identical, we eliminate these O(N*E) re-renders during interactions.
+
+## 📊 Impact
+- **Eliminates Unnecessary Computations:** Prevents O(N*E) array iterations per graph update.
+- **Prevents Unnecessary Re-renders:** Fixes `NodeInputs` so it only re-renders when its specific connection state changes, not on any graph edge change.
+- **Improved Responsiveness:** Frees up main thread time for smoother graph interactions, particularly when dragging nodes with many dynamic inputs.
+
+## 🔬 Measurement
+Verified using a performance regression test.
+- Before: Adding an unrelated edge caused `NodeInputs` wrapper to re-render.
+- After: Adding an unrelated edge does NOT cause `NodeInputs` wrapper to re-render.
+
+## 🧪 Testing
+- Created `web/src/hooks/nodes/__tests__/useConnectedEdges.test.ts` to verify stable references.
+- Created `web/src/components/node/__tests__/NodeInputs.performance.test.tsx` to verify `NodeInputs` render counts.
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `cd web && npm run lint`: Passed.
+- Ran `make test-web`: All tests passed.
+
 # ⚡ Bolt: Split Edge Processing for Performance
 
 ## 💡 What
