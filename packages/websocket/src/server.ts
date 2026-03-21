@@ -289,6 +289,7 @@ const supabaseMode = Boolean(supabaseUrl && supabaseKey);
 const supabaseProvider = supabaseMode
   ? new SupabaseAuthProvider({ supabaseUrl: supabaseUrl!, supabaseKey: supabaseKey! })
   : null;
+const localProvider = supabaseProvider ? null : new LocalAuthProvider();
 
 app.decorateRequest("userId", null);
 
@@ -302,7 +303,7 @@ app.addHook("onRequest", async (req, reply) => {
   // Extract token from the appropriate source
   const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
-  const provider = supabaseProvider ?? new LocalAuthProvider();
+  const provider = supabaseProvider ?? localProvider!;
   const token = isWs
     ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
