@@ -272,7 +272,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       };
       // Use capture phase (third arg = true) so these handlers fire BEFORE the
       // SketchEditor's capture-phase handler that calls stopPropagation().
-      // Without this, Shift/Space/S key state would never be tracked.
+      // Without this, Shift/Space/S key state would never be tracked, which
+      // breaks Shift+click straight lines, Space+drag panning, and S+drag
+      // brush size adjustment. See SKETCH_FEATURES.md "Fix Shift+click".
       window.addEventListener("keydown", handleKeyDown, true);
       window.addEventListener("keyup", handleKeyUp, true);
       return () => {
@@ -2219,9 +2221,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Cache the checkerboard as a pattern to avoid per-pixel fillRect on every redraw
-let cachedCheckerboardPattern: CanvasPattern | null = null;
-let cachedCheckerboardSize = 0;
+// Cache the checkerboard tile canvas to avoid recreating it on every redraw.
+// The CanvasPattern itself is created per-call since it's context-specific.
+let cachedCheckerboardTile: HTMLCanvasElement | null = null;
 
 function drawCheckerboard(
   ctx: CanvasRenderingContext2D,
@@ -2229,24 +2231,23 @@ function drawCheckerboard(
   height: number
 ) {
   const size = 8;
-  // Create pattern canvas once, cache globally
-  if (!cachedCheckerboardPattern || cachedCheckerboardSize !== size) {
-    const patternCanvas = document.createElement("canvas");
-    patternCanvas.width = size * 2;
-    patternCanvas.height = size * 2;
-    const pCtx = patternCanvas.getContext("2d");
+  // Create the tile canvas once, reuse globally
+  if (!cachedCheckerboardTile) {
+    cachedCheckerboardTile = document.createElement("canvas");
+    cachedCheckerboardTile.width = size * 2;
+    cachedCheckerboardTile.height = size * 2;
+    const pCtx = cachedCheckerboardTile.getContext("2d");
     if (pCtx) {
       pCtx.fillStyle = "#2a2a2a";
       pCtx.fillRect(0, 0, size * 2, size * 2);
       pCtx.fillStyle = "#3a3a3a";
       pCtx.fillRect(0, 0, size, size);
       pCtx.fillRect(size, size, size, size);
-      cachedCheckerboardPattern = ctx.createPattern(patternCanvas, "repeat");
-      cachedCheckerboardSize = size;
     }
   }
-  if (cachedCheckerboardPattern) {
-    ctx.fillStyle = cachedCheckerboardPattern;
+  const pattern = ctx.createPattern(cachedCheckerboardTile, "repeat");
+  if (pattern) {
+    ctx.fillStyle = pattern;
     ctx.fillRect(0, 0, width, height);
   } else {
     // Fallback: solid background

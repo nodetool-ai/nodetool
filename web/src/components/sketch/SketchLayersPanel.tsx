@@ -396,7 +396,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               backgroundColor: "#000000",
               "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#111111" }
             }}
-          />
+          >
+            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[500] }} />
+          </IconButton>
         </Tooltip>
         <Tooltip title="Add White Layer">
           <IconButton
@@ -411,7 +413,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               backgroundColor: "#ffffff",
               "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#eeeeee" }
             }}
-          />
+          >
+            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[600] }} />
+          </IconButton>
         </Tooltip>
         <Tooltip title="Add Gray Layer">
           <IconButton
@@ -426,7 +430,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               backgroundColor: "#808080",
               "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#999999" }
             }}
-          />
+          >
+            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[300] }} />
+          </IconButton>
         </Tooltip>
         <Box sx={{ width: "4px" }} />
         <Tooltip title="Delete Layer">
