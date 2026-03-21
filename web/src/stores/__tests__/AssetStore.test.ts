@@ -1,3 +1,4 @@
+
 import { useAssetStore } from "../AssetStore";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
@@ -24,7 +25,10 @@ jest.mock("../AssetGridStore", () => ({
 
 jest.mock("../../utils/errorHandling", () => ({
   createErrorMessage: jest.fn(
-    (error) => `Error: ${error?.response?.data?.message || error.message}`
+    (error, message) =>
+      new Error(
+        message || `Error: ${error?.response?.data?.message || error.message}`
+      )
   )
 }));
 jest.mock("../BASE_URL", () => ({
@@ -608,6 +612,66 @@ describe("AssetStore", () => {
         params: { query: { content_type: "folder" } }
       });
       expect(result).toBeTruthy();
+    });
+  });
+
+  describe("getAllAssetsInFolder", () => {
+    it("should recursively get all assets in a folder using the recursive API", async () => {
+      const mockResponse = {
+        assets: [
+          {
+            id: "folder1",
+            name: "Folder 1",
+            content_type: "folder",
+            children: [
+              {
+                id: "file1",
+                name: "file1.txt",
+                content_type: "text/plain",
+                children: []
+              }
+            ]
+          },
+          {
+            id: "file2",
+            name: "file2.txt",
+            content_type: "text/plain",
+            children: []
+          }
+        ]
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.GET as jest.Mock).mockResolvedValue({ data: mockResponse });
+
+      const { getAllAssetsInFolder } = useAssetStore.getState();
+      const result = await getAllAssetsInFolder("root-folder");
+
+      expect(client.GET).toHaveBeenCalledWith(
+        "/api/assets/{folder_id}/recursive",
+        {
+          params: { path: { folder_id: "root-folder" } }
+        }
+      );
+
+      // Verify flattening logic
+      // Should contain folder1, file1 (child of folder1), and file2
+      expect(result).toHaveLength(3);
+      const ids = result.map((a) => a.id).sort();
+      expect(ids).toEqual(["file1", "file2", "folder1"]);
+    });
+
+    it("should handle API errors", async () => {
+      const { client } = await import("../ApiClient");
+      // Simulate API error response structure
+      (client.GET as jest.Mock).mockResolvedValue({
+        error: { message: "Failed to fetch" }
+      });
+
+      const { getAllAssetsInFolder } = useAssetStore.getState();
+      await expect(getAllAssetsInFolder("root-folder")).rejects.toThrow(
+        /Failed to load assets recursively/
+      );
     });
   });
 
