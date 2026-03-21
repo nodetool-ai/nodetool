@@ -14,9 +14,7 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 
 ### Phase 2 — in progress
 
-> Goal: strong parity for common sketch / mask workflows.
-
-Reference parity: **ComfySketch** maps **C** → circle and **R** → rectangle; NodeTool uses **O** → ellipse/circle and **R** → rectangle.
+> Goal: strong base for common sketch / mask workflows.
 
 #### Drawing tools — gaps
 
@@ -59,14 +57,16 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] make the default palette nicer: 7 rows × 7 columns — 1 gray row (black→white) + 6 hue rows (red, orange, green, cyan, blue, purple) with dark-to-light variations
 - [x] add alpha support. also for gradients
 
-#### Layers — extra parity
+#### Layers
 
 - [x] **Merge down** / merge selected / flatten visible
 - [x] **Drag-and-drop layer reordering**: vertical drag with drop indicator
 - [x] **Layer thumbnails**: small preview images in layers panel
 - [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
 - [ ] Group / folder layers
-- [ ] **Segmentation → layers** — see Phase 3 **SAM** subsection below
+- [ ] new layers should be created as transparent as default.
+- [ ] the layer colors [transparent], BLACK, WHITE, GRAY should be in right panel in first row with the + to add a new layer - and just show as colors, no text
+- [ ] find a better icon for mask button in right panel
 
 #### Canvas & view
 
@@ -85,13 +85,101 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
 - [x] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
 - [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
-- [ ] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
-- [ ] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
+- [ ] **Sketch command palette** (canvas right-click) — redesign as the primary in-canvas hub: compact tool DNA, icon-forward tool switcher, bold intentional chrome (see **Sketch command palette** below)
 - [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
 - [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
 
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
 - [ ] **fix undo history** some actions are missing in undo history. find stuff to improve.
+
+#### Sketch command palette (canvas context menu)
+
+> **Intent:** The right-click surface should become the **primary in-canvas command hub**: fast, bold, and obviously designed. It should feel closer to a compact creative-tool palette than a default app menu. A user should be able to open it and instantly answer: **what tool am I on, what are my current settings, and what is the next thing I can do?**
+
+**Problem today:** the current MUI `Menu` feels like a stack of unrelated rows. It is too vertical, too text-heavy, and too timid visually. Important actions and state are present, but they do not read as a system: weak hierarchy, weak recognition, almost no "current context" signal, and too much scanning for common actions.
+
+**Design goal:** make the menu feel like the **heart of the sketch workflow**, not a secondary overflow. It should be the fastest place to:
+
+- confirm current drawing state
+- make parameter changes to current tools without leaving the canvas
+- jump to another tool by recognition, not reading
+- trigger canvas actions without hunting in the side panels
+
+**Non-goals:**
+
+- Do **not** mirror the entire right panel inside the menu
+- Do **not** turn it into a dense settings inspector
+- Do **not** use one full-width row per preset if a chip row, segmented control, or slider can express the same choice more cleanly
+
+**Core design principles:**
+
+- **Recognition over reading:** icon-first, strong active states, short labels
+- **Stable structure:** same 3-4 sections every time so muscle memory forms
+- **High signal density:** compact controls, but never cramped or ambiguous
+- **Immediate context:** current tool and key numbers must be readable in one glance
+- **Designed chrome:** looks intentional, opinionated, and slightly bold; avoid default-menu vibes
+
+**Target structure: 4 sections max** (same mental model every time; section 2 changes with active tool):
+
+Note: section 1 is conceptually the **current-state header**, but it should likely be **unlabeled in the actual UI**. The user should understand it immediately from the active tool, numeric readout, and color chips, without needing a literal "Now" heading.
+
+| #     | Section      | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Current state** | Anchor the user immediately. Show **active tool**, a compact status line with the 1-3 values that matter most (example: `Brush · 18 px · 72% · Soft`), plus **FG / BG chips** and **swap** when color matters. This section should answer "where am I?" in under a second. In the actual UI, this can remain **unlabeled** if the hierarchy is obvious.                                                                                                                                                                             |
+| **2** | **Quick controls** | Show the current tool's most important controls in a **compressed but friendly** format. This is the only section that changes meaningfully per tool. Examples: brush/pencil = size, opacity, hardness/type; fill = tolerance, contiguous/global; shape tools = stroke/fill, border width; blur/smudge = strength; crop = commit/cancel actions. Prefer **chip rows**, **segmented controls**, **thin sliders with visible value**, or **toggle + numeric** combinations. |
+| **3** | **Tools**    | Provide a **compact icon grid** in toolbar order so tool switching becomes recognition-based. Active tool gets a strong selected state. Show shortcut badges in a muted but legible style. On hover/focus, label appears clearly; at rest, the grid should stay visually light and fast to scan.                                                                                                                                                                          |
+| **4** | **Canvas**   | House document-level actions that are still part of drawing flow: **Undo / Redo** as a paired control, **Clear layer**, **Export PNG**, and later **Fit**, **100%**, **Toggle UI**. Keep this section tight and utility-focused so it does not compete with the tool sections.                                                                                                                                                                                            |
+
+**Compact control patterns (important):**
+
+- **Do use:** 4-6 preset chips for common values, with one thin slider for precision
+- **Do use:** segmented icon buttons for binary/small-set choices (`fill` on/off, brush type, contiguous/global)
+- **Do use:** inline numeric readouts beside sliders so values feel precise, not vague
+- **Do use:** paired controls where relationships matter (`Undo / Redo`, `FG / BG`, width + opacity)
+- **Avoid:** long vertical preset lists, repeated labels, or controls that need two lines unless absolutely necessary
+
+**Visual language (must feel intentional):**
+
+- **Container:** use `Popover` or custom surface, not plain menu chrome. Rounded corners, confident padding, clear border/elevation, slightly elevated over canvas.
+- **Layout:** balanced rectangular footprint; avoid a narrow, overly tall menu. Better slightly wider and denser than long and scroll-like.
+- **Type:** section labels as overline / small caps; active tool name semibold; numeric values tabular; helper labels quiet but readable.
+- **Icons:** same visual language as toolbar, but with stronger selected and hover states. Icons should do real recognition work, not just decorate labels.
+- **Color:** selected states, chips, and tool highlights should feel deliberate. Current tool should "pop" without becoming noisy.
+- **Spacing:** tighter than standard MUI menus, but with clear internal rhythm. Sections should feel grouped, not crowded.
+
+**Interaction details:**
+
+- `Escape` closes immediately
+- Right-click near the cursor; menu should not feel detached from the drawing action
+- Strong `focus-visible` rings and `aria-label`s for icon-only controls
+- Hover/focus states should be crisp and fast; no sluggish feeling when moving across controls
+- Sliders and chips should be tuned for quick edits, not precision-inspector workflows
+- Stretch: later allow type-to-search or slash-command mode, but not in v1
+
+**Implementation direction:**
+
+- Prefer **`Popover` + structured layout** (`Box`, `Stack`, `Grid`) rather than many `MenuItem`s
+- Extract a dedicated component such as **`SketchCanvasContextMenu.tsx`**
+- Keep existing state/setter wiring (`setBrushSettings`, tool selection, undo/redo, export) and focus this task mostly on **information architecture + presentation**
+- Build section 1 and 2 first; if those feel excellent, section 3 and 4 can stay simpler
+- Optimize for the common case: brush, pencil, eraser, fill, shapes, eyedropper
+
+**Code structure note:**
+
+- Keep the command palette as a **self-contained feature**, not more logic embedded directly into `SketchCanvas` / `SketchEditor`
+- Split into a small **container** plus simple presentational section components (for example: `CurrentStateSection`, `QuickControlsSection`, `ToolsSection`, `CanvasSection`)
+- Move tool-specific control definitions into **data/config helpers** where possible, so adding a new tool mostly means adding a config entry rather than rewriting menu layout code
+- Reuse existing store actions/selectors through a thin hook or adapter layer; avoid duplicating sketch state logic inside the menu component
+- Keep visuals, section layout, and tool-control mapping separate enough that the menu can expand later without turning into another large all-in-one file
+
+**Success criteria / done when:**
+
+- [ ] The menu looks like a **designed tool palette**, not a default framework menu
+- [ ] A user can identify **active tool + key settings** within **~200 ms** of opening it
+- [ ] Brush / pencil / eraser controls are **shorter and clearer** than the current row stack
+- [ ] Tool switching feels faster because the **Tools** section is recognition-based, not reading-based
+- [ ] The four sections are easy to understand and remember: **current state / quick controls / tools / canvas** (with the first section potentially unlabeled in the actual UI)
+- [ ] Common actions can be done with fewer eye movements between canvas, toolbar, and right panel
 
 #### Gesture shortcuts (parity — open conflicts)
 
@@ -107,7 +195,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
 - [x] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
 - [ ] Fix input image not showing up as layer
-- [ ] add "Expose" layer feature that creates additional dynamic inputs in node using layer name
+- [ ] add small buttons for "Expose input" and "Expose Output" to layers. this creates additional dynamic inputs and output handles in the node using the layer name. one fixed output should always output the composite canvas. see other dynamic nodes for reference.
 - [ ] Cleaner node UI styling
 
 ---
@@ -511,7 +599,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Crop tool** (C key) — drag to select crop region, resizes canvas + all layers
 - [x] **Adjustment sliders** — brightness, contrast, saturation with Apply button (collapsible Adjustments section)
 - [x] **Canvas info bar** — bottom-center overlay showing canvas dimensions + zoom %
-- [x] **Right-click context menu** — tool switching, undo/redo, clear/export actions
+- [x] **Right-click context menu** — tool switching, undo/redo, clear/export, tool presets (functional baseline; **visual redesign** = Phase 2 **Sketch command palette**)
 - [x] **Smoother zoom** — symmetric 1.15x factor for wheel + button zoom
 - [x] **Background presets** — black / white / gray quick buttons in Colors section
 - [x] **S + drag brush size** — horizontal drag while S held adjusts brush/pencil/eraser/blur size
