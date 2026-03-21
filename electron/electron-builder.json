@@ -20,7 +20,10 @@
         },
         {
             "from": "backend-bundle",
-            "to": "backend"
+            "to": "backend",
+            "filter": [
+                "**/*"
+            ]
         },
         {
             "from": "resources/environment.lock.yml",
