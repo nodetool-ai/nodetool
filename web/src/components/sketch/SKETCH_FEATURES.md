@@ -16,7 +16,7 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 
 > Goal: strong base for common sketch / mask workflows.
 
-#### Drawing tools — gaps 
+#### Drawing tools — gaps
 
 | Tool                     | NodeTool today                                | Parity / gaps                                                                                                                                                                 |
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -31,13 +31,14 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to date)**.
 
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
-- [x] improve Blur brush: fixed hard edges by using circular radial-gradient mask blending
+- [ ] Fix Blur Brush behaviour: research how a good blur should look and act when drawing, currently smears and destroys the image
 - [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
 - [x] Crop tool (C key, drag to select crop region)
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking
+- [!] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. implemented but not working!
+- [ ] **Eraser** should paint transparent not black
 
 #### Brush types (engine / presets)
 
@@ -213,7 +214,6 @@ Note: section 1 is conceptually the **current-state header**, but it should like
 - [ ] Vector / pen tool
 - [ ] Text layers with font settings. global font system with 20 well selected google fonts.
 - [ ] Fix Brush behaviour: research how a good brush should look, currently feels too simple
-- [ ] Fix Blur Brush behaviour: research how a good blur should look and act when drawing, currently smears and destroys the image
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types)
 - [ ] replace ImageEditor.tsx to use the new SketchEditor instead - ImageEditor can then be deleted
 
