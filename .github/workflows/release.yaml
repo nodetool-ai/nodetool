@@ -19,7 +19,13 @@ jobs:
   release-build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            node_version: "25.7.0"
+          - os: ubuntu-latest
+            node_version: "25.2.1"
+          - os: macos-latest
+            node_version: "24.12.0"
 
     runs-on: ${{ matrix.os }}
 
@@ -44,7 +50,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          # Keep this aligned with the packaged backend runtime from electron/resources/environment-*.yml.
+          node-version: ${{ matrix.node_version }}
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'

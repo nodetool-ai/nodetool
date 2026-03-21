@@ -4,10 +4,11 @@ import * as os from "os";
 import { app, dialog } from "electron";
 import * as path from "path";
 
-import { getNodePath, getProcessEnv } from "./config";
+import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -29,6 +30,11 @@ interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+const PACKAGE_INDEX_URL =
+  "https://nodetool-ai.github.io/nodetool-registry/simple/";
+const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
+const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
 
 /**
  * Verify write permissions for critical paths
@@ -80,9 +86,13 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   }
 
   let nodeExecutablePath: string | null = null;
+  let pythonExecutablePath: string | null = null;
+  let uvExecutablePath: string | null = null;
 
   try {
     nodeExecutablePath = getNodePath();
+    pythonExecutablePath = getPythonPath();
+    uvExecutablePath = getUVPath();
   } catch (error) {
     // If we cannot even resolve paths, treat as not installed so installer is triggered
     logMessage(
@@ -93,23 +103,155 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   }
 
   logMessage(`Node executable path: ${nodeExecutablePath}`);
+  logMessage(`Python executable path: ${pythonExecutablePath}`);
+  logMessage(`UV executable path: ${uvExecutablePath}`);
 
-  const nodeExists = await fs.access(nodeExecutablePath).then(
-    () => {
-      logMessage(`Node executable found at ${nodeExecutablePath}`);
-      return true;
-    },
-    (error) => {
+  const [nodeExists, pythonExists, uvExists] = await Promise.all([
+    fs.access(nodeExecutablePath).then(
+      () => {
+        logMessage(`Node executable found at ${nodeExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `Node executable not found at ${nodeExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(pythonExecutablePath).then(
+      () => {
+        logMessage(`Python executable found at ${pythonExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `Python executable not found at ${pythonExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(uvExecutablePath).then(
+      () => {
+        logMessage(`UV executable found at ${uvExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `UV executable not found at ${uvExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+  ]);
+
+  if (!nodeExists || !pythonExists || !uvExists) {
+    return false;
+  }
+
+  const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
+  if (!workerImportable) {
+    logMessage(
+      `Python worker import check failed for ${pythonExecutablePath}; environment appears incomplete`,
+      "error",
+    );
+  }
+
+  return workerImportable;
+}
+
+async function canImportNodeToolWorker(
+  pythonExecutablePath: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      pythonExecutablePath,
+      ["-c", "import nodetool.worker"],
+      {
+        stdio: "ignore",
+        env: getProcessEnv(),
+      }
+    );
+
+    proc.on("exit", (code) => {
+      resolve(code === 0);
+    });
+
+    proc.on("error", (error) => {
       logMessage(
-        `Node executable not found at ${nodeExecutablePath}`,
+        `Failed to run Python worker import check: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         "error",
       );
-      logMessage(`Access error: ${error}`, "error");
-      return false;
-    }
+      resolve(false);
+    });
+  });
+}
+
+function convertToPep440Version(npmVersion: string): string {
+  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
+}
+
+function normalizePythonPackageName(packageName: string): string {
+  const trimmed = packageName.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (!trimmed.includes("/")) {
+    return trimmed;
+  }
+  const [, resolvedName = ""] = trimmed.split("/", 2);
+  return resolvedName || trimmed;
+}
+
+async function installRequiredPythonPackages(
+  additionalPackages: string[] = []
+): Promise<void> {
+  emitBootMessage("Installing Nodetool Python packages...");
+
+  const uvExecutable = getUVPath();
+  const appVersion = app.getVersion();
+  const pinnedVersion = convertToPep440Version(appVersion);
+  const packageSpecs = Array.from(
+    new Set(
+      [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
+        .map(normalizePythonPackageName)
+        .filter(Boolean)
+        .map((pkg) => `${pkg}==${pinnedVersion}`)
+    )
   );
 
-  return nodeExists;
+  const installCommand: string[] = [
+    uvExecutable,
+    "pip",
+    "install",
+    "--prerelease=allow",
+    "--index-url",
+    PYPI_SIMPLE_INDEX_URL,
+    "--extra-index-url",
+    PACKAGE_INDEX_URL,
+    "--index-strategy",
+    "unsafe-best-match",
+    "--system",
+    ...packageSpecs,
+  ];
+
+  const torchIndexUrl = getTorchIndexUrl();
+  if (torchIndexUrl) {
+    installCommand.push("--extra-index-url", torchIndexUrl);
+  }
+
+  logMessage(
+    `Installing required Python packages pinned to ${pinnedVersion}: ${packageSpecs.join(", ")}`
+  );
+  await runCommand(installCommand);
 }
 
 /**
@@ -236,6 +378,7 @@ function getDefaultInstallLocation(): string {
 export {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
+  installRequiredPythonPackages,
   getDefaultInstallLocation,
   runCommand,
   isOllamaInstalled,

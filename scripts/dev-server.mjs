@@ -52,7 +52,8 @@ if (await isPortInUse(host, port)) {
 }
 
 // Resolve tsx binary from the workspace
-const tsxBin = resolve(rootDir, "node_modules", ".bin", "tsx");
+const tsxBinaryName = process.platform === "win32" ? "tsx.cmd" : "tsx";
+const tsxBin = resolve(rootDir, "node_modules", ".bin", tsxBinaryName);
 
 console.log(`\n  Starting dev server (tsx --watch) on http://${host}:${port}`);
 console.log(`  Entry: ${entrypoints[mode]}`);

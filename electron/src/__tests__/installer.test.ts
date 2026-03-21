@@ -37,6 +37,8 @@ jest.mock("../settings", () => ({
 
 jest.mock("../python", () => ({
   getDefaultInstallLocation: jest.fn(),
+  installRequiredPythonPackages: jest.fn(),
+  runCommand: jest.fn(),
 }));
 
 describe("installer promptForInstallLocation", () => {
