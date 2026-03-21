@@ -7,7 +7,6 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSelect from "../../nodes/useSelect";
-import log from "loglevel";
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/NodePlacementStore");
@@ -196,7 +195,7 @@ describe("usePaneEvents", () => {
 
     it("cancels placement and logs warning when metadata not found", () => {
       mockGetMetadata.mockReturnValue(null);
-      const consoleWarn = jest.spyOn(log, "warn").mockImplementation(() => {});
+      const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.MissingNode",

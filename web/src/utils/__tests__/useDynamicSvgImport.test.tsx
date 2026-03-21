@@ -4,7 +4,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { useDynamicSvgImport } from "../useDynamicSvgImport";
 import React from "react";
-import log from "loglevel";
 
 // Mock the SVG imports with proper React components
 jest.mock("../icons/enum.svg?react", () => {
@@ -20,7 +19,7 @@ jest.mock("../icons/assistant.svg?react", () => {
 });
 
 // Mock console.warn to test error handling
-const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
 describe("useDynamicSvgImport", () => {
   beforeEach(() => {

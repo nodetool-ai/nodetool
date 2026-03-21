@@ -7,7 +7,6 @@ import {
   isFileExplorerAvailable
 } from "../fileExplorer";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import log from "loglevel";
 
 const createMockApi = () => ({
   openModelPath: jest.fn<any>(),
@@ -21,8 +20,8 @@ describe("fileExplorer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(log, "warn").mockImplementation(() => {});
-    jest.spyOn(log, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
     (useNotificationStore.setState as any)((state: any) => ({
       ...state,
       addNotification
@@ -118,33 +117,20 @@ describe("fileExplorer", () => {
   });
 
   describe("openInExplorer", () => {
-    let logWarnSpy: any;
-    let logErrorSpy: any;
-
-    beforeEach(() => {
-      logWarnSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
-      logErrorSpy = jest.spyOn(log, "error").mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-      logWarnSpy.mockRestore();
-      logErrorSpy.mockRestore();
-    });
-
     it("should invoke Electron bridge for valid paths", async () => {
       mockApi.openModelPath.mockResolvedValue({ status: "success" });
 
       await openInExplorer("/home/user/documents");
 
       expect(mockApi.openModelPath).toHaveBeenCalledWith("/home/user/documents");
-      expect(logWarnSpy).not.toHaveBeenCalled();
-      expect(logErrorSpy).not.toHaveBeenCalled();
+      expect(console.warn).not.toHaveBeenCalled();
+      expect(console.error).not.toHaveBeenCalled();
     });
 
     it("should warn and return early for empty paths", async () => {
       await openInExplorer("");
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(logWarnSpy).toHaveBeenCalledWith(
+      expect(console.warn).toHaveBeenCalledWith(
         "[fileExplorer] Tried to open an empty path in explorer."
       );
     });
@@ -153,7 +139,7 @@ describe("fileExplorer", () => {
       await openInExplorer("../etc/passwd");
 
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(logWarnSpy).toHaveBeenCalledWith(
+      expect(console.warn).toHaveBeenCalledWith(
         "[fileExplorer] Invalid path supplied, refusing to open explorer:",
         "../etc/passwd"
       );
@@ -166,7 +152,7 @@ describe("fileExplorer", () => {
       await openInExplorer("/home/user/documents");
 
       expect(mockApi.openModelPath).toHaveBeenCalled();
-      expect(logErrorSpy).toHaveBeenCalledWith(
+      expect(console.error).toHaveBeenCalledWith(
         "[fileExplorer] Failed to open path in explorer:",
         error
       );
@@ -199,7 +185,7 @@ describe("fileExplorer", () => {
       await openInExplorer(undefined as any);
 
       expect(mockApi.openModelPath).not.toHaveBeenCalled();
-      expect(logWarnSpy).toHaveBeenCalledTimes(2);
+      expect(console.warn).toHaveBeenCalledTimes(2);
     });
 
     it("should notify when bridge unavailable", async () => {

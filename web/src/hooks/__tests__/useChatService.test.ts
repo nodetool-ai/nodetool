@@ -7,7 +7,6 @@ import { renderHook } from "@testing-library/react";
 import { useChatService } from "../useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { MemoryRouter, useNavigate } from "react-router-dom";
-import log from "loglevel";
 
 // Mock dependencies
 jest.mock("../../stores/GlobalChatStore");
@@ -279,8 +278,8 @@ describe("useChatService", () => {
     });
 
     it("should not send message if no model selected", async () => {
-      const logSpy = jest
-        .spyOn(log, "error")
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const { result } = renderHook(() => useChatService(null), {
@@ -294,14 +293,14 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(logSpy).toHaveBeenCalledWith("No model selected");
+      expect(consoleErrorSpy).toHaveBeenCalledWith("No model selected");
 
-      logSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
     it("should handle errors when sending message", async () => {
-      const logSpy = jest
-        .spyOn(log, "error")
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
@@ -325,12 +324,12 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Failed to send message:",
         expect.any(Error)
       );
 
-      logSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -365,8 +364,8 @@ describe("useChatService", () => {
     });
 
     it("should handle errors when creating new thread", async () => {
-      const logSpy = jest
-        .spyOn(log, "error")
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
         .mockImplementation(() => {});
 
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));
@@ -390,12 +389,12 @@ describe("useChatService", () => {
 
       await result.current.onNewThread();
 
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Failed to create new thread:",
         expect.any(Error)
       );
 
-      logSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
   });
 

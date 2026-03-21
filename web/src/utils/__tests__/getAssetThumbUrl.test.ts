@@ -4,7 +4,6 @@
 
 import { getAssetThumbUrl } from '../getAssetThumbUrl';
 import { AssetRef } from '../../stores/ApiTypes';
-import log from "loglevel";
 
 // Mock URL.createObjectURL since it's not available in Node
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
@@ -97,7 +96,6 @@ describe('getAssetThumbUrl', () => {
       (URL.createObjectURL as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create object URL');
       });
-      const logSpy = jest.spyOn(log, 'error').mockImplementation(() => {});
 
       const asset: AssetRef = {
         type: 'image',
@@ -106,12 +104,11 @@ describe('getAssetThumbUrl', () => {
 
       const result = getAssetThumbUrl(asset);
       
-      expect(logSpy).toHaveBeenCalledWith(
+      expect(console.error).toHaveBeenCalledWith(
         'Failed to create thumbnail URL from binary data:',
         expect.any(Error)
       );
       expect(result).toBe('/images/placeholder.png');
-      logSpy.mockRestore();
     });
 
     it('should return fallback URL when data conversion fails', () => {

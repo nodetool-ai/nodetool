@@ -44,7 +44,6 @@ jest.mock("../../../utils/TypeHandler", () => ({
 
 import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
-import log from "loglevel";
 
 const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<
   typeof findOutputHandle
@@ -273,7 +272,7 @@ describe("useConnectionHandlers", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
       mockFindNode.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "nonexistent",
@@ -297,7 +296,7 @@ describe("useConnectionHandlers", () => {
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "node1",
@@ -318,7 +317,7 @@ describe("useConnectionHandlers", () => {
     it("should handle missing required parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Missing nodeId
       result.current.onConnectStart(
@@ -478,7 +477,7 @@ describe("useConnectionHandlers", () => {
       mockFindOutputHandle.mockReturnValue(undefined);
       mockFindInputHandle.mockReturnValue(undefined);
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connection: Connection = {
         source: "source",

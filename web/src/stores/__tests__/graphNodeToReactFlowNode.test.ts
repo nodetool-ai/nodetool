@@ -6,7 +6,6 @@ jest.mock("../NodeStore", () => ({
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Workflow, Node as GraphNode } from "../ApiTypes";
 import { DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
-import log from "loglevel";
 
 describe("graphNodeToReactFlowNode", () => {
   const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => ({
@@ -31,7 +30,7 @@ describe("graphNodeToReactFlowNode", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(log, "warn").mockImplementation((..._args: unknown[]) => {});
+    jest.spyOn(console, "warn").mockImplementation((..._args: unknown[]) => {});
   });
 
   afterEach(() => {

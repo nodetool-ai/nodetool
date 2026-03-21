@@ -4,7 +4,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import ChatView from "../../../../components/chat/containers/ChatView";
 import mockTheme from "../../../../__mocks__/themeMock";
-import log from "loglevel";
 import {
   Message,
   LanguageModel
@@ -350,8 +349,8 @@ describe("ChatView", () => {
     });
 
     it("handles sendMessage errors gracefully", async () => {
-      const logSpy = jest
-        .spyOn(log, "error")
+      const consoleSpy = jest
+        .spyOn(console, "error")
         .mockImplementation(() => {});
       mockSendMessage.mockRejectedValueOnce(new Error("Send failed"));
 
@@ -361,13 +360,13 @@ describe("ChatView", () => {
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(logSpy).toHaveBeenCalledWith(
+        expect(consoleSpy).toHaveBeenCalledWith(
           "Error sending message:",
           expect.any(Error)
         );
       });
 
-      logSpy.mockRestore();
+      consoleSpy.mockRestore();
     });
   });
 
