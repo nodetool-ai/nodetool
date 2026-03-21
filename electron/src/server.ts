@@ -522,9 +522,11 @@ async function startServer(): Promise<void> {
   logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
 
-  // Resolve the node_modules directory next to server.mjs so Node.js can
-  // find externalized native packages (sharp, better-sqlite3, etc.)
-  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
+  // Resolve the _modules directory next to server.mjs so Node.js can
+  // find externalized native packages (sharp, better-sqlite3, etc.).
+  // Named "_modules" instead of "node_modules" because electron-builder
+  // excludes node_modules directories by default in extraResources.
+  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "_modules");
   logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
 
   const backendEnv: Record<string, string> = {

@@ -230,7 +230,9 @@ function resolveDepFrom(parentDir, depName) {
 }
 
 async function copyExternalPackages() {
-  const bundleNodeModules = path.join(BUNDLE_DIR, "node_modules");
+  // Use "_modules" instead of "node_modules" because electron-builder
+  // excludes node_modules directories by default in extraResources.
+  const bundleNodeModules = path.join(BUNDLE_DIR, "_modules");
   await fsp.mkdir(bundleNodeModules, { recursive: true });
 
   // Track copied packages by their destination path to handle version conflicts
