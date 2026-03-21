@@ -35,11 +35,12 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
   }
 
   // Main workflow/chat WebSocket
-  app.get("/ws", { websocket: true }, (socket, _req) => {
+  app.get("/ws", { websocket: true }, (socket, req) => {
     (socket as any).on("error", (error: Error) => {
       log.error("WebSocket client error", error);
     });
     const runner = new UnifiedWebSocketRunner({
+      userId: req.userId ?? "1",
       resolveExecutor: (node) => {
         if (registry.has(node.type)) {
           return registry.resolve(node);
