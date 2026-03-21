@@ -40,6 +40,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. Fixed: capture-phase key listeners so Shift key state is properly tracked.
 - [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this is correct behavior matching Photoshop.
 - [x] **Performance** rAF-batched redraw coalesces layer compositing during active drawing (one redraw per animation frame instead of per pointer move event); reduces jank on large canvases
+- [x] **Performance** blur tool: cached temporary canvases (avoids 3 canvas allocations per pointer move); checkerboard: cached as CanvasPattern (avoids 262K fillRect calls per redraw on 4K canvases)
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes may still feel slow
 
 #### Brush types (engine / presets)
@@ -66,6 +67,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Drag-and-drop layer reordering**: vertical drag with drop indicator
 - [x] **Layer thumbnails**: small preview images in layers panel
 - [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
+- [x] **Isolate / solo layer**: solo button per layer in layers panel — shows only the soloed layer on canvas; toggle again to show all
 - [ ] Group / folder layers
 - [x] new layers are created as transparent by default. Layer color presets (transparent, black, white, gray) available as buttons in the layers panel.
 - [x] the layer colors [transparent], BLACK, WHITE, GRAY are in right panel in first row with the + to add a new layer — shown as color swatches, no text
@@ -93,7 +95,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
 - [x] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
 - [x] improve **Color Select Buttons** hex, rgb, hsl buttons — bolder, larger, better contrast selected state
-- [ ] improve **Color Select Buttons** allow holding mouse pressed and close with button, not on click. currently feels sluggish when dragging.
+- [x] improve **Color Select Buttons** allow holding mouse pressed and drag over swatches to preview colors; release to confirm. Also works on user preset swatches.
 - [x] adjustments for brightness, contrast, saturation without apply button - apply directly on change with small debounce like 100ms
 - [x] **fix undo history** layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 
@@ -399,7 +401,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 13 test suites, 267+ tests
+└── __tests__/                # 14 test suites, 278+ tests
 ```
 
 ### Integration Points
@@ -463,7 +465,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [ ] **Rotate canvas (view only)**
 - [ ] **Wrap-around / tiling mode**
 - [x] **Alpha lock** — painting only affects existing opaque pixels; lock transparency indicator in layers panel
-- [ ] **Isolate / solo layer**
+- [x] **Isolate / solo layer**
 - [ ] **Pop-up palette** (radial HUD)
 - [ ] **Smudge / color-smudge brush**
 - [ ] **Extended symmetry** (N-fold / multi-point)
@@ -633,6 +635,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Fix Shift+click straight lines** — fixed capture-phase key listener blocking; Shift/Space/S key tracking now works correctly alongside SketchEditor shortcuts
 - [x] **Eraser uses destination-out** — confirmed eraser paints transparent (not black); erased areas reveal canvas background color as expected
 - [x] **rAF-batched redraw** — pointer move redraws coalesced via `requestAnimationFrame` for smoother drawing on large canvases
+- [x] **Blur tool cached canvases** — reuse temporary canvases for blur strokes instead of 3 allocations per pointer move
+- [x] **Checkerboard pattern caching** — cached as `CanvasPattern` instead of per-pixel `fillRect` loops (262K calls → 1 call on 4K canvases)
+- [x] **Isolate / solo layer** — solo button per layer in layers panel; canvas redraw skips non-isolated layers; toggle to return to all-layers view
+- [x] **Color swatch hold-to-drag** — press and hold on a swatch, drag over others to preview colors in real-time, release to confirm
 
 ### Node / SketchInput
 
