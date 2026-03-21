@@ -337,15 +337,23 @@ app.setNotFoundHandler((req, reply) => {
 // ---------------------------------------------------------------------------
 
 if (tlsEnabled) {
+  const redirectPort = Number(process.env["REDIRECT_PORT"] ?? 80);
   const redirectServer = createHttpServer((req, res) => {
-    const host = req.headers.host?.split(":")[0] ?? "localhost";
-    const location = `https://${host}:${port}${req.url ?? "/"}`;
+    const reqHost = req.headers.host?.split(":")[0] ?? "localhost";
+    const location = `https://${reqHost}:${port}${req.url ?? "/"}`;
     res.statusCode = 301;
     res.setHeader("Location", location);
     res.end();
   });
-  redirectServer.listen(80, "0.0.0.0", () => {
-    log.info("HTTP → HTTPS redirect server listening on :80");
+  redirectServer.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EACCES") {
+      log.warn(`HTTP redirect server skipped — port ${redirectPort} requires elevated privileges`);
+    } else {
+      log.error("HTTP redirect server error", err);
+    }
+  });
+  redirectServer.listen(redirectPort, "0.0.0.0", () => {
+    log.info(`HTTP → HTTPS redirect server listening on :${redirectPort}`);
   });
 }
 
