@@ -4,7 +4,6 @@
 
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - aom=3.6.1=hb765f3a_0
   - bzip2=1.0.8=hd037594_9
