@@ -333,7 +333,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
       // Handle potential response structures (array or object with models property)
       if (Array.isArray(data)) { return data; }
 
-      const responseData = data as any;
+      const responseData = data as { models?: unknown[] };
       if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
       return [];
     },

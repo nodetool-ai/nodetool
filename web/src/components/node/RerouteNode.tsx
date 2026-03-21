@@ -158,7 +158,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       return fallback;
     }
 
-    const sourceNode = { type: sourceType, data: sourceData } as any;
+    const sourceNode = { type: sourceType, data: sourceData } as Node<NodeData>;
 
     const outHandle = findOutputHandle(
       sourceNode,

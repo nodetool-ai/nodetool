@@ -85,7 +85,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
               ? meta.type_args
               : []) as TypeMetadata[],
             ...(meta.description != null && { description: meta.description }),
-            values: meta.values || (meta as any).enum
+            values: meta.values || (meta as typeof meta & { enum?: (string | number)[] }).enum
           };
         }
         updateNodeData(nodeId, {

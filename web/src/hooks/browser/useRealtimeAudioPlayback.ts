@@ -58,8 +58,9 @@ export const useRealtimeAudioPlayback = ({
 
   // Initialize AudioContext and routing
   useEffect(() => {
-    const Ctx =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
+    type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctx: typeof AudioContext =
+      window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
     const ctx: AudioContext = new Ctx();
     audioContextRef.current = ctx;
     const streamDest = ctx.createMediaStreamDestination();

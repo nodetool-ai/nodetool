@@ -43,7 +43,7 @@ export const useEmbeddingModelsByProvider = (options?: {
         const { data, error } = await client.GET("/api/models/embedding/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });

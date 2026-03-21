@@ -19,7 +19,7 @@ export const getAssetThumbUrl = (
       const uint8Array =
         asset.data instanceof Uint8Array
           ? asset.data
-          : new Uint8Array(Object.values(asset.data as any));
+          : new Uint8Array(Object.values(asset.data as Record<string, number>));
 
       // Create a blob URL from the binary data
       return URL.createObjectURL(new Blob([uint8Array], { type: "image/png" }));

@@ -129,16 +129,16 @@ const stableKeyForOutputValue = (v: any): string => {
     return `arr:${hashBytesBounded(v)}`;
   }
   if (t === "object") {
-    const id = (v as any).id;
+    const id = (v as Record<string, unknown>).id;
     if (typeof id === "string" || typeof id === "number") {
       return `id:${String(id)}`;
     }
-    const uri = (v as any).uri;
+    const uri = (v as Record<string, unknown>).uri;
     if (typeof uri === "string" && uri) {
       return `uri:${uri}`;
     }
-    const type = (v as any).type;
-    const name = (v as any).name;
+    const type = (v as Record<string, unknown>).type;
+    const name = (v as Record<string, unknown>).name;
     if (typeof type === "string" && typeof name === "string") {
       return `type-name:${type}:${name}`;
     }
@@ -173,8 +173,7 @@ const concatTextChunksSafely = (
     if (!c) {
       continue;
     }
-    const piece =
-      typeof (c as any).content === "string" ? (c as any).content : "";
+    const piece = typeof c.content === "string" ? c.content : "";
     if (!piece) {
       used++;
       continue;
@@ -423,7 +422,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           audioSource = "";
         }
 
-        const metadata = (value as any).metadata || {};
+        const metadata = (value as { metadata?: { format?: string } }).metadata || {};
         let mimeType = getMimeTypeFromUri(value?.uri);
         if (!mimeType) {
           mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
@@ -533,8 +532,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         const url = resolveAssetUri(rawUri);
         const format =
-          value && typeof value === "object" && typeof (value as any).format === "string"
-            ? ((value as any).format as string)
+          value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
+            ? ((value as Record<string, unknown>).format as string)
             : undefined;
         const contentType = getMimeTypeFromUri(url) ||
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
@@ -701,7 +700,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 (c) => c.content_type === "audio"
               );
               if (audioChunks.length >= 2) {
-                const firstMeta = (audioChunks[0] as any).content_metadata;
+                const firstMeta = audioChunks[0].content_metadata;
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
@@ -717,10 +716,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${(c as any)?.content_type ?? ""}:${(c as any)?.done ? 1 : 0
+                        `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
                         }:${hashStringBounded(
-                          typeof (c as any)?.content === "string"
-                            ? (c as any).content
+                          typeof c.content === "string"
+                            ? c.content
                             : ""
                         )}`,
                         seen

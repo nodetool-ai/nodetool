@@ -6,8 +6,9 @@ let sharedNextStartTime = 0;
 
 export function getAudioContext(): AudioContext {
   if (typeof window === "undefined") {throw new Error("No window");}
-  const Ctx =
-    (window as any).AudioContext || (window as any).webkitAudioContext;
+  type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+  const Ctx: typeof AudioContext =
+    window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
   if (!sharedAudioContext) {
     sharedAudioContext = new Ctx();
     if (!sharedAudioContext) {throw new Error("Failed to create AudioContext");}

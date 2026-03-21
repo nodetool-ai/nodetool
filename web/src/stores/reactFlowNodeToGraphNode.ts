@@ -24,9 +24,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   } else if (
     node.style &&
     "width" in node.style &&
-    typeof (node.style as any).width === "number"
+    typeof node.style.width === "number"
   ) {
-    ui_properties.width = (node.style as any).width;
+    ui_properties.width = node.style.width;
   }
 
   if (typeof node.height === "number") {
@@ -34,9 +34,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   } else if (
     node.style &&
     "height" in node.style &&
-    typeof (node.style as any).height === "number"
+    typeof node.style.height === "number"
   ) {
-    ui_properties.height = (node.style as any).height;
+    ui_properties.height = node.style.height;
   }
 
   if (node.type === "nodetool.group.Loop") {

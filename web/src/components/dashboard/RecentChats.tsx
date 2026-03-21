@@ -63,7 +63,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
             id,
             title: thread.title ?? undefined,
             updatedAt: thread.updated_at || new Date().toISOString(),
-            messages: [] as any[]
+            messages: []
           }
         ])
     ),

@@ -92,7 +92,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
             : []) as TypeMetadata[],
           ...(meta.description != null && { description: meta.description }),
           ...(effectiveMin != null && { min: effectiveMin }),
-          values: meta.values || (meta as any).enum,
+          values: meta.values || (meta as typeof meta & { enum?: (string | number)[] }).enum,
         };
       }
       updateNodeData(nodeId, {

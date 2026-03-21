@@ -1,3 +1,4 @@
+import log from "loglevel";
 jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
 jest.mock("../NodeStore", () => ({
   DEFAULT_NODE_WIDTH: 200,
@@ -30,7 +31,7 @@ describe("graphNodeToReactFlowNode", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "warn").mockImplementation((..._args: unknown[]) => {});
+    jest.spyOn(log, "warn").mockImplementation((..._args: unknown[]) => {});
   });
 
   afterEach(() => {
