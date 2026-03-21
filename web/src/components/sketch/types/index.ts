@@ -168,13 +168,27 @@ export const CANVAS_PRESETS: CanvasPreset[] = [
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────
 
+/**
+ * Default color swatches — 7 rows × 7 columns = 49 colors.
+ * Row 1: Grays (black → white)
+ * Rows 2–7: Base hue with 7 value/saturation variations each
+ *   (Red, Orange/Yellow, Green, Cyan, Blue, Purple/Pink)
+ */
 export const DEFAULT_SWATCHES: string[] = [
-  "#ffffff", "#c0c0c0", "#808080", "#404040", "#000000",
-  "#ff0000", "#ff8000", "#ffff00", "#80ff00", "#00ff00",
-  "#00ff80", "#00ffff", "#0080ff", "#0000ff", "#8000ff",
-  "#ff00ff", "#ff0080", "#800000", "#804000", "#808000",
-  "#408000", "#008000", "#008040", "#008080", "#004080",
-  "#000080", "#400080", "#800080", "#800040"
+  // Row 1 — Grays
+  "#000000", "#333333", "#555555", "#808080", "#aaaaaa", "#d5d5d5", "#ffffff",
+  // Row 2 — Reds
+  "#330000", "#660000", "#990000", "#cc0000", "#ff0000", "#ff4d4d", "#ff9999",
+  // Row 3 — Orange / Yellow
+  "#332200", "#664400", "#996600", "#cc8800", "#ffaa00", "#ffcc44", "#ffee99",
+  // Row 4 — Greens
+  "#003300", "#006600", "#009900", "#00cc00", "#00ff00", "#66ff66", "#99ff99",
+  // Row 5 — Cyans
+  "#003333", "#006666", "#009999", "#00cccc", "#00ffff", "#66ffff", "#99ffff",
+  // Row 6 — Blues
+  "#000033", "#000066", "#000099", "#0000cc", "#0000ff", "#4d4dff", "#9999ff",
+  // Row 7 — Purple / Pink
+  "#330033", "#660066", "#990099", "#cc00cc", "#ff00ff", "#ff66ff", "#ff99ff"
 ];
 
 // ─── Sketch Document ──────────────────────────────────────────────────────────

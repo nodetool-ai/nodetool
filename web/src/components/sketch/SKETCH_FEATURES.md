@@ -1,7 +1,7 @@
 # Sketch Editor — Comprehensive Feature Checklist
 
 > **Status**: Phase 1 complete, Phase 2 nearing completion  
-> **Last updated**: 2026-03-20
+> **Last updated**: 2026-03-21
 
 **How to read this doc:** **Remaining work** first → **Defaults** & **Keyboard shortcuts** → **Architecture** → **Recommended follow-ups** (backlog, Krita, tips) → **Appendices** (shipped Phase 1 & 2) → **Stretch goals** last.
 
@@ -53,9 +53,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 #### Color system
 
-- [ ] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger. [PARTLY DONE]
-- [ ] fix HEX, RGB, HSL buttons not showing color input
-- [ ] make the default palette nicer: 6 rows where each row is one base color with variations + 1 row with grays from black to white
+- [x] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger.
+- [x] fix HEX, RGB, HSL buttons not showing color input — each mode now shows its own input fields (hex text input, R/G/B number fields, H/S/L number fields)
+- [x] make the default palette nicer: 7 rows × 7 columns — 1 gray row (black→white) + 6 hue rows (red, orange, green, cyan, blue, purple) with dark-to-light variations
 - [ ] add alpha support. also for gradients
 
 #### Layers — extra parity
@@ -69,9 +69,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 #### Canvas & view
 
-- [] Zoom 2x faster and a bit smoother
-- [ ] canvas size: set with presets and custom, currently not yet possible to change canvas size from ui.
-- [ ] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
+- [x] Zoom 2x faster (factor changed from 1.15 to 1.3)
+- [x] canvas size: set with presets and custom — Canvas Size section in toolbar with preset buttons and custom W×H inputs
+- [x] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
 - [x] **Space + drag** to pan from any tool (in addition to middle mouse)
 - [x] **Toggle UI / panels** shortcut (**Tab**)
 
@@ -294,7 +294,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 4 test suites, 80+ tests
+└── __tests__/                # 9 test suites, 215+ tests
 ```
 
 ### Integration Points

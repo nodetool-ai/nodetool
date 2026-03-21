@@ -86,7 +86,8 @@ type SectionKey =
   | "swatches"
   | "view"
   | "shortcuts"
-  | "adjustments";
+  | "adjustments"
+  | "canvasSize";
 
 function loadCollapsedSections(): Record<SectionKey, boolean> {
   try {
@@ -105,7 +106,8 @@ function loadCollapsedSections(): Record<SectionKey, boolean> {
     swatches: false,
     view: false,
     shortcuts: true,
-    adjustments: true
+    adjustments: true,
+    canvasSize: true
   };
 }
 
@@ -368,6 +370,9 @@ export interface SketchToolbarProps {
   colorMode: ColorMode;
   onColorModeChange: (mode: ColorMode) => void;
   onImportImage?: (file: File) => void;
+  canvasWidth: number;
+  canvasHeight: number;
+  onCanvasResize: (width: number, height: number) => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -415,7 +420,10 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onBackgroundPreset,
   colorMode,
   onColorModeChange,
-  onImportImage
+  onImportImage,
+  canvasWidth,
+  canvasHeight,
+  onCanvasResize
 }) => {
   const theme = useTheme();
 
@@ -523,6 +531,52 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     },
     [handleSwatchClick]
   );
+
+  // ─── RGB / HSL input handlers ─────────────────────────────────────
+  const handleRgbInput = useCallback(
+    (channel: "r" | "g" | "b", value: number) => {
+      const rgb = hexToRgb(foregroundColor);
+      rgb[channel] = Math.max(0, Math.min(255, value));
+      const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+      handleSwatchClick(hex);
+    },
+    [foregroundColor, handleSwatchClick]
+  );
+
+  const handleHslInput = useCallback(
+    (channel: "h" | "s" | "l", value: number) => {
+      const rgb = hexToRgb(foregroundColor);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      if (channel === "h") {
+        hsl.h = Math.max(0, Math.min(360, value));
+      } else if (channel === "s") {
+        hsl.s = Math.max(0, Math.min(100, value));
+      } else {
+        hsl.l = Math.max(0, Math.min(100, value));
+      }
+      const newRgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+      const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+      handleSwatchClick(hex);
+    },
+    [foregroundColor, handleSwatchClick]
+  );
+
+  // ─── Custom canvas size state ─────────────────────────────────────
+  const [customWidth, setCustomWidth] = useState(String(canvasWidth));
+  const [customHeight, setCustomHeight] = useState(String(canvasHeight));
+
+  useEffect(() => {
+    setCustomWidth(String(canvasWidth));
+    setCustomHeight(String(canvasHeight));
+  }, [canvasWidth, canvasHeight]);
+
+  const handleApplyCustomSize = useCallback(() => {
+    const w = parseInt(customWidth, 10);
+    const h = parseInt(customHeight, 10);
+    if (w > 0 && h > 0 && w <= 4096 && h <= 4096) {
+      onCanvasResize(w, h);
+    }
+  }, [customWidth, customHeight, onCanvasResize]);
 
   return (
     <Box css={styles(theme)}>
@@ -666,27 +720,88 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             </Tooltip>
           </Box>
         </Box>
-        <TextField
-          className="hex-input"
-          size="small"
-          placeholder="#ffffff"
-          value={foregroundColor}
-          onChange={(e) => handleHexInput(e.target.value)}
-          inputProps={{ maxLength: 7 }}
-          fullWidth
-        />
         <ToggleButtonGroup
           value={colorMode}
           exclusive
           onChange={(_e, val) => { if (val) { onColorModeChange(val); } }}
           size="small"
           fullWidth
-          sx={{ mt: "4px", "& .MuiToggleButton-root": { flex: 1, fontSize: "0.65rem", py: "2px" } }}
+          sx={{ mt: "4px", "& .MuiToggleButton-root": { flex: 1, fontSize: "0.7rem", py: "4px" } }}
         >
           <ToggleButton value="hex" aria-label="HEX mode">HEX</ToggleButton>
           <ToggleButton value="rgb" aria-label="RGB mode">RGB</ToggleButton>
           <ToggleButton value="hsl" aria-label="HSL mode">HSL</ToggleButton>
         </ToggleButtonGroup>
+        {colorMode === "hex" && (
+          <TextField
+            className="hex-input"
+            size="small"
+            placeholder="#ffffff"
+            value={foregroundColor}
+            onChange={(e) => handleHexInput(e.target.value)}
+            inputProps={{ maxLength: 7 }}
+            fullWidth
+            sx={{ mt: "4px" }}
+          />
+        )}
+        {colorMode === "rgb" && (() => {
+          const rgb = hexToRgb(foregroundColor);
+          return (
+            <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+              {(["r", "g", "b"] as const).map((ch) => (
+                <TextField
+                  key={ch}
+                  className="hex-input"
+                  size="small"
+                  label={ch.toUpperCase()}
+                  type="number"
+                  value={rgb[ch]}
+                  onChange={(e) => handleRgbInput(ch, parseInt(e.target.value, 10) || 0)}
+                  inputProps={{ min: 0, max: 255, step: 1 }}
+                  sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+                />
+              ))}
+            </Box>
+          );
+        })()}
+        {colorMode === "hsl" && (() => {
+          const rgb = hexToRgb(foregroundColor);
+          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+          return (
+            <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+              <TextField
+                className="hex-input"
+                size="small"
+                label="H"
+                type="number"
+                value={hsl.h}
+                onChange={(e) => handleHslInput("h", parseInt(e.target.value, 10) || 0)}
+                inputProps={{ min: 0, max: 360, step: 1 }}
+                sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+              />
+              <TextField
+                className="hex-input"
+                size="small"
+                label="S"
+                type="number"
+                value={hsl.s}
+                onChange={(e) => handleHslInput("s", parseInt(e.target.value, 10) || 0)}
+                inputProps={{ min: 0, max: 100, step: 1 }}
+                sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+              />
+              <TextField
+                className="hex-input"
+                size="small"
+                label="L"
+                type="number"
+                value={hsl.l}
+                onChange={(e) => handleHslInput("l", parseInt(e.target.value, 10) || 0)}
+                inputProps={{ min: 0, max: 100, step: 1 }}
+                sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+              />
+            </Box>
+          );
+        })()}
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
           {([
             { label: "Black", color: "#000000" },
@@ -1141,6 +1256,69 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
+      </ToolbarSection>
+
+      <Divider />
+
+      {/* ── Canvas Size (collapsible, collapsed by default) ────────── */}
+      <ToolbarSection
+        title="Canvas Size"
+        sectionKey="canvasSize"
+        collapsed={collapsedSections.canvasSize}
+        onToggle={handleToggleSection}
+      >
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
+          {CANVAS_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              size="small"
+              variant={canvasWidth === preset.width && canvasHeight === preset.height ? "contained" : "outlined"}
+              onClick={() => onCanvasResize(preset.width, preset.height)}
+              sx={{
+                fontSize: "0.6rem",
+                py: "2px",
+                px: "6px",
+                minWidth: 0,
+                color: canvasWidth === preset.width && canvasHeight === preset.height ? undefined : "grey.400",
+                borderColor: "grey.600"
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </Box>
+        <Box sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}>
+          <TextField
+            className="hex-input"
+            size="small"
+            label="W"
+            type="number"
+            value={customWidth}
+            onChange={(e) => setCustomWidth(e.target.value)}
+            inputProps={{ min: 1, max: 4096, step: 1 }}
+            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+          />
+          <Typography sx={{ fontSize: "0.7rem", color: "grey.500" }}>×</Typography>
+          <TextField
+            className="hex-input"
+            size="small"
+            label="H"
+            type="number"
+            value={customHeight}
+            onChange={(e) => setCustomHeight(e.target.value)}
+            inputProps={{ min: 1, max: 4096, step: 1 }}
+            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+          />
+        </Box>
+        <Button
+          size="small"
+          variant="contained"
+          fullWidth
+          onClick={handleApplyCustomSize}
+          sx={{ mt: "4px", fontSize: "0.7rem", py: "2px" }}
+        >
+          Apply
+        </Button>
       </ToolbarSection>
 
       <Divider />

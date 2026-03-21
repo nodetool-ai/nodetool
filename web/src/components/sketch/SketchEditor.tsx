@@ -89,6 +89,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const setCanvasBackgroundColor = useSketchStore((s) => s.setCanvasBackgroundColor);
+  const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
   const colorMode = useSketchStore((s) => s.colorMode);
   const setColorMode = useSketchStore((s) => s.setColorMode);
 
@@ -455,8 +456,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   }, []);
 
   // ─── Zoom handlers ─────────────────────────────────────────────────
-  const handleZoomIn = useCallback(() => setZoom(zoom * 1.15), [zoom, setZoom]);
-  const handleZoomOut = useCallback(() => setZoom(zoom / 1.15), [zoom, setZoom]);
+  const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
+  const handleZoomOut = useCallback(() => setZoom(zoom / 1.3), [zoom, setZoom]);
   const handleZoomReset = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -502,6 +503,15 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       setCanvasBackgroundColor(color);
     },
     [setCanvasBackgroundColor]
+  );
+
+  // ─── Canvas resize ─────────────────────────────────────────────
+  const handleCanvasResize = useCallback(
+    (width: number, height: number) => {
+      pushHistory("resize canvas");
+      resizeCanvas(width, height);
+    },
+    [pushHistory, resizeCanvas]
   );
 
   // ─── Context menu ──────────────────────────────────────────────
@@ -593,6 +603,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onBackgroundPreset={handleBackgroundPreset}
           colorMode={colorMode}
           onColorModeChange={setColorMode}
+          canvasWidth={document.canvas.width}
+          canvasHeight={document.canvas.height}
+          onCanvasResize={handleCanvasResize}
         />
       )}
 
