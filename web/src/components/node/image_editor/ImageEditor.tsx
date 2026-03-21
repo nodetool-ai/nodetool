@@ -46,6 +46,7 @@ import {
     DEFAULT_TEXT_SETTINGS,
     DEFAULT_ADJUSTMENTS
 } from "./types";
+import log from "loglevel";
 
 const styles = (theme: Theme) =>
     css({
@@ -535,7 +536,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
 
             onSave(dataUrl, blob);
         } catch (error) {
-            console.error("Failed to save image:", error);
+            log.error("Failed to save image:", error);
         } finally {
             setIsSaving(false);
         }

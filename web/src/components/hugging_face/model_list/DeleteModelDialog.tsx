@@ -20,6 +20,7 @@ import {
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModels } from "./useModels";
+import log from "loglevel";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
@@ -127,7 +128,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         }
         onClose();
       } catch (error: any) {
-        console.error("Deletion error:", error);
+        log.error("Deletion error:", error);
 
         // Extract error message
         const errorMessage = error.message || "Unknown error";

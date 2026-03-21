@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import log from "loglevel";
 
 /**
  * Custom hook for workflow-related actions and navigation.
@@ -69,7 +70,7 @@ export const useWorkflowActions = () => {
         );
         navigate(`/editor/${newWorkflow.id}`);
       } catch (error) {
-        console.error("Error copying example:", error);
+        log.error("Error copying example:", error);
         setLoadingExampleId(null);
       }
     },

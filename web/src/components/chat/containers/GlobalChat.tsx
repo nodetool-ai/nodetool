@@ -21,6 +21,7 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -80,14 +81,14 @@ const GlobalChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      console.error("Failed to connect GlobalChatStore:", err);
+      log.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        console.error("Error during GlobalChatStore disconnect:", err);
+        log.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -207,7 +208,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          console.error("Failed to handle thread logic:", error);
+          log.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -239,9 +240,12 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) { return; }
 
+    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      setTimeout(() => {
+      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
+      viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -271,6 +275,7 @@ const GlobalChat: React.FC = () => {
           "resize",
           handleViewportChange
         );
+        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
@@ -289,7 +294,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -304,7 +309,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        console.error("Failed to delete thread:", error);
+        log.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]

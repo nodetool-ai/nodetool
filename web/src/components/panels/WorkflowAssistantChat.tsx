@@ -17,6 +17,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import log from "loglevel";
 
 const containerStyles = css({
   flex: 1,
@@ -284,7 +285,7 @@ const WorkflowAssistantChat: React.FC = () => {
         setThreadListAnchorEl(null);
       })
       .catch((createError) => {
-        console.error("Failed to create new thread:", createError);
+        log.error("Failed to create new thread:", createError);
       });
   }, [createNewThread, switchThread]);
 
@@ -310,7 +311,7 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((deleteError) => {
-        console.error("Failed to delete thread:", deleteError);
+        log.error("Failed to delete thread:", deleteError);
       });
     },
     [deleteThread]
@@ -359,7 +360,7 @@ const WorkflowAssistantChat: React.FC = () => {
           switchThread(newThreadId);
         })
         .catch((createError) => {
-          console.error("Failed to create new thread:", createError);
+          log.error("Failed to create new thread:", createError);
         });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
@@ -407,18 +408,18 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleAddMessageInput = useCallback(() => {
     const workflowId = currentWorkflowId;
     if (!workflowId) {
-      console.error("No current workflow ID");
+      log.error("No current workflow ID");
       return;
     }
     const currentNodeStore = getNodeStore(workflowId);
     if (!currentNodeStore) {
-      console.error("No node store found for current workflow");
+      log.error("No node store found for current workflow");
       return;
     }
 
     const metadata = nodeMetadata["nodetool.input.MessageInput"];
     if (!metadata) {
-      console.error("MessageInput node metadata not found");
+      log.error("MessageInput node metadata not found");
       return;
     }
 
