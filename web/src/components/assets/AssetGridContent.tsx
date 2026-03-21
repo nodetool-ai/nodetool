@@ -282,12 +282,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     return data;
   }, [stableItemData, selectionData]);
 
-  // useEffect(() => {
-  //   if (!propAssets) {
-  //     fetchAssets().then(() => {});
-  //   }
-  // }, [selectedFolderId, fetchAssets, propAssets, assets]);
-
   useEffect(() => {
     if (containerRef.current) {
       const resizeObserver = new ResizeObserver((entries) => {
