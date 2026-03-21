@@ -16,7 +16,7 @@ import {
 
 /**
  * Resolves the path to the Node.js-based backend server entry point.
- * In packaged mode: resources/backend/modules/node_modules/@nodetool/websocket/dist/server.js
+ * In packaged mode: resources/backend/server.mjs
  * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
  */
 function getNodeBackendPath(): string {
@@ -522,11 +522,10 @@ async function startServer(): Promise<void> {
   logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
 
-  // Resolve the _modules directory next to server.mjs so Node.js can
-  // find externalized native packages (sharp, better-sqlite3, etc.).
-  // Named "_modules" instead of "node_modules" because electron-builder
-  // excludes node_modules directories by default in extraResources.
-  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "_modules");
+  // afterPack promotes the staged backend/_modules directory to a real
+  // backend/node_modules directory so Node.js can resolve externalized
+  // ESM packages with standard package resolution.
+  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
   logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
 
   const backendEnv: Record<string, string> = {

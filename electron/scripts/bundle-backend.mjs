@@ -4,7 +4,7 @@
  * Produces:
  *   backend-bundle/server.mjs          — single bundled ESM entry point
  *   backend-bundle/server.mjs.map      — source map
- *   backend-bundle/node_modules/       — only packages that cannot be bundled
+ *   backend-bundle/_modules/           — external packages staged for afterPack
  *   backend-bundle/package.json        — { "type": "module" }
  */
 
@@ -377,7 +377,7 @@ async function main() {
   }
 
   // --- Copy external packages ---
-  console.log("\nCopying external packages to node_modules/...");
+  console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
 
   // --- Generate minimal package.json ---
@@ -410,7 +410,7 @@ async function main() {
   const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
   console.log(`  Files:    ${fileCount}`);
   console.log(`  Size:     ${sizeMB} MB`);
-  console.log(`  External: ${copiedCount} packages copied to node_modules/`);
+  console.log(`  External: ${copiedCount} packages copied to _modules/`);
   console.log(`  Output:   ${BUNDLE_DIR}`);
   console.log(`  Entry:    server.mjs`);
   console.log("\nBackend bundle created successfully!");
