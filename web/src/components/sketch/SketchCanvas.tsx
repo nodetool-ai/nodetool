@@ -31,6 +31,7 @@ import {
   GradientSettings,
   Point,
   BlendMode,
+  Selection,
   isShapeTool,
   isPaintingTool,
   parseColorToRgba
@@ -70,6 +71,13 @@ export interface SketchCanvasRef {
   flattenToDataUrl: () => string;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
+  clearLayerRect: (
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
   flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
   mergeLayerDown: (
     upperLayerId: string,
@@ -107,6 +115,8 @@ export interface SketchCanvasProps {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
+  selection?: Selection | null;
+  onSelectionChange?: (sel: Selection | null) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -140,6 +150,12 @@ function blendModeToComposite(mode: BlendMode): GlobalCompositeOperation {
   }
 }
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+const STABILIZER_WINDOW = 4; // Number of points to average
+const MIN_PRESSURE_FACTOR = 0.2; // Minimum pressure scaling (20% of full size/opacity)
+const SELECTION_DASH_LENGTH = 4;
+const SELECTION_DASH_OFFSET = SELECTION_DASH_LENGTH;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
@@ -158,7 +174,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
-      onEyedropperPick
+      onEyedropperPick,
+      selection,
+      onSelectionChange
     } = props;
 
     const theme = useTheme();
@@ -195,6 +213,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Crop tool state
     const cropStartRef = useRef<Point | null>(null);
 
+    // Select tool state
+    const selectStartRef = useRef<Point | null>(null);
+
     // Alpha lock: snapshot of layer alpha before stroke starts
     const alphaSnapshotRef = useRef<ImageData | null>(null);
 
@@ -203,7 +224,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Stroke stabilizer: circular buffer of recent points for smoothing
     const stabilizerBufferRef = useRef<Point[]>([]);
-    const STABILIZER_WINDOW = 4; // Number of points to average
+
+    // Pressure sensitivity: store current pointer pressure
+    const currentPressureRef = useRef<number>(0.5);
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -294,7 +317,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [doc.layers.length, doc.canvas.width, doc.canvas.height]);
+    }, [doc.layers.length, doc.layers.map((l) => l.id).join(","), doc.canvas.width, doc.canvas.height]);
 
     // ─── Composite and redraw display canvas ──────────────────────────
 
@@ -346,17 +369,45 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: BrushSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
         const brushType = settings.brushType || "round";
+
+        // Apply pressure sensitivity
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (settings.pressureSensitivity && pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
+          if (settings.pressureAffects === "size" || settings.pressureAffects === "both") {
+            effectiveSize = settings.size * pressureFactor;
+          }
+          if (settings.pressureAffects === "opacity" || settings.pressureAffects === "both") {
+            effectiveOpacity = settings.opacity * pressureFactor;
+          }
+        }
+
+        // Apply roundness and angle transform
+        const needsTransform = settings.roundness < 1.0;
+        if (needsTransform) {
+          ctx.save();
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2;
+          const angleRad = (settings.angle * Math.PI) / 180;
+          ctx.translate(midX, midY);
+          ctx.rotate(angleRad);
+          ctx.scale(1, settings.roundness);
+          ctx.rotate(-angleRad);
+          ctx.translate(-midX, -midY);
+        }
 
         if (brushType === "spray") {
           // Spray: scatter random dots within brush radius
           ctx.save();
-          ctx.globalAlpha = settings.opacity;
+          ctx.globalAlpha = effectiveOpacity;
           ctx.fillStyle = settings.color;
-          const density = Math.max(5, Math.round(settings.size * 0.8));
-          const r = settings.size / 2;
+          const density = Math.max(5, Math.round(effectiveSize * 0.8));
+          const r = effectiveSize / 2;
           for (let i = 0; i < density; i++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.random() * r;
@@ -368,15 +419,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ctx.fill();
           }
           ctx.restore();
+          if (needsTransform) {
+            ctx.restore();
+          }
           return;
         }
 
         if (brushType === "airbrush") {
           // Airbrush: low-opacity radial dab that accumulates over time
           ctx.save();
-          const dabOpacity = settings.opacity * 0.15;
+          const dabOpacity = effectiveOpacity * 0.15;
           ctx.globalAlpha = dabOpacity;
-          const r = settings.size / 2;
+          const r = effectiveSize / 2;
           const grad = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, r);
           grad.addColorStop(0, settings.color);
           grad.addColorStop(1, "rgba(0,0,0,0)");
@@ -385,15 +439,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
+          if (needsTransform) {
+            ctx.restore();
+          }
           return;
         }
 
         // Round / Soft brush — standard stroke approach
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = settings.color;
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         const effectiveHardness =
@@ -401,13 +458,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ? Math.min(settings.hardness, 0.3)
             : settings.hardness;
         if (effectiveHardness < 1) {
-          ctx.filter = `blur(${(1 - effectiveHardness) * settings.size * 0.3}px)`;
+          ctx.filter = `blur(${(1 - effectiveHardness) * effectiveSize * 0.3}px)`;
         }
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
         ctx.stroke();
         ctx.restore();
+        if (needsTransform) {
+          ctx.restore();
+        }
       },
       []
     );
@@ -417,13 +477,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: EraserSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
+          effectiveSize = settings.size * pressureFactor;
+          effectiveOpacity = settings.opacity * pressureFactor;
+        }
+
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "destination-out";
         ctx.strokeStyle = "rgba(0,0,0,1)";
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.beginPath();
@@ -440,13 +509,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: PencilSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
+          effectiveSize = settings.size * pressureFactor;
+          effectiveOpacity = settings.opacity * pressureFactor;
+        }
+
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = settings.color;
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "square";
         ctx.lineJoin = "miter";
         ctx.imageSmoothingEnabled = false;
@@ -884,6 +962,69 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.restore();
     }, []);
 
+    const drawOverlaySelection = useCallback(
+      (start: Point, end: Point) => {
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) {
+          return;
+        }
+        const ctx = overlay.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        const x = Math.min(start.x, end.x);
+        const y = Math.min(start.y, end.y);
+        const w = Math.abs(end.x - start.x);
+        const h = Math.abs(end.y - start.y);
+        if (w < 1 || h < 1) {
+          return;
+        }
+        // Marching ants: white dashes + offset black dashes
+        ctx.save();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.strokeStyle = "#000000";
+        ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+      },
+      []
+    );
+
+    const drawSelectionOverlay = useCallback(() => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay || !selection) {
+        return;
+      }
+      // Don't draw persistent selection while actively dragging a new one
+      if (selectStartRef.current) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      const { x, y, width, height } = selection;
+      ctx.save();
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+      ctx.strokeRect(x, y, width, height);
+      ctx.strokeStyle = "#000000";
+      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+      ctx.strokeRect(x, y, width, height);
+      ctx.restore();
+    }, [selection]);
+
+    // Redraw selection overlay when selection changes
+    useEffect(() => {
+      drawSelectionOverlay();
+    }, [drawSelectionOverlay]);
+
     // ─── Coordinate Transform ─────────────────────────────────────────
 
     const screenToCanvas = useCallback(
@@ -1120,9 +1261,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "select") {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          selectStartRef.current = pt;
+          isDrawingRef.current = true;
+          // Clear existing selection when starting a new one
+          if (onSelectionChange) {
+            onSelectionChange(null);
+          }
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+
         isDrawingRef.current = true;
         const pt = screenToCanvas(e.clientX, e.clientY);
         lastPointRef.current = pt;
+        currentPressureRef.current = e.pressure || 0.5;
         onStrokeStart();
 
         // Reset stroke stabilizer buffer for a fresh stroke
@@ -1165,7 +1319,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawBrushStroke(f, to, doc.toolSettings.brush, c),
+                    drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1173,7 +1327,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawPencilStroke(f, to, doc.toolSettings.pencil, c),
+                    drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1181,7 +1335,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawEraserStroke(f, to, doc.toolSettings.eraser, c),
+                    drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1194,7 +1348,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (activeTool === "brush") {
               withMirror(
                 ctx,
-                (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+                (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1202,7 +1356,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               withMirror(
                 ctx,
                 (f, t, c) =>
-                  drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+                  drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1210,7 +1364,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               withMirror(
                 ctx,
                 (f, t, c) =>
-                  drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+                  drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1239,7 +1393,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         redraw,
         withMirror,
         onEyedropperPick,
-        rgbToHex
+        rgbToHex,
+        onSelectionChange
       ]
     );
 
@@ -1275,6 +1430,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         const pt = screenToCanvas(e.clientX, e.clientY);
+        currentPressureRef.current = e.pressure || 0.5;
 
         if (
           activeTool === "move" &&
@@ -1314,6 +1470,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "select" && selectStartRef.current) {
+          drawOverlaySelection(selectStartRef.current, pt);
+          return;
+        }
+
         if (!lastPointRef.current) {
           return;
         }
@@ -1333,21 +1494,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const smoothLast = lastPointRef.current;
           withMirror(
             ctx,
-            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current),
             smoothLast,
             smoothPt
           );
         } else if (activeTool === "pencil") {
           withMirror(
             ctx,
-            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current),
             lastPointRef.current,
             pt
           );
         } else if (activeTool === "eraser") {
           withMirror(
             ctx,
-            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current),
             lastPointRef.current,
             pt
           );
@@ -1374,7 +1535,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawOverlayCrop,
         redraw,
         withMirror,
-        stabilizePoint
+        stabilizePoint,
+        drawOverlaySelection
       ]
     );
 
@@ -1455,6 +1617,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
+        if (activeTool === "select" && selectStartRef.current) {
+          const pt = screenToCanvas(
+            mousePositionRef.current.x +
+              (containerRef.current?.getBoundingClientRect().left ?? 0),
+            mousePositionRef.current.y +
+              (containerRef.current?.getBoundingClientRect().top ?? 0)
+          );
+          const x = Math.round(Math.min(selectStartRef.current.x, pt.x));
+          const y = Math.round(Math.min(selectStartRef.current.y, pt.y));
+          const w = Math.round(Math.abs(pt.x - selectStartRef.current.x));
+          const h = Math.round(Math.abs(pt.y - selectStartRef.current.y));
+          clearOverlay();
+          selectStartRef.current = null;
+          if (w > 1 && h > 1 && onSelectionChange) {
+            onSelectionChange({ x, y, width: w, height: h });
+          }
+          return;
+        }
+
         // Save the stroke endpoint for Shift+click straight line feature
         // (must be done before lastPointRef is nulled)
         if (isPaintingTool(activeTool)) {
@@ -1504,13 +1685,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc.layers,
         doc.activeLayerId,
+        doc.toolSettings.gradient,
         activeTool,
         onStrokeEnd,
         onCropComplete,
         getOrCreateLayerCanvas,
         clearOverlay,
         redraw,
-        screenToCanvas
+        screenToCanvas,
+        drawGradient,
+        onSelectionChange
       ]
     );
 
@@ -1609,6 +1793,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.clearRect(0, 0, canvas.width, canvas.height);
+              redraw();
+            }
+          }
+        },
+        clearLayerRect: (
+          layerId: string,
+          x: number,
+          y: number,
+          width: number,
+          height: number
+        ) => {
+          const canvas = layerCanvasesRef.current.get(layerId);
+          if (canvas) {
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.clearRect(x, y, width, height);
               redraw();
             }
           }
@@ -1891,7 +2091,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const cursorStyle =
       activeTool === "move"
         ? "move"
-        : activeTool === "crop"
+        : activeTool === "crop" || activeTool === "select"
           ? "crosshair"
           : activeTool === "brush" ||
               activeTool === "pencil" ||
