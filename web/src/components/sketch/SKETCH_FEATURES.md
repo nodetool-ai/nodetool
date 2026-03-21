@@ -204,8 +204,8 @@ Note: section 1 is conceptually the **current-state header**, but it should like
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
 - [x] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
 - [x] Fix input image not showing up as layer
-- [ ] add small buttons for "Expose input" and "Expose Output" to layers. this creates additional dynamic inputs and output handles in the node using the layer name. one fixed output should always output the composite canvas. see other dynamic nodes for reference.
-- [ ] Cleaner node UI styling
+- [x] add small buttons for "Expose input" and "Expose Output" to layers. this creates additional dynamic inputs and output handles in the node using the layer name. one fixed output always outputs the composite canvas.
+- [x] Cleaner node UI styling — improved hover state, edit overlay with label, handle labels for exposed layers, rounded corners
 
 ---
 
@@ -401,7 +401,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 14 test suites, 278+ tests
+└── __tests__/                # 15 test suites, 291+ tests
 ```
 
 ### Integration Points
@@ -639,6 +639,8 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Checkerboard pattern caching** — cached as `CanvasPattern` instead of per-pixel `fillRect` loops (262K calls → 1 call on 4K canvases)
 - [x] **Isolate / solo layer** — solo button per layer in layers panel; canvas redraw skips non-isolated layers; toggle to return to all-layers view
 - [x] **Color swatch hold-to-drag** — press and hold on a swatch, drag over others to preview colors in real-time, release to confirm
+- [x] **Expose layer input/output** — per-layer "Expose Input" / "Expose Output" toggle buttons in layers panel; creates dynamic input/output handles on SketchNode using layer names; fixed composite output always present
+- [x] **Cleaner SketchNode UI** — improved hover state with border highlight, edit overlay with "Edit Sketch" label, handle labels for exposed layers, rounded corners on content area
 
 ### Node / SketchInput
 

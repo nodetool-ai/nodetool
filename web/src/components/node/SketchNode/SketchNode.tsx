@@ -58,7 +58,11 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-node)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
-      position: "relative"
+      position: "relative",
+      transition: "border-color 0.15s ease",
+      "&:hover": {
+        borderColor: theme.vars.palette.grey[500]
+      }
     },
     ".sketch-node-content": {
       position: "absolute",
@@ -80,6 +84,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       cursor: "pointer",
+      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)",
       "&:hover .edit-overlay": {
         opacity: 1
       }
@@ -96,11 +101,20 @@ const styles = (theme: Theme) =>
       right: 0,
       bottom: 0,
       display: "flex",
+      flexDirection: "column",
+      gap: "4px",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.4)",
+      backgroundColor: "rgba(0,0,0,0.45)",
       opacity: 0,
-      transition: "opacity 0.2s"
+      transition: "opacity 0.2s",
+      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)"
+    },
+    ".edit-overlay-label": {
+      fontSize: "0.7rem",
+      fontWeight: 500,
+      color: "rgba(255,255,255,0.85)",
+      letterSpacing: "0.02em"
     },
     ".hint": {
       position: "absolute",
@@ -132,6 +146,26 @@ const styles = (theme: Theme) =>
     },
     ".handle-popup.output-mask": {
       top: "100px"
+    },
+    // Handle labels for dynamic exposed layers
+    ".handle-label": {
+      position: "absolute",
+      fontSize: "0.6rem",
+      fontWeight: 500,
+      color: theme.vars.palette.grey[400],
+      whiteSpace: "nowrap",
+      pointerEvents: "none",
+      lineHeight: 1
+    },
+    ".handle-label.left": {
+      left: "12px",
+      top: "50%",
+      transform: "translateY(-50%)"
+    },
+    ".handle-label.right": {
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)"
     }
   });
 
@@ -432,6 +466,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 className={Slugify("image")}
               />
             </HandleTooltip>
+            <span className="handle-label left">{layer.name}</span>
           </div>
         ))}
 
@@ -488,6 +523,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   className={Slugify("image")}
                 />
               </HandleTooltip>
+              <span className="handle-label right">{layer.name}</span>
             </div>
           ))}
         </div>
@@ -510,7 +546,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <>
               <img className="preview-image" src={previewUrl} alt="Sketch preview" />
               <div className="edit-overlay">
-                <EditIcon sx={{ fontSize: 40, color: "white" }} />
+                <EditIcon sx={{ fontSize: 32, color: "white" }} />
+                <span className="edit-overlay-label">Edit Sketch</span>
               </div>
             </>
           ) : (
