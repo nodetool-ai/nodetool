@@ -107,7 +107,7 @@ const ContextMenuItem = memo(function ContextMenuItem({
         >
           <MenuItem>
             {controlElement ? (
-              React.cloneElement(controlElement, { onClick })
+              React.cloneElement(controlElement as React.ReactElement<{ onClick?: typeof onClick }>, { onClick })
             ) : (
               <EditorButton
                 className={`action ${addButtonClassName || ""}`}
@@ -124,7 +124,7 @@ const ContextMenuItem = memo(function ContextMenuItem({
       {!tooltip && (
         <MenuItem>
           {controlElement ? (
-            React.cloneElement(controlElement, { onClick })
+            React.cloneElement(controlElement as React.ReactElement<{ onClick?: typeof onClick }>, { onClick })
           ) : (
             <EditorButton
               className={`action ${addButtonClassName || ""}`}

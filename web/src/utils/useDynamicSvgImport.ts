@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Any from "../icons/data_types/nodetool/enum.svg?react";
 import AssistantIcon from "../icons/data_types/nodetool/assistant.svg?react";
+import log from "loglevel";
 
 type SvgComponentType = React.FunctionComponent<
   React.SVGProps<SVGSVGElement> & { title?: string }
@@ -45,7 +46,7 @@ export function useDynamicSvgImport(iconName: string) {
         }
       } catch (_) {
         // Fallback to default icon on error
-        console.warn(`Failed to load icon ${iconName}, using fallback`);
+        log.warn(`Failed to load icon ${iconName}, using fallback`);
       } finally {
         setLoading(false);
       }

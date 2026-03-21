@@ -1,3 +1,31 @@
+
+# ⚡ Bolt: NodeInputs Performance Optimization
+
+## 💡 What
+Refactored `NodeInputs.tsx` to use a custom memoized selector `useConnectedEdgesSelector` instead of subscribing directly to `state.edges` via `useNodes` and filtering inline.
+
+## 🎯 Why
+`NodeInputs` previously subscribed to the entire `state.edges` array. Because React Flow updates the node/edge state on every frame during drag operations (60fps), `state.edges` constantly changed reference.
+This caused all node input components to fully re-render on *any* graph edge change, even if the new edge was completely unrelated to that node.
+By using a dedicated selector that returns a stable array reference when connected edges are identical, we eliminate these O(N*E) re-renders during interactions.
+
+## 📊 Impact
+- **Eliminates Unnecessary Computations:** Prevents O(N*E) array iterations per graph update.
+- **Prevents Unnecessary Re-renders:** Fixes `NodeInputs` so it only re-renders when its specific connection state changes, not on any graph edge change.
+- **Improved Responsiveness:** Frees up main thread time for smoother graph interactions, particularly when dragging nodes with many dynamic inputs.
+
+## 🔬 Measurement
+Verified using a performance regression test.
+- Before: Adding an unrelated edge caused `NodeInputs` wrapper to re-render.
+- After: Adding an unrelated edge does NOT cause `NodeInputs` wrapper to re-render.
+
+## 🧪 Testing
+- Created `web/src/hooks/nodes/__tests__/useConnectedEdges.test.ts` to verify stable references.
+- Created `web/src/components/node/__tests__/NodeInputs.performance.test.tsx` to verify `NodeInputs` render counts.
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `cd web && npm run lint`: Passed.
+- Ran `make test-web`: All tests passed.
+
 # ⚡ Bolt: Split Edge Processing for Performance
 
 ## 💡 What
@@ -118,3 +146,46 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: Optimize Zustand record filtering
+
+## 💡 What
+Replaced expensive `Object.fromEntries(Object.entries(record).filter(...))` patterns in `ErrorStore`, `ExecutionTimeStore`, and `VibeCodingStore` with optimized `for...in` loops and shallow-copy-and-delete mechanisms.
+
+## 🎯 Why
+`Object.entries().filter()` operations on large Zustand store state dictionaries create expensive intermediate arrays, which negatively impact performance and garbage collection, especially during rapid store updates or UI re-renders. Replacing them with `for...in` iteration prevents these allocations.
+
+## 📊 Impact
+- **Improves Memory Efficiency:** Eliminates O(N) intermediate array allocations during record cleanup operations.
+- **Reduces Main Thread Work:** Directly assigns objects to a pre-allocated cache map.
+- **Enhances Best Practices:** Standardizes record filtering methods across multiple critical Zustand stores (and updates `ZUSTAND_BEST_PRACTICES.md` to guide future developers).
+
+## 🔬 Measurement
+Verify by capturing a memory allocation profile while triggering operations like `clearErrors` or `clearTimings`. Notice the elimination of `Array` allocations associated with the `Object.entries` conversions in these code paths.
+
+## 🧪 Testing
+- `npm run lint` and `npm run typecheck` run inside the `web` folder.
+- Store test files confirm logic parity.
+
+# ⚡ Bolt: GroupNode Child Check Performance Optimization
+
+## 💡 What
+Refactored `GroupNode.tsx` to combine two separate `useNodes` subscriptions into a single optimized `for` loop that checks for children and bypassed children simultaneously.
+
+## 🎯 Why
+Previously, every `GroupNode` on the canvas subscribed to `state.nodes` using two separate `.some()` loops.
+Because ReactFlow updates the `nodes` array reference on every drag frame (60fps), these loops ran continuously during interactions.
+This caused O(G * N) operations per frame (where G = number of group nodes, N = total nodes), taking up valuable main thread time.
+
+## 📊 Impact
+- **Reduces Main Thread Work:** Combines two O(N) array iterations into a single loop.
+- **Early Exit:** The loop stops as soon as both conditions (`hasChildren` and `someChildrenBypassed`) are met, further reducing iteration time.
+- **Improved Responsiveness:** Smoother node dragging when workflows contain Group Nodes.
+
+## 🔬 Measurement
+Verify by checking the React Profiler during node drag operations with multiple group nodes. The `useNodes` selector execution time within `GroupNode` will be significantly reduced.
+
+## 🧪 Testing
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
+- Ran `make test-web`: Verified core tests pass.

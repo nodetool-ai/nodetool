@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
+import React, { memo, useMemo, useCallback } from "react";
 import { css } from "@emotion/react";
-import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
-import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
+import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
@@ -13,7 +14,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
-import { shallow } from "zustand/shallow";
+
 
 export interface NodeInputsProps {
   id: string;
@@ -150,22 +151,14 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicProperties: { [key: string]: Property } =
     (data?.dynamic_properties || {}) as { [key: string]: Property };
 
-  const basicInputs: JSX.Element[] = [];
-  const advancedInputs: JSX.Element[] = [];
+  const basicInputs: React.JSX.Element[] = [];
+  const advancedInputs: React.JSX.Element[] = [];
 
-  // Combine multiple useNodes subscriptions into a single selector with shallow equality
-  // to reduce unnecessary re-renders when other parts of the node state change
-  const { edges, findNode } = useNodes(
-    (state) => ({
-      edges: state.edges,
-      findNode: state.findNode
-    }),
-    shallow
-  );
-  const connectedEdges = useMemo(
-    () => edges.filter((e) => e.target === id),
-    [edges, id]
-  );
+  const findNode = useNodes((state) => state.findNode);
+
+  // Use optimized stable selector for connected edges to prevent re-renders on unrelated edge changes
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
@@ -223,14 +216,18 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       let resolvedType: TypeMetadata;
       let description: string | undefined;
       if (inputMeta) {
-        resolvedType = {
-          ...inputMeta,
-          type: inputMeta.type,
-          type_args: inputMeta.type_args ?? [],
-          optional: inputMeta.optional ?? false,
-          values: inputMeta.values || (inputMeta as any).enum || (inputMeta.type_args?.[0] as any)?.values || (inputMeta.type_args?.[0] as any)?.enum,
-        } as TypeMetadata;
-        description = inputMeta.description;
+          type DynMeta = typeof inputMeta & { enum?: (string | number)[] };
+          type DynTypeArg = TypeMetadata & { enum?: (string | number)[] };
+          const meta = inputMeta as DynMeta;
+          const arg0 = inputMeta.type_args?.[0] as DynTypeArg | undefined;
+          resolvedType = {
+            ...inputMeta,
+            type: inputMeta.type,
+            type_args: inputMeta.type_args ?? [],
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values || meta.enum || arg0?.values || arg0?.enum,
+          } as TypeMetadata;
+          description = inputMeta.description;
       } else {
         resolvedType = {
           type: "any",

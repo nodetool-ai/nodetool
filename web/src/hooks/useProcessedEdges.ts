@@ -158,7 +158,7 @@ function useStructurallyProcessedEdges({
         const sourceMetadata = getMetadata(currentNode.type || "");
         if (sourceMetadata) {
           const outputHandle = findOutputHandle(
-            currentNode as any,
+            currentNode as Node<NodeData>,
             currentHandle,
             sourceMetadata
           );
@@ -189,7 +189,7 @@ function useStructurallyProcessedEdges({
         const sourceMetadata = getMetadata(sourceNode.type);
         if (sourceMetadata) {
           const sourceHandle = findOutputHandle(
-            sourceNode as any,
+            sourceNode as Node<NodeData>,
             edge.sourceHandle,
             sourceMetadata
           );
@@ -203,7 +203,7 @@ function useStructurallyProcessedEdges({
         const targetMetadata = getMetadata(targetNode.type);
         if (targetMetadata) {
           const targetHandle = findInputHandle(
-            targetNode as any,
+            targetNode as Node<NodeData>,
             edge.targetHandle,
             targetMetadata
           );
@@ -238,7 +238,7 @@ function useStructurallyProcessedEdges({
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
             const inputHandle = findInputHandle(
-              targetNode as any,
+              targetNode as Node<NodeData>,
               normalizedTargetHandle,
               targetMetadata
             );

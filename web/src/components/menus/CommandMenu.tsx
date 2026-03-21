@@ -86,7 +86,7 @@ type CommandMenuProps = {
   setOpen: (open: boolean) => void;
   undo: (steps?: number | undefined) => void;
   redo: (steps?: number | undefined) => void;
-  reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
 };
 
 const styles = () =>
@@ -469,7 +469,7 @@ const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
 // Create a context/store for command menu state
 const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
-  reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
 }>((_set) => ({
   executeAndClose: () => { },
   reactFlowWrapper: { current: null }

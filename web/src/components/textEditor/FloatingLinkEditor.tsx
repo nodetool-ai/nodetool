@@ -10,7 +10,7 @@ import {
   KEY_ESCAPE_COMMAND,
   COMMAND_PRIORITY_HIGH
 } from "lexical";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import EditIcon from "@mui/icons-material/Edit";
@@ -95,7 +95,7 @@ const linkEditorStyles = css`
   }
 `;
 
-export function FloatingLinkEditor(): JSX.Element | null {
+export function FloatingLinkEditor(): React.JSX.Element | null {
   const [editor] = useLexicalComposerContext();
   const editorRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);

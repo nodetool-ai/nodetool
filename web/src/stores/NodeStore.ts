@@ -279,6 +279,7 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
+    // @ts-expect-error - zundo temporal middleware type incompatible with zustand StoreMutators
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -1351,4 +1352,4 @@ export const createNodeStore = (
         }
       }
     )
-  );
+  ) as unknown as NodeStore;

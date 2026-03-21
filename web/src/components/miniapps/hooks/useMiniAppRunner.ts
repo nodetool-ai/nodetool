@@ -18,6 +18,7 @@ import {
 import { MiniAppResult, RunnerMessage } from "../types";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import log from "loglevel";
 
 type WorkflowRunnerState = ReturnType<WorkflowRunnerStore["getState"]>;
 type RunWorkflowFn = WorkflowRunnerState["run"];
@@ -70,7 +71,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       try {
         originalHandler(workflow, data);
       } catch (error) {
-        console.error("MiniAppRunner: originalHandler error:", error);
+        log.error("MiniAppRunner: originalHandler error:", error);
       }
 
       if (!selectedWorkflow || workflow.id !== selectedWorkflow.id) {
@@ -104,7 +105,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
           upsertResult(workflow.id, result);
         } catch (error) {
-          console.error("MiniAppRunner: output_update error:", error);
+          log.error("MiniAppRunner: output_update error:", error);
         }
       }
 
@@ -132,7 +133,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
           upsertResult(workflow.id, result);
         } catch (error) {
-          console.error("MiniAppRunner: preview_update error:", error);
+          log.error("MiniAppRunner: preview_update error:", error);
         }
       }
 

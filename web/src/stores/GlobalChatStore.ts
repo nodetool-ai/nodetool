@@ -940,7 +940,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           );
 
           if (error) {
-            console.error("Summarize API error:", error);
+            log.error("Summarize API error:", error);
             throw new Error(
               error.detail?.[0]?.msg || "Failed to summarize thread"
             );
@@ -1051,7 +1051,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);
-          console.error("Failed to send stop signal:", error);
+          log.error("Failed to send stop signal:", error);
           set({
             error: "Failed to stop generation",
             status: "error",
@@ -1083,7 +1083,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
-      }) as any,
+      } as unknown as GlobalChatState),
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {

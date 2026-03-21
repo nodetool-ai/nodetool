@@ -108,7 +108,12 @@ export const EmptyState: React.FC<EmptyStateProps> = memo(({
   const descriptionVariant = size === "small" ? "caption" : "body2";
 
   return (
-    <Box css={styles(theme, size)} className={`empty-state ${className || ""}`}>
+    <Box
+      css={styles(theme, size)}
+      className={`empty-state ${className || ""}`}
+      role="status"
+      aria-live="polite"
+    >
       {displayIcon}
       <Typography variant={titleVariant} className="empty-title">
         {displayTitle}

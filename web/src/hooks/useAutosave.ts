@@ -16,6 +16,7 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { Workflow } from "../stores/ApiTypes";
 import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
+import log from "loglevel";
 
 export interface UseAutosaveOptions {
   workflowId: string | null;
@@ -63,7 +64,7 @@ export async function triggerAutosaveForWorkflow(
       })
     });
   } catch (error) {
-    console.error(`Autosave (${saveType}) failed:`, error);
+    log.error(`Autosave (${saveType}) failed:`, error);
   }
 }
 
@@ -186,7 +187,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         });
       }
     } catch (error) {
-      console.error("Autosave failed:", error);
+      log.error("Autosave failed:", error);
     } finally {
       isSavingRef.current = false;
     }
@@ -232,7 +233,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         graph: workflow.graph
       });
     } catch (error) {
-      console.error("Save before run failed:", error);
+      log.error("Save before run failed:", error);
     }
   }, [
     autosaveSettings?.saveBeforeRun,

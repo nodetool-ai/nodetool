@@ -213,7 +213,7 @@ const recommendedModels: FeaturedModel[] = [
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
   if (React.isValidElement(node)) {
-    return React.Children.toArray(node.props.children)
+    return React.Children.toArray((node.props as { children?: React.ReactNode }).children)
       .map(extractText)
       .join(" ");
   }
@@ -331,7 +331,7 @@ const Welcome = () => {
       return React.cloneElement(
         content,
         {},
-        React.Children.map(content.props.children, (child) =>
+        React.Children.map((content.props as { children?: React.ReactNode }).children, (child) =>
           typeof child === "string"
             ? highlightText(child, searchTerm)
             : renderContent(child)

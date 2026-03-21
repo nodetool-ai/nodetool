@@ -126,7 +126,7 @@ const PropertyContextMenuComponent: React.FC = () => {
       if (isDynamicProperty) {
         // Dynamic properties (e.g. FalAI schema fields) usually keep defaults in
         // node.data.dynamic_inputs, not in static metadata.properties.
-        const dynamicInputDefaults = (node.data as any)?.dynamic_inputs || {};
+        const dynamicInputDefaults = node.data?.dynamic_inputs || {};
         let defaultValue = dynamicInputDefaults?.[handleId]?.default;
 
         if (defaultValue === undefined) {

@@ -10,6 +10,7 @@ import {
 } from "lexical";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { isMarkdownText } from "./editorUtils";
+import log from "loglevel";
 
 export function MarkdownPastePlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -57,7 +58,7 @@ export function MarkdownPastePlugin(): null {
                 selection.insertNodes([textNode]);
               }
             } catch (error) {
-              console.error("Error converting markdown:", error);
+              log.error("Error converting markdown:", error);
               // Fallback to plain text if conversion fails
               const textNode = $createTextNode(text);
               selection.insertNodes([textNode]);

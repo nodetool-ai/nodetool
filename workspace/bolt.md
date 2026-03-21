@@ -11,3 +11,11 @@
 ## 2024-03-07 - Zustand Selector Optimization returning object literals
 **Learning:** Even if `useMemo` caches the closure of a Zustand selector properly, if the selector returns an object literal like `{ isConnected, stringInputConfig }`, Zustand's default strict equality (`===`) will cause an infinite re-render loop if the object identity changes on every call, leading to canvas freezing (like `.react-flow` timing out in Playwright).
 **Action:** When returning objects from custom Zustand selectors, cache the entire returned object literal inside the selector closure (e.g. `let lastResult = ...`) and only return a new object reference if the underlying primitive values actually changed. Alternatively, pass `shallow` as the equality function.
+
+## 2024-03-08 - Zustand Default Equality for useNodes
+**Learning:** `useNodes` uses strict equality (`===`) by default, not shallow equality, as assumed in early designs. When optimizing multiple primitive `.some()` selectors into a single compound selector (e.g., returning `{ hasChildren, someChildrenBypassed }` to halve `O(N)` loop iterations during drag frames), simply returning an object literal will create a new reference on every call and trigger an infinite re-render loop that bricks the app.
+**Action:** When combining primitives into a compound object in `useNodes`, wrap the selector in `useMemo` and use a closure variable (like `lastResult = ...`) to cache the specific object reference. Only return a newly created object if the internal primitive values actually changed.
+
+## 2024-05-24 - Zustand useNodes array filtering edge cases
+**Learning:** Using `useNodes((state) => ({ edges: state.edges }), shallow)` to subscribe to the full edges array in a Node component, and then performing `.filter()` to find connected edges later, still causes the Node component to re-render on *any* edge change in the graph because the `state.edges` reference changes.
+**Action:** Create a custom selector hook with `useMemo` that performs the filtering internally and explicitly deep-checks the filtered array items (`lastResult.every((edge, i) => edge === newResult[i])`) to return a perfectly stable array reference when the filtered items haven't changed.

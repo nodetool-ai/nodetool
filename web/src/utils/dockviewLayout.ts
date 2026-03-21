@@ -17,6 +17,10 @@ type BranchNode = {
   size?: number;
 };
 
+// Typed view of the panels and grid internals we need to manipulate
+type PanelsMap = Record<string, object>;
+type SerializedGrid = { root?: LeafNode | BranchNode };
+
 function deepClone<T>(value: T): T {
   return structuredClone(value);
 }
@@ -25,12 +29,13 @@ export function migrateDockviewLayout(
   layout: SerializedDockview
 ): SerializedDockview {
   const next = deepClone(layout);
+  const panels = next.panels as PanelsMap;
 
   // 1) Rename legacy view id "examples" -> "templates"
-  if ((next as any).panels && (next as any).panels.examples) {
-    const examplesPanel = (next as any).panels.examples;
-    delete (next as any).panels.examples;
-    (next as any).panels.templates = {
+  if (panels && "examples" in panels) {
+    const examplesPanel = panels["examples"];
+    delete panels["examples"];
+    panels["templates"] = {
       ...examplesPanel,
       id: "templates",
       contentComponent: "templates"
@@ -38,10 +43,11 @@ export function migrateDockviewLayout(
   }
 
   // 2) Ensure required panels exist
-  next.panels = next.panels || ({} as any);
+  next.panels = next.panels || ({} as typeof next.panels);
+  const panelsMap = next.panels as PanelsMap;
   const ensurePanel = (panelId: string) => {
-    if (!(next.panels as any)[panelId]) {
-      (next.panels as any)[panelId] = {
+    if (!panelsMap[panelId]) {
+      panelsMap[panelId] = {
         id: panelId,
         contentComponent: panelId,
         title: panelId
@@ -51,7 +57,7 @@ export function migrateDockviewLayout(
   ["templates", "workflows", "recent-chats", "chat"].forEach(ensurePanel);
 
   // 3) Walk grid tree and fix view ids to match panels; remap legacy ids
-  const panelIds = new Set(Object.keys(next.panels as any));
+  const panelIds = new Set(Object.keys(next.panels as PanelsMap));
 
   const fixNode = (node: LeafNode | BranchNode): LeafNode | BranchNode => {
     if (node.type === "leaf") {
@@ -90,12 +96,13 @@ export function migrateDockviewLayout(
 
     return {
       ...node,
-      data: node.data.map((child) => fixNode(child as any)) as any
+      data: node.data.map((child) => fixNode(child))
     } as BranchNode;
   };
 
-  if (next.grid && (next.grid as any).root) {
-    (next.grid as any).root = fixNode((next.grid as any).root as any) as any;
+  const grid = next.grid as SerializedGrid | undefined;
+  if (grid?.root) {
+    grid.root = fixNode(grid.root);
   }
 
   return next;

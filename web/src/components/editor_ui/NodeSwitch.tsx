@@ -51,12 +51,6 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
 
     // Memoize sx prop to prevent unnecessary re-renders
     const switchSx = useMemo(() => ({
-      // Semantic: changed state - shows visual indicator
-      // ...(changed && {
-      //   outline: `2px solid ${theme.vars.palette.primary.main}`,
-      //   outlineOffset: 2,
-      //   borderRadius: "6px"
-      // }),
       ...sx
     }), [sx]);
 

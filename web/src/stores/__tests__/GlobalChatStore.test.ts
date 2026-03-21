@@ -147,10 +147,6 @@ describe("GlobalChatStore", () => {
   });
 
   afterEach(() => {
-    // Clean up the mock server
-    // if (mockServer) { // Removing this as individual blocks will handle their servers
-    //   mockServer.stop();
-    // }
   });
 
   it("createNewThread creates thread and sets currentThreadId", async () => {

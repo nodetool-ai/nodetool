@@ -87,8 +87,9 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {
         if (!state) {return;}
-        if (Array.isArray((state as any).favorites)) {
-          (state as any).favorites = new Set((state as any).favorites);
+        const rawFavorites = (state as { favorites: unknown }).favorites;
+        if (Array.isArray(rawFavorites)) {
+          state.favorites = new Set(rawFavorites as FavoriteKey[]);
         }
       }
     }

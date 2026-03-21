@@ -105,7 +105,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
 
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error(
+      log.error(
         "[ModelDownloadStore] Max reconnect attempts reached. Giving up."
       );
       // Mark active downloads as potentially stalled/errored
@@ -230,7 +230,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onclose = (event) => {
-        console.warn(
+        log.warn(
           `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
         );
         set({ ws: null, wsConnectionState: "disconnected" });
@@ -242,7 +242,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onerror = (error) => {
-        console.error("[ModelDownloadStore] WebSocket error:", error);
+        log.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
       set({ ws });

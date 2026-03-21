@@ -35,7 +35,13 @@ import {
   IDockviewPanelProps,
   IDockviewPanel
 } from "dockview";
+
+/** IDockviewPanel exposes an internal `group` property not present in its public type */
+type IDockviewPanelWithGroup = IDockviewPanel & {
+  group?: { api?: { setSize: (size: { width?: number; height?: number }) => void } } & { setSize?: (size: { width?: number; height?: number }) => void };
+};
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
+import log from "loglevel";
 
 const panelComponents = {
   "asset-folders": () => (
@@ -149,7 +155,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (user) {
       navigateToFolderId(user?.id);
     } else {
-      console.error("User is not logged in");
+      log.error("User is not logged in");
     }
   }
 
@@ -159,7 +165,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     (event: DockviewReadyEvent) => {
       const { api } = event;
       // Add folders panel first with an initial size
-      const foldersPanel: IDockviewPanel = api.addPanel({
+      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders",
@@ -183,7 +189,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       // Enforce initial size
       const applyInitialSize = () => {
         const groupApi =
-          (foldersPanel as any)?.group?.api ?? (foldersPanel as any)?.group;
+          foldersPanel?.group?.api ?? foldersPanel?.group;
         if (groupApi && typeof groupApi.setSize === "function") {
           if (isFullscreenAssets) {
             groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });

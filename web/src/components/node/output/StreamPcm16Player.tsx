@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { playPcm16Base64 } from "./audio";
+import log from "loglevel";
 
 const StreamPcm16Player: React.FC<{
   base64: string;
@@ -16,7 +17,7 @@ const StreamPcm16Player: React.FC<{
       try {
         playPcm16Base64(base64, { sampleRate, channels });
       } catch (e) {
-        console.error("PCM16 chunk playback failed", e);
+        log.error("PCM16 chunk playback failed", e);
       }
       lastPlayedRef.current = base64;
     }

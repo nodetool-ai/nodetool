@@ -26,18 +26,18 @@ export const getFoldersSidebarSections = () => {
   const sectionId = "folders-settings"; // Static ID for the "Folders" section group
 
   const items = folderGroupSettings
-    .map((setting) => ({
+    .map((setting: any) => ({
       originalSetting: setting,
       label: setting.env_var
         .replace(/_/g, " ")
         .toLowerCase()
         .replace(/\b\w/g, (char: string) => char.toUpperCase())
     }))
-    .filter((settingInfo) => {
+    .filter((settingInfo: any) => {
       const passesFilter = desiredLabels.includes(settingInfo.label);
       return passesFilter;
     })
-    .map((settingInfo) => ({
+    .map((settingInfo: any) => ({
       id: sectionId, // All items in this group point to the same section
       label: settingInfo.label
     }));

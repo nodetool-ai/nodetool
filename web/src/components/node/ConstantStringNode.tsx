@@ -280,7 +280,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
         <div className="header-actions nodrag nopan">
           <Tooltip title="Open Editor" placement="bottom">
-            <IconButton size="small" onClick={toggleExpand}>
+            <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
               <OpenInFullIcon />
             </IconButton>
           </Tooltip>

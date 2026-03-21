@@ -12,6 +12,7 @@ import { authHeader } from "../../stores/ApiClient";
 import ChatView from "../chat/containers/ChatView";
 import type { Theme } from "@mui/material/styles";
 import { useVibecodingTemplates, Template } from "../../hooks/useVibecodingTemplates";
+import log from "loglevel";
 
 const createStyles = (theme: Theme) =>
   css({
@@ -168,7 +169,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         if (error instanceof Error && error.name === "AbortError") {
           setStatus(workflow.id, "idle");
         } else {
-          console.error("VibeCoding error:", error);
+          log.error("VibeCoding error:", error);
           const errorMessage =
             error instanceof Error ? error.message : "Failed to generate";
           setError(workflow.id, errorMessage);

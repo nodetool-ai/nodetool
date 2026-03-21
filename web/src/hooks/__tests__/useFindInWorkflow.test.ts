@@ -1,3 +1,4 @@
+import log from "loglevel";
 import { renderHook, act } from "@testing-library/react";
 import { useFindInWorkflow } from "../useFindInWorkflow";
 import { useNodes } from "../../contexts/NodeContext";
@@ -523,7 +524,7 @@ describe("useFindInWorkflow", () => {
 
       jest.advanceTimersByTime(200);
 
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(log, "error").mockImplementation(() => {});
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });

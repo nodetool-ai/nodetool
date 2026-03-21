@@ -66,7 +66,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 
   const { totalSize, fileCount, folderCount } = useMemo(() => {
     const total = assets.reduce((sum, asset) => {
-      const assetSize = (asset as any).size as number | undefined;
+      const assetSize = asset.size as number | undefined;
       return sum + (assetSize || 0);
     }, 0);
 

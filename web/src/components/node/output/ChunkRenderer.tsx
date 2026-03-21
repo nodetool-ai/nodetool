@@ -14,9 +14,9 @@ type Props = {
 
 export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
-  const contentType = (chunk as any).content_type as string;
+  const contentType = chunk.content_type;
 
-  if (contentType === "html") {
+  if ((contentType as string) === "html") {
     return (
       <iframe
         srcDoc={(chunk.content as string) ?? ""}
@@ -31,12 +31,12 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     case "image":
       return <ImageView source={chunk.content} />;
     case "audio": {
-      const meta = (chunk as any).content_metadata;
+      const meta = chunk.content_metadata;
       return (
         <StreamPcm16Player
           base64={chunk.content as string}
-          sampleRate={meta?.sample_rate || 22000}
-          channels={meta?.channels || 1}
+          sampleRate={(meta?.sample_rate as number) || 22000}
+          channels={(meta?.channels as number) || 1}
         />
       );
     }

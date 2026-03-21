@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useGlobalChatStore from "../stores/GlobalChatStore";
 import { Message, LanguageModel } from "../stores/ApiTypes";
 import { truncateString } from "../utils/truncateString";
+import log from "loglevel";
 
 /**
  * Chat service hook that provides a unified interface for chat operations.
@@ -56,7 +57,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
   const handleSendMessage = useCallback(
     async (message: Message) => {
       if (!selectedModel) {
-        console.error("No model selected");
+        log.error("No model selected");
         return;
       }
 
@@ -74,7 +75,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         } else {
           // Verify thread exists in store before sending message
           if (!threads[threadId]) {
-            console.warn(
+            log.warn(
               `Current thread ${threadId} not found in store, creating new thread`
             );
             threadId = await createNewThread();
@@ -90,7 +91,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
           navigate(`/chat/${targetThreadId}`);
         }, 100);
       } catch (error) {
-        console.error("Failed to send message:", error);
+        log.error("Failed to send message:", error);
       }
     },
     [
@@ -118,7 +119,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 

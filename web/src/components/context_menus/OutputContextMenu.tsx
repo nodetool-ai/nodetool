@@ -55,7 +55,7 @@ const OutputContextMenu: React.FC = () => {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<unknown>();
-  const [saveNodeMetadata, setSaveNodeMetadata] = useState<NodeMetadata | null>(null);
+  const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
     typeMetadata: _typeMetadata,
@@ -106,7 +106,7 @@ const OutputContextMenu: React.FC = () => {
 
       const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
       const saveMetadata = getMetadata(saveNodePath);
-      setSaveNodeMetadata(saveMetadata ?? null);
+      setSaveNodeMetadata(saveMetadata);
     },
     [getMetadata]
   );
@@ -420,7 +420,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-reroute-node"
           IconComponent={<AltRouteIcon />}
         />
-        {saveNodeMetadata && (
+        {saveNodeMetadata != null && (
           <ContextMenuItem
             onClick={handleCreateSaveNode}
             label={`Create Save${

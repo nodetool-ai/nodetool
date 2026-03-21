@@ -9,6 +9,7 @@ import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, Text, Caption } from "../ui_primitives";
+import log from "loglevel";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity
@@ -177,7 +178,7 @@ const AboutMenu: React.FC = memo(() => {
         setSystemInfo(info ?? null);
       } catch (err) {
         setError("Failed to load system information");
-        console.error("Failed to fetch system info:", err);
+        log.error("Failed to fetch system info:", err);
       } finally {
         setLoading(false);
       }

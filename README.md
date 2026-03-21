@@ -78,46 +78,44 @@ ______________________________________________________________________
 
 ## Development Setup
 
-**Prerequisites:** Node.js LTS (v20+)
+For core library work, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
+
+**Prerequisites:** Python 3.11, Conda, Node.js LTS
 
 **Quick start:**
 
 ```bash
-# Install all dependencies
-npm install
+# Setup
+conda env update -f environment.yml --prune
+conda activate nodetool
 
-# Build the TypeScript backend packages
-npm run build:packages
+# Install
+uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
 # Run (backend on port 7777, frontend on port 3000)
-npm run dev
+nodetool serve --reload &
+cd web && npm install && npm start
 ```
 
-For day-to-day development, you can use the faster startup path:
+### HuggingFace Pack (Linux/Windows GPU)
+
+Requires CUDA driver ≥525.60.13 (Linux) or ≥527.41 (Windows):
 
 ```bash
-# Rebuild only stale backend workspaces, then start backend + frontend
-npm run dev:fast
+uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
-Use `npm run dev` when you want the original clean startup that rebuilds the full TypeScript backend dependency chain. Use `npm run dev:fast` when you want a shorter local edit/run loop.
-
-Or start servers individually:
+### MLX Pack (Apple Silicon)
 
 ```bash
-# Terminal 1: TypeScript backend server
-npm run dev:server   # PORT=7777 node packages/websocket/dist/server.js
-npm run dev:server:fast
-
-# Terminal 2: Web frontend
-npm run dev:web      # cd web && npm start
+uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 ```
 
 ### Electron App
 
-Run `make electron` to build the web frontend and start the Electron app.
+The Electron app automatically detects your active Conda environment. Run `make electron` to start it.
 
-Settings are stored in:
+Conda settings are configured through the app's Settings panel and stored in:
 - **Linux/macOS**: `~/.config/nodetool/settings.yaml`
 - **Windows**: `%APPDATA%\nodetool\settings.yaml`
 
@@ -141,8 +139,7 @@ cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
 
 # End-to-end tests
-# Web e2e (builds backend and starts it automatically)
-npm run build:packages
+# Web e2e (needs backend server running on port 7777)
 cd web && npm run test:e2e
 
 # Electron e2e (requires xvfb on Linux headless)
@@ -150,7 +147,6 @@ cd electron && npm run test:e2e
 ```
 
 **Prerequisites for E2E tests:**
-- Backend packages must be built: `npm run build:packages`
 - Web tests require Playwright browsers: `cd web && npx playwright install chromium`
 - Electron tests require:
   - Built Electron app: `cd electron && npm run vite:build && npx tsc`

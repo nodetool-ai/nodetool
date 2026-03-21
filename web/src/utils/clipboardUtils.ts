@@ -134,7 +134,7 @@ async function copyImageToClipboard(url: string): Promise<void> {
         await window.api.clipboard?.writeImage(dataUrl);
       } catch (e) {
         // If the legacy API fails or isn't present, try writing as text (fallback for some formats)
-        console.warn(
+        log.warn(
           "Clipboard writeImage failed, falling back to writing as text",
           e
         );

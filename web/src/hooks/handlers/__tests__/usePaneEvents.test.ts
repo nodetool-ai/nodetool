@@ -1,3 +1,4 @@
+import log from "loglevel";
 import { renderHook, act } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
@@ -195,7 +196,7 @@ describe("usePaneEvents", () => {
 
     it("cancels placement and logs warning when metadata not found", () => {
       mockGetMetadata.mockReturnValue(null);
-      const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const consoleWarn = jest.spyOn(log, "warn").mockImplementation(() => {});
       const { result } = renderHook(() =>
         usePaneEvents({
           pendingNodeType: "nodetool.test.MissingNode",
