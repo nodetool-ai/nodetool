@@ -205,6 +205,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const stabilizerBufferRef = useRef<Point[]>([]);
     const STABILIZER_WINDOW = 4; // Number of points to average
 
+    // Pressure sensitivity: store current pointer pressure
+    const currentPressureRef = useRef<number>(0.5);
+
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
@@ -346,17 +349,45 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: BrushSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
         const brushType = settings.brushType || "round";
+
+        // Apply pressure sensitivity
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (settings.pressureSensitivity && pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(0.2, pressure);
+          if (settings.pressureAffects === "size" || settings.pressureAffects === "both") {
+            effectiveSize = settings.size * pressureFactor;
+          }
+          if (settings.pressureAffects === "opacity" || settings.pressureAffects === "both") {
+            effectiveOpacity = settings.opacity * pressureFactor;
+          }
+        }
+
+        // Apply roundness and angle transform
+        const needsTransform = settings.roundness < 1.0;
+        if (needsTransform) {
+          ctx.save();
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2;
+          const angleRad = (settings.angle * Math.PI) / 180;
+          ctx.translate(midX, midY);
+          ctx.rotate(angleRad);
+          ctx.scale(1, settings.roundness);
+          ctx.rotate(-angleRad);
+          ctx.translate(-midX, -midY);
+        }
 
         if (brushType === "spray") {
           // Spray: scatter random dots within brush radius
           ctx.save();
-          ctx.globalAlpha = settings.opacity;
+          ctx.globalAlpha = effectiveOpacity;
           ctx.fillStyle = settings.color;
-          const density = Math.max(5, Math.round(settings.size * 0.8));
-          const r = settings.size / 2;
+          const density = Math.max(5, Math.round(effectiveSize * 0.8));
+          const r = effectiveSize / 2;
           for (let i = 0; i < density; i++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.random() * r;
@@ -368,15 +399,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ctx.fill();
           }
           ctx.restore();
+          if (needsTransform) { ctx.restore(); }
           return;
         }
 
         if (brushType === "airbrush") {
           // Airbrush: low-opacity radial dab that accumulates over time
           ctx.save();
-          const dabOpacity = settings.opacity * 0.15;
+          const dabOpacity = effectiveOpacity * 0.15;
           ctx.globalAlpha = dabOpacity;
-          const r = settings.size / 2;
+          const r = effectiveSize / 2;
           const grad = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, r);
           grad.addColorStop(0, settings.color);
           grad.addColorStop(1, "rgba(0,0,0,0)");
@@ -385,15 +417,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
+          if (needsTransform) { ctx.restore(); }
           return;
         }
 
         // Round / Soft brush — standard stroke approach
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = settings.color;
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         const effectiveHardness =
@@ -401,13 +434,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ? Math.min(settings.hardness, 0.3)
             : settings.hardness;
         if (effectiveHardness < 1) {
-          ctx.filter = `blur(${(1 - effectiveHardness) * settings.size * 0.3}px)`;
+          ctx.filter = `blur(${(1 - effectiveHardness) * effectiveSize * 0.3}px)`;
         }
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
         ctx.stroke();
         ctx.restore();
+        if (needsTransform) { ctx.restore(); }
       },
       []
     );
@@ -417,13 +451,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: EraserSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(0.2, pressure);
+          effectiveSize = settings.size * pressureFactor;
+          effectiveOpacity = settings.opacity * pressureFactor;
+        }
+
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "destination-out";
         ctx.strokeStyle = "rgba(0,0,0,1)";
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.beginPath();
@@ -440,13 +483,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         from: Point,
         to: Point,
         settings: PencilSettings,
-        ctx: CanvasRenderingContext2D
+        ctx: CanvasRenderingContext2D,
+        pressure?: number
       ) => {
+        let effectiveSize = settings.size;
+        let effectiveOpacity = settings.opacity;
+        if (pressure !== undefined && pressure > 0) {
+          const pressureFactor = Math.max(0.2, pressure);
+          effectiveSize = settings.size * pressureFactor;
+          effectiveOpacity = settings.opacity * pressureFactor;
+        }
+
         ctx.save();
-        ctx.globalAlpha = settings.opacity;
+        ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = settings.color;
-        ctx.lineWidth = settings.size;
+        ctx.lineWidth = effectiveSize;
         ctx.lineCap = "square";
         ctx.lineJoin = "miter";
         ctx.imageSmoothingEnabled = false;
@@ -1123,6 +1175,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         isDrawingRef.current = true;
         const pt = screenToCanvas(e.clientX, e.clientY);
         lastPointRef.current = pt;
+        currentPressureRef.current = e.pressure || 0.5;
         onStrokeStart();
 
         // Reset stroke stabilizer buffer for a fresh stroke
@@ -1165,7 +1218,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawBrushStroke(f, to, doc.toolSettings.brush, c),
+                    drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1173,7 +1226,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawPencilStroke(f, to, doc.toolSettings.pencil, c),
+                    drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1181,7 +1234,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 withMirror(
                   ctx,
                   (f, to, c) =>
-                    drawEraserStroke(f, to, doc.toolSettings.eraser, c),
+                    drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current),
                   prev,
                   current
                 );
@@ -1194,7 +1247,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (activeTool === "brush") {
               withMirror(
                 ctx,
-                (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+                (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1202,7 +1255,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               withMirror(
                 ctx,
                 (f, t, c) =>
-                  drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+                  drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1210,7 +1263,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               withMirror(
                 ctx,
                 (f, t, c) =>
-                  drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+                  drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current),
                 pt,
                 pt
               );
@@ -1275,6 +1328,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         const pt = screenToCanvas(e.clientX, e.clientY);
+        currentPressureRef.current = e.pressure || 0.5;
 
         if (
           activeTool === "move" &&
@@ -1333,21 +1387,21 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const smoothLast = lastPointRef.current;
           withMirror(
             ctx,
-            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
+            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current),
             smoothLast,
             smoothPt
           );
         } else if (activeTool === "pencil") {
           withMirror(
             ctx,
-            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
+            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current),
             lastPointRef.current,
             pt
           );
         } else if (activeTool === "eraser") {
           withMirror(
             ctx,
-            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
+            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current),
             lastPointRef.current,
             pt
           );

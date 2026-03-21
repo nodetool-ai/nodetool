@@ -22,7 +22,8 @@ import {
   Typography,
   Divider,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Switch
 } from "@mui/material";
 import BrushIcon from "@mui/icons-material/Brush";
 import CreateIcon from "@mui/icons-material/Create";
@@ -971,6 +972,61 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
                 {Math.round(brushSettings.hardness * 100)}%
               </Typography>
             </Box>
+            <Box className="setting-row" sx={{ alignItems: "center" }}>
+              <Typography className="setting-label">Pressure</Typography>
+              <Switch
+                size="small"
+                checked={brushSettings.pressureSensitivity ?? true}
+                onChange={(_, checked) => onBrushSettingsChange({ pressureSensitivity: checked })}
+              />
+            </Box>
+            {brushSettings.pressureSensitivity !== false && (
+              <Box sx={{ mb: "4px" }}>
+                <ToggleButtonGroup
+                  value={brushSettings.pressureAffects || "both"}
+                  exclusive
+                  onChange={(_, v) => { if (v) { onBrushSettingsChange({ pressureAffects: v as "size" | "opacity" | "both" }); } }}
+                  size="small"
+                  fullWidth
+                >
+                  <ToggleButton value="size" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                    Size
+                  </ToggleButton>
+                  <ToggleButton value="opacity" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                    Opacity
+                  </ToggleButton>
+                  <ToggleButton value="both" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                    Both
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            )}
+            {(brushSettings.brushType === "round" || brushSettings.brushType === "soft") && (
+              <>
+                <Box className="setting-row">
+                  <Typography className="setting-label">Round</Typography>
+                  <Slider
+                    size="small" min={0.1} max={1} step={0.01}
+                    value={brushSettings.roundness ?? 1.0}
+                    onChange={(_, v) => onBrushSettingsChange({ roundness: v as number })}
+                  />
+                  <Typography className="setting-value">
+                    {Math.round((brushSettings.roundness ?? 1.0) * 100)}%
+                  </Typography>
+                </Box>
+                <Box className="setting-row">
+                  <Typography className="setting-label">Angle</Typography>
+                  <Slider
+                    size="small" min={0} max={360} step={1}
+                    value={brushSettings.angle ?? 0}
+                    onChange={(_, v) => onBrushSettingsChange({ angle: v as number })}
+                  />
+                  <Typography className="setting-value">
+                    {brushSettings.angle ?? 0}°
+                  </Typography>
+                </Box>
+              </>
+            )}
           </>
         )}
 

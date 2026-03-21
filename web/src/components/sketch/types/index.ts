@@ -69,6 +69,10 @@ export interface BrushSettings {
   hardness: number;
   color: string;
   brushType: BrushType;
+  pressureSensitivity: boolean;
+  pressureAffects: "size" | "opacity" | "both";
+  roundness: number; // 0.1 to 1.0 (1.0 = perfect circle)
+  angle: number; // 0 to 360 degrees
 }
 
 export interface PencilSettings {
@@ -256,7 +260,11 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   opacity: 1,
   hardness: 0.8,
   color: "#ffffff",
-  brushType: "round"
+  brushType: "round",
+  pressureSensitivity: true,
+  pressureAffects: "both",
+  roundness: 1.0,
+  angle: 0
 };
 
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
