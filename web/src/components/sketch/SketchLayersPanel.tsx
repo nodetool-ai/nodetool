@@ -35,6 +35,7 @@ import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
+import FilterNoneIcon from "@mui/icons-material/FilterNone";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
@@ -154,6 +155,10 @@ const styles = (theme: Theme) =>
       },
       "&.mask-layer": {
         borderLeft: `2px solid ${theme.vars.palette.warning.main}`
+      },
+      "&.isolated": {
+        outline: `1px solid ${theme.vars.palette.warning.main}`,
+        outlineOffset: "-1px"
       }
     },
     "& .layer-thumbnail": {
@@ -215,6 +220,7 @@ export interface SketchLayersPanelProps {
   layers: Layer[];
   activeLayerId: string;
   maskLayerId: string | null;
+  isolatedLayerId: string | null;
   onSelectLayer: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onAddLayer: (fillColor?: string | null) => void;
@@ -225,6 +231,7 @@ export interface SketchLayersPanelProps {
   onReorderLayers: (fromIndex: number, toIndex: number) => void;
   onSetMaskLayer: (layerId: string | null) => void;
   onToggleAlphaLock: (layerId: string) => void;
+  onToggleIsolateLayer: (layerId: string) => void;
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
@@ -239,6 +246,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   layers,
   activeLayerId,
   maskLayerId,
+  isolatedLayerId,
   onSelectLayer,
   onToggleVisibility,
   onAddLayer,
@@ -249,6 +257,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onReorderLayers,
   onSetMaskLayer,
   onToggleAlphaLock,
+  onToggleIsolateLayer,
   onLayerOpacityChange,
   onLayerBlendModeChange,
   onRenameLayer,
@@ -497,12 +506,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           const realIdx = layers.length - 1 - reverseIdx;
           const isActive = layer.id === activeLayerId;
           const isMask = layer.id === maskLayerId;
+          const isIsolated = layer.id === isolatedLayerId;
           const isDragOver = dragOverIndex === realIdx;
 
           return (
             <Box key={layer.id}>
               <Box
-                className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}`}
+                className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}${isIsolated ? " isolated" : ""}`}
                 draggable
                 onDragStart={() => handleDragStart(realIdx)}
                 onDragOver={(e) => handleDragOver(e, realIdx)}
@@ -529,6 +539,24 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                     <VisibilityOffIcon sx={{ fontSize: "14px" }} />
                   )}
                 </IconButton>
+
+                <Tooltip title={isIsolated ? "Show all layers" : "Solo this layer"} placement="top">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleIsolateLayer(layer.id);
+                    }}
+                    sx={{
+                      padding: "2px",
+                      color: isIsolated ? "warning.main" : undefined,
+                      opacity: isIsolated ? 1 : 0.4,
+                      "&:hover": { opacity: 1 }
+                    }}
+                  >
+                    <FilterNoneIcon sx={{ fontSize: "12px" }} />
+                  </IconButton>
+                </Tooltip>
 
                 {/* Layer thumbnail preview */}
                 {layer.data ? (

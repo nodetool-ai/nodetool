@@ -112,6 +112,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setColorMode = useSketchStore((s) => s.setColorMode);
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
+  const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
+  const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
 
   // Defensively merge defaults so older/incomplete documents cannot break render.
   const toolSettings = {
@@ -909,6 +911,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           pan={pan}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
+          isolatedLayerId={isolatedLayerId}
           onZoomChange={setZoom}
           onPanChange={setPan}
           onStrokeStart={handleStrokeStart}
@@ -927,6 +930,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           layers={document.layers}
           activeLayerId={document.activeLayerId}
           maskLayerId={document.maskLayerId}
+          isolatedLayerId={isolatedLayerId}
           onSelectLayer={setActiveLayer}
           onToggleVisibility={handleToggleVisibility}
           onAddLayer={handleAddLayer}
@@ -937,6 +941,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onReorderLayers={handleReorderLayers}
           onSetMaskLayer={handleSetMaskLayer}
           onToggleAlphaLock={handleToggleAlphaLock}
+          onToggleIsolateLayer={toggleIsolateLayer}
           onLayerOpacityChange={handleSetLayerOpacity}
           onLayerBlendModeChange={handleSetLayerBlendMode}
           onRenameLayer={handleRenameLayer}

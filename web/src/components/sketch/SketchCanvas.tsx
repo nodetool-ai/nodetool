@@ -102,6 +102,7 @@ export interface SketchCanvasProps {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  isolatedLayerId?: string | null;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -167,6 +168,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      isolatedLayerId,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -230,6 +232,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Performance: rAF-batched redraw to avoid recompositing on every pointer move
     const redrawRequestRef = useRef<number | null>(null);
+
+    // Performance: reusable temp canvases for blur tool (avoids 3 allocs per stroke)
+    const blurTmpCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const blurBlurredCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const blurMaskCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -359,6 +366,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (!layer.visible) {
           continue;
         }
+        // When a layer is isolated/solo'd, skip all other layers
+        if (isolatedLayerId && layer.id !== isolatedLayerId) {
+          continue;
+        }
         const layerCanvas = layerCanvasesRef.current.get(layer.id);
         if (!layerCanvas) {
           continue;
@@ -371,7 +382,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.restore();
       }
-    }, [doc.layers, doc.canvas.backgroundColor]);
+    }, [doc.layers, doc.canvas.backgroundColor, isolatedLayerId]);
 
     /**
      * Batched redraw using requestAnimationFrame.
@@ -597,24 +608,47 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // Read original pixels
         const imgData = ctx.getImageData(sx, sy, sw, sh);
 
-        // Create temp canvas for blurred version
-        const tmp = window.document.createElement("canvas");
-        tmp.width = sw;
-        tmp.height = sh;
+        // Reuse cached temp canvases instead of allocating new ones per call
+        if (!blurTmpCanvasRef.current) {
+          blurTmpCanvasRef.current = window.document.createElement("canvas");
+        }
+        if (!blurBlurredCanvasRef.current) {
+          blurBlurredCanvasRef.current = window.document.createElement("canvas");
+        }
+        if (!blurMaskCanvasRef.current) {
+          blurMaskCanvasRef.current = window.document.createElement("canvas");
+        }
+        const tmp = blurTmpCanvasRef.current;
+        const blurred = blurBlurredCanvasRef.current;
+        const maskCanvas = blurMaskCanvasRef.current;
+
+        // Resize only when needed
+        if (tmp.width !== sw || tmp.height !== sh) {
+          tmp.width = sw;
+          tmp.height = sh;
+        }
+        if (blurred.width !== sw || blurred.height !== sh) {
+          blurred.width = sw;
+          blurred.height = sh;
+        }
+        if (maskCanvas.width !== sw || maskCanvas.height !== sh) {
+          maskCanvas.width = sw;
+          maskCanvas.height = sh;
+        }
+
         const tmpCtx = tmp.getContext("2d");
         if (!tmpCtx) {
           return;
         }
+        tmpCtx.clearRect(0, 0, sw, sh);
         tmpCtx.putImageData(imgData, 0, 0);
 
-        // Create blurred version on a second temp canvas
-        const blurred = window.document.createElement("canvas");
-        blurred.width = sw;
-        blurred.height = sh;
+        // Create blurred version on the second temp canvas
         const blurCtx = blurred.getContext("2d");
         if (!blurCtx) {
           return;
         }
+        blurCtx.clearRect(0, 0, sw, sh);
         blurCtx.filter = `blur(${settings.strength}px)`;
         blurCtx.drawImage(tmp, 0, 0);
 
@@ -622,15 +656,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // This avoids the hard edges from clearRect.
         const cx = Math.round(point.x) - sx;
         const cy = Math.round(point.y) - sy;
-        const maskCanvas = window.document.createElement("canvas");
-        maskCanvas.width = sw;
-        maskCanvas.height = sh;
         const maskCtx = maskCanvas.getContext("2d");
         if (!maskCtx) {
           return;
         }
 
         // Draw original pixels first
+        maskCtx.clearRect(0, 0, sw, sh);
         maskCtx.putImageData(imgData, 0, 0);
 
         // Draw blurred pixels with a circular clip and radial gradient alpha
@@ -2187,21 +2219,39 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Cache the checkerboard as a pattern to avoid per-pixel fillRect on every redraw
+let cachedCheckerboardPattern: CanvasPattern | null = null;
+let cachedCheckerboardSize = 0;
+
 function drawCheckerboard(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number
 ) {
   const size = 8;
-  ctx.fillStyle = "#2a2a2a";
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#3a3a3a";
-  for (let y = 0; y < height; y += size) {
-    for (let x = 0; x < width; x += size) {
-      if ((Math.floor(x / size) + Math.floor(y / size)) % 2 === 0) {
-        ctx.fillRect(x, y, size, size);
-      }
+  // Create pattern canvas once, cache globally
+  if (!cachedCheckerboardPattern || cachedCheckerboardSize !== size) {
+    const patternCanvas = document.createElement("canvas");
+    patternCanvas.width = size * 2;
+    patternCanvas.height = size * 2;
+    const pCtx = patternCanvas.getContext("2d");
+    if (pCtx) {
+      pCtx.fillStyle = "#2a2a2a";
+      pCtx.fillRect(0, 0, size * 2, size * 2);
+      pCtx.fillStyle = "#3a3a3a";
+      pCtx.fillRect(0, 0, size, size);
+      pCtx.fillRect(size, size, size, size);
+      cachedCheckerboardPattern = ctx.createPattern(patternCanvas, "repeat");
+      cachedCheckerboardSize = size;
     }
+  }
+  if (cachedCheckerboardPattern) {
+    ctx.fillStyle = cachedCheckerboardPattern;
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    // Fallback: solid background
+    ctx.fillStyle = "#2a2a2a";
+    ctx.fillRect(0, 0, width, height);
   }
 }
 
