@@ -9,7 +9,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useState, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -578,6 +578,10 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
     }
   }, [customWidth, customHeight, onCanvasResize]);
 
+  // ─── Derived color values for RGB / HSL inputs ────────────────────
+  const fgRgb = useMemo(() => hexToRgb(foregroundColor), [foregroundColor]);
+  const fgHsl = useMemo(() => rgbToHsl(fgRgb.r, fgRgb.g, fgRgb.b), [fgRgb]);
+
   return (
     <Box css={styles(theme)}>
       {/* ── Tools (always visible, not collapsible) ───────────────── */}
@@ -744,64 +748,57 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             sx={{ mt: "4px" }}
           />
         )}
-        {colorMode === "rgb" && (() => {
-          const rgb = hexToRgb(foregroundColor);
-          return (
-            <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
-              {(["r", "g", "b"] as const).map((ch) => (
-                <TextField
-                  key={ch}
-                  className="hex-input"
-                  size="small"
-                  label={ch.toUpperCase()}
-                  type="number"
-                  value={rgb[ch]}
-                  onChange={(e) => handleRgbInput(ch, parseInt(e.target.value, 10) || 0)}
-                  inputProps={{ min: 0, max: 255, step: 1 }}
-                  sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
-                />
-              ))}
-            </Box>
-          );
-        })()}
-        {colorMode === "hsl" && (() => {
-          const rgb = hexToRgb(foregroundColor);
-          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-          return (
-            <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+        {colorMode === "rgb" && (
+          <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+            {(["r", "g", "b"] as const).map((ch) => (
               <TextField
+                key={ch}
                 className="hex-input"
                 size="small"
-                label="H"
+                label={ch.toUpperCase()}
                 type="number"
-                value={hsl.h}
-                onChange={(e) => handleHslInput("h", parseInt(e.target.value, 10) || 0)}
-                inputProps={{ min: 0, max: 360, step: 1 }}
+                value={fgRgb[ch]}
+                onChange={(e) => handleRgbInput(ch, parseInt(e.target.value, 10) || 0)}
+                inputProps={{ min: 0, max: 255, step: 1 }}
                 sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
               />
-              <TextField
-                className="hex-input"
-                size="small"
-                label="S"
-                type="number"
-                value={hsl.s}
-                onChange={(e) => handleHslInput("s", parseInt(e.target.value, 10) || 0)}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-                sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
-              />
-              <TextField
-                className="hex-input"
-                size="small"
-                label="L"
-                type="number"
-                value={hsl.l}
-                onChange={(e) => handleHslInput("l", parseInt(e.target.value, 10) || 0)}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-                sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
-              />
-            </Box>
-          );
-        })()}
+            ))}
+          </Box>
+        )}
+        {colorMode === "hsl" && (
+          <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
+            <TextField
+              className="hex-input"
+              size="small"
+              label="H"
+              type="number"
+              value={fgHsl.h}
+              onChange={(e) => handleHslInput("h", parseInt(e.target.value, 10) || 0)}
+              inputProps={{ min: 0, max: 360, step: 1 }}
+              sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+            />
+            <TextField
+              className="hex-input"
+              size="small"
+              label="S"
+              type="number"
+              value={fgHsl.s}
+              onChange={(e) => handleHslInput("s", parseInt(e.target.value, 10) || 0)}
+              inputProps={{ min: 0, max: 100, step: 1 }}
+              sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+            />
+            <TextField
+              className="hex-input"
+              size="small"
+              label="L"
+              type="number"
+              value={fgHsl.l}
+              onChange={(e) => handleHslInput("l", parseInt(e.target.value, 10) || 0)}
+              inputProps={{ min: 0, max: 100, step: 1 }}
+              sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
+            />
+          </Box>
+        )}
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
           {([
             { label: "Black", color: "#000000" },
