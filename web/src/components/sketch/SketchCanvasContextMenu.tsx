@@ -3,7 +3,6 @@ import React, { memo, useEffect } from "react";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   ButtonBase,
   Chip,
   Divider,
@@ -11,6 +10,7 @@ import {
   Popover,
   Slider,
   Stack,
+  Tooltip,
   ToggleButton,
   ToggleButtonGroup,
   Typography
@@ -45,7 +45,10 @@ import {
   PencilSettings,
   ShapeSettings,
   SketchTool,
-  isShapeTool
+  colorToHex6,
+  isShapeTool,
+  parseColorToRgba,
+  rgbaToCss
 } from "./types";
 
 type ToolIconComponent = React.ComponentType<SvgIconProps>;
@@ -103,6 +106,12 @@ function getBrushTypeLabel(brushType: BrushType): string {
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+function mergeHexPickerRgbPreserveAlpha(stored: string, pickerHex: string): string {
+  const { a } = parseColorToRgba(stored);
+  const { r, g, b } = parseColorToRgba(pickerHex);
+  return rgbaToCss({ r, g, b, a });
 }
 
 function getSummaryItems(
@@ -163,8 +172,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography
       sx={{
-        mb: 1,
-        fontSize: "0.66rem",
+        mb: 1.05,
+        fontSize: "0.72rem",
         fontWeight: 800,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -196,19 +205,19 @@ function QuickSlider({
   onChange
 }: QuickSliderProps) {
   return (
-    <Box sx={{ mb: 1.25 }}>
+    <Box sx={{ mb: 0.6 }}>
       <Stack
         direction="row"
         alignItems="center"
         justifyContent="space-between"
-        sx={{ mb: 0.5 }}
+        sx={{ mb: 0.6 }}
       >
-        <Typography sx={{ fontSize: "0.76rem", fontWeight: 600, color: "text.primary" }}>
+        <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: "text.primary" }}>
           {label}
         </Typography>
         <Typography
           sx={{
-            fontSize: "0.72rem",
+            fontSize: "0.78rem",
             fontWeight: 700,
             color: "text.secondary",
             fontVariantNumeric: "tabular-nums"
@@ -243,7 +252,7 @@ function PresetChipRow<T extends number | string>({
   onSelect
 }: PresetChipRowProps<T>) {
   return (
-    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1.5 }}>
+    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1.05 }}>
       {values.map((value) => {
         const selected = value === selectedValue;
         return (
@@ -254,7 +263,10 @@ function PresetChipRow<T extends number | string>({
             color={selected ? "primary" : "default"}
             variant={selected ? "filled" : "outlined"}
             onClick={() => onSelect(value)}
-            sx={{ fontWeight: selected ? 700 : 600 }}
+            sx={{
+              fontSize: "0.8rem",
+              fontWeight: selected ? 700 : 500
+            }}
           />
         );
       })}
@@ -288,13 +300,75 @@ function ColorPreview({
   );
 }
 
+function ColorSetting({
+  label,
+  color,
+  onChange
+}: {
+  label: string;
+  color: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: "text.primary" }}>
+        {label}
+      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1,
+          py: 0.8,
+          borderRadius: "9px",
+          border: "1px solid",
+          borderColor: "grey.700",
+          backgroundColor: "grey.900"
+        }}
+      >
+        <input
+          type="color"
+          aria-label={label}
+          value={colorToHex6(color)}
+          onChange={(event) => onChange(event.target.value)}
+          style={{
+            width: 28,
+            height: 28,
+            border: "none",
+            borderRadius: "6px",
+            padding: 0,
+            background: "transparent",
+            cursor: "pointer"
+          }}
+        />
+        <Typography
+          sx={{
+            fontSize: "0.74rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums"
+          }}
+        >
+          {colorToHex6(color).toUpperCase()}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
 interface ToolGridButtonProps {
   definition: ToolDefinition;
   selected: boolean;
   onClick: () => void;
+  onDoubleClick: () => void;
 }
 
-function ToolGridButton({ definition, selected, onClick }: ToolGridButtonProps) {
+function ToolGridButton({
+  definition,
+  selected,
+  onClick,
+  onDoubleClick
+}: ToolGridButtonProps) {
   const theme = useTheme();
   const { Icon } = definition;
   const inactiveBg = theme.vars.palette.grey[800];
@@ -304,23 +378,24 @@ function ToolGridButton({ definition, selected, onClick }: ToolGridButtonProps) 
   return (
     <ButtonBase
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       aria-label={definition.label}
       sx={{
         position: "relative",
-        minHeight: 58,
-        borderRadius: "12px",
+        minHeight: 64,
+        borderRadius: "8px",
         border: "1px solid",
         borderColor: selected ? "primary.main" : theme.vars.palette.grey[700],
         backgroundColor: selected
           ? alpha(theme.palette.primary.main, 0.16)
           : inactiveBg,
-        px: 0.85,
-        py: 0.65,
-        alignItems: "flex-start",
-        justifyContent: "flex-start",
+        px: 0.75,
+        py: 0.8,
+        alignItems: "center",
+        justifyContent: "center",
         display: "flex",
         flexDirection: "column",
-        textAlign: "left",
+        textAlign: "center",
         transition: "all 120ms ease",
         "&:hover": {
           backgroundColor: selected
@@ -351,16 +426,16 @@ function ToolGridButton({ definition, selected, onClick }: ToolGridButtonProps) 
       )}
       <Icon
         sx={{
-          fontSize: 18,
+          fontSize: 20,
           color: selected ? "primary.light" : "text.primary"
         }}
       />
       <Typography
         sx={{
-          mt: 0.8,
-          fontSize: "0.68rem",
-          fontWeight: selected ? 800 : 600,
-          color: "text.primary"
+          mt: 0.65,
+          fontSize: "0.78rem",
+          fontWeight: 400,
+          color: "text.secondary"
         }}
       >
         {definition.label}
@@ -386,6 +461,7 @@ export interface SketchCanvasContextMenuProps {
   canRedo: boolean;
   onClose: () => void;
   onToolChange: (tool: SketchTool) => void;
+  onForegroundColorChange: (color: string) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onPencilSettingsChange: (settings: Partial<PencilSettings>) => void;
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
@@ -417,6 +493,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   canRedo,
   onClose,
   onToolChange,
+  onForegroundColorChange,
   onBrushSettingsChange,
   onPencilSettingsChange,
   onEraserSettingsChange,
@@ -510,6 +587,15 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (activeTool === "brush") {
       return (
         <>
+          <ColorSetting
+            label="Color"
+            color={brushSettings.color}
+            onChange={(value) => {
+              const next = mergeHexPickerRgbPreserveAlpha(brushSettings.color, value);
+              onForegroundColorChange(next);
+              onBrushSettingsChange({ color: next });
+            }}
+          />
           <ToggleButtonGroup
             value={brushSettings.brushType}
             exclusive
@@ -520,7 +606,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 onBrushSettingsChange({ brushType: value as BrushType });
               }
             }}
-            sx={{ mb: 1.5 }}
+            sx={{ mb: 1.8, mt: 1.4 }}
           >
             <ToggleButton value="round">Round</ToggleButton>
             <ToggleButton value="soft">Soft</ToggleButton>
@@ -572,6 +658,15 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (activeTool === "pencil") {
       return (
         <>
+          <ColorSetting
+            label="Color"
+            color={pencilSettings.color}
+            onChange={(value) => {
+              const next = mergeHexPickerRgbPreserveAlpha(pencilSettings.color, value);
+              onForegroundColorChange(next);
+              onPencilSettingsChange({ color: next });
+            }}
+          />
           <QuickSlider
             label="Size"
             valueLabel={`${pencilSettings.size}px`}
@@ -647,6 +742,18 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (isShapeTool(activeTool)) {
       return (
         <>
+          <Stack direction="row" spacing={1.2} sx={{ mb: 1.4 }}>
+            <ColorSetting
+              label="Stroke"
+              color={shapeSettings.strokeColor}
+              onChange={(value) => onShapeSettingsChange({ strokeColor: value })}
+            />
+            <ColorSetting
+              label="Fill"
+              color={shapeSettings.fillColor}
+              onChange={(value) => onShapeSettingsChange({ fillColor: value })}
+            />
+          </Stack>
           <ToggleButtonGroup
             value={shapeSettings.filled ? "filled" : "outline"}
             exclusive
@@ -657,7 +764,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 onShapeSettingsChange({ filled: value === "filled" });
               }
             }}
-            sx={{ mb: 1.5 }}
+            sx={{ mb: 1.8 }}
           >
             <ToggleButton value="outline">Outline</ToggleButton>
             <ToggleButton value="filled">Filled</ToggleButton>
@@ -683,6 +790,15 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (activeTool === "fill") {
       return (
         <>
+          <ColorSetting
+            label="Color"
+            color={fillSettings.color}
+            onChange={(value) => {
+              const next = mergeHexPickerRgbPreserveAlpha(fillSettings.color, value);
+              onForegroundColorChange(next);
+              onFillSettingsChange({ color: next });
+            }}
+          />
           <QuickSlider
             label="Tolerance"
             valueLabel={String(fillSettings.tolerance)}
@@ -739,6 +855,18 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (activeTool === "gradient") {
       return (
         <>
+          <Stack direction="row" spacing={1.2} sx={{ mb: 1.4 }}>
+            <ColorSetting
+              label="Start"
+              color={gradientSettings.startColor}
+              onChange={(value) => onGradientSettingsChange({ startColor: value })}
+            />
+            <ColorSetting
+              label="End"
+              color={gradientSettings.endColor}
+              onChange={(value) => onGradientSettingsChange({ endColor: value })}
+            />
+          </Stack>
           <ToggleButtonGroup
             value={gradientSettings.type}
             exclusive
@@ -751,7 +879,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 });
               }
             }}
-            sx={{ mb: 1.5 }}
+            sx={{ mb: 1.8 }}
           >
             <ToggleButton value="linear">Linear</ToggleButton>
             <ToggleButton value="radial">Radial</ToggleButton>
@@ -798,6 +926,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     <Popover
       open={open}
       onClose={onClose}
+      transitionDuration={{ enter: 90, exit: 60 }}
       anchorReference="anchorPosition"
       transformOrigin={{
         vertical: "center",
@@ -812,9 +941,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx: {
             width: 760,
             maxWidth: "calc(100vw - 24px)",
-            borderRadius: "16px",
-            border: "1px solid",
-            borderColor: theme.vars.palette.grey[700],
+            borderRadius: "12px",
             backgroundImage: "none",
             backgroundColor: theme.vars.palette.grey[900],
             backdropFilter: "blur(16px)",
@@ -829,18 +956,30 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           display: "grid",
           gridTemplateColumns: "180px minmax(0, 1fr) 220px",
           gap: 1.25,
-          alignItems: "start"
+          alignItems: "stretch",
+          "& > *:not(:last-child)": {
+            position: "relative",
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              top: 4,
+              right: -10,
+              bottom: 4,
+              width: "1px",
+              backgroundColor: theme.vars.palette.grey[800]
+            }
+          }
         }}
       >
         <Box
           sx={{
             minWidth: 0,
-            borderRadius: "12px",
+            borderRadius: "8px",
             border: "1px solid",
             borderColor: alpha(theme.palette.primary.main, 0.28),
             backgroundColor: alpha(theme.palette.primary.main, 0.1),
-            px: 1.1,
-            py: 0.9
+            px: 1.35,
+            py: 1.15
           }}
         >
           <Stack spacing={1}>
@@ -850,7 +989,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   sx={{
                     width: 30,
                     height: 30,
-                    borderRadius: "9px",
+                    borderRadius: "7px",
                     display: "grid",
                     placeItems: "center",
                     backgroundColor: alpha(theme.palette.primary.main, 0.18),
@@ -862,7 +1001,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 <Typography
                   sx={{
                     fontSize: "0.92rem",
-                    fontWeight: 800,
+                    fontWeight: 700,
                     color: "text.primary"
                   }}
                 >
@@ -900,12 +1039,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx={{
             minWidth: 0,
             minHeight: 360,
-            borderRadius: "12px",
+            height: "100%",
+            borderRadius: "8px",
             border: "1px solid",
             borderColor: theme.vars.palette.grey[700],
             backgroundColor: theme.vars.palette.grey[800],
-            px: 1.15,
-            py: 0.95
+            px: 1.35,
+            py: 1.2
           }}
         >
           <SectionLabel>Quick Controls</SectionLabel>
@@ -915,12 +1055,12 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         <Stack spacing={1.1} sx={{ minWidth: 0 }}>
           <Box
             sx={{
-              borderRadius: "12px",
+              borderRadius: "8px",
               border: "1px solid",
               borderColor: theme.vars.palette.grey[700],
               backgroundColor: theme.vars.palette.grey[800],
-              px: 0.95,
-              py: 0.95
+              px: 1.15,
+              py: 1.1
             }}
           >
             <SectionLabel>Tools</SectionLabel>
@@ -937,6 +1077,10 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   definition={definition}
                   selected={definition.tool === activeTool}
                   onClick={() => onToolChange(definition.tool)}
+                  onDoubleClick={() => {
+                    onToolChange(definition.tool);
+                    onClose();
+                  }}
                 />
               ))}
             </Box>
@@ -944,69 +1088,96 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
 
           <Box
             sx={{
-              borderRadius: "12px",
+              borderRadius: "8px",
               border: "1px solid",
               borderColor: theme.vars.palette.grey[700],
               backgroundColor: theme.vars.palette.grey[800],
-              px: 0.95,
-              py: 0.95
+              px: 1.15,
+              py: 1.1
             }}
           >
             <SectionLabel>Canvas</SectionLabel>
-            <Stack spacing={0.8}>
-              <Stack direction="row" spacing={0.8}>
-                <Button
-                  fullWidth
+            <Stack direction="row" spacing={0.8}>
+              <Tooltip title="Undo">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      onUndo();
+                      onClose();
+                    }}
+                    disabled={!canUndo}
+                    aria-label="Undo"
+                    sx={{
+                      border: "1px solid",
+                      borderColor: theme.vars.palette.grey[700],
+                      borderRadius: "8px",
+                      p: 0.65
+                    }}
+                  >
+                    <UndoIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title="Redo">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      onRedo();
+                      onClose();
+                    }}
+                    disabled={!canRedo}
+                    aria-label="Redo"
+                    sx={{
+                      border: "1px solid",
+                      borderColor: theme.vars.palette.grey[700],
+                      borderRadius: "8px",
+                      p: 0.65
+                    }}
+                  >
+                    <RedoIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title="Clear Layer">
+                <IconButton
                   size="small"
-                  variant="outlined"
-                  startIcon={<UndoIcon />}
-                  onClick={onUndo}
-                  disabled={!canUndo}
-                  sx={{ minHeight: 30, fontSize: "0.7rem" }}
-                >
-                  Undo
-                </Button>
-                <Button
-                  fullWidth
-                  size="small"
-                  variant="outlined"
-                  startIcon={<RedoIcon />}
-                  onClick={onRedo}
-                  disabled={!canRedo}
-                  sx={{ minHeight: 30, fontSize: "0.7rem" }}
-                >
-                  Redo
-                </Button>
-              </Stack>
-              <Stack direction="row" spacing={0.8}>
-                <Button
-                  fullWidth
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<DeleteOutlineIcon />}
                   onClick={() => {
                     onClearLayer();
                     onClose();
                   }}
-                  sx={{ minHeight: 30, fontSize: "0.68rem" }}
+                  aria-label="Clear layer"
+                  sx={{
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.error.main, 0.45),
+                    color: "error.main",
+                    borderRadius: "8px",
+                    p: 0.65
+                  }}
                 >
-                  Clear Layer
-                </Button>
-                <Button
-                  fullWidth
+                  <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Export PNG">
+                <IconButton
                   size="small"
-                  variant="contained"
-                  startIcon={<SaveAltIcon />}
                   onClick={() => {
                     onExportPng();
                     onClose();
                   }}
-                  sx={{ minHeight: 30, fontSize: "0.68rem" }}
+                  aria-label="Export PNG"
+                  sx={{
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.primary.main, 0.45),
+                    color: "primary.light",
+                    borderRadius: "8px",
+                    p: 0.65
+                  }}
                 >
-                  Export PNG
-                </Button>
-              </Stack>
+                  <SaveAltIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
             </Stack>
           </Box>
         </Stack>

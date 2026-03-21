@@ -16,7 +16,7 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 
 > Goal: strong base for common sketch / mask workflows.
 
-#### Drawing tools — gaps
+#### Drawing tools — gaps 
 
 | Tool                     | NodeTool today                                | Parity / gaps                                                                                                                                                                 |
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -85,7 +85,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
 - [x] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
 - [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
-- [ ] **Sketch command palette** (canvas right-click) — redesign as the primary in-canvas hub: compact tool DNA, icon-forward tool switcher, bold intentional chrome (see **Sketch command palette** below)
+- [x] **Sketch command palette** (canvas right-click) — redesigned as the primary in-canvas hub: dark-theme 3-column layout, compact quick controls, icon-forward tool switcher, and canvas actions
 - [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
 - [x] improve **Context-sensitive menu** right-click menu: refactor layout: left side for active tool, right for tool selection
 - [x] improve **Context-sensitive menu** bolder design, focus on usability. intuitive menu that can control most features in a quick way.
@@ -98,7 +98,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 > **Intent:** The right-click surface should become the **primary in-canvas command hub**: fast, bold, and obviously designed. It should feel closer to a compact creative-tool palette than a default app menu. A user should be able to open it and instantly answer: **what tool am I on, what are my current settings, and what is the next thing I can do?**
 
-**Problem today:** the current MUI `Menu` feels like a stack of unrelated rows. It is too vertical, too text-heavy, and too timid visually. Important actions and state are present, but they do not read as a system: weak hierarchy, weak recognition, almost no "current context" signal, and too much scanning for common actions.
+**Status:** shipped as a dedicated `SketchCanvasContextMenu.tsx` with a stable **3-column** layout: **current state** on the left, **quick controls** in the center, and **tools + canvas actions** on the right. Uses sketch dark-theme surfaces, opens centered on the mouse, and closes with `Escape`.
+
+**Problem today:** the previous MUI `Menu` felt like a stack of unrelated rows. It was too vertical, too text-heavy, and too timid visually. Important actions and state were present, but they did not read as a system: weak hierarchy, weak recognition, almost no "current context" signal, and too much scanning for common actions.
 
 **Design goal:** make the menu feel like the **heart of the sketch workflow**, not a secondary overflow. It should be the fastest place to:
 
@@ -176,12 +178,12 @@ Note: section 1 is conceptually the **current-state header**, but it should like
 
 **Success criteria / done when:**
 
-- [ ] The menu looks like a **designed tool palette**, not a default framework menu
-- [ ] A user can identify **active tool + key settings** within **~200 ms** of opening it
-- [ ] Brush / pencil / eraser controls are **shorter and clearer** than the current row stack
-- [ ] Tool switching feels faster because the **Tools** section is recognition-based, not reading-based
-- [ ] The four sections are easy to understand and remember: **current state / quick controls / tools / canvas** (with the first section potentially unlabeled in the actual UI)
-- [ ] Common actions can be done with fewer eye movements between canvas, toolbar, and right panel
+- [x] The menu looks like a **designed tool palette**, not a default framework menu
+- [x] A user can identify **active tool + key settings** within **~200 ms** of opening it
+- [x] Brush / pencil / eraser controls are **shorter and clearer** than the previous row stack
+- [x] Tool switching feels faster because the **Tools** section is recognition-based, not reading-based
+- [x] The sections are easy to understand and remember: **current state / quick controls / tools / canvas** (with current state visually integrated rather than loudly labeled)
+- [x] Common actions can be done with fewer eye movements between canvas, toolbar, and right panel
 
 #### Gesture shortcuts (parity — open conflicts)
 

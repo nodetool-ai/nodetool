@@ -170,12 +170,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         const merged = mergeRgbHexIntoColor(detail.color, fg);
         setForegroundColor(merged);
         setBrushSettings({ color: merged });
-        setActiveTool("brush");
       }
     };
     window.addEventListener("sketch-eyedropper", handler);
     return () => window.removeEventListener("sketch-eyedropper", handler);
-  }, [setBrushSettings, setActiveTool, setForegroundColor]);
+  }, [setBrushSettings, setForegroundColor]);
 
   // ─── Alt+click eyedropper pick (stays on current tool) ─────────────
   const handleEyedropperPick = useCallback(
@@ -927,6 +926,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         canRedo={canRedo()}
         onClose={handleContextMenuClose}
         onToolChange={setActiveTool}
+        onForegroundColorChange={setForegroundColor}
         onBrushSettingsChange={setBrushSettings}
         onPencilSettingsChange={setPencilSettings}
         onEraserSettingsChange={setEraserSettings}
