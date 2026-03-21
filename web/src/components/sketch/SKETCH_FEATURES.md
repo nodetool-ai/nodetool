@@ -39,6 +39,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Brush engine variants** (see **Brush types** below)
 - [!] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. implemented but not working!
 - [ ] **Eraser** should paint transparent not black
+- [ ] **Performance** improve performance with big canvas. 2K - 4K gets so slow that brushes do not draw lines but spooted dots
 
 #### Brush types (engine / presets)
 
