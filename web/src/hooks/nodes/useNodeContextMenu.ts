@@ -5,19 +5,16 @@ import { Node } from "@xyflow/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../browser/useClipboard";
 import log from "loglevel";
 
-import useMetadataStore from "../../stores/MetadataStore";
-import { subgraph } from "../../core/graph";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
 import {
   constantToInputType,
   inputToConstantType
 } from "../../utils/NodeTypeMapping";
+import { useRunFromHere } from "./useRunFromHere";
+import { useDuplicateNodes } from "../useDuplicate";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -35,6 +32,8 @@ interface UseNodeContextMenuReturn {
     handleDeleteNode: () => void;
     handleConvertToInput: () => void;
     handleConvertToConstant: () => void;
+    handleDuplicate: () => void;
+    handleDuplicateVertical: () => void;
   };
   conditions: {
     hasCommentTitle: boolean;
@@ -61,9 +60,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     getSelectedNodes,
     toggleBypass,
     nodes,
-    edges,
-    workflow,
-    findNode
+    setSelectedNodes
   } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
@@ -72,34 +69,20 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     getSelectedNodes: state.getSelectedNodes,
     toggleBypass: state.toggleBypass,
     nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow,
-    findNode: state.findNode
+    setSelectedNodes: state.setSelectedNodes
   }));
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;
   const nodeData = node?.data;
-  
-  // Debug logging for context menu node lookup
-  if (nodeId) {
-    console.log(`[useNodeContextMenu] Looking up nodeId=${nodeId}, found=${!!rawNode}, node.type=${rawNode?.type}, nodes.length=${nodes.length}`);
-  }
-  
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const navigate = useNavigate();
 
-  const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
-  );
-  const getResult = useResultsStore((state) => state.getResult);
+  const { runFromHere, isWorkflowRunning } = useRunFromHere(node);
+
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
@@ -113,122 +96,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
 
   const handleRunFromHere = useCallback(() => {
-    if (!node || !nodeId || isWorkflowRunning) {
-      return;
-    }
-
-    const downstream = subgraph(edges, nodes, node as Node<NodeData>);
-    const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-
-    const externalInputEdges = edges.filter(
-      (edge) =>
-        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
-    );
-
-    const nodePropertyOverrides = new Map<string, Record<string, any>>();
-
-    for (const edge of externalInputEdges) {
-      const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle;
-      const targetNodeId = edge.target;
-      const targetHandle = edge.targetHandle;
-
-      if (!targetHandle) {
-        continue;
-      }
-
-      const { value, hasValue, isFallback } = resolveExternalEdgeValue(
-        edge,
-        workflow.id,
-        getResult,
-        findNode
-      );
-      if (!hasValue) {
-        continue;
-      }
-
-      const existing = nodePropertyOverrides.get(targetNodeId) || {};
-      existing[targetHandle] = value;
-      nodePropertyOverrides.set(targetNodeId, existing);
-
-      log.info(
-        `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-        {
-          sourceHandle,
-          valueSource: isFallback ? "node" : "cached_result"
-        }
-      );
-    }
-
-    const nodesWithCachedValues = downstream.nodes.map((n) => {
-      const overrides = nodePropertyOverrides.get(n.id);
-      if (overrides && Object.keys(overrides).length > 0) {
-        const dynamicProps = n.data?.dynamic_properties || {};
-        const staticProps = n.data?.properties || {};
-        const updatedDynamicProps = { ...dynamicProps };
-        const updatedStaticProps = { ...staticProps };
-
-        for (const [key, value] of Object.entries(overrides)) {
-          if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-            updatedDynamicProps[key] = value;
-          } else {
-            updatedStaticProps[key] = value;
-          }
-        }
-
-        return {
-          ...n,
-          data: {
-            ...n.data,
-            properties: {
-              ...updatedStaticProps
-            },
-            dynamic_properties: {
-              ...updatedDynamicProps
-            }
-          }
-        };
-      }
-      return n;
-    });
-
-    const nodesWithOverrides = nodePropertyOverrides.size;
-    const totalPropertiesInjected = Array.from(
-      nodePropertyOverrides.values()
-    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
-
-    log.info("Running downstream subgraph from node", {
-      startNodeId: nodeId,
-      nodeCount: nodesWithCachedValues.length,
-      edgeCount: downstream.edges.length,
-      nodesWithCachedDependencies: nodesWithOverrides,
-      totalCachedPropertiesInjected: totalPropertiesInjected
-    });
-
-    run({}, workflow, nodesWithCachedValues, downstream.edges);
-
-    addNotification({
-      type: "info",
-      alert: false,
-      content: `Running workflow from ${
-        metadata?.title || node?.type || "node"
-      }`
-    });
+    runFromHere();
     closeContextMenu();
-  }, [
-    node,
-    nodeId,
-    isWorkflowRunning,
-    edges,
-    nodes,
-    workflow,
-    getResult,
-    run,
-    addNotification,
-    metadata,
-    closeContextMenu,
-    findNode
-  ]);
+  }, [runFromHere, closeContextMenu]);
 
   const handleToggleBypass = useCallback(() => {
     if (!nodeId) {
@@ -335,6 +205,41 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     closeContextMenu
   ]);
 
+  const duplicateNode = useDuplicateNodes(false, true);
+  const duplicateNodeVertical = useDuplicateNodes(true, true);
+
+  const handleDuplicate = useCallback(() => {
+    if (!node) {
+      return;
+    }
+    // Select the current node if it's not already selected
+    const selectedNodes = getSelectedNodes();
+    if (!selectedNodes.some((n) => n.id === node.id)) {
+      setSelectedNodes([node]);
+    }
+    duplicateNode();
+    closeContextMenu();
+  }, [node, getSelectedNodes, setSelectedNodes, duplicateNode, closeContextMenu]);
+
+  const handleDuplicateVertical = useCallback(() => {
+    if (!node) {
+      return;
+    }
+    // Select the current node if it's not already selected
+    const selectedNodes = getSelectedNodes();
+    if (!selectedNodes.some((n) => n.id === node.id)) {
+      setSelectedNodes([node]);
+    }
+    duplicateNodeVertical();
+    closeContextMenu();
+  }, [
+    node,
+    getSelectedNodes,
+    setSelectedNodes,
+    duplicateNodeVertical,
+    closeContextMenu
+  ]);
+
   const canConvertToInput = Boolean(
     nodeId && constantToInputType(node?.type ?? "")
   );
@@ -358,7 +263,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleSelectAllSameType,
       handleDeleteNode,
       handleConvertToInput,
-      handleConvertToConstant
+      handleConvertToConstant,
+      handleDuplicate,
+      handleDuplicateVertical
     },
     conditions: {
       hasCommentTitle,

@@ -6,6 +6,7 @@ import { IconButton, Tooltip } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { memo, useMemo } from "react";
 
 const styles = (theme: Theme, isBypassed: boolean) =>
   css({
@@ -42,28 +43,54 @@ interface BypassGroupButtonProps {
   onClick: () => void;
 }
 
-const BypassGroupButton: React.FC<BypassGroupButtonProps> = ({
+const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
   isBypassed,
   onClick
 }) => {
   const theme = useTheme();
+
+  const tooltipContainerStyles = useMemo(
+    () => ({
+      display: "flex" as const,
+      flexDirection: "column" as const,
+      alignItems: "center" as const,
+      gap: "0.1em",
+    }),
+    []
+  );
+
+  const titleTextStyles = useMemo(
+    () => ({
+      fontSize: "1.1em",
+      color: "white",
+    }),
+    []
+  );
+
+  const shortcutStyles = useMemo(
+    () => ({
+      fontSize: ".85em",
+      color: "rgba(255,255,255,0.7)",
+    }),
+    []
+  );
+
+  const buttonStyles = useMemo(
+    () => styles(theme, isBypassed),
+    [theme, isBypassed]
+  );
 
   return (
     <Tooltip
       title={
         <div
           className="tooltip-span"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.1em"
-          }}
+          style={tooltipContainerStyles}
         >
-          <span style={{ fontSize: "1.1em", color: "white" }}>
+          <span style={titleTextStyles}>
             {isBypassed ? "Enable All Nodes" : "Bypass All Nodes"}
           </span>
-          <span style={{ fontSize: ".85em", color: "rgba(255,255,255,0.7)" }}>
+          <span style={shortcutStyles}>
             <kbd>B</kbd>
           </span>
         </div>
@@ -73,7 +100,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = ({
       <IconButton
         size="small"
         tabIndex={-1}
-        css={styles(theme, isBypassed)}
+        css={buttonStyles}
         className="bypass-button"
         onClick={onClick}
       >
@@ -81,7 +108,9 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = ({
       </IconButton>
     </Tooltip>
   );
-};
+});
+
+BypassGroupButton.displayName = "BypassGroupButton";
 
 export default BypassGroupButton;
 

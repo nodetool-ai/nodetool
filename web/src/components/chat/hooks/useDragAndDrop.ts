@@ -7,6 +7,10 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../../lib/dragdrop";
+import log from "loglevel";
+
+// Generate a unique ID for each file
+const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export const useDragAndDrop = (
   onFilesDropped: (files: File[]) => void,
@@ -53,6 +57,7 @@ export const useDragAndDrop = (
             uniqueAssets.forEach(asset => {
               if (asset.get_url) {
                 droppedFiles.push({
+                  id: generateFileId(),
                   dataUri: asset.get_url,
                   type: asset.content_type || "application/octet-stream",
                   name: asset.name
@@ -66,6 +71,7 @@ export const useDragAndDrop = (
             const asset = dragData.payload as Asset;
             if (asset.get_url) {
               droppedFiles.push({
+                id: generateFileId(),
                 dataUri: asset.get_url,
                 type: asset.content_type || "application/octet-stream",
                 name: asset.name
@@ -82,6 +88,7 @@ export const useDragAndDrop = (
                 const asset: Asset = JSON.parse(assetJson);
                 if (asset.get_url) {
                   droppedFiles.push({
+                    id: generateFileId(),
                     dataUri: asset.get_url,
                     type: asset.content_type || "application/octet-stream",
                     name: asset.name
@@ -99,7 +106,7 @@ export const useDragAndDrop = (
           }
 
         } catch (err) {
-          console.error("Failed to process dropped asset", err);
+          log.error("Failed to process dropped asset", err);
         }
       }
 

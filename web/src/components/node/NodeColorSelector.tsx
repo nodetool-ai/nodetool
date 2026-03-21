@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -99,7 +99,7 @@ interface NodeColorSelectorProps {
   alwaysVisible?: boolean;
 }
 
-export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
+export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
   onColorChange,
   alwaysVisible = false
 }) => {
@@ -121,12 +121,25 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
     setSearchTerm(search);
   }, []);
 
+  const handleModalOpen = useCallback(() => {
+    setModalOpen(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+  }, []);
+
   const handleColorChangeAndClose = useCallback(
-    (color: string) => {
+    (color: string) => () => {
       onColorChange(color);
       setModalOpen(false);
     },
     [onColorChange]
+  );
+
+  const createColorClickHandler = useCallback(
+    (color: string) => () => handleColorChangeAndClose(color),
+    [handleColorChangeAndClose]
   );
 
   return (
@@ -134,14 +147,14 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
       <IconButton
         size="small"
         className="color-picker-button"
-        onClick={() => setModalOpen(true)}
+        onClick={handleModalOpen}
       >
         <ColorizeIcon />
       </IconButton>
       <Dialog
         css={colorSelectDialogStyles(theme)}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleModalClose}
       >
         <DialogTitle style={{ backgroundColor: "transparent" }}>
           Select a color
@@ -166,7 +179,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
                     "lighten"
                   )
                 }}
-                onClick={() => handleColorChangeAndClose(datatype.color)}
+                onClick={createColorClickHandler(datatype.color)}
               >
                 <Typography
                   style={{
@@ -182,4 +195,6 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
       </Dialog>
     </div>
   );
-};
+});
+
+NodeColorSelector.displayName = "NodeColorSelector";

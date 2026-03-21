@@ -55,6 +55,10 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   const dragStartY = useRef(0);
   const startHeight = useRef(0);
+  const dragHandlersRef = useRef<{
+    handleMouseMove?: ((e: MouseEvent) => void);
+    handleMouseUp?: (() => void);
+  }>({});
 
   const handleResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -70,7 +74,10 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
       const handleMouseUp = () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        dragHandlersRef.current = {};
       };
+
+      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
@@ -83,9 +90,17 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
   useEffect(() => {
     return () => {
       try {
-        (saveHeightToStorage as any).cancel?.();
+        (saveHeightToStorage as unknown as { cancel?: () => void }).cancel?.();
       } catch {
         /* empty */
+      }
+      // Clean up any remaining drag event listeners on unmount
+      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
+      if (handleMouseMove) {
+        document.removeEventListener("mousemove", handleMouseMove);
+      }
+      if (handleMouseUp) {
+        document.removeEventListener("mouseup", handleMouseUp);
       }
     };
   }, [saveHeightToStorage]);
@@ -94,13 +109,13 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 }
 
 // local utility to avoid importing lodash globally here; caller may already bundle lodash
-function debounce<T extends (...args: any[]) => void>(fn: T, wait: number) {
+function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T & { cancel: () => void } {
   let t: number | undefined;
   const debounced = (...args: Parameters<T>) => {
     if (t) {window.clearTimeout(t);}
     t = window.setTimeout(() => fn(...args), wait);
   };
-  (debounced as any).cancel = () => {
+  (debounced as T & { cancel: () => void }).cancel = () => {
     if (t) {
       window.clearTimeout(t);
       t = undefined;

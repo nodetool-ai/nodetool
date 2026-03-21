@@ -106,7 +106,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 ### Using Bypass for Debugging
 
-Bypass is a powerful debugging tool:
+Bypass is a useful debugging technique:
 
 - **Isolate issues**: Bypass nodes one at a time to find the problem
 - **Compare outputs**: Toggle bypass to see before/after results
@@ -240,5 +240,6 @@ Press `Alt/⌘ + K` to open the command menu – the fastest way to:
 ## Next Steps
 
 - **[Workflow Editor](workflow-editor.md)** – Full editor documentation
+- **[Image Editor](image-editor.md)** – Professional image editing guide
 - **[Cookbook](cookbook.md)** – Workflow patterns
 - **[Keyboard Shortcuts](user-interface.md#keyboard-shortcuts)** – Complete list

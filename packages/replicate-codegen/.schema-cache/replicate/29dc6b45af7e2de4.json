@@ -1,0 +1,41 @@
+{
+  "modelId": "nightmareai/real-esrgan",
+  "owner": "nightmareai",
+  "name": "real-esrgan",
+  "version": "b3ef194191d13140337468c916c2c5b96dd0cb06dffc032a022a31807f6a5ea8",
+  "description": "Real-ESRGAN with optional face correction and adjustable upscale",
+  "inputSchema": {
+    "properties": {
+      "face_enhance": {
+        "default": false,
+        "description": "Run GFPGAN face enhancement along with upscaling",
+        "title": "Face Enhance",
+        "type": "boolean"
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "scale": {
+        "default": 4,
+        "description": "Factor to scale image by",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Scale",
+        "type": "number"
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

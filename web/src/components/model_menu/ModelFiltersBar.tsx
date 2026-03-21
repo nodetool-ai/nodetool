@@ -49,12 +49,10 @@ interface ModelFiltersBarProps {
 }
 
 const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
-  const {
-    selectedTypes,
-    sizeBucket,
-    toggleType,
-    setSizeBucket
-  } = useModelFiltersStore();
+  const selectedTypes = useModelFiltersStore((state) => state.selectedTypes);
+  const sizeBucket = useModelFiltersStore((state) => state.sizeBucket);
+  const toggleType = useModelFiltersStore((state) => state.toggleType);
+  const setSizeBucket = useModelFiltersStore((state) => state.setSizeBucket);
 
   // Local anchors for persistent menus
   const [typeAnchor, setTypeAnchor] = React.useState<null | HTMLElement>(null);
@@ -71,6 +69,7 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
           onClick={(e) => setTypeAnchor(e.currentTarget)}
           size="small"
           color={selectedTypes.length || openType ? "primary" : "default"}
+          aria-label="Filter by Type"
         >
           <CategoryIcon fontSize="small" />
         </IconButton>
@@ -101,6 +100,7 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
           onClick={(e) => setSizeAnchor(e.currentTarget)}
           size="small"
           color={sizeBucket || openSize ? "primary" : "default"}
+          aria-label="Filter by Size"
         >
           <StraightenIcon fontSize="small" />
         </IconButton>

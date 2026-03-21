@@ -82,7 +82,7 @@ describe("AudioQueueStore", () => {
   });
 
   describe("dequeue", () => {
-    it("stops currently playing item and plays next", () => {
+    it("clears current playing item without auto-playing next", () => {
       const onPlay1 = jest.fn();
       const onStop1 = jest.fn();
       const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
@@ -97,8 +97,11 @@ describe("AudioQueueStore", () => {
         useAudioQueue.getState().dequeue("audio1");
       });
 
-      expect(onPlay2).toHaveBeenCalledTimes(1);
-      expect(useAudioQueue.getState().currentPlayingId).toBe("audio2");
+      // Dequeue clears current without auto-playing next
+      expect(useAudioQueue.getState().currentPlayingId).toBeNull();
+      // The queue still contains the next item
+      expect(useAudioQueue.getState().queue).toHaveLength(1);
+      expect(useAudioQueue.getState().queue[0].id).toBe("audio2");
     });
 
     it("removes item from queue without affecting current playback", () => {

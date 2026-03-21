@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -74,7 +75,7 @@ interface AssetGridContentProps {
   onDoubleClick?: (asset: Asset) => void;
 }
 
-const AssetGridContent: React.FC<AssetGridContentProps> = ({
+const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   itemSpacing = 2,
   assets: propAssets,
   isHorizontal,
@@ -95,7 +96,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   // *before* we compute the prepared items that depend on it, so that the
   // hook order remains stable.
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "text", "other"])
+    new Set(["folder", "image", "audio", "video", "model_3d", "text", "other"])
   );
 
   // Prepare items (adds dividers, respects expanded types)
@@ -281,12 +282,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     return data;
   }, [stableItemData, selectionData]);
 
-  // useEffect(() => {
-  //   if (!propAssets) {
-  //     fetchAssets().then(() => {});
-  //   }
-  // }, [selectedFolderId, fetchAssets, propAssets, assets]);
-
   useEffect(() => {
     if (containerRef.current) {
       const resizeObserver = new ResizeObserver((entries) => {
@@ -386,6 +381,18 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       </div>
     </div>
   );
-};
+});
 
-export default AssetGridContent;
+AssetGridContent.displayName = 'AssetGridContent';
+
+// Memoize component to prevent unnecessary re-renders
+// AssetGridContent is used in contexts where parent updates frequently
+// but the grid itself doesn't need to re-render
+export default React.memo(AssetGridContent, (prevProps, nextProps) => {
+  return (
+    prevProps.itemSpacing === nextProps.itemSpacing &&
+    prevProps.isHorizontal === nextProps.isHorizontal &&
+    prevProps.assets === nextProps.assets &&
+    prevProps.onDoubleClick === nextProps.onDoubleClick
+  );
+});

@@ -5,15 +5,15 @@ import {
   Typography,
   CircularProgress,
   Fade,
-  Chip,
   Tooltip
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import { chipsContainerSx, chipSx } from "./WorkflowCard.styles";
+
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
 
 interface WorkflowCardProps {
@@ -31,6 +31,7 @@ const cardStyles = (theme: Theme) =>
     flexDirection: "column",
     width: "100%",
     height: "100%",
+    minHeight: "260px",
     borderRadius: "12px",
     overflow: "hidden",
     cursor: "pointer",
@@ -40,7 +41,7 @@ const cardStyles = (theme: Theme) =>
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
-      boxShadow: `0 8px 24px rgba(0, 0, 0, 0.3)`
+      boxShadow: `0 8px 24px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
     },
 
     "&:hover .chips-container": {
@@ -61,7 +62,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.75)",
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.75),
       backdropFilter: "blur(4px)",
       zIndex: 10,
       borderRadius: "12px"
@@ -97,7 +98,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "0.65rem",
       fontWeight: 600,
       letterSpacing: "0.5px",
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: hexToRgba(theme.vars.palette.common.black, 0.6),
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: "4px 8px",
@@ -138,7 +139,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       padding: "12px 14px",
       flex: 1,
-      minHeight: 0
+      minHeight: "60px"
     },
     ".card-title": {
       fontSize: "0.95rem",
@@ -201,7 +202,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             padding: "10px 14px",
             maxWidth: 300,
             borderRadius: "8px",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"
+            boxShadow: `0 4px 20px ${hexToRgba(theme.vars.palette.common.black, 0.3)}`
           }
         },
         arrow: {
@@ -264,46 +265,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           <Typography component="h3" className="card-title">
             {workflow.name}
           </Typography>
-
-
-
-          <Box className="chips-container" sx={chipsContainerSx}>
-            {workflow.required_providers &&
-              workflow.required_providers.map((prov: string) => (
-                <Chip
-                  key={`prov-${prov}`}
-                  label={prov}
-                  title={prov}
-                  size="small"
-                  variant="outlined"
-                  sx={chipSx(theme, "secondary")}
-                />
-              ))}
-
-            {workflow.required_models &&
-              workflow.required_models
-                .slice(0, 3)
-                .map((model: string) => (
-                  <Chip
-                    key={`model-${model}`}
-                    label={model}
-                    title={model}
-                    size="small"
-                    variant="outlined"
-                    sx={chipSx(theme, "primary")}
-                  />
-                ))}
-
-            {workflow.required_models &&
-              workflow.required_models.length > 3 && (
-                <Chip
-                  label={`+${workflow.required_models.length - 3}`}
-                  size="small"
-                  variant="outlined"
-                  sx={chipSx(theme, "info", { uppercase: false })}
-                />
-              )}
-          </Box>
         </Box>
       </Box>
     </Tooltip>

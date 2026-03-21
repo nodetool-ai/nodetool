@@ -1,8 +1,40 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../contexts/NodeContext";
+import { v4 as uuidv4 } from "uuid";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
+/**
+ * Custom hook providing batch operations for selected nodes in the workflow editor.
+ * 
+ * This hook provides a comprehensive set of alignment, distribution, and manipulation
+ * actions for multiple selected nodes including:
+ * - Alignment: Left, Center, Right, Top, Middle, Bottom
+ * - Distribution: Horizontal and vertical spacing
+ * - Operations: Delete, Duplicate, Group, Bypass
+ * 
+ * All operations work with the currently selected nodes retrieved via getSelectedNodes().
+ * Actions that require multiple nodes (align, distribute) will silently do nothing if
+ * fewer than 2 nodes are selected.
+ * 
+ * @returns SelectionActionsReturn object containing all batch operation callbacks
+ * 
+ * @example
+ * ```typescript
+ * const { alignLeft, distributeHorizontal, deleteSelected } = useSelectionActions();
+ * 
+ * // Align selected nodes to the left edge
+ * alignLeft();
+ * 
+ * // Distribute selected nodes evenly
+ * distributeHorizontal();
+ * 
+ * // Delete all selected nodes
+ * deleteSelected();
+ * ```
+ * 
+ * @see useAlignNodes - For single-node alignment with grid snapping
+ * @see useDuplicateNodes - For duplicating individual nodes
+ */
 interface SelectionActionsReturn {
   alignLeft: () => void;
   alignCenter: () => void;
@@ -18,16 +50,43 @@ interface SelectionActionsReturn {
   bypassSelected: () => void;
 }
 
+/**
+ * Custom hook providing selection-based node actions.
+ * 
+ * Provides alignment (left, center, right, top, middle, bottom),
+ * distribution (horizontal, vertical), and manipulation actions
+ * (delete, duplicate, group, bypass) for selected nodes.
+ * 
+ * @returns Object containing all selection action functions
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   alignLeft,
+ *   distributeHorizontal,
+ *   deleteSelected
+ * } = useSelectionActions();
+ * ```
+ */
 const NODE_WIDTH = 280;
-const NODE_HEIGHT = 50;
 const HORIZONTAL_SPACING = 40;
 const VERTICAL_SPACING = 20;
 
+const getNodeWidth = (node: { measured?: { width?: number } }) =>
+  node.measured?.width ?? NODE_WIDTH;
+const getNodeHeight = (node: { measured?: { height?: number } }) =>
+  node.measured?.height ?? 0;
+
 export const useSelectionActions = (): SelectionActionsReturn => {
+  // Use store ref to avoid subscribing to entire nodes/edges arrays
+  // Only subscribe to the functions we need
+  const setNodes = useNodes((state) => state.setNodes);
+  const setEdges = useNodes((state) => state.setEdges);
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
-  const deleteNode = useNodes((state) => state.deleteNode);
+  const deleteNodes = useNodes((state) => state.deleteNodes);
+  const deleteEdges = useNodes((state) => state.deleteEdges);
   const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
-  const reactFlow = useReactFlow();
+  const store = useNodeStoreRef();
   const surroundWithGroup = useSurroundWithGroup();
 
   const alignLeft = useCallback(() => {
@@ -37,16 +96,18 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     }
 
     const leftMostX = Math.min(...selectedNodes.map((n) => n.position.x));
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           return { ...node, position: { ...node.position, x: leftMostX } };
         }
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignCenter = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -61,9 +122,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return sum + n.position.x + nodeWidth / 2;
       }, 0) / selectedNodes.length;
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
           return {
             ...node,
@@ -73,7 +137,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignRight = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -87,9 +151,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       )
     );
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
           return {
             ...node,
@@ -99,7 +166,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignTop = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -108,16 +175,18 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     }
 
     const topMostY = Math.min(...selectedNodes.map((n) => n.position.y));
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           return { ...node, position: { ...node.position, y: topMostY } };
         }
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignMiddle = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -132,9 +201,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return sum + n.position.y + nodeHeight / 2;
       }, 0) / selectedNodes.length;
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeHeight = node.measured?.height ?? 0;
           return {
             ...node,
@@ -144,7 +216,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignBottom = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -156,9 +228,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       ...selectedNodes.map((n) => n.position.y + (n.measured?.height ?? 0))
     );
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeHeight = node.measured?.height ?? 0;
           return {
             ...node,
@@ -168,7 +243,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const distributeHorizontal = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -186,18 +261,16 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
 
-    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
     let currentX = leftMostX;
-
     sortedByX.forEach((node) => {
       positionMap.set(node.id, currentX);
-      const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-      currentX += nodeWidth + HORIZONTAL_SPACING;
+      currentX += getNodeWidth(node) + HORIZONTAL_SPACING;
     });
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
         const newX = positionMap.get(node.id);
         if (newX !== undefined) {
           return { ...node, position: { ...node.position, x: newX } };
@@ -205,7 +278,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const distributeVertical = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -223,18 +296,16 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
 
-    // Create position map with fixed spacing (like arrange shortcut)
     const positionMap = new Map<string, number>();
     let currentY = topMostY;
-
     sortedByY.forEach((node) => {
       positionMap.set(node.id, currentY);
-      const nodeHeight = node.measured?.height ?? NODE_HEIGHT;
-      currentY += nodeHeight + VERTICAL_SPACING;
+      currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    const { nodes } = store.getState();
+    setNodes(
+      nodes.map((node) => {
         const newY = positionMap.get(node.id);
         if (newY !== undefined) {
           return { ...node, position: { ...node.position, y: newY } };
@@ -242,14 +313,18 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    selectedNodes.forEach((node) => {
-      deleteNode(node.id);
-    });
-  }, [getSelectedNodes, deleteNode]);
+    deleteNodes(selectedNodes.map((node) => node.id));
+
+    const { edges } = store.getState();
+    const selectedEdgeIds = edges
+      .filter((edge) => edge.selected)
+      .map((edge) => edge.id);
+    deleteEdges(selectedEdgeIds);
+  }, [getSelectedNodes, deleteNodes, store, deleteEdges]);
 
   const duplicateSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -260,50 +335,52 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     // Use larger offset for better spacing
     const offset = 50;
 
-    reactFlow.setNodes((currentNodes) => {
-      const newNodes: typeof currentNodes = [];
-      const nodeIdMap: Record<string, string> = {};
+    const nodeIdMap: Record<string, string> = {};
+    const newNodes = selectedNodes.map((node) => {
+      const newId = uuidv4();
+      nodeIdMap[node.id] = newId;
 
-      selectedNodes.forEach((node) => {
-        const newId = `${node.id}_copy_${Date.now()}`;
-        nodeIdMap[node.id] = newId;
-
-        newNodes.push({
-          ...node,
-          id: newId,
-          position: {
-            x: node.position.x + offset,
-            y: node.position.y + offset
-          },
-          selected: true,
-          data: { ...node.data }
-        });
-      });
-
-      const newEdges = reactFlow.getEdges().map((edge) => {
-        if (nodeIdMap[edge.source] && nodeIdMap[edge.target]) {
-          return {
-            ...edge,
-            id: `${edge.id}_copy`,
-            source: nodeIdMap[edge.source],
-            target: nodeIdMap[edge.target],
-            selected: true
-          };
-        }
-        return { ...edge, selected: false };
-      });
-
-      reactFlow.setEdges(newEdges);
-
-      // Deselect original nodes, keep only new nodes selected
-      return [
-        ...currentNodes.map((node) =>
-          node.selected ? { ...node, selected: false } : node
-        ),
-        ...newNodes
-      ];
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + offset,
+          y: node.position.y + offset
+        },
+        selected: true,
+        data: { ...node.data }
+      };
     });
-  }, [getSelectedNodes, reactFlow]);
+
+    // Get current state from store
+    const { nodes, edges } = store.getState();
+
+    // Create new edges for duplicated nodes (only for edges where both nodes are duplicated)
+    const selectedNodeIds = selectedNodes.map((n) => n.id);
+    const newEdges = edges
+      .filter(
+        (edge) =>
+          selectedNodeIds.includes(edge.source) &&
+          selectedNodeIds.includes(edge.target)
+      )
+      .map((edge) => ({
+        ...edge,
+        id: uuidv4(),
+        source: nodeIdMap[edge.source],
+        target: nodeIdMap[edge.target],
+        selected: true
+      }));
+
+    // Deselect original nodes and add new duplicated nodes
+    const updatedNodes = nodes.map((node) => ({
+      ...node,
+      selected: false
+    }));
+
+    // Update state using NodeStore (not ReactFlow directly)
+    setNodes([...updatedNodes, ...newNodes]);
+    setEdges([...edges, ...newEdges]);
+  }, [getSelectedNodes, setNodes, setEdges, store]);
 
   const groupSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

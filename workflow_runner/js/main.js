@@ -186,9 +186,12 @@ async function runWorkflow() {
 
     const result = await workflowRunner.run(workflowId, params);
     updateOutput("Workflow completed successfully", "success");
+    updateOutput("Result: " + JSON.stringify(result, null, 2), "success");
     handleResult(result);
+    return result;
   } catch (error) {
     updateOutput("Error: " + error.message, "error");
+    throw error;
   } finally {
     hideProgressBar();
     const previewStatus = document.getElementById("previewStatus");
@@ -288,7 +291,7 @@ function updateNodeStatus(nodeId, status) {
  */
 function handlePreviewUpdate(update) {
   console.log("Preview update:", update);
-  window.previewResults[update.nodeId] = update.value;
+  window.previewResults[update.node_id] = update.value;
   
   // Show preview status indicator
   const previewStatus = document.getElementById("previewStatus");
@@ -297,7 +300,7 @@ function handlePreviewUpdate(update) {
   }
   
   // Update the UI with preview data
-  updatePreviewField(update.nodeId, update.value);
+  updatePreviewField(update.node_id, update.value);
 }
 
 /**
@@ -305,10 +308,10 @@ function handlePreviewUpdate(update) {
  */
 function handleOutputUpdate(update) {
   console.log("Output update:", update);
-  window.outputResults[update.nodeId] = update.value;
+  window.outputResults[update.node_id] = update.value;
   
   // Update the UI with output data
-  updateResultField(update.nodeId, update.value, "output");
+  updateResultField(update.node_id, update.value, update.output_type || "output");
 }
 
 /**
@@ -318,15 +321,29 @@ function handleJobUpdate(update) {
   console.log("Job update:", update);
   
   if (update.status === "running") {
-    updateOutput(`Job started: ${update.job_id}`, "info");
+    if (update.message) {
+      updateOutput(update.message, "info");
+    } else {
+      updateOutput(`Job started: ${update.job_id}`, "info");
+    }
+  } else if (update.status === "queued") {
+    updateOutput("Worker is booting (may take 15 seconds)...", "info");
   } else if (update.status === "completed") {
-    updateOutput("Job completed!", "success");
-  } else if (update.status === "failed") {
-    updateOutput(`Job failed: ${update.error || "Unknown error"}`, "error");
+    const durationMsg = update.duration
+      ? ` in ${update.duration.toPrecision(2)} seconds`
+      : "";
+    updateOutput(`Job completed${durationMsg}!`, "success");
+  } else if (update.status === "failed" || update.status === "timed_out") {
+    updateOutput(`Job ${update.status}: ${update.error || "Unknown error"}`, "error");
   } else if (update.status === "cancelled") {
     updateOutput("Job cancelled", "warning");
   } else if (update.status === "suspended") {
-    updateOutput(`Job suspended: ${update.message || "Waiting for input"}`, "warning");
+    const reason = (update.run_state && update.run_state.suspension_reason)
+      || update.message
+      || "Waiting for input";
+    updateOutput(`Job suspended: ${reason}`, "warning");
+  } else if (update.status === "paused") {
+    updateOutput("Job paused", "info");
   }
 }
 
@@ -337,13 +354,13 @@ function handleNodeUpdate(update) {
   console.log("Node update:", update);
   
   if (update.error) {
-    updateOutput(`Node "${update.nodeName || update.nodeId}" error: ${update.error}`, "error");
-    updateNodeStatus(update.nodeId, "error");
+    updateOutput(`Node "${update.node_name || update.node_id}" error: ${update.error}`, "error");
+    updateNodeStatus(update.node_id, "error");
   } else if (update.status) {
-    updateOutput(`Node "${update.nodeName || update.nodeId}": ${update.status}`, "info");
+    updateOutput(`Node "${update.node_name || update.node_id}": ${update.status}`, "info");
     // Map status to graph status
     let graphStatus = null;
-    if (update.status === "running") {
+    if (update.status === "running" || update.status === "starting") {
       graphStatus = "running";
     } else if (update.status === "completed") {
       graphStatus = "completed";
@@ -351,7 +368,7 @@ function handleNodeUpdate(update) {
       graphStatus = "running";
     }
     if (graphStatus) {
-      updateNodeStatus(update.nodeId, graphStatus);
+      updateNodeStatus(update.node_id, graphStatus);
     }
   }
 }
@@ -439,8 +456,11 @@ function initApp() {
   workflowRunner = new WorkflowRunner(apiUrl, workerUrl);
   
   // Set up handlers
-  workflowRunner.onProgress = (progress) => {
-    updateProgress(progress);
+  workflowRunner.onProgress = (progressData) => {
+    if (typeof progressData.total === "number" && progressData.total > 0) {
+      const percentage = (progressData.progress / progressData.total) * 100;
+      updateProgress(percentage);
+    }
   };
   
   workflowRunner.onMessage = (message) => {

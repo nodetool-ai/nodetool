@@ -4,6 +4,8 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import type { NodeStore, NodeStoreState } from "../stores/NodeStore";
+import log from "loglevel";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -13,6 +15,17 @@ interface UseInputMinMaxOptions {
   propertyMax?: number | null;
 }
 
+/**
+ * Hook for determining min/max bounds for numeric input fields.
+ * 
+ * @example
+ * const { min, max } = useInputMinMax({
+ *   nodeId: "node-123",
+ *   propertyName: "value",
+ *   propertyMin: 0,
+ *   propertyMax: 100
+ * });
+ */
 export const useInputMinMax = ({
   nodeType,
   nodeId,
@@ -29,8 +42,8 @@ export const useInputMinMax = ({
   const context = useContext(NodeContext);
 
   const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
-    context ?? { subscribe: () => {}, getState: () => ({ nodes: [] }) } as any,
-    (state: any) => state?.nodes ?? [],
+    context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as unknown as NodeStore,
+    (state: unknown) => (state as NodeStoreState)?.nodes ?? [],
     shallow
   );
 
@@ -43,7 +56,7 @@ export const useInputMinMax = ({
     nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
 
     if (process.env.NODE_ENV === "development") {
-      console.log("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+      log.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
     }
   }
 
@@ -58,7 +71,7 @@ export const useInputMinMax = ({
       ? nodeMax
       : typeof propertyMax === "number"
         ? propertyMax
-        : 100;
+        : 99999;
 
   return { min, max };
 };

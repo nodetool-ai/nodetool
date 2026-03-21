@@ -15,14 +15,7 @@ import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
-
-type NamespaceTree = {
-  [key: string]: {
-    children: NamespaceTree;
-    disabled: boolean;
-    requiredKey?: string;
-  };
-};
+import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -40,7 +33,7 @@ const namespaceStyles = (theme: Theme) =>
       overflow: "auto"
     },
     "& h4": {
-      fontSize: "1em",
+      fontSize: theme.fontSizeSmall,
       color: "var(--palette-primary-main)"
     },
     ".info-box": {
@@ -68,21 +61,22 @@ const namespaceStyles = (theme: Theme) =>
       width: "100%",
       flex: "1 1 auto",
       minHeight: 0,
-      overflow: "auto"
+      overflow: "hidden"
     },
     ".node-list": {
       height: "100%",
       maxHeight: "750px",
-      flex: "1 1 auto",
+      flex: "1 1 0",
+      minWidth: "320px",
       backgroundColor: "transparent",
       transition: "max-width 0.35s ease, width 0.35s ease",
       overflowX: "hidden",
       overflowY: "auto",
-      padding: "0 0.5em"
+      padding: "0 0.35em"
     },
     ".node-list.expanded": {
       width: "100%",
-      maxWidth: "700px"
+      maxWidth: "none"
     },
     ".node-list::-webkit-scrollbar": { width: "6px" },
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
@@ -108,6 +102,13 @@ const namespaceStyles = (theme: Theme) =>
       animationDelay: ".5s",
       visibility: "hidden",
       overflow: "hidden"
+    },
+    "&.home-layout .no-selection": {
+      display: "none"
+    },
+    "&.home-layout .quick-action-tiles-container": {
+      flex: "1 1 auto",
+      minWidth: 0
     },
     "@keyframes fadeIn": {
       from: {
@@ -153,7 +154,7 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em .75em .2em .75em",
+      padding: "0.25em .75em .2em 0",
       borderRadius: "6px",
       backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
@@ -186,7 +187,7 @@ const namespaceStyles = (theme: Theme) =>
     ".highlighted": {
       paddingLeft: ".25em",
       marginLeft: ".1em",
-      borderLeft: `2px solid ${"var(--palette-primary-main)"}`
+      borderLeft: `1px solid ${"var(--palette-primary-main)"}`
     },
     ".highlighted-text": {
       color: "var(--palette-primary-main)"
@@ -201,22 +202,24 @@ const namespaceStyles = (theme: Theme) =>
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "0",
-      padding: "4px",
+      margin: "2px 0",
+      padding: "0",
       borderRadius: "8px",
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
       ".node-button": {
-        padding: "4px 8px",
+        padding: "2px 4px",
         flexGrow: 1,
         borderRadius: "6px",
+        minHeight: "24px",
         "&:hover": {
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
           fontSize: "0.9rem",
           fontWeight: 500,
+          lineHeight: 1.2,
           color: theme.vars.palette.text.primary
         }
       },
@@ -229,8 +232,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".node:hover": {
       backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      transform: "translateX(2px)"
+      border: `1px solid ${theme.vars.palette.divider}`
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
@@ -240,12 +242,12 @@ const namespaceStyles = (theme: Theme) =>
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
     ".namespace-text": {
-      color: theme.vars.palette.text.secondary,
-      fontWeight: 600,
-      fontSize: "0.85rem",
-      padding: ".8em 0 .4em 0",
-      margin: "1.5em 0 .8em 0",
-      letterSpacing: "0.8px",
+      color: "var(--palette-grey-500)",
+      fontWeight: 300,
+      fontSize: "0.8rem",
+      lineHeight: 1.15,
+      padding: "0.4em 0 0 0",
+      margin: "0.5em 0 0 0",
       wordBreak: "break-word",
       userSelect: "none",
       pointerEvents: "none",
@@ -269,17 +271,21 @@ const namespaceStyles = (theme: Theme) =>
       margin: "0.5em 0"
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
-    {
-      color: theme.vars.palette.text.disabled
-    },
+      {
+        color: theme.vars.palette.text.disabled
+      },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
     },
     ".node-info-container": {
-      width: "300px",
+      flex: "0 0 36%",
+      width: "36%",
+      minWidth: "340px",
+      maxWidth: "560px",
       backgroundColor: "transparent",
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      paddingLeft: "0.5em"
+      paddingLeft: "0.5em",
+      overflow: "hidden"
     },
     ".node-packs-info .MuiButton-root": {
       textTransform: "none",
@@ -424,7 +430,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches,
     hoveredNode,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    selectedProviderType
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
@@ -432,7 +439,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    selectedProviderType: state.selectedProviderType
   }));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -444,9 +452,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
-      searchTerm.includes("-") ||
-      searchTerm.includes("*") ||
-      searchTerm.includes("/")
+    searchTerm.includes("-") ||
+    searchTerm.includes("*") ||
+    searchTerm.includes("/")
       ? 0
       : 1;
 
@@ -454,24 +462,34 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return Object.values(allMetadata).length;
   }, [allMetadata]);
 
+  const isHomeLayout = !(
+    selectedPathString ||
+    searchTerm ||
+    selectedInputType ||
+    selectedOutputType ||
+    selectedProviderType !== "all"
+  );
+
   return (
     <div
       css={namespaceStyles(theme)}
-      className={
+      className={`${
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||
-          selectedOutputType) &&
-          searchResults.length > 0
+          selectedOutputType ||
+          selectedProviderType !== "all") &&
+        searchResults.length > 0
           ? "has-search-results"
           : "no-search-results"
-      }
+      } ${isHomeLayout ? "home-layout" : ""}`}
     >
       <Box className="list-box">
         <NamespacePanel namespaceTree={namespaceTree} />
         {selectedPathString ||
-          searchTerm ||
-          selectedInputType ||
-          selectedOutputType ? (
+        searchTerm ||
+        selectedInputType ||
+        selectedOutputType ||
+        selectedProviderType !== "all" ? (
           <>
             <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />

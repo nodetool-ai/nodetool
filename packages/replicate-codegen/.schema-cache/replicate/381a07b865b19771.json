@@ -1,0 +1,128 @@
+{
+  "modelId": "meta/meta-llama-3-70b",
+  "owner": "meta",
+  "name": "meta-llama-3-70b",
+  "version": "83c5bdea9941e83be68480bd06ad792f3f295612a24e4678baed34083083a87f",
+  "description": "Base version of Llama 3, a 70 billion parameter language model from Meta.",
+  "inputSchema": {
+    "properties": {
+      "length_penalty": {
+        "default": 1,
+        "description": "A parameter that controls how long the outputs are. If < 1, the model will tend to generate shorter outputs, and > 1 will tend to generate longer outputs.",
+        "maximum": 5,
+        "minimum": 0,
+        "title": "Length Penalty",
+        "type": "number",
+        "x-order": 8
+      },
+      "log_performance_metrics": {
+        "default": false,
+        "title": "Log Performance Metrics",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "max_new_tokens": {
+        "description": "This parameter has been renamed to max_tokens. max_new_tokens only exists for backwards compatibility purposes. We recommend you use max_tokens instead. Both may not be specified.",
+        "minimum": 1,
+        "title": "Max New Tokens",
+        "type": "integer",
+        "x-order": 13
+      },
+      "max_tokens": {
+        "default": 512,
+        "description": "Maximum number of tokens to generate. A word is generally 2-3 tokens.",
+        "minimum": 1,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 2
+      },
+      "min_new_tokens": {
+        "description": "This parameter has been renamed to min_tokens. min_new_tokens only exists for backwards compatibility purposes. We recommend you use min_tokens instead. Both may not be specified.",
+        "minimum": -1,
+        "title": "Min New Tokens",
+        "type": "integer",
+        "x-order": 14
+      },
+      "min_tokens": {
+        "description": "Minimum number of tokens to generate. To disable, set to -1. A word is generally 2-3 tokens.",
+        "minimum": -1,
+        "title": "Min Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "A parameter that penalizes repeated tokens regardless of the number of appearances. As the value increases, the model will be less likely to repeat tokens in the output.",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "Prompt to send to the model.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_template": {
+        "default": "{prompt}",
+        "description": "Template for formatting the prompt. Can be an arbitrary string, but must contain the substring `{prompt}`.",
+        "title": "Prompt Template",
+        "type": "string",
+        "x-order": 11
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "stop_sequences": {
+        "default": "<|end_of_text|>",
+        "description": "A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
+        "title": "Stop Sequences",
+        "type": "string",
+        "x-order": 7
+      },
+      "temperature": {
+        "default": 0.7,
+        "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
+        "maximum": 5,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 4
+      },
+      "top_k": {
+        "default": 0,
+        "description": "When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens.",
+        "minimum": -1,
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 6
+      },
+      "top_p": {
+        "default": 0.95,
+        "description": "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

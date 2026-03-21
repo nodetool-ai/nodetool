@@ -3,23 +3,29 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Typography,
+  Box,
   Tooltip
 } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import PanelHeadline from "../ui/PanelHeadline";
+import { Dialog } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     margin: "2em 0 4em 0",
+    "& .dialog-content": {
+      display: "flex",
+      flexDirection: "column",
+      padding: 0,
+      overflow: "hidden"
+    },
     ".models-manager": {
       display: "flex",
-      height: "100%",
+      flexDirection: "row",
+      flexGrow: 1,
       overflow: "hidden"
     },
     ".download-models-section": {
@@ -99,65 +105,33 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       css={styles(theme)}
       className="models-manager-dialog"
       open={open}
+      maxWidth="lg"
+      fullWidth
       onClose={onClose}
-      slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
+      title={
+        <PanelHeadline
+          title="Model Manager"
+          actions={
+            <Tooltip title="Close">
+              <IconButton
+                aria-label="close"
+                onClick={onClose}
+                className="close-button"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
           }
-        },
-        paper: {
-          style: {
-            borderRadius: "16px",
-            background: theme.vars.palette.background.paper,
-            backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
-            border: `1px solid ${theme.vars.palette.divider}`
-          }
-        }
-      }}
-      sx={{
-        "& .MuiDialog-paper": {
-          width: "92%",
-          maxWidth: "1200px",
-          height: "90vh",
-          maxHeight: "90vh",
-          margin: "auto",
-          borderRadius: (theme as any)?.rounded?.dialog ?? "16px",
-          border: `1px solid ${theme.vars.palette.divider}`,
-          background: "transparent", // Let the slotProps handle the background
-          boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
-        }
-      }}
+        />
+      }
     >
-      <DialogTitle className="dialog-title">
-        <Typography>Model Manager</Typography>
-        <Tooltip title="Close">
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            className="close-button"
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
-      </DialogTitle>
-      <DialogContent
-        sx={{
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          padding: "0"
-        }}
-      >
-        <div className="models-manager">
-          <div className="existing-models-section">
-            <div className="models-list-container">
-              <ModelListIndex />
-            </div>
+      <Box className="models-manager" sx={{ height: "80vh", minHeight: "600px" }}>
+        <div className="existing-models-section">
+          <div className="models-list-container">
+            <ModelListIndex />
           </div>
         </div>
-      </DialogContent>
+      </Box>
     </Dialog>
   );
 };

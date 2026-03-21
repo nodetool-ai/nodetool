@@ -1,29 +1,54 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
-import { Box, Button } from "@mui/material";
-import { InputOutlined } from "@mui/icons-material";
+import React, { useState, useCallback, memo } from "react";
+import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
+import NodeHistoryPanel from "./NodeHistoryPanel";
+import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ResultOverlayProps {
   result: any;
-  onShowInputs?: () => void;
+  nodeId?: string;
+  workflowId?: string;
+  nodeName?: string;
+  onShowInputs?: () => void; // Kept for backwards compatibility but now handled in NodeHeader
 }
 
 /**
- * ResultOverlay component displays the node's result output
- * with an option to switch back to the input view.
- * Fills the entire node content area for a clean, focused display.
+ * ResultOverlay component displays the node's result output.
+ * Shows accumulated session results and provides access to full history.
  */
 const ResultOverlay: React.FC<ResultOverlayProps> = ({
   result,
-  onShowInputs
+  nodeId,
+  workflowId,
+  nodeName
 }) => {
   const theme = useTheme();
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+
+  // Get session history for this node
+  const sessionHistory = useNodeResultHistoryStore((state) =>
+    workflowId && nodeId ? state.getHistory(workflowId, nodeId) : []
+  );
+
+  const handleOpenHistory = useCallback(() => {
+    setHistoryDialogOpen(true);
+  }, []);
+
+  const handleCloseHistory = useCallback(() => {
+    setHistoryDialogOpen(false);
+  }, []);
+
+  // If we have session history, display all results from the current session
+  const hasSessionHistory = sessionHistory.length > 0;
+  const resultsToDisplay = hasSessionHistory ? sessionHistory : [{ result, timestamp: Date.now(), status: "completed", jobId: null }];
 
   return (
     <Box
-      className="result-overlay"
+      className="result-overlay node-drag-handle"
       sx={{
         position: "relative",
         display: "flex",
@@ -32,53 +57,45 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         height: "100%",
         minHeight: "60px",
         minWidth: 0,
-        flex: 1,
-        "&:hover .show-inputs-button": {
-          opacity: 1,
-          transform: "translateY(0)"
-        }
+        flex: 1
       }}
     >
-      {/* Toggle button to show inputs - only shown on hover */}
-      {onShowInputs && (
-        <Box
-          className="show-inputs-button"
-          sx={{
-            position: "absolute",
-            top: 8,
-            left: "50%",
-            transform: "translateX(-50%) translateY(-4px)",
-            zIndex: 20,
-            opacity: 0,
-            transition: "opacity 0.2s ease, transform 0.2s ease"
-          }}
-        >
-          <Button
+      {/* History button - only shows on hover */}
+      {hasSessionHistory && nodeId && workflowId && (
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="View History" placement="left">
+          <IconButton
             size="small"
-            startIcon={<InputOutlined sx={{ fontSize: 16 }} />}
-            onClick={onShowInputs}
+            onClick={handleOpenHistory}
             sx={{
-              textTransform: "none",
-              fontSize: "0.75rem",
-              padding: "4px 12px",
-              backgroundColor: theme.vars.palette.background.paper,
-              color: theme.vars.palette.text.primary,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              borderRadius: "16px",
-              backdropFilter: theme.vars.palette.glass.blur,
-              boxShadow: 1,
+              position: "absolute",
+              top: 4,
+              right: 8,
+              zIndex: 10,
+              width: 24,
+              height: 24,
+              padding: "4px",
+              borderRadius: "4px",
+              opacity: 0,
+              transition: "opacity 0.2s ease",
+              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+              color: theme.vars.palette.common.white,
+              ".result-overlay:hover &": {
+                opacity: 1
+              },
               "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                borderColor: theme.vars.palette.primary.main
+                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+              },
+              "& svg": {
+                fontSize: 14
               }
             }}
           >
-            Show Inputs
-          </Button>
-        </Box>
+            <HistoryIcon />
+          </IconButton>
+        </Tooltip>
       )}
 
-      {/* Render the result - fills available space */}
+      {/* Render accumulated session results */}
       <Box
         className="result-overlay-content"
         sx={{
@@ -89,25 +106,60 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           flex: 1,
           display: "flex",
           flexDirection: "column",
+          overflow: "auto",
           "& .image-output": {
             width: "100%",
             minHeight: "120px"
           }
         }}
       >
-        <OutputRenderer
-          value={
-            typeof result === "object" &&
-              result !== null &&
-              "output" in result &&
-              result.output !== undefined
-              ? result.output
-              : result
-          }
-        />
+        {resultsToDisplay.map((item, index) => (
+          <Box key={`result-${item.timestamp}-${index}`}>
+            {index > 0 && (
+              <Divider sx={{ my: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Result {resultsToDisplay.length - index}
+                </Typography>
+              </Divider>
+            )}
+            <OutputRenderer
+              value={
+                typeof item.result === "object" &&
+                  item.result !== null &&
+                  "output" in item.result &&
+                  item.result.output !== undefined
+                  ? item.result.output
+                  : item.result
+              }
+            />
+          </Box>
+        ))}
       </Box>
+
+      {/* History Dialog */}
+      {nodeId && workflowId && (
+        <NodeHistoryPanel
+          workflowId={workflowId}
+          nodeId={nodeId}
+          nodeName={nodeName}
+          open={historyDialogOpen}
+          onClose={handleCloseHistory}
+        />
+      )}
     </Box>
   );
 };
 
-export default ResultOverlay;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// ResultOverlay is used frequently in node outputs and should only re-render when result data changes
+const arePropsEqual = (prevProps: ResultOverlayProps, nextProps: ResultOverlayProps) => {
+  return (
+    prevProps.result === nextProps.result &&
+    prevProps.nodeId === nextProps.nodeId &&
+    prevProps.workflowId === nextProps.workflowId &&
+    prevProps.nodeName === nextProps.nodeName &&
+    prevProps.onShowInputs === nextProps.onShowInputs
+  );
+};
+
+export default memo(ResultOverlay, arePropsEqual);

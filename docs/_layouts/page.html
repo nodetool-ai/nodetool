@@ -1,12 +1,16 @@
 ---
 layout: default
 ---
-<article class="doc-page">
+<article class="doc-page" data-source-path="{{ page.path }}">
   <div class="page-header">
     <h1 class="page-title">{{ page.title | default: "Documentation" }}</h1>
     {% if page.description %}
     <p class="page-description">{{ page.description }}</p>
     {% endif %}
+    <button class="copy-page-button" aria-label="Copy page as Markdown">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+      <span>Copy Page</span>
+    </button>
   </div>
 
   <div class="page-content">

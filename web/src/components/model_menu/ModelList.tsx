@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import {
   Box,
   List,
@@ -37,6 +37,47 @@ const listStyles = css({
   overflowX: "hidden",
   maxHeight: 600
 });
+
+/**
+ * HighlightedModelName - Memoized component for highlighting search term in model name.
+ * Uses useMemo to avoid creating RegExp on every render.
+ */
+const HighlightedModelName = memo<{
+  name: string;
+  searchTerm: string;
+  primaryColor: string;
+}>(({ name, searchTerm, primaryColor }) => {
+  const highlightedName = useMemo(() => {
+    if (!searchTerm || !name) {
+      return { parts: [{ text: name, isMatch: false }] };
+    }
+
+    // Split the name by search term, creating a RegExp only when searchTerm changes
+    const parts = name.split(new RegExp(`(${searchTerm})`, "gi"));
+    return {
+      parts: parts.map((part) => ({
+        text: part,
+        isMatch: part.toLowerCase() === searchTerm.toLowerCase()
+      }))
+    };
+  }, [name, searchTerm]);
+
+  return (
+    <>
+      {highlightedName.parts.map((part, i) =>
+        part.isMatch ? (
+          <span key={i} style={{ color: primaryColor, fontWeight: 600 }}>
+            {part.text}
+          </span>
+        ) : (
+          part.text
+        )
+      )}
+    </>
+  );
+});
+
+HighlightedModelName.displayName = "HighlightedModelName";
 
 export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
@@ -99,7 +140,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                       width: "100%"
                     }}
                   >
-                    <div
+                    <span
                       className="model-name"
                       style={{
                         overflow: "hidden",
@@ -109,21 +150,12 @@ function ModelList<TModel extends ModelSelectorModel>({
                         flex: "1 1 auto"
                       }}
                     >
-                      {(() => {
-                        const name = m.path || m.name;
-                        if (!searchTerm || !name) { return name; }
-                        const parts = name.split(new RegExp(`(${searchTerm})`, 'gi'));
-                        return parts.map((part, i) =>
-                          part.toLowerCase() === searchTerm.toLowerCase() ? (
-                            <span key={i} style={{ color: theme.vars.palette.primary.main, fontWeight: 600 }}>
-                              {part}
-                            </span>
-                          ) : (
-                            part
-                          )
-                        );
-                      })()}
-                    </div>
+                      <HighlightedModelName
+                        name={m.path || m.name}
+                        searchTerm={searchTerm}
+                        primaryColor={theme.vars.palette.primary.main}
+                      />
+                    </span>
                     {available && isLocalProvider(m.provider) && (
                       <Tooltip
                         title="Runs locally on your device"
@@ -211,21 +243,27 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Box>
                 }
                 secondary={
-                  <Box
-                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: theme.vars.fontSizeTiny,
+                      color: theme.vars.palette.text.secondary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
                   >
-                    <div
-                      style={{
-                        fontSize: theme.vars.fontSizeTiny,
-                        color: theme.vars.palette.text.secondary
-                      }}
-                    >
-                      {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
-                    </div>
-                  </Box>
+                    {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
+                  </span>
                 }
                 primaryTypographyProps={{
+                  component: "div",
                   noWrap: true
+                }}
+                secondaryTypographyProps={{
+                  component: "div"
                 }}
               />
             </ListItemButton>
@@ -279,13 +317,13 @@ function ModelList<TModel extends ModelSelectorModel>({
                   overflowX: "hidden",
                   height: safeHeight,
                   width: safeWidth,
-                  "& .MuiListItemButton-root": { py: 0.4 },
+                  "& .MuiListItemButton-root": { py: 0.5 },
                   "& .MuiListItemText-primary": {
-                    fontSize: theme.vars.fontSizeSmall
+                    fontSize: theme.vars.fontSizeNormal
                   },
                   "& .MuiListItemText-secondary": {
                     color: theme.vars.palette.text.secondary,
-                    fontSize: theme.vars.fontSizeTiny
+                    fontSize: theme.vars.fontSizeSmall
                   },
                   "& .model-menu__model-item.is-unavailable": {
                     opacity: 0.55,
@@ -308,7 +346,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   height={safeHeight}
                   width={safeWidth}
                   itemCount={models.length}
-                  itemSize={36}
+                  itemSize={40}
                 >
                   {renderRow}
                 </VirtualList>

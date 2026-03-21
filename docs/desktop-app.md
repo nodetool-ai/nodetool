@@ -1,7 +1,7 @@
 ---
 layout: redirect
-redirect_to: /self_hosted/
+redirect_to: /self-hosted-deployment/
 permalink: /desktop-app
 ---
 
-This page has moved. Please go to [Self-Hosted Setup](/self_hosted/).
+This page has moved. Please go to [Self-Hosted Setup](/self-hosted-deployment/).

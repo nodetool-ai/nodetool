@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
+import isEqual from "lodash/isEqual";
 import Actions from "./Actions";
 
 const jsonStyles = (theme: Theme) =>
@@ -151,6 +152,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
             const parsed = JSON.parse(decodedString);
             jsonString = JSON.stringify(parsed, null, 2);
           } catch {
+            // JSON parsing failed, use decoded string as-is
             jsonString = decodedString;
           }
         } else if (Array.isArray(data)) {
@@ -162,6 +164,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
               const parsed = JSON.parse(decodedString);
               jsonString = JSON.stringify(parsed, null, 2);
             } catch {
+              // JSON parsing failed, use decoded string as-is
               jsonString = decodedString;
             }
           } else {
@@ -196,6 +199,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
           ? Prism.highlight(jsonString, Prism.languages.json, "json")
           : jsonString;
     } catch {
+      // Prism highlighting failed, return unhighlighted JSON
       highlighted = jsonString;
     }
 
@@ -219,3 +223,18 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
     </div>
   );
 };
+
+
+// Custom comparison function for deep equality check
+const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
+  // Quick check for primitive props
+  if (prevProps.showActions !== nextProps.showActions) {
+    return false;
+  }
+
+  // Use lodash.isEqual for efficient deep comparison instead of JSON.stringify
+  // which is slower and can fail with circular references
+  return isEqual(prevProps.value, nextProps.value);
+};
+
+export default React.memo(JSONRenderer, arePropsEqual);

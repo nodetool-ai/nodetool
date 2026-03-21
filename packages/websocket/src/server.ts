@@ -1,0 +1,397 @@
+#!/usr/bin/env node
+/**
+ * NodeTool WebSocket + HTTP server entry point — Fastify edition.
+ *
+ * TLS: set TLS_CERT and TLS_KEY to paths of cert.pem / key.pem.
+ *      An HTTP→HTTPS redirect server starts on port 80 when TLS is active.
+ * Connect the CLI with: npm run chat -- --url ws://localhost:7777/ws
+ */
+
+import { join, resolve, dirname } from "node:path";
+import { homedir } from "node:os";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
+import { createLogger } from "@nodetool/config";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerReplicateNodes } from "@nodetool/replicate-nodes";
+import {
+  setSecretResolver,
+  PythonBridge,
+} from "@nodetool/runtime";
+import { getSecret } from "@nodetool/security";
+import { initDb } from "@nodetool/models";
+import {
+  Tool,
+  GoogleSearchTool,
+  GoogleNewsTool,
+  GoogleImagesTool,
+  GoogleGroundedSearchTool,
+  GoogleImageGenerationTool,
+  OpenAIWebSearchTool,
+  OpenAIImageGenerationTool,
+  OpenAITextToSpeechTool,
+  BrowserTool,
+  ScreenshotTool,
+  ReadFileTool,
+  WriteFileTool,
+  ListDirectoryTool,
+  DownloadFileTool,
+  HttpRequestTool,
+  ExtractPDFTextTool,
+  ExtractPDFTablesTool,
+  ConvertPDFToMarkdownTool,
+  CalculatorTool,
+  SearchEmailTool,
+  ArchiveEmailTool,
+  AddLabelToEmailTool,
+  DataForSEOSearchTool,
+  DataForSEONewsTool,
+  DataForSEOImagesTool,
+  SaveAssetTool,
+  ReadAssetTool,
+} from "@nodetool/agents";
+import { registerPythonProviders } from "./models-api.js";
+import type { HttpApiOptions } from "./http-api.js";
+
+import Fastify, { type FastifyInstance } from "fastify";
+import fastifyWebSocket from "@fastify/websocket";
+import fastifyCors from "@fastify/cors";
+
+import websocketPlugin from "./plugins/websocket.js";
+import healthRoute from "./routes/health.js";
+import assetsRoutes from "./routes/assets.js";
+import workflowsRoutes from "./routes/workflows.js";
+import jobsRoutes from "./routes/jobs.js";
+import messagesRoutes from "./routes/messages.js";
+import threadsRoutes from "./routes/threads.js";
+import nodesRoutes from "./routes/nodes.js";
+import settingsRoutes from "./routes/settings.js";
+import storageRoutes from "./routes/storage.js";
+import usersRoutes from "./routes/users.js";
+import openaiRoutes from "./routes/openai.js";
+import oauthRoutes from "./routes/oauth.js";
+import workspaceRoutes from "./routes/workspace.js";
+import filesRoutes from "./routes/files.js";
+import costsRoutes from "./routes/costs.js";
+import skillsRoutes from "./routes/skills.js";
+import collectionsRoutes from "./routes/collections.js";
+import modelsRoutes from "./routes/models.js";
+
+const log = createLogger("nodetool.websocket.server");
+
+// ---------------------------------------------------------------------------
+// Database setup
+// ---------------------------------------------------------------------------
+
+const dbPath =
+  process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
+try {
+  initDb(dbPath);
+  log.info("Database ready", { path: dbPath });
+  setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));
+} catch (err) {
+  log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
+}
+
+// ---------------------------------------------------------------------------
+// Metadata root detection
+// ---------------------------------------------------------------------------
+
+function hasMetadataLayout(root: string): boolean {
+  return (
+    existsSync(join(root, "src", "nodetool", "package_metadata")) ||
+    existsSync(join(root, "nodetool", "package_metadata"))
+  );
+}
+
+function detectMetadataRoots(): string[] {
+  if (process.env["METADATA_ROOTS"]) {
+    return process.env["METADATA_ROOTS"].split(":").filter(Boolean);
+  }
+
+  const candidates = new Set<string>();
+  let cur = resolve(process.cwd());
+  for (let i = 0; i < 8; i++) {
+    candidates.add(cur);
+    const parent = dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+
+  cur = resolve(process.cwd());
+  for (let i = 0; i < 6; i++) {
+    try {
+      for (const entry of readdirSync(cur, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.toLowerCase().startsWith("nodetool")) {
+          candidates.add(join(cur, entry.name));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    const parent = dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+
+  return [...candidates].filter(hasMetadataLayout);
+}
+
+const metadataRoots = detectMetadataRoots();
+log.info("Metadata roots", { roots: metadataRoots });
+
+// ---------------------------------------------------------------------------
+// Node registry
+// ---------------------------------------------------------------------------
+
+const registry = new NodeRegistry();
+registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
+registerBaseNodes(registry);
+registerElevenLabsNodes(registry);
+registerFalNodes(registry);
+registerReplicateNodes(registry);
+
+// ---------------------------------------------------------------------------
+// Python bridge
+// ---------------------------------------------------------------------------
+
+const pythonBridge = new PythonBridge({
+  workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
+    ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
+    : [],
+});
+
+let pythonBridgeReady = false;
+
+pythonBridge.on("stderr", (msg: string) => {
+  for (const line of msg.split("\n")) {
+    if (line.trim()) log.debug(`[python-worker] ${line}`);
+  }
+});
+
+pythonBridge.on("exit", (code: number) => {
+  log.warn(`Python worker exited with code ${code}`);
+  pythonBridgeReady = false;
+});
+
+// ---------------------------------------------------------------------------
+// Tool registry
+// ---------------------------------------------------------------------------
+
+const builtinToolClasses: (new () => Tool)[] = [
+  GoogleSearchTool,
+  GoogleNewsTool,
+  GoogleImagesTool,
+  GoogleGroundedSearchTool,
+  GoogleImageGenerationTool,
+  OpenAIWebSearchTool,
+  OpenAIImageGenerationTool,
+  OpenAITextToSpeechTool,
+  BrowserTool,
+  ScreenshotTool,
+  ReadFileTool,
+  WriteFileTool,
+  ListDirectoryTool,
+  DownloadFileTool,
+  HttpRequestTool,
+  ExtractPDFTextTool,
+  ExtractPDFTablesTool,
+  ConvertPDFToMarkdownTool,
+  CalculatorTool,
+  SearchEmailTool,
+  ArchiveEmailTool,
+  AddLabelToEmailTool,
+  DataForSEOSearchTool,
+  DataForSEONewsTool,
+  DataForSEOImagesTool,
+  SaveAssetTool,
+  ReadAssetTool,
+];
+
+const toolClassMap = new Map<string, new () => Tool>();
+for (const cls of builtinToolClasses) {
+  const instance = new cls();
+  toolClassMap.set(instance.name, cls);
+}
+
+// ---------------------------------------------------------------------------
+// TLS configuration
+// ---------------------------------------------------------------------------
+
+function findCert(envVar: string, filename: string): string | undefined {
+  const fromEnv = process.env[envVar];
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  // Walk up from cwd looking for the cert file
+  let dir = resolve(process.cwd());
+  for (let i = 0; i < 5; i++) {
+    const candidate = join(dir, filename);
+    if (existsSync(candidate)) return candidate;
+    // Check sibling nodetool-core directory
+    const sibling = join(dir, "nodetool-core", filename);
+    if (existsSync(sibling)) return sibling;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+const tlsCertPath = findCert("TLS_CERT", "cert.pem");
+const tlsKeyPath = findCert("TLS_KEY", "key.pem");
+const tlsEnabled = Boolean(tlsCertPath && tlsKeyPath);
+
+let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
+if (tlsEnabled && tlsCertPath && tlsKeyPath) {
+  httpsOptions = {
+    cert: readFileSync(tlsCertPath),
+    key: readFileSync(tlsKeyPath),
+  };
+  log.info("TLS enabled", { cert: tlsCertPath, key: tlsKeyPath });
+}
+
+// ---------------------------------------------------------------------------
+// Host / port
+// ---------------------------------------------------------------------------
+
+const port = Number(process.env["PORT"] ?? 7777);
+// In production (TLS), bind to 0.0.0.0 unless HOST is explicitly set
+const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
+
+// ---------------------------------------------------------------------------
+// Fastify app
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const app: FastifyInstance = (Fastify as any)({
+  ...(httpsOptions ? { https: httpsOptions } : {}),
+  trustProxy: true,
+  bodyLimit: 100 * 1024 * 1024, // 100 MB
+  logger: false,
+  ignoreTrailingSlash: true,
+});
+
+// CORS
+await app.register(fastifyCors, { origin: true });
+
+// WebSocket support
+await app.register(fastifyWebSocket);
+
+// Parse all request bodies as raw Buffer — the Web API handlers do their own parsing
+app.removeAllContentTypeParsers();
+app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
+  done(null, body);
+});
+
+// ---------------------------------------------------------------------------
+// API options for HTTP route handlers
+// ---------------------------------------------------------------------------
+
+const apiOptions: HttpApiOptions = { metadataRoots, registry };
+
+// ---------------------------------------------------------------------------
+// Register route plugins
+// ---------------------------------------------------------------------------
+
+await app.register(websocketPlugin, {
+  registry,
+  pythonBridge,
+  getPythonBridgeReady: () => pythonBridgeReady,
+  toolClassMap,
+});
+
+await app.register(healthRoute);
+
+// All HTTP API routes receive apiOptions
+const routeOpts = { apiOptions };
+
+await app.register(assetsRoutes, routeOpts);
+await app.register(workflowsRoutes, routeOpts);
+await app.register(jobsRoutes, routeOpts);
+await app.register(messagesRoutes, routeOpts);
+await app.register(threadsRoutes, routeOpts);
+await app.register(nodesRoutes, routeOpts);
+await app.register(settingsRoutes, routeOpts);
+await app.register(storageRoutes, routeOpts);
+await app.register(usersRoutes, routeOpts);
+await app.register(openaiRoutes, routeOpts);
+await app.register(oauthRoutes, routeOpts);
+await app.register(workspaceRoutes, routeOpts);
+await app.register(filesRoutes, routeOpts);
+await app.register(costsRoutes, routeOpts);
+await app.register(skillsRoutes, routeOpts);
+await app.register(collectionsRoutes, routeOpts);
+await app.register(modelsRoutes, routeOpts);
+
+// Log all 404s so we can identify missing routes
+app.setNotFoundHandler((req, reply) => {
+  log.warn(`404 Not Found: ${req.method} ${req.url}`);
+  reply.status(404).send({ detail: "Not found" });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP → HTTPS redirect server (when TLS is active)
+// ---------------------------------------------------------------------------
+
+if (tlsEnabled) {
+  const redirectPort = Number(process.env["REDIRECT_PORT"] ?? 80);
+  const redirectServer = createHttpServer((req, res) => {
+    const reqHost = req.headers.host?.split(":")[0] ?? "localhost";
+    const location = `https://${reqHost}:${port}${req.url ?? "/"}`;
+    res.statusCode = 301;
+    res.setHeader("Location", location);
+    res.end();
+  });
+  redirectServer.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EACCES") {
+      log.warn(`HTTP redirect server skipped — port ${redirectPort} requires elevated privileges`);
+    } else {
+      log.error("HTTP redirect server error", err);
+    }
+  });
+  redirectServer.listen(redirectPort, "0.0.0.0", () => {
+    log.info(`HTTP → HTTPS redirect server listening on :${redirectPort}`);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Start Python bridge, then start Fastify
+// ---------------------------------------------------------------------------
+
+pythonBridge
+  .connect()
+  .then(() => {
+    pythonBridgeReady = true;
+    const meta = pythonBridge.getNodeMetadata();
+    log.info(`Python bridge connected — ${meta.length} Python nodes available`);
+
+    registerPythonProviders(pythonBridge)
+      .then((registered) => {
+        if (registered.length > 0) {
+          log.info(`Registered Python providers: ${registered.join(", ")}`);
+        }
+      })
+      .catch((err) => {
+        log.warn("Failed to register Python providers", err instanceof Error ? err : new Error(String(err)));
+      });
+  })
+  .catch((err) => {
+    log.warn(
+      "Python bridge failed to start (Python nodes will not be available)",
+      err instanceof Error ? err : new Error(String(err)),
+    );
+  })
+  .finally(() => {
+    const proto = tlsEnabled ? "https" : "http";
+    app.listen({ port, host }, (err) => {
+      if (err) {
+        log.error("Failed to start server", err);
+        process.exit(1);
+      }
+      log.info(`Server listening on ${proto}://${host}:${port}`);
+      log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
+    });
+  });

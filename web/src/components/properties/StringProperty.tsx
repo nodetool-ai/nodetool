@@ -7,9 +7,10 @@ import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
 import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -33,6 +34,35 @@ const determineCodeLanguage = (nodeType: string) => {
   return "text";
 };
 
+const propertyStyles = css({
+  ".property-row": {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column"
+  },
+  ".property-row > .property-label": {
+    order: 1
+  },
+  ".value-container": {
+    width: "100%",
+    order: 2
+  },
+  ".string-action-buttons": {
+    position: "absolute",
+    right: 0,
+    top: "-3px",
+    opacity: 0.8,
+    zIndex: 10
+  },
+  ".string-action-buttons .MuiIconButton-root": {
+    margin: "0 0 0 5px",
+    padding: 0
+  },
+  ".string-action-buttons .MuiIconButton-root svg": {
+    fontSize: "0.75rem"
+  }
+});
+
 const StringProperty = ({
   property,
   propertyIndex,
@@ -48,163 +78,39 @@ const StringProperty = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  // const focusHandler = useFocusPan(nodeId);
-  // const handleFocus = isInspector ? () => {} : focusHandler;
-  const isConnected = useNodes(
-    useCallback(
-      (state) =>
-        state.edges.some(
-          (edge) =>
-            edge.target === nodeId && edge.targetHandle === property.name
-        ),
-      [nodeId, property.name]
-    )
-  );
 
-  const showTextEditor = !isConnected;
-  const isConstant = nodeType.startsWith("nodetool.constant.");
+  const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
+  const isConnected = useNodes(isConnectedSelector);
+
   const codeLanguage = determineCodeLanguage(nodeType);
+  const stringValue = typeof value === "string" ? value : "";
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
       if (next) {
-        // Notify all other modals to close themselves
         window.dispatchEvent(new Event("close-text-editor-modal"));
       }
       return next;
     });
   }, []);
 
-  if (showTextEditor) {
+  if (isConnected) {
     return (
-      <div
-        className={`string-property ${isConstant ? "constant-node" : ""}`}
-        css={css({
-          ".property-row": {
-            width: "100%",
-            display: "flex",
-            flexDirection: "column"
-          },
-          ".property-row > .property-label": {
-            order: 1
-          },
-          ".value-container": {
-            width: "100%",
-            order: 2
-          },
-          ".string-action-buttons": {
-            position: "absolute",
-            right: 0,
-            top: "-3px",
-            opacity: 0.8,
-            zIndex: 10
-          },
-          ".string-value-input": {
-            fontSize: "var(--fontSizeSmaller)",
-            lineHeight: "1.25em"
-          },
-          ".string-action-buttons .MuiIconButton-root": {
-            margin: "0 0 0 5px",
-            padding: 0
-          },
-          ".string-action-buttons .MuiIconButton-root svg": {
-            fontSize: "0.75rem"
-          }
-        })}
-      >
-        <div
-          className="property-row"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+      <div className="string-property" css={propertyStyles}>
+        <div className="property-row">
           <PropertyLabel
             name={property.name}
             description={property.description}
             id={id}
-            isDynamicProperty={isDynamicProperty}
           />
-          {isHovered && (
-            <div className="string-action-buttons">
-              <Tooltip title="Open Editor" placement="bottom">
-                <IconButton size="small" onClick={toggleExpand}>
-                  <OpenInFullIcon />
-                </IconButton>
-              </Tooltip>
-              <CopyToClipboardButton copyValue={value} size="small" />
-            </div>
-          )}
-          <div
-            className="value-container"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <NodeTextField
-              className={cn(
-                "string-value-input",
-                isFocused && editorClassNames.nowheel
-              )}
-              sx={
-                isConstant
-                  ? {
-                      "& .MuiInputBase-inputMultiline": {
-                        // Constant nodes intentionally allow larger editing surface.
-                        maxHeight: "300px"
-                      }
-                    }
-                  : undefined
-              }
-              value={value || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onChange(e.target.value)
-              }
-              onFocus={(e) => {
-                e.preventDefault();
-                setIsFocused(true);
-              }}
-              onBlur={() => {
-                setIsFocused(false);
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-              tabIndex={tabIndex}
-              multiline
-              minRows={1}
-              maxRows={isConstant ? 20 : 2}
-              autoFocus={false}
-              changed={changed}
-            />
-          </div>
         </div>
-        {isExpanded && (
-          <TextEditorModal
-            value={value || ""}
-            language={codeLanguage}
-            onChange={onChange}
-            onClose={toggleExpand}
-            propertyName={property.name}
-            propertyDescription={property.description || ""}
-          />
-        )}
       </div>
     );
   }
 
   return (
-    <div
-      className={`string-property ${isConstant ? "constant-node" : ""}`}
-      css={css({
-        ".property-row": {
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
-        }
-      })}
-    >
+    <div className="string-property" css={propertyStyles}>
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}
@@ -214,8 +120,64 @@ const StringProperty = ({
           name={property.name}
           description={property.description}
           id={id}
+          isDynamicProperty={isDynamicProperty}
         />
+        {isHovered && (
+          <div className="string-action-buttons">
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
+                <OpenInFullIcon />
+              </IconButton>
+            </Tooltip>
+            <CopyButton value={value} buttonSize="small" />
+          </div>
+        )}
+        <div
+          className="value-container"
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <NodeTextField
+            className={cn(
+              "string-value-input",
+              isFocused && editorClassNames.nowheel
+            )}
+            value={stringValue}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              onChange(e.target.value ?? "");
+            }}
+            onFocus={(e) => {
+              e.preventDefault();
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            tabIndex={tabIndex}
+            multiline
+            minRows={3}
+            maxRows={3}
+            autoFocus={false}
+            changed={changed}
+          />
+        </div>
       </div>
+      {isExpanded && (
+        <TextEditorModal
+          value={stringValue}
+          language={codeLanguage}
+          onChange={(next) => onChange(next)}
+          onClose={toggleExpand}
+          propertyName={property.name}
+          propertyDescription={property.description || ""}
+        />
+      )}
     </div>
   );
 };

@@ -6,25 +6,67 @@ import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+/**
+ * Hook to implement "Find in Workflow" functionality.
+ * 
+ * Provides search capabilities for finding nodes within the current workflow.
+ * Supports searching by node name, node type, or node ID with debounced
+ * input and keyboard navigation through results.
+ * 
+ * @returns Object containing:
+ *   - isOpen: Whether the find dialog is open
+ *   - searchTerm: Current search term
+ *   - results: Array of matching nodes with indices
+ *   - selectedIndex: Currently selected result index
+ *   - totalCount: Total number of matching results
+ *   - openFind: Function to open the find dialog
+ *   - closeFind: Function to close the find dialog
+ *   - performSearch: Debounced search function for text input
+ *   - immediateSearch: Non-debounced search function
+ *   - goToSelected: Navigate to and select the current result
+ *   - navigateNext: Move to next result
+ *   - navigatePrevious: Move to previous result
+ *   - clearSearch: Clear search term and results
+ *   - selectNode: Programmatically select a result by index
+ *   - getNodeDisplayName: Get display name for a node
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   isOpen, 
+ *   openFind, 
+ *   performSearch, 
+ *   results,
+ *   goToSelected 
+ * } = useFindInWorkflow();
+ * 
+ * // Open find dialog
+ * openFind();
+ * 
+ * // Search for nodes
+ * performSearch("text");
+ * 
+ * // Navigate to result
+ * goToSelected();
+ * ```
+ */
 export const useFindInWorkflow = () => {
-  const {
-    isOpen,
-    searchTerm,
-    results,
-    selectedIndex,
-    openFind,
-    closeFind,
-    setSearchTerm,
-    setResults,
-    setSelectedIndex,
-    navigateNext,
-    navigatePrevious,
-    clearSearch
-  } = useFindInWorkflowStore();
+  const isOpen = useFindInWorkflowStore((state) => state.isOpen);
+  const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
+  const results = useFindInWorkflowStore((state) => state.results);
+  const selectedIndex = useFindInWorkflowStore((state) => state.selectedIndex);
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
+  const closeFind = useFindInWorkflowStore((state) => state.closeFind);
+  const setSearchTerm = useFindInWorkflowStore((state) => state.setSearchTerm);
+  const setResults = useFindInWorkflowStore((state) => state.setResults);
+  const setSelectedIndex = useFindInWorkflowStore((state) => state.setSelectedIndex);
+  const navigateNext = useFindInWorkflowStore((state) => state.navigateNext);
+  const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
+  const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
-  const metadataStore = useMetadataStore();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getNodeDisplayName = useCallback(
@@ -34,13 +76,13 @@ export const useFindInWorkflow = () => {
         return title;
       }
       const nodeType = node.type ?? "";
-      const metadata = metadataStore.getMetadata(nodeType);
+      const metadata = getMetadata(nodeType);
       if (metadata?.title) {
         return metadata.title;
       }
       return nodeType.split(".").pop() || node.id;
     },
-    [metadataStore]
+    [getMetadata]
   );
 
   const searchNodes = useCallback(

@@ -54,14 +54,14 @@ describe("nodeSearch", () => {
       description: "Adds two numbers together",
       properties: [],
       outputs: [],
-      the_model_info: {},
       layout: "default",
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "math",
@@ -70,14 +70,14 @@ describe("nodeSearch", () => {
       description: "Subtracts one number from another",
       properties: [],
       outputs: [],
-      the_model_info: {},
       layout: "default",
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "string",
@@ -86,14 +86,14 @@ describe("nodeSearch", () => {
       description: "Joins strings together",
       properties: [],
       outputs: [],
-      the_model_info: {},
       layout: "default",
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "default",
@@ -102,14 +102,14 @@ describe("nodeSearch", () => {
       description: "A default node that should be filtered out",
       properties: [],
       outputs: [],
-      the_model_info: {},
       layout: "default",
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     }
   ];
 
@@ -120,7 +120,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -135,7 +135,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -153,7 +153,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node
       }));
@@ -181,7 +181,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -206,7 +206,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -224,7 +224,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -546,7 +546,6 @@ describe("nodeSearch", () => {
           description: `Description for ${operation} operation number ${i}`,
           properties: [],
           outputs: [],
-          the_model_info: {},
           layout: "default",
           recommended_models: [],
           basic_fields: [],
@@ -554,6 +553,7 @@ describe("nodeSearch", () => {
           expose_as_tool: false,
           supports_dynamic_outputs: false,
           is_streaming_output: false,
+          required_settings: []
         });
       }
 
@@ -593,7 +593,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node,
       }));
@@ -615,7 +615,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node,
       }));
@@ -672,7 +672,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node,
       }));

@@ -1,18 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect, useState, useRef, createRef } from "react";
-import { Alert as MUIAlert, AlertColor } from "@mui/material";
+import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
+import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
+import { NOTIFICATION_TIMEOUT_DEFAULT } from "../../config/constants";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
-const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
 const MAX_WIDTH = "500px";
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
@@ -59,6 +59,9 @@ const styles = () =>
       top: "13px",
       right: "30px"
     },
+    ".copy-button.has-action": {
+      right: "120px" // Move further left when action button is present
+    },
     li: {
       listStyleType: "none",
       maxWidth: MAX_WIDTH,
@@ -82,27 +85,127 @@ const styles = () =>
     }
   });
 
-const Alert: React.FC = () => {
-  const {
-    notifications,
-    removeNotification,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore((state) => ({
-    notifications: state.notifications,
-    removeNotification: state.removeNotification,
-    lastDisplayedTimestamp: state.lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
-  }));
+
+interface NotificationItemProps {
+  notification: Notification;
+  nodeRef: React.RefObject<HTMLLIElement | null>;
+  onClose: (id: string) => void;
+  in?: boolean;
+  onExited?: () => void;
+}
+
+const NotificationItem = memo(function NotificationItem({
+  notification,
+  nodeRef,
+  onClose,
+  in: inProp,
+  onExited
+}: NotificationItemProps) {
+  const handleClose = useCallback(() => {
+    onClose(notification.id);
+  }, [notification.id, onClose]);
+
+  const handleActionClick = useCallback(async () => {
+    await notification.action?.onClick();
+    onClose(notification.id);
+  }, [notification.action, notification.id, onClose]);
+
+  return (
+    <CSSTransition
+      key={notification.id}
+      in={inProp}
+      nodeRef={nodeRef}
+      timeout={300}
+      classNames="alert"
+      onExited={onExited}
+    >
+      <li ref={nodeRef} style={{ position: "relative" }}>
+        <MUIAlert
+          severity={mapTypeToSeverity(notification.type)}
+          onClose={handleClose}
+          action={
+            notification.action ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={handleActionClick}
+              >
+                {notification.action.label}
+              </Button>
+            ) : undefined
+          }
+        >
+          {notification.content}
+        </MUIAlert>
+        {(notification.dismissable || notification.type === "error") && (
+          <CopyButton
+            value={notification.content}
+            className={`copy-button ${notification.action ? "has-action" : ""}`}
+            tooltip="Copy to clipboard"
+          />
+        )}
+      </li>
+    </CSSTransition>
+  );
+});
+
+NotificationItem.displayName = "NotificationItem";
+
+const Alert: React.FC = memo(() => {
+  // Use separate selectors to avoid re-rendering when unrelated store values change
+  const notifications = useNotificationStore((state) => state.notifications);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
+  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
+
   const _theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);
 
-  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement | null>>>({});
   const [_show, setShow] = useState<Record<string, boolean>>({});
+  // Store timeout IDs in a ref so they persist across effect re-runs
+  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());
+  // Track the timeout created in handleClose to prevent memory leaks
+  const handleCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    const timeoutsMap = timeoutsRef.current;
+    return () => {
+      timeoutsMap.forEach((timeouts) => {
+        timeouts.forEach(clearTimeout);
+      });
+      timeoutsMap.clear();
+      // Clean up the handleClose timeout
+      if (handleCloseTimeoutRef.current) {
+        clearTimeout(handleCloseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
+    // Clean up visible notifications that were removed from the store (e.g. via replaceExisting)
+    const storeIds = new Set(notifications.map((n) => n.id));
+    setVisibleNotifications((prev) => {
+      const filtered = prev.filter((n) => storeIds.has(n.id));
+      if (filtered.length === prev.length) {
+        return prev;
+      }
+      // Clear timeouts for removed notifications
+      prev.forEach((n) => {
+        if (!storeIds.has(n.id)) {
+          const timeouts = timeoutsRef.current.get(n.id);
+          if (timeouts) {
+            timeouts.forEach(clearTimeout);
+            timeoutsRef.current.delete(n.id);
+          }
+        }
+      });
+      return filtered;
+    });
+
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
     const newNotifications = notifications.filter(
       (notification) =>
@@ -110,78 +213,77 @@ const Alert: React.FC = () => {
         new Date(notification.timestamp) > lastDisplayedDate
     );
 
-    if (newNotifications.length > 0) {
-      setVisibleNotifications((prevNotifications) => {
-        const combined = [...prevNotifications, ...newNotifications];
-        // Deduplicate notifications by id
-        return combined.reduce((acc, current) => {
-          if (acc.findIndex(({ id }) => id === current.id) === -1) {
-            acc.push(current);
-          }
-          return acc;
-        }, [] as Notification[]);
-      });
+    if (newNotifications.length === 0) {
+      return;
+    }
 
-      const latestTimestamp = newNotifications.reduce(
-        (max, { timestamp }) =>
-          new Date(timestamp) > max ? new Date(timestamp) : max,
-        lastDisplayedDate
-      );
+    setVisibleNotifications((prevNotifications) => {
+      const combined = [...prevNotifications, ...newNotifications];
+      // Deduplicate notifications by id
+      return combined.reduce((acc, current) => {
+        if (acc.findIndex(({ id }) => id === current.id) === -1) {
+          acc.push(current);
+        }
+        return acc;
+      }, [] as Notification[]);
+    });
 
-      if (latestTimestamp > lastDisplayedDate) {
-        updateLastDisplayedTimestamp(latestTimestamp);
-      }
+    const latestTimestamp = newNotifications.reduce(
+      (max, { timestamp }) =>
+        new Date(timestamp) > max ? new Date(timestamp) : max,
+      lastDisplayedDate
+    );
+
+    if (latestTimestamp > lastDisplayedDate) {
+      updateLastDisplayedTimestamp(latestTimestamp);
     }
 
     newNotifications.forEach((notification) => {
       setShow((s) => ({ ...s, [notification.id]: true }));
-      setTimeout(() => {
-        setShow((s) => ({ ...s, [notification.id]: false }));
 
-        setTimeout(() => {
-          setVisibleNotifications((prev) =>
-            prev.filter((item) => item.id !== notification.id)
-          );
-        }, TRANSITION_DURATION);
-      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
-    });
-
-    const timeouts = newNotifications.map((notification) => {
       const showTimeout = setTimeout(() => {
         setShow((s) => ({ ...s, [notification.id]: false }));
+
         const removeTimeout = setTimeout(() => {
           setVisibleNotifications((prev) =>
             prev.filter((item) => item.id !== notification.id)
           );
+          // Clean up tracked timeouts for this notification
+          timeoutsRef.current.delete(notification.id);
         }, TRANSITION_DURATION);
-        return removeTimeout;
-      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
-      return showTimeout;
-    });
 
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
+        // Track the inner timeout
+        const existing = timeoutsRef.current.get(notification.id) || [];
+        existing.push(removeTimeout);
+        timeoutsRef.current.set(notification.id, existing);
+      }, notification.timeout || NOTIFICATION_TIMEOUT_DEFAULT);
+
+      // Track the outer timeout in the ref
+      const existing = timeoutsRef.current.get(notification.id) || [];
+      existing.push(showTimeout);
+      timeoutsRef.current.set(notification.id, existing);
+    });
   }, [
     notifications,
     lastDisplayedTimestamp,
-    removeNotification,
     updateLastDisplayedTimestamp
   ]);
 
-  const handleClose = (id: string) => {
+  const handleClose = useCallback((id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
-    setTimeout(() => {
+    // Clear any existing timeout to prevent memory leaks
+    if (handleCloseTimeoutRef.current) {
+      clearTimeout(handleCloseTimeoutRef.current);
+    }
+    // Track the new timeout
+    handleCloseTimeoutRef.current = setTimeout(() => {
       removeNotification(id);
       setVisibleNotifications((prev) =>
         prev.filter((notification) => notification.id !== id)
       );
     }, TRANSITION_DURATION);
-  };
+  }, [removeNotification]);
 
-  // const handleCopy = async (content: string) => {
-  //   await writeClipboard(content, true);
-  // };
   return (
     <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
@@ -191,38 +293,18 @@ const Alert: React.FC = () => {
         const nodeRef = nodeRefs.current[notification.id];
 
         return (
-          <CSSTransition
+          <NotificationItem
             key={notification.id}
+            notification={notification}
             nodeRef={nodeRef}
-            timeout={300}
-            classNames="alert"
-            onExited={() => {
-              delete nodeRefs.current[notification.id];
-            }}
-          >
-            <li ref={nodeRef} style={{ position: "relative" }}>
-              <MUIAlert
-                severity={mapTypeToSeverity(notification.type)}
-                onClose={
-                  notification.type === "error" || notification.dismissable
-                    ? () => handleClose(notification.id)
-                    : undefined
-                }
-              >
-                {notification.content}
-              </MUIAlert>
-              {(notification.dismissable || notification.type === "error") && (
-                <CopyToClipboardButton
-                  copyValue={notification.content}
-                  className="copy-button"
-                  title="Copy to clipboard"
-                />
-              )}
-            </li>
-          </CSSTransition>
+            onClose={handleClose}
+          />
         );
       })}
     </TransitionGroup>
   );
-};
+});
+
+Alert.displayName = "Alert";
+
 export default Alert;

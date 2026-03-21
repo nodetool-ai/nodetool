@@ -1,4 +1,4 @@
- .PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server
 
 # Default target
 help:
@@ -13,6 +13,9 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make electron         - Build web and start electron app"
+	@echo "  make electron-dev     - Start Electron against web Vite server (requires active conda env)"
+	@echo "  make dev              - Start backend (tsx --watch) + web Vite server (auto-reload)"
+	@echo "  make dev-server       - Start backend dev server only (tsx --watch, no build needed)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build            - Build all packages"
@@ -69,11 +72,45 @@ $(WEB_BUILD_MARKER): $(WEB_SOURCES)
 	cd web && npm run build
 	@touch $(WEB_BUILD_MARKER)
 
-electron: $(WEB_BUILD_MARKER)
-	@echo "Building electron vite..."
+# Electron build optimization
+ELECTRON_DIR := electron
+ELECTRON_BUILD_MARKER := $(ELECTRON_DIR)/dist-electron/.build_marker
+ELECTRON_SOURCES := $(shell find $(ELECTRON_DIR)/src -type f 2>/dev/null) \
+	$(shell find $(ELECTRON_DIR)/pages -type f 2>/dev/null) \
+	$(shell find $(ELECTRON_DIR)/assets -type f 2>/dev/null) \
+	$(ELECTRON_DIR)/package.json \
+	$(ELECTRON_DIR)/package-lock.json \
+	$(ELECTRON_DIR)/vite.config.ts \
+	$(ELECTRON_DIR)/tsconfig.json \
+	$(ELECTRON_DIR)/index.html
+
+$(ELECTRON_BUILD_MARKER): $(ELECTRON_SOURCES)
+	@echo "Building Electron main/preload bundle..."
 	cd electron && npm run vite:build
+	@touch $(ELECTRON_BUILD_MARKER)
+
+electron: $(WEB_BUILD_MARKER) $(ELECTRON_BUILD_MARKER)
 	@echo "Starting electron app..."
 	cd electron && npm start
+
+# tsx --watch dev server: runs TS source directly, restarts on changes.
+# NOTE: base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes
+# load from dist/ (decorators). Run `npm run build:packages` if those change.
+dev:
+	npm run dev:watch
+
+dev-server:
+	npm run dev:watch:server
+
+ifeq ($(OS),Windows_NT)
+electron-dev:
+	@echo "Starting Electron development mode..."
+	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
+else
+electron-dev:
+	@echo "Starting Electron development mode..."
+	./scripts/electron-dev.sh
+endif
 
 # Build targets
 build: build-web build-electron
@@ -151,6 +188,8 @@ typecheck-electron:
 	cd electron && npm run typecheck
 
 typecheck-mobile:
+	@echo "Building shared protocol package for mobile..."
+	cd packages/protocol && npm run build
 	@echo "Type checking mobile package..."
 	cd mobile && npm run typecheck
 
@@ -180,7 +219,7 @@ all: install typecheck lint test build
 quickstart: install
 	@echo ""
 	@echo "Installation complete! Next steps:"
-	@echo "  make dev-web       - Start web development server"
-	@echo "  make dev-electron  - Build web and start electron app"
+	@echo "  cd web && npm start    - Start web development server"
+	@echo "  make electron          - Build web and start electron app"
 	@echo ""
-	@echo "Or run 'make dev' to start all servers"
+	@echo "For more commands, run 'make help'"

@@ -27,18 +27,24 @@ export function useChatIntegration(params: {
     currentText
   } = params;
 
-  const {
-    sendMessage: sendMessageFn,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
-    selectedModel,
-    setSelectedModel,
-    selectedTools,
-    selectedCollections,
-    stopGeneration,
-    createNewThread
-  } = useGlobalChatStore();
+  const sendMessageFn = useGlobalChatStore((state) => state.sendMessage);
+  const status = useGlobalChatStore((state) => state.status);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const getCurrentMessagesSync = useGlobalChatStore(
+    (state) => state.getCurrentMessagesSync
+  );
+  const _currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore(
+    (state) => state.setSelectedModel
+  );
+  const selectedTools = useGlobalChatStore((state) => state.selectedTools);
+  const selectedCollections = useGlobalChatStore(
+    (state) => state.selectedCollections
+  );
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
 
   const sendMessage = useCallback(
     async (message: Message) => {
@@ -107,7 +113,9 @@ export function useChatIntegration(params: {
 
       const textToProcess =
         selected && selected.trim().length > 0 ? selected : currentText;
-      if (!textToProcess || textToProcess.trim().length === 0) {return;}
+      if (!textToProcess || textToProcess.trim().length === 0) {
+        return;
+      }
 
       const composed = `${instruction}\n\n${textToProcess}`;
       const content: MessageContent[] = [
@@ -129,8 +137,8 @@ export function useChatIntegration(params: {
           type: "message",
           name: "",
           role: "user",
-          provider: (selectedModel as any)?.provider,
-          model: (selectedModel as any)?.id,
+          provider: selectedModel?.provider,
+          model: selectedModel?.id,
           content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
@@ -138,7 +146,7 @@ export function useChatIntegration(params: {
           agent_mode: false,
           help_mode: false,
           workflow_assistant: true
-        } as any);
+        } as Message);
       } catch {
         /* empty */
       }
@@ -160,26 +168,38 @@ export function useChatIntegration(params: {
   useEffect(() => {
     const unsubscribe = useGlobalChatStore.subscribe((state) => {
       const pending = improvePendingRef.current;
-      if (!pending.active) {return;}
+      if (!pending.active) {
+        return;
+      }
 
       const threadId = state.currentThreadId;
-      if (!threadId) {return;}
+      if (!threadId) {
+        return;
+      }
       const messages = state.messageCache?.[threadId] || [];
-      if (messages.length <= pending.baseCount) {return;}
-      if (state.status === "streaming") {return;}
+      if (messages.length <= pending.baseCount) {
+        return;
+      }
+      if (state.status === "streaming") {
+        return;
+      }
 
       const last = messages[messages.length - 1];
-      if (!last || last.role !== "assistant") {return;}
+      if (!last || last.role !== "assistant") {
+        return;
+      }
 
       let responseText = "";
-      const content = last.content as any;
+      const content = last.content;
       if (typeof content === "string") {
         responseText = content;
       } else if (Array.isArray(content)) {
-        const textItem = content.find((c: any) => c?.type === "text");
-        responseText = textItem?.text || "";
+        const textItem = content.find((c) => (c as { type?: string }).type === "text");
+        responseText = (textItem as { text?: string } | undefined)?.text || "";
       }
-      if (!responseText) {return;}
+      if (!responseText) {
+        return;
+      }
 
       if (pending.isCodeEditor && monacoRef.current) {
         const editor = monacoRef.current;

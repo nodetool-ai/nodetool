@@ -1,15 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { NodeResizeControl } from "@xyflow/react";
+import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
+import { memo } from "react";
 
 interface NodeResizeHandleProps {
   minWidth: number;
   minHeight: number;
-  onResize?: (event: any) => void;
+  onResize?: OnResize;
 }
 
 const styles = (theme: Theme) =>
@@ -49,11 +51,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
+const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResizeHandle({
   minWidth,
   minHeight,
   onResize
-}) => {
+}) {
   const theme = useTheme();
   return (
     <Box className="node-resize-handle" css={styles(theme)}>
@@ -66,6 +68,6 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
       </NodeResizeControl>
     </Box>
   );
-};
+});
 
 export default NodeResizeHandle;

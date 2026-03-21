@@ -40,6 +40,8 @@ export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 
 // Workflow version types using API schema types
+export type WorkflowVersionSaveType = "manual" | "autosave" | "checkpoint" | "restore";
+
 export interface WorkflowVersion {
   id: string;
   workflow_id: string;
@@ -48,7 +50,7 @@ export interface WorkflowVersion {
   name?: string;
   description?: string;
   is_pinned?: boolean;
-  save_type?: "manual" | "autosave" | "checkpoint" | "restore";
+  save_type?: WorkflowVersionSaveType;
   graph: Graph;
 }
 
@@ -77,7 +79,12 @@ export interface NodeMetadata extends BaseNodeMetadata {
     }>;
   };
   model_packs?: ModelPack[];
+  the_model_info?: {
+    cover_image_url?: string;
+    [key: string]: unknown;
+  };
 }
+export type SettingWithValue = components["schemas"]["SettingWithValue"];
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
 export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];
@@ -106,6 +113,7 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
+export type EmbeddingModel = components["schemas"]["EmbeddingModel"];
 export type ImageModel = components["schemas"]["ImageModel"];
 export type TTSModel = components["schemas"]["TTSModel"];
 export type ASRModel = components["schemas"]["ASRModel"];
@@ -116,10 +124,111 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
   artifact_component?: string | null;
   artifact_confidence?: number | null;
   artifact_evidence?: string[] | null;
+  provider?: string | null;
 };
+
+// Model property value types for use in component onChange handlers
+// These types represent the actual values passed to property onChange callbacks
+
+/**
+ * Property value for Llama model selections in node properties.
+ * Used by LlamaModelSelect component onChange handlers.
+ */
+export interface LlamaModelValue {
+  type: "llama_model";
+  repo_id: string;
+}
+
+/**
+ * Property value for Language model selections in node properties.
+ * Used by LanguageModelSelect component onChange handlers.
+ */
+export interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: Provider;
+  name: string;
+}
+
+/**
+ * Property value for Image model selections in node properties.
+ * Used by ImageModelSelect component onChange handlers.
+ */
+export interface ImageModelValue {
+  type: "image_model";
+  id: string;
+  provider: Provider;
+  name: string;
+  path: string;
+}
+
+/**
+ * Property value for TTS model selections in node properties.
+ * Used by TTSModelSelect component onChange handlers.
+ */
+export interface TTSModelValue {
+  type: "tts_model";
+  id: string;
+  provider: Provider;
+  name: string;
+  voices: string[];
+  selected_voice: string;
+}
+
+/**
+ * Property value for HuggingFace model selections in node properties.
+ * Used by HuggingFaceModelSelect component onChange handlers.
+ */
+export interface HuggingFaceModelValue {
+  type: "hf.text_to_image" | "hf.image_to_image";
+  repo_id: string;
+  path?: string;
+}
+
+/**
+ * Combined type for HuggingFace model values that can be either the new format (with repo_id)
+ * or the legacy format (with id, provider, name).
+ */
+export type HuggingFaceModelValueInput = HuggingFaceModelValue & {
+  id?: string;
+  provider?: string;
+  name?: string;
+};
+
+/**
+ * Property value for 3D model selections in node properties.
+ * Used by Model3DModelSelect component onChange handlers.
+ */
+export interface Model3DModelValue {
+  type: "model_3d_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
+/**
+ * Property value for inference provider model selections in node properties.
+ * Used by InferenceProviderModelSelect component onChange handlers.
+ */
+export type InferenceProviderModelValue =
+  | { type: "inference_provider_automatic_speech_recognition_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_audio_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_segmentation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_image_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_summarization_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_classification_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_generation_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_audio_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_image_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_speech_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_text_to_text_model"; provider: InferenceProvider; model_id: string }
+  | { type: "inference_provider_translation_model"; provider: InferenceProvider; model_id: string };
+
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
+export type ToolResultUpdate = components["schemas"]["ToolResultUpdate"];
 export type Chunk = components["schemas"]["Chunk"];
 export type SVGElement = components["schemas"]["SVGElement"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
@@ -133,11 +242,11 @@ export type MessageContent =
   | MessageAudioContent
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
-export type FileInfo = components["schemas"]["FileInfo"];
-export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
-export type CollectionResponse = components["schemas"]["CollectionResponse"];
-export type CollectionList = components["schemas"]["CollectionList"];
-export type CollectionCreate = components["schemas"]["CollectionCreate"];
+export type FileInfo = components["schemas"]["nodetool__api__file__FileInfo"];
+export type WorkspaceFileInfo = components["schemas"]["nodetool__api__workspace__FileInfo"];
+export type CollectionResponse = components["schemas"]["nodetool__api__collection__CollectionResponse"];
+export type CollectionList = components["schemas"]["nodetool__api__collection__CollectionList"];
+export type CollectionCreate = components["schemas"]["nodetool__api__collection__CollectionCreate"];
 export type Task = components["schemas"]["Task"];
 export type TaskPlan = components["schemas"]["TaskPlan"];
 export type Step = components["schemas"]["Step"];
@@ -163,8 +272,27 @@ export type JobListResponse = components["schemas"]["JobListResponse"];
 export type CalendarEvent = components["schemas"]["CalendarEvent"];
 export type Datetime = components["schemas"]["Datetime"];
 
+// Resource change update type for WebSocket notifications
+export interface ResourceChangeUpdate {
+  type: "resource_change";
+  event: "created" | "updated" | "deleted";
+  resource_type: string; // e.g. "workflow", "asset", "thread", "job"
+  resource: {
+    id: string;
+    etag?: string;
+    [key: string]: unknown; // Additional resource properties
+  };
+}
+
 // Job types
 export type Job = JobResponse;
+export type RunStateInfo = components["schemas"]["RunStateInfo"];
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];
+
+// Workspace types - for managing workspace folders
+export type WorkspaceResponse = components["schemas"]["WorkspaceResponse"];
+export type WorkspaceListResponse = components["schemas"]["WorkspaceListResponse"];
+export type WorkspaceCreateRequest = components["schemas"]["WorkspaceCreateRequest"];
+export type WorkspaceUpdateRequest = components["schemas"]["WorkspaceUpdateRequest"];

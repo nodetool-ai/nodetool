@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect, useMemo } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import AudioPlayer from "../../audio/AudioPlayer";
@@ -14,7 +14,7 @@ interface MessageContentRendererProps {
   index: number;
 }
 
-export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
+export const MessageContentRenderer: React.FC<MessageContentRendererProps> = React.memo(({
   content,
   renderTextContent,
   index
@@ -39,7 +39,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
       }
 
       // Create new object URL
-      const newObjectUrl = URL.createObjectURL(new Blob([source], { type }));
+      const newObjectUrl = URL.createObjectURL(new Blob([source as BlobPart], { type }));
       objectUrlRef.current = newObjectUrl;
       return newObjectUrl;
     },
@@ -57,6 +57,9 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
   }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Memoize video style to prevent recreation on every render
+  const videoStyle = useMemo(() => ({ width: "100%" }), []);
 
   // Render content according to Harmony format
   switch (content.type) {
@@ -87,22 +90,16 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
     }
     case "image_url": {
       // Handle image content in Harmony format
-      console.log("Image content:", content.image);
-
       let imageSource: string | Uint8Array | undefined;
 
       if (content.image?.data) {
-        console.log("Passing raw image data to ImageView");
         imageSource = content.image.data as Uint8Array;
       } else if (content.image?.uri) {
-        console.log("Using image URI:", content.image.uri);
         imageSource = content.image.uri;
       } else {
-        console.error("No image data or URI found");
         return <div>Error: No image source available</div>;
       }
 
-      console.log("Final image source:", imageSource);
       return <ImageView source={imageSource} />;
     }
     case "audio":
@@ -125,7 +122,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
         "video/mp4"
       );
       return (
-        <video ref={videoRef} controls style={{ width: "100%" }} src={uri} />
+        <video ref={videoRef} controls style={videoStyle} src={uri} />
       );
     }
     case "document":
@@ -134,4 +131,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
     default:
       return null;
   }
-};
+});
+
+MessageContentRenderer.displayName = "MessageContentRenderer";

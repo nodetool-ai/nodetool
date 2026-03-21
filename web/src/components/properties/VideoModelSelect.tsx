@@ -3,12 +3,22 @@ import isEqual from "lodash/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { VideoModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+/**
+ * Value type for video model selection
+ */
+interface VideoModelValue {
+  type: "video_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface VideoModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: VideoModelValue) => void;
   value: string;
   task?: "text_to_video" | "image_to_video";
 }
@@ -23,16 +33,11 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
   const loadVideoModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "video" } }
-      }
-    );
-    if (error) {
-      throw error;
+    const res = await fetch(`${BASE_URL}/api/models/video`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch video models: ${res.status}`);
     }
-    return data as unknown as VideoModel[];
+    return (await res.json()) as VideoModel[];
   }, []);
 
   const { data: models } = useQuery({

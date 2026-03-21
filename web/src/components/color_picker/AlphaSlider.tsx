@@ -54,7 +54,7 @@ interface AlphaSliderProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const AlphaSlider: React.FC<AlphaSliderProps> = ({
+const AlphaSlider: React.FC<AlphaSliderProps> = React.memo(({
   color,
   alpha,
   onChange,
@@ -173,6 +173,8 @@ const AlphaSlider: React.FC<AlphaSliderProps> = ({
       <div className="alpha-cursor" style={cursorStyle} />
     </div>
   );
-};
+});
+
+AlphaSlider.displayName = 'AlphaSlider';
 
 export default AlphaSlider;

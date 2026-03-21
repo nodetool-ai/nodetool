@@ -5,7 +5,8 @@ import React, {
   useRef,
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -20,38 +21,50 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    currentThreadId,
-    threads,
-    getCurrentMessagesSync,
-    createNewThread,
-    switchThread,
-    fetchThread,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentLogUpdate,
-    threadsLoaded,
-    workflowId,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
+
+  // Split selectors to minimize re-renders - group by update frequency
+  // Frequently updated values (messages, status, progress)
+  const status = useGlobalChatStore((state) => state.status);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
+
+  // Thread management (changes on thread switch)
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+
+  // Actions (stable references)
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const connect = useGlobalChatStore((state) => state.connect);
+  const disconnect = useGlobalChatStore((state) => state.disconnect);
+
+  // Agent mode and settings (change less frequently)
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+
+  // Task updates (change during execution)
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const workflowId = useGlobalChatStore((state) => state.workflowId);
 
   // Get connection state from WebSocket manager directly
-  const [connectionState, setConnectionState] = useState(
+  const [_connectionState, setConnectionState] = useState(
     globalWebSocketManager.getConnectionState()
   );
 
@@ -64,23 +77,47 @@ const GlobalChat: React.FC = () => {
     );
     return unsubscribe;
   }, []);
-  const runningToolCallId = useGlobalChatStore(
-    (s) => s.currentRunningToolCallId
+
+  // Initialize GlobalChatStore connection on mount
+  useEffect(() => {
+    connect().catch((err) => {
+      log.error("Failed to connect GlobalChatStore:", err);
+    });
+
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        log.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
+
+  const {
+    currentRunningToolCallId: runningToolCallId,
+    currentToolMessage: runningToolMessage,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    setSelectedTools,
+    selectedCollections,
+    setSelectedCollections
+  } = useGlobalChatStore(
+    (state) => ({
+      currentRunningToolCallId: state.currentRunningToolCallId,
+      currentToolMessage: state.currentToolMessage,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      selectedTools: state.selectedTools,
+      setSelectedTools: state.setSelectedTools,
+      selectedCollections: state.selectedCollections,
+      setSelectedCollections: state.setSelectedCollections
+    })
   );
-  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
-
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -171,7 +208,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          console.error("Failed to handle thread logic:", error);
+          log.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -203,9 +240,12 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) { return; }
 
+    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      setTimeout(() => {
+      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
+      viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -225,16 +265,18 @@ const GlobalChat: React.FC = () => {
     };
 
     // Use Visual Viewport API for better keyboard handling
-    if ((window as any).visualViewport) {
-      (window as any).visualViewport.addEventListener(
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener(
         "resize",
         handleViewportChange
       );
       return () => {
-        (window as any).visualViewport.removeEventListener(
+        vv.removeEventListener(
           "resize",
           handleViewportChange
         );
+        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
@@ -253,7 +295,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -268,7 +310,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        console.error("Failed to delete thread:", error);
+        log.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]
@@ -417,7 +459,7 @@ const GlobalChat: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background: theme.vars.palette.c_editor_bg_color
+        background: theme.vars.palette.background.default
         // Mobile styles handled via separate CSS file
       }}
     >
@@ -427,16 +469,10 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error || !connectionState.isConnected) && (
+          (error &&
             <Alert
               className="global-chat-status-alert"
-              severity={
-                connectionState.isConnecting
-                  ? "info"
-                  : !connectionState.isConnected
-                    ? "warning"
-                    : "error"
-              }
+              severity="error"
               onClose={() => setAlertDismissed(true)}
               sx={{
                 position: "absolute",
@@ -449,11 +485,7 @@ const GlobalChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {connectionState.isConnecting
-                ? statusMessage || "Connecting to chat service..."
-                : !connectionState.isConnected
-                  ? "Connecting to chat service..."
-                  : error}
+              {error}
             </Alert>
           )}
 
@@ -527,4 +559,4 @@ const GlobalChat: React.FC = () => {
   );
 };
 
-export default GlobalChat;
+export default memo(GlobalChat);

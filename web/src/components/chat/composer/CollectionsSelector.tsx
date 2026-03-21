@@ -10,8 +10,8 @@ import {
   Popover,
   PopoverOrigin
 } from "@mui/material";
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
-import FolderIcon from "@mui/icons-material/Folder";
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from "react";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
@@ -64,7 +64,9 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
-  const { collections, fetchCollections, isLoading } = useCollectionStore();
+  const collections = useCollectionStore((state) => state.collections);
+  const fetchCollections = useCollectionStore((state) => state.fetchCollections);
+  const isLoading = useCollectionStore((state) => state.isLoading);
 
   useEffect(() => {
     if (!collections) {
@@ -90,9 +92,20 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
     [value, onChange]
   );
 
+  // Memoize toggle handlers for each collection to prevent re-renders
+  const toggleHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    if (collections?.collections) {
+      for (const collection of collections.collections) {
+        handlers[collection.name] = () => handleToggle(collection.name);
+      }
+    }
+    return handlers;
+  }, [collections, handleToggle]);
+
   const handleSelectAll = useCallback(() => {
-    if (collections) {
-      onChange(collections.collections.map((c) => c.name));
+    if (collections?.collections) {
+      onChange(collections.collections.map((c: { name: string }) => c.name));
     }
   }, [collections, onChange]);
 
@@ -101,7 +114,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   }, [onChange]);
 
   const selectedCount = value.length;
-  const totalCount = collections?.collections.length || 0;
+  const totalCount = collections?.collections?.length || 0;
 
   // Positioning logic for Popover
   const [positionConfig, setPositionConfig] = useState<{
@@ -157,18 +170,21 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
           className={`collections-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={<FolderIcon fontSize="small" />}
+          startIcon={<LibraryBooksOutlinedIcon sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
               <Chip
                 size="small"
                 label={selectedCount}
                 sx={{
-                  marginLeft: 1,
-                  backgroundColor: theme.vars.palette.primary.main,
-                  color: theme.vars.palette.common.white,
+                  marginLeft: "-4px",
+                  backgroundColor: theme.vars.palette.grey[700],
+                  color: theme.vars.palette.grey[200],
+                  borderRadius: "6px",
+                  height: "18px",
                   "& .MuiChip-label": {
-                    padding: "0 4px"
+                    padding: "0 5px",
+                    fontSize: "0.7rem"
                   }
                 }}
               />
@@ -277,20 +293,26 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               Loading collections...
             </Typography>
           ) : !collections?.collections.length ? (
-            <Typography
-              variant="body2"
-              sx={{ p: 2, color: theme.vars.palette.text.secondary }}
-            >
-              No collections available
-            </Typography>
+            <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                No collections available
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 1 }}>
+                Collections are vector databases used for semantic search during chat.
+                When selected, relevant document chunks are retrieved and included as context.
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+                Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
+              </Typography>
+            </Box>
           ) : (
-            collections.collections.map((collection) => {
+            collections.collections.map((collection: { name: string; count: number }) => {
               const isSelected = value.includes(collection.name);
               return (
                 <Box
                   key={collection.name}
                   className={`collection-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => handleToggle(collection.name)}
+                  onClick={toggleHandlers[collection.name]}
                 >
                   <Checkbox
                     checked={isSelected}

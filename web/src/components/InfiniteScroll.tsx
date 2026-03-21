@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { useEffect, useCallback, useRef, ReactNode, memo } from 'react';
 
 interface InfiniteScrollProps {
     next: () => void | Promise<unknown>;
@@ -9,23 +9,33 @@ interface InfiniteScrollProps {
     className?: string;
 }
 
-const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
+const InfiniteScroll: React.FC<InfiniteScrollProps> = memo(function InfiniteScroll({
     next,
     hasMore,
     loader,
     children,
     threshold = 100,
     className = '',
-}) => {
+}) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const ticking = useRef(false);
 
     const handleScroll = useCallback(() => {
-        if (!scrollRef.current || !hasMore) {return;}
-
-        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        if (scrollHeight - scrollTop - clientHeight < threshold) {
-            next();
+        if (!scrollRef.current || !hasMore || ticking.current) {
+            return;
         }
+
+        window.requestAnimationFrame(() => {
+            if (scrollRef.current && hasMore) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+                if (scrollHeight - scrollTop - clientHeight < threshold) {
+                    next();
+                }
+            }
+            ticking.current = false;
+        });
+
+        ticking.current = true;
     }, [hasMore, next, threshold]);
 
     useEffect(() => {
@@ -46,6 +56,6 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
             {hasMore && loader}
         </div >
     );
-};
+});
 
 export default InfiniteScroll;

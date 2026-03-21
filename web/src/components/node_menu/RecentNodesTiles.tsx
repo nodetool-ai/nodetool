@@ -7,7 +7,7 @@ import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box, Tooltip, Typography, IconButton } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -16,6 +16,7 @@ import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
+import log from "loglevel";
 
 const QUICK_ACTION_NODE_TYPES = new Set(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
@@ -84,7 +85,7 @@ const tileStyles = (theme: Theme) =>
       overflow: "hidden",
       border: "1px solid rgba(255, 255, 255, 0.06)",
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      minHeight: "80px",
+      minHeight: "30px",
       background: "rgba(255, 255, 255, 0.02)",
       "&::before": {
         content: '""',
@@ -115,7 +116,7 @@ const tileStyles = (theme: Theme) =>
       }
     },
     ".tile-label": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
@@ -170,8 +171,16 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
 
   const handleCreateNode = useCreateNode();
 
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
   const handleDragStart = useCallback(
-    (nodeType: string) => (event: ReactDragEvent<HTMLDivElement>) => {
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         event.preventDefault();
@@ -194,16 +203,20 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     clearDrag();
   }, [setDragToCreate, clearDrag]);
 
-  const onTileClick = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
+  const handleTileClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        return;
+      }
 
+      const metadata = getMetadata(nodeType);
       if (!metadata) {
-        console.warn(`Metadata not found for node type: ${nodeType}`);
+        log.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,
-          timeout: 4000
+          timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
@@ -213,8 +226,13 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata, addNotification, handleCreateNode]
   );
 
-  const onTileMouseEnter = useCallback(
-    (nodeType: string) => {
+  const handleTileMouseEnter = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        return;
+      }
+
       const metadata = getMetadata(nodeType);
       if (metadata) {
         setHoveredNode(metadata);
@@ -227,22 +245,35 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     clearRecentNodes();
   }, [clearRecentNodes]);
 
-  // Get readable node names
-  const getNodeDisplayName = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
-      if (metadata) {
-        return metadata.title || metadata.node_type.split(".").pop() || nodeType;
-      }
-      return nodeType.split(".").pop() || nodeType;
-    },
-    [getMetadata]
-  );
-
   // Filter out nodes that are already shown in Quick Actions
   const filteredRecentNodes = useMemo(
-    () => recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
+    () =>
+      recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
     [recentNodes]
+  );
+
+  // Memoize node display names to avoid re-computation on each render
+  const nodeDisplayNames = useMemo(
+    () => {
+      const names = new Map<string, string>();
+      filteredRecentNodes.forEach((recentNode) => {
+        const { nodeType } = recentNode;
+        const metadata = getMetadata(nodeType);
+        if (metadata) {
+          names.set(
+            nodeType,
+            metadata.title || metadata.node_type.split(".").pop() || nodeType
+          );
+        } else {
+          names.set(
+            nodeType,
+            nodeType.split(".").pop() || nodeType
+          );
+        }
+      });
+      return names;
+    },
+    [filteredRecentNodes, getMetadata]
   );
 
   if (filteredRecentNodes.length === 0) {
@@ -270,7 +301,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {
           const { nodeType } = recentNode;
-          const displayName = getNodeDisplayName(nodeType);
+          const displayName = nodeDisplayNames.get(nodeType) || nodeType;
 
           return (
             <Tooltip
@@ -291,14 +322,16 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="recent-tile"
                 draggable
-                onDragStart={handleDragStart(nodeType)}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(nodeType)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
                 style={
                   {
                     background: theme.vars.palette.action.selected
@@ -315,4 +348,4 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   );
 });
 
-export default RecentNodesTiles;
+export default memo(RecentNodesTiles);

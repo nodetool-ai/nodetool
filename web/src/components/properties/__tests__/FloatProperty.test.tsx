@@ -44,7 +44,7 @@ describe("FloatProperty", () => {
     expect(document.querySelector(".range-container-wrapper")).toBeInTheDocument();
   });
 
-  it("should show slider with default min=0 and max=100 when min/max not provided", () => {
+  it("should show slider with default min=0 and max=99999 when min/max not provided", () => {
     const property = createMockProperty();
     renderWithTheme(
       <FloatProperty
@@ -143,10 +143,10 @@ describe("FloatProperty", () => {
           is_dynamic: false,
           supports_dynamic_outputs: false,
           expose_as_tool: false,
-          the_model_info: {},
           recommended_models: [],
           basic_fields: [],
-          is_streaming_output: false
+          is_streaming_output: false,
+            required_settings: []
         }
       }
     }, true);

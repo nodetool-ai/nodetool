@@ -9,7 +9,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../hooks/browser/useClipboard");
 
-const mockWriteClipboard = jest.fn();
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
 (useClipboard as unknown as jest.Mock).mockReturnValue({
   writeClipboard: mockWriteClipboard
 });
@@ -52,12 +52,14 @@ describe("NotificationsList", () => {
     (useNotificationStore as unknown as jest.Mock).mockImplementation(
       (sel: any) => sel({ notifications })
     );
-    render(
+    const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <NotificationsList />
       </ThemeProvider>
     );
-    const btns = screen.getAllByTitle("Copy to clipboard");
+    const btns = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("button.copy-button")
+    );
     fireEvent.click(btns[0]);
     expect(mockWriteClipboard).toHaveBeenCalledWith("second", true);
   });

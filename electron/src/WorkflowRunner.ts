@@ -126,9 +126,6 @@ export const createWorkflowRunner = () =>
             buffer = new Uint8Array(0);
           }
           const data = decode(buffer) as any;
-          if (data.type !== "chunk") {
-            console.log("data", data);
-          }
 
           if (data.type === "node_update") {
             set({

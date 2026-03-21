@@ -6,6 +6,8 @@ export default {
     pretendToBeVisual: true,
     resources: "usable"
   },
+  testTimeout: 10000,
+  maxWorkers: "50%",
   moduleNameMapper: {
     canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
@@ -34,7 +36,11 @@ export default {
     "^react-syntax-highlighter/dist/esm/styles/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-syntax-highlighter/dist/esm/prism$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-syntax-highlighter/dist/esm/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx"
+    "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx",
+    "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
+    "^react-pdf$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^react-pdf/.*$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
@@ -59,5 +65,5 @@ export default {
     "!src/index.tsx"
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/coverage/", "/dist/"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/", "/tests/e2e/"]
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "tests/e2e/"]
 };

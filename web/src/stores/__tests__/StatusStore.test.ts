@@ -177,4 +177,44 @@ describe("StatusStore", () => {
       expect(getStatus("workflow1", "node2")).toBeUndefined();
     });
   });
+
+  describe("clearStatuses with nodeIds", () => {
+    it("should clear statuses only for specified nodes", () => {
+      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
+
+      setStatus("workflow1", "node1", "running");
+      setStatus("workflow1", "node2", "completed");
+      setStatus("workflow1", "node3", "pending");
+
+      clearStatuses("workflow1", new Set(["node1", "node3"]));
+
+      expect(getStatus("workflow1", "node1")).toBeUndefined();
+      expect(getStatus("workflow1", "node2")).toBe("completed");
+      expect(getStatus("workflow1", "node3")).toBeUndefined();
+    });
+
+    it("should not affect other workflows when clearing specific nodes", () => {
+      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
+
+      setStatus("workflow1", "node1", "running");
+      setStatus("workflow2", "node1", "completed");
+
+      clearStatuses("workflow1", new Set(["node1"]));
+
+      expect(getStatus("workflow1", "node1")).toBeUndefined();
+      expect(getStatus("workflow2", "node1")).toBe("completed");
+    });
+
+    it("should clear all workflow statuses when nodeIds is not provided", () => {
+      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
+
+      setStatus("workflow1", "node1", "running");
+      setStatus("workflow1", "node2", "completed");
+
+      clearStatuses("workflow1");
+
+      expect(getStatus("workflow1", "node1")).toBeUndefined();
+      expect(getStatus("workflow1", "node2")).toBeUndefined();
+    });
+  });
 });

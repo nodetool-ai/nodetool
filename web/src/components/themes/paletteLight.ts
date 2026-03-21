@@ -166,14 +166,14 @@ export const paletteLight: PaletteOptions = {
     1000: "#FAF7F2"
   },
   c_black: "#1A1715",
-  c_bg_comment: "#FAF7F2",
-  c_brightest: "#FAF7F2",
-  c_white: "#FAF7F2",
-  c_background: "#FAF7F2",
-  c_node_menu: "#F4EFE7",
+  c_bg_comment: "#FAF8F5",
+  c_brightest: "#FFFFFF",
+  c_white: "#FFFFFF",
+  c_background: "#FAF8F5",
+  c_node_menu: "#F7F5F0",
   c_selection: "#5E9A8F33",
-  c_input: "#F6EFE7",
-  c_output: "#EFF5EF",
+  c_input: "#F9F7F5",
+  c_output: "#F2F5F2",
   c_attention: "#C96E51",
   c_delete: "#D8615B",
   c_debug: "#B35E7A",
@@ -184,17 +184,17 @@ export const paletteLight: PaletteOptions = {
   c_link: "#3F7D75",
   c_link_visited: "#6A8C88",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#D9D2C9",
-  c_scroll_thumb: "#C7BEB3",
-  c_node_bg: "#f9f8f7",
-  c_node_bg_group: "#FAF7F2",
-  c_node_header_bg: "#FAF7F2",
-  c_node_header_bg_group: "#FAF7F2",
+  c_scroll_hover: "#E0DCD6",
+  c_scroll_thumb: "#D1CCC6",
+  c_node_bg: "#FFFFFF",
+  c_node_bg_group: "#FAF8F5",
+  c_node_header_bg: "#FAF8F5",
+  c_node_header_bg_group: "#FAF8F5",
   c_bg_loop: "#5E9A8F14",
-  c_bg_group: "#A59F9730",
-  c_editor_bg_color: "#f1efe9",
-  c_editor_grid_color: "#E6E6E6",
-  c_editor_axis_color: "#E7E7E7",
+  c_bg_group: "#A59F9720",
+  c_editor_bg_color: "#F0ECE8",
+  c_editor_grid_color: "#d9cfc5",
+  c_editor_axis_color: "#E6E2DE",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
   c_provider_api: "#2C415A",
   c_provider_local: "#2E5B4E",
@@ -208,9 +208,9 @@ export const paletteLight: PaletteOptions = {
   providerHf: "#6D4B6F",
 
   primary: {
-    main: "#4187deff",
-    light: "#93C5FD",
-    dark: "#1449dbff",
+    main: "#4f7dab",
+    light: "#618fbb",
+    dark: "#43678a",
     contrastText: "#FAF7F2"
   },
   secondary: {
@@ -220,13 +220,13 @@ export const paletteLight: PaletteOptions = {
     contrastText: "#FAF7F2"
   },
   background: {
-    default: "#FAF7F2",
-    paper: "#FAF7F2"
+    default: "#faf8f4",
+    paper: "#f0eee5"
   },
   text: {
-    primary: "#2A2A2A",
-    secondary: "#5B5751",
-    disabled: "#A59F97"
+    primary: "#333333",
+    secondary: "#666666",
+    disabled: "#999999"
   },
   action: {
     // Icons, enabled interactive elements, "on" state indicators
@@ -255,9 +255,9 @@ export const paletteLight: PaletteOptions = {
     activatedOpacity: 0.12
   },
   Paper: {
-    default: "#FAF7F2",
-    paper: "#FAF7F2",
-    overlay: "#F0EBE4"
+    default: "#fbf9f8",
+    paper: "#f0eee6",
+    overlay: "#F2F0EB"
   },
   divider: "#E7DFD6",
   glass: {

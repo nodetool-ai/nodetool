@@ -72,12 +72,7 @@
   .react-flow__node
   .react-flow__handle.not-connectable {
   opacity: 0.8;
-  transform: translate(0, -50%) scale(0.6, 0.4);
-}
-
-/* IS CONNECTING */
-.react-flow .connecting-class {
-  background-color: red !important;
+  transform: translate(0, -50%) scale(0.5, 1);
 }
 
 /* edge */
@@ -85,7 +80,9 @@
 .react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
   stroke-width: 2.5 !important;
-  transition: stroke-opacity 0.2s, stroke-width 0.1s;
+  transition:
+    stroke-opacity 0.3s ease-in-out,
+    stroke-width 0.2s ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -121,19 +118,28 @@
   .react-flow__edges
   .react-flow__edge.selected
   .react-flow__edge-path {
-  stroke-dasharray: 6;
-  stroke-width: 5;
+  stroke: var(--palette-text-primary) !important;
+  /* stroke-dasharray: 6; */
+  stroke-width: 3 !important;
   stroke-opacity: 1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
 }
 
-/* Flow animation for edges on message_sent */
+/* Flow animation for edges on message_sent or running source node */
 .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
   stroke-opacity: 1;
-  stroke-width: 4 !important;
   stroke-linecap: round;
   /* create a repeating dash pattern to simulate flow */
   stroke-dasharray: 14 10;
-  animation: edgeFlow 1.4s linear infinite;
+  animation: edgeFlow 2s linear infinite;
+}
+
+/* Streaming edges get bigger stroke when animated */
+.react-flow
+  .react-flow__edge.message-sent.streaming-edge
+  .react-flow__edge-path {
+  stroke-width: 4 !important;
 }
 
 @keyframes edgeFlow {
@@ -145,25 +151,110 @@
   }
 }
 
+/* STREAMING EDGE - edges from streaming output nodes */
+.react-flow .react-flow__edge.streaming-edge .react-flow__edge-path {
+  stroke-width: 3 !important;
+  stroke-opacity: 0.8;
+  stroke-dasharray: 30 3;
+}
+
+.react-flow .react-flow__edge.streaming-edge:hover .react-flow__edge-path {
+  stroke-width: 4 !important;
+  stroke-opacity: 1;
+}
+
+/* Selected streaming edge */
+.react-flow
+  .react-flow__edges
+  .react-flow__edge.streaming-edge.selected
+  .react-flow__edge-path {
+  stroke: var(--palette-text-primary) !important;
+  stroke-dasharray: 8;
+  stroke-width: 4 !important;
+  stroke-opacity: 1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
+}
+
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
   fill: var(--palette-grey-1000);
   font-size: var(--fontSizeTinyer);
-  transition: all 0.2s;
+  transition: all 0.1s;
 }
+
+/* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
+.react-flow .react-flow__edge.control-edge .react-flow__edge-path {
+  stroke: #f59e0b;
+  stroke-dasharray: 8 4;
+  stroke-width: 2 !important;
+  stroke-opacity: 0.7;
+}
+
+.react-flow .react-flow__edge.control-edge:hover .react-flow__edge-path {
+  stroke-width: 3 !important;
+  stroke-opacity: 1;
+}
+
+.react-flow
+  .react-flow__edges
+  .react-flow__edge.control-edge.selected
+  .react-flow__edge-path {
+  stroke: #f59e0b !important;
+  stroke-width: 3 !important;
+  stroke-opacity: 1;
+  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
+}
+
+/* CONTROL HANDLE - special handle at the top/bottom of controlled nodes */
+.react-flow__node .react-flow__handle.control-handle {
+  width: 14px;
+  height: 8px;
+  background: #f59e0b;
+  border: 1px solid #d97706;
+  z-index: 1000;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.react-flow__node .react-flow__handle.control-handle-top {
+  top: -6px;
+  border-radius: 4px 4px 0 0;
+}
+
+.react-flow__node .react-flow__handle.control-handle-bottom {
+  bottom: -6px;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Control handle visibility */
+.react-flow__node .react-flow__handle.control-handle-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.react-flow__node .react-flow__handle.control-handle-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* .react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle.control-handle.not-connectable {
+  transform: translateX(-50%) scale(0.8, 0.6);
+  opacity: 0.8;
+} */
 
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: transform 0.15s, height 0.05s, opacity 0.2s linear;
+  transition: all 0.15s;
   width: var(--handle_width);
   height: var(--handle_height);
-  /* Subtle, darker base so it doesn't pop over glass */
   background-color: var(--palette-grey-700);
   border: 0;
   z-index: 999;
-  /* Softer shadow to reduce visual prominence */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   opacity: 1;
 }
@@ -187,27 +278,29 @@
 
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.25, 1);
+  transform: translate(0, -50%) scale(1.75, 1.5);
   cursor: cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
-  transform: translate(0, -50%) scale(1.25, 1);
+  transform: translate(0, -50%) scale(1.75, 1.5);
   cursor: cell;
   opacity: 0.9;
 }
+/* HANDLE SNAP AREA */
 .react-flow__node .react-flow__handle-left::after,
 .react-flow__node .react-flow__handle-right::after {
   content: "";
   position: absolute;
-  left: -5px;
+  top: -5px;
+  left: -10px;
   background-color: transparent;
-  width: 17px;
-  height: 100%;
+  width: 24px; /* width of the invisible snap area of a handle */
+  height: 200%; /* height of the invisible snap area of a handle */
 }
 .react-flow__node .react-flow__handle-right::after {
   left: unset;
-  right: -5px;
+  right: -10px;
   border-radius: 0px;
 }
 .react-flow.is-connecting .react-flow__node .react-flow__handle-right::after,
@@ -229,7 +322,9 @@
   border-left-width: 3px;
   border-left-style: double;
   /* Subtle glow to make it more noticeable */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .react-flow__node .react-flow__handle-left.collect-handle:hover {
@@ -238,11 +333,68 @@
 }
 
 /* Enhance visibility during connection */
-.react-flow.is-connecting .react-flow__node .react-flow__handle-left.collect-handle.is-connectable {
-  height: calc(var(--handle_height) * 2);
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle-left.is-connectable {
+  height: calc(var(--handle_height) * 1.4);
+  width: calc(var(--handle_width) * 1.25) !important;
+  transform: translate(-2px, -50%) scale(1.15, 1);
+  opacity: 1;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle-right.is-connectable {
+  height: calc(var(--handle_height) * 1.4);
+  width: calc(var(--handle_width) * 1.25) !important;
+  transform: translate(2px, -50%) scale(1.15, 1);
+  opacity: 1;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
+/* Uses striped overlay pattern to signify streaming behavior while preserving type color */
+.react-flow__node .react-flow__handle-right.streaming-handle {
+  /* Wider handle to signify streaming */
+  height: calc(var(--handle_height) * 1.25);
+
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Stripe overlay that shows on top of the type color */
+.react-flow__node .react-flow__handle-right.streaming-handle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.35) 3px,
+    rgba(0, 0, 0, 0.35) 5px
+  );
+  pointer-events: none;
+}
+
+.react-flow__node .react-flow__handle-right.streaming-handle:hover {
+  height: calc(var(--handle_height) * 1.6);
+  transform: translate(0, -50%) scale(1.3, 1);
+}
+
+/* Enhance visibility during connection */
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle-right.streaming-handle.is-connectable {
+  height: calc(var(--handle_height) * 1.8);
   transform: translate(0, -50%) scale(1.15, 1);
   opacity: 1;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* DYNAMIC OUTPUTS */
@@ -306,9 +458,7 @@ ul.multi-outputs li::marker {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
-  text-shadow: 0 0 3px var(--palette-grey-1000);
-  background-color: var(--palette-grey-900);
-  border-radius: 0.4em;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
   width: 100%;
   padding: 0.25em 0.5em;
   margin-bottom: 0.2em;
@@ -326,4 +476,221 @@ ul.multi-outputs li::marker {
   border-radius: 0.4em;
   padding: 0.2em 0.5em;
   line-height: 1;
+}
+
+.handle-tooltip-streaming,
+.handle-tooltip-info {
+  font-size: var(--fontSizeSmall);
+  font-style: italic;
+  opacity: 0.9;
+  margin-top: 0.4em;
+  padding-top: 0.3em;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 200px;
+  text-align: center;
+  line-height: 1.3;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* =============================================================================
+   EXPERIMENTAL: Enhanced Data Flow Visualization (2026-02-19)
+   
+   These styles add enhanced visual feedback for data flowing through workflow
+   edges. The particle animation system provides at-a-glance understanding of
+   workflow execution state.
+   
+   NOTE: This is an EXPERIMENTAL feature. Performance with large workflows
+   (100+ nodes) is still being evaluated.
+   
+   Classes added:
+   - .data-flow-particles: Container for animated particles
+   - .particle-1, .particle-2, .particle-3: Individual particle elements
+   - Enhanced .message-sent animation with multiple visual modes
+   ============================================================================= */
+
+/* Data flow particles container - positioned along edge path */
+.react-flow__edge .data-flow-particles {
+  pointer-events: none;
+}
+
+/* 
+   PARTICLE ANIMATION SYSTEM
+   
+   Particles travel along the edge path from source to target.
+   Uses CSS offset-path for hardware-accelerated animation.
+*/
+
+/* Base particle animation - moves along edge path */
+@keyframes particleTravel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Enhanced edge glow when data is flowing */
+.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+  stroke-opacity: 1;
+  stroke-linecap: round;
+  stroke-dasharray: 14 10;
+  animation: edgeFlow 2s linear infinite;
+  /* Subtle glow for visibility without excessive blur */
+  filter: drop-shadow(0 0 1px currentColor);
+  /* Ensure crisp rendering */
+  shape-rendering: geometricPrecision;
+}
+
+/* 
+   EXPERIMENTAL: Pulsing source node effect
+   
+   When data flows from a node, the source edge gets a subtle pulse
+   to indicate origin of data flow.
+*/
+@keyframes sourcePulse {
+  0%,
+  100% {
+    stroke-width: 2.5;
+    filter: brightness(1);
+  }
+  50% {
+    stroke-width: 4;
+    filter: brightness(1.2) drop-shadow(0 0 2px currentColor);
+  }
+}
+
+/* Apply pulse animation to active edges */
+.react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
+  animation:
+    edgeFlow 2s linear infinite,
+    sourcePulse 1s ease-in-out infinite;
+}
+
+/* 
+   DATA TYPE-SPECIFIC PARTICLE COLORS
+   
+   Different data types get different particle colors for visual distinction.
+   These use CSS variables that are set on the edge element based on data type.
+*/
+
+/* Image data particles (blue) */
+.react-flow
+  .react-flow__edge.message-sent[data-type="image"]
+  .data-flow-particles
+  circle {
+  fill: #3b82f6;
+}
+
+/* Audio data particles (purple) */
+.react-flow
+  .react-flow__edge.message-sent[data-type="audio"]
+  .data-flow-particles
+  circle {
+  fill: #a855f7;
+}
+
+/* Text data particles (green) */
+.react-flow
+  .react-flow__edge.message-sent[data-type="text"]
+  .data-flow-particles
+  circle {
+  fill: #22c55e;
+}
+
+/* Default/unknown data particles (primary color) */
+.react-flow .react-flow__edge.message-sent .data-flow-particles circle {
+  fill: var(--palette-primary-main);
+}
+
+/* 
+   MULTI-STAGE DATA FLOW INDICATOR
+   
+   When streaming large datasets, shows multiple wave fronts
+   to indicate continuous data flow.
+*/
+.react-flow
+  .react-flow__edge.message-sent.streaming-active
+  .react-flow__edge-path {
+  stroke-dasharray: 8 4;
+  animation: edgeFlow 1s linear infinite;
+  stroke-width: 3 !important;
+}
+
+/* 
+   EDGE STATUS GRADIENT ANIMATION
+   
+   Creates a gradient that travels along the edge, showing direction of flow.
+   This is a subtle alternative to the dash animation.
+*/
+@keyframes gradientFlow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -200;
+  }
+}
+
+.react-flow
+  .react-flow__edge.message-sent.gradient-mode
+  .react-flow__edge-path {
+  stroke-dasharray: 50 50;
+  animation: gradientFlow 3s linear infinite;
+}
+
+/* 
+   EXPERIMENTAL: Connection anticipation effect
+   
+   When hovering over a node that has active output edges,
+   those edges glow to show potential data flow paths.
+*/
+.react-flow__node:hover
+  ~ .react-flow__edge.message-sent
+  .react-flow__edge-path {
+  filter: drop-shadow(0 0 2px currentColor);
+}
+
+/* 
+   PERFORMANCE OPTIMIZATION
+   
+   Use will-change to hint browser for animated properties.
+   Use transform for GPU acceleration.
+   Add crisp rendering hints to prevent blur.
+*/
+.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+  will-change: stroke-dashoffset;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 
+   REDUCED MOTION SUPPORT
+   
+   Respect user's reduced motion preference for accessibility.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+    animation: none;
+    stroke-dasharray: 4 2;
+  }
+
+  .react-flow
+    .react-flow__edge.message-sent.pulse-active
+    .react-flow__edge-path {
+    animation: none;
+  }
 }

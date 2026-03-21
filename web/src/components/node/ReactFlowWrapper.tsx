@@ -8,6 +8,7 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
+  useUpdateNodeInternals
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -15,9 +16,27 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
+import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
+import {
+  DynamicFalSchemaNode,
+  DYNAMIC_FAL_NODE_TYPE
+} from "../node/DynamicFalSchemaNode";
+import {
+  DynamicKieSchemaNode,
+  DYNAMIC_KIE_NODE_TYPE
+} from "../node/DynamicKieSchemaNode";
+import {
+  DynamicReplicateNode,
+  DYNAMIC_REPLICATE_NODE_TYPE
+} from "../node/DynamicReplicateNode";
+import {
+  WorkflowNode,
+  WORKFLOW_NODE_TYPE
+} from "../node/WorkflowNode";
+import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
@@ -42,6 +61,7 @@ import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
+import useStatusStore from "../../stores/StatusStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -60,30 +80,48 @@ interface ReactFlowWrapperProps {
   active: boolean;
 }
 
-
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import SubgraphNode from "./SubgraphNode";
 import SubgraphInputNode from "./SubgraphInputNode";
 import SubgraphOutputNode from "./SubgraphOutputNode";
 import { SUBGRAPH_NODE_TYPE, SUBGRAPH_INPUT_NODE_TYPE, SUBGRAPH_OUTPUT_NODE_TYPE } from "../../types/subgraph";
+import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import CustomEdge from "../node_editor/CustomEdge";
+import ControlEdge from "../node_editor/ControlEdge";
 
-const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
+const ReactFlowWrapper = ({
   workflowId,
   active
-}) => {
+}: ReactFlowWrapperProps) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
-  const nodes = useNodes((state) => state.nodes);
-  const edges = useNodes((state) => state.edges);
-  const onEdgesChange = useNodes((state) => state.onEdgesChange);
-  const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
-  const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
-  const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
-  const storedViewport = useNodes((state) => state.viewport);
-  const deleteEdge = useNodes((state) => state.deleteEdge);
-  const setEdgeSelectionState = useNodes(
-    (state) => state.setEdgeSelectionState
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    nodes,
+    edges,
+    onEdgesChange,
+    onEdgeUpdate,
+    shouldFitToScreen,
+    setShouldFitToScreen,
+    storedViewport,
+    deleteEdge,
+    setEdgeSelectionState
+  } = useNodes(
+    useMemo(
+      () => (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        onEdgesChange: state.onEdgesChange,
+        onEdgeUpdate: state.onEdgeUpdate,
+        shouldFitToScreen: state.shouldFitToScreen,
+        setShouldFitToScreen: state.setShouldFitToScreen,
+        storedViewport: state.viewport,
+        deleteEdge: state.deleteEdge,
+        setEdgeSelectionState: state.setEdgeSelectionState
+      }),
+      []
+    )
   );
 
   const [isVisible, setIsVisible] = useState(true);
@@ -91,11 +129,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes.length]);
+  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
-  const pendingNodeType = useNodePlacementStore((state) => state.pendingNodeType);
-  const cancelPlacement = useNodePlacementStore((state) => state.cancelPlacement);
+  const pendingNodeType = useNodePlacementStore(
+    (state) => state.pendingNodeType
+  );
+  const cancelPlacement = useNodePlacementStore(
+    (state) => state.cancelPlacement
+  );
   const placementLabel = useNodePlacementStore((state) => state.label);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
@@ -180,6 +222,27 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const connecting = useConnectionStore((state) => state.connecting);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
+  // Wait one frame, then refresh handle positions for all nodes.
+  const prevConnectingRef = useRef(connecting);
+  const prevEdgeCountRef = useRef(edges.length);
+  useEffect(() => {
+    const dragEnded = prevConnectingRef.current && !connecting;
+    const edgesChanged = prevEdgeCountRef.current !== edges.length;
+    prevConnectingRef.current = connecting;
+    prevEdgeCountRef.current = edges.length;
+    if (dragEnded || edgesChanged) {
+      const rafId = requestAnimationFrame(() => {
+        const nodeIds = nodes.map((n) => n.id);
+        if (nodeIds.length > 0) {
+          updateNodeInternals(nodeIds);
+        }
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
+  }, [connecting, edges.length, nodes, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -226,14 +289,29 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.workflows.base_node.Group": GroupNode,
       "nodetool.workflows.base_node.Comment": CommentNode,
       "nodetool.workflows.base_node.Preview": PreviewNode,
+      "nodetool.workflows.base_node.Output": OutputNode,
+      "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
+      "nodetool.constant.String": ConstantStringNode,
       "nodetool.control.Reroute": RerouteNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SUBGRAPH_INPUT_NODE_TYPE]: SubgraphInputNode,
       [SUBGRAPH_OUTPUT_NODE_TYPE]: SubgraphOutputNode,
+      [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
+      [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
+      [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
+      [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
+  );
+
+  const edgeTypes = useMemo(
+    () => ({
+      default: CustomEdge,
+      control: ControlEdge
+    }),
+    []
   );
 
   const settings = useSettingsStore((state) => state.settings);
@@ -310,27 +388,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { isConnectionValid } = useConnectionEvents();
 
-  const {
-    handleDoubleClick,
-    handlePaneClick,
-    handlePaneContextMenu
-  } = usePaneEvents({
-    pendingNodeType,
-    placementLabel,
-    reactFlowInstance
-  });
+  const { handleDoubleClick, handlePaneClick, handlePaneContextMenu } =
+    usePaneEvents({
+      pendingNodeType,
+      placementLabel,
+      reactFlowInstance
+    });
 
-  const {
-    handleNodeContextMenu,
-    handleNodesChange
-  } = useNodeEvents();
+  const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
 
-  const {
-    onEdgeContextMenu,
-    onEdgeUpdateEnd,
-    onEdgeUpdateStart,
-    onEdgeClick
-  } = useEdgeHandlers();
+  const { onEdgeContextMenu, onEdgeUpdateEnd, onEdgeUpdateStart, onEdgeClick } =
+    useEdgeHandlers();
 
   const {
     onSelectionDragStart,
@@ -353,6 +421,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   });
 
   const edgeStatuses = useResultsStore((state) => state.edges);
+  const nodeStatuses = useStatusStore((state) => state.statuses);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
@@ -360,12 +429,27 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     getMetadata,
     workflowId,
     edgeStatuses,
+    nodeStatuses,
     isSelecting
   });
   const activeGradientKeysArray = useMemo(
     () => Array.from(activeGradientKeys),
     [activeGradientKeys]
   );
+
+  // Memoize selected node IDs to avoid recalculating on every edge iteration
+  const selectedNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const node of nodes) {
+      if (node.selected) {
+        ids.add(node.id);
+      }
+    }
+    return ids;
+  }, [nodes]);
+
+  // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
+  const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (isSelecting) {
@@ -376,16 +460,28 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       return;
     }
 
-    const selectedIds = new Set(
-      nodes.filter((node) => node.selected).map((node) => node.id)
-    );
+    // Skip if selected node IDs haven't changed (shallow comparison of sets)
+    const prevIds = prevSelectedNodeIdsRef.current;
+    if (prevIds !== null && prevIds.size === selectedNodeIds.size) {
+      let hasChanged = false;
+      for (const id of selectedNodeIds) {
+        if (!prevIds.has(id)) {
+          hasChanged = true;
+          break;
+        }
+      }
+      if (!hasChanged) {
+        return; // Selection hasn't changed, skip edge processing
+      }
+    }
+    prevSelectedNodeIdsRef.current = new Set(selectedNodeIds);
 
     const selectionUpdates: Record<string, boolean> = {};
 
     for (const edge of edges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
-        selectedIds.has(edge.source) || selectedIds.has(edge.target);
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
       const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
 
       if (isEdgeAlreadySelected !== shouldSelect) {
@@ -396,7 +492,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [nodes, edges, setEdgeSelectionState, isSelecting]);
+  }, [nodes, edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
@@ -424,8 +520,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) { classes.push("zoomed-out"); }
-    if (connecting) { classes.push("is-connecting"); }
+    if (zoom <= ZOOMED_OUT) {
+      classes.push("zoomed-out");
+    }
+    if (connecting) {
+      classes.push("is-connecting");
+    }
     return classes.join(" ");
   }, [zoom, connecting]);
 
@@ -480,6 +580,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         nodes={nodes}
         edges={processedEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         snapToGrid={true}
         snapGrid={snapGrid}
         defaultViewport={storedViewport || undefined}
@@ -521,7 +622,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         panActivationKeyCode=""
-        deleteKeyCode={["Delete", "Backspace"]}
+        deleteKeyCode={null}
       >
         <Background
           id={workflowId}
@@ -550,6 +651,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
+      <ViewportStatusIndicator />
     </div>
   );
 };

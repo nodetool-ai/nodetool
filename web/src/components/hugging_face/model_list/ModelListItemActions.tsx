@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Button, Tooltip, Chip, CircularProgress, Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
-import DeleteButton from "../../buttons/DeleteButton";
+import { DeleteButton } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import {
@@ -41,6 +41,24 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
     handleShowInExplorer && showFileExplorerButton
   );
   const explorerButtonDisabled = !isOllama && !model.path;
+
+  const handleChipClick = useCallback(() => {
+    if (handleShowInExplorer) {
+      handleShowInExplorer(model.id);
+    }
+  }, [handleShowInExplorer, model.id]);
+
+  const handleShowInExplorerClick = useCallback(() => {
+    if (handleShowInExplorer) {
+      handleShowInExplorer(model.id);
+    }
+  }, [handleShowInExplorer, model.id]);
+
+  const handleDeleteClick = useCallback(() => {
+    if (handleModelDelete) {
+      handleModelDelete(model.id);
+    }
+  }, [handleModelDelete, model.id]);
 
   return (
     <div className="actions-container">
@@ -92,11 +110,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
               fontWeight: 600,
               cursor: handleShowInExplorer ? "pointer" : "default"
             }}
-            onClick={
-              handleShowInExplorer
-                ? () => handleShowInExplorer!(model.id)
-                : undefined
-            }
+            onClick={handleShowInExplorer ? handleChipClick : undefined}
             clickable={!!handleShowInExplorer}
           />
         </Tooltip>
@@ -105,13 +119,13 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       <div className="model-actions">
         {canShowExplorerButton && !isProduction && isElectron && (
           <ModelShowInExplorerButton
-            onClick={() => handleShowInExplorer!(model.id)}
+            onClick={handleShowInExplorerClick}
             disabled={explorerButtonDisabled}
           />
         )}
         {handleModelDelete && (
           <DeleteButton
-            onClick={() => handleModelDelete(model.id)}
+            onClick={handleDeleteClick}
             tooltip="Delete model"
           />
         )}
@@ -125,3 +139,5 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
     </div>
   );
 };
+
+export default memo(ModelListItemActions);

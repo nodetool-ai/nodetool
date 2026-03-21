@@ -4,10 +4,11 @@ import * as os from "os";
 import { app, dialog } from "electron";
 import * as path from "path";
 
-import { getPythonPath, getProcessEnv, getUVPath } from "./config";
+import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
-import { checkPermissions } from "./utils";
+import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -30,6 +31,11 @@ interface ValidationResult {
   errors: string[];
 }
 
+const PACKAGE_INDEX_URL =
+  "https://nodetool-ai.github.io/nodetool-registry/simple/";
+const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
+const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
+
 /**
  * Verify write permissions for critical paths
  */
@@ -47,15 +53,18 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
     },
   ];
 
-  const errors: string[] = [];
+  const results = await Promise.all(
+    pathsToCheck.map(async ({ path, mode, desc }) => {
+      const { accessible, error } = await checkPermissions(path, mode);
+      logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
+      if (!accessible && error) {
+        return `${desc}: ${error}`;
+      }
+      return null;
+    })
+  );
 
-  for (const { path, mode, desc } of pathsToCheck) {
-    const { accessible, error } = await checkPermissions(path, mode);
-    logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
-    if (!accessible && error) {
-      errors.push(`${desc}: ${error}`);
-    }
-  }
+  const errors = results.filter((e): e is string => e !== null);
 
   return {
     valid: errors.length === 0,
@@ -64,128 +73,204 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 }
 
 /**
- * Check if the Python environment is installed
+ * Check if the conda environment is installed
+ * Verifies the Node.js executable exists in the conda environment
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
-  let pythonExecutablePath: string | null = null;
-  try {
-    pythonExecutablePath = getPythonPath();
-  } catch (error) {
-    // If we cannot even resolve a python path, treat as not installed so installer is triggered
-    logMessage(
-      `Failed to resolve Python path, treating as not installed: ${error}`,
-      "error",
-    );
-    return false;
-  }
-
-  logMessage(`Python executable path: ${pythonExecutablePath}`);
-
-  try {
-    logMessage("Attempting to access Python executable...");
-    await fs.access(pythonExecutablePath);
-    logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
+  // In dev mode, skip the conda env check — the system node is used directly
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    logMessage("Dev mode detected, skipping conda environment check");
     return true;
+  }
+
+  let nodeExecutablePath: string | null = null;
+  let pythonExecutablePath: string | null = null;
+  let uvExecutablePath: string | null = null;
+
+  try {
+    nodeExecutablePath = getNodePath();
+    pythonExecutablePath = getPythonPath();
+    uvExecutablePath = getUVPath();
   } catch (error) {
+    // If we cannot even resolve paths, treat as not installed so installer is triggered
     logMessage(
-      `✗ Python executable not found at ${pythonExecutablePath}`,
+      `Failed to resolve executable paths, treating as not installed: ${error}`,
       "error",
     );
-    logMessage(`Access error: ${error}`, "error");
     return false;
   }
+
+  logMessage(`Node executable path: ${nodeExecutablePath}`);
+  logMessage(`Python executable path: ${pythonExecutablePath}`);
+  logMessage(`UV executable path: ${uvExecutablePath}`);
+
+  const [nodeExists, pythonExists, uvExists] = await Promise.all([
+    fs.access(nodeExecutablePath).then(
+      () => {
+        logMessage(`Node executable found at ${nodeExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `Node executable not found at ${nodeExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(pythonExecutablePath).then(
+      () => {
+        logMessage(`Python executable found at ${pythonExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `Python executable not found at ${pythonExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(uvExecutablePath).then(
+      () => {
+        logMessage(`UV executable found at ${uvExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `UV executable not found at ${uvExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+  ]);
+
+  if (!nodeExists || !pythonExists || !uvExists) {
+    return false;
+  }
+
+  const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
+  if (!workerImportable) {
+    logMessage(
+      `Python worker import check failed for ${pythonExecutablePath}; environment appears incomplete`,
+      "error",
+    );
+  }
+
+  return workerImportable;
 }
 
-/**
- * Convert npm/semver version to PEP 440 (Python) version format
- * e.g., "0.6.2-rc.9" -> "0.6.2rc9"
- */
+async function canImportNodeToolWorker(
+  pythonExecutablePath: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      pythonExecutablePath,
+      ["-c", "import nodetool.worker"],
+      {
+        stdio: "ignore",
+        env: getProcessEnv(),
+      }
+    );
+
+    proc.on("exit", (code) => {
+      resolve(code === 0);
+    });
+
+    proc.on("error", (error) => {
+      logMessage(
+        `Failed to run Python worker import check: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "error",
+      );
+      resolve(false);
+    });
+  });
+}
+
 function convertToPep440Version(npmVersion: string): string {
-  // Remove the '-' before prerelease tags and '.' within them
-  // npm: 0.6.2-rc.9 -> pip: 0.6.2rc9
   return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
 }
 
-/**
- * Update the Python environment packages using wheel-based package index
- */
-async function updateCondaEnvironment(
-  packages: string[]
-): Promise<void> {
-  try {
-    emitBootMessage(`Updating python packages...`);
-
-    const uvExecutable = getUVPath();
-    const PACKAGE_INDEX_URL =
-      "https://nodetool-ai.github.io/nodetool-registry/simple/";
-
-    // Get version from package.json via Electron's app.getVersion()
-    const appVersion = app.getVersion();
-    const pipVersion = convertToPep440Version(appVersion);
-    logMessage(`Pinning packages to version: ${pipVersion} (from ${appVersion})`);
-
-    // Convert repo IDs to package names for wheel installation, pinned to app version
-    const corePackages = [
-      `nodetool-core==${pipVersion}`,
-      `nodetool-base==${pipVersion}`,
-    ];
-
-    // Convert additional packages from repo format to package names, pinned to app version
-    const additionalPackages = packages.map((repoId) => {
-      if (!repoId) {
-        return repoId;
-      }
-
-      const trimmed = repoId.trim();
-      if (!trimmed) {
-        return trimmed;
-      }
-
-      let packageName: string;
-      if (!trimmed.includes("/")) {
-        packageName = trimmed;
-      } else {
-        const [, name = ""] = trimmed.split("/", 2);
-        packageName = name || trimmed;
-      }
-
-      // Pin to the same version as the app
-      return `${packageName}==${pipVersion}`;
-    });
-
-    const allPackages = [...corePackages, ...additionalPackages];
-
-    const installCommand: string[] = [
-      uvExecutable,
-      "pip",
-      "install",
-      "--extra-index-url",
-      PACKAGE_INDEX_URL,
-      "--index-strategy",
-      "unsafe-best-match",
-      "--system",
-      ...allPackages,
-    ];
-
-    logMessage(`Running command: ${installCommand.join(" ")}`);
-    await runCommand(installCommand);
-
-    logMessage(
-      "Python packages update completed successfully from wheel index",
-    );
-  } catch (error: any) {
-    logMessage(`Failed to update Pip packages: ${error.message}`, "error");
-    throw error;
+function normalizePythonPackageName(packageName: string): string {
+  const trimmed = packageName.trim();
+  if (!trimmed) {
+    return trimmed;
   }
+  if (!trimmed.includes("/")) {
+    return trimmed;
+  }
+  const [, resolvedName = ""] = trimmed.split("/", 2);
+  return resolvedName || trimmed;
+}
+
+async function installRequiredPythonPackages(
+  additionalPackages: string[] = []
+): Promise<void> {
+  emitBootMessage("Installing Nodetool Python packages...");
+
+  const uvExecutable = getUVPath();
+  const appVersion = app.getVersion();
+  const pinnedVersion = convertToPep440Version(appVersion);
+  const packageSpecs = Array.from(
+    new Set(
+      [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
+        .map(normalizePythonPackageName)
+        .filter(Boolean)
+        .map((pkg) => `${pkg}==${pinnedVersion}`)
+    )
+  );
+
+  const installCommand: string[] = [
+    uvExecutable,
+    "pip",
+    "install",
+    "--prerelease=allow",
+    "--index-url",
+    PYPI_SIMPLE_INDEX_URL,
+    "--extra-index-url",
+    PACKAGE_INDEX_URL,
+    "--index-strategy",
+    "unsafe-best-match",
+    "--system",
+    ...packageSpecs,
+  ];
+
+  const torchIndexUrl = getTorchIndexUrl();
+  if (torchIndexUrl) {
+    installCommand.push("--extra-index-url", torchIndexUrl);
+  }
+
+  logMessage(
+    `Installing required Python packages pinned to ${pinnedVersion}: ${packageSpecs.join(", ")}`
+  );
+  await runCommand(installCommand);
 }
 
 /**
  * Helper function to run pip commands
  */
 async function runCommand(command: string[]): Promise<void> {
-  const updateProcess = spawn(command[0], command.slice(1), {
+  const executable = command[0];
+  
+  // Check if executable exists before attempting to spawn
+  const executableExists = await fileExists(executable);
+  if (!executableExists) {
+    const errorMsg = `Python environment not properly installed: executable not found at ${executable}. ` +
+      `This may happen if the installation was interrupted (e.g., by a macOS permission dialog). ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
+
+  const updateProcess = spawn(executable, command.slice(1), {
     stdio: "pipe",
     env: getProcessEnv(),
   });
@@ -201,6 +286,25 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv output and emit boot messages
+      // Look for lines like "Downloading package-name-version"
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Installing package-name-version"
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Updating package-name"
+      const updatingMatch = line.match(/Updating\s+([a-zA-Z0-9_-]+)/i);
+      if (updatingMatch) {
+        emitBootMessage(`Updating ${updatingMatch[1]}...`);
+      }
     }
   });
 
@@ -213,6 +317,17 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv stderr output (some progress info goes to stderr)
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
     }
   });
 
@@ -225,7 +340,18 @@ async function runCommand(command: string[]): Promise<void> {
       }
     });
 
-    updateProcess.on("error", reject);
+    updateProcess.on("error", (error) => {
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run ${executable}. ` +
+          `This may happen if the installation was interrupted. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(error);
+      }
+    });
   });
 }
 /**
@@ -252,7 +378,7 @@ function getDefaultInstallLocation(): string {
 export {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
-  updateCondaEnvironment,
+  installRequiredPythonPackages,
   getDefaultInstallLocation,
   runCommand,
   isOllamaInstalled,

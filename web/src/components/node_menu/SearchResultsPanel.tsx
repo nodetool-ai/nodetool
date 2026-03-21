@@ -31,7 +31,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   }, [selectedIndex]);
 
   const handleDragStart = useCallback(
-    (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
+    (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
       serializeDragData(
         { type: "create-node", payload: node },
@@ -47,22 +47,29 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     clearDrag();
   }, [clearDrag]);
 
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => {
+      handleCreateNode(node);
+    },
+    [handleCreateNode]
+  );
+
   const renderSearchRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
       const node = searchNodes[index];
       return (
-        <div style={style}>
+        <div style={{ ...style, overflow: "visible" }}>
           <SearchResultItem
             node={node}
-            onDragStart={handleDragStart(node)}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => handleCreateNode(node)}
+            onClick={handleNodeClick}
             isKeyboardSelected={index === selectedIndex}
           />
         </div>
       );
     },
-    [searchNodes, handleDragStart, handleDragEnd, handleCreateNode, selectedIndex]
+    [searchNodes, handleDragStart, handleDragEnd, handleNodeClick, selectedIndex]
   );
 
   return (

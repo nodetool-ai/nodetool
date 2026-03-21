@@ -161,10 +161,11 @@ const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   });
 
   // Process edges - only include edges where both source and target nodes exist
+  // Use index to ensure unique keys when multiple edges connect the same nodes
   const previewEdges: PreviewEdge[] = edges
     .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
-    .map((e) => ({
-      id: `${e.source}-${e.target}`,
+    .map((e, index) => ({
+      id: e.id || `${e.source}-${e.target}-${index}`,
       source: e.source,
       target: e.target
     }));
@@ -181,11 +182,15 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   height = 120
 }) => {
   const graph = useMemo(() => {
-    try {
-      return (workflow.graph as Graph) || { nodes: [], edges: [] };
-    } catch {
+    if (!workflow.graph) {
       return { nodes: [], edges: [] };
     }
+    
+    const graphObj = workflow.graph as Graph;
+    return {
+      nodes: graphObj.nodes || [],
+      edges: graphObj.edges || []
+    };
   }, [workflow]);
 
   const { nodes: previewNodes, edges: previewEdges } = useMemo(
@@ -201,7 +206,6 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   }, [previewNodes]);
 
   const nodeCount = graph.nodes?.length || 0;
-  const _edgeCount = graph.edges?.length || 0;
 
   if (nodeCount === 0) {
     return (
@@ -229,7 +233,12 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           variant="caption"
           sx={{
             color: "rgba(255,255,255,0.4)",
-            fontStyle: "italic"
+            fontFamily: "var(--fontFamily2)",
+            textAlign: "center",
+            fontSize: "var(--fontSizeTiny)",
+            lineHeight: "1.2",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em"
           }}
         >
           Empty workflow
@@ -378,4 +387,4 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   );
 };
 
-export default WorkflowMiniPreview;
+export default React.memo(WorkflowMiniPreview);

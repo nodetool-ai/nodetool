@@ -1,12 +1,9 @@
 import React, { memo } from "react";
-import { Button, Box } from "@mui/material";
-import { Visibility } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import isEqual from "lodash/isEqual";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
@@ -16,14 +13,13 @@ interface NodeContentProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;
-  isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
   basicFields: string[];
   showAdvancedFields: boolean;
   hasAdvancedFields: boolean;
   onToggleAdvancedFields: () => void;
-  status: string;
+  status?: string;
   workflowId: string;
   showResultOverlay: boolean;
   result: any;
@@ -31,11 +27,133 @@ interface NodeContentProps {
   onShowResults?: () => void;
 }
 
+/**
+ * Custom comparison function for NodeContent memo
+ * Only compares props that actually affect rendering to avoid unnecessary re-renders
+ */
+const arePropsEqual = (
+  prevProps: NodeContentProps,
+  nextProps: NodeContentProps
+): boolean => {
+  // These props should always be the same reference
+  if (
+    prevProps.id !== nextProps.id ||
+    prevProps.nodeType !== nextProps.nodeType ||
+    prevProps.isOutputNode !== nextProps.isOutputNode ||
+    prevProps.showAdvancedFields !== nextProps.showAdvancedFields ||
+    prevProps.hasAdvancedFields !== nextProps.hasAdvancedFields ||
+    prevProps.status !== nextProps.status ||
+    prevProps.workflowId !== nextProps.workflowId ||
+    prevProps.showResultOverlay !== nextProps.showResultOverlay ||
+    prevProps.basicFields.length !== nextProps.basicFields.length ||
+    !prevProps.basicFields.every((field, i) => field === nextProps.basicFields[i])
+  ) {
+    return false;
+  }
+
+  // Check nodeMetadata - only compare fields that affect rendering
+  if (
+    prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
+    prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
+    prevProps.nodeMetadata.is_dynamic !== nextProps.nodeMetadata.is_dynamic ||
+    prevProps.nodeMetadata.supports_dynamic_outputs !==
+      nextProps.nodeMetadata.supports_dynamic_outputs ||
+    prevProps.nodeMetadata.is_streaming_output !==
+      nextProps.nodeMetadata.is_streaming_output
+  ) {
+    return false;
+  }
+
+  // For properties and outputs, use shallow comparison on length
+  // Deep comparison is too expensive for every render
+  const prevPropsLen = prevProps.nodeMetadata.properties?.length ?? 0;
+  const nextPropsLen = nextProps.nodeMetadata.properties?.length ?? 0;
+  if (prevPropsLen !== nextPropsLen) {
+    return false;
+  }
+
+  const prevOutputsLen = prevProps.nodeMetadata.outputs?.length ?? 0;
+  const nextOutputsLen = nextProps.nodeMetadata.outputs?.length ?? 0;
+  if (prevOutputsLen !== nextOutputsLen) {
+    return false;
+  }
+
+  // Check data.properties - compare both keys and values
+  const prevDataProps = prevProps.data.properties || {};
+  const nextDataProps = nextProps.data.properties || {};
+  const prevDataKeys = Object.keys(prevDataProps);
+  const nextDataKeys = Object.keys(nextDataProps);
+  if (prevDataKeys.length !== nextDataKeys.length) {
+    return false;
+  }
+  for (const key of prevDataKeys) {
+    if (prevDataProps[key] !== nextDataProps[key]) {
+      return false;
+    }
+  }
+
+  // Check data.dynamic_properties - compare both keys and values
+  const prevDynProps = prevProps.data.dynamic_properties || {};
+  const nextDynProps = nextProps.data.dynamic_properties || {};
+  const prevDynKeys = Object.keys(prevDynProps);
+  const nextDynKeys = Object.keys(nextDynProps);
+  if (prevDynKeys.length !== nextDynKeys.length) {
+    return false;
+  }
+  for (const key of prevDynKeys) {
+    if (prevDynProps[key] !== nextDynProps[key]) {
+      return false;
+    }
+  }
+
+  // Check dynamic_outputs
+  const prevDynamicOutputsKeys = Object.keys(
+    prevProps.data.dynamic_outputs || {}
+  );
+  const nextDynamicOutputsKeys = Object.keys(
+    nextProps.data.dynamic_outputs || {}
+  );
+  if (prevDynamicOutputsKeys.length !== nextDynamicOutputsKeys.length) {
+    return false;
+  }
+
+  // For result, we need a deeper check since it changes frequently
+  // Use shallow comparison for objects, deep for primitives
+  const prevResult = prevProps.result;
+  const nextResult = nextProps.result;
+  if (prevResult === nextResult) {
+    // Same reference or both primitives are equal
+    // Continue to check other props
+  } else if (
+    typeof prevResult === "object" &&
+    typeof nextResult === "object" &&
+    prevResult !== null &&
+    nextResult !== null
+  ) {
+    // Both are objects - shallow check keys
+    if (Object.keys(prevResult).length !== Object.keys(nextResult).length) {
+      return false;
+    }
+  } else {
+    // Different types or different primitive values
+    return false;
+  }
+
+  // Functions should be stable references, but check them anyway
+  if (
+    prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields ||
+    prevProps.onShowInputs !== nextProps.onShowInputs
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 const NodeContent: React.FC<NodeContentProps> = ({
   id,
   nodeType,
   nodeMetadata,
-  isConstantNode,
   isOutputNode,
   data,
   basicFields,
@@ -46,10 +164,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs,
-  onShowResults
+  onShowInputs
+  // onShowResults is no longer used here but kept in interface for backwards compatibility
 }) => {
-  const theme = useTheme();
   const { handleAddProperty } = useDynamicProperty(
     id,
     data.dynamic_properties as Record<string, any>
@@ -96,14 +213,17 @@ const NodeContent: React.FC<NodeContentProps> = ({
             properties={nodeMetadata.properties}
             nodeType={nodeType}
             data={data}
-            showHandle={!isConstantNode}
             hasAdvancedFields={hasAdvancedFields}
             showAdvancedFields={showAdvancedFields}
             basicFields={basicFields}
             onToggleAdvancedFields={onToggleAdvancedFields}
           />
           {!isOutputNode && (
-            <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+            <NodeOutputs
+              id={id}
+              outputs={nodeMetadata.outputs}
+              isStreamingOutput={nodeMetadata.is_streaming_output}
+            />
           )}
         </Box>
         <Box
@@ -125,20 +245,15 @@ const NodeContent: React.FC<NodeContentProps> = ({
         >
           <ResultOverlay
             result={result}
+            nodeId={id}
+            workflowId={workflowId}
+            nodeName={nodeMetadata.title}
             onShowInputs={isOutputNode ? undefined : onShowInputs}
           />
         </Box>
       </Box>
     );
   }
-
-  // Determine what to show when overlay is not active
-  const shouldShowResultButton =
-    result &&
-    !isEmptyObject(result) &&
-    onShowResults &&
-    status === "completed" &&
-    !isConstantNode;
 
   return (
     <Box
@@ -158,7 +273,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={nodeMetadata.properties}
         nodeType={nodeType}
         data={data}
-        showHandle={!isConstantNode}
         hasAdvancedFields={hasAdvancedFields}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
@@ -174,52 +288,17 @@ const NodeContent: React.FC<NodeContentProps> = ({
           nodeType={nodeType}
         />
       )}
-      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {/* Show "Show Result" button when result is available and node is completed - only on hover */}
-      {shouldShowResultButton && (
-        <Box
-          className="show-result-button"
-          sx={{
-            position: "absolute",
-            top: 8,
-            left: "50%",
-            transform: "translateX(-50%) translateY(-4px)",
-            zIndex: 20,
-            opacity: 0,
-            transition: "opacity 0.2s ease, transform 0.2s ease",
-            ".base-node:hover &": {
-              opacity: 1,
-              transform: "translateX(-50%) translateY(0)"
-            }
-          }}
-        >
-          <Button
-            size="small"
-            startIcon={<Visibility sx={{ fontSize: 16 }} />}
-            onClick={onShowResults}
-            sx={{
-              textTransform: "none",
-              fontSize: "0.75rem",
-              padding: "4px 12px",
-              backgroundColor: theme.vars.palette.background.paper,
-              color: theme.vars.palette.text.primary,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              borderRadius: "16px",
-              backdropFilter: theme.vars.palette.glass.blur,
-              boxShadow: 1,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                borderColor: theme.vars.palette.primary.main
-              }
-            }}
-          >
-            Show Result
-          </Button>
-        </Box>
+      {!isOutputNode && (
+        <NodeOutputs
+          id={id}
+          outputs={nodeMetadata.outputs}
+          isStreamingOutput={nodeMetadata.is_streaming_output}
+        />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </Box>
   );
 };
 
-export default memo(NodeContent, isEqual);
+export { arePropsEqual };
+export default memo(NodeContent, arePropsEqual);

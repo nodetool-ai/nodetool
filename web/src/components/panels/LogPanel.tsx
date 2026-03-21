@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, memo } from "react";
 import {
   Box,
   Chip,
@@ -21,6 +21,7 @@ import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import useLogsStore from "../../stores/LogStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import PanelHeadline from "../ui/PanelHeadline";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
 
@@ -41,9 +42,7 @@ const containerStyles = (theme: Theme) =>
       padding: 12
     },
     ".filters": {
-      position: "relative",
       display: "block",
-      paddingRight: 48,
       rowGap: 8,
       minHeight: 40
     },
@@ -54,13 +53,6 @@ const containerStyles = (theme: Theme) =>
       alignItems: "center",
       flexWrap: "wrap",
       minWidth: 0
-    },
-    ".filters-right": {
-      position: "absolute",
-      top: 0,
-      right: 0,
-      display: "flex",
-      alignItems: "center"
     },
     ".table": {
       display: "flex",
@@ -127,9 +119,9 @@ const containerStyles = (theme: Theme) =>
 
 const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
-const LogPanel: React.FC = () => {
+const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();
-  const logs = useLogsStore((s) => s.logs);
+  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const _addNotification = useNotificationStore((s) => s.addNotification);
@@ -141,51 +133,54 @@ const LogPanel: React.FC = () => {
     return map;
   }, [openWorkflows]);
 
-  const rows = useMemo<Row[]>(() => {
-    return (logs || []).map((log, index) => {
-      const workflowId = log.workflowId;
-      return {
-        key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
-        workflowId,
-        workflowName: log.workflowName || wfName[workflowId] || workflowId,
-        severity: log.severity,
-        timestamp: log.timestamp,
-        content: log.content,
-        data: log.data
-      } as Row;
-    });
-  }, [logs, wfName]);
-
-  // Filters
-  const workflowOptions = useMemo(() => {
-    const set = new Set<string>();
-    rows.forEach((r) => set.add(r.workflowName));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
-
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
-  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
 
-  const handleSeverityChange = (e: SelectChangeEvent<string[]>) => {
+  // Subscribe to logs - this will trigger re-renders when logs change
+  const logs = useLogsStore((s) => s.logs);
+
+  // Filter and process logs in a single step to avoid processing unnecessary logs
+  // This optimization combines filtering by workflow ID and severity with row transformation
+  // Combined approach reduces O(3n) complexity to O(n) by doing single pass
+  const filteredRows = useMemo<Row[]>(() => {
+    return logs
+      .filter((log) => {
+        // Filter by current workflow first (most selective filter)
+        if (currentWorkflowId && log.workflowId !== currentWorkflowId) {
+          return false;
+        }
+        // Filter by selected severities
+        if (
+          selectedSeverities.length > 0 &&
+          !selectedSeverities.includes(log.severity)
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((log, index) => {
+        const workflowId = log.workflowId;
+        return {
+          key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
+          workflowId,
+          workflowName: log.workflowName || wfName[workflowId] || workflowId,
+          severity: log.severity,
+          timestamp: log.timestamp,
+          content: log.content,
+          data: log.data
+        } as Row;
+      });
+  }, [logs, currentWorkflowId, selectedSeverities, wfName]);
+
+  const handleSeverityChange = useCallback((e: SelectChangeEvent<string[]>) => {
     setSelectedSeverities(
       (e.target.value as string[]).map((v) => v as Severity)
     );
-  };
+  }, []);
 
-  const filtered = useMemo(() => {
-    return rows
-      .filter(
-        (r) =>
-          selectedSeverities.length === 0 ||
-          selectedSeverities.includes(r.severity)
-      )
-      .filter(
-        (r) =>
-          selectedWorkflows.length === 0 ||
-          selectedWorkflows.includes(r.workflowName)
-      )
-      .sort((a, b) => b.timestamp - a.timestamp);
-  }, [rows, selectedSeverities, selectedWorkflows]);
+  const handleFullscreenToggle = useCallback(() => {
+    setIsFullscreen((v) => !v);
+  }, []);
 
   // Export action moved to Settings menu
 
@@ -194,6 +189,24 @@ const LogPanel: React.FC = () => {
       css={containerStyles(theme)}
       className={isFullscreen ? "fullscreen" : undefined}
     >
+      <PanelHeadline
+        title="Logs"
+        actions={
+          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+            <IconButton
+              size="small"
+              onClick={handleFullscreenToggle}
+              aria-label="Toggle fullscreen"
+            >
+              {isFullscreen ? (
+                <FullscreenExitIcon fontSize="small" />
+              ) : (
+                <FullscreenIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        }
+      />
       <Box className="filters">
         <Box className="filters-left">
           <FormControl size="small" sx={{ flex: "1" }}>
@@ -215,57 +228,12 @@ const LogPanel: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-
-          <FormControl size="small" sx={{ flex: "1" }}>
-            <InputLabel id="workflow-label">Workflow</InputLabel>
-            <Select
-              labelId="workflow-label"
-              multiple
-              value={selectedWorkflows}
-              onChange={(e) => {
-                const val = e.target.value as string[];
-                if (val.includes("__all__")) {
-                  setSelectedWorkflows([]);
-                } else {
-                  setSelectedWorkflows(val);
-                }
-              }}
-              input={<OutlinedInput label="Workflow" />}
-              renderValue={(selected) => 
-                (selected as string[]).length === 0 ? "All Workflows" : (selected as string[]).join(", ")
-              }
-            >
-              <MenuItem value="__all__">
-                <em>All Workflows</em>
-              </MenuItem>
-              {workflowOptions.map((w) => (
-                <MenuItem key={w} value={w}>
-                  {w}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-        <Box className="filters-right">
-          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-            <IconButton
-              size="small"
-              onClick={() => setIsFullscreen((v) => !v)}
-              aria-label="Toggle fullscreen"
-            >
-              {isFullscreen ? (
-                <FullscreenExitIcon fontSize="small" />
-              ) : (
-                <FullscreenIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
 
-      <LogsTable rows={filtered} height={undefined} />
+      <LogsTable rows={filteredRows} height={undefined} showTimestampColumn={false} />
     </Box>
   );
-};
+});
 
 export default LogPanel;

@@ -11,6 +11,7 @@ export type MiniAppWorkflowState = {
   inputValues: MiniAppInputValues;
   results: MiniAppResult[];
   progress: MiniAppProgress | null;
+  lastRunDuration: number | null;
 };
 
 export interface MiniAppsState {
@@ -25,6 +26,7 @@ export interface MiniAppsState {
   setResults: (workflowId: string, results: MiniAppResult[]) => void;
   clearResults: (workflowId: string) => void;
   setProgress: (workflowId: string, progress: MiniAppProgress | null) => void;
+  setLastRunDuration: (workflowId: string, duration: number | null) => void;
   resetWorkflowState: (workflowId: string) => void;
 }
 
@@ -38,7 +40,8 @@ const ensureWorkflowState = (
   const defaultState: MiniAppWorkflowState = {
     inputValues: {},
     results: [],
-    progress: null
+    progress: null,
+    lastRunDuration: null
   };
   return defaultState;
 };
@@ -60,6 +63,11 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
         }
         if (definition.kind === "boolean") {
           nextValues[key] = false;
+          return;
+        }
+        // For select inputs, default to first option if available
+        if (definition.kind === "select" && definition.data.options?.length) {
+          nextValues[key] = definition.data.options[0];
           return;
         }
         nextValues[key] = undefined;
@@ -173,6 +181,20 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
       };
     });
   },
+  setLastRunDuration: (workflowId, duration) => {
+    set((state) => {
+      const current = ensureWorkflowState(state.apps, workflowId);
+      return {
+        apps: {
+          ...state.apps,
+          [workflowId]: {
+            ...current,
+            lastRunDuration: duration
+          }
+        }
+      };
+    });
+  },
   resetWorkflowState: (workflowId) => {
     set((state) => {
       const current = ensureWorkflowState(state.apps, workflowId);
@@ -182,7 +204,8 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
           [workflowId]: {
             ...current,
             results: [],
-            progress: null
+            progress: null,
+            lastRunDuration: null
           }
         }
       };

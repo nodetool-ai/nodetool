@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
-import ELK from "elkjs";
+import ELK, { ElkNode } from "elkjs";
 
 /**
  * Graph utilities for workflow layout and traversal.
@@ -86,17 +86,12 @@ export function topologicalSort(
 type Result = { edges: Edge[]; nodes: Node<NodeData>[] };
 
 /**
- * Returns a subgraph of the given graph starting from the given start node.
+ * Returns a subgraph starting from the given start node.
  *
  * Examples:
- * 1) Linear chain: A->B->C from A => nodes {A,B,C}, edges {A->B, B->C}
- * 2) Diamond: A->B, A->C, B->D, C->D from A => nodes {A,B,C,D}, edges all four
- * 3) Stop node: A->B->C->D from A, stop C => nodes {A,B,C}, edges {A->B, B->C}
- * @param edges - The edges of the graph.
- * @param nodes - The nodes of the graph.
- * @param startNode - The node to start the subgraph from.
- * @param stopNode - The node to stop the subgraph at.
- * @returns The subgraph of the given graph.
+ * - Linear: A->B->C from A => {A,B,C}
+ * - Diamond: A->B, A->C, B->D, C->D from A => {A,B,C,D}
+ * - Stop: A->B->C->D from A, stop C => {A,B,C}
  */
 export function subgraph(
   edges: Edge[],
@@ -180,7 +175,7 @@ export const autoLayout = async (
   });
 
   // Helper function to create ELK node structure
-  const createElkNode = (node: Node<NodeData>, children?: any[]): any => ({
+  const createElkNode = (node: Node<NodeData>, children?: ElkNode[]): ElkNode => ({
     id: node.id,
     width: node.measured?.width ?? 100,
     height: node.measured?.height ?? 100,
@@ -207,7 +202,7 @@ export const autoLayout = async (
 
   // Helper function to update node positions
   const updateNodePositions = (
-    layoutNode: any,
+    layoutNode: ElkNode,
     parentX = 0,
     parentY = 0
   ): Node<NodeData> => {
@@ -272,7 +267,7 @@ export const autoLayout = async (
 
       processedGroups[groupId] = groupUpdatedNodes;
     } catch (error) {
-      console.error(`Error in ELK layout for group ${groupId}:`, error);
+      log.error(`Error in ELK layout for group ${groupId}:`, error);
     }
   }
 

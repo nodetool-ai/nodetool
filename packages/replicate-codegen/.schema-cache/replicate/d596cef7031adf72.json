@@ -1,0 +1,105 @@
+{
+  "modelId": "prunaai/p-image-edit",
+  "owner": "prunaai",
+  "name": "p-image-edit",
+  "version": "21572612bd5577c2cddc926e177b7e50640a8fae9cd51a69677f0d29d37e3df5",
+  "description": "A sub 1 second 0.01$ multi-image editing model built for production use cases. For image generation, check out p-image here: https://replicate.com/prunaai/p-image",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio for the generated image. `match_input_image` will match the aspect ratio of the first image.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "images": {
+        "default": [],
+        "description": "Images to use as a reference. For editing task, provide the main image as the first image.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Images",
+        "type": "array",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation. Make sure to describe your edit task clearly. You can refer to the images as 'image 1' and 'image 2' and so on.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "replicate_weights": {
+        "default": "default",
+        "description": "Task to perform with P-Edit.",
+        "enum": [
+          "default",
+          "multiple_angles",
+          "relight",
+          "light_restoration",
+          "white_to_scene",
+          "fusion",
+          "add_characters",
+          "next_scene",
+          "style_consistency",
+          "subject_consistency",
+          "scene_consistency",
+          "to_anime",
+          "to_3dchibi",
+          "to_caricature",
+          "photous",
+          "extract_texture",
+          "apply_texture",
+          "upscale",
+          "anything_to_real",
+          "white_film_to_rendering"
+        ],
+        "title": "replicate_weights",
+        "type": "string",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      },
+      "turbo": {
+        "default": true,
+        "description": "If turned on, the model will run faster with additional optimizations. For complicated tasks, it is recommended to turn this off.",
+        "title": "Turbo",
+        "type": "boolean",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

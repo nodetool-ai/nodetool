@@ -64,6 +64,7 @@ interface ModelDownloadStore {
 // Reconnection settings
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_DELAY_MS = 2000; // Start with 2 seconds, then exponential backoff
+const LLAMA_CPP_MODEL_TYPES = new Set(["llama_cpp_model", "llama_cpp", "hf.gguf"]);
 
 const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
   if (speedHistory.length < 2) {return null;}
@@ -104,7 +105,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
 
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error(
+      log.error(
         "[ModelDownloadStore] Max reconnect attempts reached. Giving up."
       );
       // Mark active downloads as potentially stalled/errored
@@ -147,19 +148,28 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
     // Prevent multiple simultaneous connection attempts
     if (get().wsConnectionState === "connecting") {
-      // Wait for existing connection attempt
+      // Wait for existing connection attempt with timeout to prevent memory leak
+      const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
       return new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
           const currentWs = get().ws;
           const state = get().wsConnectionState;
           if (state === "connected" && currentWs) {
             clearInterval(checkInterval);
+            clearTimeout(timeoutId);
             resolve(currentWs);
           } else if (state === "disconnected") {
             clearInterval(checkInterval);
+            clearTimeout(timeoutId);
             reject(new Error("Connection failed"));
           }
         }, 100);
+
+        // Add timeout to prevent interval from running forever
+        const timeoutId = setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS}ms`));
+        }, CONNECTION_TIMEOUT_MS);
       });
     }
 
@@ -190,6 +200,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           get().updateDownload(id, {
             status: data.status,
             id,
+            modelType: data.model_type,
             downloadedBytes: data.downloaded_bytes ?? 0,
             totalBytes: data.total_bytes ?? 0,
             totalFiles: data.total_files ?? 0,
@@ -206,7 +217,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             // Restart llama-server if a llama_cpp model was downloaded
             const download = get().downloads[id];
             if (
-              download?.modelType === "llama_cpp_model" &&
+              download?.modelType &&
+              LLAMA_CPP_MODEL_TYPES.has(download.modelType) &&
               window.api?.restartLlamaServer
             ) {
               window.api.restartLlamaServer().catch((e: unknown) => {
@@ -218,7 +230,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onclose = (event) => {
-        console.warn(
+        log.warn(
           `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
         );
         set({ ws: null, wsConnectionState: "disconnected" });
@@ -230,7 +242,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onerror = (error) => {
-        console.error("[ModelDownloadStore] WebSocket error:", error);
+        log.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
       set({ ws });

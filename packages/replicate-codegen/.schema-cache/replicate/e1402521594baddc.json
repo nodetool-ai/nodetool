@@ -1,0 +1,141 @@
+{
+  "modelId": "sakemin/musicgen-remixer",
+  "owner": "sakemin",
+  "name": "musicgen-remixer",
+  "version": "0b769f28e399c7c30e4f2360691b9b11c294183e9ab2fd9f3398127b556c86d7",
+  "description": "Remix the music into another styles with MusicGen Chord",
+  "inputSchema": {
+    "properties": {
+      "beat_sync_threshold": {
+        "description": "When beat syncing, if the gap between generated downbeat timing and input audio downbeat timing is larger than `beat_sync_threshold`, consider the beats are not corresponding. If `None` or `-1`, `1.1/(bpm/60)` will be used as the value. 0.75 is a good value to set.",
+        "title": "Beat Sync Threshold",
+        "type": "number",
+        "x-order": 5
+      },
+      "chroma_coefficient": {
+        "default": 1,
+        "description": "Coefficient value multiplied to multi-hot chord chroma.",
+        "maximum": 2,
+        "minimum": 0.5,
+        "title": "Chroma Coefficient",
+        "type": "number",
+        "x-order": 7
+      },
+      "classifier_free_guidance": {
+        "default": 3,
+        "description": "Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs.",
+        "title": "Classifier Free Guidance",
+        "type": "integer",
+        "x-order": 11
+      },
+      "large_chord_voca": {
+        "default": true,
+        "description": "If `True`, more chords like 7th, diminished and etc are used. If `False` only 12 major and 12 minor chords are used.",
+        "title": "Large Chord Voca",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "model_version": {
+        "default": "stereo-chord",
+        "description": "Model type. Computations take longer when using `large` or `stereo` models.",
+        "enum": [
+          "stereo-chord",
+          "stereo-chord-large",
+          "chord",
+          "chord-large"
+        ],
+        "title": "model_version",
+        "type": "string",
+        "x-order": 0
+      },
+      "multi_band_diffusion": {
+        "default": false,
+        "description": "If `True`, the EnCodec tokens will be decoded with MultiBand Diffusion. Not compatible with `stereo` models.",
+        "title": "Multi Band Diffusion",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "music_input": {
+        "description": "An audio file input for the remix.",
+        "format": "uri",
+        "title": "Music Input",
+        "type": "string",
+        "x-order": 2
+      },
+      "normalization_strategy": {
+        "default": "loudness",
+        "description": "Strategy for normalizing audio.",
+        "enum": [
+          "loudness",
+          "clip",
+          "peak",
+          "rms"
+        ],
+        "title": "normalization_strategy",
+        "type": "string",
+        "x-order": 4
+      },
+      "output_format": {
+        "default": "wav",
+        "description": "Output format for generated audio.",
+        "enum": [
+          "wav",
+          "mp3"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 12
+      },
+      "prompt": {
+        "description": "A description of the music you want to generate.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "return_instrumental": {
+        "default": false,
+        "description": "If `True`, the instrumental audio will also be returned.",
+        "title": "Return Instrumental",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "seed": {
+        "description": "Seed for random number generator. If `None` or `-1`, a random seed will be used.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 14
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Controls the 'conservativeness' of the sampling process. Higher temperature means more diversity.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 10
+      },
+      "top_k": {
+        "default": 250,
+        "description": "Reduces sampling to the k most likely tokens.",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 8
+      },
+      "top_p": {
+        "default": 0,
+        "description": "Reduces sampling to tokens with cumulative probability of p. When set to  `0` (default), top_k sampling is used.",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 9
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

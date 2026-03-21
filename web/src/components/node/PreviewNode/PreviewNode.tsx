@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -18,9 +18,11 @@ import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
+import { NodeOutputs } from "../NodeOutputs";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: Theme) =>
   css([
@@ -35,7 +37,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "unset",
         minHeight: "150px",
-        borderRadius: "var(--rounded-node)",
+        borderRadius: "calc(var(--rounded-node) - 1px)",
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.preview-node": {
@@ -58,7 +60,22 @@ const styles = (theme: Theme) =>
         flexDirection: "column"
       },
       ".preview-node-content .content": {
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        height: "100%",
+        minHeight: 0
+      },
+      ".preview-node-content > .content": {
+        flex: 1,
+        minHeight: 0,
+        height: "100%"
+      },
+      ".preview-node-content > .content > *": {
+        flex: 1,
+        minHeight: 0,
+        width: "100%"
       },
       ".preview-node-content > .output": {
         flex: 1,
@@ -98,7 +115,8 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         margin: 0,
-        padding: 0,
+        padding: "1.25em .5em 0",
+        height: "1em",
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
@@ -209,6 +227,19 @@ const getOutputFromResult = (result: any) => {
   return result;
 };
 
+const isEditorGraphSnapshot = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as {
+    nodes?: unknown;
+    edges?: unknown;
+  };
+
+  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
+};
+
 const getCopySource = (value: any): any => {
   if (value === null || value === undefined) {
     return value;
@@ -226,28 +257,28 @@ const getCopySource = (value: any): any => {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    (value as any).type === "text" &&
-    typeof (value as any).data === "string"
+    value.type === "text" &&
+    typeof value.data === "string"
   ) {
-    return (value as any).data;
+    return value.data;
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "output" in value &&
-    (value as any).output !== undefined
+    value.output !== undefined
   ) {
-    return getCopySource((value as any).output);
+    return getCopySource(value.output);
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "value" in value &&
-    (value as any).value !== undefined
+    value.value !== undefined
   ) {
-    return getCopySource((value as any).value);
+    return getCopySource(value.value);
   }
 
   return value;
@@ -266,22 +297,61 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const nodeMetadata = getMetadata(props.type);
+  const { getEdges } = useReactFlow();
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
   );
 
-  const previewOutput = useMemo(() => getOutputFromResult(result), [result]);
+  const incomingValueEdge = useMemo(
+    () =>
+      getEdges().find(
+        (edge) => edge.target === props.id && edge.targetHandle === "value"
+      ),
+    [getEdges, props.id, result]
+  );
+
+  const sourceNodeValue = useResultsStore((state) => {
+    const sourceNodeId = incomingValueEdge?.source;
+    if (!sourceNodeId) {
+      return undefined;
+    }
+
+    return (
+      state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
+      state.getResult(props.data.workflow_id, sourceNodeId) ??
+      state.getPreview(props.data.workflow_id, sourceNodeId)
+    );
+  });
+
+  const displayResult = useMemo(() => {
+    if (result === undefined) {
+      return sourceNodeValue;
+    }
+
+    if (isEditorGraphSnapshot(result) && sourceNodeValue !== undefined) {
+      return sourceNodeValue;
+    }
+
+    return result;
+  }, [result, sourceNodeValue]);
+
+  const previewOutput = useMemo(
+    () => getOutputFromResult(displayResult),
+    [displayResult]
+  );
 
   const memoizedOutputRenderer = useMemo(() => {
-    return result !== undefined ? (
-      <OutputRenderer value={result} showTextActions={false} />
+    return displayResult !== undefined ? (
+      <OutputRenderer value={displayResult} showTextActions={false} />
     ) : null;
-  }, [result]);
+  }, [displayResult]);
 
   const copyPayloadSource = useMemo(
-    () => getCopySource(previewOutput ?? result ?? null),
-    [previewOutput, result]
+    () => getCopySource(previewOutput ?? displayResult ?? null),
+    [previewOutput, displayResult]
   );
 
   const handleAddToAssets = useCallback(async () => {
@@ -292,9 +362,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
     try {
       const assetFiles = await createAssetFile(previewOutput, props.id);
-      for (const { file } of assetFiles) {
-        await createAsset(file);
-      }
+      await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
 
       addNotification({
         type: "success",
@@ -314,7 +382,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       await downloadPreviewAssets({
         nodeId: props.id,
         previewValue: previewOutput,
-        rawResult: result
+        rawResult: displayResult
       });
       addNotification({
         type: "success",
@@ -327,7 +395,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: "Failed to start download"
       });
     }
-  }, [previewOutput, result, props.id, addNotification]);
+  }, [previewOutput, displayResult, props.id, addNotification]);
 
   const handleContentFocus = useCallback(() => {
     setIsContentFocused(true);
@@ -345,16 +413,38 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const handleContentPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!props.selected) {
+        return;
+      }
       event.stopPropagation();
       const target = event.currentTarget;
       if (document.activeElement !== target) {
         target.focus();
       }
     },
-    []
+    [props.selected]
   );
 
-  const isScrollable = isContentFocused && result !== undefined;
+  const isSingleImageOrVideo = useMemo(() => {
+    if (displayResult === null || displayResult === undefined) {
+      return false;
+    }
+    const checkType = (item: any): boolean => {
+      if (item && typeof item === "object" && "type" in item) {
+        const t = item.type;
+        return t === "image" || t === "video";
+      }
+      return false;
+    };
+    // Only consider it "single" if it's not an array or array with 1 item
+    if (Array.isArray(displayResult)) {
+      return displayResult.length === 1 && checkType(displayResult[0]);
+    }
+    return checkType(displayResult);
+  }, [displayResult]);
+
+  const isScrollable =
+    isContentFocused && displayResult !== undefined && !isSingleImageOrVideo;
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
@@ -363,32 +453,14 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       css={styles(theme)}
       sx={{
         display: "flex",
-        border: "inherit",
+        boxShadow: props.selected
+          ? `0 0 0 2px var(--palette-grey-100)`
+          : "none",
         backgroundColor: theme.vars.palette.c_node_bg,
         backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: props.selected
           ? theme.vars.palette.glass.blur
           : "none"
-
-        // backgroundColor: theme.vars.palette.c_node_bg
-        // bgcolor: hasParent ? theme.vars.palette.c_node_bg_group : undefined,
-        // backgroundColor: hasParent
-        //   ? undefined
-        //   : (theme.vars.palette.c_node_bg as any)
-        //   ? (theme.vars.palette.c_node_bg as string)
-        //   : undefined,
-        // ...(hasParent
-        //   ? {}
-        //   : {
-        //       backgroundColor: hexToRgba(
-        //         theme.vars.palette.c_node_bg as string,
-        //         0.6
-        //       ),
-        //       // backdropFilter: theme.vars.palette.glass.blur,
-        //       // WebkitBackdropFilter: theme.vars.palette.glass.blur,
-        //       // boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
-        //       borderRadius: "var(--rounded-node)"
-        //     })
       }}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
@@ -410,13 +482,13 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Preview"
             selected={props.selected}
-            // backgroundColor={theme.vars.palette.primary.main}
             backgroundColor={"transparent"}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.primary.main}
             showIcon={false}
+            workflowId={props.data.workflow_id}
           />
-          {!result && (
+          {!displayResult && (
             <Typography className="hint">
               Displays any data from connected nodes
             </Typography>
@@ -426,19 +498,18 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             onAddToAssets={handleAddToAssets}
             copyValue={copyPayloadSource}
           />
+          {nodeMetadata && (
+            <NodeOutputs
+              id={props.id}
+              outputs={nodeMetadata.outputs}
+              isStreamingOutput={nodeMetadata.is_streaming_output}
+            />
+          )}
         </>
-
-        <Handle
-          style={{ top: "50%" }}
-          id="value"
-          type="target"
-          position={Position.Left}
-          isConnectable={true}
-        />
         <div
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
-          }`}
+          } nodrag`}
           style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}

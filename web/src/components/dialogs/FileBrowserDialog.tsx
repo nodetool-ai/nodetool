@@ -5,10 +5,10 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useRef
+  useRef,
+  memo
 } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -24,13 +24,12 @@ import {
   useTheme,
   Theme
 } from "@mui/material";
+import { Dialog } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
   Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon
+  ArrowUpward as ArrowUpwardIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
@@ -41,7 +40,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -167,7 +166,7 @@ const fetchFileList = async (path: string) => {
   if (error) {
     throw createErrorMessage(error, "Failed to list files");
   }
-  return data;
+  return data || [];
 };
 
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -181,7 +180,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 // --- Component ---
 
-export default function FileBrowserDialog({
+function FileBrowserDialog({
   open,
   onClose,
   onConfirm,
@@ -208,21 +207,31 @@ export default function FileBrowserDialog({
 
   // --- Memos (Moved up for usage in effects) ---
 
-  // Filter files
+  // Sort files: Folders first, then files (memoized for performance)
+  const sortedFiles = useMemo(() => {
+    return [...files].sort((a, b) => {
+      if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
+      return a.is_dir ? -1 : 1;
+    });
+  }, [files]);
+
+  // Filter files (after sorting)
   const filteredFiles = useMemo(() => {
-    if (!searchQuery) {return files;}
+    if (!searchQuery) {return sortedFiles;}
     // Optimization: Convert search query to lowercase once
     const searchQueryLower = searchQuery.toLowerCase();
-    return files.filter((f) =>
+    return sortedFiles.filter((f) =>
       f.name.toLowerCase().includes(searchQueryLower)
     );
-  }, [files, searchQuery]);
+  }, [sortedFiles, searchQuery]);
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => {
     // Detect likely separator from current path
     const separator = currentPath.includes("\\") ? "\\" : "/";
-    const parts = currentPath.split(/[/\\]/).filter(Boolean);
+    // Memoize the regex pattern to avoid recreating on every render
+    const pathSplitRegex = /[/\\]/;
+    const parts = currentPath.split(pathSplitRegex).filter(Boolean);
     const items = [];
     let pathAcc = "";
 
@@ -297,7 +306,7 @@ export default function FileBrowserDialog({
           }));
         setTreeItems(roots);
       } catch (e) {
-        console.error("Failed to load roots", e);
+        log.error("Failed to load roots", e);
       }
     };
     if (open && treeItems.length === 0) {
@@ -306,26 +315,53 @@ export default function FileBrowserDialog({
   }, [open, treeItems.length]);
 
   // Helper to update tree items recursively
-  const updateTreeItem = useCallback(
-    (itemId: string, newChildren: ExtendedTreeItem[]) => {
+  const updateTreeItemsBulk = useCallback(
+    (updates: { id: string; children: ExtendedTreeItem[] }[]) => {
+      if (updates.length === 0) {return;}
       setTreeItems((prevItems) => {
+        let currentItems = prevItems;
+
         const updateRecursive = (
-          items: ExtendedTreeItem[]
+          items: ExtendedTreeItem[],
+          targetId: string,
+          newChildren: ExtendedTreeItem[]
         ): ExtendedTreeItem[] => {
           return items.map((item) => {
-            if (item.id === itemId) {
+            if (item.id === targetId) {
               return { ...item, children: newChildren };
             }
             if (item.children) {
-              return { ...item, children: updateRecursive(item.children) };
+              const updatedChildren = updateRecursive(
+                item.children,
+                targetId,
+                newChildren
+              );
+              if (updatedChildren !== item.children) {
+                return { ...item, children: updatedChildren };
+              }
             }
             return item;
           });
         };
-        return updateRecursive(prevItems);
+
+        for (const update of updates) {
+          currentItems = updateRecursive(
+            currentItems,
+            update.id,
+            update.children
+          );
+        }
+        return currentItems;
       });
     },
     []
+  );
+
+  const updateTreeItem = useCallback(
+    (itemId: string, newChildren: ExtendedTreeItem[]) => {
+      updateTreeItemsBulk([{ id: itemId, children: newChildren }]);
+    },
+    [updateTreeItemsBulk]
   );
 
   // Load ancestors of currentPath to ensure it is visible in tree
@@ -354,21 +390,40 @@ export default function FileBrowserDialog({
         return undefined;
       };
 
-      // We check ancestors. If an ancestor is found but needs loading, we load it.
-      // We do one at a time per effect run (since state update triggers re-run)
+      // Parallel loading optimization:
+      // identify all paths that need loading (either missing from tree or placeholder)
+      // and fetch them in parallel.
+
+      const pathsToFetch: string[] = [];
+
       for (const breadcrumb of breadcrumbs) {
         // Skip Root/Home placeholders if they aren't in tree (tree roots are their children)
         if (breadcrumb.path === "~" || breadcrumb.path === "/") {continue;}
 
         const node = findNode(treeItems, breadcrumb.path);
+        // If node is found, check if it's a placeholder
         if (node) {
           const isPlaceholder =
             node.children &&
             node.children.length === 1 &&
             node.children[0].id.endsWith("_loading");
           if (isPlaceholder) {
+            pathsToFetch.push(breadcrumb.path);
+          }
+        } else {
+          // If node is not found, we assume it needs to be loaded as part of the chain
+          // (it will become available once its parent is loaded)
+          pathsToFetch.push(breadcrumb.path);
+        }
+      }
+
+      if (pathsToFetch.length === 0) {return;}
+
+      try {
+        const results = await Promise.all(
+          pathsToFetch.map(async (path) => {
             try {
-              const fileList = await fetchFileList(node.path);
+              const fileList = await fetchFileList(path);
               const folders = fileList
                 .filter((f) => f.is_dir)
                 .map((f) => ({
@@ -379,22 +434,31 @@ export default function FileBrowserDialog({
                     { id: `${f.path}_loading`, label: "Loading...", path: "" }
                   ] as ExtendedTreeItem[]
                 }));
-
-              updateTreeItem(node.id, folders.length > 0 ? folders : []);
-              // Break after one update, effect will re-run
-              return;
+              return { id: path, children: folders.length > 0 ? folders : [] };
             } catch (e) {
-              console.error("Failed to load tree node for sync", e);
-              updateTreeItem(node.id, []);
-              return;
+              log.error(`Failed to load tree node ${path}`, e);
+              // Return empty children on failure to stop loading spinner (if any)
+              // But if the node doesn't exist, this update will just be ignored
+              return { id: path, children: [] as ExtendedTreeItem[] };
             }
-          }
-        }
+          })
+        );
+
+        // Filter out results where fetch failed completely (though we catch above)
+        // and apply updates.
+        // Important: updates should be applied in order?
+        // updateTreeItemsBulk handles sequential application on state.
+        // Since we are building the tree top-down, and pathsToFetch preserves breadcrumb order (depth),
+        // the updates will be applied parent-first, which is correct.
+
+        updateTreeItemsBulk(results);
+      } catch (e) {
+        log.error("Failed to load ancestors in parallel", e);
       }
     };
 
     loadMissingAncestors();
-  }, [currentPath, breadcrumbs, open, treeItems, updateTreeItem]);
+  }, [currentPath, breadcrumbs, open, treeItems, updateTreeItemsBulk]);
 
   // Sync expansion when navigating
   useEffect(() => {
@@ -417,12 +481,7 @@ export default function FileBrowserDialog({
       setIsLoadingFiles(true);
       try {
         const fileList = await fetchFileList(currentPath);
-        // Sort: Folders first, then files
-        const sorted = fileList.sort((a, b) => {
-          if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
-          return a.is_dir ? -1 : 1;
-        });
-        setFiles(sorted);
+        setFiles(fileList);
       } catch (err) {
         log.error("Failed to load files", err);
       } finally {
@@ -470,7 +529,7 @@ export default function FileBrowserDialog({
     setIsEditingPath(false);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
     setSearchQuery("");
     if (selectionMode === "directory") {
@@ -478,9 +537,13 @@ export default function FileBrowserDialog({
     } else {
       setSelectedPath("");
     }
-  };
+  }, [selectionMode]);
 
-  const handleUp = () => {
+  const handleStartEditPath = useCallback(() => {
+    setIsEditingPath(true);
+  }, []);
+
+  const handleUp = useCallback(() => {
     if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
     const separator = currentPath.includes("\\") ? "\\" : "/";
@@ -492,9 +555,13 @@ export default function FileBrowserDialog({
     if (parent.endsWith(":")) {parent += "\\";} // Windows drive root often needs backslash
 
     handleNavigate(parent || "~");
-  };
+  }, [currentPath, handleNavigate]);
 
-  const handleFileClick = (file: FileInfo) => {
+  const handleRefresh = useCallback(() => {
+    handleNavigate(currentPath);
+  }, [currentPath, handleNavigate]);
+
+  const handleFileClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       if (selectionMode === "directory") {
         setSelectedPath(file.path);
@@ -504,9 +571,9 @@ export default function FileBrowserDialog({
         setSelectedPath(file.path);
       }
     }
-  };
+  }, [selectionMode]);
 
-  const handleFileDoubleClick = (file: FileInfo) => {
+  const handleFileDoubleClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       handleNavigate(file.path);
     } else {
@@ -515,13 +582,21 @@ export default function FileBrowserDialog({
         onConfirm(file.path);
       }
     }
-  };
+  }, [selectionMode, handleNavigate, onConfirm]);
 
-  const handleConfirmClick = () => {
+  const handleConfirmClick = useCallback(() => {
     if (selectedPath) {
       onConfirm(selectedPath);
     }
-  };
+  }, [selectedPath, onConfirm]);
+
+  const handlePathInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPathInputValue(e.target.value);
+  }, []);
+
+  const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
 
   // --- Tree Logic ---
 
@@ -574,7 +649,7 @@ export default function FileBrowserDialog({
             updateTreeItem(itemId, folders);
           }
         } catch (e) {
-          console.error("Failed to load tree children", e);
+          log.error("Failed to load tree children", e);
           updateTreeItem(itemId, []);
         }
       }
@@ -584,29 +659,46 @@ export default function FileBrowserDialog({
     );
   };
 
-  const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
+  const handleTreeItemClick = useCallback((event: React.MouseEvent, itemId: string) => {
     if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
-  };
+  }, [handleNavigate]);
+
+  // Memoize breadcrumb click handlers to prevent re-renders
+  const handleBreadcrumbClick = useCallback(
+    (path: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleNavigate(path);
+    },
+    [handleNavigate]
+  );
 
   // --- Renderers ---
 
-  const Row = ({
+  const Row = memo(function Row({
     index,
     style
   }: {
     index: number;
     style: React.CSSProperties;
-  }) => {
+  }) {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
+
+    const handleClick = useCallback(() => {
+      handleFileClick(file);
+    }, [file]);
+
+    const handleDoubleClick = useCallback(() => {
+      handleFileDoubleClick(file);
+    }, [file]);
 
     return (
       <div
         style={style}
         className={`list-item ${isSelected ? "selected" : ""}`}
-        onClick={() => handleFileClick(file)}
-        onDoubleClick={() => handleFileDoubleClick(file)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
       >
         {file.is_dir ? (
           <FolderIcon color="primary" sx={{ fontSize: 20 }} />
@@ -627,7 +719,7 @@ export default function FileBrowserDialog({
         )}
       </div>
     );
-  };
+  });
 
   return (
     <Dialog
@@ -654,13 +746,12 @@ export default function FileBrowserDialog({
       >
         <Typography
           variant="h6"
+          component="span"
           sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
         >
           {title}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </DialogTitle>
 
       <DialogContent
@@ -691,7 +782,7 @@ export default function FileBrowserDialog({
                 size="small"
                 fullWidth
                 value={pathInputValue}
-                onChange={(e) => setPathInputValue(e.target.value)}
+                onChange={handlePathInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {handlePathSubmit();}
                   if (e.key === "Escape") {
@@ -713,7 +804,7 @@ export default function FileBrowserDialog({
                   cursor: "text",
                   minWidth: "100px"
                 }}
-                onClick={() => setIsEditingPath(true)}
+                onClick={handleStartEditPath}
               >
                 <Breadcrumbs className="breadcrumbs" separator="/">
                   {breadcrumbs.map((b, i) => (
@@ -725,10 +816,7 @@ export default function FileBrowserDialog({
                           ? "text.primary"
                           : "inherit"
                       }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate(b.path);
-                      }}
+                      onClick={handleBreadcrumbClick(b.path)}
                       underline="hover"
                       variant="body2"
                     >
@@ -743,7 +831,7 @@ export default function FileBrowserDialog({
               size="small"
               placeholder="Search in current folder..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchQueryChange}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -756,15 +844,11 @@ export default function FileBrowserDialog({
               sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
             />
 
-            <IconButton
-              onClick={() => {
-                handleNavigate(currentPath);
-              }}
-              size="small"
-              style={{ width: 32, height: 32 }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+            <RefreshButton
+              onClick={handleRefresh}
+              buttonSize="small"
+              tooltip="Refresh"
+            />
           </div>
 
           {/* Split View */}
@@ -829,10 +913,10 @@ export default function FileBrowserDialog({
           {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
         </Typography>
         {selectedPath && (
-          <CopyToClipboardButton
-            copyValue={selectedPath}
-            title="Copy path"
-            size="small"
+          <CopyButton
+            value={selectedPath}
+            tooltip="Copy path"
+            buttonSize="small"
           />
         )}
         <Button onClick={onClose} color="inherit">
@@ -849,3 +933,5 @@ export default function FileBrowserDialog({
     </Dialog>
   );
 }
+
+export default memo(FileBrowserDialog);

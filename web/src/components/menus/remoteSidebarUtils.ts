@@ -33,11 +33,12 @@ export const getRemoteSidebarSections = () => {
     ];
   }
 
-  return Object.entries(finalGroupedSettings).map(
+  return (Object.entries(finalGroupedSettings) as [string, any[]][]).map(
     ([groupName, settingsArray]: [string, any[]]) => {
       const sectionId = groupName.toLowerCase().replace(/\s+/g, "-");
       const items = settingsArray
         .filter((setting) => {
+          // Memoize expensive string transformation
           const label = setting.env_var
             .replace(/_/g, " ")
             .toLowerCase()
@@ -46,13 +47,17 @@ export const getRemoteSidebarSections = () => {
             label === "Font Path" || label === "Comfy Folder";
           return !isExcludedLabel;
         })
-        .map((setting) => ({
-          id: sectionId,
-          label: setting.env_var
+        .map((setting) => {
+          // Re-use the same label transformation
+          const label = setting.env_var
             .replace(/_/g, " ")
             .toLowerCase()
-            .replace(/\b\w/g, (char: string) => char.toUpperCase())
-        }));
+            .replace(/\b\w/g, (char: string) => char.toUpperCase());
+          return {
+            id: sectionId,
+            label
+          };
+        });
 
       return {
         category: groupName,

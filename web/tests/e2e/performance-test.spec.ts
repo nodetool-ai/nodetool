@@ -13,6 +13,8 @@
 
 import { test, expect } from "@playwright/test";
 import { playwrightDescribe } from "./testUtils";
+import { waitForAnimation } from "./helpers/waitHelpers";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Skip entire describe block in CI environment
 if (process.env.CI === "true") {
@@ -29,25 +31,18 @@ if (process.env.CI === "true") {
     page
   }) => {
     // Enable performance monitoring
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+    // Navigate to editor via the AppHeader mode pill button
+    const editorButton = page.locator('.mode-pills button:has-text("Editor")');
+    await expect(editorButton).toBeVisible({ timeout: 30000 });
+    await editorButton.click();
+    await page.waitForLoadState("domcontentloaded");
 
     // Wait for the editor to load
-    await page.waitForSelector('[data-testid="workflow-editor"]', {
-      timeout: 30000
-    });
+    await page.waitForSelector(".react-flow__pane", { timeout: 30000 });
 
     console.log("Editor loaded, creating workflow...");
-
-    // Create a new workflow or use existing
-    const workflowsLink = page.locator('a[href*="/workflows"]');
-    if (await workflowsLink.isVisible()) {
-      await workflowsLink.click();
-      await page.waitForLoadState("networkidle");
-    }
-
-    // Navigate to editor
-    await page.goto("/editor", { waitUntil: "networkidle" });
-    await page.waitForTimeout(2000);
 
     // Get the React Flow pane
     const reactFlowPane = page.locator(".react-flow__pane");
@@ -145,8 +140,11 @@ if (process.env.CI === "true") {
     }
   });
 
-  test("should measure zoom performance", async ({ page }) => {
-    await page.goto("/editor", { waitUntil: "networkidle" });
+  test("should measure zoom performance", async ({ page, request }) => {
+    const wf = await (await request.post(`${BACKEND_API_URL}/workflows/`, {
+      data: { name: `perf-zoom-${Date.now()}`, access: "private" }
+    })).json();
+    await page.goto(`/editor/${wf.id}`, { waitUntil: "domcontentloaded" });
 
     const reactFlowPane = page.locator(".react-flow__pane");
     await expect(reactFlowPane).toBeVisible({ timeout: 10000 });
@@ -172,8 +170,11 @@ if (process.env.CI === "true") {
     }
   });
 
-  test("should measure selection performance", async ({ page }) => {
-    await page.goto("/editor", { waitUntil: "networkidle" });
+  test("should measure selection performance", async ({ page, request }) => {
+    const wf = await (await request.post(`${BACKEND_API_URL}/workflows/`, {
+      data: { name: `perf-sel-${Date.now()}`, access: "private" }
+    })).json();
+    await page.goto(`/editor/${wf.id}`, { waitUntil: "domcontentloaded" });
 
     const reactFlowPane = page.locator(".react-flow__pane");
     await expect(reactFlowPane).toBeVisible({ timeout: 10000 });
@@ -203,7 +204,7 @@ if (process.env.CI === "true") {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
 
       console.log("Testing selection performance...");
       const selectionStart = Date.now();

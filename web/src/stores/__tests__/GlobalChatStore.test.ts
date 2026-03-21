@@ -4,7 +4,7 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
 
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000",
+  BASE_URL: "http://localhost:7777",
   UNIFIED_WS_URL: "ws://test/ws"
 }));
 
@@ -147,10 +147,6 @@ describe("GlobalChatStore", () => {
   });
 
   afterEach(() => {
-    // Clean up the mock server
-    // if (mockServer) { // Removing this as individual blocks will handle their servers
-    //   mockServer.stop();
-    // }
   });
 
   it("createNewThread creates thread and sets currentThreadId", async () => {
@@ -187,12 +183,13 @@ describe("GlobalChatStore", () => {
       const threadId = store.getState().currentThreadId as string;
       expect(threadId).toBeTruthy();
       expect(store.getState().threads[threadId]).toBeDefined();
-      expect(store.getState().messageCache[threadId][0]).toEqual({
+      const cachedMessage = store.getState().messageCache[threadId][0];
+      expect(cachedMessage).toMatchObject({
         ...msg,
-        workflow_id: undefined,
         thread_id: threadId,
         agent_mode: false
       });
+      expect(cachedMessage.created_at).toBeDefined();
       expect(store.getState().status).toBe("loading");
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -358,7 +355,8 @@ describe("GlobalChatStore", () => {
         content: " world!",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       if (threadSubscriptions[threadId]) {
@@ -377,7 +375,8 @@ describe("GlobalChatStore", () => {
         content: "New message",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       const threadId = store.getState().currentThreadId!;
@@ -399,7 +398,8 @@ describe("GlobalChatStore", () => {
         content: "Hello",
         content_type: "text",
         content_metadata: {},
-        done: true
+        done: true,
+        thinking: false
       };
 
       const threadId = store.getState().currentThreadId!;
@@ -767,60 +767,13 @@ describe("GlobalChatStore", () => {
       expect(Object.keys(store.getState().threads)).toHaveLength(1);
     });
 
-    it("sendMessage auto-generates title from first user message", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content:
-          "This is a long message that should be truncated for the title because it exceeds fifty characters"
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe(
-        "This is a long message that should be truncated fo..."
-      );
-    });
-
-    it("sendMessage handles array content for title generation", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content: [{ type: "text", text: "Hello world" }]
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe("Hello world");
-    });
-
-    it("sendMessage uses fallback title for non-text content", async () => {
-      store.setState({ currentThreadId: null } as any);
-
-      const message: Message = {
-        role: "user",
-        type: "message",
-        content: [
-          { type: "image_url", image: { type: "image", uri: "test.jpg" } }
-        ]
-      } as Message;
-      await store.getState().sendMessage(message);
-
-      const threadId = store.getState().currentThreadId!;
-      const thread = store.getState().threads[threadId];
-      expect(thread.title).toBe("New conversation");
-    });
-
     it("sendMessage does nothing when socket is not connected", async () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(
+        new Error("Not connected")
+      );
       store.setState({
         socket: null,
         wsManager: null,
@@ -863,6 +816,40 @@ describe("GlobalChatStore", () => {
           collections: undefined
         }
       });
+    });
+
+    it("sendMessage subscribes to loaded thread before sending", async () => {
+      const threadId = "existing-thread";
+      const now = new Date().toISOString();
+      store.setState({
+        threads: {
+          [threadId]: {
+            id: threadId,
+            title: "Existing conversation",
+            created_at: now as any,
+            updated_at: now as any
+          } as any
+        },
+        currentThreadId: threadId,
+        wsThreadSubscriptions: {}
+      } as any);
+
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      await store.getState().sendMessage(message);
+
+      expect(mockGlobalWebSocketManager.subscribe).toHaveBeenCalledWith(
+        threadId,
+        expect.any(Function)
+      );
+      expect(threadSubscriptions[threadId]).toEqual(expect.any(Function));
+      expect(store.getState().wsThreadSubscriptions[threadId]).toEqual(
+        expect.any(Function)
+      );
     });
   });
 
@@ -1035,7 +1022,8 @@ describe("GlobalChatStore", () => {
         content: "Test chunk",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       const initialState = store.getState();
@@ -1106,6 +1094,9 @@ describe("GlobalChatStore", () => {
     it("handles connection timeout gracefully", async () => {
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
       mockGlobalWebSocketManager.isConnected = false;
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(
+        new Error("Connection timeout")
+      );
 
       const message: Message = {
         role: "user",

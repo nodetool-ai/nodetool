@@ -9,6 +9,7 @@ interface WindowControls {
 type ModelDirectory = "huggingface" | "ollama";
 
 type SystemDirectory = "installation" | "logs";
+type FrontendLogLevel = "info" | "warn" | "error";
 
 // System information for about dialog
 interface SystemInfo {
@@ -43,10 +44,65 @@ interface FileExplorerResult {
   message?: string;
 }
 
-type MenuEventType =
+type LocalhostProxyMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD"
+  | "OPTIONS";
+
+interface LocalhostProxyRequest {
+  url: string;
+  method?: LocalhostProxyMethod;
+  headers?: Record<string, string>;
+  body?: string;
+  responseType?: "text" | "json";
+}
+
+interface LocalhostProxyResponse {
+  status: number;
+  ok: boolean;
+  headers: Record<string, string>;
+  data: unknown;
+}
+
+interface LocalhostProxyWsOpenRequest {
+  url: string;
+  headers?: Record<string, string>;
+  protocols?: string[];
+}
+
+interface LocalhostProxyWsOpenResponse {
+  connectionId: string;
+}
+
+interface LocalhostProxyWsSendRequest {
+  connectionId: string;
+  data: string;
+}
+
+interface LocalhostProxyWsCloseRequest {
+  connectionId: string;
+  code?: number;
+  reason?: string;
+}
+
+interface LocalhostProxyWsEvent {
+  connectionId: string;
+  event: "open" | "message" | "error" | "close";
+  data?: string;
+  error?: string;
+  code?: number;
+  reason?: string;
+}
+
+export type MenuEventType =
   | "saveWorkflow"
   | "newTab"
   | "close"
+  | "closeTab"
   | "cut"
   | "copy"
   | "paste"
@@ -61,27 +117,83 @@ type MenuEventType =
   | "fitView"
   | "resetZoom"
   | "zoomIn"
-  | "zoomOut";
+  | "zoomOut"
+  | "prevTab"
+  | "nextTab"
+  | "switchToTab";
 
-interface MenuEventData {
+export interface MenuEventData {
   type: MenuEventType;
+  index?: number;
+  [key: string]: unknown;
+}
+
+// Clipboard content info for smart paste decisions
+interface ClipboardContentInfo {
+  formats: string[];
+  hasImage: boolean;
+  hasFiles: boolean;
+  hasHtml: boolean;
+  hasRtf: boolean;
+  hasText: boolean;
+  platform: "darwin" | "win32" | "linux";
 }
 
 declare global {
   interface Window {
     api: {
       runApp: (workflowId: string) => Promise<void>;
-      clipboardWriteText: (text: string) => Promise<void>;
-      clipboardReadText: () => Promise<string>;
-      clipboardWriteImage: (dataUrl: string) => Promise<void>;
+
+      // Clipboard operations (new API)
+      clipboard?: {
+        readText: (type?: "clipboard" | "selection") => Promise<string>;
+        writeText: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readHTML: (type?: "clipboard" | "selection") => Promise<string>;
+        writeHTML: (
+          markup: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readImage: (type?: "clipboard" | "selection") => Promise<string>;
+        writeImage: (
+          dataUrl: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readRTF: (type?: "clipboard" | "selection") => Promise<string>;
+        writeRTF: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readBookmark: () => Promise<{ title: string; url: string }>;
+        writeBookmark: (
+          title: string,
+          url: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readFindText: () => Promise<string>;
+        writeFindText: (text: string) => Promise<void>;
+        clear: (type?: "clipboard" | "selection") => Promise<void>;
+        availableFormats: (
+          type?: "clipboard" | "selection"
+        ) => Promise<string[]>;
+        /** Read file paths from clipboard (cross-platform: macOS, Windows, Linux) */
+        readFilePaths: () => Promise<string[]>;
+        /** Read raw buffer data from clipboard for a specific format (returns base64) */
+        readBuffer: (format: string) => Promise<string | null>;
+        /** Get comprehensive clipboard content info for smart paste decisions */
+        getContentInfo: () => Promise<ClipboardContentInfo>;
+        readFileAsDataURL: (filePath: string) => Promise<string | null>;
+        /** Read file content as buffer */
+        readFileBuffer: (filePath: string) => Promise<{ buffer: Uint8Array; mimeType: string } | null>;
+      };
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openModelDirectory?: (
         target: ModelDirectory
       ) => Promise<FileExplorerResult | void>;
-      openModelPath?: (
-        path: string
-      ) => Promise<FileExplorerResult | void>;
+      openModelPath?: (path: string) => Promise<FileExplorerResult | void>;
       openSystemDirectory?: (
         target: SystemDirectory
       ) => Promise<FileExplorerResult | void>;
@@ -94,16 +206,26 @@ declare global {
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
-      
+      logging?: {
+        log: (
+          level: FrontendLogLevel,
+          message: string,
+          source?: string
+        ) => Promise<void>;
+      };
+
       // Shell module - Desktop integration
       shell?: {
         showItemInFolder: (fullPath: string) => Promise<void>;
         openPath: (path: string) => Promise<string>;
-        openExternal: (url: string, options?: {
-          activate?: boolean;
-          workingDirectory?: string;
-          logUsage?: boolean;
-        }) => Promise<void>;
+        openExternal: (
+          url: string,
+          options?: {
+            activate?: boolean;
+            workingDirectory?: string;
+            logUsage?: boolean;
+          }
+        ) => Promise<void>;
         trashItem: (path: string) => Promise<void>;
         beep: () => Promise<void>;
         writeShortcutLink: (
@@ -132,10 +254,26 @@ declare global {
         }>;
       };
 
+      localhostProxy?: {
+        request: (
+          request: LocalhostProxyRequest
+        ) => Promise<LocalhostProxyResponse>;
+        wsOpen: (
+          request: LocalhostProxyWsOpenRequest
+        ) => Promise<LocalhostProxyWsOpenResponse>;
+        wsSend: (request: LocalhostProxyWsSendRequest) => Promise<void>;
+        wsClose: (request: LocalhostProxyWsCloseRequest) => Promise<void>;
+        onWsEvent: (
+          callback: (event: LocalhostProxyWsEvent) => void
+        ) => () => void;
+      };
+
       // Settings module - Application settings (Windows only)
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
-        setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
+        setCloseBehavior: (
+          action: "ask" | "quit" | "background"
+        ) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
 
@@ -167,6 +305,110 @@ declare global {
           buttonLabel?: string;
         }) => Promise<{ canceled: boolean; filePaths: string[] }>;
       };
+
+      // Claude Agent SDK operations (available in Electron only)
+      agent?: {
+        createSession: (options: {
+          provider?: "claude" | "codex";
+          model: string;
+          workspacePath?: string;
+          resumeSessionId?: string;
+        }) => Promise<string>;
+        listModels: (options?: {
+          provider?: "claude" | "codex";
+          workspacePath?: string;
+        }) => Promise<Array<{
+          id: string;
+          label: string;
+          isDefault?: boolean;
+        }>>;
+        sendMessage: (
+          sessionId: string,
+          message: string
+        ) => Promise<
+          Array<{
+            type: string;
+            uuid: string;
+            session_id: string;
+            text?: string;
+            is_error?: boolean;
+            errors?: string[];
+            subtype?: string;
+            content?: Array<{ type: string; text?: string }>;
+            tool_calls?: Array<{
+              id: string;
+              type: string;
+              function: {
+                name: string;
+                arguments: string;
+              };
+            }>;
+          }>
+        >;
+        stopExecution: (sessionId: string) => Promise<void>;
+        closeSession: (sessionId: string) => Promise<void>;
+        /** Subscribe to streaming messages from the Claude Agent */
+        onStreamMessage: (
+          callback: (event: {
+            sessionId: string;
+            message: {
+              type: string;
+              uuid: string;
+              session_id: string;
+              text?: string;
+              is_error?: boolean;
+              errors?: string[];
+              subtype?: string;
+              content?: Array<{ type: string; text?: string }>;
+              tool_calls?: Array<{
+                id: string;
+                type: string;
+                function: {
+                  name: string;
+                  arguments: string;
+                };
+              }>;
+            };
+            done: boolean;
+          }) => void
+        ) => () => void;
+      };
+
+      // Frontend tools for Claude Agent integration (available in Electron only)
+      frontendTools?: {
+        /** Get the manifest of available frontend tools */
+        getManifest: (sessionId: string) => Promise<
+          Array<{
+            name: string;
+            description: string;
+            parameters: Record<string, unknown>;
+          }>
+        >;
+        /** Call a frontend tool and return its result */
+        call: (
+          sessionId: string,
+          toolCallId: string,
+          name: string,
+          args: unknown
+        ) => Promise<{ result: unknown; isError: boolean; error?: string }>;
+        /** Subscribe to tool abort events */
+        onAbort: (callback: (data: { sessionId: string }) => void) => () => void;
+      };
+
+      // Low-level IPC methods for registering handlers (available in Electron only)
+      ipc?: {
+        /** Invoke a main-process IPC handler */
+        invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+        /** Send an event to the main process */
+        send: (channel: string, ...args: unknown[]) => void;
+        /** Register a listener for IPC send events from the main process */
+        on: (
+          channel: string,
+          listener: (event: unknown, ...args: unknown[]) => void,
+        ) => void;
+        /** Remove a listener for IPC send events */
+        off: (channel: string, listener: (...args: unknown[]) => void) => void;
+      };
     };
     process: {
       type: string;
@@ -178,10 +420,15 @@ declare global {
       };
     };
     electron?: {
-      on: (channel: string, listener: (...args: any[]) => void) => void;
-      off: (channel: string, listener: (...args: any[]) => void) => void;
+      on: (channel: string, listener: (...args: unknown[]) => void) => void;
+      off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
-    __UPDATES__?: any[];
+    __UPDATES__?: Record<string, unknown>[];
+    // Debug globals exposed by ApiClient
+    isProduction?: boolean;
+    isLocalhost?: boolean;
+    isElectron?: boolean;
+    setForceLocalhost?: (force: boolean | null) => void;
   }
 }
 

@@ -1,0 +1,51 @@
+{
+  "modelId": "openai/gpt-4o-transcribe",
+  "owner": "openai",
+  "name": "gpt-4o-transcribe",
+  "version": "cc7638666fc85e9defb010d99e304c0c0e94dcdbd3d31385f28f2730b4cdcc6d",
+  "description": "A speech-to-text model that uses GPT-4o to transcribe audio",
+  "inputSchema": {
+    "properties": {
+      "audio_file": {
+        "description": "The audio file to transcribe. Supported formats: mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm",
+        "format": "uri",
+        "title": "Audio File",
+        "type": "string"
+      },
+      "language": {
+        "description": "The language of the input audio. Supplying the input language in ISO-639-1 (e.g. en) format will improve accuracy and latency.",
+        "nullable": true,
+        "title": "Language",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "An optional text to guide the model's style or continue a previous audio segment. The prompt should match the audio language.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "temperature": {
+        "default": 0,
+        "description": "Sampling temperature between 0 and 1",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number"
+      }
+    },
+    "required": [
+      "audio_file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

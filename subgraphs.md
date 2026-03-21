@@ -1,7 +1,3 @@
-Based on my comprehensive analysis of the ComfyUI_frontend repository, here is a detailed PRD-style document for implementing subgraph functionality in any node-based environment:
-
----
-
 # **Product Requirements Document: UI-Only Subgraph System**
 ## **For Node-Based Visual Programming Environments**
 
@@ -14,7 +10,7 @@ Based on my comprehensive analysis of the ComfyUI_frontend repository, here is a
 ## **1. Executive Summary**
 
 ### **1.1 Purpose**
-This document specifies a complete UI-only subgraph system that allows users to encapsulate groups of nodes into reusable, hierarchical components without backend awareness. The implementation maintains full workflow flattening for execution while providing powerful organizational and reusability features.
+This document specifies a UI-only subgraph system that allows users to encapsulate groups of nodes into reusable, hierarchical components without backend awareness. The implementation maintains full workflow flattening for execution while providing organizational and reusability features.
 
 ### **1.2 Key Principles**
 - ✅ **UI-Only**: Subgraphs exist purely in the frontend; backend receives flattened node graphs
@@ -22,8 +18,6 @@ This document specifies a complete UI-only subgraph system that allows users to 
 - ✅ **Hierarchical**: Subgraphs can contain other subgraphs (nested composition)
 - ✅ **Reusable**: Subgraph definitions can be instantiated multiple times
 - ✅ **Serializable**: Complete state persists in workflow JSON
-
-**Note:** Results are limited to the search responses received. For complete code exploration, [view all subgraph files on GitHub](https://github.com/Comfy-Org/ComfyUI_frontend/search?q=path%3A**%2Fsubgraph%2F**).
 
 ---
 

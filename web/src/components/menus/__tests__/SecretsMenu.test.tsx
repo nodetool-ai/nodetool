@@ -24,7 +24,12 @@ jest.mock("@mui/material", () => ({
   TextField: ({ label, value, children, ...props }: any) => (
     <div data-testid="TextField">
       {label && <label htmlFor={props.id || "textfield-input"}>{label}</label>}
-      <input {...props} id={props.id || "textfield-input"} value={value || ""} aria-label={label} />
+      <input
+        {...props}
+        id={props.id || "textfield-input"}
+        value={value || ""}
+        aria-label={label || undefined}
+      />
       {children}
     </div>
   ),
@@ -75,11 +80,13 @@ const mockUseNotificationStore = useNotificationStore as jest.MockedFunction<
 
 const mockSecretsStore: {
   secrets: any[];
+  isLoading: boolean;
   fetchSecrets: jest.Mock;
   updateSecret: jest.Mock;
   deleteSecret: jest.Mock;
 } = {
   secrets: [],
+  isLoading: false,
   fetchSecrets: jest.fn((secrets?: any[]) => {
     if (secrets) {
       mockSecretsStore.secrets = secrets;
@@ -119,8 +126,13 @@ describe("SecretsMenu", () => {
     jest.clearAllMocks();
     queryClient.clear();
 
-    mockUseSecretsStore.mockReturnValue(mockSecretsStore as any);
-    mockUseNotificationStore.mockReturnValue(mockNotificationStore as any);
+    mockUseSecretsStore.mockImplementation((selector?: any) => {
+      if (typeof selector === 'function') {
+        return selector(mockSecretsStore);
+      }
+      return mockSecretsStore;
+    });
+    mockUseNotificationStore.mockReturnValue(mockNotificationStore);
 
     mockSecretsStore.fetchSecrets.mockResolvedValue([]);
   });
@@ -249,13 +261,13 @@ describe("SecretsMenu", () => {
         expect(screen.getByText("TEST_SECRET")).toBeInTheDocument();
       });
 
-      // Click edit button to open dialog
       const editButton = screen.getByLabelText("Set secret");
       await userEvent.click(editButton);
 
       await waitFor(() => {
-        // Should have Value input field
-        expect(screen.getByLabelText("Value")).toBeInTheDocument();
+        const dialog = screen.getByTestId("Dialog");
+        const input = dialog.querySelector('input[aria-label="Value"]');
+        expect(input).toBeInTheDocument();
       });
     });
   });

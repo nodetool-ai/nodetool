@@ -998,6 +998,7 @@ blockquote {
 }
 
 .page-header {
+  position: relative;
   margin-bottom: var(--spacing-2xl);
   padding-bottom: var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);

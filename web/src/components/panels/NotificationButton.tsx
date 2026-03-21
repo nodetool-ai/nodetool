@@ -14,7 +14,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -30,11 +30,9 @@ const popoverStyles = css({
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
     useState<null | HTMLElement>(null);
-  const {
-    notifications,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
+  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
   const theme = useTheme();
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) {return notifications.length;}
@@ -143,13 +141,13 @@ const NotificationButton: React.FC = React.memo(() => {
                   backgroundColor: `${theme.vars.palette.grey[800]}CC`,
                   borderLeft: `3px solid ${
                     notification.type === "error"
-                      ? "#f44336"
+                      ? theme.vars.palette.error.main
                       : notification.type === "warning"
-                      ? "#ff9800"
+                      ? theme.vars.palette.warning.main
                       : notification.type === "success"
-                      ? "#4caf50"
+                      ? theme.vars.palette.success.main
                       : notification.type === "info"
-                      ? "#2196f3"
+                      ? theme.vars.palette.info.main
                       : theme.vars.palette.grey[600]
                   }`,
                   transition: "all 0.2s ease",
@@ -184,10 +182,10 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.timestamp.toLocaleString()}
                 </Typography>
-                <CopyToClipboardButton
-                  copyValue={notification.content}
+                <CopyButton
+                  value={notification.content}
                   className="copy-button"
-                  title="Copy to clipboard"
+                  tooltip="Copy to clipboard"
                 />
               </Box>
             ))

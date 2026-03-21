@@ -22,14 +22,12 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
   filteredCount
 }) => {
-  const {
-    modelSearchTerm,
-    setModelSearchTerm,
-    maxModelSizeGB,
-    setMaxModelSizeGB,
-    filterStatus,
-    setFilterStatus
-  } = useModelManagerStore();
+  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
+  const setModelSearchTerm = useModelManagerStore((state) => state.setModelSearchTerm);
+  const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
+  const setMaxModelSizeGB = useModelManagerStore((state) => state.setMaxModelSizeGB);
+  const filterStatus = useModelManagerStore((state) => state.filterStatus);
+  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
   const theme = useTheme();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {

@@ -8,7 +8,7 @@ title: "Workflow API Guide"
 NodeTool exposes workflow endpoints in two places:
 
 - The **Editor API** (`nodetool serve`) uses `/api/workflows` for CRUD and query operations backing the local app.  
-- The **Worker API** (`nodetool worker`) uses `/workflows` and `/workflows/{id}/run` for deployed workflow execution.
+- The **Server API** (`nodetool serve --mode private`) uses `/workflows` and `/workflows/{id}/run` for deployed workflow execution.
 
 This page collects the basics from the project README. See [API Reference](api-reference.md#unified-endpoint-matrix) for
 the canonical endpoint matrix and auth requirements. When `AUTH_PROVIDER` is `static` or `supabase`, include
@@ -17,7 +17,7 @@ the canonical endpoint matrix and auth requirements. When `AUTH_PROVIDER` is `st
 ## Loading Workflows
 
 ```javascript
-const response = await fetch("http://localhost:8000/api/workflows/");
+const response = await fetch("http://localhost:7777/api/workflows/");
 const workflows = await response.json();
 ```
 
@@ -26,7 +26,7 @@ const workflows = await response.json();
 ### HTTP API
 
 ```bash
-curl -X POST "http://localhost:8000/api/workflows/<workflow_id>/run" \
+curl -X POST "http://localhost:7777/api/workflows/<workflow_id>/run" \
 -H "Authorization: Bearer YOUR_TOKEN" \
 -H "Content-Type: application/json" \
 -d '{
@@ -38,7 +38,7 @@ curl -X POST "http://localhost:8000/api/workflows/<workflow_id>/run" \
 
 ```javascript
 const response = await fetch(
-  "http://localhost:8000/api/workflows/<workflow_id>/run",
+  "http://localhost:7777/api/workflows/<workflow_id>/run",
   {
     method: "POST",
     headers: {
@@ -60,7 +60,7 @@ const outputs = await response.json();
 
 The streaming API provides real-time job updates. See the WebSocket runner in
 [`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete example used by the
-bundled runner UI (`../workflow_runner/index.html`). On deployed workers, use `/workflows/{id}/run/stream` for SSE
+bundled runner UI (`../workflow_runner/index.html`). On deployed servers, use `/workflows/{id}/run/stream` for SSE
 streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for long-running jobs.
 
 Updates include:
@@ -71,7 +71,7 @@ Updates include:
 
 ```javascript
 const response = await fetch(
-  "http://localhost:8000/api/workflows/<workflow_id>/run?stream=true",
+  "http://localhost:7777/api/workflows/<workflow_id>/run?stream=true",
   {
     method: "POST",
     headers: {
@@ -125,47 +125,8 @@ while (true) {
 
 ## WebSocket API
 
-The WebSocket API uses a binary protocol for efficiency and allows cancelling jobs. See
-[`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a full client implementation.
-
-```javascript
-const socket = new WebSocket("ws://localhost:8000/predict");
-
-const request = {
-  type: "run_job_request",
-  workflow_id: "YOUR_WORKFLOW_ID",
-  params: {
-    /* workflow parameters */
-  },
-};
-
-// Run a workflow
-socket.send(
-  msgpack.encode({
-    command: "run_job",
-    data: request,
-  })
-);
-
-// Handle messages from the server
-socket.onmessage = async (event) => {
-  const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
-  if (data.type === "job_update" && data.status === "completed") {
-    console.log("Workflow completed:", data.result);
-  } else if (data.type === "node_update") {
-    console.log("Node update:", data.node_name, data.status, data.error);
-  } else if (data.type === "node_progress") {
-    console.log("Progress:", (data.progress / data.total) * 100);
-  }
-  // Handle other message types as needed
-};
-
-// Cancel a running job
-socket.send(msgpack.encode({ command: "cancel_job" }));
-
-// Get the status of the job
-socket.send(msgpack.encode({ command: "get_status" }));
-```
+For real-time streaming and job control over WebSocket, see the dedicated
+[WebSocket API](websocket-api.md) page.
 
 ## API Demo
 

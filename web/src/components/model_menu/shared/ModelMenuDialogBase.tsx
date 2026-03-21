@@ -1,4 +1,3 @@
-
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -12,7 +11,13 @@ import {
   List,
   ListItemButton,
   Tooltip,
+  CircularProgress,
+  Typography,
+  Collapse,
+  IconButton
 } from "@mui/material";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
@@ -38,7 +43,11 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   modelData: {
     models: TModel[] | undefined;
     isLoading: boolean;
+    isFetching?: boolean;
     error: unknown;
+    providerErrors?: Array<{ provider: string; error: unknown }>;
+    loadingProgress?: { total: number; loaded: number; loading: number };
+    refetch?: () => Promise<unknown> | unknown;
   };
   onModelChange?: (model: TModel) => void;
   title?: string;
@@ -46,7 +55,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
 }
 
-export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
+function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
   anchorEl,
@@ -56,7 +65,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   searchPlaceholder = "Search models...",
   storeHook
 }: ModelMenuBaseProps<TModel>) {
-  const { models, isLoading, error: fetchedError } = modelData;
+  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
@@ -74,12 +83,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const isIconOnly = true;
 
-  const {
-    providers,
-    filteredModels,
-    favoriteModels,
-    recentModels,
-  } = useModelMenuData<TModel>(models || [], storeHook);
+  const { providers, filteredModels, favoriteModels, recentModels } =
+    useModelMenuData<TModel>(models || [], storeHook);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
@@ -87,12 +92,14 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   // Determine the base list of models to display
   const baseModels = useMemo(() => {
-    if (customView === "favorites") { return favoriteModels; }
-    if (customView === "recent") { return recentModels; }
+    if (customView === "favorites") {
+      return favoriteModels;
+    }
+    if (customView === "recent") {
+      return recentModels;
+    }
     return filteredModels; // Respects provider selection
   }, [customView, favoriteModels, recentModels, filteredModels]);
-
-
 
   const filteredModelsAdvanced = useMemo(() => {
     const result = applyAdvancedModelFilters<TModel>(baseModels, {
@@ -109,6 +116,13 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     },
     [onModelChange]
   );
+
+  const handleRefresh = useCallback(async () => {
+    if (!refetch || isFetching) {
+      return;
+    }
+    await refetch();
+  }, [refetch, isFetching]);
 
   // Reset custom view when provider changes
   React.useEffect(() => {
@@ -169,8 +183,8 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         paper: {
           elevation: 24,
           style: {
-            width: "420px",
-            height: "420px",
+            width: "520px",
+            height: "500px",
             maxHeight: "90vh",
             maxWidth: "100vw", // Allow shrinkage
             borderRadius: theme.vars.rounded.dialog,
@@ -207,11 +221,73 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               width="100%"
             />
           </Box>
+          <Tooltip title="Refresh models">
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleRefresh}
+                disabled={!refetch || !!isFetching}
+                aria-label="refresh models"
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
           <ModelFiltersBar />
         </Box>
-
-
       </Box>
+
+      {/* Status Banner - shows loading progress and errors */}
+      <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
+        <Box
+          sx={{
+            px: 2,
+            py: 0.75,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            bgcolor: providerErrors && providerErrors.length > 0
+              ? theme.vars.palette.warning.main + "15"
+              : theme.vars.palette.action.hover,
+            fontSize: "0.8rem"
+          }}
+        >
+          {(isLoading || isFetching) && (
+            <>
+              <CircularProgress size={14} />
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {loadingProgress
+                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`
+                  : "Loading models..."}
+              </Typography>
+            </>
+          )}
+          {providerErrors && providerErrors.length > 0 && !isLoading && (
+            <Tooltip
+              title={
+                <Box sx={{ maxWidth: 300 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    Failed to load models from:
+                  </Typography>
+                  {providerErrors.map((pe) => (
+                    <Typography key={pe.provider} variant="caption" component="div" sx={{ mt: 0.5 }}>
+                      • {pe.provider}: {pe.error instanceof Error ? pe.error.message : "Unknown error"}
+                    </Typography>
+                  ))}
+                </Box>
+              }
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "help" }}>
+                <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                <Typography variant="caption" sx={{ color: "warning.main" }}>
+                  {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
+        </Box>
+      </Collapse>
 
       {/* Main Content Grid */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -224,71 +300,178 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             display: "flex",
             flexDirection: "column",
             bgcolor: theme.vars.palette.background.default,
-            alignItems: isIconOnly ? 'center' : 'stretch',
+            alignItems: isIconOnly ? "center" : "stretch"
           }}
         >
-          <List dense sx={{ py: 1, width: '100%', px: isIconOnly ? 0.5 : 0 }}>
+          <List
+            dense
+            sx={{
+              py: 1,
+              width: "100%",
+              px: isIconOnly ? 0.5 : 0,
+              // Keep top icon-only actions aligned with provider icons when provider list shows a vertical scrollbar.
+              pr: isIconOnly ? 1.5 : 0
+            }}
+          >
             <ListItemButton
               disableRipple
-              selected={customView === 'favorites'}
+              selected={customView === "favorites"}
               onClick={() => {
-                setCustomView('favorites');
+                setCustomView("favorites");
                 setSelectedProvider(null);
               }}
               sx={{
-                py: isIconOnly ? 1 : 0.5,
+                py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
-                mx: isIconOnly ? 0 : 1,
+                mx: 0,
                 mb: 0.5,
-                justifyContent: isIconOnly ? 'center' : 'flex-start',
-                minHeight: isIconOnly ? 40 : 'auto',
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
                 px: isIconOnly ? 0 : 2
               }}
             >
               {isIconOnly ? (
                 <Tooltip title="Favorites" placement="right">
-                  <StarIcon fontSize="small" sx={{ fontSize: "1.2rem", color: customView === 'favorites' ? "primary.main" : "text.secondary" }} />
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor:
+                        customView === "favorites"
+                          ? "primary.main"
+                          : "action.selected",
+                      border: `1px solid ${customView === "favorites" ? "transparent" : theme.vars.palette.divider}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <StarIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.25rem",
+                        color:
+                          customView === "favorites"
+                            ? "primary.contrastText"
+                            : "text.primary"
+                      }}
+                    />
+                  </Box>
                 </Tooltip>
               ) : (
                 <>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <StarIcon fontSize="small" sx={{ fontSize: "1.1rem", color: customView === 'favorites' ? "primary.main" : "text.secondary" }} />
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 28,
+                        height: 28,
+                        borderRadius: "4px",
+                        bgcolor: "rgba(0,0,0,0.04)"
+                      }}
+                    >
+                      <StarIcon
+                        fontSize="small"
+                        sx={{
+                          fontSize: "1.2rem",
+                          color:
+                            customView === "favorites"
+                              ? "primary.main"
+                              : "text.secondary"
+                        }}
+                      />
+                    </Box>
                   </ListItemIcon>
                   <ListItemText
                     primary="Favorites"
-                    primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: customView === 'favorites' ? 600 : 400 }}
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "favorites" ? 600 : 400
+                    }}
                   />
                 </>
               )}
             </ListItemButton>
             <ListItemButton
               disableRipple
-              selected={customView === 'recent'}
+              selected={customView === "recent"}
               onClick={() => {
-                setCustomView('recent');
+                setCustomView("recent");
                 setSelectedProvider(null);
               }}
               sx={{
-                py: isIconOnly ? 1 : 0.5,
+                py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
-                mx: isIconOnly ? 0 : 1,
-                justifyContent: isIconOnly ? 'center' : 'flex-start',
-                minHeight: isIconOnly ? 40 : 'auto',
+                mx: 0,
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
                 px: isIconOnly ? 0 : 2
               }}
             >
               {isIconOnly ? (
                 <Tooltip title="Recent" placement="right">
-                  <HistoryIcon fontSize="small" sx={{ fontSize: "1.2rem", color: customView === 'recent' ? "primary.main" : "text.secondary" }} />
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor:
+                        customView === "recent"
+                          ? "primary.main"
+                          : "action.selected",
+                      border: `1px solid ${customView === "recent" ? "transparent" : theme.vars.palette.divider}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <HistoryIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.25rem",
+                        color:
+                          customView === "recent"
+                            ? "primary.contrastText"
+                            : "text.primary"
+                      }}
+                    />
+                  </Box>
                 </Tooltip>
               ) : (
                 <>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <HistoryIcon fontSize="small" sx={{ fontSize: "1.1rem", color: customView === 'recent' ? "primary.main" : "text.secondary" }} />
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 28,
+                        height: 28,
+                        borderRadius: "4px",
+                        bgcolor: "rgba(0,0,0,0.04)"
+                      }}
+                    >
+                      <HistoryIcon
+                        fontSize="small"
+                        sx={{
+                          fontSize: "1.2rem",
+                          color:
+                            customView === "recent"
+                              ? "primary.main"
+                              : "text.secondary"
+                        }}
+                      />
+                    </Box>
                   </ListItemIcon>
                   <ListItemText
                     primary="Recent"
-                    primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: customView === 'recent' ? 600 : 400 }}
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "recent" ? 600 : 400
+                    }}
                   />
                 </>
               )}
@@ -298,15 +481,27 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
 
           {!isIconOnly && (
-            <Box sx={{ px: 2, pb: 0.5, fontSize: "0.75rem", fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <Box
+              sx={{
+                px: 2,
+                pb: 0.5,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: 0.5
+              }}
+            >
               Providers
             </Box>
           )}
           <Box
-            sx={{ flex: 1, overflow: "hidden", width: '100%' }}
+            sx={{ flex: 1, overflow: "hidden", width: "100%" }}
             onClickCapture={() => {
               // If user clicks anywhere in provider list, we assume they want to stick to filtered view
-              if (customView) { setCustomView(null); }
+              if (customView) {
+                setCustomView(null);
+              }
             }}
           >
             <ProviderList
@@ -344,3 +539,5 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     </Popover>
   );
 }
+
+export default ModelMenuDialogBase;

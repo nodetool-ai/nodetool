@@ -6,7 +6,7 @@ import { Task } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 
 interface TaskPlanViewProps {
-  data: Task[] | { type: "task_plan"; title: string; tasks: Task[] };
+  data: Task[] | { type?: "task_plan"; title?: string; tasks?: Task[] };
 }
 
 const styles = () =>
@@ -24,7 +24,7 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
     if (Array.isArray(data)) {
       return { tasks: data, title: undefined };
     } else {
-      return { tasks: data.tasks, title: data.title };
+      return { tasks: data.tasks ?? [], title: data.title };
     }
   }, [data]);
 
@@ -35,8 +35,8 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
           {title}
         </Typography>
       )}
-      {tasks.map((task, index) => (
-        <TaskView key={index} task={task} />
+      {tasks.map((task) => (
+        <TaskView key={task.id} task={task} />
       ))}
     </div>
   );

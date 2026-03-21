@@ -1,6 +1,6 @@
 declare module 'react-native-syntax-highlighter' {
   import { Component, ComponentType, ReactNode } from 'react';
-  import { ViewStyle, TextStyle, ViewProps, TextProps } from 'react-native';
+  import { ViewStyle, TextStyle, ViewProps } from 'react-native';
 
   interface SyntaxHighlighterProps {
     language?: string;

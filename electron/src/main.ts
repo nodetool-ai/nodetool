@@ -46,9 +46,15 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
-import { checkForPackageUpdates, installExpectedPackages, checkExpectedPackageVersions } from "./packageManager";
+import {
+  checkForPackageUpdates,
+  installExpectedPackages,
+  checkExpectedPackageVersions,
+} from "./packageManager";
+import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
-import { readSettings, updateSetting } from "./settings";
+import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 
 /**
  * Global application state flags and objects
@@ -110,7 +116,7 @@ async function notifyPackageUpdates(): Promise<void> {
   } catch (error: any) {
     logMessage(
       `Failed to notify package updates: ${error.message ?? String(error)}`,
-      "warn"
+      "warn",
     );
   }
 }
@@ -118,7 +124,7 @@ async function notifyPackageUpdates(): Promise<void> {
 /**
  * Check and install expected package versions on startup
  */
-async function checkAndInstallExpectedPackages(): Promise<void> {
+async function checkAndInstallExpectedPackages(): Promise<boolean> {
   try {
     logMessage("=== Starting Expected Package Version Check ===");
 
@@ -126,42 +132,39 @@ async function checkAndInstallExpectedPackages(): Promise<void> {
 
     if (packagesNeedingUpdate.length === 0) {
       logMessage("All expected packages are at correct versions");
-      return;
+      return false;
     }
 
     logMessage(
-      `Found ${packagesNeedingUpdate.length} package(s) needing update: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}`
+      `Found ${packagesNeedingUpdate.length} package(s) needing update: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}`,
     );
 
-    emitBootMessage(
-      `Updating ${packagesNeedingUpdate.length} package(s)...`
-    );
+    emitBootMessage(`Updating ${packagesNeedingUpdate.length} package(s)...`);
 
     const result = await installExpectedPackages();
 
     if (result.success) {
       logMessage(
-        `Successfully updated ${result.packagesUpdated} of ${result.packagesChecked} expected packages`
+        `Successfully updated ${result.packagesUpdated} of ${result.packagesChecked} expected packages`,
       );
     } else {
       logMessage(
         `Failed to update ${result.failures.length} of ${result.packagesChecked} expected packages`,
-        "warn"
+        "warn",
       );
       for (const failure of result.failures) {
-        logMessage(
-          `  - ${failure.packageName}: ${failure.error}`,
-          "warn"
-        );
+        logMessage(`  - ${failure.packageName}: ${failure.error}`, "warn");
       }
     }
 
     logMessage("=== Expected Package Version Check Complete ===");
+    return result.success && result.packagesUpdated > 0;
   } catch (error: any) {
     logMessage(
       `Failed to check/install expected packages: ${error.message ?? String(error)}`,
-      "warn"
+      "warn",
     );
+    return false;
   }
 }
 
@@ -215,6 +218,56 @@ async function checkPythonEnvironment(): Promise<boolean> {
   }
 }
 
+function assertActivatedCondaEnvironmentForDevMode(): void {
+  if (process.env.CONDA_PREFIX && process.env.CONDA_PREFIX.trim().length > 0) {
+    return;
+  }
+
+  const message =
+    "Electron dev mode requires an activated conda environment. " +
+    "Please run `conda activate <env>` before starting `make electron-dev`.";
+  dialog.showErrorBox("Conda Environment Required", message);
+  throw new Error(message);
+}
+
+async function waitForWebDevServerReady(
+  baseUrl: string,
+  timeoutMs: number = 60000,
+): Promise<boolean> {
+  const startTime = Date.now();
+  const probeUrl = `${baseUrl}/`;
+  let lastStatus: number | null = null;
+  let attempts = 0;
+
+  while (Date.now() - startTime < timeoutMs) {
+    attempts += 1;
+    try {
+      const response = await fetch(probeUrl, { method: "GET" });
+      lastStatus = response.status;
+      if (response.ok) {
+        logMessage(
+          `Web dev server is ready at ${probeUrl} after ${attempts} attempt(s)`,
+        );
+        return true;
+      }
+      logMessage(
+        `Web dev server not ready yet (${response.status}), retrying...`,
+        "warn",
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logMessage(`Web dev server probe failed (${message}), retrying...`, "warn");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+
+  logMessage(
+    `Timed out waiting for web dev server at ${probeUrl}. Last status: ${lastStatus ?? "none"}`,
+    "warn",
+  );
+  return false;
+}
+
 /**
  * Initializes the application, verifies paths, and starts required servers
  * @throws {Error} When critical permissions are missing
@@ -224,11 +277,11 @@ async function initialize(): Promise<void> {
     logMessage("=== Starting Application Initialization ===");
 
     // Skip heavy initialization in test mode
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === "test") {
       logMessage("Running in test mode, skipping Python/server initialization");
       assert(mainWindow, "MainWindow is not initialized");
       // Load a simple page for testing
-      mainWindow.loadURL('data:text/html,<html><body>Test Mode</body></html>');
+      mainWindow.loadURL("data:text/html,<html><body>Test Mode</body></html>");
       logMessage("=== Application Initialization Complete (Test Mode) ===");
       return;
     }
@@ -250,39 +303,68 @@ async function initialize(): Promise<void> {
       return;
     }
 
-    logMessage("Setting up auto updater...");
-    setupAutoUpdater();
-
-    // Check if conda environment is installed
-    logMessage("About to check Python environment...");
-    const hasEnvironment = await checkPythonEnvironment();
-    logMessage(
-      `Python environment check complete, hasEnvironment: ${hasEnvironment}`
-    );
+    const isDevMode = isElectronDevMode();
+    if (!isDevMode) {
+      logMessage("Setting up auto updater...");
+      setupAutoUpdater();
+    } else {
+      logMessage("Running in Electron dev mode");
+      assertActivatedCondaEnvironmentForDevMode();
+      logMessage(`Using active conda environment: ${process.env.CONDA_PREFIX}`);
+    }
 
     assert(mainWindow, "MainWindow is not initialized");
 
-    if (hasEnvironment) {
-      logMessage("Environment exists, starting backend server");
+    if (isDevMode) {
+      logMessage("Skipping environment installation and package update checks");
+      logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
-      logMessage("Loading web app...");
+      await waitForWebDevServerReady(getWebDevServerUrl());
       const timestamp = new Date().getTime();
-      mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
+      mainWindow.loadURL(`${getWebDevServerUrl()}/?nocache=${timestamp}`);
     } else {
-      // Environment was just installed, proceed normally
-      logMessage("Environment was just installed, initializing backend server");
-      await initializeBackendServer();
-      logMessage("initializeBackendServer() completed");
+      // Check if conda environment is installed
+      logMessage("About to check Python environment...");
+      const hasEnvironment = await checkPythonEnvironment();
+      logMessage(
+        `Python environment check complete, hasEnvironment: ${hasEnvironment}`,
+      );
 
-      logMessage("Setting up workflow shortcuts...");
-      await setupWorkflowShortcuts();
+      if (hasEnvironment) {
+        logMessage(
+          "Environment exists, determining if package checks are needed",
+        );
+
+        // Check and install expected package versions
+        // This is now done synchronously before starting the backend to ensure version consistency
+        const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
+
+        if (pipUpdatesPerformed) {
+          logMessage("Pip packages updated, checking for conda package updates");
+          await checkAndUpdateCondaPackages();
+        } else {
+          logMessage("No pip updates performed, skipping conda package check");
+        }
+
+        logMessage("Starting backend server");
+        await initializeBackendServer();
+        logMessage("initializeBackendServer() completed");
+        logMessage("Loading web app...");
+        const timestamp = new Date().getTime();
+        mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
+      } else {
+        // Environment was just installed, proceed normally
+        logMessage("Environment was just installed, initializing backend server");
+        await initializeBackendServer();
+        logMessage("initializeBackendServer() completed");
+
+        logMessage("Setting up workflow shortcuts...");
+        await setupWorkflowShortcuts();
+      }
     }
 
     void notifyPackageUpdates();
-
-    // Check and install expected package versions
-    void checkAndInstallExpectedPackages();
 
     // Request notification permissions
     if (process.platform === "darwin") {
@@ -299,12 +381,15 @@ async function initialize(): Promise<void> {
     if (serverState.status === "error") {
       logMessage(
         "Backend failed to start; staying on splash screen for recovery actions",
-        "warn"
+        "warn",
       );
       return;
     }
 
-    dialog.showErrorBox("Initialization Error", `Failed to initialize: ${message}`);
+    dialog.showErrorBox(
+      "Initialization Error",
+      `Failed to initialize: ${message}`,
+    );
     app.quit();
   }
 }
@@ -323,20 +408,19 @@ async function checkMediaPermissions(): Promise<void> {
 
       if (microphoneStatus !== "granted") {
         logMessage(
-          `Microphone not granted, current status: ${microphoneStatus}`
+          `Microphone not granted, current status: ${microphoneStatus}`,
         );
 
         if (process.platform === "darwin") {
           logMessage("Requesting microphone access on macOS");
-          const granted = await systemPreferences.askForMediaAccess(
-            "microphone"
-          );
+          const granted =
+            await systemPreferences.askForMediaAccess("microphone");
           logMessage(`Microphone permission request result: ${granted}`);
 
           if (!granted) {
             logMessage("Opening system preferences for microphone access");
             shell.openExternal(
-              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
             );
           }
         } else if (process.platform === "win32") {
@@ -349,12 +433,12 @@ async function checkMediaPermissions(): Promise<void> {
     } catch (error) {
       logMessage(
         `Error handling microphone permissions: ${(error as Error).message}`,
-        "error"
+        "error",
       );
     }
   } else {
     logMessage(
-      `Platform ${process.platform} does not require explicit microphone permissions`
+      `Platform ${process.platform} does not require explicit microphone permissions`,
     );
   }
 }
@@ -362,12 +446,18 @@ async function checkMediaPermissions(): Promise<void> {
 let isInitialized = false;
 
 app.on("ready", async () => {
-  await initializeIpcHandlers();
-  
-  // Skip media permissions check in test mode
-  if (process.env.NODE_ENV !== 'test') {
-    await checkMediaPermissions();
-  }
+  // Run settings warmup, IPC setup, and media permission check in parallel
+  const settingsPromise = readSettingsAsync().catch((error) => {
+    logMessage(`Failed to warm up settings cache: ${error}`, "warn");
+  });
+
+  const ipcPromise = initializeIpcHandlers();
+
+  const mediaPromise = process.env.NODE_ENV !== "test"
+    ? checkMediaPermissions()
+    : Promise.resolve();
+
+  await Promise.all([settingsPromise, ipcPromise, mediaPromise]);
 
   mainWindow = createWindow();
   mainWindow.on("ready-to-show", async () => {
@@ -375,13 +465,13 @@ app.on("ready", async () => {
     mainWindow?.focus();
     if (!isInitialized) {
       isInitialized = true;
-      
+
       // Skip menu/tray creation in test mode
-      if (process.env.NODE_ENV !== 'test') {
-        await buildMenu();
-        await createTray();
+      if (process.env.NODE_ENV !== "test") {
+        // Build menu and tray in parallel
+        await Promise.all([buildMenu(), createTray()]);
       }
-      
+
       await initialize();
     }
   });
@@ -414,7 +504,7 @@ app.on("before-quit", (event) => {
 app.on("window-all-closed", async () => {
   logMessage("All windows closed");
 
-  const settings = readSettings();
+  const settings = await readSettingsAsync();
   const closeAction = settings.windowCloseAction;
 
   // If user has already made a choice, use it
@@ -432,7 +522,8 @@ app.on("window-all-closed", async () => {
     type: "question",
     title: "Close NodeTool",
     message: "What would you like to do?",
-    detail: "NodeTool can continue running in the background to keep services available.",
+    detail:
+      "NodeTool can continue running in the background to keep services available.",
     buttons: ["Quit", "Keep Running in Background"],
     defaultId: 1,
     cancelId: 1,
@@ -478,13 +569,22 @@ process.on(
     if (shouldForceQuit(reason)) {
       forceQuit(`Unhandled Promise Rejection: ${message}`);
     }
-  }
+  },
 );
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();
+
+  // Clean up Claude Agent sessions
+  import("./agent")
+    .then(({ closeAllAgentSessions }) => {
+      closeAllAgentSessions();
+    })
+    .catch(() => {
+      // Best-effort cleanup
+    });
 });
 
 export { mainWindow, isAppQuitting };

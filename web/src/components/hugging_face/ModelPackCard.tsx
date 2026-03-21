@@ -3,7 +3,7 @@
  * Shows title, description, total size, and allows one-click download of all models.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -99,14 +99,18 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     return (completed / total) * 100;
   }, [isDownloading, pack.models.length, downloadedModels.size]);
 
-  const handleDownloadAll = () => {
+  const handleDownloadAll = useCallback(() => {
     const modelsToDownload = pack.models.filter(
       (m) => !downloadedModels.has(m.id)
     );
     if (modelsToDownload.length > 0) {
       onDownloadAll(modelsToDownload);
     }
-  };
+  }, [onDownloadAll, pack.models, downloadedModels]);
+
+  const handleToggleExpanded = useCallback(() => {
+    setExpanded((prev) => !prev);
+  }, []);
 
   return (
     <Card
@@ -222,7 +226,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         </Button>
 
         <IconButton
-          onClick={() => setExpanded(!expanded)}
+          onClick={handleToggleExpanded}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s"

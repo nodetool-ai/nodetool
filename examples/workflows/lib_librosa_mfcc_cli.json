@@ -1,0 +1,14 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "audio_in", "type": "test.Input", "name": "audio_path" },
+      { "id": "mfcc", "type": "lib.librosa.analysis.MFCC", "data": { "n_mfcc": 13, "n_fft": 2048, "hop_length": 512, "fmin": 0, "fmax": 8000 } },
+      { "id": "out", "type": "nodetool.control.Reroute", "name": "output" }
+    ],
+    "edges": [
+      { "source": "audio_in", "sourceHandle": "value", "target": "mfcc", "targetHandle": "audio" },
+      { "source": "mfcc", "sourceHandle": "output", "target": "out", "targetHandle": "input_value" }
+    ]
+  },
+  "params": {}
+}

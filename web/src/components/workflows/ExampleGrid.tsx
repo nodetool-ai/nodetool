@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 
 import { Typography, Box, CircularProgress } from "@mui/material";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
+import { useWorkflowSearch, searchWorkflowsWithFuse } from "../../utils/workflowSearch";
 import { findMatchingNodesInWorkflows } from "../../utils/findMatchingNodesInWorkflows";
 import { SearchResult as FrontendSearchResult } from "../../types/search";
 import { SEARCH_DEBOUNCE_MS } from "../../config/constants";
@@ -21,6 +21,7 @@ import WorkflowCard from "./WorkflowCard";
 import AppHeader from "../panels/AppHeader";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeGrid as Grid, GridChildComponentProps } from "react-window";
+import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -174,12 +175,15 @@ const styles = (theme: Theme) =>
     }
   });
 
-const TemplateGrid = () => {
+const TemplateGrid = memo(function TemplateGrid() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowManager((state) => state.loadTemplates);
   const searchTemplates = useWorkflowManager((state) => state.searchTemplates);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const closePanel = usePanelStore((state) => state.closePanel);
+
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,7 +191,6 @@ const TemplateGrid = () => {
     []
   );
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
-  const closePanel = usePanelStore((state) => state.closePanel);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(
     null
   );
@@ -196,6 +199,8 @@ const TemplateGrid = () => {
     closePanel();
   }, [closePanel]);
 
+  // Sync state from URL node param - runs on mount and URL changes
+  // Using location.search as dependency for reliable trigger on navigation
   useEffect(() => {
     const nodeParam = searchParams.get("node");
     if (nodeParam) {
@@ -204,7 +209,7 @@ const TemplateGrid = () => {
       setNodesOnlySearch(true);
       setSelectedTag(null);
     }
-  }, [searchParams]);
+  }, [location.search, searchParams]);
 
   const {
     data,
@@ -245,11 +250,11 @@ const TemplateGrid = () => {
   }, [inputValue]);
 
   const groupedWorkflows = useMemo(() => {
-    if (!data) {return {};}
+    if (!data) { return {}; }
     return data.workflows.reduce(
       (acc: Record<string, Workflow[]>, workflow: Workflow) => {
         workflow.tags?.forEach((tag: string) => {
-          if (!acc[tag]) {acc[tag] = [];}
+          if (!acc[tag]) { acc[tag] = []; }
           acc[tag].push(workflow);
         });
         return acc;
@@ -269,6 +274,14 @@ const TemplateGrid = () => {
     return result;
   }, [groupedWorkflows]);
 
+  // Memoize Fuse instance for workflow search - only recreates when workflows change
+  // This is a significant performance optimization: Fuse indexing is O(n) and
+  // should only happen when the workflows array changes, not on every keystroke
+  const baseWorkflowsForSearch = useMemo(() => {
+    return data?.workflows || [];
+  }, [data]);
+  const fuse = useWorkflowSearch(baseWorkflowsForSearch);
+
   useEffect(() => {
     if (
       nodesOnlySearch &&
@@ -284,7 +297,7 @@ const TemplateGrid = () => {
           detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
         );
       } catch (error) {
-        console.error("Search failed:", error);
+        log.error("Search failed:", error);
         setSearchResults([]); // Clear results on error
       }
     } else if (
@@ -296,7 +309,9 @@ const TemplateGrid = () => {
         !selectedTag || !groupedWorkflows[selectedTag]
           ? data.workflows
           : groupedWorkflows[selectedTag] || [];
-      const generalResults = searchWorkflowsFrontend(
+      // Use the memoized Fuse instance for efficient search
+      const generalResults = searchWorkflowsWithFuse(
+        fuse,
         baseWorkflowsForGeneralSearch,
         searchQuery
       );
@@ -310,7 +325,8 @@ const TemplateGrid = () => {
     searchQuery,
     nodesOnlySearch,
     selectedTag,
-    groupedWorkflows
+    groupedWorkflows,
+    fuse
   ]);
 
   // Filtered workflows for display
@@ -360,14 +376,14 @@ const TemplateGrid = () => {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      if (loadingWorkflowId) {return;} // Prevent multiple clicks
+      if (loadingWorkflowId) { return; } // Prevent multiple clicks
 
       setLoadingWorkflowId(workflow.id);
       try {
         const newWorkflow = await copyTemplateWorkflow(workflow);
         navigate("/editor/" + newWorkflow.id);
       } catch (error) {
-        console.error("Error copying workflow:", error);
+        log.error("Error copying workflow:", error);
         setLoadingWorkflowId(null);
       }
     },
@@ -381,16 +397,16 @@ const TemplateGrid = () => {
     };
   }, []);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setInputValue("");
     // Update URL to remove node parameter
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.delete("node");
     navigate({ search: newSearchParams.toString() });
-  };
+  }, [searchParams, navigate]);
 
-  const handleInputChange = (newInputValue: string) => {
+  const handleInputChange = useCallback((newInputValue: string) => {
     setInputValue(newInputValue);
     if (newInputValue.trim()) {
       setSelectedTag(null);
@@ -400,17 +416,17 @@ const TemplateGrid = () => {
     } else {
       handleClearSearch();
     }
-  };
+  }, [handleClearSearch]);
   const theme = useTheme();
 
   // Grid configuration - adjusted for new card design with image-first layout
   const CARD_WIDTH = 260;
-  const CARD_HEIGHT = 240;
+  const CARD_HEIGHT = 260;
   const GAP = 20;
 
   // Calculate grid dimensions based on container width
   const calculateColumns = useCallback((width: number) => {
-    if (width <= 0) {return 1;}
+    if (width <= 0) { return 1; }
     return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
   }, []);
 
@@ -444,7 +460,7 @@ const TemplateGrid = () => {
       const index = rowIndex * data.columns + columnIndex;
       const workflow = data.filteredWorkflows[index];
 
-      if (!workflow) {return null;}
+      if (!workflow) { return null; }
 
       const searchResult = data.searchResults.find(
         (r: FrontendSearchResult) => r.workflow.id === workflow.id
@@ -579,15 +595,9 @@ const TemplateGrid = () => {
               >
                 <li>
                   <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(
-                        "https://discord.gg/WmQTWZRcYE",
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
+                    href="https://discord.gg/WmQTWZRcYE"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{ color: "var(--palette-info-light)" }}
                   >
                     Join our Discord
@@ -595,15 +605,9 @@ const TemplateGrid = () => {
                 </li>
                 <li>
                   <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(
-                        "https://forum.nodetool.ai",
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
+                    href="https://forum.nodetool.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{ color: "var(--palette-info-light)" }}
                   >
                     Join the Nodetool Forum
@@ -616,6 +620,8 @@ const TemplateGrid = () => {
       </Box>
     </Box>
   );
-};
+});
+
+TemplateGrid.displayName = "TemplateGrid";
 
 export default TemplateGrid;

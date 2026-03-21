@@ -1,3 +1,5 @@
+/** AssetStore manages file assets and folder organization. */
+
 import { create } from "zustand";
 import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
@@ -7,6 +9,11 @@ import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
+import {
+  prepareUploadFile,
+  UploadValidationError,
+  UploadSource
+} from "../utils/imageUploadValidation";
 import type { components } from "../api";
 
 type AssetCreatePayload = {
@@ -26,6 +33,9 @@ const normalizeAssetError = (error: unknown, message: string) => {
   if (typeof AppError === "function" && error instanceof AppError) {
     throw error;
   }
+  if (error instanceof UploadValidationError) {
+    throw error;
+  }
   const normalized = createErrorMessage(error, message);
   if (normalized instanceof Error) {
     throw normalized;
@@ -38,7 +48,9 @@ const emitUploadProgress = (
   loaded: number,
   total: number
 ) => {
-  if (!onUploadProgress) {return;}
+  if (!onUploadProgress) {
+    return;
+  }
   onUploadProgress({
     loaded,
     total,
@@ -81,10 +93,10 @@ const uploadAsset = async (
       error instanceof DOMException && error.name === "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")
         : error instanceof TypeError
-        ? createErrorMessage(error, "Network error while creating asset")
-        : statusCode === 408
-        ? createErrorMessage(error, "Asset upload timed out")
-        : createErrorMessage(error, errorMessage);
+          ? createErrorMessage(error, "Network error while creating asset")
+          : statusCode === 408
+            ? createErrorMessage(error, "Asset upload timed out")
+            : createErrorMessage(error, errorMessage);
 
     throw normalizedError;
   }
@@ -113,6 +125,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, never>;
   data?: string;
+  data_encoding?: "base64";
   duration?: number;
 };
 
@@ -128,7 +141,8 @@ export interface AssetStore {
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+    source?: UploadSource
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
@@ -325,10 +339,15 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const headers = await authHeader();
       const params = new URLSearchParams();
       params.append("query", query.query);
-      if (query.content_type) {params.append("content_type", query.content_type);}
-      if (query.page_size)
-        {params.append("page_size", query.page_size.toString());}
-      if (query.cursor) {params.append("cursor", query.cursor);}
+      if (query.content_type) {
+        params.append("content_type", query.content_type);
+      }
+      if (query.page_size) {
+        params.append("page_size", query.page_size.toString());
+      }
+      if (query.cursor) {
+        params.append("cursor", query.cursor);
+      }
 
       const response = await axios.get(
         `${BASE_URL}/api/assets/search?${params.toString()}`,
@@ -384,28 +403,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the assets in the folder.
    */
   getAllAssetsInFolder: async (folderId: string): Promise<Asset[]> => {
-    const assets: Asset[] = [];
-    const queue: string[] = [folderId];
+    const tree = await get().getAssetsRecursive(folderId);
 
-    while (queue.length > 0) {
-      const currentFolderId = queue.shift()!;
-      const { data, error } = await client.GET("/api/assets/", {
-        params: { query: { parent_id: currentFolderId } }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to load assets in folder");
-      }
-      const assetList = data as { assets: Asset[] };
-      for (const asset of assetList.assets) {
-        assets.push(asset);
-        if (asset.content_type === "folder") {
-          queue.push(asset.id);
+    const flatten = (nodes: AssetTreeNode[]): Asset[] => {
+      let result: Asset[] = [];
+      for (const node of nodes) {
+        // Create a copy without children to return as a flat asset
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { children, ...asset } = node;
+        result.push(asset);
+        if (node.children && node.children.length > 0) {
+          result = result.concat(flatten(node.children));
         }
       }
-    }
+      return result;
+    };
 
-    return assets;
+    return flatten(tree);
   },
   /**
    * Delete an asset from the store and the server.
@@ -468,10 +482,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
       const electronApi =
-        (window as unknown as {
-          electron?: { saveFile?: ElectronSaveFile };
-          api?: { saveFile?: ElectronSaveFile };
-        }).electron ||
+        (
+          window as unknown as {
+            electron?: { saveFile?: ElectronSaveFile };
+            api?: { saveFile?: ElectronSaveFile };
+          }
+        ).electron ||
         (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
@@ -540,14 +556,20 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (req.id === req.parent_id) {
       throw new Error("Cannot move an asset into itself.");
     }
+    // Use provided values or fall back to previous values for required fields.
+    // This ensures we don't accidentally clear fields like parent_id when only
+    // updating the name.
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
       body: {
-        name: req.name || null,
-        parent_id: req.parent_id || null,
-        content_type: req.content_type || null,
-        metadata: req.metadata || null,
-        data: req.data || null
+        name: req.name !== undefined ? req.name : prev.name,
+        parent_id: req.parent_id !== undefined ? req.parent_id : prev.parent_id,
+        content_type:
+          req.content_type !== undefined ? req.content_type : prev.content_type,
+        metadata: req.metadata !== undefined ? req.metadata : null,
+        data: req.data !== undefined ? req.data : null,
+        data_encoding:
+          req.data_encoding !== undefined ? req.data_encoding : null
       }
     });
     if (error) {
@@ -555,7 +577,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
-    if (req.parent_id !== prev.parent_id) {
+    if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
     }
     return data;
@@ -571,17 +593,27 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+    source: UploadSource = "file"
   ) => {
     try {
+      const preparedFile = await prepareUploadFile(file, source);
+      log.debug("[AssetStore] upload-construction", {
+        source,
+        declaredMime: preparedFile.declaredMime || null,
+        sniffedMime: preparedFile.sniffedMime,
+        size: preparedFile.size,
+        finalMime: preparedFile.finalMime
+      });
+
       const asset = await uploadAsset(
         {
           workflow_id: workflow_id,
           parent_id: parent_id,
-          content_type: file.type,
-          name: file.name
+          content_type: preparedFile.finalMime,
+          name: preparedFile.file.name
         },
-        file,
+        preparedFile.file,
         onUploadProgress
       );
       get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);

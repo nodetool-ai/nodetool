@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -16,21 +16,21 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     new Date(value)
   );
 
-  const handleDateChange = (date: Date | null) => {
+  const handleDateChange = useCallback((date: Date | null) => {
     setSelectedDate(date);
-  };
+  }, []);
 
-  const handleDateClose = () => {
+  const handleDateClose = useCallback(() => {
     if (selectedDate) {
       onChange(selectedDate.toISOString());
     }
-  };
+  }, [selectedDate, onChange]);
 
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyPress = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter") {
       handleDateClose();
     }
-  };
+  }, [handleDateClose]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -39,6 +39,11 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
           value={selectedDate}
           onChange={handleDateChange}
           onClose={handleDateClose}
+          slotProps={{
+            popper: {
+              style: { zIndex: 99999 }
+            }
+          }}
         />
       </div>
     </LocalizationProvider>

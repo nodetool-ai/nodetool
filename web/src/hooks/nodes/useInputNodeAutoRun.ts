@@ -12,7 +12,7 @@
  * instead of triggering on every intermediate value.
  */
 import { useCallback, useRef, useEffect } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { subgraph } from "../../core/graph";
 import useResultsStore from "../../stores/ResultsStore";
@@ -106,6 +106,7 @@ const collectCachedValuesForSubgraph = (
       getResult,
       findNode
     );
+
     if (!hasValue) {
       continue;
     }
@@ -173,13 +174,8 @@ export const useNodeAutoRun = (
   const { nodeId, nodeType, propertyName } = options;
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const nodesState = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow,
-    findNode: state.findNode
-  }));
-
+  // Get store reference without subscribing to state changes
+  const nodeStore = useNodeStoreRef();
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
@@ -188,12 +184,6 @@ export const useNodeAutoRun = (
   const instantUpdate = useSettingsStore(
     (state) => state.settings.instantUpdate
   );
-
-  // Store the latest nodesState in a ref so debounce can access current state
-  const nodesStateRef = useRef(nodesState);
-  useEffect(() => {
-    nodesStateRef.current = nodesState;
-  }, [nodesState]);
 
   // Store the latest instantUpdate in a ref for debounced callback
   const instantUpdateRef = useRef(instantUpdate);
@@ -212,7 +202,8 @@ export const useNodeAutoRun = (
       return;
     }
 
-    const { nodes, edges, workflow, findNode } = nodesStateRef.current;
+    // Get current state without subscribing - avoids re-renders during drag
+    const { nodes, edges, workflow, findNode } = nodeStore.getState();
     const node = findNode(nodeId);
     if (!node || isWorkflowRunning) {
       return;
@@ -227,6 +218,7 @@ export const useNodeAutoRun = (
     const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);
 
     // Collect cached values for all external dependencies
+    // getResult is stable from useResultsStore, no need to include in deps
     const propertyOverrides = collectCachedValuesForSubgraph(
       externalInputEdges,
       workflow.id,
@@ -257,11 +249,13 @@ export const useNodeAutoRun = (
     });
 
     run({}, workflow, nodesWithCachedValues, downstream.edges);
+    // getResult is stable from useResultsStore, no need to include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     nodeType,
     nodeId,
+    nodeStore,
     isWorkflowRunning,
-    getResult,
     run,
     propertyName
   ]);

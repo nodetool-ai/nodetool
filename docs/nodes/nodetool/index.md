@@ -5,7 +5,7 @@ title: "NodeTool Core Nodes"
 
 # NodeTool Core Nodes
 
-NodeTool provides a comprehensive set of core nodes for building AI workflows.
+NodeTool provides a set of core nodes for building AI workflows.
 
 ## Categories
 

@@ -30,6 +30,7 @@ export const buildHfCacheRequest = (
   return {
     key: getHfCacheKey(model),
     repo_id: model.repo_id || model.id,
+    model_type: model.type ?? null,
     path: model.path ?? null,
     allow_patterns: model.path ? null : model.allow_patterns ?? null,
     ignore_patterns: model.path ? null : model.ignore_patterns ?? null

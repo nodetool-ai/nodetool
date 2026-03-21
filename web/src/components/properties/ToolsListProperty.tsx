@@ -12,6 +12,14 @@ import {
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+
+/**
+ * Interface for a tool object in the tools list property
+ */
+interface Tool {
+  type: string;
+  name: string;
+}
 import {
   MailOutline,
   Search,
@@ -24,10 +32,16 @@ import {
   ShoppingCart,
   Analytics,
   Work,
-  Add
+  Add,
+  Description,
+  EditNote,
+  Folder
 } from "@mui/icons-material";
 
 const AVAILABLE_TOOLS = [
+  "read_file",
+  "write_file",
+  "list_directory",
   "search_email",
   "google_search",
   "google_news",
@@ -38,10 +52,13 @@ const AVAILABLE_TOOLS = [
   "google_finance",
   "google_jobs",
   "browser",
-  "chroma_hybrid_search",
+  "vector_hybrid_search",
 ];
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
+  read_file: "Read file in workspace",
+  write_file: "Write file in workspace",
+  list_directory: "List files in workspace",
   search_email: "Search for emails",
   google_search: "Search Google",
   google_news: "Search Google News",
@@ -52,10 +69,13 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   google_finance: "Search Google Finance",
   google_jobs: "Search Google Jobs",
   browser: "Browse the web",
-  chroma_hybrid_search: "Search for documents in the Chroma database",
+  vector_hybrid_search: "Search for documents in the vector database",
 };
 
-const TOOL_ICONS: Record<string, JSX.Element> = {
+const TOOL_ICONS: Record<string, React.JSX.Element> = {
+  read_file: <Description fontSize="small" sx={{ mr: 0.5 }} />,
+  write_file: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
+  list_directory: <Folder fontSize="small" sx={{ mr: 0.5 }} />,
   google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
   google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
   google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
@@ -65,14 +85,14 @@ const TOOL_ICONS: Record<string, JSX.Element> = {
   google_finance: <Analytics fontSize="small" sx={{ mr: 0.5 }} />,
   google_jobs: <Work fontSize="small" sx={{ mr: 0.5 }} />,
   browser: <Language fontSize="small" sx={{ mr: 0.5 }} />,
-  chroma_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
+  vector_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
   search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />
 };
 
 const ToolsListProperty = (props: PropertyProps) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
   const toolNames: string[] = useMemo(
-    () => props.value?.map((tool: any) => tool.name) || [],
+    () => props.value?.map((tool: Tool) => tool.name) || [],
     [props.value]
   );
 
@@ -81,7 +101,6 @@ const ToolsListProperty = (props: PropertyProps) => {
   const openMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchor(event.currentTarget);
   }, []);
-  const closeMenu = useCallback(() => setMenuAnchor(null), []);
 
   const onChange = useCallback(
     (selectedToolNames: string[]) => {
@@ -100,6 +119,13 @@ const ToolsListProperty = (props: PropertyProps) => {
       onChange(newToolNames);
     },
     [toolNames, onChange]
+  );
+
+  const handleToolClick = useCallback(
+    (toolName: string) => () => {
+      handleToggleTool(toolName);
+    },
+    [handleToggleTool]
   );
 
   return (
@@ -126,7 +152,7 @@ const ToolsListProperty = (props: PropertyProps) => {
           >
             <IconButton
               size="small"
-              onClick={() => handleToggleTool(tool)}
+              onClick={handleToolClick(tool)}
               sx={{
                 padding: "1px",
                 marginLeft: "0 !important",
@@ -136,7 +162,7 @@ const ToolsListProperty = (props: PropertyProps) => {
                   color: "c_hl1"
                 },
                 "& svg": {
-                  fontSize: "12px"
+                  fontSize: "15px"
                 }
               }}
             >
@@ -158,7 +184,7 @@ const ToolsListProperty = (props: PropertyProps) => {
                 color: "palette-grey-100"
               },
               "& svg": {
-                fontSize: "12px"
+                fontSize: "15px"
               }
             }}
           >
@@ -171,12 +197,12 @@ const ToolsListProperty = (props: PropertyProps) => {
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
-        onClose={closeMenu}
+        onClose={() => setMenuAnchor(null)}
       >
         {AVAILABLE_TOOLS.map((tool) => {
           const selected = toolNames.includes(tool);
           return (
-            <MenuItem key={tool} onClick={() => handleToggleTool(tool)} dense>
+            <MenuItem key={tool} onClick={handleToolClick(tool)} dense>
               <ListItemIcon sx={{ minWidth: 24 }}>
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
               </ListItemIcon>

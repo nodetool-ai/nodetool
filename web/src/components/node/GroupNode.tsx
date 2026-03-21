@@ -16,7 +16,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
@@ -151,22 +151,48 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode, setBypass } = useNodes(
+  const store = useNodeStoreRef();
+
+  const { updateNodeData, updateNode, setBypass } = useNodes(
     (state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
-      workflow: state.workflow,
       setBypass: state.setBypass
     })
   );
-  const { nodes, edges } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges
-  }));
 
-  // const isSelected = useNodes((state) =>
-  //   state.getSelectedNodeIds().includes(props.id)
-  // );
+  // Optimization: Only subscribe to relevant booleans instead of full node/edge arrays
+  // Combined into a single loop to halve O(N) operations during drag frames
+  // Memoized to prevent returning a new object reference on every frame (which causes infinite re-renders)
+  const childrenStatusSelector = useMemo(() => {
+    let lastResult = { hasChildren: false, someChildrenBypassed: false };
+    return (state: ReturnType<typeof store.getState>) => {
+      let hasChildren = false;
+      let someChildrenBypassed = false;
+      for (let i = 0; i < state.nodes.length; i++) {
+        const node = state.nodes[i];
+        if (node.parentId === props.id) {
+          hasChildren = true;
+          if (node.data.bypassed) {
+            someChildrenBypassed = true;
+          }
+        }
+        if (hasChildren && someChildrenBypassed) {
+          break;
+        }
+      }
+
+      if (
+        lastResult.hasChildren !== hasChildren ||
+        lastResult.someChildrenBypassed !== someChildrenBypassed
+      ) {
+        lastResult = { hasChildren, someChildrenBypassed };
+      }
+      return lastResult;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.id]); // store is a stable ref that doesn't change
+  const { hasChildren, someChildrenBypassed } = useNodes(childrenStatusSelector);
 
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
@@ -174,7 +200,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state) => state.state === "running"
   );
   const run = useWebsocketRunner((state) => state.run);
+
   const runWorkflow = useCallback(() => {
+    // Access state imperatively to avoid re-renders
+    const state = store.getState();
+    const { nodes, edges, workflow } = state;
+
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
@@ -188,29 +219,21 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
 
     run({}, workflow, groupNodes, groupEdges);
-  }, [nodes, edges, run, workflow, props.id]);
-
-  // Get child nodes of this group
-  const childNodes = useMemo(() => {
-    return nodes.filter((node) => node.parentId === props.id);
-  }, [nodes, props.id]);
-
-  // Check if some child nodes are bypassed (at least 1)
-  const someChildrenBypassed = useMemo(() => {
-    if (childNodes.length === 0) {
-      return false;
-    }
-    const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
-    return bypassedCount >= 1;
-  }, [childNodes]);
+  }, [run, props.id, store]);
 
   // Toggle bypass on all child nodes
   const toggleBypassChildren = useCallback(() => {
-    const shouldBypass = !someChildrenBypassed;
+    const state = store.getState();
+    const childNodes = state.nodes.filter((node) => node.parentId === props.id);
+
+    // Check if some child nodes are bypassed (imperatively)
+    const isBypassed = childNodes.some((n) => n.data.bypassed);
+    const shouldBypass = !isBypassed;
+
     childNodes.forEach((node) => {
       setBypass(node.id, shouldBypass);
     });
-  }, [childNodes, someChildrenBypassed, setBypass]);
+  }, [props.id, setBypass, store]);
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
@@ -219,7 +242,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
-    props.data.properties.headline || "Group"
+    (props.data.properties.headline as string | undefined) || "Group"
   );
 
   const [color, setColor] = useState(
@@ -237,47 +260,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  // const handleOpenNodeMenu = useCallback(
-  //   (e: React.MouseEvent) => {
-  //     e.stopPropagation();
-  //     e.preventDefault();
-  //     openNodeMenu({
-  //       x: getMousePosition().x,
-  //       y: getMousePosition().y
-  //     });
-  //   },
-  //   [openNodeMenu]
-  // );
-
-  // const handleDoubleClick = useCallback(
-  //   (e: React.MouseEvent, id: string) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     const clickedElement = e.target as HTMLElement;
-  //     if (
-  //       clickedElement.classList.contains("node-header") ||
-  //       clickedElement.classList.contains("title-input")
-  //     ) {
-  //       // updateNodeData(id, { collapsed: !props.data.collapsed });
-  //     } else {
-  //       handleOpenNodeMenu(e);
-  //     }
-  //   },
-  //   [handleOpenNodeMenu]
-  // );
-
-  // const handleHeaderClick = () => {
-  //   updateNode(props.id, { selected: true });
-  // };
   const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
-    // e.preventDefault();
-    // e.stopPropagation();
-    // const clickedElement = e.target as HTMLElement;
-    // if (clickedElement.classList.contains("node-header")) {
-    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
-    // }
   };
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,7 +296,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleHeaderClick = () => {
-    // console.log("Node header clicked:", props.id, props.data);
+    // Header click handler - placeholder for future functionality
   };
 
   useEffect(() => {
@@ -328,12 +313,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <div
       css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
-      className={`group-node ${nodeHovered ? "hovered" : ""} 
-      }`}
+      className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
       style={{
-        ...(nodeHovered
-          ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-          : {}),
+        ...(props.selected
+          ? {
+              border: `2px solid ${theme.vars.palette.primary.main}`,
+              boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
+            }
+          : nodeHovered
+            ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+            : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
@@ -379,7 +368,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               color={color || null}
               onColorChange={handleColorChange}
             />
-            {childNodes.length > 0 && (
+            {hasChildren && (
               <BypassGroupButton
                 isBypassed={someChildrenBypassed}
                 onClick={toggleBypassChildren}

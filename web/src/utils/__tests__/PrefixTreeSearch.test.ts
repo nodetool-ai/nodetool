@@ -27,7 +27,6 @@ describe("PrefixTreeSearch", () => {
     description: description || "",
     properties: [],
     outputs: [],
-    the_model_info: {},
     layout: "default",
     recommended_models: [],
     basic_fields: [],
@@ -35,6 +34,7 @@ describe("PrefixTreeSearch", () => {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
+    required_settings: []
   });
 
   const mockNodes: NodeMetadata[] = [

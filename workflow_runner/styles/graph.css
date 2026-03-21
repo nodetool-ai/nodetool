@@ -4,6 +4,8 @@
   background: var(--bg-glass);
   border-bottom: 1px solid var(--border-color);
   min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }

@@ -1,26 +1,28 @@
+/** ResultsStore manages workflow execution results and streaming data. */
+
 import { create } from "zustand";
 import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
-  results: Record<string, any>;
-  outputResults: Record<string, any>;
+  results: Record<string, unknown>;
+  outputResults: Record<string, unknown>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
   planningUpdates: Record<string, PlanningUpdate>;
-  previews: Record<string, any>;
+  previews: Record<string, unknown>;
   deleteResult: (workflowId: string, nodeId: string) => void;
-  clearResults: (workflowId: string) => void;
-  clearOutputResults: (workflowId: string) => void;
-  clearProgress: (workflowId: string) => void;
-  clearToolCalls: (workflowId: string) => void;
-  clearTasks: (workflowId: string) => void;
-  clearChunks: (workflowId: string) => void;
-  clearPlanningUpdates: (workflowId: string) => void;
-  clearPreviews: (workflowId: string) => void;
-  clearEdges: (workflowId: string) => void;
+  clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearProgress: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearTasks: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearChunks: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
   setEdge: (
     workflowId: string,
     edgeId: string,
@@ -34,22 +36,22 @@ type ResultsStore = {
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: unknown,
     append?: boolean
   ) => void;
-  getPreview: (workflowId: string, nodeId: string) => any;
+  getPreview: (workflowId: string, nodeId: string) => unknown;
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => void;
-  getResult: (workflowId: string, nodeId: string) => any;
-  getOutputResult: (workflowId: string, nodeId: string) => any;
+  getResult: (workflowId: string, nodeId: string) => unknown;
+  getOutputResult: (workflowId: string, nodeId: string) => unknown;
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => void;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
@@ -69,12 +71,13 @@ type ResultsStore = {
     workflowId: string,
     nodeId: string,
     progress: number,
-    total: number
+    total: number,
+    chunk?: string
   ) => void;
   getProgress: (
     workflowId: string,
     nodeId: string
-  ) => { progress: number; total: number } | undefined;
+  ) => { progress: number; total: number; chunk?: string } | undefined;
   getPlanningUpdate: (
     workflowId: string,
     nodeId: string
@@ -89,6 +92,37 @@ type ResultsStore = {
 export const hashKey = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}`;
 
+/**
+ * Filter a record by removing entries matching the given workflow.
+ * If specificIds is provided, only removes entries for those specific IDs within the workflow.
+ * Otherwise, removes all entries for the workflow.
+ */
+const filterRecord = <T>(
+  record: Record<string, T>,
+  workflowId: string,
+  specificIds?: Set<string>
+): Record<string, T> => {
+  if (specificIds) {
+    const keysToRemove = new Set(
+      Array.from(specificIds).map((id) => hashKey(workflowId, id))
+    );
+    // Optimization: Clone and delete specific keys when specificIds is provided
+    const newRecord = { ...record };
+    keysToRemove.forEach((key) => {
+      delete newRecord[key];
+    });
+    return newRecord;
+  }
+  // Optimization: Use for...in loop to avoid intermediate array allocation
+  const newRecord: Record<string, T> = {};
+  for (const key in record) {
+    if (!key.startsWith(workflowId)) {
+      newRecord[key] = record[key];
+    }
+  }
+  return newRecord;
+};
+
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
@@ -99,15 +133,10 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   edges: {},
   planningUpdates: {},
   previews: {},
-  clearEdges: (workflowId: string) => {
-    const edges = get().edges;
-    for (const key in edges) {
-      if (key.startsWith(workflowId)) {
-        delete edges[key];
-      }
-    }
-    // Force React Flow to re-render by creating a new object reference
-    set({ edges: { ...edges } });
+  clearEdges: (workflowId: string, edgeIds?: Set<string>) => {
+    set((state) => ({
+      edges: filterRecord(state.edges, workflowId, edgeIds)
+    }));
   },
   /**
    * Set the planning update for a node.
@@ -118,12 +147,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     nodeId: string,
     planningUpdate: PlanningUpdate
   ) => {
-    set({
+    set((state) => ({
       planningUpdates: {
-        ...get().planningUpdates,
+        ...state.planningUpdates,
         [hashKey(workflowId, nodeId)]: planningUpdate
       }
-    });
+    }));
   },
   /**
    * Set the preview for a node.
@@ -132,27 +161,31 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: unknown,
     append?: boolean
   ) => {
-    if (get().previews[hashKey(workflowId, nodeId)] === undefined || !append) {
-      set({
-        previews: { ...get().previews, [hashKey(workflowId, nodeId)]: preview }
-      });
-    } else {
-      let currentPreview = get().previews[hashKey(workflowId, nodeId)];
-      if (Array.isArray(currentPreview)) {
-        currentPreview = [...currentPreview, preview];
+    const key = hashKey(workflowId, nodeId);
+    set((state) => {
+      const currentPreview = state.previews[key];
+      if (currentPreview === undefined || !append) {
+        return {
+          previews: { ...state.previews, [key]: preview }
+        };
       } else {
-        currentPreview = [currentPreview, preview];
-      }
-      set({
-        previews: {
-          ...get().previews,
-          [hashKey(workflowId, nodeId)]: currentPreview
+        let newPreview;
+        if (Array.isArray(currentPreview)) {
+          newPreview = [...currentPreview, preview];
+        } else {
+          newPreview = [currentPreview, preview];
         }
-      });
-    }
+        return {
+          previews: {
+            ...state.previews,
+            [key]: newPreview
+          }
+        };
+      }
+    });
   },
   /**
    * Get the preview for a node.
@@ -179,14 +212,15 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     counter?: number
   ) => {
     const key = hashKey(workflowId, edgeId);
-    const existing = get().edges[key];
-    const newCounter = counter !== undefined ? counter : existing?.counter;
-
-    set({
-      edges: {
-        ...get().edges,
-        [key]: { status, counter: newCounter }
-      }
+    set((state) => {
+      const existing = state.edges[key];
+      const newCounter = counter !== undefined ? counter : existing?.counter;
+      return {
+        edges: {
+          ...state.edges,
+          [key]: { status, counter: newCounter }
+        }
+      };
     });
   },
   /**
@@ -205,9 +239,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     nodeId: string,
     toolCall: ToolCallUpdate
   ) => {
-    set({
-      toolCalls: { ...get().toolCalls, [hashKey(workflowId, nodeId)]: toolCall }
-    });
+    set((state) => ({
+      toolCalls: {
+        ...state.toolCalls,
+        [hashKey(workflowId, nodeId)]: toolCall
+      }
+    }));
   },
   /**
    * Get the tool call for a node.
@@ -221,7 +258,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * The task is stored in the tasks map.
    */
   setTask: (workflowId: string, nodeId: string, task: Task) => {
-    set({ tasks: { ...get().tasks, [hashKey(workflowId, nodeId)]: task } });
+    set((state) => ({
+      tasks: { ...state.tasks, [hashKey(workflowId, nodeId)]: task }
+    }));
   },
   /**
    * Get the task for a node.
@@ -238,104 +277,73 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * @param nodeId The id of the node.
    */
   deleteResult: (workflowId: string, nodeId: string) => {
-    const results = get().results;
     const key = hashKey(workflowId, nodeId);
-    delete results[key];
-    set({ results });
+    set((state) => {
+      const { [key]: removed, ...remainingResults } = state.results;
+      return { results: remainingResults };
+    });
   },
   /**
    * Clear the results for a workflow.
    * The results are removed from the results map.
    */
-  clearResults: (workflowId: string) => {
-    const results = get().results;
-    for (const key in results) {
-      if (key.startsWith(workflowId)) {
-        delete results[key];
-      }
-    }
-    set({ results });
+  clearResults: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      results: filterRecord(state.results, workflowId, nodeIds)
+    }));
   },
-  clearOutputResults: (workflowId: string) => {
-    const outputResults = get().outputResults;
-    for (const key in outputResults) {
-      if (key.startsWith(workflowId)) {
-        delete outputResults[key];
-      }
-    }
-    set({ outputResults });
+  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      outputResults: filterRecord(state.outputResults, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the progress for a workflow.
    */
-  clearProgress: (workflowId: string) => {
-    const progress = get().progress;
-    for (const key in progress) {
-      if (key.startsWith(workflowId)) {
-        delete progress[key];
-      }
-    }
-    set({ progress });
+  clearProgress: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      progress: filterRecord(state.progress, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the previews for a workflow.
    */
-  clearPreviews: (workflowId: string) => {
-    const previews = get().previews;
-    for (const key in previews) {
-      if (key.startsWith(workflowId)) {
-        delete previews[key];
-      }
-    }
-    set({ previews });
+  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      previews: filterRecord(state.previews, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the tool calls for a workflow.
    */
-  clearToolCalls: (workflowId: string) => {
-    const toolCalls = get().toolCalls;
-    for (const key in toolCalls) {
-      if (key.startsWith(workflowId)) {
-        delete toolCalls[key];
-      }
-    }
-    set({ toolCalls });
+  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the tasks for a workflow.
    */
-  clearTasks: (workflowId: string) => {
-    const tasks = get().tasks;
-    for (const key in tasks) {
-      if (key.startsWith(workflowId)) {
-        delete tasks[key];
-      }
-    }
-    set({ tasks });
+  clearTasks: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      tasks: filterRecord(state.tasks, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the planning updates for a workflow.
    */
-  clearPlanningUpdates: (workflowId: string) => {
-    const planningUpdates = get().planningUpdates;
-    for (const key in planningUpdates) {
-      if (key.startsWith(workflowId)) {
-        delete planningUpdates[key];
-      }
-    }
-    set({ planningUpdates });
+  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds)
+    }));
   },
   /**
    * Clear the chunks for a workflow.
    */
-  clearChunks: (workflowId: string) => {
-    const chunks = get().chunks;
-    for (const key in chunks) {
-      if (key.startsWith(workflowId)) {
-        delete chunks[key];
-      }
-    }
-    set({ chunks });
+  clearChunks: (workflowId: string, nodeIds?: Set<string>) => {
+    set((state) => ({
+      chunks: filterRecord(state.chunks, workflowId, nodeIds)
+    }));
   },
   /**
    * Set the result for a node.
@@ -348,26 +356,32 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
-    if (get().results[key] === undefined || !append) {
-      set({ results: { ...get().results, [key]: result } });
-    } else {
-      if (Array.isArray(get().results[key])) {
-        set({
-          results: {
-            ...get().results,
-            [key]: [...get().results[key], result]
-          }
-        });
+    set((state) => {
+      const currentResult = state.results[key];
+      if (currentResult === undefined || !append) {
+        return { results: { ...state.results, [key]: result } };
       } else {
-        set({
-          results: { ...get().results, [key]: [get().results[key], result] }
-        });
+        if (Array.isArray(currentResult)) {
+          return {
+            results: {
+              ...state.results,
+              [key]: [...currentResult, result]
+            }
+          };
+        } else {
+          return {
+            results: {
+              ...state.results,
+              [key]: [currentResult, result]
+            }
+          };
+        }
       }
-    }
+    });
   },
 
   /**
@@ -409,31 +423,34 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: unknown,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
-    if (get().outputResults[key] === undefined || !append) {
-      set({
-        outputResults: { ...get().outputResults, [key]: result }
-      });
-    } else {
-      if (Array.isArray(get().outputResults[key])) {
-        set({
-          outputResults: {
-            ...get().outputResults,
-            [key]: [...get().outputResults[key], result]
-          }
-        });
+    set((state) => {
+      const currentResult = state.outputResults[key];
+      if (currentResult === undefined || !append) {
+        return {
+          outputResults: { ...state.outputResults, [key]: result }
+        };
       } else {
-        set({
-          outputResults: {
-            ...get().outputResults,
-            [key]: [get().outputResults[key], result]
-          }
-        });
+        if (Array.isArray(currentResult)) {
+          return {
+            outputResults: {
+              ...state.outputResults,
+              [key]: [...currentResult, result]
+            }
+          };
+        } else {
+          return {
+            outputResults: {
+              ...state.outputResults,
+              [key]: [currentResult, result]
+            }
+          };
+        }
       }
-    }
+    });
   },
 
   /**
@@ -454,12 +471,14 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     chunk?: string
   ) => {
     const key = hashKey(workflowId, nodeId);
-    const currentChunk = get().progress[key]?.chunk || "";
-    set({
-      progress: {
-        ...get().progress,
-        [key]: { progress, total, chunk: currentChunk + (chunk || "") }
-      }
+    set((state) => {
+      const currentChunk = state.progress[key]?.chunk || "";
+      return {
+        progress: {
+          ...state.progress,
+          [key]: { progress, total, chunk: currentChunk + (chunk || "") }
+        }
+      };
     });
   },
 
@@ -478,8 +497,10 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   },
   addChunk: (workflowId: string, nodeId: string, chunk: string) => {
     const key = hashKey(workflowId, nodeId);
-    const currentChunk = get().chunks[key] || "";
-    set({ chunks: { ...get().chunks, [key]: currentChunk + chunk } });
+    set((state) => {
+      const currentChunk = state.chunks[key] || "";
+      return { chunks: { ...state.chunks, [key]: currentChunk + chunk } };
+    });
   },
   getChunk: (workflowId: string, nodeId: string) => {
     const key = hashKey(workflowId, nodeId);

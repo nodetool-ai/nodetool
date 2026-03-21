@@ -1,0 +1,160 @@
+{
+  "modelId": "fictions-ai/autocaption",
+  "owner": "fictions-ai",
+  "name": "autocaption",
+  "version": "18a45ff0d95feb4449d192bbdc06b4a6df168fa33def76dfc51b78ae224b599b",
+  "description": "Automatically add captions to a video",
+  "inputSchema": {
+    "properties": {
+      "MaxChars": {
+        "default": 20,
+        "description": "Max characters space for subtitles. 20 is good for videos, 10 is good for reels",
+        "title": "Maxchars",
+        "type": "integer",
+        "x-order": 8
+      },
+      "color": {
+        "default": "white",
+        "description": "Caption color",
+        "title": "Color",
+        "type": "string",
+        "x-order": 5
+      },
+      "font": {
+        "default": "Poppins/Poppins-ExtraBold.ttf",
+        "description": "Font",
+        "enum": [
+          "Poppins/Poppins-Bold.ttf",
+          "Poppins/Poppins-BoldItalic.ttf",
+          "Poppins/Poppins-ExtraBold.ttf",
+          "Poppins/Poppins-ExtraBoldItalic.ttf",
+          "Poppins/Poppins-Black.ttf",
+          "Poppins/Poppins-BlackItalic.ttf",
+          "Atkinson_Hyperlegible/AtkinsonHyperlegible-Bold.ttf",
+          "Atkinson_Hyperlegible/AtkinsonHyperlegible-BoldItalic.ttf",
+          "M_PLUS_Rounded_1c/MPLUSRounded1c-ExtraBold.ttf",
+          "Arial/Arial_Bold.ttf",
+          "Arial/Arial_BoldItalic.ttf",
+          "Tajawal/Tajawal-Bold.ttf",
+          "Tajawal/Tajawal-ExtraBold.ttf",
+          "Tajawal/Tajawal-Black.ttf"
+        ],
+        "title": "font",
+        "type": "string",
+        "x-order": 10
+      },
+      "fontsize": {
+        "default": 7,
+        "description": "Font size. 7.0 is good for videos, 4.0 is good for reels",
+        "title": "Fontsize",
+        "type": "number",
+        "x-order": 7
+      },
+      "highlight_color": {
+        "default": "yellow",
+        "description": "Highlight color",
+        "title": "Highlight Color",
+        "type": "string",
+        "x-order": 6
+      },
+      "kerning": {
+        "default": -5,
+        "description": "Kerning for the subtitles",
+        "title": "Kerning",
+        "type": "number",
+        "x-order": 13
+      },
+      "opacity": {
+        "default": 0,
+        "description": "Opacity for the subtitles background",
+        "title": "Opacity",
+        "type": "number",
+        "x-order": 9
+      },
+      "output_transcript": {
+        "default": true,
+        "description": "Output transcript json, if true will output a transcript file that you can edit and use for the next run in transcript_file_input",
+        "title": "Output Transcript",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "output_video": {
+        "default": true,
+        "description": "Output video, if true will output the video with subtitles",
+        "title": "Output Video",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "right_to_left": {
+        "default": false,
+        "description": "Right to left subtitles, for right to left languages. Only Arial fonts are supported.",
+        "title": "Right To Left",
+        "type": "boolean",
+        "x-order": 14
+      },
+      "stroke_color": {
+        "default": "black",
+        "description": "Stroke color",
+        "title": "Stroke Color",
+        "type": "string",
+        "x-order": 11
+      },
+      "stroke_width": {
+        "default": 2.6,
+        "description": "Stroke width",
+        "title": "Stroke Width",
+        "type": "number",
+        "x-order": 12
+      },
+      "subs_position": {
+        "default": "bottom75",
+        "description": "Subtitles position",
+        "enum": [
+          "bottom75",
+          "center",
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "title": "subs_position",
+        "type": "string",
+        "x-order": 4
+      },
+      "transcript_file_input": {
+        "description": "Transcript file, if provided will use this for words rather than whisper.",
+        "format": "uri",
+        "title": "Transcript File Input",
+        "type": "string",
+        "x-order": 1
+      },
+      "translate": {
+        "default": false,
+        "description": "Translate the subtitles to English",
+        "title": "Translate",
+        "type": "boolean",
+        "x-order": 15
+      },
+      "video_file_input": {
+        "description": "Video file",
+        "format": "uri",
+        "title": "Video File Input",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video_file_input"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

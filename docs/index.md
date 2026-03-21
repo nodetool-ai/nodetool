@@ -8,6 +8,7 @@ layout: home
   <p class="lead">
    Connect nodes to generate content, analyze data, and automate tasks. Run models locally or via cloud APIs.
   </p>
+  <img src="{{ '/assets/home.jpg' | relative_url }}" alt="NodeTool visual workflow editor" class="home-screenshot">
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button">Getting Started</a>
@@ -28,7 +29,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <h4>Creators & Designers</h4>
     <p>Generate and transform media with AI.</p>
     <ul>
-      <li>Use Flux, SDXL, and custom models</li>
+      <li>Use Flux, Qwen Image, and custom models</li>
       <li>Generate variations</li>
       <li>Build reusable workflows</li>
     </ul>
@@ -86,7 +87,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux or Qwen Image, or use cloud services.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
@@ -94,10 +95,10 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
-- **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}), [ComfyUI Migration]({{ '/comparisons#from-comfyui-to-nodetool' | relative_url }}), [n8n Migration]({{ '/comparisons#from-n8n-to-nodetool' | relative_url }}).
+- **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}) – understand where NodeTool fits.
 - **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/api-reference#headless-mode-running-workflows-via-cliapi' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
 - **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [Custom Nodes]({{ '/developer/node-reference' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}).
 - **Reference & Help:** [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Node Library]({{ '/node-packs' | relative_url }}).
@@ -120,80 +121,12 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <p>Mix local AI with cloud services for flexibility. Use the best tool for each task.</p>
     <ul>
       <li>Add API keys for OpenAI, Anthropic, Replicate</li>
-      <li>Access cutting-edge models on demand</li>
+      <li>Access the latest cloud models on demand</li>
       <li>Deploy workflows to cloud infrastructure</li>
     </ul>
     <a href="{{ '/models-and-providers' | relative_url }}">Models & Providers →</a>
   </article>
 </div>
-
-<section class="home-section">
-  <h2 id="personal-ai-stack">📱 Personal AI Stack</h2>
-  <p class="lead">
-    Access self-hosted AI infrastructure from mobile devices.
-  </p>
-  <p>
-    NodeTool's mobile app connects to your own NodeTool server. Run workflows remotely, accessing models and data on hardware you control.
-  </p>
-
-  <div class="architecture-diagram">
-    {% mermaid %}
-    flowchart TB
-      Mobile["📱 NodeTool Mobile"] --> |Secure Connection| VPN
-      VPN["🔒 VPN / Tailscale / WireGuard"] --> |Encrypted Tunnel| Server
-      Server["🖥️ NodeTool Server<br/>(Your Hardware)"]
-
-      subgraph Stack["Your AI Stack"]
-        direction TB
-        LLMs["🧠 Local LLMs<br/>Llama, Mistral, Qwen, Phi"]
-        Data["📁 Your Data<br/>Documents, Photos, Notes"]
-        Media["🎨 Media AI<br/>Flux, Whisper, Music, Video"]
-        Integrations["🔌 Integrations<br/>APIs, Tools, Home Automation"]
-      end
-
-      Server --> Stack
-    {% endmermaid %}
-  </div>
-
-  <h3>Deployment Options</h3>
-  <div class="pattern-grid">
-    <article class="pattern-card">
-      <h5>🏠 Local Stack</h5>
-      <p>Connect via VPN to a home server. All processing on your hardware. Data stays on your network.</p>
-      <p><code>[Mobile] → [VPN] → [Home Server] → [Local LLMs + Data]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>☁️ NodeTool Cloud</h5>
-      <p>Managed infrastructure. No hardware setup. Workflows sync across devices.</p>
-      <p><code>[Mobile] → [NodeTool Cloud] → [Managed LLMs + Storage]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>🏢 Private Cloud</h5>
-      <p>Deploy to your organization's VPC. Supports compliance requirements and multi-user access.</p>
-      <p><code>[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>🌐 Hybrid Stack</h5>
-      <p>Local processing for sensitive data, cloud APIs for additional models.</p>
-      <p><code>[Mobile] → [Local Server] → [Local LLMs + Cloud APIs]</code></p>
-    </article>
-  </div>
-
-  <h3>Capabilities</h3>
-  <ul>
-    <li><strong>Personal AI Assistant</strong> — Chat with an AI that accesses your documents and knowledge base.</li>
-    <li><strong>Mobile AI Workspace</strong> — Generate images, audio, and video from your phone using local models.</li>
-    <li><strong>Private Knowledge Base</strong> — Index and query your documents with RAG.</li>
-    <li><strong>Home Automation</strong> — Connect NodeTool to smart home devices.</li>
-    <li><strong>Team Collaboration</strong> — Share workflows while keeping data in your infrastructure.</li>
-  </ul>
-
-  <div class="cta-row">
-    <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get Started →</a>
-    <a href="{{ '/self_hosted' | relative_url }}" class="cta-button">Self-Hosted Setup →</a>
-    <a href="{{ '/deployment' | relative_url }}" class="cta-button ghost">Deployment Guide →</a>
-  </div>
-</section>
 
 <section class="home-section">
   <h2>Key Features</h2>

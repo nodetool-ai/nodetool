@@ -1,8 +1,8 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
-type GetResult = (workflowId: string, nodeId: string) => any;
-type FindNode = (nodeId: string) => Node<NodeData> | undefined;
+type GetResult = (_workflowId: string, _nodeId: string) => unknown;
+type FindNode = (_nodeId: string) => Node<NodeData> | undefined;
 
 const isLiteralSourceNode = (nodeType?: string) => {
   if (!nodeType) {
@@ -14,13 +14,14 @@ const isLiteralSourceNode = (nodeType?: string) => {
   );
 };
 
-const resolveResultValue = (result: any, sourceHandle?: string) => {
+const resolveResultValue = (result: unknown, sourceHandle?: string): unknown => {
   if (
     sourceHandle &&
     typeof result === "object" &&
-    result !== null
+    result !== null &&
+    !Array.isArray(result)
   ) {
-    return result[sourceHandle] ?? result;
+    return (result as Record<string, unknown>)[sourceHandle] ?? result;
   }
   return result;
 };
@@ -62,6 +63,7 @@ export const resolveExternalEdgeValue = (
     };
   }
 
+  // When cached result is missing, try to get fallback value from the source node
   const sourceNode = findNode(edge.source);
   if (!sourceNode || !isLiteralSourceNode(sourceNode.type)) {
     return { value: undefined, hasValue: false, isFallback: false };

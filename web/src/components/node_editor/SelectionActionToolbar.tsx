@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Box, IconButton, Tooltip, Divider } from "@mui/material";
+import React, { memo, useCallback, useMemo } from "react";
+import { Box, Divider } from "@mui/material";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -12,11 +12,14 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  CallSplit
+  PowerSettingsNew,
+  PlayArrow
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { ToolbarIconButton } from "../ui_primitives";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -42,34 +45,26 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
 
-const renderButton = (button: ActionButton, index: number): React.ReactNode => (
-  <Tooltip
+const renderButton = (button: ActionButton, index: number, active?: boolean): React.ReactNode => (
+  <ToolbarIconButton
     key={`${button.slug}-${index}`}
-    title={getShortcutTooltip(button.slug, "both", "full", true)}
-    arrow
-    placement="top"
-  >
-    <span>
-      <IconButton
-        size="small"
-        aria-label={button.label}
-        onClick={button.action}
-        disabled={button.disabled}
-        sx={{
-          width: 32,
-          height: 32,
-          "&:hover": {
-            bgcolor: "action.hover"
-          },
-          "&.Mui-disabled": {
-            opacity: 0.4
-          }
-        }}
-      >
-        {button.icon}
-      </IconButton>
-    </span>
-  </Tooltip>
+    icon={button.icon}
+    tooltip={getShortcutTooltip(button.slug, "both", "full", true)}
+    onClick={button.action}
+    disabled={button.disabled}
+    variant={active ? "primary" : "default"}
+    active={active}
+    size="small"
+    nodrag={true}
+    tooltipPlacement="top"
+    sx={{
+      width: 32,
+      height: 32,
+      "&.Mui-disabled": {
+        opacity: 0.4
+      }
+    }}
+  />
 );
 
 const renderDivider = (index: number): React.ReactNode => (
@@ -81,16 +76,18 @@ const renderDivider = (index: number): React.ReactNode => (
   />
 );
 
-const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
+const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
-  onClose
+  onClose,
 }) => {
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array on move)
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
   const selectionActions = useSelectionActions();
+  const { runSelectedNodes, isWorkflowRunning } = useRunSelectedNodes();
 
-  const canAlign = selectedNodes.length >= 2;
-  const canDistribute = selectedNodes.length >= 2;
-  const canGroup = selectedNodes.length >= 2;
+  const canAlign = selectedCount >= 2;
+  const canDistribute = selectedCount >= 2;
+  const canGroup = selectedCount >= 2;
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -173,6 +170,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
+        icon: <PlayArrow fontSize="small" />,
+        label: "Run Selected",
+        slug: "runSelected",
+        action: runSelectedNodes,
+        disabled: selectedCount === 0 || isWorkflowRunning
+      },
+      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -186,7 +190,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         disabled: !canGroup
       },
       {
-        icon: <CallSplit fontSize="small" />,
+        icon: <PowerSettingsNew fontSize="small" />,
         label: "Bypass",
         slug: "bypassNode",
         action: selectionActions.bypassSelected
@@ -199,20 +203,25 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, selectionActions, runSelectedNodes, isWorkflowRunning, selectedCount]
+  );
+
+  // Memoize the combined button array to avoid creating new references on every render
+  // This must be declared before the early return to follow React Hooks rules
+  const allButtons: ButtonItem[] = useMemo(
+    () => [
+      ...alignmentButtons,
+      { divider: true } as DividerButton,
+      ...distributionButtons,
+      { divider: true } as DividerButton,
+      ...actionButtons
+    ],
+    [alignmentButtons, distributionButtons, actionButtons]
   );
 
   if (!visible) {
     return null;
   }
-
-  const allButtons: ButtonItem[] = [
-    ...alignmentButtons,
-    { divider: true } as DividerButton,
-    ...distributionButtons,
-    { divider: true } as DividerButton,
-    ...actionButtons
-  ];
 
   return (
     <Box
@@ -223,7 +232,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       sx={{
         position: "absolute",
         bottom: "auto",
-        top: 80,
+        top: 30,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 1000,
@@ -231,11 +240,9 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
         alignItems: "center",
         gap: 0.5,
         padding: "6px 10px",
-        bgcolor: "background.paper",
+        backgroundColor: 'var(--palette-grey-800)',
         borderRadius: 2,
-        boxShadow: 3,
-        border: 1,
-        borderColor: "divider"
+        boxShadow: 1,
       }}
     >
       {allButtons.map((button, index) => {
@@ -248,6 +255,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       })}
     </Box>
   );
-};
+});
+
+SelectionActionToolbar.displayName = 'SelectionActionToolbar';
 
 export default SelectionActionToolbar;

@@ -1,5 +1,5 @@
 // Mock API Client for Jest
-export const BASE_URL = "http://localhost:8000";
+export const BASE_URL = "http://localhost:7777";
 export const CHAT_URL = "ws://localhost:1234";
 
 // OpenAPI client shape used throughout stores

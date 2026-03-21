@@ -21,7 +21,7 @@ import {
   PopoverOrigin
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { AccountTree } from "@mui/icons-material";
+import { Schema } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
@@ -214,13 +214,21 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             }`}
           onClick={handleClick}
           size="small"
-          startIcon={<AccountTree fontSize="small" />}
+          startIcon={<Schema sx={{ fontSize: 18 }} />}
           endIcon={
             selectedTools.length > 0 && (
               <Chip
                 size="small"
                 label={selectedTools.length}
                 className="selected-count"
+                sx={{
+                  marginLeft: "-4px",
+                  height: "18px",
+                  "& .MuiChip-label": {
+                    padding: "0 5px",
+                    fontSize: "0.7rem"
+                  }
+                }}
               />
             )
           }
@@ -302,10 +310,12 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             ) : (!workflowTools || workflowTools.length === 0) &&
               selectedTools.length === 0 ? (
               <div className="no-tools-message">
-                <Typography variant="body2">
-                  No workflow tools available.
-                  <br />
-                  Set a workflow&apos;s run mode to &quot;tool&quot; to use it here.
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  No workflow tools available
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8, display: "block" }}>
+                  Workflow tools let the AI run your workflows as part of its response.
+                  To create one: open a workflow, go to Settings, and set Run Mode to &quot;Tool&quot;.
                 </Typography>
               </div>
             ) : (

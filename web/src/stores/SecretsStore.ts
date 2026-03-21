@@ -38,12 +38,13 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
       });
 
       return data.secrets;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
       set({
-        error: err.message || "Failed to load secrets",
+        error: error.message || "Failed to load secrets",
         isLoading: false
       });
-      throw err;
+      throw error;
     }
   },
 
@@ -69,9 +70,10 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
 
       // Refresh secrets list
       await get().fetchSecrets();
-    } catch (err: any) {
-      set({ error: err.message || "Failed to update secret" });
-      throw err;
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      set({ error: error.message || "Failed to update secret" });
+      throw error;
     }
   },
 
@@ -92,9 +94,10 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
 
       // Refresh secrets list
       await get().fetchSecrets();
-    } catch (err: any) {
-      set({ error: err.message || "Failed to delete secret" });
-      throw err;
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      set({ error: error.message || "Failed to delete secret" });
+      throw error;
     }
   }
 

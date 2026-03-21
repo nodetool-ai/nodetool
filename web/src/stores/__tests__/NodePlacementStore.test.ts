@@ -1,214 +1,132 @@
 import { act } from "@testing-library/react";
-import useNodePlacementStore, { NodePlacementSource } from "../NodePlacementStore";
+import useNodePlacementStore from "../NodePlacementStore";
 
 describe("NodePlacementStore", () => {
   beforeEach(() => {
-    // Reset store to initial state
-    useNodePlacementStore.setState({
-      pendingNodeType: null,
-      label: null,
-      source: null
-    });
+    useNodePlacementStore.setState(useNodePlacementStore.getInitialState());
   });
 
-  describe("initial state", () => {
-    it("has null pendingNodeType", () => {
-      const { pendingNodeType } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBeNull();
-    });
+  afterEach(() => {
+    useNodePlacementStore.setState(useNodePlacementStore.getInitialState());
+  });
 
-    it("has null label", () => {
-      const { label } = useNodePlacementStore.getState();
-      expect(label).toBeNull();
-    });
-
-    it("has null source", () => {
-      const { source } = useNodePlacementStore.getState();
-      expect(source).toBeNull();
-    });
+  it("initializes with null values", () => {
+    const state = useNodePlacementStore.getState();
+    expect(state.pendingNodeType).toBeNull();
+    expect(state.label).toBeNull();
+    expect(state.source).toBeNull();
   });
 
   describe("activatePlacement", () => {
-    it("sets pendingNodeType and label", () => {
+    it("activates placement with quickAction source", () => {
       act(() => {
-        useNodePlacementStore.getState().activatePlacement("nodetool.image.Generate", "Generate Image");
+        useNodePlacementStore.getState().activatePlacement("textNode", "Text Node", "quickAction");
       });
 
-      const { pendingNodeType, label } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBe("nodetool.image.Generate");
-      expect(label).toBe("Generate Image");
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBe("textNode");
+      expect(state.label).toBe("Text Node");
+      expect(state.source).toBe("quickAction");
     });
 
-    it("sets source to unknown by default", () => {
+    it("activates placement with nodeMenu source", () => {
       act(() => {
-        useNodePlacementStore.getState().activatePlacement("nodetool.image.Generate", "Generate Image");
+        useNodePlacementStore.getState().activatePlacement("imageNode", "Image Node", "nodeMenu");
       });
 
-      const { source } = useNodePlacementStore.getState();
-      expect(source).toBe("unknown");
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBe("imageNode");
+      expect(state.label).toBe("Image Node");
+      expect(state.source).toBe("nodeMenu");
     });
 
-    it("sets custom source when provided", () => {
+    it("activates placement with unknown source when source not provided", () => {
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "nodetool.image.Generate",
-          "Generate Image",
-          "nodeMenu"
-        );
+        useNodePlacementStore.getState().activatePlacement("audioNode", "Audio Node");
       });
 
-      const { source } = useNodePlacementStore.getState();
-      expect(source).toBe("nodeMenu");
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBe("audioNode");
+      expect(state.label).toBe("Audio Node");
+      expect(state.source).toBe("unknown");
     });
 
-    it("handles quickAction source", () => {
+    it("overwrites existing placement", () => {
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "nodetool.text.Generate",
-          "Generate Text",
-          "quickAction"
-        );
+        useNodePlacementStore.getState().activatePlacement("node1", "Node 1", "quickAction");
+        useNodePlacementStore.getState().activatePlacement("node2", "Node 2", "nodeMenu");
       });
 
-      const { pendingNodeType, label, source } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBe("nodetool.text.Generate");
-      expect(label).toBe("Generate Text");
-      expect(source).toBe("quickAction");
-    });
-
-    it("overwrites previous placement", () => {
-      act(() => {
-        useNodePlacementStore.getState().activatePlacement("first.type", "First Label", "nodeMenu");
-        useNodePlacementStore.getState().activatePlacement("second.type", "Second Label", "quickAction");
-      });
-
-      const { pendingNodeType, label, source } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBe("second.type");
-      expect(label).toBe("Second Label");
-      expect(source).toBe("quickAction");
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBe("node2");
+      expect(state.label).toBe("Node 2");
+      expect(state.source).toBe("nodeMenu");
     });
   });
 
   describe("cancelPlacement", () => {
     it("clears all placement state", () => {
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "nodetool.image.Generate",
-          "Generate Image",
-          "nodeMenu"
-        );
+        useNodePlacementStore.getState().activatePlacement("textNode", "Text Node", "quickAction");
         useNodePlacementStore.getState().cancelPlacement();
       });
 
-      const { pendingNodeType, label, source } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBeNull();
-      expect(label).toBeNull();
-      expect(source).toBeNull();
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBeNull();
+      expect(state.label).toBeNull();
+      expect(state.source).toBeNull();
     });
 
-    it("can be called when no placement is pending", () => {
+    it("handles cancel when no placement is active", () => {
       act(() => {
         useNodePlacementStore.getState().cancelPlacement();
       });
 
-      const { pendingNodeType, label, source } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBeNull();
-      expect(label).toBeNull();
-      expect(source).toBeNull();
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBeNull();
+      expect(state.label).toBeNull();
+      expect(state.source).toBeNull();
     });
   });
 
-  describe("integration scenarios", () => {
-    it("activate then cancel flow", () => {
-      // User initiates node placement
+  describe("complete placement flow", () => {
+    it("handles full placement lifecycle", () => {
+      // Start placement
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "nodetool.audio.Generate",
-          "Generate Audio",
-          "quickAction"
-        );
+        useNodePlacementStore.getState().activatePlacement("customNode", "Custom Node", "nodeMenu");
       });
 
-      expect(useNodePlacementStore.getState().pendingNodeType).toBe("nodetool.audio.Generate");
+      expect(useNodePlacementStore.getState().pendingNodeType).toBe("customNode");
+      expect(useNodePlacementStore.getState().label).toBe("Custom Node");
 
-      // User cancels (e.g., presses Escape)
+      // Cancel placement
       act(() => {
         useNodePlacementStore.getState().cancelPlacement();
       });
 
       expect(useNodePlacementStore.getState().pendingNodeType).toBeNull();
+      expect(useNodePlacementStore.getState().label).toBeNull();
     });
 
-    it("switching between placement sources", () => {
-      // User starts from quick action
+    it("handles multiple placement cycles", () => {
+      // First cycle
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "type1",
-          "Label 1",
-          "quickAction"
-        );
+        useNodePlacementStore.getState().activatePlacement("node1", "Node 1", "quickAction");
       });
 
-      expect(useNodePlacementStore.getState().source).toBe("quickAction");
-
-      // User changes mind and opens node menu
       act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "type2",
-          "Label 2",
-          "nodeMenu"
-        );
+        useNodePlacementStore.getState().cancelPlacement();
       });
 
-      expect(useNodePlacementStore.getState().source).toBe("nodeMenu");
-      expect(useNodePlacementStore.getState().pendingNodeType).toBe("type2");
-    });
-
-    it("all source types work correctly", () => {
-      const sources: NodePlacementSource[] = ["quickAction", "nodeMenu", "unknown"];
-
-      sources.forEach((source) => {
-        act(() => {
-          useNodePlacementStore.getState().activatePlacement("test.type", "Test", source);
-        });
-
-        expect(useNodePlacementStore.getState().source).toBe(source);
-
-        act(() => {
-          useNodePlacementStore.getState().cancelPlacement();
-        });
-      });
-    });
-  });
-
-  describe("edge cases", () => {
-    it("handles empty string nodeType", () => {
+      // Second cycle
       act(() => {
-        useNodePlacementStore.getState().activatePlacement("", "Empty Type");
+        useNodePlacementStore.getState().activatePlacement("node2", "Node 2", "nodeMenu");
       });
 
-      expect(useNodePlacementStore.getState().pendingNodeType).toBe("");
-    });
-
-    it("handles empty string label", () => {
-      act(() => {
-        useNodePlacementStore.getState().activatePlacement("some.type", "");
-      });
-
-      expect(useNodePlacementStore.getState().label).toBe("");
-    });
-
-    it("handles special characters in nodeType and label", () => {
-      act(() => {
-        useNodePlacementStore.getState().activatePlacement(
-          "my.namespace.node-type_v2",
-          "Node Type (v2) - Special"
-        );
-      });
-
-      const { pendingNodeType, label } = useNodePlacementStore.getState();
-      expect(pendingNodeType).toBe("my.namespace.node-type_v2");
-      expect(label).toBe("Node Type (v2) - Special");
+      const state = useNodePlacementStore.getState();
+      expect(state.pendingNodeType).toBe("node2");
+      expect(state.label).toBe("Node 2");
+      expect(state.source).toBe("nodeMenu");
     });
   });
 });

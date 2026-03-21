@@ -65,23 +65,22 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-description": {
       fontWeight: 400,
-      fontSize: "0.95rem",
+      fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
-      marginBottom: "1em",
-      lineHeight: "1.6",
+      marginBottom: ".5em",
       display: "block",
       "& span": {
         display: "inline-block",
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.6em"
+        lineHeight: "1.3em"
       }
     },
     ".node-tags span": {
       fontWeight: 500,
-      fontSize: "0.75rem",
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -96,12 +95,8 @@ const nodeInfoStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.selected
       }
     },
-    ".node-usecases h4": {
+    ".node-usecases": {
       fontSize: theme.fontSizeSmaller,
-      lineHeight: "2em"
-    },
-    ".node-usecases div": {
-      fontSize: theme.fontSizeNormal,
       fontWeight: "300",
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
@@ -180,10 +175,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
-  // const description = useMemo(
-  //   () => nodeMetadata?.description || "",
-  //   [nodeMetadata]
-  // );
 
   const description = useMemo(
     () =>
@@ -218,24 +209,25 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   });
 
   const handleTagClick = useCallback(
-    (tag: string) => {
+    (tag: string) => () => {
       setSearchTerm(tag.trim());
     },
     [setSearchTerm]
   );
 
   const renderTags = (tags: string = "") => {
-    return tags?.split(",").map((tag, index) => (
-      <span
-        onClick={() => {
-          handleTagClick(tag.trim());
-        }}
-        key={index}
-        className="tag"
-      >
-        {tag.trim()}
-      </span>
-    ));
+    return tags?.split(",").map((tag, index) => {
+      const trimmedTag = tag.trim();
+      return (
+        <span
+          onClick={handleTagClick(trimmedTag)}
+          key={index}
+          className="tag"
+        >
+          {trimmedTag}
+        </span>
+      );
+    });
   };
 
   const theme = useTheme();
@@ -257,9 +249,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <HighlightText 
-          text={description.description} 
-          query={searchTerm} 
+        <HighlightText
+          text={description.description}
+          query={searchTerm}
           matchStyle="primary"
         />
       </div>
@@ -269,10 +261,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       <Typography component="div" className="node-usecases">
         {description.useCases.raw && (
           <>
-            <h4>Use cases</h4>
-            <HighlightText 
-              text={description.useCases.raw} 
-              query={searchTerm} 
+            <HighlightText
+              text={description.useCases.raw}
+              query={searchTerm}
               matchStyle="primary"
               isBulletList={true}
             />
@@ -280,7 +271,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Typography>
 
-      {nodeMetadata.the_model_info.cover_image_url ? (
+      {nodeMetadata.the_model_info?.cover_image_url ? (
         isLoading ? (
           <div className="preview-image loading"></div>
         ) : (
@@ -292,7 +283,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )
       ) : null}
 
-      <Divider sx={{ opacity: 0.5, margin: "1em 0" }} />
+      <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 
       {showConnections && (
         <div className="inputs-outputs">

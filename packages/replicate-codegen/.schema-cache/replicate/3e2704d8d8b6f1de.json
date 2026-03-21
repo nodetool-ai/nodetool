@@ -1,0 +1,48 @@
+{
+  "modelId": "topazlabs/image-colorization",
+  "owner": "topazlabs",
+  "name": "image-colorization",
+  "version": "52d9e774f4f6e15dacd9f794fd572a90b3ebcbe874720436fb25fc5fbd73f629",
+  "description": "Image colorization model from Topaz Labs",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Grayscale or faded image to colorize",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Output format",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 2
+      },
+      "saturation": {
+        "default": 0.2,
+        "description": "Color saturation level from 0 to 1. Higher values produce more vibrant colors.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Saturation",
+        "type": "number",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

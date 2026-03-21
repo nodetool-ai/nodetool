@@ -58,13 +58,33 @@ describe("ErrorStore", () => {
       expect(errors["workflow1:node1"]).toEqual(errorObj);
     });
 
-    it("handles null as error value", () => {
+    it("drops null instead of storing it as an error", () => {
       act(() => {
         useErrorStore.getState().setError("workflow1", "node1", null);
       });
 
       const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeNull();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+    });
+
+    it('drops the string "null" instead of storing it as an error', () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "null");
+      });
+
+      const { errors } = useErrorStore.getState();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+    });
+
+    it('drops blank and "undefined" string errors', () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "   ");
+        useErrorStore.getState().setError("workflow1", "node2", "undefined");
+      });
+
+      const { errors } = useErrorStore.getState();
+      expect(errors["workflow1:node1"]).toBeUndefined();
+      expect(errors["workflow1:node2"]).toBeUndefined();
     });
   });
 
@@ -266,6 +286,52 @@ describe("ErrorStore", () => {
       // Workflow2 errors intact
       expect(useErrorStore.getState().getError("workflow2", "nodeA")).toBe("Error A2");
       expect(useErrorStore.getState().getError("workflow2", "nodeB")).toBe("Error B2");
+    });
+  });
+
+  describe("clearErrors with nodeIds", () => {
+    it("should clear errors only for specified nodes", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
+        useErrorStore.getState().setError("workflow1", "node3", "Error 3");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1", new Set(["node1", "node3"]));
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow1", "node2")).toBe("Error 2");
+      expect(useErrorStore.getState().getError("workflow1", "node3")).toBeUndefined();
+    });
+
+    it("should not affect other workflows when clearing specific nodes", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow2", "node1", "Error 2");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1", new Set(["node1"]));
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow2", "node1")).toBe("Error 2");
+    });
+
+    it("should clear all workflow errors when nodeIds is not provided", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1");
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow1", "node2")).toBeUndefined();
     });
   });
 });

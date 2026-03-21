@@ -13,6 +13,24 @@ The UI primitives provide:
 
 ## Available Primitives
 
+### Layout Primitives
+
+- **FlexColumn** - Vertical flex container with gap spacing
+- **FlexRow** - Horizontal flex container with gap spacing
+- **Stack** - Vertical stack with spacing between children
+- **Container** - Standardized container with consistent padding
+
+### Surface Primitives
+
+- **Card** - Card component with elevation and padding variants
+- **Panel** - Panel component with header, content, and footer sections
+
+### Typography Primitives
+
+- **Text** - Flexible text component with size, color, and weight variants
+- **Label** - Semantic label for form fields with required indicator
+- **Caption** - Small secondary text for hints and captions
+
 ### Input Controls
 
 - **NodeTextField** - Text input field with semantic props
@@ -22,9 +40,30 @@ The UI primitives provide:
 - **NodeMenuItem** - Menu item for use with NodeSelect
 - **NodeSlider** - Range slider with visual feedback
 
+### Dialogs
+
+- **Dialog** - Standardized modal dialog with consistent styling and optional action buttons
+- **DialogActionButtons** - Standardized confirm/cancel button pairs for dialogs
+
 ### Buttons
 
 - **EditorButton** - Button with density variants
+- **ToolbarIconButton** - Icon button with tooltip for toolbar actions
+- **NavButton** - Navigation button with icon and optional label
+- **CreateFab** - Extended FAB for create/add actions
+- **PlaybackButton** - Audio/video playback controls (play/pause/stop)
+- **RunWorkflowButton** - Run/stop workflow actions
+- **ExpandCollapseButton** - Toggle button for expand/collapse content
+- **RefreshButton** - Refresh/reset button with loading state
+- **SelectionControls** - Bulk selection controls (select all/clear)
+- **ViewModeToggle** - Toggle button group for view mode switching
+
+### State & Toggle Buttons (New)
+
+- **StateIconButton** - Versatile icon button with loading, active, and disabled states
+- **LabeledToggle** - Toggle button with icon, label, and expand/collapse indicator
+- **CircularActionButton** - Circular action button for primary actions and FABs
+- **ActionButtonGroup** - Flexible container for grouping action buttons with consistent spacing
 
 ### Menus
 
@@ -32,6 +71,22 @@ The UI primitives provide:
 - **EditorMenuItem** - Menu item for EditorMenu
 
 ## Usage
+
+### Spacing Utilities
+
+The spacing module provides consistent spacing constants and utilities:
+
+```tsx
+import { SPACING, GAP, PADDING, getSpacingPx } from "../ui_primitives";
+
+// Use predefined spacing constants
+const mySpacing = SPACING.md; // 8px (2 * 4px)
+const myGap = GAP.normal;     // 8px
+const myPadding = PADDING.comfortable; // 12px
+
+// Convert to pixel string
+const pixels = getSpacingPx(2); // "8px"
+```
 
 ### Provider Setup
 
@@ -52,6 +107,82 @@ import { EditorUiProvider } from "../ui_primitives";
 ```
 
 ### Using Primitives
+
+#### Layout Primitives
+
+```tsx
+import {
+  FlexColumn,
+  FlexRow,
+  Stack,
+  Container
+} from "../ui_primitives";
+
+// Vertical layout with gap
+<FlexColumn gap={2} padding={3}>
+  <Typography>Item 1</Typography>
+  <Typography>Item 2</Typography>
+</FlexColumn>
+
+// Horizontal layout with alignment
+<FlexRow gap={1.5} align="center" justify="space-between">
+  <Button>Left</Button>
+  <Button>Right</Button>
+</FlexRow>
+
+// Stack with divider
+<Stack spacing={2} divider={<Divider />}>
+  <MenuItem>Option 1</MenuItem>
+  <MenuItem>Option 2</MenuItem>
+</Stack>
+
+// Padded container
+<Container padding="comfortable" scrollable maxWidth={800}>
+  <Content />
+</Container>
+```
+
+#### Surface Primitives
+
+```tsx
+import { Card, Panel } from "../ui_primitives";
+
+// Card with hover effect
+<Card variant="elevated" hoverable padding="normal">
+  <Typography>Card content</Typography>
+</Card>
+
+// Panel with header and footer
+<Panel
+  title="Settings"
+  subtitle="Configure your preferences"
+  headerAction={<Button>Save</Button>}
+  footer={<Button>Apply</Button>}
+>
+  <SettingsForm />
+</Panel>
+```
+
+#### Typography Primitives
+
+```tsx
+import { Text, Label, Caption } from "../ui_primitives";
+
+// Flexible text component
+<Text size="big" color="primary" weight={600}>
+  Important text
+</Text>
+
+// Form label
+<Label required htmlFor="email">Email Address</Label>
+
+// Helper text
+<Caption color="secondary" size="small">
+  Enter your email address
+</Caption>
+```
+
+#### Input Controls
 
 ```tsx
 import {
@@ -116,6 +247,48 @@ import {
 >
   Click me
 </EditorButton>
+
+// Dialog with auto-generated action buttons
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Confirm Action"
+  onConfirm={handleConfirm}
+  confirmText="Save"
+  cancelText="Cancel"
+>
+  <DialogContent>
+    Are you sure you want to continue?
+  </DialogContent>
+</Dialog>
+
+// Dialog with manual content and no action buttons
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Information"
+>
+  <DialogContent>
+    <Typography>Custom dialog content</Typography>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleClose}>Close</Button>
+  </DialogActions>
+</Dialog>
+
+// Dialog with destructive action
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Delete Item"
+  onConfirm={handleDelete}
+  confirmText="Delete"
+  destructive={true}
+>
+  <DialogContent>
+    This action cannot be undone.
+  </DialogContent>
+</Dialog>
 ```
 
 ### Utilities

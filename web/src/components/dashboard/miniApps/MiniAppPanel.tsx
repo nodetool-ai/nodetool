@@ -30,6 +30,7 @@ import MiniAppResults from "../../miniapps/components/MiniAppResults";
 import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
 import { useMiniAppInputs } from "../../miniapps/hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "../../miniapps/hooks/useMiniAppRunner";
+import log from "loglevel";
 
 interface MiniAppPanelProps {
   workflowId?: string;
@@ -99,6 +100,15 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 
   const clearResults = useMiniAppsStore((state) => state.clearResults);
 
+  const handleWorkflowSelect = useCallback((e: unknown) => {
+    const value = typeof e === "object" && e !== null && "target" in e
+      ? (e.target as { value: string }).value
+      : null;
+    if (value) {
+      onWorkflowSelect?.(value);
+    }
+  }, [onWorkflowSelect]);
+
   const { nodes: workflowNodes, edges: workflowEdges } = useMemo(() => {
     if (!workflow?.graph) {
       return {
@@ -120,7 +130,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     return { nodes, edges };
   }, [workflow]);
 
-  const handleSubmit = useCallback(async () => {
+  const _handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
@@ -158,7 +168,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
-      console.error("Failed to run workflow", error);
+      log.error("Failed to run workflow", error);
     }
   }, [
     inputDefinitions,
@@ -170,7 +180,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     workflowNodes
   ]);
 
-  const isSubmitDisabled =
+  const _isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
   const handleOpenInEditor = useCallback(() => {
@@ -206,7 +216,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
             labelId="workflow-select-label"
             value=""
             label="Workflow"
-            onChange={(e) => onWorkflowSelect?.(e.target.value)}
+            onChange={handleWorkflowSelect}
           >
             {(() => {
               const items = Array.isArray(workflowsData) 
@@ -249,7 +259,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 {workflow?.name}
               </Typography>
               <Tooltip title="Open in Editor">
-                <IconButton size="small" onClick={handleOpenInEditor}>
+                <IconButton size="small" onClick={handleOpenInEditor} aria-label="Open in Editor">
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -261,8 +271,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 inputDefinitions={inputDefinitions}
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (
@@ -298,4 +306,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
   );
 };
 
-export default MiniAppPanel;
+MiniAppPanel.displayName = 'MiniAppPanel';
+
+export default React.memo(MiniAppPanel);

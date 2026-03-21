@@ -27,8 +27,8 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
 }> = [
   { key: "Enter", shiftKey: true },
   { key: "Enter", ctrlKey: true },
-  { key: "Enter", metaKey: true }
-  // Add other allowed combinations here if needed
+  { key: "Enter", metaKey: true },
+  { key: "Escape" } // Allow Escape to close modals/editors
 ];
 
 interface ComboOptions {
@@ -41,11 +41,14 @@ interface ComboOptions {
 const comboCallbacks = new Map<string, ComboOptions>();
 
 const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
-  comboCallbacks.set(combo, options);
+  // Normalize 'ctrl' to 'control' for consistency
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.set(normalizedCombo, options);
 };
 
 const unregisterComboCallback = (combo: string) => {
-  comboCallbacks.delete(combo);
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.delete(normalizedCombo);
 };
 
 const executeComboCallbacks = (
@@ -67,13 +70,26 @@ const executeComboCallbacks = (
 
   // An active callback exists for the pressed keys.
   // Now, check if we should suppress it due to input focus.
+  
+  // Check if focus is specifically on the workflow canvas/editor
+  const isCanvasFocused =
+    activeElement?.classList?.contains("react-flow__pane") ||
+    activeElement?.closest(".react-flow__renderer") ||
+    activeElement?.closest("[data-workflow-editor]");
+  
   const isInputFocused =
-    activeElement &&
-    (activeElement.tagName === "INPUT" ||
-      activeElement.tagName === "TEXTAREA" ||
-      activeElement.closest('[data-slate-editor="true"]') ||
-      activeElement.closest(".text-editor-container") ||
-      activeElement.closest(".editor-input"));
+    (activeElement &&
+      (activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.closest('[data-slate-editor="true"]') ||
+        activeElement.closest(".text-editor-container") ||
+        activeElement.closest(".monaco-editor") ||
+        activeElement.closest(".editor-input"))) ||
+    (event?.target instanceof HTMLElement &&
+      (event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.closest(".MuiInputBase-input") ||
+        event.target.closest(".MuiTextField-root")));
 
   if (isInputFocused) {
     // --- Input Focus Handling ---
@@ -112,11 +128,17 @@ const executeComboCallbacks = (
       //    If a global combo (e.g., a global Ctrl+F) is not handled by Slate internally,
       //    this logic will prevent it from firing when Slate (or other inputs) are focused.
       
-      // Allow copy/paste shortcuts even when inputs are focused (for text copying)
-      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x") {
-        // Allow copy/paste to proceed - they can handle both text and node copying
-      } else {
-        return; // Suppress other global combos in focused inputs.
+      // Suppress global combos (including copy/cut/paste) when inputs are focused.
+      // The browser's native clipboard handling will take care of text copy/cut/paste.
+      // Allow Escape to proceed to close modals/editors.
+      // Allow Delete and Backspace ONLY if the canvas/editor is focused (not text inputs).
+      const isDeleteOrBackspace =
+        pressedKeysString === "delete" || pressedKeysString === "backspace";
+      
+      if (isDeleteOrBackspace && isCanvasFocused) {
+        // Allow delete/backspace when canvas is focused to delete selected nodes
+      } else if (pressedKeysString !== "escape") {
+        return;
       }
     }
     // If we reach here while isInputFocused is true, it means the combo is "shift+enter",
@@ -246,6 +268,7 @@ const initKeyListeners = () => {
       '[data-slate-editor="true"]'
     );
     const targetIsLexicalEditor = eventTarget.closest(".text-editor-container");
+    const targetIsMonacoEditor = eventTarget.closest(".monaco-editor");
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
     if (
@@ -253,6 +276,7 @@ const initKeyListeners = () => {
       targetIsSelectHeader ||
       targetIsSlateEditor ||
       targetIsLexicalEditor ||
+      targetIsMonacoEditor ||
       targetIsTextarea
     ) {
       if (isPressed) {
@@ -265,16 +289,22 @@ const initKeyListeners = () => {
             "meta"
           ].includes(normalizedKey);
           if (!isEventKeyAModifier) {
-            const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
-              (combo) =>
-                event.key === combo.key &&
-                event.shiftKey === (combo.shiftKey || false) &&
-                event.ctrlKey === (combo.ctrlKey || false) &&
-                event.altKey === (combo.altKey || false) &&
-                event.metaKey === (combo.metaKey || false)
-            );
-            if (!isCombinationAllowed) {
-              return; // Block unallowed keydown in textarea
+            // Allow modifier key combos (Ctrl+C, Cmd+V, etc.) to pass through
+            // so the browser can handle native clipboard and other system shortcuts.
+            const hasModifier = event.ctrlKey || event.metaKey;
+
+            if (!hasModifier) {
+              const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
+                (combo) =>
+                  event.key === combo.key &&
+                  event.shiftKey === (combo.shiftKey || false) &&
+                  event.ctrlKey === (combo.ctrlKey || false) &&
+                  event.altKey === (combo.altKey || false) &&
+                  event.metaKey === (combo.metaKey || false)
+              );
+              if (!isCombinationAllowed) {
+                return; // Block unallowed keydown in textarea
+              }
             }
           }
           // Allow modifier keydowns in textarea to be processed

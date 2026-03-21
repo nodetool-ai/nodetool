@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import React, { useMemo, useState, memo } from "react";
+import React, { useMemo, useState, useCallback, memo } from "react";
 import { Typography, Tooltip, Chip, Box, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -47,6 +47,11 @@ const ModelListItem: React.FC<
   const importantTags = ["gguf", "mlx"];
   const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleOpenDialog = useCallback(() => {
+    setDialogOpen(true);
+  }, []);
+
   const compatibilityCounts = useMemo(() => {
     if (!compatibility) {return { total: 0 };}
     return {
@@ -84,7 +89,7 @@ const ModelListItem: React.FC<
                 const repo =
                   lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
                 const modelUrl = getModelUrl(
-                  (model as any).provider,
+                  model.provider ?? undefined,
                   model.id,
                   model.type || undefined
                 );
@@ -195,7 +200,7 @@ const ModelListItem: React.FC<
                 <Chip
                   label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
                   size="small"
-                  onClick={() => setDialogOpen(true)}
+                  onClick={handleOpenDialog}
                   icon={<VisibilityIcon style={{ fontSize: "1rem" }} />}
                   sx={{
                     height: 20,

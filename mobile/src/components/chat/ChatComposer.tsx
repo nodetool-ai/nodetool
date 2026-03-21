@@ -188,7 +188,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && result.assets.length > 0) {
-        const newFiles: DroppedFile[] = result.assets.map((asset, index) => {
+        const newFiles: DroppedFile[] = result.assets.map((asset, _index) => {
           const mimeType = asset.mimeType || 'image/jpeg';
           const dataUri = asset.base64 
             ? `data:${mimeType};base64,${asset.base64}`
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     borderRadius: 20,
     paddingLeft: 8,
     paddingRight: 4,
@@ -417,12 +417,12 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
     maxHeight: 120,
+    minHeight: 42,
     paddingVertical: 8,
     paddingRight: 8,
   },
@@ -432,7 +432,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   stopButton: {
     backgroundColor: '#FF453A',

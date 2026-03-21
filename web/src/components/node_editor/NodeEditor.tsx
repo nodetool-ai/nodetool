@@ -20,7 +20,6 @@ import "../../styles/properties.css";
 import "../../styles/interactions.css";
 import "../../styles/special_nodes.css";
 import "../../styles/handle_edge_tooltip.css";
-// import "../../styles/collapsed.css";
 
 //hooks
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -29,20 +28,23 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
-import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
+import QuickAddNodeDialog from "./QuickAddNodeDialog";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import RunAsAppFab from "./RunAsAppFab";
 import SelectionActionToolbar from "./SelectionActionToolbar";
+import NodeInfoPanel from "./NodeInfoPanel";
+import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import SubgraphBreadcrumb from "../navigation/SubgraphBreadcrumb";
 import { useSubgraphNavigation } from "../../hooks/nodes/useSubgraphNavigation";
@@ -62,12 +64,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array reference on move)
+  const selectedNodeCount = useNodes((state) => state.getSelectedNodeCount());
+  const store = useNodeStoreRef();
 
   // Sync subgraph navigation with displayed nodes/edges
   useSubgraphNavigation();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [quickAddNodeOpen, setQuickAddNodeOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -77,8 +82,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
-  // Undo/Redo for CommandMenu
-  const nodeHistory = useTemporalNodes((state) => state);
+  // Subscribe only to undo/redo functions to prevent re-renders on history changes
+  const { undo, redo } = useTemporalNodes((state) => ({
+    undo: state.undo,
+    redo: state.redo
+  }));
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -87,6 +96,37 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Quick Add Node (Ctrl+Shift+A on all platforms)
+  const quickAddNodeCombo = isMac()
+    ? ["meta", "shift", "a"]
+    : ["control", "shift", "a"];
+  useCombo(
+    quickAddNodeCombo,
+    () => {
+      if (active) {
+        setQuickAddNodeOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
+  const nodeInfoCombo = isMac() ? ["meta", "i"] : ["control", "i"];
+  useCombo(
+    nodeInfoCombo,
+    () => {
+      if (active) {
+        const selectedIds = store.getState().getSelectedNodeIds();
+        if (selectedIds.length > 0) {
+          toggleInspectedNode(selectedIds[0]);
+        }
       }
     },
     true,
@@ -135,7 +175,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               backgroundColor: theme.vars.palette.c_editor_bg_color,
               // Used by structural CSS / node components (e.g. `nodes.base.css`, `BaseNode.tsx`)
               // Keep it defined even if ThemeNodetool changes.
-              ["--rounded-node" as any]: theme.rounded?.node ?? "8px"
+              "--rounded-node": theme.rounded?.node ?? "8px"
             } as React.CSSProperties
           }
         >
@@ -149,13 +189,21 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
-              <SelectionActionToolbar visible={selectedNodes.length >= 2} />
+              <SelectionActionToolbar
+                visible={selectedNodeCount >= 2}
+              />
+              <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}
-                undo={() => nodeHistory.undo()}
-                redo={() => nodeHistory.redo()}
+                undo={undo}
+                redo={redo}
+                reactFlowWrapper={reactFlowWrapperRef}
+              />
+              <QuickAddNodeDialog
+                open={quickAddNodeOpen}
+                setOpen={setQuickAddNodeOpen}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />

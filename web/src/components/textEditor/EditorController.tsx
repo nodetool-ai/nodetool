@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getRoot,
@@ -18,6 +18,27 @@ import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
+import log from "loglevel";
+
+// CSS Custom Highlight API (experimental)
+type CSSWithHighlights = typeof CSS & {
+  highlights?: {
+    set(name: string, highlight: unknown): void;
+    delete(name: string): void;
+  };
+};
+
+// Highlight constructor (experimental)
+type WindowWithHighlight = Window & {
+  Highlight?: new (...ranges: Range[]) => unknown;
+};
+
+// Text Fragment Directive (experimental polyfill)
+type DocumentWithFragmentDirective = Document & {
+  fragmentDirective?: {
+    show(fragments: unknown[]): void;
+  };
+};
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -75,8 +96,8 @@ const EditorController = ({
 
   const clearHighlights = useCallback(() => {
     // Clear both native and polyfilled highlights
-    (CSS as any)?.highlights?.delete?.(highlightAllName);
-    (CSS as any)?.highlights?.delete?.(highlightCurrentName);
+    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightAllName);
+    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightCurrentName);
 
     // No DOM-wrapper fallback anymore; CSS Highlight API handles highlight
     // clearing via CSS.highlights.delete above.
@@ -187,7 +208,7 @@ const EditorController = ({
     (matchIndexes: number[], matchLength: number, currentIndex: number) => {
       clearHighlights();
 
-      const hs = (CSS as any)?.highlights;
+      const hs = (CSS as CSSWithHighlights)?.highlights;
 
       // Native CSS Highlight API is preferred
       if (hs && typeof hs.set === "function") {
@@ -198,13 +219,14 @@ const EditorController = ({
           if (r) {ranges.push(r);}
         }
         if (ranges.length > 0) {
-          hs.set(highlightAllName, new (window as any).Highlight(...ranges));
+          const HighlightCtor = (window as WindowWithHighlight).Highlight!;
+          hs.set(highlightAllName, new HighlightCtor(...ranges));
 
           const currentRange = ranges[currentIndex] || ranges[0];
           if (currentRange) {
             hs.set(
               highlightCurrentName,
-              new (window as any).Highlight(currentRange)
+              new HighlightCtor(currentRange)
             );
             currentRange.startContainer?.parentElement?.scrollIntoView({
               block: "center"
@@ -230,9 +252,9 @@ const EditorController = ({
 
         if (
           fragments.length > 0 &&
-          typeof (document as any).fragmentDirective.show === "function"
+          typeof (document as DocumentWithFragmentDirective).fragmentDirective?.show === "function"
         ) {
-          (document as any).fragmentDirective.show(fragments);
+          (document as DocumentWithFragmentDirective).fragmentDirective!.show(fragments);
 
           // The polyfill doesn't have a concept of a "current" match,
           // so we can't style it differently or scroll to it.
@@ -367,6 +389,7 @@ const EditorController = ({
         return "";
       });
     } catch {
+      // Editor state read failed (editor may be disposed), return empty string
       return "";
     }
   }, [editor]);
@@ -549,7 +572,7 @@ const EditorController = ({
                 node.setTextContent(newText);
                 anyReplaced = true;
               } catch (err) {
-                console.error("Error performing regex replace:", err);
+                log.error("Error performing regex replace:", err);
               }
             }
           }
@@ -594,7 +617,7 @@ const EditorController = ({
   // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
-      setTimeout(() => {
+      const initTimeoutId = setTimeout(() => {
         editor.update(() => {
           const root = $getRoot();
           const currentText = root.getTextContent();
@@ -609,6 +632,7 @@ const EditorController = ({
         });
         setInitialContentSet(true);
       }, 0);
+      return () => clearTimeout(initTimeoutId);
     }
   }, [editor, initialContent, initialContentSet]);
 
@@ -729,4 +753,4 @@ const EditorController = ({
   return null;
 };
 
-export default EditorController;
+export default memo(EditorController);

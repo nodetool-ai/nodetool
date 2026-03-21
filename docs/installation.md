@@ -20,85 +20,72 @@ NodeTool includes a guided setup that handles dependencies automatically.
 
 ## System Requirements
 
-### Minimum Requirements
+### Basics
 
-| Component | Requirement |
-|-----------|-------------|
-| **Operating System** | Windows 10+, macOS 11+, or Linux (Ubuntu 20.04+) |
-| **RAM** | 8 GB (16 GB recommended) |
-| **Storage** | 20 GB free space (SSD recommended) |
-| **Internet** | Required for initial setup and cloud AI features |
+| Component | Need |
+|-----------|------|
+| **OS** | Windows 10+, macOS 11+, Linux (Ubuntu 20.04+) |
+| **RAM** | 8 GB minimum, 16 GB recommended |
+| **Storage** | 20 GB free (SSD recommended) |
+| **Internet** | For setup and cloud AI |
 
-### For Local AI Models (Recommended)
+### For Local AI
 
-Running AI models locally provides privacy and offline operation, but requires more resources:
+Running models locally gives you privacy and offline use, but needs more resources:
 
-| Hardware | Capability |
-|----------|------------|
-| **NVIDIA GPU** (8+ GB VRAM) | Full local AI capabilities including image generation |
-| **Apple Silicon** (M1/M2/M3) | Excellent local performance via MLX optimization |
-| **CPU only** | Works, but slower for AI tasks |
+| Hardware | Can Do |
+|----------|--------|
+| **NVIDIA GPU** (8+ GB VRAM) | All local AI including image generation |
+| **Apple Silicon** (M1/M2/M3) | Excellent performance via MLX |
+| **CPU only** | Works, slower |
 
-> **No GPU?** Use cloud AI providers (OpenAI, Anthropic, etc.) instead of local models. Add your API key in Settings after installation.
+> **No GPU?** Use cloud providers (OpenAI, Anthropic) instead. Add API key in Settings.
 
-### Hardware Requirements by Task
+### What Different Tasks Need
 
-Requirements for common AI tasks:
+| GPU Tier | Recommended Setup | Best Local Experience (Optimized) |
+| --- | --- | --- |
+| **Entry (8 GB)** | RTX 4060 / 5060 | **Flux.1 Schnell (Nunchaku)**, Qwen-Image-Lightning, 8B LLMs (Llama 3/4). |
+| **Mid (12–16 GB)** | RTX 4070 Ti / 5070 | **Qwen-Image-Edit (4-bit)**, Flux.1 Dev (Nunchaku), 32B Reasoning LLMs (DeepSeek R1 Distill). |
+| **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | **Full Qwen-Image 2512**, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4). |
+| **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | **DeepSeek-V3 (Full Local)**, 4K Video Gen (LTX-2), LoRA training in minutes. |
 
-#### Image Generation
+In 2026, Apple hardware is particularly strong for local AI because of **Unified Memory Architecture (UMA)**. Unlike Windows PCs where you are limited by the VRAM on your graphics card, a Mac can use a large portion of its total RAM for AI models.
 
-| Model | Minimum VRAM | Recommended VRAM | RAM | Notes |
-|-------|-------------|------------------|-----|-------|
-| **Stable Diffusion 1.5** | 4 GB | 6 GB | 8 GB | Good for basic image generation |
-| **Stable Diffusion XL (SDXL)** | 8 GB | 12 GB | 16 GB | Higher quality, larger images |
-| **Flux Schnell** | 8 GB | 12 GB | 16 GB | Fast generation, good quality |
-| **Flux Dev** | 12 GB | 16 GB+ | 24 GB | Best quality, slower |
-| **ControlNet (any base)** | +2-4 GB | +4-6 GB | +4 GB | Add to base model requirements |
+With the **M4 chip family** and the **MLX framework**, Macs are now competitive with NVIDIA for "compute-heavy" tasks like Flux and Qwen-Image.
 
-#### Language Models (LLMs)
+### **2026 Apple Silicon AI Capability Table**
 
-| Model Size | Minimum VRAM | Recommended VRAM | RAM (CPU-only) | Speed |
-|------------|-------------|------------------|----------------|-------|
-| **7B parameters** (Mistral, Llama 3.1 8B) | 6 GB | 8 GB | 16 GB | Good for most tasks |
-| **13B parameters** | 10 GB | 12 GB | 24 GB | Better reasoning |
-| **20B+ parameters** (GPT-OSS) | 16 GB | 24 GB | 32 GB+ | Near-GPT quality |
-| **70B parameters** | 48 GB+ | 80 GB | 64 GB+ | Maximum quality, multi-GPU |
+| Chip Model | Min. RAM | Ideal RAM | Can Handle (MLX Optimized) |
+| --- | --- | --- | --- |
+| **M4 (Base)** | 16 GB | 32 GB | **8B LLMs (Llama 4)**, Flux.1 Schnell (8-bit), Sana 4K images. |
+| **M4 Pro** | 24 GB | 64 GB | **Qwen-Image-Edit**, 32B Reasoning models (DeepSeek R1), Flux.1 Dev. |
+| **M4 Max** | 48 GB | 128 GB | **70B Flagship LLMs**, Full-precision Flux, 720p Video (Wan2.1). |
+| **M2/M3 Ultra** | 128 GB | 512 GB | **DeepSeek-V3 (671B)**, 4K Video workflows, massive Batch-processing. |
 
-> **Quantization reduces requirements**: 4-bit quantized models (Q4) use ~50% less VRAM than full precision. NodeTool automatically uses quantized versions when available.
+---
 
-#### Audio Processing
+### **Specific Task Guide for Mac (2026)**
 
-| Task | Minimum | Recommended | Notes |
-|------|---------|-------------|-------|
-| **Whisper (transcription)** | 4 GB VRAM or 8 GB RAM | 6 GB VRAM or 16 GB RAM | CPU works but slower |
-| **Text-to-Speech (TTS)** | 2 GB VRAM or 4 GB RAM | 4 GB VRAM or 8 GB RAM | Lightweight |
-| **Music Generation** | 8 GB VRAM | 12 GB VRAM | Model dependent |
+#### **1. Image Generation (MLX / MFLUX)**
 
-#### Video Processing
+Apple users should use **MLX-based tools** (like `mflux`) rather than standard PyTorch for a 3x speed boost.
 
-| Task | Minimum VRAM | Recommended VRAM | RAM | Notes |
-|------|-------------|------------------|-----|-------|
-| **Video-to-Video** | 12 GB | 16 GB+ | 32 GB | Processes frame-by-frame |
-| **CogVideoX** | 16 GB | 24 GB | 48 GB | Text-to-video generation |
+* **Flux.1 Dev:** Requires at least **32GB RAM** to run smoothly at 8-bit.
+* **Qwen-Image-Edit:** Now natively supported via MLX. On an M4 Max, it can perform complex "Multi-Image" edits in under 10 seconds.
+* **Sana (4K):** Runs exceptionally well on the base M4 because of its low parameter count but high resolution output.
 
-#### Apple Silicon (M1/M2/M3/M4)
+#### **2. Language Models (LLMs)**
 
-Apple Silicon Macs use unified memory shared between CPU and GPU. NodeTool uses MLX for optimized performance.
+The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
 
-| Chip | Unified Memory | Capability |
-|------|---------------|------------|
-| **M1/M2** (8 GB) | 8 GB | Basic LLMs (7B), limited image gen |
-| **M1/M2 Pro** (16 GB) | 16 GB | Most LLMs, SDXL, Flux Schnell |
-| **M1/M2 Max** (32 GB) | 32 GB | Large LLMs (20B+), all image models |
-| **M1/M2 Ultra** (64 GB+) | 64 GB+ | All models including 70B LLMs |
-| **M3/M4 (any)** | 8-128 GB | ~20% faster than equivalent M2 |
+* **Llama 3.3/4 (70B) @ Q4:** Needs ~42 GB. Runs great on a **64GB M4 Pro/Max**.
+* **DeepSeek-V3 (MoE):** This massive model requires **at least 128GB RAM** (Ultra chips) even when heavily quantized.
 
-### Quick Compatibility Check
+#### **3. Video Generation**
 
-- **8 GB VRAM / 16 GB RAM**: Basic image generation, 7B LLMs, audio transcription
-- **12 GB VRAM / 24 GB RAM**: SDXL, Flux, 13B LLMs, most workflows  
-- **16 GB+ VRAM / 32 GB+ RAM**: All local models, video generation, large LLMs
-- **Cloud APIs only**: Any hardware — offload processing to OpenAI, Anthropic, Replicate
+* **Wan2.1 (Small):** Can run on **M4 Pro (48GB)**.
+* **CogVideoX:** Best on **M4 Max** due to high memory bandwidth requirements ( GB/s).
 
 ---
 
@@ -133,11 +120,11 @@ NodeTool automatically sets up everything it needs to run. Here's what happens b
 
 ### Core Components
 
-- **Python Environment** – Self-contained Python installation (doesn't affect your system Python)
-- **AI Engines** – Tools for running AI models locally:
-  - **Ollama** – For language models
-  - **llama.cpp** – Optimized inference (GPU-accelerated where available)
-- **Dependencies** – All required libraries and packages
+- **Node.js Runtime** -- Self-contained Node.js installation (does not affect your system Node.js)
+- **AI Engines** -- Tools for running AI models locally:
+  - **Ollama** -- For language models
+  - **llama.cpp** -- Optimized inference (GPU-accelerated where available)
+- **Dependencies** -- All required libraries and packages
 
 ### Why 20 GB?
 
@@ -145,7 +132,7 @@ NodeTool itself is small, but AI models can be large:
 
 | Component | Typical Size |
 |-----------|--------------|
-| NodeTool + Python environment | 2-4 GB |
+| NodeTool + Node.js runtime | 2-4 GB |
 | GPT-OSS (recommended LLM) | ~4 GB |
 | Flux (image generation) | ~12 GB |
 | **Total with recommended models** | ~20 GB |
@@ -284,12 +271,9 @@ You should see your GPU model and driver version. NodeTool requires:
 - If multiple versions exist, ensure your PATH points to the correct one
 - NodeTool's bundled environment usually handles this, but system conflicts can occur
 
-**"torch.cuda.is_available() returns False"**
-- Your PyTorch installation may not have CUDA support
-- NodeTool includes its own PyTorch; if using custom Python, install the CUDA version:
-  ```bash
-  pip install torch --index-url https://download.pytorch.org/whl/cu121
-  ```
+**GPU acceleration unavailable**
+- NodeTool delegates GPU workloads to external engines (Ollama, llama.cpp, ComfyUI). Ensure those engines have CUDA/Metal support enabled.
+- Verify your GPU driver version with `nvidia-smi`.
 
 #### Windows-Specific CUDA Issues
 
@@ -324,11 +308,11 @@ Security software can interfere with NodeTool's local server and AI model execut
 **Norton, McAfee, Bitdefender, etc.**
 - Add NodeTool to your antivirus's trusted/excluded programs list
 - Temporarily disable real-time scanning during installation
-- Some AV software blocks Python processes – whitelist `python.exe` in NodeTool's folder
+- Some AV software blocks Node.js processes -- whitelist `node.exe` in NodeTool's folder
 
 #### Firewall Configuration
 
-NodeTool runs a local server (default port 8000). Allow it through your firewall:
+NodeTool runs a local server (default port 7777). Allow it through your firewall:
 
 **Windows Firewall**
 1. Open Windows Firewall → "Allow an app through firewall"
@@ -343,40 +327,33 @@ NodeTool runs a local server (default port 8000). Allow it through your firewall
 
 **Linux (ufw)**
 ```bash
-sudo ufw allow 8000/tcp
+sudo ufw allow 7777/tcp
 ```
 
 ---
 
-### Python Environment Issues
+### Runtime Environment Issues
 
-NodeTool includes its own Python environment, but system Python can sometimes conflict.
+NodeTool includes its own Node.js runtime, but system-level conflicts can occasionally occur.
 
-#### "Python not found" or "Module not found"
+#### "Module not found" or startup errors
 
-- NodeTool uses a bundled Python – this error usually means installation incomplete
+- NodeTool uses a bundled runtime -- this error usually means installation is incomplete
 - Try reinstalling NodeTool, ensuring the installer completes fully
-- Check that you're launching NodeTool from the correct location
+- Check that you are launching NodeTool from the correct location
 
-#### Conflicting Python Environments
-
-If you have Anaconda, Miniconda, or other Python distributions:
-
-- **Don't activate conda** before running NodeTool – it uses its own Python
-- If issues persist, temporarily rename or move your conda installation to test
-- Check your PATH doesn't override NodeTool's Python
-
-#### Virtual Environment Issues (for developers)
+#### Development Setup (for contributors)
 
 If running NodeTool from source:
 ```bash
-# Create fresh environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
-
 # Install dependencies
-pip install -e .
+npm install
+
+# Build all packages
+npm run build
+
+# Start the development server
+npm run dev
 ```
 
 ---

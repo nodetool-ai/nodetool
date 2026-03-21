@@ -7,9 +7,7 @@ import { readSettings, updateSetting } from "./settings";
 
 // Base paths
 const resourcesPath: string = process.resourcesPath;
-const srcPath: string = app.isPackaged
-  ? path.join(resourcesPath, "src")
-  : path.join(__dirname, "..", "..", "src");
+const srcPath: string = __dirname;
 
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
@@ -39,6 +37,8 @@ const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
 const FALLBACK_LOCK_FILE_NAME = "environment.lock.yml";
 
 // Returns a sane default install location if settings do not define CONDA_ENV
+// IMPORTANT: These paths MUST match getDefaultInstallLocation() in python.ts
+// to avoid looking in the wrong place when settings are unavailable
 const getDefaultCondaEnvPath = (): string => {
   switch (process.platform) {
     case "win32":
@@ -51,12 +51,8 @@ const getDefaultCondaEnvPath = (): string => {
             "conda_env"
           );
     case "darwin":
-      return process.env.SUDO_USER
-        ? path.join("/Library/Application Support/nodetool/conda_env")
-        : path.join(
-            os.homedir(),
-            "Library/Application Support/nodetool/conda_env"
-          );
+      // Use ~/nodetool_env to match getDefaultInstallLocation() in python.ts
+      return path.join(os.homedir(), "nodetool_env");
     case "linux":
       return process.env.SUDO_USER
         ? "/opt/nodetool/conda_env"
@@ -67,30 +63,26 @@ const getDefaultCondaEnvPath = (): string => {
 };
 
 const getCondaEnvPath = (): string => {
-  logMessage("=== Getting Conda Environment Path ===");
-
-  // Detect if a conda environment is already activated in the shell
-  if (process.env.CONDA_PREFIX) {
-    const activeEnv = process.env.CONDA_PREFIX;
-    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
-    logMessage("! WARNING: DETECTED ACTIVATED CONDA ENVIRONMENT", "warn");
-    logMessage(`! USING: ${activeEnv}`, "warn");
-    logMessage("! IGNORING CONDA_ENV SETTING FROM CONFIG FILE", "warn");
-    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
-    return activeEnv;
+  // In explicit dev mode, prefer an already-activated conda environment so
+  // local Electron development can reuse the shell environment.
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    const activeEnv = process.env.CONDA_PREFIX?.trim();
+    if (activeEnv) {
+      logMessage(`Using activated conda environment in dev mode: ${activeEnv}`, "warn");
+      return activeEnv;
+    }
   }
 
   let settings: Record<string, unknown> = {};
   try {
     settings = readSettings();
-    logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
   } catch (error) {
     logMessage(
       `Failed to read settings, using default conda path. Error: ${error}`,
       "error"
     );
     const fallbackOnError = getDefaultCondaEnvPath();
-    logMessage(`Conda path fallback (readSettings error): ${fallbackOnError}`);
+    logMessage(`Conda path fallback: ${fallbackOnError}`);
     return fallbackOnError;
   }
 
@@ -100,25 +92,37 @@ const getCondaEnvPath = (): string => {
     typeof condaPathFromSettings === "string" &&
     condaPathFromSettings.trim().length > 0
   ) {
-    logMessage(`Final conda path (from settings): ${condaPathFromSettings}`);
+    logMessage(`Conda env path: ${condaPathFromSettings}`);
     return condaPathFromSettings;
   }
 
+  // CONDA_ENV not set - use default and persist it immediately to avoid future inconsistencies
   const fallbackPath = getDefaultCondaEnvPath();
   logMessage(
-    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
+    `CONDA_ENV not set in settings. Using and persisting default path: ${fallbackPath}`
   );
+
+  // Persist the default so it's always consistent going forward
+  try {
+    updateSetting("CONDA_ENV", fallbackPath);
+  } catch (error) {
+    logMessage(
+      `Failed to persist default CONDA_ENV to settings: ${error}`,
+      "warn"
+    );
+  }
+
   return fallbackPath;
 };
 
 /**
- * Retrieves the path to the uv executable
- * @returns {string} Path to uv executable
+ * Retrieves the path to the Node.js binary in the conda environment
+ * @returns {string} Path to Node.js executable
  */
-const getUVPath = (): string =>
+const getNodePath = (): string =>
   process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
-    : path.join(getCondaEnvPath(), "bin", "uv");
+    ? path.join(getCondaEnvPath(), "node.exe")
+    : path.join(getCondaEnvPath(), "bin", "node");
 
 /**
  * Retrieves the path to the Python executable
@@ -126,15 +130,19 @@ const getUVPath = (): string =>
  */
 const getPythonPath = (): string => {
   const condaPath = getCondaEnvPath();
-  const pythonPath =
-    process.platform === "win32"
-      ? path.join(condaPath, "python.exe")
-      : path.join(condaPath, "bin", "python");
+  return process.platform === "win32"
+    ? path.join(condaPath, "python.exe")
+    : path.join(condaPath, "bin", "python");
+};
 
-  logMessage(`getPythonPath() - condaPath: ${condaPath}`);
-  logMessage(`getPythonPath() - pythonPath: ${pythonPath}`);
-
-  return pythonPath;
+/**
+ * Retrieves the path to the uv package manager executable from the conda environment.
+ */
+const getUVPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "uv.exe")
+    : path.join(condaPath, "bin", "uv");
 };
 
 /**
@@ -266,12 +274,37 @@ const getProcessEnv = (): ProcessEnv => {
     }
   }
 
+  const envKeysToClear = [
+    "CONDA_PREFIX",
+    "CONDA_DEFAULT_ENV",
+    "CONDA_PROMPT_MODIFIER",
+    "CONDA_SHLVL",
+    "CONDA_EXE",
+    "CONDA_PYTHON_EXE",
+    "_CE_CONDA",
+    "_CE_M",
+    "VIRTUAL_ENV",
+    "PYTHONHOME",
+    "PYTHONPATH",
+    "UV_PYTHON",
+    "UV_PROJECT_ENVIRONMENT",
+  ] as const;
+
+  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] === "string");
+  for (const key of envKeysToClear) {
+    delete baseEnv[key];
+  }
+  if (clearedKeys.length > 0) {
+    logMessage(
+      `Cleared inherited environment markers before launching bundled runtime: ${clearedKeys.join(", ")}`
+    );
+  }
+
   const pathSegmentsWin = [
     path.join(condaPath),
     path.join(condaPath, "Library", "mingw-w64", "bin"),
     path.join(condaPath, "Library", "usr", "bin"),
     path.join(condaPath, "Library", "bin"),
-    path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
     path.join(condaPath, "Scripts"),
     baseEnv.PATH || "",
   ];
@@ -281,11 +314,42 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
 
+  // Set HOME if not already set (needed on macOS for GUI processes)
+  const homeDir = baseEnv.HOME || os.homedir();
+
+  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
+  // This ensures consistency between Electron app and CLI usage
+  const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
+
+  // UV cache: store inside userData so it's writable by the Electron app
+  const userDataPath = app.getPath("userData");
+  const uvCacheDir = path.join(userDataPath, "uv-cache");
+  const xdgCacheHome = path.join(userDataPath, "cache");
+
+  // Python path for the conda environment
+  const pythonLibPath =
+    process.platform === "win32"
+      ? path.join(condaPath, "Lib", "site-packages")
+      : path.join(condaPath, "lib");
+
+  // Ensure cache directories exist
+  try {
+    fs.mkdirSync(hfHome, { recursive: true });
+    fs.mkdirSync(uvCacheDir, { recursive: true });
+    fs.mkdirSync(xdgCacheHome, { recursive: true });
+  } catch (error) {
+    logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
+  }
+
   return {
     ...baseEnv,
-    PYTHONPATH: srcPath,
+    HOME: homeDir,
+    HF_HOME: hfHome,
+    PYTHONPATH: pythonLibPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
+    UV_CACHE_DIR: uvCacheDir,
+    XDG_CACHE_HOME: xdgCacheHome,
     PATH:
       process.platform === "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
@@ -295,6 +359,7 @@ const getProcessEnv = (): ProcessEnv => {
 
 export {
   getCondaEnvPath,
+  getNodePath,
   getPythonPath,
   getUVPath,
   getOllamaPath,
@@ -303,8 +368,8 @@ export {
   getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,
-  srcPath,
   PID_FILE_PATH,
   PID_DIRECTORY,
+  srcPath,
   webPath,
 };

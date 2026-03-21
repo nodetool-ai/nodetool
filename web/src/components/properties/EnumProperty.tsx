@@ -4,6 +4,26 @@ import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 
+const formatEnumLabel = (value: string | number): string => {
+  if (typeof value !== "string") {
+    return value.toString();
+  }
+
+  if (!value.includes("_")) {
+    return value;
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+// Extended property type to include legacy values/enum fields
+interface EnumPropertyExtra {
+  values?: (string | number)[];
+  enum?: (string | number)[];
+}
+
 const EnumProperty: React.FC<PropertyProps> = ({
   property,
   propertyIndex,
@@ -18,10 +38,21 @@ const EnumProperty: React.FC<PropertyProps> = ({
   );
 
   const values = useMemo(() => {
-    return property.type.type === "enum"
-      ? property.type.values
-      : property.type.type_args?.[0].values;
-  }, [property.type]);
+    const extras = property.json_schema_extra as EnumPropertyExtra | undefined;
+    return property.type.values ||
+           (property.type.type_args?.[0]?.values) ||
+           extras?.values ||
+           extras?.enum ||
+           (property as EnumPropertyExtra).values ||
+           (property as EnumPropertyExtra).enum;
+  }, [property]);
+
+  const options = useMemo(() => {
+    return values?.map((val: string | number) => ({
+      label: formatEnumLabel(val),
+      value: val
+    })) || [];
+  }, [values]);
 
   return (
     <div className="enum-property">
@@ -33,12 +64,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
       <Select
         value={value || ""}
         onChange={onChange}
-        options={
-          values?.map((value) => ({
-            label: value.toString(),
-            value: value
-          })) || []
-        }
+        options={options}
         label={property.name}
         placeholder={property.name}
         tabIndex={tabIndex}

@@ -4,11 +4,10 @@
  * Side panel for browsing and managing workflow version history.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Typography,
-  IconButton,
   List,
   Paper,
   Button,
@@ -16,26 +15,25 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
   CircularProgress
 } from "@mui/material";
 import {
-  Close as CloseIcon,
   Compare as CompareIcon,
-  History as HistoryIcon,
   FilterList as FilterIcon
 } from "@mui/icons-material";
-import { VersionListItem } from "./VersionListItem";
+import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
-import { NodeUIProperties } from "../../stores/NodeStore";
+import PanelHeadline from "../ui/PanelHeadline";
+import { CloseButton, DialogActionButtons } from "../ui_primitives";
+import log from "loglevel";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -43,9 +41,21 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
+// Helper function to calculate graph size efficiently
+// Uses a simple approximation instead of creating a Blob
+const getGraphSizeBytes = (graph: Graph): number => {
+  try {
+    // Use JSON.stringify length as an approximation
+    // This is much faster than creating a Blob
+    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+  } catch {
+    return 0;
+  }
+};
+
 const getSaveType = (version: WorkflowVersion): SaveType => {
   if (version.save_type && ["manual", "autosave", "checkpoint", "restore"].includes(version.save_type)) {
-    return version.save_type;
+    return version.save_type as SaveType;
   }
   if (!version.name) {return "autosave";}
   const lower = version.name.toLowerCase();
@@ -60,22 +70,21 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   onRestore,
   onClose
 }) => {
-  const {
-    selectedVersionId,
-    compareVersionId,
-    isCompareMode,
-    setSelectedVersion,
-    setCompareVersion,
-    setCompareMode,
-    setHistoryPanelOpen
-  } = useVersionHistoryStore();
+  const selectedVersionId = useVersionHistoryStore((state) => state.selectedVersionId);
+  const compareVersionId = useVersionHistoryStore((state) => state.compareVersionId);
+  const isCompareMode = useVersionHistoryStore((state) => state.isCompareMode);
+  const setSelectedVersion = useVersionHistoryStore((state) => state.setSelectedVersion);
+  const setCompareVersion = useVersionHistoryStore((state) => state.setCompareVersion);
+  const setCompareMode = useVersionHistoryStore((state) => state.setCompareMode);
+  const setHistoryPanelOpen = useVersionHistoryStore((state) => state.setHistoryPanelOpen);
 
   const {
     data: apiVersions,
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    deleteVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
@@ -93,7 +102,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     return filtered.map((v) => ({
       ...v,
       save_type: getSaveType(v),
-      size_bytes: new Blob([JSON.stringify(v.graph)]).size
+      size_bytes: getGraphSizeBytes(v.graph)
     }));
   }, [apiVersions, filterType]);
 
@@ -149,13 +158,18 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     if (versionToDelete) {
-      if (selectedVersionId === versionToDelete) {
-        setSelectedVersion(null);
-      }
-      if (compareVersionId === versionToDelete) {
-        setCompareVersion(null);
+      try {
+        await deleteVersion(versionToDelete);
+        if (selectedVersionId === versionToDelete) {
+          setSelectedVersion(null);
+        }
+        if (compareVersionId === versionToDelete) {
+          setCompareVersion(null);
+        }
+      } catch (error) {
+        log.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
@@ -165,37 +179,18 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     selectedVersionId,
     compareVersionId,
     setSelectedVersion,
-    setCompareVersion
+    setCompareVersion,
+    deleteVersion
   ]);
-
-  const handlePin = useCallback((_versionId: string, _pinned: boolean) => {
-  }, []);
 
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
-      console.log("[handleRestore] Version to restore:", {
-        id: version.id,
-        version: version.version,
-        name: version.name,
-        saveType: version.save_type,
-        graphNodesCount: version.graph?.nodes?.length ?? 0,
-        graphEdgesCount: version.graph?.edges?.length ?? 0,
-        hasInputSchema: !!(version as any).input_schema,
-        hasOutputSchema: !!(version as any).output_schema,
-        firstNode: version.graph?.nodes?.[0] ? {
-          id: version.graph.nodes[0].id,
-          type: version.graph.nodes[0].type,
-          ui_properties: version.graph.nodes[0].ui_properties,
-          position: (version.graph.nodes[0].ui_properties as NodeUIProperties | undefined)?.position
-        } : null,
-        firstEdge: version.graph?.edges?.[0] || null
-      });
       try {
         await restoreVersion(version.version);
         onRestore(version);
         setHistoryPanelOpen(false);
       } catch (error) {
-        console.error("Failed to restore version:", error);
+        log.error("Failed to restore version:", error);
       }
     },
     [restoreVersion, onRestore, setHistoryPanelOpen]
@@ -226,11 +221,16 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
 
+  const handleCloseDeleteDialog = useCallback(() => {
+    setDeleteDialogOpen(false);
+  }, []);
+
   if (isLoading) {
     return (
       <Paper
         elevation={3}
         sx={{
+          backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -248,9 +248,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   if (error) {
     return (
-      <Paper
-        elevation={3}
+      <Box
         sx={{
+          backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -258,51 +258,41 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           p: 3
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <HistoryIcon color="primary" />
-            <Typography variant="h6">Version History</Typography>
-          </Box>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
+        <PanelHeadline
+          title="Version History"
+          actions={
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
+          }
+        />
         <Typography color="error">Failed to load versions</Typography>
         <Typography variant="caption" color="text.secondary">
           {String(error)}
         </Typography>
-      </Paper>
+        </Box>
     );
   }
 
   return (
-    <Paper
-      elevation={3}
+    <Box
+      className="version-history-panel"
       sx={{
         width: "100%",
         height: "100%",
         display: "flex",
+        padding: "0 1em",
         flexDirection: "column",
         overflow: "hidden"
       }}
     >
       <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: 1,
-          borderColor: "divider"
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon color="primary" />
-          <Typography variant="h6">Version History</Typography>
-        </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+      className="version-history-panel-header"
+       sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <PanelHeadline
+          title="Version History"
+          actions={
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
+          }
+        />
       </Box>
 
       <Box sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
@@ -434,7 +424,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 onSelect={handleSelect}
                 onRestore={handleRestore}
                 onDelete={handleDelete}
-                onPin={handlePin}
                 onCompare={handleCompare}
                 isRestoring={isRestoringVersion}
               />
@@ -458,7 +447,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
       >
         <DialogTitle>Delete Version</DialogTitle>
         <DialogContent>
@@ -467,13 +456,15 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} color="error" autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCloseDeleteDialog}
+          confirmText="Delete"
+          destructive
+        />
       </Dialog>
-    </Paper>
+    </Box>
   );
 };
+
+export default memo(VersionHistoryPanel);

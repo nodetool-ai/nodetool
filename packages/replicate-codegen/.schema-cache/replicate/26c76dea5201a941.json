@@ -1,0 +1,87 @@
+{
+  "modelId": "black-forest-labs/flux-kontext-max",
+  "owner": "black-forest-labs",
+  "name": "flux-kontext-max",
+  "version": "8389ed8e4b16016c44fcdcc3ad142cf1e182e0a1ecaf0347b3e5254303f2beac",
+  "description": "A premium text-based image editing model that delivers maximum performance and improved typography generation for transforming images through natural language prompts",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "21:9",
+          "9:21",
+          "2:1",
+          "1:2"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "input_image": {
+        "description": "Image to use as reference. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Input Image",
+        "type": "string"
+      },
+      "output_format": {
+        "default": "png",
+        "description": "Output format for the generated image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 5
+      },
+      "prompt": {
+        "description": "Text description of what you want to generate, or the instruction on how to edit the given image.",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_upsampling": {
+        "default": false,
+        "description": "Automatic prompt improvement",
+        "title": "Prompt Upsampling",
+        "type": "boolean"
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 0 is most strict and 6 is most permissive. 2 is currently the maximum allowed when input images are used.",
+        "maximum": 6,
+        "minimum": 0,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

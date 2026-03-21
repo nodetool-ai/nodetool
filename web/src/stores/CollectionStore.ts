@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { client } from "./ApiClient";
+import log from "loglevel";
 
 interface ApiErrorDetail {
   loc: string[];
@@ -21,6 +22,16 @@ interface IndexResponseData {
 interface IndexError {
   file: string;
   error: string;
+}
+
+// Type for the POST /api/collections/{name}/index endpoint options
+interface CollectionIndexOptions {
+  params: {
+    path: { name: string };
+  };
+  body: {
+    file: string;
+  };
 }
 
 interface IndexProgressState {
@@ -157,16 +168,14 @@ export const useCollectionStore = create<CollectionStore>()(
           formData.append("file", file);
 
           try {
-            const requestOptions: any = {
-              params: {
-                path: { name: collectionName }
-              },
-              body: formData
-            };
-
             const { data, error } = await client.POST(
               "/api/collections/{name}/index",
-              requestOptions
+              {
+                params: {
+                  path: { name: collectionName }
+                },
+                body: formData as unknown as CollectionIndexOptions["body"]
+              }
             );
 
             const apiError = error as ApiError | undefined;
@@ -181,15 +190,14 @@ export const useCollectionStore = create<CollectionStore>()(
                   "Unknown error"
               });
             }
-          } catch (err: any) {
-            console.error(`Failed to index file ${file.name}:`, err);
+          } catch (err: unknown) {
+            log.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
-              error: String(err?.message || err)
+              error: err instanceof Error ? err.message : String(err)
             });
           } finally {
             completed++;
-            await get().fetchCollections();
             set((state) => ({
               indexProgress: state.indexProgress
                 ? {
@@ -201,6 +209,7 @@ export const useCollectionStore = create<CollectionStore>()(
           }
         }
 
+        await get().fetchCollections();
         set({ indexProgress: null, indexErrors: errors });
       }
     }),

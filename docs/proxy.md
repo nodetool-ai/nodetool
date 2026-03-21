@@ -5,14 +5,13 @@ title: "Proxy Reference"
 
 
 
-The NodeTool proxy (`src/nodetool/proxy/server.py`) is an asynchronous reverse proxy that starts Docker services on demand, terminates TLS/ACME, and forwards HTTP traffic using longest-prefix routing. It is deployed as a standalone container (`docker/proxy/Dockerfile`) or run locally via the CLI.
+The NodeTool proxy (`@nodetool/deploy` `self-hosted.ts`) is a reverse proxy that starts Docker services on demand, terminates TLS/ACME via nginx, and forwards HTTP traffic using longest-prefix routing. It is deployed as a standalone container or run locally via the CLI.
 
 ## Architecture
 
-- **FastAPI application** (`nodetool.proxy.server.AsyncReverseProxy`) – handles incoming requests, matches URL prefixes, and proxies them to running containers.
-- **Docker manager** (`nodetool.proxy.docker_manager.DockerManager`) – keeps track of registered services, starts/stops containers, and enforces idle timeouts.
-- **Configuration schema** (`nodetool.proxy.config.ProxyConfig`) – deserialises YAML into strongly typed settings for global behaviour and individual services.
-- **Header filters** (`nodetool.proxy.filters`) – remove hop-by-hop headers and sensitive metadata when proxying.
+- **Nginx reverse proxy** -- configured by `@nodetool/deploy` `self-hosted.ts`, handles incoming requests, matches URL prefixes, and proxies them to running containers.
+- **Docker manager** (`@nodetool/deploy` `docker.ts`) -- keeps track of registered services, starts/stops containers, and enforces idle timeouts.
+- **Configuration schema** (`@nodetool/deploy` `deployment-config.ts`) -- deserialises YAML into strongly typed settings for global behaviour and individual services.
 
 Key behaviours:
 
@@ -24,7 +23,7 @@ Key behaviours:
 
 ## Configuration (`proxy.yaml`)
 
-Rendered by the deployer into `<workspace>/proxy/proxy.yaml`; schema defined in `src/nodetool/proxy/config.py`.
+Rendered by the deployer into `<workspace>/proxy/proxy.yaml`; schema defined in `@nodetool/deploy` `deployment-config.ts`.
 
 ```yaml
 global:
@@ -43,15 +42,15 @@ global:
   auto_certbot: false
 
 services:
-  - name: nodetool-worker
+  - name: nodetool-server
     path: /
     image: nodetool:latest
-    internal_port: 8000
+    internal_port: 7777
     host_port: null              # auto-select unless using host_port mode
     mem_limit: 8g
     cpus: 4.0
     environment:
-      NODETOOL_API_URL: http://localhost:8000
+      NODETOOL_API_URL: http://localhost:7777
     volumes:
       /data/workspace:
         bind: /workspace
@@ -98,7 +97,7 @@ All proxy commands are exposed by `nodetool cli`:
 
 ## Related Documentation
 
-- [Self-Hosted Deployment](self_hosted.md) – end-to-end instructions for pairing the proxy with worker containers.  
+- [Self-Hosted Deployment](self-hosted-deployment.md) – end-to-end instructions for pairing the proxy with server containers.  
 - [Deployment Guide](deployment.md) – CLI workflow for applying proxy-enabled deployments.  
 - [Configuration Guide](configuration.md) – how environment variables and secrets are supplied to services.  
 - [Docker Resource Management](docker-resource-management.md) – tuning container limits for multi-tenant setups.

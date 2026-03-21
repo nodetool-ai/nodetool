@@ -1,467 +1,336 @@
-# Documentation Guide
-
-**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Documentation**
-
-This guide helps AI agents understand the documentation structure and writing guidelines for NodeTool.
-
-## Overview
-
-The `/docs` directory contains user-facing documentation built with Jekyll static site generator. Documentation covers all aspects of using NodeTool from getting started to advanced development topics.
-
-## Documentation Structure
-
-### Documentation Organization
-
-```
-/docs
-├── index.md                    # Homepage
-├── getting-started.md           # Setup and installation
-├── installation.md              # Installation instructions
-├── user-interface.md            # UI guide
-├── workflow-editor.md           # Editor usage
-├── workflows/                  # Workflow examples
-│   ├── index.md
-│   ├── movie-posters.md
-│   └── ...
-├── developer/                  # Developer guides
-│   ├── index.md
-│   ├── custom-nodes.md
-│   ├── node-reference.md
-│   ├── node-patterns.md
-│   ├── suspendable-nodes.md
-│   ├── dsl-guide.md
-│   └── gradio-conversion.md
-├── developer/suspendable-nodes.md
-├── api-reference.md             # API documentation
-├── authentication.md           # Auth setup
-├── providers.md                # AI providers setup
-├── models.md                  # Model management
-├── assets.md                  # Asset management (in content)
-├── troubleshooting.md          # Common issues
-├── glossary.md                # Terms and definitions
-└── _layouts/                  # Jekyll templates
-    ├── default.html
-    └── home.html
-```
-
-### Key Documentation Files
-
-#### User Guides
-
-- **`getting-started.md`** - Quick start guide for new users
-- **`installation.md`** - Detailed installation instructions
-- **`user-interface.md`** - Overview of the NodeTool UI
-- **`workflow-editor.md`** - How to use the visual editor
-- **`global-chat.md`** - AI chat feature documentation
-- **`models.md`** - Managing AI models
-- **`models-manager.md`** - Model manager UI guide
-- **`providers.md`** - Setting up AI providers
-
-#### Workflow Examples
-
-- **`workflows/index.md`** - Workflow examples overview
-- **`workflows/movie-posters.md`** - Movie poster generation
-- **`workflows/story-to-video-generator.md`** - Story to video
-- **`workflows/image-enhancement.md`** - Image enhancement
-- **`workflows/transcribe-audio.md`** - Audio transcription
-- **`workflows/summarize-papers.md`** - Paper summarization
-- And many more...
-
-#### Developer Guides
-
-- **`developer/index.md`** - Developer documentation home
-- **`developer/custom-nodes.md`** - Creating custom nodes
-- **`developer/node-reference.md`** - Node API reference
-- **`developer/node-patterns.md`** - Common node patterns
-- **`developer/suspendable-nodes.md`** - Suspendable node implementation
-- **`developer/dsl-guide.md`** - DSL usage guide
-- **`developer/gradio-conversion.md`** - Converting Gradio workflows
-
-#### API Documentation
-
-- **`api.md`** - Main API documentation
-- **`api-reference.md`** - Detailed API reference
-- **`workflow-api.md`** - Workflow API endpoints
-- **`chat-api.md`** - Chat API endpoints
-- **`chat-server.md`** - Chat server documentation
-- **`terminal-websocket.md`** - Terminal WebSocket API
-
-#### Reference & Configuration
-
-- **`glossary.md`** - Terminology definitions
-- **`troubleshooting.md`** - Common issues and solutions
-- **`configuration.md`** - Configuration options
-- **`authentication.md`** - Authentication setup
-- **`key-concepts.md`** - Core NodeTool concepts
-- **`architecture.md`** - System architecture
-
-## Jekyll Site Configuration
-
-### Build Configuration
-
-The site is built with Jekyll using `_config.yml`:
-
-```yaml
-# Site configuration
-site:
-  title: NodeTool
-  description: AI Workflow Automation Platform
-
-# Markdown settings
-markdown: kramdown
-highlighter: rouge
-
-# Plugins
-plugins:
-  - jekyll-seo-tag
-  - jekyll-sitemap
-
-# Excludes
-exclude:
-  - Gemfile
-  - Gemfile.lock
-```
-
-### Layout Templates
-
-Located in `_layouts/`:
-
-- **`default.html`** - Standard page layout with sidebar
-- **`home.html`** - Homepage layout with feature grid
-- **`page.html`** - Content page layout
-
-### Includes
-
-Located in `_includes/`:
-
-- **`header.html`** - Site header with navigation
-- **`footer.html`** - Site footer with links
-- **`sidebar.html`** - Documentation sidebar navigation
-
-## Writing Documentation
-
-### Markdown Style Guide
-
-Use consistent markdown formatting:
-
-```markdown
-# Level 1 Heading - Page title
-## Level 2 Heading - Major sections
-### Level 3 Heading - Subsections
-#### Level 4 Heading - Details
-
-**Bold** for emphasis
-*Italic* for terms
-`code` for inline code
-
-## Code Blocks
-
-Use fenced code blocks with language specification:
-
-\```python
-def example_function():
-    return "Hello"
-\```
-
-\```typescript
-const example = "Hello";
-\```
-
-\```bash
-npm install nodetool
-\```
-```
-
-### Document Structure
-
-Use this template for new documentation pages:
-
-```markdown
 ---
-title: "Page Title"
-description: "Brief description for SEO"
-layout: default
+layout: page
+title: "Agent System"
+permalink: /agents
+description: "Architecture of the NodeTool agent system — planning, execution, tools, skills, and workflow integration."
 ---
 
-# Page Title
+The **agent system** (`@nodetool/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
 
-Brief paragraph introducing the topic.
-
-## Section 1
-
-Content...
-
-## Section 2
-
-Content...
-
-## Related Topics
-
-- [Related Page](related-page.md)
-- [Another Page](another-page.md)
-
-## See Also
-
-- [External Resource](https://example.com)
-```
-
-### Front Matter
-
-All markdown files should include front matter:
-
-```yaml
 ---
-title: "Page Title"
-description: "One or two sentence description"
-layout: default
----
+
+## Architecture overview
+
+```
+Objective
+    |
+    v
++-- Agent -------------------------------------------------+
+|                                                           |
+|  1. Skill resolution   (load SKILL.md files)              |
+|  2. Planning phase     (TaskPlanner → Task with Steps)    |
+|  3. Execution phase    (TaskExecutor → StepExecutor loop) |
+|                                                           |
++-----------------------------------------------------------+
+    |
+    v
+Structured result (validated against output schema)
 ```
 
-## Documentation Best Practices
+Three agent classes share the same base:
 
-### 1. User-Focused Content
+| Class | When to use | Package |
+|---|---|---|
+| **Agent** | Multi-step objectives that need planning | `@nodetool/agents` |
+| **SimpleAgent** | Single-step tasks with a known output schema | `@nodetool/agents` |
+| **AgentExecutor** | Lightweight value extraction (no planning) | `@nodetool/agents` |
 
-- Write for the user's perspective
-- Use clear, simple language
-- Provide step-by-step instructions
-- Include screenshots and diagrams
+All agents extend **BaseAgent**, which defines the contract:
 
-### 2. Consistency
+```ts
+abstract class BaseAgent {
+  readonly name: string;
+  readonly objective: string;
+  readonly provider: BaseProvider;   // LLM provider (OpenAI, Ollama, etc.)
+  readonly model: string;
+  readonly tools: Tool[];
 
-- Use consistent terminology
-- Follow markdown style guide
-- Maintain similar structure across pages
-- Use the same code block language specifiers
-
-### 3. Accessibility
-
-- Use proper heading hierarchy
-- Provide alt text for images
-- Use descriptive link text
-- Ensure code examples are readable
-
-### 4. Code Examples
-
-- Provide working, copy-paste ready code
-- Include imports and setup
-- Show expected output
-- Add comments for complex code
-
-### 5. Testing Documentation
-
-- Verify all code examples work
-- Test all commands and instructions
-- Check all links are valid
-- Ensure images load correctly
-
-## Common Documentation Patterns
-
-### Tutorial Format
-
-```markdown
-## Tutorial: Creating a Workflow
-
-In this tutorial, you'll learn how to create a workflow that [does X].
-
-### Prerequisites
-
-Before starting, make sure you have:
-- NodeTool installed
-- [Other requirement]
-- [Another requirement]
-
-### Step 1: [Action]
-
-[Instructions...]
-
-### Step 2: [Action]
-
-[Instructions...]
-
-### Complete!
-
-You've successfully [achieved goal]. Next, try [suggested next step].
-```
-
-### API Documentation Format
-
-```markdown
-## API Endpoint: /api/resource
-
-### Description
-
-Brief description of what this endpoint does.
-
-### Request
-
-**Method**: POST
-**URL**: `/api/resource`
-
-**Headers**:
-```
-Content-Type: application/json
-Authorization: Bearer <token>
-```
-
-**Request Body**:
-```json
-{
-  "parameter": "value"
+  abstract execute(context: ProcessingContext): AsyncGenerator<ProcessingMessage>;
+  abstract getResults(): unknown;
 }
 ```
 
-### Response
+---
 
-**Success (200)**:
-```json
-{
-  "success": true,
-  "data": {}
+## Planning phase
+
+When you use the full **Agent**, the first thing it does is call **TaskPlanner** to decompose the objective into a **Task** — an ordered list of **Steps** with dependency edges.
+
+```ts
+interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  steps: Step[];
+}
+
+interface Step {
+  id: string;
+  instructions: string;
+  dependsOn: string[];          // IDs of prerequisite steps
+  tools?: string[];             // restrict available tools
+  outputSchema?: string;        // JSON schema for validation
+  mode?: "discover" | "process" | "aggregate";
+  perItemInstructions?: string; // template for fan-out
+  completed: boolean;
 }
 ```
 
-**Error (400)**:
-```json
-{
-  "success": false,
-  "error": "Error message"
+The planner sends the objective to the LLM with a `create_task` tool. The response is parsed, validated as a DAG (no circular dependencies), and retried up to three times on failure.
+
+You can skip planning entirely by passing a pre-built `task` object to the Agent constructor.
+
+---
+
+## Execution phase
+
+**TaskExecutor** walks the step DAG, respecting dependency order. For each step, it creates a **StepExecutor** that runs a tool-calling loop:
+
+1. Build messages — system prompt, user instructions, upstream step results
+2. Stream the LLM response
+3. Collect and execute tool calls in parallel
+4. Append tool results to conversation history
+5. Repeat until the LLM calls `finish_step` or max iterations are reached
+6. Validate the result against the step's output schema
+
+### Token management
+
+StepExecutor estimates token usage and enters a "conclusion stage" at 90% of the budget. In this stage only the `finish_step` tool is available, forcing the LLM to wrap up. Older messages are summarized to stay within limits.
+
+### Fan-out execution
+
+Steps can use three modes for batch processing:
+
+- **discover** — produces a list of items
+- **process** — creates an ephemeral sub-step per item (runs in parallel)
+- **aggregate** — collects all per-item results into a final output
+
+---
+
+## Tool system
+
+Every tool extends a single base class:
+
+```ts
+abstract class Tool {
+  abstract readonly name: string;
+  abstract readonly description: string;
+  abstract readonly inputSchema: Record<string, unknown>;
+
+  abstract process(
+    context: ProcessingContext,
+    params: Record<string, unknown>,
+  ): Promise<unknown>;
+
+  toProviderTool(): ProviderTool;  // convert to LLM tool-call format
 }
 ```
 
-### Example
+### Built-in tools
 
-\```typescript
-const response = await fetch('/api/resource', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ parameter: 'value' })
+| Category | Tools | Source |
+|---|---|---|
+| **Step control** | `FinishStepTool` | `finish-step-tool.ts` |
+| **Workflow control** | `ControlNodeTool` | `control-tool.ts` |
+| **File system** | `ReadFileTool`, `WriteFileTool`, `ListDirectoryTool` | `filesystem-tools.ts` |
+| **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
+| **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
+| **Search** | `GoogleSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
+| **Code execution** | `RunCodeTool` | `code-tools.ts` |
+| **Math** | `CalculatorTool`, `StatisticsTool`, `GeometryTool`, `TrigonometryTool`, `ConversionTool` | `math-tools.ts`, `calculator-tool.ts` |
+| **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
+| **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
+| **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |
+| **PDF** | `ExtractPDFTextTool`, `ConvertPDFToMarkdownTool`, and more | `pdf-tools.ts` |
+| **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
+| **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
+| **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
+| **MCP** | `ListWorkflowsTool`, `RunWorkflowTool`, `SearchNodesTool`, and more | `mcp-tools.ts` |
+
+### Tool registry
+
+Register custom tools so they can be resolved by name:
+
+```ts
+import { registerTool, resolveTool, getAllTools } from "@nodetool/agents";
+
+registerTool(new MyCustomTool());
+const tool = resolveTool("my_custom_tool");
+```
+
+### Writing a custom tool
+
+```ts
+import { Tool } from "@nodetool/agents";
+import type { ProcessingContext } from "@nodetool/runtime";
+
+class WeatherTool extends Tool {
+  readonly name = "get_weather";
+  readonly description = "Get current weather for a city.";
+  readonly inputSchema = {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "City name" },
+    },
+    required: ["city"],
+  };
+
+  async process(context: ProcessingContext, params: Record<string, unknown>) {
+    const city = String(params.city);
+    const res = await fetch(`https://api.example.com/weather?q=${encodeURIComponent(city)}`);
+    return await res.json();
+  }
+}
+```
+
+---
+
+## Skills
+
+Skills are markdown files (`SKILL.md`) that inject domain-specific instructions into the agent's system prompt.
+
+### Skill format
+
+```markdown
+---
+name: data-analysis
+description: Analyze CSV datasets and produce summary statistics
+---
+
+When working with data analysis tasks:
+1. Load the dataset with the file read tool
+2. Examine column types and null counts
+3. Compute summary statistics
+...
+```
+
+### Skill discovery
+
+The agent searches these directories (in order):
+
+1. Directories passed to the constructor (`skillDirs`)
+2. Paths in the `NODETOOL_AGENT_SKILL_DIRS` environment variable
+3. `./.claude/skills`
+4. `~/.claude/skills`
+5. `~/.codex/skills`
+
+### Skill resolution
+
+- **Explicit** — set `NODETOOL_AGENT_SKILLS=skill-a,skill-b` or pass `skills: ["skill-a"]` in the constructor
+- **Auto-select** — the agent matches words in the objective against skill descriptions (disable with `NODETOOL_AGENT_AUTO_SKILLS=0`)
+
+Matched skill instructions are prepended to the system prompt under an `# Agent Skills` header.
+
+---
+
+## Workflow nodes
+
+The agent system surfaces in the workflow editor through several node types defined in `base-nodes/src/nodes/agents.ts`:
+
+| Node | Purpose |
+|---|---|
+| **AgentNode** | General-purpose agent with streaming output, tool access, and control edges |
+| **ResearchAgentNode** | Specialized for research — returns findings array and summary |
+| **SummarizerNode** | Summarize text with streaming output |
+| **ExtractorNode** | Extract structured data from text |
+| **ClassifierNode** | Classify text into categories |
+| **CreateThreadNode** | Manage multi-turn conversation threads |
+
+### Control edges
+
+When an agent node has outgoing control edges, **ControlNodeTool** instances are automatically added to its tool list. The agent can call these tools to trigger downstream nodes with specific parameter values:
+
+```
+AgentNode ──control edge──> ImageGeneratorNode
+   │
+   └─ LLM calls "image_generator" tool with { prompt: "sunset over mountains" }
+      → ImageGeneratorNode receives prompt override and executes
+```
+
+---
+
+## Using agents programmatically
+
+### Full agent with planning
+
+```ts
+import { Agent } from "@nodetool/agents";
+import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool/agents";
+
+const agent = new Agent({
+  name: "researcher",
+  objective: "Research TypeScript ORMs and write a comparison report",
+  provider: openaiProvider,
+  model: "gpt-4o",
+  tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
+  workspace: "/tmp/research-output",
+  maxSteps: 10,
+  maxStepIterations: 5,
 });
-\```
+
+for await (const message of agent.execute(context)) {
+  if (message.type === "chunk") {
+    process.stdout.write(message.content);
+  }
+}
+
+const result = agent.getResults();
 ```
 
-### Troubleshooting Format
+### Simple agent (single step)
 
-```markdown
-## Common Issues
+```ts
+import { SimpleAgent } from "@nodetool/agents";
 
-### Issue: [Problem description]
+const agent = new SimpleAgent({
+  name: "extractor",
+  objective: "Extract all email addresses from this text: ...",
+  provider: openaiProvider,
+  model: "gpt-4o",
+  tools: [],
+  outputSchema: {
+    type: "object",
+    properties: {
+      emails: { type: "array", items: { type: "string" } },
+    },
+  },
+});
 
-**Symptoms**:
-- Symptom 1
-- Symptom 2
+for await (const message of agent.execute(context)) {
+  // handle streaming messages
+}
 
-**Cause**: Explanation of what causes the issue
-
-**Solution**:
-1. Step 1
-2. Step 2
-
-**Alternative Solution**: If the first doesn't work, try this.
-
-### Issue: Another problem
-
-[Same pattern...]
-```
-
-## Adding New Documentation
-
-### For New Features
-
-1. Create markdown file in appropriate directory
-2. Add front matter
-3. Write content following style guide
-4. Add link to navigation (sidebar)
-5. Test by building site locally
-6. Update related pages if needed
-
-### For Workflow Examples
-
-1. Create workflow file in `workflows/` directory
-2. Add to `workflows/index.md`
-3. Include:
-   - Workflow description
-   - Prerequisites
-   - Setup instructions
-   - Usage examples
-   - Output examples
-4. Add screenshots/videos if helpful
-
-### For API Changes
-
-1. Update relevant API documentation
-2. Add new endpoints or update existing ones
-3. Update example code
-4. Document breaking changes
-5. Update changelog
-
-## Building Documentation Locally
-
-### Prerequisites
-
-- Ruby and Bundler
-- Jekyll
-
-### Setup
-
-```bash
-cd docs
-bundle install
-```
-
-### Build
-
-```bash
-bundle exec jekyll serve
-```
-
-Site will be available at `http://localhost:4000`
-
-### Production Build
-
-```bash
-bundle exec jekyll build
-```
-
-Output is in `_site/` directory
-
-## Related Documentation
-
-- [Root AGENTS.md](../AGENTS.md) - Project overview
-- [Web AGENTS.md](../web/src/AGENTS.md) - Web application
-- [Developer Guide](developer/index.md) - Developer documentation
-
-## Quick Reference
-
-### Markdown Elements
-
-| Element | Syntax | Example |
-|---------|---------|----------|
-| Heading | `# Title` | Title |
-| Bold | `**text**` | **text** |
-| Italic | `*text*` | *text* |
-| Code | `` `code` `` | `code` |
-| Code block | \`\`\`language` | Code |
-| Link | `[text](url)` | [link](https://) |
-| Image | `
-![alt](url)
-` | ![logo](logo.png) |
-| List | `- item` | • item |
-| Table | `\| col \|` | See examples |
-
-### Common Front Matter
-
-```yaml
----
-title: "Page Title"
-description: "SEO description"
-layout: default
----
-
-Content...
+const { emails } = agent.getResults() as { emails: string[] };
 ```
 
 ---
 
-**Note**: This guide is for AI coding assistants. For user documentation, see [docs.nodetool.ai](https://docs.nodetool.ai).
+## Configuration reference
+
+| Option | Default | Description |
+|---|---|---|
+| `name` | required | Agent identifier |
+| `objective` | required | Goal to achieve |
+| `provider` | required | LLM provider instance (`BaseProvider`) |
+| `model` | required | Model ID (e.g. `"gpt-4o"`) |
+| `planningModel` | same as `model` | Alternative model for the planning phase |
+| `reasoningModel` | same as `model` | Alternative model for reasoning-heavy steps |
+| `tools` | `[]` | Array of `Tool` instances |
+| `systemPrompt` | `""` | Custom system instructions |
+| `maxTokenLimit` | `128000` | Token budget per step |
+| `maxSteps` | `10` | Maximum number of steps in a task |
+| `maxStepIterations` | `5` | Maximum LLM round-trips per step |
+| `outputSchema` | — | JSON schema for the final result |
+| `workspace` | auto-generated | Directory for file artifacts |
+| `skills` | — | Explicit skill names to load |
+| `skillDirs` | — | Additional directories to search for skills |
+| `task` | — | Pre-planned task (skips planning phase) |
+
+---
+
+## Related pages
+
+- [Global Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
+- [Agent CLI](agent-cli.md) — Running agents from the command line
+- [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference
+- [Custom Nodes Guide](developer/custom-nodes-guide.md) — Building custom workflow nodes

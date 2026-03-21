@@ -32,26 +32,9 @@ export const typeToString = (type: TypeMetadata): string => {
  * Create a slug from a string. Used for namespaces.
  */
 export const Slugify = (input: string): string => {
+  if (!input) {return "";}
   return input.replaceAll(".", "_").replaceAll("-", "_").toLowerCase();
 };
-
-/**
- * Checks if a type is connectable to a union type. This is the case if the type
- * is connectable to at least one of the type arguments of the union type.
- *
- * @param the_type The type.
- * @param union_type The union type.
- */
-
-// const isConnectableToUnion = (
-//   the_type: TypeMetadata,
-//   union_type: TypeMetadata
-// ): boolean => {
-//   if (union_type.type_args) {
-//     return union_type.type_args.some((t) => isConnectable(the_type, t));
-//   }
-//   return false;
-// };
 
 /**
  * Checks if two types are equal. This is the case if they have the same type
@@ -77,19 +60,18 @@ export const typesAreEqual = (a: TypeMetadata, b: TypeMetadata): boolean => {
 };
 
 /**
- * Checks if two enum types are connectable. This is the case if the values of
- * the first enum type are a subset of the values of the second enum type.
+ * Checks if two enum types are connectable by matching their type_name.
+ * Enum-to-enum connections are only allowed when both enums have the same type_name.
  *
  * @param a The first enum type.
  * @param b The second enum type.
  */
 const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
-  if (a.values) {
-    return (
-      new Set(a.values).size === new Set(b.values).size &&
-      a.values.every((value) => b.values?.includes(value))
-    );
+  // Both must have a type_name and they must match
+  if (a.type_name && b.type_name) {
+    return a.type_name === b.type_name;
   }
+  // If either side lacks type_name, enum↔enum is not connectable
   return false;
 };
 
@@ -276,17 +258,30 @@ export const isConnectable = (
     return !nonObjectTypes.includes(source.type);
   }
 
+  // Enum connection policy:
+  // - str -> enum: allowed (string can be parsed as enum value)
+  // - enum -> str: allowed (enum value is a string)
+  // - enum -> enum: allowed only when type_name matches
   if (target.type === "enum") {
-    return source.type === "str";
+    if (source.type === "str") {
+      return true;
+    }
+    if (source.type === "enum") {
+      return isEnumConnectable(source, target);
+    }
+    return false;
   }
 
   switch (source.type) {
     case "union":
+      // Union handling stays the same
+      break;
     case "enum":
       if (target.type === "str") {
         return true;
       }
-      return target.type === "enum" && isEnumConnectable(source, target);
+      // enum -> enum already handled above
+      return false;
     case "list":
       if (target.type === "list") {
         if (source.type_args.length === 0 || target.type_args.length === 0) {

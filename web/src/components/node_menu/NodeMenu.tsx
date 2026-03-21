@@ -5,14 +5,14 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useNodeMenuStore, { type NodeMenuStore } from "../../stores/NodeMenuStore";
 
 // utils
 import Draggable from "react-draggable";
@@ -22,12 +22,12 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { FlexColumn, FlexRow } from "../ui_primitives";
+import log from "loglevel";
 
 const treeStyles = (theme: Theme) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
       height: "auto",
       maxHeight: "90vh",
       minHeight: "35vh",
@@ -42,8 +42,9 @@ const treeStyles = (theme: Theme) =>
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
-      transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
-      animation: "fadeIn 0.2s ease-out forwards",
+      transition:
+        "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
+      animation: "fadeIn 0.2s ease-out forwards"
     },
     "@keyframes fadeIn": {
       "0%": { opacity: 0 },
@@ -51,46 +52,26 @@ const treeStyles = (theme: Theme) =>
     },
     ".draggable-header": {
       borderRadius: "16px 16px 0 0",
-      backgroundColor: "transparent", // Let glass effect show through
+      backgroundColor: theme.vars.palette.background.paper,
       width: "100%",
-      minHeight: "12px", // Minimal drag handle
+      minHeight: "1.5em",
       cursor: "grab",
-      userSelect: "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "flex-end"
+      userSelect: "none"
     },
     ".draggable-header:active": {
       cursor: "grabbing"
     },
     ".node-menu-container": {
       borderRadius: "0 0 16px 16px",
-      padding: "0.75em 0px 1em 0.75em",
+      padding: "0.45em 0px 0.75em 0.75em",
       width: "100%",
       maxHeight: "77vh",
-      flexGrow: 1,
+      flexGrow: 1
       // Removed inner shadow to keep it clean
     },
-    ".search-toolbar": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      flexGrow: 0,
-      overflow: "visible",
-      width: "100%",
-      margin: 0,
-      padding: "0 1em 0 0.5em"
-    },
-    ".search-row": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: "0.75em",
-      marginLeft: "-3px",
-      ".search-input-container": {
-        minWidth: "100%",
-        flexGrow: 1
-      }
+    ".search-input-container": {
+      minWidth: 0,
+      flexGrow: 0
     },
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
@@ -153,6 +134,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedInputType,
     selectedOutputType,
     setSelectedOutputType,
+    selectedProviderType,
+    setSelectedProviderType,
     searchTerm,
     setSearchTerm,
     setMenuSize,
@@ -170,6 +153,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setSelectedInputType: state.setSelectedInputType,
       selectedOutputType: state.selectedOutputType,
       setSelectedOutputType: state.setSelectedOutputType,
+      selectedProviderType: state.selectedProviderType,
+      setSelectedProviderType: state.setSelectedProviderType,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
       setMenuSize: state.setMenuSize,
@@ -207,15 +192,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
-    if (!isMenuOpen) { return; }
-    if (!searchTerm || searchTerm.trim() === "") { return; }
-    if (searchResults.length > 0) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
+    if (!searchTerm || searchTerm.trim() === "") {
+      return;
+    }
+    if (searchResults.length > 0) {
+      return;
+    }
     try {
-      const state: any = (useNodeMenuStore as any).getState?.();
+      const state = useNodeMenuStore.getState() as NodeMenuStore | undefined;
       // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {
-      console.error("Error performing search:", error);
+      log.error("Error performing search:", error);
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 
@@ -242,12 +233,18 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // If initial position clips right/bottom, correct after mount using measured size
   useEffect(() => {
-    if (!isMenuOpen) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
     const el = nodeRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    if (!Number.isFinite(width) || !Number.isFinite(height)) { return; }
+    if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      return;
+    }
     const maxX = Math.max(0, window.innerWidth - width - 10);
     const maxY = Math.max(
       0,
@@ -262,7 +259,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }, [isMenuOpen, menuPosition.x, menuPosition.y]);
 
   if (!isMenuOpen) {
-    console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
     return null;
   }
 
@@ -273,25 +269,43 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       defaultPosition={{ x: menuPosition.x, y: menuPosition.y }}
       handle=".draggable-header"
     >
-      <Box
+      <FlexColumn
         ref={nodeRef}
-        sx={{ minWidth: "800px", maxHeight: menuHeight }}
+        sx={{ minWidth: "980px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >
-        <div className="draggable-header">
-        </div>
+        <FlexRow
+          className="draggable-header"
+          align="center"
+          justify="flex-end"
+        ></FlexRow>
         <Box className="node-menu-container">
           <div className="main-content">
-            <Box className="search-toolbar">
-              <Box className="search-row">
+            <FlexColumn
+              gap={0.5}
+              className="search-toolbar"
+              sx={{
+                flexGrow: 0,
+                overflow: "visible",
+                width: "100%",
+                margin: 0,
+                padding: "0 1em 0 0.5em"
+              }}
+            >
+              <FlexRow
+                gap={1.5}
+                align="center"
+                className="search-row"
+                sx={{ marginLeft: "-3px", width: "100%" }}
+              >
                 <SearchInput
                   focusSearchInput={focusSearchInput}
-                  focusOnTyping={true}
+                  focusOnTyping={false}
                   placeholder="Search for nodes..."
                   debounceTime={80}
-                  width={500}
-                  maxWidth={"600px"}
+                  width={300}
+                  maxWidth={"300px"}
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
                   onPressEscape={closeNodeMenu}
@@ -300,21 +314,60 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
-              </Box>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
-            </Box>
+                <FlexRow
+                  gap={0.75}
+                  align="center"
+                  justify="flex-end"
+                  sx={{
+                    marginLeft: "auto",
+                    flexWrap: "wrap",
+                    minHeight: "24px"
+                  }}
+                >
+                  {selectedProviderType !== "all" && (
+                    <Chip
+                      size="small"
+                      label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
+                      onDelete={() => setSelectedProviderType("all")}
+                    />
+                  )}
+                  {selectedInputType && (
+                    <Chip
+                      size="small"
+                      label={`Input: ${selectedInputType}`}
+                      onDelete={() => setSelectedInputType("")}
+                    />
+                  )}
+                  {selectedOutputType && (
+                    <Chip
+                      size="small"
+                      label={`Output: ${selectedOutputType}`}
+                      onDelete={() => setSelectedOutputType("")}
+                    />
+                  )}
+                </FlexRow>
+              </FlexRow>
+              <FlexRow
+                gap={1.5}
+                align="center"
+                className="filters-row"
+                sx={{ width: "100%", paddingRight: "0.25em" }}
+              >
+                <TypeFilterChips
+                  selectedInputType={selectedInputType}
+                  selectedOutputType={selectedOutputType}
+                  setSelectedInputType={setSelectedInputType}
+                  setSelectedOutputType={setSelectedOutputType}
+                />
+              </FlexRow>
+            </FlexColumn>
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
             />
           </div>
         </Box>
-      </Box>
+      </FlexColumn>
     </Draggable>
   );
 };

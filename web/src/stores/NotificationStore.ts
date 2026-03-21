@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
 import log from "loglevel";
-// import { persist } from "zustand/middleware";
+import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 export type NotificationType =
   | "info"
   | "debug"
@@ -12,6 +12,11 @@ export type NotificationType =
   | "job"
   | "success";
 
+export interface NotificationAction {
+  label: string;
+  onClick: () => void | Promise<void>;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;
@@ -20,7 +25,15 @@ export interface Notification {
   timeout?: number;
   dismissable?: boolean;
   alert?: boolean;
+  action?: NotificationAction;
+  /** Optional key for deduplication. If not provided, type + content is used. */
+  dedupeKey?: string;
+  /** When true, replaces existing notifications with the same dedupeKey instead of accumulating. */
+  replaceExisting?: boolean;
 }
+
+/** Time window in milliseconds within which duplicate notifications are suppressed. */
+const DEDUPE_WINDOW_MS = 5000;
 
 interface NotificationStore {
   notifications: Notification[];
@@ -41,25 +54,60 @@ export function verbosityCheck(
   return acceptedTypes.includes(notificationType);
 }
 
-export const useNotificationStore = create<NotificationStore>()((set) => ({
+export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
   lastDisplayedTimestamp: null,
 
   addNotification: (notification) => {
-    if (notification.type === "warning") {
-      log.warn("NOTIFICATION:", notification);
-    } else if (notification.type === "error") {
-      log.error("NOTIFICATION:", notification);
-    } else {
-      log.info("NOTIFICATION:", notification);
+    const sanitizedNotification = {
+      ...notification,
+      content: sanitizeDisplayText(notification.content),
+    };
+
+    // Deduplicate: skip if an identical notification was added recently
+    const now = new Date();
+    const key =
+      sanitizedNotification.dedupeKey ??
+      `${sanitizedNotification.type}:${sanitizedNotification.content}`;
+    const isDuplicate = get().notifications.some((existing) => {
+      const existingKey =
+        existing.dedupeKey ?? `${existing.type}:${existing.content}`;
+      return (
+        existingKey === key &&
+        now.getTime() - existing.timestamp.getTime() < DEDUPE_WINDOW_MS
+      );
+    });
+
+    if (isDuplicate && !sanitizedNotification.replaceExisting) {
+      log.debug("NOTIFICATION suppressed (duplicate):", sanitizedNotification);
+      return;
     }
 
-    set((state) => ({
-      notifications: [
-        ...state.notifications,
-        { ...notification, id: uuidv4(), timestamp: new Date() }
-      ]
-    }));
+    if (sanitizedNotification.type === "warning") {
+      log.warn("NOTIFICATION:", sanitizedNotification);
+    } else if (sanitizedNotification.type === "error") {
+      log.error("NOTIFICATION:", sanitizedNotification);
+    } else {
+      log.info("NOTIFICATION:", sanitizedNotification);
+    }
+
+    set((state) => {
+      // When replaceExisting is true, remove previous notifications with the same key
+      const base = sanitizedNotification.replaceExisting
+        ? state.notifications.filter((existing) => {
+            const existingKey =
+              existing.dedupeKey ?? `${existing.type}:${existing.content}`;
+            return existingKey !== key;
+          })
+        : state.notifications;
+
+      return {
+        notifications: [
+          ...base,
+          { ...sanitizedNotification, id: uuidv4(), timestamp: now }
+        ]
+      };
+    });
   },
   removeNotification: (id: string) => {
     set((state) => ({

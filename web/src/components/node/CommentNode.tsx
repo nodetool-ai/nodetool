@@ -13,12 +13,8 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
-// import { convertSlateToLexical } from "../textEditor/editorUtils";
 import {
   EditorState
-  // $getRoot,
-  // $createParagraphNode,
-  // $createTextNode
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
@@ -28,6 +24,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
+import log from "loglevel";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -152,7 +149,7 @@ const styles = (theme: Theme) =>
 const initialConfigTemplate = {
   namespace: "CommentNodeEditor",
   onError: (error: Error) => {
-    console.error(error);
+    log.error(error);
   },
   nodes: [
     HeadingNode,
@@ -226,7 +223,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       comment &&
       typeof comment === "object" &&
-      comment.root &&
+      "root" in comment &&
       Object.keys(comment).length > 0
     ) {
       config.editorState = JSON.stringify(comment);

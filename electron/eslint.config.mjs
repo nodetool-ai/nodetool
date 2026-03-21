@@ -27,6 +27,8 @@ export default [
       "vite.config.ts",
       "dist-electron/**/*",
       "dist-web/**/*",
+      "backend-bundle/**/*",
+      "scripts/**/*.mjs",
       "jest.config.ts",
       "src/main.tsx",
       "coverage/**/*"

@@ -12,6 +12,8 @@ import {
 } from '../config';
 import { readSettings } from '../settings';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { app } from 'electron';
 
 // Mock dependencies
@@ -71,6 +73,27 @@ describe('Config', () => {
 
       expect(result).toBe(customPath);
       expect(mockReadSettings).toHaveBeenCalled();
+    });
+
+    it('should ignore activated conda env outside dev mode', () => {
+      const customPath = '/custom/conda/path';
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      delete process.env.NT_ELECTRON_DEV_MODE;
+      mockReadSettings.mockReturnValue({ CONDA_ENV: customPath });
+
+      const result = getCondaEnvPath();
+
+      expect(result).toBe(customPath);
+    });
+
+    it('should use activated conda env in explicit dev mode', () => {
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      process.env.NT_ELECTRON_DEV_MODE = '1';
+      mockReadSettings.mockReturnValue({ CONDA_ENV: '/custom/conda/path' });
+
+      const result = getCondaEnvPath();
+
+      expect(result).toBe('/active/conda/env');
     });
 
     it('should return default path when settings is empty', () => {
@@ -150,12 +173,13 @@ describe('Config', () => {
         mockReadSettings.mockReturnValue({});
       });
 
-      it('should use system path when SUDO_USER is set', () => {
+      it('should use user path when SUDO_USER is set', () => {
         process.env.SUDO_USER = 'testuser';
 
         const result = getCondaEnvPath();
 
-        expect(result.replace(/\\/g, '/')).toBe('/Library/Application Support/nodetool/conda_env');
+        // macOS implementation ignores SUDO_USER and always uses ~/nodetool_env
+        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
       });
 
       it('should use user path when SUDO_USER not set', () => {
@@ -163,7 +187,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result.replace(/\\/g, '/')).toContain('Library/Application Support/nodetool/conda_env');
+        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
       });
     });
 
@@ -299,12 +323,32 @@ describe('Config', () => {
   });
 
   describe('getCondaLockFilePath', () => {
-    const lockFileName = 'environment.lock.yml';
+    const fallbackLockFileName = 'environment.lock.yml';
+    const linuxLockFileName = 'environment-linux-64.lock.yml';
     const originalIsPackaged = app.isPackaged;
     const originalResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath;
+    const originalArch = process.arch;
+    let tempResourcesDir: string | null = null;
+    let renamedLockFilePath: string | null = null;
+    let backupLockFilePath: string | null = null;
 
     afterEach(() => {
       (app as unknown as { isPackaged: boolean }).isPackaged = originalIsPackaged;
+      Object.defineProperty(process, 'arch', {
+        value: originalArch,
+        configurable: true,
+      });
+
+      if (tempResourcesDir) {
+        fs.rmSync(tempResourcesDir, { recursive: true, force: true });
+        tempResourcesDir = null;
+      }
+      if (renamedLockFilePath && backupLockFilePath && fs.existsSync(backupLockFilePath)) {
+        fs.copyFileSync(backupLockFilePath, renamedLockFilePath);
+        fs.rmSync(backupLockFilePath, { force: true });
+      }
+      renamedLockFilePath = null;
+      backupLockFilePath = null;
 
       if (typeof originalResourcesPath === 'undefined') {
         delete (process as unknown as { resourcesPath?: string }).resourcesPath;
@@ -317,31 +361,94 @@ describe('Config', () => {
       }
     });
 
-    it('should resolve to packaged resources path when bundled', () => {
+    it('should resolve the packaged platform-specific lock file when present', () => {
       (app as unknown as { isPackaged: boolean }).isPackaged = true;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
       Object.defineProperty(process, 'resourcesPath', {
-        value: '/mock/resources',
+        value: (tempResourcesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'))),
         configurable: true,
         writable: true,
       });
+      fs.writeFileSync(path.join(tempResourcesDir, linuxLockFileName), 'dependencies:\n  - python=3\n  - uv=1\n');
 
       const result = getCondaLockFilePath();
 
-      expect(result).toBe(path.join('/mock/resources', lockFileName));
+      expect(result).toBe(path.join(tempResourcesDir, linuxLockFileName));
     });
 
-    it('should resolve to the local resources path during development', () => {
-      (app as unknown as { isPackaged: boolean }).isPackaged = false;
-
-      const expected = path.join(
-        path.resolve(__dirname, '..', '..'),
-        'resources',
-        lockFileName
-      );
+    it('should fall back to the packaged generic lock file when the platform file is missing', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = true;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'resourcesPath', {
+        value: (tempResourcesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'))),
+        configurable: true,
+        writable: true,
+      });
+      fs.writeFileSync(path.join(tempResourcesDir, fallbackLockFileName), 'dependencies:\n  - python=3\n  - uv=1\n');
 
       const result = getCondaLockFilePath();
 
-      expect(result).toBe(expected);
+      expect(result).toBe(path.join(tempResourcesDir, fallbackLockFileName));
+    });
+
+    it('should resolve the local platform-specific lock file during development', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = false;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
+
+      const result = getCondaLockFilePath();
+      const expectedResourcesDir = path.join(
+        path.resolve(__dirname, '..', '..'),
+        'resources'
+      );
+      const expectedLockPath = path.join(expectedResourcesDir, linuxLockFileName);
+
+      expect(result).toBe(expectedLockPath);
+    });
+
+    it('should fall back to the local generic lock file during development when the platform file is missing', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = false;
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+      });
+      Object.defineProperty(process, 'arch', {
+        value: 'x64',
+        configurable: true,
+      });
+      const expectedResourcesDir = path.join(
+        path.resolve(__dirname, '..', '..'),
+        'resources'
+      );
+      renamedLockFilePath = path.join(expectedResourcesDir, linuxLockFileName);
+      backupLockFilePath = fs.mkdtempSync(path.join(os.tmpdir(), 'nodetool-locks-'));
+      backupLockFilePath = path.join(backupLockFilePath, linuxLockFileName);
+      fs.copyFileSync(renamedLockFilePath, backupLockFilePath);
+      fs.rmSync(renamedLockFilePath);
+
+      const result = getCondaLockFilePath();
+
+      expect(result).toBe(path.join(expectedResourcesDir, fallbackLockFileName));
     });
   });
 
@@ -373,6 +480,11 @@ describe('Config', () => {
       expect(result.HOME).toBe('/home/user');
       expect(result.SOME_NUMBER_VAR).toBe('123');
       expect(result.SOME_UNDEFINED_VAR).toBeUndefined();
+      // Verify UV cache environment variables are set
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      expect(result.XDG_CACHE_HOME).toBeDefined();
+      expect(result.XDG_CACHE_HOME).toContain('cache');
     });
 
     it('should return process environment with conda paths on Unix', () => {
@@ -389,6 +501,11 @@ describe('Config', () => {
       expect(normalizedPath).toContain('/test/conda/bin');
       expect(normalizedPath).toContain('/test/conda/lib');
       expect(result.HOME).toBe('/home/user');
+      // Verify UV cache environment variables are set
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      expect(result.XDG_CACHE_HOME).toBeDefined();
+      expect(result.XDG_CACHE_HOME).toContain('cache');
     });
 
     it('should handle missing PATH environment variable', () => {
@@ -411,6 +528,40 @@ describe('Config', () => {
       expect(result.STRING_VAR).toBe('test');
       expect(result.NUMBER_VAR).toBeUndefined();
       expect(result.OBJECT_VAR).toBeUndefined();
+    });
+
+    it('should remove inherited conda and virtualenv markers', () => {
+      process.env.CONDA_PREFIX = '/active/conda/env';
+      process.env.CONDA_DEFAULT_ENV = 'base';
+      process.env.VIRTUAL_ENV = '/venv/path';
+      process.env.UV_PYTHON = '/wrong/python';
+
+      const result = getProcessEnv();
+
+      expect(result.CONDA_PREFIX).toBeUndefined();
+      expect(result.CONDA_DEFAULT_ENV).toBeUndefined();
+      expect(result.VIRTUAL_ENV).toBeUndefined();
+      expect(result.UV_PYTHON).toBeUndefined();
+    });
+
+    it('should set HOME from os.homedir() when not in environment', () => {
+      delete process.env.HOME;
+
+      const result = getProcessEnv();
+
+      expect(result.HOME).toBeDefined();
+      expect(typeof result.HOME).toBe('string');
+      expect(result.HOME.length).toBeGreaterThan(0);
+    });
+
+    it('should set UV_CACHE_DIR to a writable location inside userData', () => {
+      const result = getProcessEnv();
+
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      // UV_CACHE_DIR should be inside userData directory
+      const userDataPath = app.getPath('userData').replace(/\\/g, '/');
+      expect((result.UV_CACHE_DIR ?? '').replace(/\\/g, '/')).toContain(userDataPath);
     });
   });
 });

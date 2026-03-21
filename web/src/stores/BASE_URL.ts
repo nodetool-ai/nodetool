@@ -3,7 +3,7 @@
  *
  * The value is taken from the `VITE_API_URL` environment variable when
  * available. When running locally without a `.env` file, it uses an empty string
- * to allow relative URLs which will be proxied by Vite to localhost:8000.
+ * to allow relative URLs which will be proxied by Vite to localhost:7777.
  */
 
 export const defaultLocalUrl = ""; // Empty string for relative URLs (proxied by Vite)
@@ -30,16 +30,6 @@ const getWebSocketUrl = (path: string): string => {
 
 /** WebSocket URL for the unified endpoint (workflows and chat). */
 export const UNIFIED_WS_URL = getWebSocketUrl("/ws");
-
-/** WebSocket URL for the prediction worker endpoint.
- * @deprecated Use UNIFIED_WS_URL instead. This endpoint is deprecated.
- */
-export const WORKER_URL = getWebSocketUrl("/ws");
-
-/** WebSocket URL for the chat endpoint.
- * @deprecated Use UNIFIED_WS_URL instead. This endpoint is deprecated.
- */
-export const CHAT_URL = getWebSocketUrl("/ws");
 
 /** WebSocket URL for the HuggingFace model download endpoint. */
 export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");

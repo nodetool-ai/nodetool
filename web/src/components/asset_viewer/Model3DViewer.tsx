@@ -7,7 +7,9 @@ import React, {
   useCallback,
   useState,
   useEffect,
-  useMemo
+  useLayoutEffect,
+  useMemo,
+  memo
 } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import {
@@ -25,12 +27,11 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Canvas, useThree, useFrame, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   OrbitControls,
   Grid,
   useGLTF,
-  Center,
   Environment,
   ContactShadows,
   Html
@@ -99,6 +100,7 @@ export interface Model3DViewerProps {
   url?: string;
   compact?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
 const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
@@ -107,28 +109,52 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      alignItems: "center",
+      alignItems: "stretch",
       width: "100%",
       height: compact ? "100%" : "calc(100% - 120px)",
+      flex: "1 1 auto",
+      alignSelf: "stretch",
+      minHeight: 0,
       marginTop: compact ? 0 : "1em",
-      position: "relative"
+      position: "relative",
+      overflow: "hidden"
     },
     ".model-container": {
       width: compact ? "100%" : "100%",
       height: compact ? "100%" : "100%",
       minHeight: compact ? "60px" : "300px",
+      flex: 1,
+      alignSelf: "stretch",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       position: "relative",
-      cursor: compact ? "pointer" : "default",
+      cursor: compact ? "grab" : "default",
       backgroundColor: backgroundColor,
-      borderRadius: compact ? "4px" : 0
+      borderRadius: compact ? "4px" : 0,
+      overflow: "hidden"
     },
     ".canvas-container": {
       width: "100%",
       height: "100%",
-      position: "relative"
+      minHeight: 0,
+      position: "relative",
+      display: "flex",
+      flex: 1,
+      alignSelf: "stretch",
+      overflow: "hidden"
+    },
+    ".canvas-container > div": {
+      width: "100% !important",
+      height: "100% !important",
+      minHeight: 0,
+      flex: 1
+    },
+    ".canvas-container canvas": {
+      display: "block",
+      width: "100% !important",
+      height: "100% !important",
+      minHeight: 0
     },
     ".loading-overlay": {
       position: "absolute",
@@ -208,11 +234,12 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       transform: "translate(-50%, -50%)",
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      gap: "8px",
+      alignItems: "flex-start",
+      gap: "4px",
       zIndex: 10,
-      padding: "1em",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: "1em 1.5em",
+      maxWidth: "90%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
       borderRadius: "8px"
     },
     ".fullscreen-close-button": {
@@ -232,15 +259,26 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
 interface ModelProps {
   url: string;
   wireframe: boolean;
-  onLoad?: () => void;
+  onLoad?: (bounds: THREE.Box3) => void;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
-function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
+function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
   const { scene } = useGLTF(url);
 
   // Clone scene to avoid modifying original
   const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const initialBounds = useMemo(() => new THREE.Box3().setFromObject(clonedScene), [clonedScene]);
+  const initialCenter = useMemo(
+    () => initialBounds.getCenter(new THREE.Vector3()),
+    [initialBounds]
+  );
+
+  useLayoutEffect(() => {
+    clonedScene.position.sub(initialCenter);
+    clonedScene.updateMatrixWorld(true);
+  }, [clonedScene, initialCenter]);
 
   // Apply wireframe mode to all mesh materials
   useEffect(() => {
@@ -262,8 +300,9 @@ function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
 
   // Signal load complete
   useEffect(() => {
-    onLoad?.();
-  }, [onLoad]);
+    const bounds = new THREE.Box3().setFromObject(clonedScene);
+    onLoad?.(bounds);
+  }, [clonedScene, onLoad]);
 
   const handleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
@@ -273,11 +312,19 @@ function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
     [onClick]
   );
 
+  const handleDoubleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      onDoubleClick?.();
+    },
+    [onDoubleClick]
+  );
+
   return (
-    <Center>
+    <>
       {/* eslint-disable-next-line react/no-unknown-property */}
-      <primitive object={clonedScene} onClick={handleClick} />
-    </Center>
+      <primitive object={clonedScene} onClick={handleClick} onDoubleClick={handleDoubleClick} />
+    </>
   );
 }
 
@@ -305,8 +352,10 @@ class ModelErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error): void {
-    this.props.onError(error);
+  componentDidCatch(error: unknown): void {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
+    this.props.onError(new Error(message));
   }
 
   render(): React.ReactNode {
@@ -351,6 +400,7 @@ function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
 // Camera reset component
 interface CameraControllerProps {
   resetTrigger: number;
+  modelBounds: THREE.Box3 | null;
 }
 
 // Type for OrbitControls-like objects
@@ -370,36 +420,71 @@ function isOrbitControlsLike(obj: unknown): obj is OrbitControlsLike {
   );
 }
 
-function CameraController({ resetTrigger }: CameraControllerProps) {
-  const { camera, controls } = useThree();
+function CameraController({
+  resetTrigger,
+  modelBounds
+}: CameraControllerProps) {
+  const { camera, controls, size } = useThree();
 
-  useEffect(() => {
-    if (resetTrigger > 0) {
+  const fitCameraToModel = useCallback(() => {
+    const perspectiveCamera =
+      camera instanceof THREE.PerspectiveCamera ? camera : null;
+
+    if (!perspectiveCamera || !modelBounds || modelBounds.isEmpty()) {
       camera.position.set(3, 2, 3);
       camera.lookAt(0, 0, 0);
       if (isOrbitControlsLike(controls)) {
         controls.target.set(0, 0, 0);
         controls.update();
       }
+      return;
     }
-  }, [resetTrigger, camera, controls]);
 
-  return null;
-}
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    modelBounds.getSize(size);
+    modelBounds.getCenter(center);
 
-// Auto-rotate component for compact mode
-interface AutoRotateProps {
-  enabled: boolean;
-}
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+    const fitHeightDistance =
+      maxDim /
+      (2 * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2)));
+    const fitWidthDistance =
+      fitHeightDistance / Math.max(perspectiveCamera.aspect, 0.1);
+    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.35;
+    const direction = new THREE.Vector3(1, 0.65, 1).normalize();
+    const nextPosition = center.clone().add(direction.multiplyScalar(distance));
 
-function AutoRotate({ enabled }: AutoRotateProps) {
-  const { scene } = useThree();
+    perspectiveCamera.position.copy(nextPosition);
+    perspectiveCamera.near = Math.max(distance / 100, 0.01);
+    perspectiveCamera.far = Math.max(distance * 20, 100);
+    perspectiveCamera.lookAt(center);
+    perspectiveCamera.updateProjectionMatrix();
 
-  useFrame((_, delta) => {
-    if (enabled && scene.children.length > 0) {
-      scene.rotation.y += delta * 0.3;
+    if (isOrbitControlsLike(controls)) {
+      controls.target.copy(center);
+      controls.update();
     }
-  });
+  }, [camera, controls, modelBounds]);
+
+  useEffect(() => {
+    if (size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    // Wait until the canvas has applied its latest measured size before fitting.
+    const rafId = requestAnimationFrame(() => {
+      fitCameraToModel();
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [fitCameraToModel, size.height, size.width]);
+
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      fitCameraToModel();
+    }
+  }, [fitCameraToModel, resetTrigger]);
 
   return null;
 }
@@ -462,7 +547,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   asset,
   url,
   compact = false,
-  onClick
+  onClick,
+  onDoubleClick
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -480,6 +566,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     useState<BackgroundColor>("dark");
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [screenshotTrigger, setScreenshotTrigger] = useState(0);
+  const [modelBounds, setModelBounds] = useState<THREE.Box3 | null>(null);
 
   const modelUrl = asset?.get_url || url || "";
   const { captureScreenshot } = useScreenshotCapture();
@@ -493,16 +580,42 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   );
 
   // Handle model load
-  const handleModelLoad = useCallback(() => {
+  const handleModelLoad = useCallback((bounds: THREE.Box3) => {
     setIsLoading(false);
     setLoadError(null);
+    setModelBounds(bounds.clone());
   }, []);
 
   // Handle model error
-  const handleModelError = useCallback((error: Error) => {
-    setIsLoading(false);
-    setLoadError(error.message || "Failed to load 3D model");
-  }, []);
+  const handleModelError = useCallback(
+    (error: Error) => {
+      setIsLoading(false);
+      setModelBounds(null);
+      const fileName = asset?.name || modelUrl.split("/").pop() || "unknown";
+      const ext = fileName.includes(".")
+        ? fileName.split(".").pop()?.toLowerCase()
+        : "unknown";
+      const supported = ["glb", "gltf"];
+      const isSupported = ext ? supported.includes(ext) : false;
+
+      const lines = [`Failed to load 3D model: ${fileName}`];
+      if (ext && !isSupported) {
+        lines.push(
+          `Format ".${ext}" is not supported. Supported formats: ${supported.map((e) => `.${e}`).join(", ")}.`
+        );
+      }
+      if (error.message) {
+        lines.push(error.message);
+      }
+      if (modelUrl) {
+        const display =
+          modelUrl.length > 120 ? modelUrl.slice(0, 120) + "…" : modelUrl;
+        lines.push(`URL: ${display}`);
+      }
+      setLoadError(lines.join("\n"));
+    },
+    [asset?.name, modelUrl]
+  );
 
   // Reset loading state when URL changes
   useEffect(() => {
@@ -590,6 +703,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     setBackgroundColor(event.target.value as BackgroundColor);
   }, []);
 
+  const handleToggleGrid = useCallback(() => {
+    setShowGrid(!showGrid);
+  }, [showGrid]);
+
+  const handleToggleAxes = useCallback(() => {
+    setShowAxes(!showAxes);
+  }, [showAxes]);
+
   if (!modelUrl) {
     return (
       <Box
@@ -612,6 +733,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       <div
         className={cn("model-container", reactFlowClasses.nodrag)}
         onClick={compact ? onClick : undefined}
+        onDoubleClick={compact ? onDoubleClick : undefined}
       >
         <div className="canvas-container">
           {isLoading && !loadError && (
@@ -626,15 +748,35 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           )}
           {loadError && (
             <div className="error-overlay">
-              <Typography variant="body2" color="error">
-                {loadError}
-              </Typography>
+              {loadError.split("\n").map((line, i) => (
+                <Typography
+                  key={i}
+                  variant="body2"
+                  color={i === 0 ? "error" : "textSecondary"}
+                  sx={{
+                    wordBreak: "break-word",
+                    fontSize: i === 0 ? "0.875rem" : "0.75rem",
+                    opacity: i === 0 ? 1 : 0.8
+                  }}
+                >
+                  {line}
+                </Typography>
+              ))}
             </div>
           )}
           <Canvas
             camera={{ position: [3, 2, 3], fov: 50 }}
             gl={{ preserveDrawingBuffer: true }}
-            style={{ background: bgColorValue }}
+            style={{
+              background: bgColorValue,
+              display: "block",
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              maxWidth: "100%",
+              maxHeight: "100%",
+              flex: 1
+            }}
           >
             <ModelErrorBoundary onError={handleModelError} fallback={null}>
               <Suspense
@@ -669,6 +811,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   wireframe={wireframe}
                   onLoad={handleModelLoad}
                   onClick={compact ? onClick : undefined}
+                  onDoubleClick={compact ? onDoubleClick : undefined}
                 />
 
                 {/* Scene helpers */}
@@ -687,10 +830,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 />
 
                 {/* Camera controller */}
-                <CameraController resetTrigger={resetCameraTrigger} />
-
-                {/* Auto rotate for compact mode */}
-                {compact && <AutoRotate enabled={true} />}
+                <CameraController
+                  resetTrigger={resetCameraTrigger}
+                  modelBounds={modelBounds}
+                />
 
                 {/* Screenshot handler */}
                 <ScreenshotHandler
@@ -723,7 +866,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Grid">
               <IconButton
                 size="small"
-                onClick={() => setShowGrid(!showGrid)}
+                onClick={handleToggleGrid}
                 className={showGrid ? "active" : ""}
               >
                 <GridOnIcon fontSize="small" />
@@ -734,7 +877,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Axes">
               <IconButton
                 size="small"
-                onClick={() => setShowAxes(!showAxes)}
+                onClick={handleToggleAxes}
                 className={showAxes ? "active" : ""}
               >
                 <ViewInArIcon fontSize="small" />
@@ -827,4 +970,4 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   );
 };
 
-export default Model3DViewer;
+export default memo(Model3DViewer);

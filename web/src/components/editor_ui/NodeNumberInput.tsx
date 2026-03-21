@@ -11,7 +11,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, memo } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -166,3 +166,8 @@ export const NodeNumberInput = forwardRef<
 );
 
 NodeNumberInput.displayName = "NodeNumberInput";
+
+const NodeNumberInputMemo = memo(NodeNumberInput);
+NodeNumberInputMemo.displayName = "NodeNumberInput";
+
+export default NodeNumberInputMemo;

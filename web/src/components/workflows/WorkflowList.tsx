@@ -16,62 +16,42 @@ import {
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "lodash/isEqual";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
-
+import { useSelectedTags } from "../../stores/WorkflowListViewStore";
+import { FlexColumn, FlexRow } from "../ui_primitives";
+import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
-      margin: "0px"
+      margin: "0px",
+      height: "100%"
     },
 
     ".toolbar-header": {
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0.75em",
+      padding: "0.5em 0",
       background: "transparent",
       backdropFilter: "blur(4px)",
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
 
-    ".loading-indicator": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-      height: "45vh",
-      width: "100%",
-      gap: "0.75em",
-      color: theme.vars.palette.grey[0]
-    },
     ".status": {
       margin: "0.5em 0.75em 0 0.75em",
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
       padding: "0.5em 0.75em 0.75em",
-      overflow: "auto",
-      scrollbarWidth: "thin",
-      scrollbarColor: `${theme.vars.palette.c_scroll_thumb} ${theme.vars.palette.c_scroll_bg}`,
-      "&::-webkit-scrollbar": { width: 10 },
-      "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.c_scroll_bg
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.c_scroll_thumb,
-        borderRadius: 10,
-        border: `2px solid ${theme.vars.palette.c_scroll_bg}`
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.c_scroll_hover
-      }
+      flex: 1,
+      overflow: "hidden"
     },
     // Toggle category
     ".toggle-category": {
@@ -86,16 +66,6 @@ const styles = (theme: Theme) =>
       padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[200]
-    },
-
-    ".empty-state": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "0.5em",
-      padding: "2em 1em",
-      color: theme.vars.palette.grey[300]
     }
   });
 
@@ -114,6 +84,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
@@ -143,9 +114,20 @@ const WorkflowList = () => {
   );
 
   const favoriteWorkflowIds = useFavoriteWorkflowIds();
+  const selectedTags = useSelectedTags();
+
+  // Derive available tags from all workflows
+  const availableTags = useMemo(() => {
+    if (!data?.workflows) { return []; }
+    const tagSet = new Set<string>();
+    data.workflows.forEach((workflow) => {
+      workflow.tags?.forEach((tag) => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [data?.workflows]);
 
   const workflows = useMemo(() => {
-    if (!data?.workflows) {return [];}
+    if (!data?.workflows) { return []; }
     let filtered = data.workflows;
 
     if (filterValue !== "") {
@@ -161,8 +143,16 @@ const WorkflowList = () => {
       );
     }
 
+    // Filter by selected tags (workflow must have ALL selected tags)
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((workflow) => {
+        const workflowTags = workflow.tags || [];
+        return selectedTags.every((tag) => workflowTags.includes(tag));
+      });
+    }
+
     return filtered;
-  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds]);
+  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds, selectedTags]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     setSelectedWorkflows((prev) =>
@@ -198,30 +188,49 @@ const WorkflowList = () => {
   }, [onDeselect]);
 
   const navigate = useNavigate();
-  const { copyWorkflow, createWorkflow } = useWorkflowManager((state) => ({
+  const location = useLocation();
+  const { copyWorkflow, createWorkflow, updateWorkflow, getWorkflow } = useWorkflowManager((state) => ({
     copyWorkflow: state.copy,
-    createWorkflow: state.create
+    createWorkflow: state.create,
+    updateWorkflow: state.updateWorkflow,
+    getWorkflow: state.getWorkflow
   }));
 
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
-      usePanelStore.getState().setVisibility(false);
+      if (location.pathname.startsWith("/apps/")) {
+        navigate("/apps/" + workflow.id);
+        usePanelStore.getState().setVisibility(false);
+      } else {
+        navigate("/editor/" + workflow.id);
+        usePanelStore.getState().setVisibility(false);
+      }
     },
-    [navigate]
+    [navigate, location.pathname]
   );
+
+  // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call
+  const workflowNamesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    workflows.forEach((w) => {
+      const baseName = w.name.replace(/ \(\d+\)$/, "");
+      if (!map.has(baseName)) {
+        map.set(baseName, []);
+      }
+      map.get(baseName)!.push(w.name);
+    });
+    return map;
+  }, [workflows]);
 
   const duplicateWorkflow = useCallback(
     async (event: React.MouseEvent, workflow: Workflow) => {
       event.stopPropagation();
       const workflowRequest = await copyWorkflow(workflow);
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
-      const existingNames = workflows
-        .filter((w) => w.name.startsWith(baseName))
-        .map((w) => w.name);
+      const existingNames = workflowNamesMap.get(baseName) || [];
       let highestNumber = 0;
-      const regex = new RegExp(`^${baseName} \\((\\d+)\\)$`);
+      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`);
       existingNames.forEach((name) => {
         const match = name.match(regex);
         if (match && match[1]) {
@@ -236,12 +245,41 @@ const WorkflowList = () => {
       const newWorkflow = await createWorkflow(workflowRequest);
       navigate(`/editor/${newWorkflow.id}`);
     },
-    [copyWorkflow, createWorkflow, workflows, navigate]
+    [copyWorkflow, createWorkflow, workflowNamesMap, navigate]
   );
 
   const handleEdit = useCallback((workflow: Workflow) => {
     setWorkflowToEdit(workflow);
   }, []);
+
+  const handleRename = useCallback(
+    async (workflow: Workflow, newName: string) => {
+      try {
+        await client.PUT("/api/workflows/{id}", {
+          params: { path: { id: workflow.id } },
+          body: { ...workflow, name: newName }
+        });
+        // Update the cache optimistically
+        queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
+          if (!old) { return old; }
+          return {
+            ...old,
+            workflows: old.workflows.map((w) =>
+              w.id === workflow.id ? { ...w, name: newName } : w
+            )
+          };
+        });
+        // Also update the workflow manager if this workflow is open (updates tabs)
+        const openWorkflow = getWorkflow(workflow.id);
+        if (openWorkflow) {
+          updateWorkflow({ ...openWorkflow, name: newName });
+        }
+      } catch (err) {
+        log.error("Failed to rename workflow:", err);
+      }
+    },
+    [queryClient, getWorkflow, updateWorkflow]
+  );
 
   const handleToggleFavorites = useCallback(() => {
     setShowFavoritesOnly((prev) => !prev);
@@ -261,17 +299,15 @@ const WorkflowList = () => {
           open={!!workflowToEdit}
           onClose={() => setWorkflowToEdit(null)}
           workflow={workflowToEdit}
+          availableTags={availableTags}
         />
       )}
-      <div css={styles(theme)}>
-        <div
+      <FlexColumn gap={0} fullHeight css={styles(theme)}>
+        <FlexRow
           className="toolbar-header"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75em",
-            justifyContent: "space-between"
-          }}
+          align="center"
+          gap={3}
+          justify="space-between"
         >
           <WorkflowToolbar
             setFilterValue={setFilterValue}
@@ -286,21 +322,22 @@ const WorkflowList = () => {
             }}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
+            availableTags={availableTags}
           />
-        </div>
+        </FlexRow>
         <div className="status">
           {isLoading && (
-            <div className="loading-indicator">
+            <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
               <CircularProgress />
               <Typography variant="h4">Loading Workflows</Typography>
-            </div>
+            </FlexColumn>
           )}
           {isError && (
-            <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
+            <FlexRow gap={4} align="center">
               <ErrorOutlineRounded />
               <Typography>{error?.message}</Typography>
               <Typography>No workflows found.</Typography>
-            </div>
+            </FlexRow>
           )}
           {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
             <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
@@ -310,12 +347,29 @@ const WorkflowList = () => {
         </div>
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
-            <div className="empty-state">
-              <Typography variant="h6">No workflows yet</Typography>
-              <Typography variant="body2">
-                Create your first workflow with the + button above.
-              </Typography>
-            </div>
+            <FlexColumn gap={2} align="center" justify="center" sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}>
+              {data?.workflows && data.workflows.length > 0 ? (
+                <>
+                  <Typography variant="h6">No matching workflows</Typography>
+                  <Typography variant="body2">
+                    {filterValue && selectedTags.length > 0
+                      ? "Try adjusting your search term or tag filters."
+                      : filterValue
+                        ? "Try a different search term."
+                        : selectedTags.length > 0
+                          ? "Try removing some tag filters."
+                          : "No workflows match the current filters."}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="h6">No workflows yet</Typography>
+                  <Typography variant="body2">
+                    Create your first workflow with the + button above.
+                  </Typography>
+                </>
+              )}
+            </FlexColumn>
           ) : (
             <WorkflowListView
               workflows={workflows}
@@ -323,6 +377,7 @@ const WorkflowList = () => {
               onDuplicateWorkflow={duplicateWorkflow}
               onDelete={onDelete}
               onEdit={handleEdit}
+              onRename={handleRename}
               onSelect={onSelect}
               selectedWorkflows={selectedWorkflows}
               workflowCategory="user"
@@ -330,7 +385,7 @@ const WorkflowList = () => {
             />
           )}
         </div>
-      </div>
+      </FlexColumn>
     </>
   );
 };

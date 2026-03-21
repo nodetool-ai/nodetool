@@ -13,16 +13,13 @@ import {
   Tooltip,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  CircularProgress
+  ListItemSecondaryAction
 } from "@mui/material";
 import {
   Restore as RestoreIcon,
-  Delete as DeleteIcon,
-  PushPin as PinIcon,
-  PushPinOutlined as PinOutlinedIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
+import { DeleteButton, LoadingSpinner } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -36,7 +33,6 @@ interface VersionListItemProps {
   onSelect: (versionId: string) => void;
   onRestore: (version: WorkflowVersion) => void;
   onDelete: (versionId: string) => void;
-  onPin: (versionId: string, pinned: boolean) => void;
   onCompare: (versionId: string) => void;
   isRestoring?: boolean;
 }
@@ -83,7 +79,7 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const VersionListItem: React.FC<VersionListItemProps> = ({
+const VersionListItem = React.memo(function VersionListItem({
   version,
   isSelected,
   isCompareTarget,
@@ -91,10 +87,9 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   onSelect,
   onRestore,
   onDelete,
-  onPin,
   onCompare,
   isRestoring = false
-}) => {
+}: VersionListItemProps) {
   const handleClick = useCallback(() => {
     if (compareMode) {
       onCompare(version.id);
@@ -104,7 +99,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   }, [compareMode, version.id, onSelect, onCompare]);
 
   const handleRestore = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       onRestore(version);
     },
@@ -112,19 +107,11 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
   );
 
   const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       onDelete(version.id);
     },
     [version.id, onDelete]
-  );
-
-  const handlePin = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onPin(version.id, !version.is_pinned);
-    },
-    [version.id, version.is_pinned, onPin]
   );
 
   const timeAgo = formatDistanceToNow(new Date(version.created_at), {
@@ -178,11 +165,9 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
               color={getSaveTypeColor(version.save_type)}
               sx={{ height: 20, fontSize: "0.7rem" }}
             />
-            {version.is_pinned && (
-              <PinIcon fontSize="small" color="primary" sx={{ fontSize: 14 }} />
-            )}
           </Box>
         }
+        primaryTypographyProps={{ component: "div" }}
         secondary={
           <Box>
             <Typography variant="caption" color="text.secondary">
@@ -205,42 +190,38 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
             )}
           </Box>
         }
+        secondaryTypographyProps={{ component: "div" }}
       />
       <ListItemSecondaryAction>
         <Box sx={{ display: "flex", gap: 0.5 }}>
           {compareMode ? (
             <Tooltip title="Select for comparison">
-              <IconButton size="small" onClick={handleClick}>
+              <IconButton size="small" onClick={handleClick} aria-label="Select for comparison">
                 <CompareIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           ) : isRestoring ? (
-            <CircularProgress size={20} />
+            <LoadingSpinner size="small" />
           ) : (
             <>
               <Tooltip title="Restore this version">
-                <IconButton size="small" onClick={handleRestore}>
+                <IconButton size="small" onClick={handleRestore} aria-label="Restore this version">
                   <RestoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={version.is_pinned ? "Unpin" : "Pin"}>
-                <IconButton size="small" onClick={handlePin}>
-                  {version.is_pinned ? (
-                    <PinIcon fontSize="small" />
-                  ) : (
-                    <PinOutlinedIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete version">
-                <IconButton size="small" onClick={handleDelete}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <DeleteButton
+                onClick={handleDelete}
+                tooltip="Delete version"
+              />
             </>
           )}
         </Box>
       </ListItemSecondaryAction>
     </ListItem>
   );
-};
+});
+
+VersionListItem.displayName = "VersionListItem";
+
+export { VersionListItem };
+export default VersionListItem;

@@ -31,7 +31,7 @@ To build and serve the site locally:
 bundle exec jekyll serve
 ```
 
-The site will be available at <http://localhost:4000/docs>
+The site will be available at <http://localhost:4000>
 
 For live reload (automatically rebuilds on file changes):
 ```bash
@@ -70,14 +70,15 @@ docs/
 ├── _layouts/            # Custom theme layouts
 │   ├── default.html     # Base layout with cyber effects
 │   ├── page.html        # Documentation page layout
-│   └── home.html        # Homepage layout with hero
+│   ├── home.html        # Homepage layout with hero
+│   └── redirect.html    # Redirect layout for moved pages
 ├── _includes/           # Reusable components
 │   ├── header.html      # Site header and navigation
 │   ├── footer.html      # Site footer
 │   └── sidebar.html     # Documentation sidebar
 ├── assets/              # Theme assets and media
 │   ├── css/
-│   │   └── style.scss   # Main theme stylesheet
+│   │   └── main.scss    # Main theme stylesheet
 │   ├── js/
 │   │   └── theme.js     # Interactive features
 │   └── *.png, *.mp4     # Images and videos
@@ -125,13 +126,14 @@ See [THEME.md](THEME.md) for detailed theme documentation and customization opti
 
 Main configuration is in `_config.yml`:
 - **Site settings**: title, description, URLs
+- **Base URL**: `baseurl` is set to `""` (served from site root)
 - **Navigation**: page order in header
 - **Plugins**: enabled Jekyll plugins
 - **Custom theme**: Uses custom layouts in `_layouts/` and `_includes/`
 
 ### Customizing the Theme
 
-To customize colors, edit CSS variables in `assets/css/style.scss`:
+To customize colors, edit CSS variables in `assets/css/main.scss`:
 
 ```css
 :root {
@@ -185,13 +187,13 @@ To configure GitHub Pages:
 3. Set the folder to `/docs`
 4. Save
 
-The site will be available at `https://<username>.github.io/<repository>/docs`
+The site will be available at `https://<username>.github.io/<repository>/` (or your configured custom domain)
 
 ## Theme Development
 
 When working on the theme:
 
-1. **CSS Changes**: Edit `assets/css/style.scss`
+1. **CSS Changes**: Edit `assets/css/main.scss`
    - Uses SCSS with Jekyll front matter
    - Organized with CSS variables for easy customization
    - Includes responsive breakpoints

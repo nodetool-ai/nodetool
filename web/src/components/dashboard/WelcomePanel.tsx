@@ -20,11 +20,12 @@ import { overviewContents, Section } from "../content/Welcome/OverviewContent";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
   if (React.isValidElement(node)) {
-    return React.Children.toArray(node.props.children)
+    return React.Children.toArray((node.props as { children?: ReactNode }).children)
       .map(extractText)
       .join(" ");
   }
@@ -34,7 +35,7 @@ const extractText = (node: ReactNode): string => {
   return "";
 };
 
-const panelStyles = (theme: any) =>
+const panelStyles = (theme: Theme) =>
   css({
     "&": {
       height: "100%",
@@ -124,23 +125,33 @@ const panelStyles = (theme: any) =>
 
 const WelcomePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const sections: Section[] = [
-    ...overviewContents
-  ].map((section) => ({
-    ...section,
-    originalContent: section.content
-  }));
-  const { settings, updateSettings } = useSettingsStore();
+
+  const sections: Section[] = useMemo(() =>
+    overviewContents.map((section) => ({
+      ...section,
+      originalContent: section.content
+    })),
+    []
+  );
+
+  // Subscribe to settings individually to prevent unnecessary re-renders
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
+
   const theme = useTheme();
 
-  const handleToggleWelcomeOnStartup = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    updateSettings({ showWelcomeOnStartup: event.target.checked });
-  };
+  const handleToggleWelcomeOnStartup = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateSettings({ showWelcomeOnStartup: event.target.checked });
+    },
+    [updateSettings]
+  );
 
-  const highlightText = (text: string, term: string) => {
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
     return parts.map((part, index) =>
@@ -152,34 +163,41 @@ const WelcomePanel: React.FC = () => {
         part
       )
     );
-  };
+  }, []);
+
+  // Memoize Fuse options to avoid recreation on every search
+  const fuseOptions = useMemo(() => ({
+    keys: [
+      { name: "title", weight: 0.4 },
+      { name: "content", weight: 0.6 }
+    ],
+    includeMatches: true,
+    ignoreLocation: true,
+    threshold: 0.2,
+    distance: 100,
+    shouldSort: true,
+    includeScore: true,
+    minMatchCharLength: 2,
+    useExtendedSearch: true,
+    tokenize: true,
+    matchAllTokens: false
+  }), []);
+
+  // Memoize search entries to avoid recreation on every search
+  const searchEntries = useMemo(() =>
+    sections.map((section) => ({
+      ...section,
+      content: extractText(section.content)
+    })),
+    [sections]
+  );
+
+  // Memoize Fuse instance
+  const fuse = useMemo(() => new Fuse(searchEntries, fuseOptions), [searchEntries, fuseOptions]);
 
   const performSearch = useCallback(
     (searchTerm: string) => {
       if (searchTerm.length > 1) {
-        const fuseOptions = {
-          keys: [
-            { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 }
-          ],
-          includeMatches: true,
-          ignoreLocation: true,
-          threshold: 0.2,
-          distance: 100,
-          shouldSort: true,
-          includeScore: true,
-          minMatchCharLength: 2,
-          useExtendedSearch: true,
-          tokenize: true,
-          matchAllTokens: false
-        };
-
-        const entries = sections.map((section) => ({
-          ...section,
-          content: extractText(section.content)
-        }));
-
-        const fuse = new Fuse(entries, fuseOptions);
         const filteredData = fuse
           .search(searchTerm)
           .map((result) => result.item);
@@ -188,7 +206,7 @@ const WelcomePanel: React.FC = () => {
       }
       return searchTerm.length === 0 ? sections : [];
     },
-    [sections]
+    [fuse, sections]
   );
 
   const filteredSections = useMemo(
@@ -196,7 +214,7 @@ const WelcomePanel: React.FC = () => {
     [performSearch, searchTerm]
   );
 
-  const renderContent = (content: ReactNode): ReactNode => {
+  const renderContent = useCallback((content: ReactNode): ReactNode => {
     if (typeof content === "string") {
       return highlightText(content, searchTerm);
     }
@@ -204,7 +222,7 @@ const WelcomePanel: React.FC = () => {
       return React.cloneElement(
         content,
         {},
-        React.Children.map(content.props.children, (child) =>
+        React.Children.map((content.props as { children?: ReactNode }).children, (child) =>
           typeof child === "string"
             ? highlightText(child, searchTerm)
             : renderContent(child)
@@ -217,7 +235,7 @@ const WelcomePanel: React.FC = () => {
       ));
     }
     return content;
-  };
+  }, [highlightText, searchTerm]);
 
   return (
     <Box css={panelStyles(theme)} className="welcome-panel-container">
@@ -273,7 +291,7 @@ const WelcomePanel: React.FC = () => {
                 </Typography>
                 <Button
                   size="small"
-                  onClick={() => setSearchTerm("")}
+                  onClick={handleClearSearch}
                   sx={{ mt: 1 }}
                 >
                   Clear search
@@ -308,4 +326,4 @@ const WelcomePanel: React.FC = () => {
   );
 };
 
-export default WelcomePanel;
+export default React.memo(WelcomePanel);

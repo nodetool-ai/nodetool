@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
@@ -41,15 +41,17 @@ function RecentList<TModel extends ModelSelectorModel>({
 }: RecentListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const theme = useTheme();
-  // const secrets = useRemoteSettingsStore((s) => s.secrets);
+
+  const handleItemClick = useCallback(
+    (model: TModel) => () => {
+      onSelect(model);
+    },
+    [onSelect]
+  );
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
-      // const env = requiredSecretForProvider(m.provider);
-      // const ok =
-      //   !env ||
-      //   Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
       map[`${m.provider}:${m.id}`] = true;
     });
     return map;
@@ -95,7 +97,7 @@ function RecentList<TModel extends ModelSelectorModel>({
             className={`model-menu__recent-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
+            onClick={handleItemClick(m)}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>

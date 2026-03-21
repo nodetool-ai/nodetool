@@ -31,7 +31,8 @@ describe("workflowOutputTypeInference", () => {
     source: sourceNodeId,
     sourceHandle: sourceHandle,
     target: targetNodeId,
-    targetHandle: targetHandle
+    targetHandle: targetHandle,
+    edge_type: "data"
   });
 
   const createMockOutputSlot = (name: string, type: string, optional: boolean = false, typeName?: string): OutputSlot => ({
@@ -54,7 +55,6 @@ describe("workflowOutputTypeInference", () => {
     layout: "default",
     properties: [],
     outputs,
-    the_model_info: {},
     recommended_models: [],
     basic_fields: [],
     is_dynamic: false,

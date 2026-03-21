@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Chunk } from "../../../stores/ApiTypes";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -12,19 +12,31 @@ type Props = {
   chunk: Chunk;
 };
 
-export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
+export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
+  const contentType = chunk.content_type;
+
+  if ((contentType as string) === "html") {
+    return (
+      <iframe
+        srcDoc={(chunk.content as string) ?? ""}
+        sandbox=""
+        style={{ width: "100%", minHeight: 320, border: "none" }}
+        title="HTML chunk output"
+      />
+    );
+  }
 
   switch (chunk.content_type) {
     case "image":
       return <ImageView source={chunk.content} />;
     case "audio": {
-      const meta = (chunk as any).content_metadata;
+      const meta = chunk.content_metadata;
       return (
         <StreamPcm16Player
           base64={chunk.content as string}
-          sampleRate={meta?.sample_rate || 22000}
-          channels={meta?.channels || 1}
+          sampleRate={(meta?.sample_rate as number) || 22000}
+          channels={(meta?.channels as number) || 1}
         />
       );
     }
@@ -59,4 +71,6 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
       );
     }
   }
-};
+});
+
+ChunkRenderer.displayName = "ChunkRenderer";

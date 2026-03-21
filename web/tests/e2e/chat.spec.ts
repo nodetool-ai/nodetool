@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import {
+  navigateToPage,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -6,8 +10,7 @@ if (process.env.JEST_WORKER_ID) {
 } else {
   test.describe("Chat Interface", () => {
     test("should load chat page", async ({ page }) => {
-      await page.goto("/chat");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/chat");
 
       // Verify we're on a chat page
       await expect(page).toHaveURL(/\/chat/);
@@ -19,8 +22,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should display chat interface elements", async ({ page }) => {
-      await page.goto("/chat");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/chat");
 
       // Wait for content to load by checking body has content
       const body = await page.locator("body");
@@ -33,8 +35,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test("should handle navigation with thread ID", async ({ page }) => {
       // Navigate to chat without a specific thread
-      await page.goto("/chat");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/chat");
 
       // Verify base chat URL works
       const url = page.url();

@@ -1,0 +1,49 @@
+{
+  "modelId": "topazlabs/video-upscale",
+  "owner": "topazlabs",
+  "name": "video-upscale",
+  "version": "f4dad23bbe2d0bf4736d2ea8c9156f1911d8eeb511c8d0bb390931e25caaef61",
+  "description": "Video Upscaling from Topaz Labs",
+  "inputSchema": {
+    "properties": {
+      "target_fps": {
+        "default": 30,
+        "description": "Target FPS (choose from 15-60fps)",
+        "maximum": 60,
+        "minimum": 15,
+        "title": "Target Fps",
+        "type": "integer",
+        "x-order": 2
+      },
+      "target_resolution": {
+        "default": "1080p",
+        "description": "Target resolution",
+        "enum": [
+          "720p",
+          "1080p",
+          "4k"
+        ],
+        "title": "target_resolution",
+        "type": "string",
+        "x-order": 1
+      },
+      "video": {
+        "description": "Video file to upscale",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

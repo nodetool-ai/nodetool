@@ -2,6 +2,7 @@ import log from "loglevel";
 import type { Chunk } from "../stores/ApiTypes";
 import { authHeader } from "../stores/ApiClient";
 import { client } from "../stores/ApiClient";
+import { resolveAssetUri } from "../components/node/output/hooks";
 
 interface AssetFileResult {
   file: File;
@@ -111,10 +112,10 @@ const toUint8Array = (input: any): Uint8Array => {
   }
   if (typeof input === "object") {
     if ("data" in input) {
-      return toUint8Array((input as any).data);
+      return toUint8Array((input as { data: unknown }).data);
     }
     if ("content" in input) {
-      return toUint8Array((input as any).content);
+      return toUint8Array((input as { content: unknown }).content);
     }
     return new Uint8Array(Object.values(input as Record<string, number>));
   }
@@ -125,7 +126,7 @@ const toUint8Array = (input: any): Uint8Array => {
 const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const { buffer, byteOffset, byteLength } = view;
   const candidate = buffer as ArrayBuffer & {
-    slice?: (start: number, end: number) => ArrayBuffer;
+    slice?: (_start: number, _end: number) => ArrayBuffer;
   };
   if (typeof candidate.slice === "function") {
     return candidate.slice(byteOffset, byteOffset + byteLength);
@@ -169,7 +170,7 @@ const resolveDownloadUri = (uri: string): string => {
 
 const chunkToOutput = (chunk: Chunk) => {
   if (typeof window !== "undefined") {
-    console.log("[createAssetFile] chunkToOutput", {
+    log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
       hasContent: typeof chunk.content !== "undefined",
       contentLength:
@@ -347,14 +348,24 @@ const buildFilename = (
   return `${desired.slice(0, dotIndex)}${suffix}${desired.slice(dotIndex)}`;
 };
 
+const isExternalUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
-  const headers = await authHeader();
-  const resolvedUri = resolveDownloadUri(uri);
-  const response = await fetch(resolvedUri, {
-    credentials: "include",
-    mode: "cors",
-    headers
-  });
+  const resolvedUri = resolveDownloadUri(resolveAssetUri(uri));
+  const external = isExternalUrl(resolvedUri);
+
+  const fetchOptions: RequestInit = external
+    ? { mode: "cors" }
+    : { credentials: "include", mode: "cors", headers: await authHeader() };
+
+  const response = await fetch(resolvedUri, fetchOptions);
   if (!response.ok) {
     throw new Error(`Unexpected response ${response.status}`);
   }
@@ -380,22 +391,19 @@ const createSingleAssetFile = async (
   const stringLooksLikeUrl =
     typeof data === "string" &&
     (data.startsWith("http://") || data.startsWith("https://"));
+  const outputUri = typeof output?.uri === "string" ? output.uri : undefined;
+  const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
+  let desiredFilename = output?.filename as string | undefined;
 
   const shouldFetchFromUri =
-    typeof output?.uri === "string" && (isDataEmpty || stringLooksLikeUrl);
+    typeof outputUri === "string" &&
+    !isAssetUri &&
+    (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
-    !shouldFetchFromUri &&
     typeof output?.asset_id === "string" &&
-    (isDataEmpty || data === output);
+    (isDataEmpty || data === output || isAssetUri);
 
-  if (shouldFetchFromUri) {
-    try {
-      data = await fetchBinaryFromUri(output.uri);
-    } catch (err) {
-      log.warn("[createAssetFile] Failed to fetch data from URI", err);
-      data = originalData ?? new Uint8Array();
-    }
-  } else if (shouldDownloadAsset) {
+  if (shouldDownloadAsset) {
     try {
       const assetResponse = await client.GET("/api/assets/{id}", {
         params: { path: { id: output.asset_id } }
@@ -407,13 +415,23 @@ const createSingleAssetFile = async (
         throw new Error(detail || "Failed to fetch asset metadata");
       }
       const downloadUrl = assetResponse.data?.get_url;
+      desiredFilename = assetResponse.data?.name || desiredFilename;
       if (downloadUrl) {
         data = await fetchBinaryFromUri(downloadUrl);
+      } else if (outputUri) {
+        data = await fetchBinaryFromUri(outputUri);
       } else {
         log.warn("[createAssetFile] asset metadata missing get_url");
       }
     } catch (err) {
       log.warn("[createAssetFile] Failed to download asset via API", err);
+      data = originalData ?? new Uint8Array();
+    }
+  } else if (shouldFetchFromUri) {
+    try {
+      data = await fetchBinaryFromUri(outputUri);
+    } catch (err) {
+      log.warn("[createAssetFile] Failed to fetch data from URI", err);
       data = originalData ?? new Uint8Array();
     }
   }
@@ -431,39 +449,39 @@ const createSingleAssetFile = async (
       mimeType = getMimeType(output, "image/png");
       const extension = getExtension(mimeType, "png");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
     }
     case "video": {
       mimeType = getMimeType(output, "video/mp4");
       const extension = getExtension(mimeType, "mp4");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
     }
     case "audio": {
       mimeType = getMimeType(output, "audio/mp3");
       const extension = getExtension(mimeType, "mp3");
       content = toArrayBuffer(toUint8Array(data));
-      filename = buildFilename(output?.filename, id, suffix, extension, index);
+      filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
     }
     case "dataframe":
       content = convertDataFrameToCSV(data);
       mimeType = "text/csv";
-      filename = buildFilename(output?.filename, id, suffix, "csv", index);
+      filename = buildFilename(desiredFilename, id, suffix, "csv", index);
       break;
     case "object":
     case "array":
       content = JSON.stringify(data, null, 2);
       mimeType = "application/json";
-      filename = buildFilename(output?.filename, id, suffix, "json", index);
+      filename = buildFilename(desiredFilename, id, suffix, "json", index);
       break;
     case "text":
       content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
-        output?.filename,
+        desiredFilename,
         id,
         suffix,
         getExtension(mimeType, "txt"),
@@ -479,7 +497,7 @@ const createSingleAssetFile = async (
           : JSON.stringify(output, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
-        output?.filename,
+        desiredFilename,
         id,
         suffix,
         getExtension(mimeType, "txt"),

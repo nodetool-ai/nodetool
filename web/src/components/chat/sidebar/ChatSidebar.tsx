@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import {
     Box,
     IconButton,
@@ -103,6 +103,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <IconButton
                         onClick={handleOpen}
                         size="small"
+                        aria-label="Open sidebar"
                         sx={{
                             color: theme.vars.palette.text.secondary,
                             "&:hover": {
@@ -118,6 +119,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <IconButton
                         onClick={handleNewChat}
                         size="small"
+                        aria-label="New chat"
                         sx={{
                             color: theme.vars.palette.text.secondary,
                             "&:hover": {
@@ -168,6 +170,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <IconButton
                             onClick={handleClose}
                             size="small"
+                            aria-label="Collapse sidebar"
                             sx={{
                                 color: theme.vars.palette.text.secondary,
                                 "&:hover": {
@@ -210,7 +213,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <InputBase
                             placeholder="Search threads..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+                                setSearchQuery(e.target.value);
+                            }, [])}
                             fullWidth
                             sx={{
                                 fontSize: "0.875rem",
@@ -225,6 +230,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <IconButton
                             onClick={handleNewChat}
                             size="small"
+                            aria-label="New chat"
                             sx={{
                                 backgroundColor: theme.vars.palette.grey[800],
                                 color: theme.vars.palette.common.white,
@@ -273,4 +279,4 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     );
 };
 
-export default ChatSidebar;
+export default memo(ChatSidebar);

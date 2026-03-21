@@ -13,7 +13,7 @@ export interface TTSModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
 }
 
-export default function TTSModelMenuDialog({
+function TTSModelMenuDialog({
   open,
   onClose,
   onModelChange,
@@ -33,3 +33,5 @@ export default function TTSModelMenuDialog({
     />
   );
 }
+
+export default React.memo(TTSModelMenuDialog);

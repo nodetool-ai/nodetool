@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
@@ -24,7 +24,7 @@ const formatDatetime = (dt: Datetime): string => {
   return date.toLocaleString();
 };
 
-export const DatetimeRenderer: React.FC<{
+const DatetimeRendererInternal: React.FC<{
   value: Datetime;
 }> = ({ value }) => {
   const theme = useTheme();
@@ -36,3 +36,5 @@ export const DatetimeRenderer: React.FC<{
     </div>
   );
 };
+
+export const DatetimeRenderer = memo(DatetimeRendererInternal);

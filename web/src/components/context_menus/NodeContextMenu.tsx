@@ -1,5 +1,5 @@
-import React from "react";
-import { Menu, Divider } from "@mui/material";
+import React, { memo, useCallback } from "react";
+import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useSubgraphOperations } from "../../hooks/nodes/useSubgraphOperations";
@@ -11,8 +11,12 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import SyncIcon from "@mui/icons-material/Sync";
+import QueueIcon from "@mui/icons-material/Queue";
+import SouthIcon from "@mui/icons-material/South";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -20,6 +24,7 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { SUBGRAPH_NODE_TYPE } from "../../types/subgraph";
 import { useSubgraphStore, ROOT_GRAPH_ID } from "../../stores/SubgraphStore";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -31,18 +36,30 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const { handleUnpackSubgraph } = useSubgraphOperations();
-  
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+
   const isSubgraphNode = node?.type === SUBGRAPH_NODE_TYPE;
-  
+
   // Check if we're inside a subgraph (not at root)
   const currentGraphId = useSubgraphStore((state) => state.currentGraphId);
   const exitSubgraph = useSubgraphStore((state) => state.exitSubgraph);
   const isInsideSubgraph = currentGraphId !== ROOT_GRAPH_ID;
-  
-  // Debug logging for context menu
-  if (menuPosition !== null) {
-    console.log(`[NodeContextMenu] node.type=${node?.type}, isSubgraph=${isSubgraphNode}, SUBGRAPH_NODE_TYPE=${SUBGRAPH_NODE_TYPE}, isInsideSubgraph=${isInsideSubgraph}`);
-  }
+
+  const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
+
+  const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
+    if (node?.id) {
+      updateNodeData(node.id, { sync_mode: mode });
+    }
+    closeContextMenu();
+  }, [node, updateNodeData, closeContextMenu]);
+
+  const handleRemoveFromGroup = useCallback(() => {
+    removeFromGroup([node as Node<NodeData>]);
+  }, [removeFromGroup, node]);
+
+  const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
+  const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
 
   const handleExitSubgraph = () => {
     exitSubgraph();
@@ -63,7 +80,7 @@ const NodeContextMenu: React.FC = () => {
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
-        onClick={() => removeFromGroup([node as Node<NodeData>])}
+        onClick={handleRemoveFromGroup}
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
@@ -84,6 +101,34 @@ const NodeContextMenu: React.FC = () => {
       />
     ),
     <ContextMenuItem
+      key="duplicate"
+      onClick={handlers.handleDuplicate}
+      label="Duplicate"
+      IconComponent={<QueueIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Duplicate</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>D</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="duplicate-vertical"
+      onClick={handlers.handleDuplicateVertical}
+      label="Duplicate Vertical"
+      IconComponent={<SouthIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Duplicate Vertical</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
       label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
@@ -95,7 +140,7 @@ const NodeContextMenu: React.FC = () => {
       key="toggle-bypass"
       onClick={handlers.handleToggleBypass}
       label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
-      IconComponent={conditions.isBypassed ? <PlayArrowIcon /> : <BlockIcon />}
+      IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
@@ -150,6 +195,47 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
+    <MenuItem key="sync-mode" disabled sx={{ py: 0.5, minHeight: "unset" }}>
+      <ListItemText
+        primary="Sync Mode"
+        secondary="How inputs are coordinated"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <MenuItem
+      key="sync-on-any"
+      selected={syncMode === "on_any"}
+      onClick={handleSyncModeOnAny}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon>
+        <SyncIcon sx={{ fontSize: "1rem" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="on_any"
+        secondary="Run when any input arrives"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <MenuItem
+      key="sync-zip-all"
+      selected={syncMode === "zip_all"}
+      onClick={handleSyncModeZipAll}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon>
+        <SyncIcon sx={{ fontSize: "1rem", transform: "scaleX(-1)" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="zip_all"
+        secondary="Wait for all inputs; process items together"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <Divider key="divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"
       onClick={handlers.handleDeleteNode}
@@ -157,16 +243,15 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
     />,
+    isDevelopment && <Divider key="dev-divider" />,
     isDevelopment && (
-      <React.Fragment key="dev">
-        <Divider />
-        <ContextMenuItem
-          onClick={handlers.handleCopyMetadataToClipboard}
-          label="Copy NodeData"
-          IconComponent={<DataArrayIcon />}
-          tooltip="Copy node data to the clipboard"
-        />
-      </React.Fragment>
+      <ContextMenuItem
+        key="copy-nodedata"
+        onClick={handlers.handleCopyMetadataToClipboard}
+        label="Copy NodeData"
+        IconComponent={<DataArrayIcon />}
+        tooltip="Copy node data to the clipboard"
+      />
     )
   ];
 
@@ -193,4 +278,4 @@ const NodeContextMenu: React.FC = () => {
   );
 };
 
-export default NodeContextMenu;
+export default memo(NodeContextMenu);

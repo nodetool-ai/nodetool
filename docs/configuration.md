@@ -5,7 +5,7 @@ title: "Configuration Guide"
 
 
 
-NodeTool reads configuration from layered sources so local development, automated deployments, and production can share defaults with minimal duplication. The configuration helpers live in `src/nodetool/config/settings.py` and `src/nodetool/config/environment.py`.
+NodeTool reads configuration from layered sources so local development, automated deployments, and production can share defaults with minimal duplication. The configuration helpers live in the `@nodetool/config` package (`settings.ts` and `environment.ts`).
 
 ![Settings Dialog](assets/screenshots/settings-dialog.png)
 
@@ -26,7 +26,7 @@ This hierarchy allows committed defaults, per-environment overrides, and develop
 - `nodetool settings show [--secrets]` – print the current values in a Rich table.
 - `nodetool settings edit [--secrets]` – open the YAML file in `$EDITOR`. Files are created on first use.
 
-Settings metadata (description, grouping) is registered via `register_setting()` and `register_secret()` in `src/nodetool/config/settings.py`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
+Settings metadata (description, grouping) is registered via `registerSetting()` in `@nodetool/config`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
 
 ### File Locations
 
@@ -39,40 +39,40 @@ Settings metadata (description, grouping) is registered via `register_setting()`
 
 ## Secret Storage and Master Key
 
-Secrets saved through the CLI are encrypted before being written to disk. The master key management logic in `src/nodetool/security/master_key.py` retrieves or creates a key in this order:
+Secrets saved through the CLI are encrypted before being written to disk. The master key management logic retrieves or creates a key in this order:
 
 1. `SECRETS_MASTER_KEY` environment variable.
 2. AWS Secrets Manager if `AWS_SECRETS_MASTER_KEY_NAME` is set.
 3. Local system keyring (macOS Keychain, Windows Credential Manager, or Secret Service).
 4. Generates a new key and stores it in the keyring (`MasterKeyManager.get_master_key()`).
 
-For shared deployments you **must** pre-provision the master key (via `SECRETS_MASTER_KEY` environment variable or AWS Secrets Manager) so every worker can decrypt secrets generated locally. Worker and API processes will refuse to start in production when the variable is missing.
+For shared deployments you **must** pre-provision the master key (via `SECRETS_MASTER_KEY` environment variable or AWS Secrets Manager) so every server can decrypt secrets generated locally. Server and API processes will refuse to start in production when the variable is missing.
 
-### Migrating Secrets to a Worker
+### Migrating Secrets to a Server
 
-1. Export the master key once and set it on every worker instance:
+1. Export the master key once and set it on every server instance:
 
    ```bash
-   export SECRETS_MASTER_KEY="$(nodetool python -c 'from nodetool.security.master_key import MasterKeyManager; import asyncio; print(asyncio.run(MasterKeyManager.get_master_key()))')"
+   export SECRETS_MASTER_KEY="$(nodetool secrets master-key)"
    ```
 
    (or copy the value from your deployment pipeline/secrets manager)
-2. The `nodetool deploy apply` command automatically synchronizes all secrets from your local database to the target worker right after a successful deploy. If you ever need to do it manually, POST the encrypted payload to the new admin endpoint:
+2. The `nodetool deploy apply` command automatically synchronizes all secrets from your local database to the target server right after a successful deploy. If you ever need to do it manually, POST the encrypted payload to the new admin endpoint:
 
    ```bash
    curl -H "Authorization: Bearer $WORKER_TOKEN" \
         -H "Content-Type: application/json" \
-        -X POST https://your-worker.example.com/admin/secrets/import \
+        -X POST https://your-server.example.com/admin/secrets/import \
         --data-binary @secrets-export.json
    ```
 
-   The worker stores the ciphertext verbatim, so both sides must share the same master key.
+   The server stores the ciphertext verbatim, so both sides must share the same master key.
 
 ## Runtime Environment Detection
 
 `Environment.is_production()` and `Environment.is_test()` determine which services to instantiate:
 
-- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `src/nodetool/runtime/resources.py`).
+- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `@nodetool/runtime`).
 - Tests automatically provision in-memory storage and isolated SQLite databases.
 - `ENV` defaults to `development` and can be switched with `Environment.set_env()` or the `ENV` environment variable.
 
@@ -80,10 +80,10 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 
 When adding a feature that requires configuration:
 
-1. Register the variable in `src/nodetool/config/settings.py` via `register_setting()` or `register_secret()` to document it and surface it in CLI tables.
+1. Register the variable in `@nodetool/config` via `registerSetting()` to document it and surface it in CLI tables.
 2. Update `.env.example` with the new entry.
-3. Reference the variable using `Environment.get("YOUR_ENV_VAR")` to respect the hierarchy.
-4. If the value is required, supply `default=NOT_GIVEN` (see `get_value()` in `src/nodetool/config/settings.py`) so missing keys raise a descriptive error.
+3. Reference the variable using `getEnv("YOUR_ENV_VAR")` from `@nodetool/config` to respect the hierarchy.
+4. If the value is required, use `requireEnv("YOUR_ENV_VAR")` so missing keys raise a descriptive error.
 
 ## Recommended Workflow
 
@@ -121,7 +121,7 @@ Behavior:
 
 Security notes:
 
-- Use the service role key only in worker/server environments. Do not expose it to clients.
+- Use the service role key only in server/server environments. Do not expose it to clients.
 - Public buckets make `get_url()` links directly accessible. For private buckets, add a signing step.
 
 ## Environment Variables Index
@@ -132,7 +132,7 @@ Security notes:
 |----------|---------|--------|-------|
 | `ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development` |
 | `AUTH_PROVIDER` | Auth mode (`none`, `local`, `static`, `supabase`) | no | See [Authentication](authentication.md) |
-| `WORKER_AUTH_TOKEN` | Static token for auth | yes | Generated automatically if unset |
+| `SERVER_AUTH_TOKEN` | Static token for auth | yes | Generated automatically if unset |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Provider access | yes | Set only the providers you use |
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |

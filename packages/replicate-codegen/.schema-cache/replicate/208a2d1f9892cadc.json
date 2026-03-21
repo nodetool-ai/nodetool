@@ -1,0 +1,126 @@
+{
+  "modelId": "kwaivgi/kling-v3-omni-video",
+  "owner": "kwaivgi",
+  "name": "kling-v3-omni-video",
+  "version": "1d449e255319a7c07feca688cf0596cb82cc8a96ceddff6c44fd0d090b4e830c",
+  "description": "Kling Video 3.0 Omni: Unified multimodal video generation with reference images, video editing, native audio, and multi-shot control",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio. Required when not using start frame or video editing.",
+        "enum": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 9
+      },
+      "duration": {
+        "default": 5,
+        "description": "Video duration in seconds (3-15). Ignored for video editing (base).",
+        "maximum": 15,
+        "minimum": 3,
+        "title": "Duration",
+        "type": "integer",
+        "x-order": 10
+      },
+      "end_image": {
+        "description": "Last frame image. Requires start_image. Supports .jpg/.jpeg/.png, max 10MB, min 300px.",
+        "format": "uri",
+        "nullable": true,
+        "title": "End Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "generate_audio": {
+        "default": false,
+        "description": "Generate native audio. Mutually exclusive with reference video.",
+        "title": "Generate Audio",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "keep_original_sound": {
+        "default": true,
+        "description": "Keep original sound from reference video.",
+        "title": "Keep Original Sound",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "mode": {
+        "default": "pro",
+        "description": "'standard' generates 720p, 'pro' generates 1080p.",
+        "enum": [
+          "standard",
+          "pro"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 8
+      },
+      "multi_prompt": {
+        "description": "JSON array of shot definitions for multi-shot mode. Each shot: {\"prompt\": \"...\", \"duration\": N}. Max 6 shots, min duration 1s per shot, total must equal duration. Example: [{\"prompt\":\"A cat jumps\",\"duration\":3},{\"prompt\":\"It lands\",\"duration\":2}]",
+        "nullable": true,
+        "title": "Multi Prompt",
+        "type": "string",
+        "x-order": 11
+      },
+      "prompt": {
+        "description": "Text prompt for video generation. Supports <<<image_1>>>, <<<video_1>>> template references. Max 2500 characters.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "reference_images": {
+        "description": "Reference images for elements, scenes, or styles. Supports .jpg/.jpeg/.png. Max 7 without video, 4 with video.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "nullable": true,
+        "title": "Reference Images",
+        "type": "array",
+        "x-order": 3
+      },
+      "reference_video": {
+        "description": "Reference video (.mp4/.mov). Duration 3-10s, resolution 720-2160px per side, max 200MB.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Reference Video",
+        "type": "string",
+        "x-order": 4
+      },
+      "start_image": {
+        "description": "First frame image. Supports .jpg/.jpeg/.png, max 10MB, min 300px, aspect ratio 1:2.5 to 2.5:1.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Start Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "video_reference_type": {
+        "default": "feature",
+        "description": "How to use reference video: 'feature' for style/camera reference, 'base' for video editing.",
+        "enum": [
+          "feature",
+          "base"
+        ],
+        "title": "video_reference_type",
+        "type": "string",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

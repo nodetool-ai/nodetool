@@ -13,14 +13,15 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
   title: "Group",
   description: "Group Node",
   outputs: [],
-  the_model_info: {},
+
   layout: "default",
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  is_streaming_output: false
+  is_streaming_output: false,
+  required_settings: []
 };
 
 /**
@@ -33,12 +34,13 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
   title: "Comment",
   description: "Comment",
   outputs: [],
-  the_model_info: {},
+
   layout: "comment",
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  is_streaming_output: false
+  is_streaming_output: false,
+  required_settings: []
 };

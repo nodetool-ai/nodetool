@@ -8,21 +8,31 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
 import { Button, TextField, Tooltip } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
+import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
+import { resolveAssetUri } from "../node/output/hooks";
 
 const styles = (theme: Theme) =>
   css({
+    "&": {
+      height: "100%",
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
+    },
     "& .property-label": {
       marginBottom: "5px"
     },
     ".drop-container": {
       position: "relative",
       width: "100%",
-      marginTop: "-3px",
+      flex: 1,
+      minHeight: 0,
+      marginTop: 0,
       display: "flex",
       flexDirection: "column",
       alignItems: "normal",
@@ -71,15 +81,19 @@ const styles = (theme: Theme) =>
       border: "0"
     },
     ".dropzone": {
-      minHeight: "80px",
+      minHeight: 0,
       width: "100%",
+      height: "100%",
+      flex: 1,
       border: "0",
       maxWidth: "none",
       textAlign: "center",
       transition: "all 0.2s ease",
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "4px",
+      borderRadius: 0,
       cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
         outline: `2px dashed ${theme.vars.palette.grey[100]}`,
@@ -90,7 +104,9 @@ const styles = (theme: Theme) =>
       width: "100%",
       border: "0",
       maxWidth: "none",
-      minHeight: "100px"
+      minHeight: 0,
+      height: "100%",
+      flex: 1
     },
     ".dropzone p": {
       textAlign: "center",
@@ -104,8 +120,16 @@ const styles = (theme: Theme) =>
     },
     ".model-preview": {
       width: "100%",
-      height: "100px",
-      position: "relative"
+      height: "100%",
+      minHeight: 0,
+      flex: 1,
+      position: "relative",
+      display: "flex"
+    },
+    ".model-preview > *": {
+      width: "100%",
+      height: "100%",
+      flex: 1
     }
   });
 
@@ -113,18 +137,18 @@ const Model3DProperty = (props: PropertyProps) => {
   const id = `model3d-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ model3d: props.value });
   const theme = useTheme();
+  const previewUrl = resolveAssetUri(uri);
 
-  const isConnected = useNodes((state) => {
-    return state.edges.some(
-      (edge) =>
-        edge.target === props.nodeId &&
-        edge.targetHandle === props.property.name
-    );
-  });
+  const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleToggleUrlInput = useCallback(() => {
+    setShowUrlInput((prev) => !prev);
+  }, []);
 
   const { onDrop, onDragOver } = useFileDrop({
     uploadAsset: true,
@@ -161,10 +185,14 @@ const Model3DProperty = (props: PropertyProps) => {
   );
 
   const handlePreviewClick = useCallback(() => {
-    if (uri) {
+    if (previewUrl) {
       setOpenViewer(true);
     }
-  }, [uri]);
+  }, [previewUrl]);
+
+  const handleCloseViewer = useCallback(() => {
+    setOpenViewer(false);
+  }, []);
 
   return (
     <div className="model3d-property" css={styles(theme)}>
@@ -197,7 +225,7 @@ const Model3DProperty = (props: PropertyProps) => {
               style={{
                 opacity: showUrlInput ? 0.8 : 1
               }}
-              onClick={() => setShowUrlInput(!showUrlInput)}
+              onClick={handleToggleUrlInput}
             >
               {showUrlInput ? "X" : "URL"}
             </Button>
@@ -210,11 +238,15 @@ const Model3DProperty = (props: PropertyProps) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={uri ? handlePreviewClick : undefined}
+            onDoubleClick={uri ? handlePreviewClick : undefined}
           >
             {uri ? (
               <div className="model-preview">
-                <Model3DViewer url={uri} compact={true} onClick={handlePreviewClick} />
+                <LazyModel3DViewer
+                  url={previewUrl}
+                  compact={true}
+                  onDoubleClick={handlePreviewClick}
+                />
               </div>
             ) : (
               <p className="prop-drop">Drop 3D model (GLB, GLTF)</p>
@@ -224,9 +256,9 @@ const Model3DProperty = (props: PropertyProps) => {
           <AssetViewer
             contentType="model/gltf-binary"
             asset={asset}
-            url={uri}
+            url={previewUrl}
             open={openViewer}
-            onClose={() => setOpenViewer(false)}
+            onClose={handleCloseViewer}
           />
         </div>
       )}

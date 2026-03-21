@@ -2,12 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useCallback } from "react";
 import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
+import { CloseButton } from "../ui_primitives/CloseButton";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
@@ -186,6 +187,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     const theme = useTheme();
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const {
       isOpen,
@@ -204,9 +206,41 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
     useEffect(() => {
       if (isOpen) {
-        setTimeout(() => inputRef.current?.focus(), 50);
+        const timeoutId = setTimeout(() => inputRef.current?.focus(), 50);
+        return () => clearTimeout(timeoutId);
       }
     }, [isOpen]);
+
+    // Click outside to close
+    useEffect(() => {
+      if (!isOpen) {
+        return;
+      }
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(event.target as Node)
+        ) {
+          closeFind();
+        }
+      };
+
+      let isMounted = true;
+
+      // Delay adding the listener to avoid immediately closing on the same click that opened
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          document.addEventListener("mousedown", handleClickOutside);
+        }
+      }, 100);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timeoutId);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [isOpen, closeFind]);
 
     useEffect(() => {
       if (!isOpen) {
@@ -249,26 +283,39 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, closeFind, navigateNext, navigatePrevious, results.length, goToSelected]);
+    }, [
+      isOpen,
+      closeFind,
+      navigateNext,
+      navigatePrevious,
+      results.length,
+      goToSelected
+    ]);
+
+    const handleInputChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        performSearch(event.target.value);
+      },
+      [performSearch]
+    );
+
+    const handleResultClick = useCallback(
+      (index: number) => (_event: React.MouseEvent) => {
+        selectNode(index);
+        goToSelected();
+        closeFind();
+      },
+      [selectNode, goToSelected, closeFind]
+    );
+
+    const handleClear = useCallback(() => {
+      clearSearch();
+      inputRef.current?.focus();
+    }, [clearSearch]);
 
     if (!isOpen) {
       return null;
     }
-
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      performSearch(event.target.value);
-    };
-
-    const handleResultClick = (index: number) => {
-      selectNode(index);
-      goToSelected();
-      closeFind();
-    };
-
-    const handleClear = () => {
-      clearSearch();
-      inputRef.current?.focus();
-    };
 
     const formatNodeType = (type: string): string => {
       const parts = type.split(".");
@@ -279,7 +326,11 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     };
 
     return (
-      <Box className="find-dialog-container" css={styles(theme)}>
+      <Box
+        ref={containerRef}
+        className="find-dialog-container"
+        css={styles(theme)}
+      >
         <Box className="find-header">
           <Box className="search-icon-wrapper">
             <SearchIcon fontSize="small" />
@@ -317,12 +368,20 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               <ArrowDownwardIcon fontSize="small" />
             </button>
           </Box>
+          <CloseButton
+            onClick={closeFind}
+            tooltip="Close (Escape)"
+            buttonSize="small"
+            nodrag={false}
+            sx={{ marginLeft: "8px" }}
+          />
         </Box>
 
         <Box className="results-count">
           {results.length > 0 ? (
             <>
-              {selectedIndex + 1} of {results.length} node{results.length !== 1 ? "s" : ""} found
+              {selectedIndex + 1} of {results.length} node
+              {results.length !== 1 ? "s" : ""} found
             </>
           ) : searchTerm ? (
             <>No nodes found</>
@@ -334,10 +393,16 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         {results.length > 0 ? (
           <List className="results-list" ref={listRef}>
             {results.map((result, index) => (
-              <ListItem key={result.node.id} className="result-item" disablePadding>
+              <ListItem
+                key={result.node.id}
+                className="result-item"
+                disablePadding
+              >
                 <ListItemButton
-                  className={`result-button ${index === selectedIndex ? "selected" : ""}`}
-                  onClick={() => handleResultClick(index)}
+                  className={`result-button ${
+                    index === selectedIndex ? "selected" : ""
+                  }`}
+                  onClick={handleResultClick(index)}
                 >
                   <Typography className="result-name" variant="body2">
                     {getNodeDisplayName(result.node)}

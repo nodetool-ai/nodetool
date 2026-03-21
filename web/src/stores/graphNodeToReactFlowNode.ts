@@ -1,8 +1,9 @@
 import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
-import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { SUBGRAPH_NODE_TYPE } from "../types/subgraph";
+import log from "loglevel";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -19,9 +20,9 @@ export function graphNodeToReactFlowNode(
     typeof node.data === "object" &&
     "workflow_id" in node.data
   ) {
-    console.warn(
+    log.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
-      (node.data as any).workflow_id,
+      (node.data as Record<string, unknown>).workflow_id,
       "will use:",
       workflow.id
     );
@@ -52,6 +53,10 @@ export function graphNodeToReactFlowNode(
     ? (nodeDataProperties as any).subgraphId
     : undefined;
 
+  // PreviewNodes are selectable via click and selection box,
+  // but should be ignored when dragging (handled in drag handler)
+  const selectable = ui_properties?.selectable;
+
   return {
     type: node.type,
     id: node.id,
@@ -62,14 +67,14 @@ export function graphNodeToReactFlowNode(
       node.type === "nodetool.workflows.base_node.Comment" ||
       node.type === "nodetool.workflows.base_node.Group"
     ),
-    selectable: ui_properties?.selectable,
+    selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
-      properties: nodeDataProperties,
-      dynamic_properties: node.dynamic_properties || {},
+      properties: nodeDataProperties as Record<string, unknown>,
+      dynamic_properties: (node.dynamic_properties || {}) as Record<string, unknown>,
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
-      selectable: ui_properties?.selectable,
+      selectable,
       collapsed: false,
       bypassed: isBypassed,
       workflow_id: workflow.id,
@@ -79,6 +84,10 @@ export function graphNodeToReactFlowNode(
       subgraphId
     },
     position: ui_properties?.position || { x: 0, y: 0 },
+    // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)
+    // ReactFlow's applyNodeChanges sets node.width/height when user resizes, so we restore them here
+    width: defaultWidth,
+    height: defaultHeight,
     style: {
       width: defaultWidth,
       height: defaultHeight
