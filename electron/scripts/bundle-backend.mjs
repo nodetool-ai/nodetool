@@ -138,6 +138,11 @@ function resolvePackageRoot(packageName) {
       return candidate;
     }
   }
+  // Check electron directory's own node_modules (native deps listed in electron/package.json)
+  const electronNM = path.join(ELECTRON_DIR, "node_modules", packageName);
+  if (fs.existsSync(path.join(electronNM, "package.json"))) {
+    return electronNM;
+  }
   // Fallback: search nested node_modules inside workspace packages
   const packagesDir = path.join(ROOT_DIR, "packages");
   if (fs.existsSync(packagesDir)) {
@@ -175,12 +180,31 @@ function expandWildcardPattern(pattern) {
   const regexStr = "^" + namePattern.replace(/\*/g, ".*") + "$";
   const regex = new RegExp(regexStr);
 
-  const scopeDir = path.join(ROOT_DIR, "node_modules", scope);
-  if (!fs.existsSync(scopeDir)) return [];
+  // Search in root, electron, and workspace package node_modules
+  const searchDirs = [
+    path.join(ROOT_DIR, "node_modules", scope),
+    path.join(ELECTRON_DIR, "node_modules", scope),
+  ];
 
-  for (const entry of fs.readdirSync(scopeDir)) {
-    if (regex.test(entry)) {
-      matches.push(`${scope}/${entry}`);
+  // Also search workspace packages
+  const packagesDir = path.join(ROOT_DIR, "packages");
+  if (fs.existsSync(packagesDir)) {
+    for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        searchDirs.push(
+          path.join(packagesDir, entry.name, "node_modules", scope)
+        );
+      }
+    }
+  }
+
+  for (const scopeDir of searchDirs) {
+    if (!fs.existsSync(scopeDir)) continue;
+    for (const entry of fs.readdirSync(scopeDir)) {
+      const fullName = `${scope}/${entry}`;
+      if (regex.test(entry) && !matches.includes(fullName)) {
+        matches.push(fullName);
+      }
     }
   }
   return matches;
