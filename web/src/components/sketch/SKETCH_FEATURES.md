@@ -44,16 +44,19 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 > Brush type selector (Round / Soft / Airbrush / Spray) in toolbar. Each type has distinct drawing behavior.
 
-| Type     | Target settings            | Status                                                            |
-| -------- | -------------------------- | ----------------------------------------------------------------- |
-| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [ ] roundness + angle     |
-| Soft     | Hardness, roundness, angle | [x] Softer default falloff (hardness capped at 0.3)              |
-| Airbrush | Flow, softness             | [x] Low-opacity radial dab accumulation per point                 |
-| Spray    | Density                    | [x] Particle scatter (stochastic dots within brush disk)          |
+| Type     | Target settings            | Status                                                        |
+| -------- | -------------------------- | ------------------------------------------------------------- |
+| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [ ] roundness + angle |
+| Soft     | Hardness, roundness, angle | [x] Softer default falloff (hardness capped at 0.3)           |
+| Airbrush | Flow, softness             | [x] Low-opacity radial dab accumulation per point             |
+| Spray    | Density                    | [x] Particle scatter (stochastic dots within brush disk)      |
 
 #### Color system
 
-- [ ] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger.
+- [ ] Color modes as button group with 3 buttons for RGB, HEX, HSL. also bigger. [PARTLY DONE]
+- [ ] fix HEX, RGB, HSL buttons not showing color input
+- [ ] make the default palette nicer: 6 rows where each row is one base color with variations + 1 row with grays from black to white
+- [ ] add alpha support. also for gradients
 
 #### Layers — extra parity
 
@@ -66,9 +69,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 #### Canvas & view
 
-- [x] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
-- [x] Zoom 2x faster and a bit smoother (symmetric 1.15x factor)
-- [x] canvas size: set with presets and custom, new small info row at center bottom to show canvas size + img / asset info (asset name, type)
+- [] Zoom 2x faster and a bit smoother
+- [ ] canvas size: set with presets and custom, currently not yet possible to change canvas size from ui.
+- [ ] **Preset sizes** in UI: 512×512, 512×768, 768×512, 1024×1024, 1920×1080, **Custom…**
 - [x] **Space + drag** to pan from any tool (in addition to middle mouse)
 - [x] **Toggle UI / panels** shortcut (**Tab**)
 
@@ -185,11 +188,11 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 See **Gesture shortcuts** under Phase 2 for **O+drag**. **X**, **Tab**, **Space+drag**, **Shift** shape constraints, and **S+drag** are implemented — see table above.
 
-| Key / gesture      | Planned action                                                                                            |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| O + drag           | Adjust opacity — conflicts with **O** = ellipse; needs alternate chord                                    |
-| J                  | Healing brush — when implemented                                                                          |
-| (TBD)              | Clone / copy brush — avoid bare **S** (conflicts with **Ctrl+S** + **S+drag**); e.g. **K** or **Shift+S** |
+| Key / gesture | Planned action                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| O + drag      | Adjust opacity — conflicts with **O** = ellipse; needs alternate chord                                    |
+| J             | Healing brush — when implemented                                                                          |
+| (TBD)         | Clone / copy brush — avoid bare **S** (conflicts with **Ctrl+S** + **S+drag**); e.g. **K** or **Shift+S** |
 
 ---
 
