@@ -158,7 +158,7 @@ export const useNodeSnippets = (
           },
           data: {
             ...snippetNode.data,
-            workflow_id: "" // Will be set by store
+            workflow_id: store.getState().workflow.id
           },
           selected: false
         };

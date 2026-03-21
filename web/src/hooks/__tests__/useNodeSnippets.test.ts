@@ -19,7 +19,8 @@ jest.mock("../../contexts/NodeContext", () => ({
       edges: [],
       setNodes: jest.fn(),
       setEdges: jest.fn(),
-      workflowId: "test-workflow"
+      workflowId: "test-workflow",
+      workflow: { id: "test-workflow" }
     }))
   }))
 }));
@@ -118,7 +119,8 @@ describe("useNodeSnippets", () => {
           nodes: [],
           edges: [],
           setNodes: jest.fn(),
-          setEdges: jest.fn()
+          setEdges: jest.fn(),
+          workflow: { id: "test-workflow" }
         })
       });
 
@@ -152,7 +154,7 @@ describe("useNodeSnippets", () => {
           expect.objectContaining({
             type: "TypeA",
             data: expect.objectContaining({
-              workflow_id: ""
+              workflow_id: "test-workflow"
             })
           })
         ])
@@ -178,7 +180,8 @@ describe("useNodeSnippets", () => {
           nodes: [],
           edges: [],
           setNodes: jest.fn(),
-          setEdges: jest.fn()
+          setEdges: jest.fn(),
+          workflow: { id: "test-workflow" }
         })
       });
 
