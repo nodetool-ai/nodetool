@@ -82,7 +82,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Panel layout persistence** (collapsed state in `localStorage`)
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
-- [x] **Context-sensitive** right-click menu (draw, select, etc.)
+- [ ] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
+- [ ] improve **Context-sensitive** right-click menu: add quick options for currently active tool
+- [ ] adjustments without apply button - apply directly on change with small debounce like 100ms
 
 #### Gesture shortcuts (parity — open conflicts)
 
@@ -348,6 +350,9 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [ ] **Accessibility**: focus trap; **Esc** closes modal; visible focus in layer list; ARIA on tools
 - [ ] **QA**: Playwright (or RTL) smoke — open sketch from node, stroke, assert serialization / no graph shortcut bleed
 - [ ] **Export options**: PNG with alpha vs opaque flatten; optional JPEG for previews
+- [ ] **Shader System**: draw and fill with webgpu shaders
+- [ ] **AI Healing Brush**: add healing brush functionality that uses AI model. research and present plan before implementing.
+- [ ] **Tonemapping**: add professional tonemapping section with 10 good presets
 
 ### Krita-inspired candidates
 

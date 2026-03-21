@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.grey[700],
     "& canvas": {
       position: "absolute",
       top: "50%",
@@ -70,10 +70,17 @@ export interface SketchCanvasRef {
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
   flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
-  mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => string | undefined;
+  mergeLayerDown: (
+    upperLayerId: string,
+    lowerLayerId: string
+  ) => string | undefined;
   flattenVisible: () => string;
   cropCanvas: (x: number, y: number, width: number, height: number) => void;
-  applyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
+  applyAdjustments: (
+    brightness: number,
+    contrast: number,
+    saturation: number
+  ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
 }
 
@@ -92,7 +99,12 @@ export interface SketchCanvasProps {
   onStrokeEnd: (layerId: string, data: string | null) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onCropComplete?: (
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
   onEyedropperPick?: (color: string) => void;
 }
 
@@ -100,18 +112,30 @@ export interface SketchCanvasProps {
 
 function blendModeToComposite(mode: BlendMode): GlobalCompositeOperation {
   switch (mode) {
-    case "multiply": return "multiply";
-    case "screen": return "screen";
-    case "overlay": return "overlay";
-    case "darken": return "darken";
-    case "lighten": return "lighten";
-    case "color-dodge": return "color-dodge";
-    case "color-burn": return "color-burn";
-    case "hard-light": return "hard-light";
-    case "soft-light": return "soft-light";
-    case "difference": return "difference";
-    case "exclusion": return "exclusion";
-    default: return "source-over";
+    case "multiply":
+      return "multiply";
+    case "screen":
+      return "screen";
+    case "overlay":
+      return "overlay";
+    case "darken":
+      return "darken";
+    case "lighten":
+      return "lighten";
+    case "color-dodge":
+      return "color-dodge";
+    case "color-burn":
+      return "color-burn";
+    case "hard-light":
+      return "hard-light";
+    case "soft-light":
+      return "soft-light";
+    case "difference":
+      return "difference";
+    case "exclusion":
+      return "exclusion";
+    default:
+      return "source-over";
   }
 }
 
@@ -184,12 +208,20 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Track Shift, Space, and S key state for constraints, panning, size adjust
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Shift") { shiftHeldRef.current = true; }
-        if (e.key === " ") { spaceHeldRef.current = true; }
-        if (e.key === "s" || e.key === "S") { sKeyHeldRef.current = true; }
+        if (e.key === "Shift") {
+          shiftHeldRef.current = true;
+        }
+        if (e.key === " ") {
+          spaceHeldRef.current = true;
+        }
+        if (e.key === "s" || e.key === "S") {
+          sKeyHeldRef.current = true;
+        }
       };
       const handleKeyUp = (e: KeyboardEvent) => {
-        if (e.key === "Shift") { shiftHeldRef.current = false; }
+        if (e.key === "Shift") {
+          shiftHeldRef.current = false;
+        }
         if (e.key === " ") {
           spaceHeldRef.current = false;
           if (isSpacePanningRef.current) {
@@ -237,7 +269,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
       for (const layer of doc.layers) {
         const canvas = getOrCreateLayerCanvas(layer.id);
-        if (canvas.width !== doc.canvas.width || canvas.height !== doc.canvas.height) {
+        if (
+          canvas.width !== doc.canvas.width ||
+          canvas.height !== doc.canvas.height
+        ) {
           canvas.width = doc.canvas.width;
           canvas.height = doc.canvas.height;
         }
@@ -254,7 +289,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           img.src = layer.data;
         }
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [doc.layers.length, doc.canvas.width, doc.canvas.height]);
 
     // ─── Composite and redraw display canvas ──────────────────────────
@@ -285,7 +320,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         ctx.save();
         ctx.globalAlpha = layer.opacity;
-        ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
+        ctx.globalCompositeOperation = blendModeToComposite(
+          layer.blendMode || "normal"
+        );
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.restore();
       }
@@ -298,7 +335,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Drawing Functions ────────────────────────────────────────────
 
     const drawBrushStroke = useCallback(
-      (from: Point, to: Point, settings: BrushSettings, ctx: CanvasRenderingContext2D) => {
+      (
+        from: Point,
+        to: Point,
+        settings: BrushSettings,
+        ctx: CanvasRenderingContext2D
+      ) => {
         const brushType = settings.brushType || "round";
 
         if (brushType === "spray") {
@@ -347,9 +389,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineWidth = settings.size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        const effectiveHardness = brushType === "soft"
-          ? Math.min(settings.hardness, 0.3)
-          : settings.hardness;
+        const effectiveHardness =
+          brushType === "soft"
+            ? Math.min(settings.hardness, 0.3)
+            : settings.hardness;
         if (effectiveHardness < 1) {
           ctx.filter = `blur(${(1 - effectiveHardness) * settings.size * 0.3}px)`;
         }
@@ -363,7 +406,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     );
 
     const drawEraserStroke = useCallback(
-      (from: Point, to: Point, settings: EraserSettings, ctx: CanvasRenderingContext2D) => {
+      (
+        from: Point,
+        to: Point,
+        settings: EraserSettings,
+        ctx: CanvasRenderingContext2D
+      ) => {
         ctx.save();
         ctx.globalAlpha = settings.opacity;
         ctx.globalCompositeOperation = "destination-out";
@@ -381,7 +429,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     );
 
     const drawPencilStroke = useCallback(
-      (from: Point, to: Point, settings: PencilSettings, ctx: CanvasRenderingContext2D) => {
+      (
+        from: Point,
+        to: Point,
+        settings: PencilSettings,
+        ctx: CanvasRenderingContext2D
+      ) => {
         ctx.save();
         ctx.globalAlpha = settings.opacity;
         ctx.globalCompositeOperation = "source-over";
@@ -400,9 +453,15 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     );
 
     const drawBlurStroke = useCallback(
-      (point: Point, settings: BlurSettings, layerCanvas: HTMLCanvasElement) => {
+      (
+        point: Point,
+        settings: BlurSettings,
+        layerCanvas: HTMLCanvasElement
+      ) => {
         const ctx = layerCanvas.getContext("2d");
-        if (!ctx) { return; }
+        if (!ctx) {
+          return;
+        }
         const r = Math.round(settings.size / 2);
         // Pad the sample region by 2× the blur strength so the CSS blur
         // filter doesn't clip at the edges (the filter kernel extends beyond
@@ -417,7 +476,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const sy = Math.max(0, y);
         const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
         const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
-        if (sw <= 0 || sh <= 0) { return; }
+        if (sw <= 0 || sh <= 0) {
+          return;
+        }
 
         // Read original pixels
         const imgData = ctx.getImageData(sx, sy, sw, sh);
@@ -427,7 +488,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         tmp.width = sw;
         tmp.height = sh;
         const tmpCtx = tmp.getContext("2d");
-        if (!tmpCtx) { return; }
+        if (!tmpCtx) {
+          return;
+        }
         tmpCtx.putImageData(imgData, 0, 0);
 
         // Create blurred version on a second temp canvas
@@ -435,7 +498,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         blurred.width = sw;
         blurred.height = sh;
         const blurCtx = blurred.getContext("2d");
-        if (!blurCtx) { return; }
+        if (!blurCtx) {
+          return;
+        }
         blurCtx.filter = `blur(${settings.strength}px)`;
         blurCtx.drawImage(tmp, 0, 0);
 
@@ -447,7 +512,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         maskCanvas.width = sw;
         maskCanvas.height = sh;
         const maskCtx = maskCanvas.getContext("2d");
-        if (!maskCtx) { return; }
+        if (!maskCtx) {
+          return;
+        }
 
         // Draw original pixels first
         maskCtx.putImageData(imgData, 0, 0);
@@ -503,7 +570,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const dy = end.y - start.y;
           const radius = Math.sqrt(dx * dx + dy * dy);
           // Minimum radius of 1 prevents invalid gradient when start/end points overlap
-          gradient = ctx.createRadialGradient(start.x, start.y, 0, start.x, start.y, Math.max(radius, 1));
+          gradient = ctx.createRadialGradient(
+            start.x,
+            start.y,
+            0,
+            start.x,
+            start.y,
+            Math.max(radius, 1)
+          );
         } else {
           gradient = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
         }
@@ -521,7 +595,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     /** Apply shift-constraint to shape end point */
     const constrainEnd = useCallback(
       (start: Point, end: Point, tool: SketchTool): Point => {
-        if (!shiftHeldRef.current) { return end; }
+        if (!shiftHeldRef.current) {
+          return end;
+        }
         if (tool === "rectangle" || tool === "ellipse") {
           // Constrain to square / circle
           const dx = end.x - start.x;
@@ -583,7 +659,15 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const rx = Math.abs(constrained.x - start.x) / 2;
             const ry = Math.abs(constrained.y - start.y) / 2;
             ctx.beginPath();
-            ctx.ellipse(cx, cy, Math.max(rx, 0.1), Math.max(ry, 0.1), 0, 0, Math.PI * 2);
+            ctx.ellipse(
+              cx,
+              cy,
+              Math.max(rx, 0.1),
+              Math.max(ry, 0.1),
+              0,
+              0,
+              Math.PI * 2
+            );
             if (settings.filled) {
               ctx.fill();
             }
@@ -602,7 +686,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ctx.moveTo(start.x, start.y);
             ctx.lineTo(constrained.x, constrained.y);
             ctx.stroke();
-            const angle = Math.atan2(constrained.y - start.y, constrained.x - start.x);
+            const angle = Math.atan2(
+              constrained.y - start.y,
+              constrained.x - start.x
+            );
             const headLen = Math.max(settings.strokeWidth * 3, 10);
             ctx.beginPath();
             ctx.moveTo(constrained.x, constrained.y);
@@ -627,7 +714,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Flood Fill ───────────────────────────────────────────────────
 
     const floodFill = useCallback(
-      (ctx: CanvasRenderingContext2D, startX: number, startY: number, settings: FillSettings) => {
+      (
+        ctx: CanvasRenderingContext2D,
+        startX: number,
+        startY: number,
+        settings: FillSettings
+      ) => {
         const w = ctx.canvas.width;
         const h = ctx.canvas.height;
         const imageData = ctx.getImageData(0, 0, w, h);
@@ -648,7 +740,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const targetB = data[idx + 2];
         const targetA = data[idx + 3];
 
-        if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === 255) {
+        if (
+          targetR === fillR &&
+          targetG === fillG &&
+          targetB === fillB &&
+          targetA === 255
+        ) {
           return;
         }
 
@@ -729,9 +826,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const drawOverlayGradient = useCallback(
       (start: Point, end: Point) => {
         const overlay = overlayCanvasRef.current;
-        if (!overlay) { return; }
+        if (!overlay) {
+          return;
+        }
         const ctx = overlay.getContext("2d");
-        if (!ctx) { return; }
+        if (!ctx) {
+          return;
+        }
         ctx.clearRect(0, 0, overlay.width, overlay.height);
         drawGradient(ctx, start, end, doc.toolSettings.gradient);
         // Draw guide line
@@ -748,30 +849,31 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [doc.toolSettings.gradient, drawGradient]
     );
 
-    const drawOverlayCrop = useCallback(
-      (start: Point, end: Point) => {
-        const overlay = overlayCanvasRef.current;
-        if (!overlay) { return; }
-        const ctx = overlay.getContext("2d");
-        if (!ctx) { return; }
-        ctx.clearRect(0, 0, overlay.width, overlay.height);
-        const x = Math.min(start.x, end.x);
-        const y = Math.min(start.y, end.y);
-        const w = Math.abs(end.x - start.x);
-        const h = Math.abs(end.y - start.y);
-        // Dim outside selection
-        ctx.save();
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(0, 0, overlay.width, overlay.height);
-        ctx.clearRect(x, y, w, h);
-        ctx.strokeStyle = "rgba(255,255,255,0.8)";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.strokeRect(x, y, w, h);
-        ctx.restore();
-      },
-      []
-    );
+    const drawOverlayCrop = useCallback((start: Point, end: Point) => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+      const w = Math.abs(end.x - start.x);
+      const h = Math.abs(end.y - start.y);
+      // Dim outside selection
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, 0, overlay.width, overlay.height);
+      ctx.clearRect(x, y, w, h);
+      ctx.strokeStyle = "rgba(255,255,255,0.8)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    }, []);
 
     // ─── Coordinate Transform ─────────────────────────────────────────
 
@@ -825,25 +927,23 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Pointer Events ──────────────────────────────────────────────
 
     /** Smooth a raw pointer point using a moving-average stabilizer */
-    const stabilizePoint = useCallback(
-      (raw: Point): Point => {
-        const buf = stabilizerBufferRef.current;
-        buf.push(raw);
-        if (buf.length > STABILIZER_WINDOW) {
-          buf.shift();
-        }
-        if (buf.length === 1) {
-          return raw;
-        }
-        let sx = 0, sy = 0;
-        for (const p of buf) {
-          sx += p.x;
-          sy += p.y;
-        }
-        return { x: sx / buf.length, y: sy / buf.length };
-      },
-      []
-    );
+    const stabilizePoint = useCallback((raw: Point): Point => {
+      const buf = stabilizerBufferRef.current;
+      buf.push(raw);
+      if (buf.length > STABILIZER_WINDOW) {
+        buf.shift();
+      }
+      if (buf.length === 1) {
+        return raw;
+      }
+      let sx = 0,
+        sy = 0;
+      for (const p of buf) {
+        sx += p.x;
+        sy += p.y;
+      }
+      return { x: sx / buf.length, y: sy / buf.length };
+    }, []);
 
     /** Convert RGB pixel values to a hex color string */
     const rgbToHex = useCallback(
@@ -857,13 +957,23 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         // Alt+click on a painting tool samples color (Photoshop eyedropper).
         // This check MUST come before the Alt+click pan check below so that
         // painting tools get eyedropper behavior instead of panning.
-        if (e.button === 0 && e.altKey && isPaintingTool(activeTool) && onEyedropperPick) {
+        if (
+          e.button === 0 &&
+          e.altKey &&
+          isPaintingTool(activeTool) &&
+          onEyedropperPick
+        ) {
           const displayCanvas = displayCanvasRef.current;
           if (displayCanvas) {
             const ctx = displayCanvas.getContext("2d");
             if (ctx) {
               const pt = screenToCanvas(e.clientX, e.clientY);
-              const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
+              const pixel = ctx.getImageData(
+                Math.round(pt.x),
+                Math.round(pt.y),
+                1,
+                1
+              ).data;
               onEyedropperPick(rgbToHex(pixel[0], pixel[1], pixel[2]));
             }
           }
@@ -871,7 +981,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         // Alt+click (non-painting tools) or middle-click or Space+drag: pan canvas
-        if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeldRef.current)) {
+        if (
+          e.button === 1 ||
+          (e.button === 0 && e.altKey) ||
+          (e.button === 0 && spaceHeldRef.current)
+        ) {
           isPanningRef.current = true;
           if (spaceHeldRef.current) {
             isSpacePanningRef.current = true;
@@ -919,10 +1033,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const ctx = displayCanvas.getContext("2d");
             if (ctx) {
               const pt = screenToCanvas(e.clientX, e.clientY);
-              const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
+              const pixel = ctx.getImageData(
+                Math.round(pt.x),
+                Math.round(pt.y),
+                1,
+                1
+              ).data;
               const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
               containerRef.current?.dispatchEvent(
-                new CustomEvent("sketch-eyedropper", { detail: { color: hex }, bubbles: true })
+                new CustomEvent("sketch-eyedropper", {
+                  detail: { color: hex },
+                  bubbles: true
+                })
               );
             }
           }
@@ -1003,7 +1125,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const snapCtx = layerCanvasForSnapshot.getContext("2d");
           if (snapCtx) {
             alphaSnapshotRef.current = snapCtx.getImageData(
-              0, 0, layerCanvasForSnapshot.width, layerCanvasForSnapshot.height
+              0,
+              0,
+              layerCanvasForSnapshot.width,
+              layerCanvasForSnapshot.height
             );
           }
         } else {
@@ -1017,19 +1142,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             withMirror(
               ctx,
               (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
-              pt, pt
+              pt,
+              pt
             );
           } else if (activeTool === "pencil") {
             withMirror(
               ctx,
               (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
-              pt, pt
+              pt,
+              pt
             );
           } else if (activeTool === "eraser") {
             withMirror(
               ctx,
               (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
-              pt, pt
+              pt,
+              pt
             );
           } else if (activeTool === "blur") {
             drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
@@ -1040,9 +1168,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
       },
       [
-        doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd, onBrushSizeChange,
-        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        floodFill, redraw, withMirror, onEyedropperPick, rgbToHex
+        doc,
+        activeTool,
+        screenToCanvas,
+        onStrokeStart,
+        onStrokeEnd,
+        onBrushSizeChange,
+        getOrCreateLayerCanvas,
+        drawBrushStroke,
+        drawPencilStroke,
+        drawEraserStroke,
+        drawBlurStroke,
+        floodFill,
+        redraw,
+        withMirror,
+        onEyedropperPick,
+        rgbToHex
       ]
     );
 
@@ -1062,7 +1203,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (isSizeDraggingRef.current && onBrushSizeChange) {
           const dx = e.clientX - sizeDragStartRef.current.x;
           const maxSize = activeTool === "pencil" ? 10 : 200;
-          const newSize = Math.max(1, Math.min(maxSize, Math.round(sizeDragInitialSize.current + dx * 0.5)));
+          const newSize = Math.max(
+            1,
+            Math.min(
+              maxSize,
+              Math.round(sizeDragInitialSize.current + dx * 0.5)
+            )
+          );
           onBrushSizeChange(newSize);
           return;
         }
@@ -1073,10 +1220,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         const pt = screenToCanvas(e.clientX, e.clientY);
 
-        if (activeTool === "move" && moveStartRef.current && moveLayerSnapshotRef.current) {
+        if (
+          activeTool === "move" &&
+          moveStartRef.current &&
+          moveLayerSnapshotRef.current
+        ) {
           const dx = pt.x - moveStartRef.current.x;
           const dy = pt.y - moveStartRef.current.y;
-          const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+          const activeLayer = doc.layers.find(
+            (l) => l.id === doc.activeLayerId
+          );
           if (activeLayer) {
             const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
             const ctx = layerCanvas.getContext("2d");
@@ -1125,19 +1278,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           withMirror(
             ctx,
             (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
-            smoothLast, smoothPt
+            smoothLast,
+            smoothPt
           );
         } else if (activeTool === "pencil") {
           withMirror(
             ctx,
             (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c),
-            lastPointRef.current, pt
+            lastPointRef.current,
+            pt
           );
         } else if (activeTool === "eraser") {
           withMirror(
             ctx,
             (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c),
-            lastPointRef.current, pt
+            lastPointRef.current,
+            pt
           );
         } else if (activeTool === "blur") {
           drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
@@ -1147,9 +1303,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         redraw();
       },
       [
-        doc, activeTool, screenToCanvas, onPanChange, onBrushSizeChange,
-        getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror, stabilizePoint
+        doc,
+        activeTool,
+        screenToCanvas,
+        onPanChange,
+        onBrushSizeChange,
+        getOrCreateLayerCanvas,
+        drawBrushStroke,
+        drawPencilStroke,
+        drawEraserStroke,
+        drawBlurStroke,
+        drawOverlayShape,
+        drawOverlayGradient,
+        drawOverlayCrop,
+        redraw,
+        withMirror,
+        stabilizePoint
       ]
     );
 
@@ -1191,7 +1360,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           shapeStartRef.current = null;
         }
 
-        if (activeTool === "gradient" && gradientStartRef.current && activeLayer) {
+        if (
+          activeTool === "gradient" &&
+          gradientStartRef.current &&
+          activeLayer
+        ) {
           const start = gradientStartRef.current;
           const end = gradientEndRef.current ?? start;
           const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
@@ -1207,8 +1380,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         if (activeTool === "crop" && cropStartRef.current) {
           const pt = screenToCanvas(
-            mousePositionRef.current.x + (containerRef.current?.getBoundingClientRect().left ?? 0),
-            mousePositionRef.current.y + (containerRef.current?.getBoundingClientRect().top ?? 0)
+            mousePositionRef.current.x +
+              (containerRef.current?.getBoundingClientRect().left ?? 0),
+            mousePositionRef.current.y +
+              (containerRef.current?.getBoundingClientRect().top ?? 0)
           );
           const x1 = Math.round(Math.min(cropStartRef.current.x, pt.x));
           const y1 = Math.round(Math.min(cropStartRef.current.y, pt.y));
@@ -1234,11 +1409,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           if (layerCanvas) {
             const ctx = layerCanvas.getContext("2d");
             if (ctx) {
-              const currentData = ctx.getImageData(0, 0, layerCanvas.width, layerCanvas.height);
+              const currentData = ctx.getImageData(
+                0,
+                0,
+                layerCanvas.width,
+                layerCanvas.height
+              );
               const snapshot = alphaSnapshotRef.current;
               // Replace alpha channel of drawn pixels with original alpha
               for (let i = 3; i < currentData.data.length; i += 4) {
-                currentData.data[i] = Math.min(currentData.data[i], snapshot.data[i]);
+                currentData.data[i] = Math.min(
+                  currentData.data[i],
+                  snapshot.data[i]
+                );
               }
               ctx.putImageData(currentData, 0, 0);
               redraw();
@@ -1253,7 +1436,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           onStrokeEnd(activeLayer.id, data);
         }
       },
-      [doc.layers, doc.activeLayerId, activeTool, onStrokeEnd, onCropComplete, getOrCreateLayerCanvas, clearOverlay, redraw, screenToCanvas]
+      [
+        doc.layers,
+        doc.activeLayerId,
+        activeTool,
+        onStrokeEnd,
+        onCropComplete,
+        getOrCreateLayerCanvas,
+        clearOverlay,
+        redraw,
+        screenToCanvas
+      ]
     );
 
     // ─── Wheel zoom ──────────────────────────────────────────────────
@@ -1329,7 +1522,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (layerCanvas) {
               ctx.save();
               ctx.globalAlpha = layer.opacity;
-              ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
+              ctx.globalCompositeOperation = blendModeToComposite(
+                layer.blendMode || "normal"
+              );
               ctx.drawImage(layerCanvas, 0, 0);
               ctx.restore();
             }
@@ -1355,14 +1550,20 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         },
         flipLayer: (layerId: string, direction: "horizontal" | "vertical") => {
           const canvas = layerCanvasesRef.current.get(layerId);
-          if (!canvas) { return; }
+          if (!canvas) {
+            return;
+          }
           const ctx = canvas.getContext("2d");
-          if (!ctx) { return; }
+          if (!ctx) {
+            return;
+          }
           const temp = window.document.createElement("canvas");
           temp.width = canvas.width;
           temp.height = canvas.height;
           const tempCtx = temp.getContext("2d");
-          if (!tempCtx) { return; }
+          if (!tempCtx) {
+            return;
+          }
           tempCtx.drawImage(canvas, 0, 0);
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.save();
@@ -1380,14 +1581,20 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => {
           const upperCanvas = layerCanvasesRef.current.get(upperLayerId);
           const lowerCanvas = layerCanvasesRef.current.get(lowerLayerId);
-          if (!upperCanvas || !lowerCanvas) { return; }
+          if (!upperCanvas || !lowerCanvas) {
+            return;
+          }
           const lowerCtx = lowerCanvas.getContext("2d");
-          if (!lowerCtx) { return; }
+          if (!lowerCtx) {
+            return;
+          }
           const upperLayer = doc.layers.find((l) => l.id === upperLayerId);
           if (upperLayer) {
             lowerCtx.save();
             lowerCtx.globalAlpha = upperLayer.opacity;
-            lowerCtx.globalCompositeOperation = blendModeToComposite(upperLayer.blendMode || "normal");
+            lowerCtx.globalCompositeOperation = blendModeToComposite(
+              upperLayer.blendMode || "normal"
+            );
             lowerCtx.drawImage(upperCanvas, 0, 0);
             lowerCtx.restore();
           }
@@ -1400,16 +1607,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           canvas.width = doc.canvas.width;
           canvas.height = doc.canvas.height;
           const ctx = canvas.getContext("2d");
-          if (!ctx) { return ""; }
+          if (!ctx) {
+            return "";
+          }
           ctx.fillStyle = doc.canvas.backgroundColor;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           for (const layer of doc.layers) {
-            if (!layer.visible) { continue; }
+            if (!layer.visible) {
+              continue;
+            }
             const layerCanvas = layerCanvasesRef.current.get(layer.id);
             if (layerCanvas) {
               ctx.save();
               ctx.globalAlpha = layer.opacity;
-              ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode || "normal");
+              ctx.globalCompositeOperation = blendModeToComposite(
+                layer.blendMode || "normal"
+              );
               ctx.drawImage(layerCanvas, 0, 0);
               ctx.restore();
             }
@@ -1420,7 +1633,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           // Crop all layer canvases and display canvas
           for (const [id, layerCanvas] of layerCanvasesRef.current) {
             const ctx = layerCanvas.getContext("2d");
-            if (!ctx) { continue; }
+            if (!ctx) {
+              continue;
+            }
             const imgData = ctx.getImageData(x, y, width, height);
             layerCanvas.width = width;
             layerCanvas.height = height;
@@ -1438,13 +1653,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           }
           redraw();
         },
-        applyAdjustments: (brightness: number, contrast: number, saturation: number) => {
-          const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-          if (!activeLayer) { return; }
+        applyAdjustments: (
+          brightness: number,
+          contrast: number,
+          saturation: number
+        ) => {
+          const activeLayer = doc.layers.find(
+            (l) => l.id === doc.activeLayerId
+          );
+          if (!activeLayer) {
+            return;
+          }
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
-          if (!layerCanvas) { return; }
+          if (!layerCanvas) {
+            return;
+          }
           const ctx = layerCanvas.getContext("2d");
-          if (!ctx) { return; }
+          if (!ctx) {
+            return;
+          }
           // Map slider values (-100..100) to CSS filter multipliers.
           // Clamped to non-negative: CSS filter values must be >= 0
           // (brightness(0) = black, contrast(0) = gray, saturate(0) = grayscale)
@@ -1455,7 +1682,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           tmp.width = layerCanvas.width;
           tmp.height = layerCanvas.height;
           const tmpCtx = tmp.getContext("2d");
-          if (!tmpCtx) { return; }
+          if (!tmpCtx) {
+            return;
+          }
           tmpCtx.filter = `brightness(${b}) contrast(${c}) saturate(${s})`;
           tmpCtx.drawImage(layerCanvas, 0, 0);
           ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
@@ -1465,7 +1694,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         fillLayerWithColor: (layerId: string, color: string) => {
           const canvas = getOrCreateLayerCanvas(layerId);
           const ctx = canvas.getContext("2d");
-          if (!ctx) { return; }
+          if (!ctx) {
+            return;
+          }
           ctx.save();
           ctx.fillStyle = color;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1485,66 +1716,91 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Cursor rendering ─────────────────────────────────────────────
 
-    const drawCursor = useCallback((screenX: number, screenY: number) => {
-      const cursorCanvas = cursorCanvasRef.current;
-      if (!cursorCanvas) { return; }
-      const ctx = cursorCanvas.getContext("2d");
-      if (!ctx) { return; }
+    const drawCursor = useCallback(
+      (screenX: number, screenY: number) => {
+        const cursorCanvas = cursorCanvasRef.current;
+        if (!cursorCanvas) {
+          return;
+        }
+        const ctx = cursorCanvas.getContext("2d");
+        if (!ctx) {
+          return;
+        }
 
-      const container = containerRef.current;
-      if (container) {
-        cursorCanvas.width = container.clientWidth;
-        cursorCanvas.height = container.clientHeight;
-      }
+        const container = containerRef.current;
+        if (container) {
+          cursorCanvas.width = container.clientWidth;
+          cursorCanvas.height = container.clientHeight;
+        }
 
-      ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+        ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for brush/pencil/eraser/blur tools
-      if (activeTool !== "brush" && activeTool !== "pencil" && activeTool !== "eraser" && activeTool !== "blur") {
-        return;
-      }
+        // Only show brush cursor for brush/pencil/eraser/blur tools
+        if (
+          activeTool !== "brush" &&
+          activeTool !== "pencil" &&
+          activeTool !== "eraser" &&
+          activeTool !== "blur"
+        ) {
+          return;
+        }
 
-      let size: number;
-      if (activeTool === "brush") {
-        size = doc.toolSettings.brush.size;
-      } else if (activeTool === "pencil") {
-        size = doc.toolSettings.pencil.size;
-      } else if (activeTool === "blur") {
-        size = doc.toolSettings.blur.size;
-      } else {
-        size = doc.toolSettings.eraser.size;
-      }
+        let size: number;
+        if (activeTool === "brush") {
+          size = doc.toolSettings.brush.size;
+        } else if (activeTool === "pencil") {
+          size = doc.toolSettings.pencil.size;
+        } else if (activeTool === "blur") {
+          size = doc.toolSettings.blur.size;
+        } else {
+          size = doc.toolSettings.eraser.size;
+        }
 
-      // Calculate the visual radius on screen (accounting for zoom)
-      const screenRadius = (size / 2) * zoom;
+        // Calculate the visual radius on screen (accounting for zoom)
+        const screenRadius = (size / 2) * zoom;
 
-      ctx.beginPath();
-      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // Inner dark ring for contrast
-      ctx.beginPath();
-      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 2]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      // Center dot
-      ctx.beginPath();
-      ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.fill();
-    }, [activeTool, doc.toolSettings.brush.size, doc.toolSettings.pencil.size, doc.toolSettings.eraser.size, doc.toolSettings.blur.size, zoom]);
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Inner dark ring for contrast
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Center dot
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.fill();
+      },
+      [
+        activeTool,
+        doc.toolSettings.brush.size,
+        doc.toolSettings.pencil.size,
+        doc.toolSettings.eraser.size,
+        doc.toolSettings.blur.size,
+        zoom
+      ]
+    );
 
-    const handleMouseMove = useCallback((e: React.MouseEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        mousePositionRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        drawCursor(mousePositionRef.current.x, mousePositionRef.current.y);
-      }
-    }, [drawCursor]);
+    const handleMouseMove = useCallback(
+      (e: React.MouseEvent) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          mousePositionRef.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+          };
+          drawCursor(mousePositionRef.current.x, mousePositionRef.current.y);
+        }
+      },
+      [drawCursor]
+    );
 
     const handleMouseLeave = useCallback(() => {
       const cursorCanvas = cursorCanvasRef.current;
@@ -1556,21 +1812,28 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       }
     }, []);
 
-    const handleContextMenu = useCallback((e: React.MouseEvent) => {
-      e.preventDefault();
-      if (onContextMenu) {
-        onContextMenu(e.clientX, e.clientY);
-      }
-    }, [onContextMenu]);
+    const handleContextMenu = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (onContextMenu) {
+          onContextMenu(e.clientX, e.clientY);
+        }
+      },
+      [onContextMenu]
+    );
 
     // Determine cursor style based on tool
-    const cursorStyle = activeTool === "move"
-      ? "move"
-      : activeTool === "crop"
-        ? "crosshair"
-        : (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser" || activeTool === "blur")
-          ? "none"
-          : "crosshair";
+    const cursorStyle =
+      activeTool === "move"
+        ? "move"
+        : activeTool === "crop"
+          ? "crosshair"
+          : activeTool === "brush" ||
+              activeTool === "pencil" ||
+              activeTool === "eraser" ||
+              activeTool === "blur"
+            ? "none"
+            : "crosshair";
 
     return (
       <div
@@ -1599,27 +1862,28 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           style={{ ...canvasStyle, pointerEvents: "none" }}
         />
         {/* Cursor canvas for brush size preview */}
-        <canvas
-          ref={cursorCanvasRef}
-          className="cursor-overlay"
-        />
+        <canvas ref={cursorCanvasRef} className="cursor-overlay" />
         {/* Canvas info bar */}
-        <Box sx={{
-          position: "absolute",
-          bottom: 8,
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "rgba(0,0,0,0.6)",
-          color: "#ccc",
-          padding: "2px 12px",
-          borderRadius: "4px",
-          fontSize: "0.7rem",
-          pointerEvents: "none",
-          zIndex: 5,
-          display: "flex",
-          gap: "12px"
-        }}>
-          <span>{doc.canvas.width} × {doc.canvas.height}</span>
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 8,
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            color: "#ccc",
+            padding: "2px 12px",
+            borderRadius: "4px",
+            fontSize: "0.7rem",
+            pointerEvents: "none",
+            zIndex: 5,
+            display: "flex",
+            gap: "12px"
+          }}
+        >
+          <span>
+            {doc.canvas.width} × {doc.canvas.height}
+          </span>
           <span>{Math.round(zoom * 100)}%</span>
         </Box>
       </div>
