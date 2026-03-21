@@ -39,7 +39,7 @@ async function buildApp(opts: {
       if (!token) { reply.status(401).send({ error: "Unauthorized" }); return; }
       const result = await provider.verifyToken(token);
       if (!result.ok) { reply.status(401).send({ error: result.error ?? "Unauthorized" }); return; }
-      (req as any).userId = result.userId ?? null;
+      req.userId = result.userId ?? null;
       return;
     }
 
@@ -47,12 +47,12 @@ async function buildApp(opts: {
     const remoteAddr = req.socket?.remoteAddress ?? "127.0.0.1";
     const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
     if (!isLocalhost) { reply.status(401).send({ error: "Remote access requires authentication" }); return; }
-    (req as any).userId = "1";
+    req.userId = "1";
   });
 
   app.get("/health", async () => ({ ok: true }));
   app.get("/api/oauth/callback", async () => ({ oauth: true }));
-  app.get("/api/protected", async (req) => ({ userId: (req as any).userId }));
+  app.get("/api/protected", async (req) => ({ userId: req.userId }));
 
   await app.ready();
   return app;
