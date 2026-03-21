@@ -222,8 +222,26 @@ for (const cls of builtinToolClasses) {
 // TLS configuration
 // ---------------------------------------------------------------------------
 
-const tlsCertPath = process.env["TLS_CERT"];
-const tlsKeyPath = process.env["TLS_KEY"];
+function findCert(envVar: string, filename: string): string | undefined {
+  const fromEnv = process.env[envVar];
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  // Walk up from cwd looking for the cert file
+  let dir = resolve(process.cwd());
+  for (let i = 0; i < 5; i++) {
+    const candidate = join(dir, filename);
+    if (existsSync(candidate)) return candidate;
+    // Check sibling nodetool-core directory
+    const sibling = join(dir, "nodetool-core", filename);
+    if (existsSync(sibling)) return sibling;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+const tlsCertPath = findCert("TLS_CERT", "cert.pem");
+const tlsKeyPath = findCert("TLS_KEY", "key.pem");
 const tlsEnabled = Boolean(tlsCertPath && tlsKeyPath);
 
 let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
