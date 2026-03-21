@@ -34,7 +34,8 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   const saveHeightToStorage = useMemo(
     () =>
-      debounce((height: number) => {
+      debounce((height: any) => {
+        if (typeof height !== "number") return;
         try {
           localStorage.setItem(storageKey, height.toString());
         } catch {
@@ -90,7 +91,7 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
   useEffect(() => {
     return () => {
       try {
-        (saveHeightToStorage as ReturnType<typeof saveHeightToStorage> & { cancel?: () => void }).cancel?.();
+        (saveHeightToStorage as unknown as { cancel?: () => void }).cancel?.();
       } catch {
         /* empty */
       }

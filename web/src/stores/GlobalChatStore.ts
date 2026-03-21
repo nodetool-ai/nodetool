@@ -1077,7 +1077,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       name: "global-chat-storage",
       // Persist minimal subset incl. selections; do not persist message cache
       // Note: Return type cast needed due to zustand persist middleware type limitations
-      partialize: (state): Pick<GlobalChatState, 'threads' | 'lastUsedThreadId' | 'selectedModel' | 'selectedTools' | 'selectedCollections'> => ({
+      partialize: (state): any => ({
         threads: state.threads || {},
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,

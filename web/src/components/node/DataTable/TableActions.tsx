@@ -224,7 +224,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     } else {
         reindexedData = (newData as DictTableRow[]).map((row, index) => ({ ...row, rownum: index }));
     }
-    onChangeRows(reindexedData as TableData);
+    onChangeRows(reindexedData as any);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,
