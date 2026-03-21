@@ -11,10 +11,10 @@
 # Environment:
 #   PORT          — HTTPS port (default: 8443)
 #   HOST          — Bind address (default: 0.0.0.0)
-#   TLS_CERT      — Path to cert.pem (auto-detected from nodetool-core)
-#   TLS_KEY       — Path to key.pem  (auto-detected from nodetool-core)
+#   TLS_CERT      — Path to cert.pem (auto-detected)
+#   TLS_KEY       — Path to key.pem  (auto-detected)
 #   NODE_ENV      — Node environment (default: production)
-#   ENV_FILE      — Path to .env file (default: auto-detect ../nodetool-core/.env)
+#   ENV_FILE      — Path to .env file (default: .env in repo root)
 #   DB_PATH       — SQLite database path
 
 set -euo pipefail
@@ -24,22 +24,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 APP_NAME="nodetool-api"
 ENTRY="$ROOT_DIR/packages/websocket/dist/server.js"
 
-# Load .env file (nodetool-core secrets: S3, Supabase, API keys, etc.)
-ENV_FILE="${ENV_FILE:-}"
-if [ -z "$ENV_FILE" ]; then
-  for candidate in "$ROOT_DIR/../nodetool-core/.env" "$ROOT_DIR/.env"; do
-    if [ -f "$candidate" ]; then
-      ENV_FILE="$candidate"
-      break
-    fi
-  done
-fi
-if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
+# Load .env file
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
+if [ -f "$ENV_FILE" ]; then
   echo "Loading env from $ENV_FILE"
   set -a
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
+else
+  echo "Warning: no .env file found at $ENV_FILE"
 fi
 
 export HOST="${HOST:-0.0.0.0}"

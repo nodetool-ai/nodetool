@@ -230,9 +230,6 @@ function findCert(envVar: string, filename: string): string | undefined {
   for (let i = 0; i < 5; i++) {
     const candidate = join(dir, filename);
     if (existsSync(candidate)) return candidate;
-    // Check sibling nodetool-core directory
-    const sibling = join(dir, "nodetool-core", filename);
-    if (existsSync(sibling)) return sibling;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
