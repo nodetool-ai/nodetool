@@ -474,6 +474,7 @@ export async function updateCondaPackagesFromLockFile(): Promise<void> {
     condaEnvPath,
     "--file",
     lockFilePath,
+    "--override-channels",
     "--strict-channel-priority",
   ];
 
