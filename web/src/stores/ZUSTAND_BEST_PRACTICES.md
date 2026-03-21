@@ -86,17 +86,15 @@ clearErrors: (workflowId: string) => {
   set({ errors });
 }
 
-// ✅ GOOD: Creating new object without intermediate array allocations
+// ✅ GOOD: Creating new object
 clearErrors: (workflowId: string) => {
-  set((state) => {
-    const newErrors: Record<string, Error> = {};
-    for (const key in state.errors) {
-      if (!key.startsWith(workflowId)) {
-        newErrors[key] = state.errors[key];
-      }
-    }
-    return { errors: newErrors };
-  });
+  set((state) => ({
+    errors: Object.fromEntries(
+      Object.entries(state.errors).filter(
+        ([key]) => !key.startsWith(workflowId)
+      )
+    )
+  }));
 }
 ```
 
@@ -295,15 +293,13 @@ clearResults: (workflowId: string) => {
 
 // ✅ GOOD
 clearResults: (workflowId: string) => {
-  set((state) => {
-    const newResults: Record<string, Result> = {};
-    for (const key in state.results) {
-      if (!key.startsWith(workflowId)) {
-        newResults[key] = state.results[key];
-      }
-    }
-    return { results: newResults };
-  });
+  set((state) => ({
+    results: Object.fromEntries(
+      Object.entries(state.results).filter(
+        ([key]) => !key.startsWith(workflowId)
+      )
+    )
+  }));
 }
 ```
 
