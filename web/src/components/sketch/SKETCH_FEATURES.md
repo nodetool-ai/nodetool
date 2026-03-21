@@ -37,9 +37,10 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
-- [!] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. implemented but not working!
-- [ ] **Eraser** should paint transparent not black
-- [ ] **Performance** improve performance with big canvas. 2K - 4K gets so slow that brushes do not draw lines but spooted dots
+- [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. Fixed: capture-phase key listeners so Shift key state is properly tracked.
+- [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this is correct behavior matching Photoshop.
+- [x] **Performance** rAF-batched redraw coalesces layer compositing during active drawing (one redraw per animation frame instead of per pointer move event); reduces jank on large canvases
+- [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes may still feel slow
 
 #### Brush types (engine / presets)
 
@@ -66,9 +67,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Layer thumbnails**: small preview images in layers panel
 - [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
 - [ ] Group / folder layers
-- [ ] new layers should be created as transparent as default.
-- [ ] the layer colors [transparent], BLACK, WHITE, GRAY should be in right panel in first row with the + to add a new layer - and just show as colors, no text
-- [ ] find a better icon for mask button in right panel
+- [x] new layers are created as transparent by default. Layer color presets (transparent, black, white, gray) available as buttons in the layers panel.
+- [x] the layer colors [transparent], BLACK, WHITE, GRAY are in right panel in first row with the + to add a new layer — shown as color swatches, no text
+- [x] improved mask button icon in right panel (uses Gradient icon instead of Masks icon for better visual clarity)
 
 #### Canvas & view
 

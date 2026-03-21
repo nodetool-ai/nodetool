@@ -228,6 +228,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // Pressure sensitivity: store current pointer pressure
     const currentPressureRef = useRef<number>(0.5);
 
+    // Performance: rAF-batched redraw to avoid recompositing on every pointer move
+    const redrawRequestRef = useRef<number | null>(null);
+
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
@@ -265,6 +268,15 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       return () => {
         window.removeEventListener("keydown", handleKeyDown, true);
         window.removeEventListener("keyup", handleKeyUp, true);
+      };
+    }, []);
+
+    // Cleanup rAF on unmount
+    useEffect(() => {
+      return () => {
+        if (redrawRequestRef.current !== null) {
+          cancelAnimationFrame(redrawRequestRef.current);
+        }
       };
     }, []);
 
@@ -357,6 +369,20 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.restore();
       }
     }, [doc.layers, doc.canvas.backgroundColor]);
+
+    /**
+     * Batched redraw using requestAnimationFrame.
+     * During active drawing, multiple pointer move events can fire per frame.
+     * This coalesces redraws so we only composite layers once per animation frame.
+     */
+    const requestRedraw = useCallback(() => {
+      if (redrawRequestRef.current === null) {
+        redrawRequestRef.current = requestAnimationFrame(() => {
+          redrawRequestRef.current = null;
+          redraw();
+        });
+      }
+    }, [redraw]);
 
     useEffect(() => {
       redraw();
@@ -1448,7 +1474,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
               ctx.drawImage(moveLayerSnapshotRef.current, dx, dy);
-              redraw();
+              requestRedraw();
             }
           }
           return;
@@ -1517,7 +1543,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         lastPointRef.current = pt;
-        redraw();
+        requestRedraw();
       },
       [
         doc,
@@ -1533,7 +1559,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawOverlayShape,
         drawOverlayGradient,
         drawOverlayCrop,
-        redraw,
+        requestRedraw,
         withMirror,
         stabilizePoint,
         drawOverlaySelection
