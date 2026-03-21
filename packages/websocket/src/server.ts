@@ -59,6 +59,7 @@ import type { HttpApiOptions } from "./http-api.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
+import fastifyStatic from "@fastify/static";
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
@@ -291,6 +292,8 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 // ---------------------------------------------------------------------------
 
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
+const staticFolder = process.env["STATIC_FOLDER"];
+const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 
 // ---------------------------------------------------------------------------
 // Register route plugins
@@ -326,10 +329,42 @@ await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 
+if (hasStaticApp && staticFolder) {
+  log.info("Serving static app", { root: staticFolder });
+
+  await app.register(fastifyStatic, {
+    root: staticFolder,
+    prefix: "/",
+  });
+
+  app.get("/", async (_req, reply) => {
+    return reply.sendFile("index.html");
+  });
+
+  app.get("/apps/index.html", async (_req, reply) => {
+    return reply.sendFile("index.html");
+  });
+}
+
 // Log all 404s so we can identify missing routes
 app.setNotFoundHandler((req, reply) => {
+  const pathname = req.url.split("?")[0] ?? "/";
+
+  if (
+    hasStaticApp &&
+    req.method === "GET" &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/health") &&
+    !pathname.startsWith("/ws") &&
+    !pathname.startsWith("/v1") &&
+    !pathname.startsWith("/oauth") &&
+    !pathname.includes(".")
+  ) {
+    return reply.sendFile("index.html");
+  }
+
   log.warn(`404 Not Found: ${req.method} ${req.url}`);
-  reply.status(404).send({ detail: "Not found" });
+  return reply.status(404).send({ detail: "Not found" });
 });
 
 // ---------------------------------------------------------------------------

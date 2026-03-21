@@ -352,7 +352,7 @@ async function initialize(): Promise<void> {
         logMessage("initializeBackendServer() completed");
         logMessage("Loading web app...");
         const timestamp = new Date().getTime();
-        mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
+        mainWindow.loadURL(`${serverState.initialURL}/index.html?nocache=${timestamp}`);
       } else {
         // Environment was just installed, proceed normally
         logMessage("Environment was just installed, initializing backend server");
