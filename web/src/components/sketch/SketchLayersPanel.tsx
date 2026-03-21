@@ -8,7 +8,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useState, useRef } from "react";
+import React, { memo, useCallback, useEffect, useState, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -281,7 +281,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
   const [customHeight, setCustomHeight] = useState(String(canvasHeight));
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCustomWidth(String(canvasWidth));
     setCustomHeight(String(canvasHeight));
   }, [canvasWidth, canvasHeight]);

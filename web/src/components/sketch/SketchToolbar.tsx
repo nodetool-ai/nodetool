@@ -439,14 +439,14 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   const [adjBrightness, setAdjBrightness] = useState(0);
   const [adjContrast, setAdjContrast] = useState(0);
   const [adjSaturation, setAdjSaturation] = useState(0);
-  const adjustDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adjustDebounceRef = useRef<number | null>(null);
 
   // Auto-apply adjustments with 100ms debounce
   useEffect(() => {
     if (adjustDebounceRef.current !== null) {
       clearTimeout(adjustDebounceRef.current);
     }
-    adjustDebounceRef.current = setTimeout(() => {
+    adjustDebounceRef.current = window.setTimeout(() => {
       onApplyAdjustments(adjBrightness, adjContrast, adjSaturation);
       adjustDebounceRef.current = null;
     }, 100);

@@ -586,6 +586,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [pushHistory, setDocument, updateLayerData]
   );
 
+  // Compute the settings updater for brush/pencil context menu
+  const brushOrPencilUpdater = activeTool === "brush" ? setBrushSettings : setPencilSettings;
+
   return (
     <Box css={styles(theme)}>
       {!panelsHidden && (
@@ -699,20 +702,17 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         </ListSubheader>
 
         {/* ── Brush / Pencil context options ── */}
-        {(activeTool === "brush" || activeTool === "pencil") && (() => {
-          const updateSettings = activeTool === "brush" ? setBrushSettings : setPencilSettings;
-          return [
-            <MenuItem key="s5" onClick={() => { updateSettings({ size: 5 }); handleContextMenuClose(); }}>Small (5)</MenuItem>,
-            <MenuItem key="s12" onClick={() => { updateSettings({ size: 12 }); handleContextMenuClose(); }}>Medium (12)</MenuItem>,
-            <MenuItem key="s30" onClick={() => { updateSettings({ size: 30 }); handleContextMenuClose(); }}>Large (30)</MenuItem>,
-            <MenuItem key="s50" onClick={() => { updateSettings({ size: 50 }); handleContextMenuClose(); }}>XL (50)</MenuItem>,
-            <MuiDivider key="d1" />,
-            <MenuItem key="o25" onClick={() => { updateSettings({ opacity: 0.25 }); handleContextMenuClose(); }}>25% Opacity</MenuItem>,
-            <MenuItem key="o50" onClick={() => { updateSettings({ opacity: 0.5 }); handleContextMenuClose(); }}>50% Opacity</MenuItem>,
-            <MenuItem key="o75" onClick={() => { updateSettings({ opacity: 0.75 }); handleContextMenuClose(); }}>75% Opacity</MenuItem>,
-            <MenuItem key="o100" onClick={() => { updateSettings({ opacity: 1 }); handleContextMenuClose(); }}>100% Opacity</MenuItem>,
-          ];
-        })()}
+        {(activeTool === "brush" || activeTool === "pencil") && [
+          <MenuItem key="s5" onClick={() => { brushOrPencilUpdater({ size: 5 }); handleContextMenuClose(); }}>Small (5)</MenuItem>,
+          <MenuItem key="s12" onClick={() => { brushOrPencilUpdater({ size: 12 }); handleContextMenuClose(); }}>Medium (12)</MenuItem>,
+          <MenuItem key="s30" onClick={() => { brushOrPencilUpdater({ size: 30 }); handleContextMenuClose(); }}>Large (30)</MenuItem>,
+          <MenuItem key="s50" onClick={() => { brushOrPencilUpdater({ size: 50 }); handleContextMenuClose(); }}>XL (50)</MenuItem>,
+          <MuiDivider key="d1" />,
+          <MenuItem key="o25" onClick={() => { brushOrPencilUpdater({ opacity: 0.25 }); handleContextMenuClose(); }}>25% Opacity</MenuItem>,
+          <MenuItem key="o50" onClick={() => { brushOrPencilUpdater({ opacity: 0.5 }); handleContextMenuClose(); }}>50% Opacity</MenuItem>,
+          <MenuItem key="o75" onClick={() => { brushOrPencilUpdater({ opacity: 0.75 }); handleContextMenuClose(); }}>75% Opacity</MenuItem>,
+          <MenuItem key="o100" onClick={() => { brushOrPencilUpdater({ opacity: 1 }); handleContextMenuClose(); }}>100% Opacity</MenuItem>,
+        ]}
 
         {/* ── Eraser context options ── */}
         {activeTool === "eraser" && [

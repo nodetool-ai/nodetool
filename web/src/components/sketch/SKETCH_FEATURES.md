@@ -82,9 +82,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Panel layout persistence** (collapsed state in `localStorage`)
 - [x] **Collapsible toolbar sections** (Colors, Settings, Actions, Swatches, View, Shortcuts)
 - [x] **Unified tool grouping** (all tools in one section, shapes below draw tools)
-- [ ] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
-- [ ] improve **Context-sensitive** right-click menu: add quick options for currently active tool
-- [ ] adjustments without apply button - apply directly on change with small debounce like 100ms
+- [x] move from left to right panel: Canvas Size, Shortcuts. align those 2 items on bottom
+- [x] improve **Context-sensitive** right-click menu: add quick options for currently active tool
+- [x] adjustments without apply button - apply directly on change with small debounce like 100ms
 
 #### Gesture shortcuts (parity — open conflicts)
 
