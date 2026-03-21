@@ -14,20 +14,46 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType,
-  Editor,
-  RowComponent
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 
-import TableActions, { TableDataChange, DictTableRow, DataframeCellValue, ListTableRow } from "./TableActions";
+import TableActions from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
+
+/**
+ * Union type for all possible cell values in a DataFrame column
+ */
+export type DataframeCellValue = string | number | boolean | null | undefined;
+
+/**
+ * Row data for list-style tables (array-based)
+ */
+export type ListTableRow = DataframeCellValue[];
+
+/**
+ * Row data for dict-style tables (object-based with rownum)
+ */
+export interface DictTableRow {
+  rownum: number;
+  [columnName: string]: DataframeCellValue;
+}
+
+/**
+ * Union type for table row data (either list or dict format)
+ */
+export type TableDataRow = DictTableRow;
+
+/**
+ * New data passed to onChangeRows callback
+ */
+export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
 
 /**
  * Tabulator filter type for column filtering
@@ -101,7 +127,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -166,7 +192,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: unknown, cell: CellComponent) {
+              cellClick: function (_e: MouseEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -196,19 +222,18 @@ const DataTable: React.FC<DataTableProps> = ({
         headerTooltip: col.data_type,
         editable: editable,
         resizable: true,
-        formatter: (col.data_type === "datetime" ? datetimeFormatter : undefined),
-        editor: (
+        formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
+        editor:
           col.data_type === "int"
             ? integerEditor
             : col.data_type === "float"
             ? floatEditor
             : col.data_type === "datetime"
             ? datetimeEditor
-            : "input"
-        ) as Editor,
+            : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: col.data_type,
-        validator: (
+        validator:
           col.data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : col.data_type === "float"
@@ -216,7 +241,6 @@ const DataTable: React.FC<DataTableProps> = ({
             : col.data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
             : undefined
-        )
       }))
     ];
   }, [editable, showRowNumbers, showSelect]);
@@ -318,7 +342,7 @@ const DataTable: React.FC<DataTableProps> = ({
         }));
         tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
       } else {
-        tabulatorRef.current.clearFilter(true);
+        tabulatorRef.current.clearFilter();
       }
     }
   }, [searchFilter, isTableReady]);

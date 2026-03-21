@@ -1,8 +1,6 @@
-/** @jsxImportSource @emotion/react */
-
 import React, { useCallback, memo } from "react";
 import { Tooltip, IconButton, Divider } from "@mui/material";
-import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
@@ -17,15 +15,11 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-
-// Re-declare these types here to avoid circular imports if possible, or make them shared
-export type DataframeCellValue = string | number | boolean | null | undefined;
-export type ListTableRow = DataframeCellValue[];
-export interface DictTableRow {
-  rownum: number;
-  [columnName: string]: DataframeCellValue;
-}
-export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
+import type {
+  DictTableRow,
+  DataframeCellValue,
+  TableDataChange
+} from "./DataTable";
 
 /**
  * Union type for list table cell values (from ListTable.tsx)
@@ -45,6 +39,11 @@ export type TableData =
   | Record<string, DictTableRow> // DataTable dict format
   | ListCellValue[]             // ListTable format
   | Record<string, DictCellValue>; // DictTable format
+
+/**
+ * RowComponent type from Tabulator - exported for use in other components
+ */
+export type RowComponent = Tabulator.RowComponent;
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -85,6 +84,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   canRedo = false,
   onHistoryChange
 }) => {
+  TableActions.displayName = 'TableActions';
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -95,22 +95,13 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (isListTable) {
       dataToStringify = Array.isArray(data) ? data : Object.values(data);
     } else {
-      if (Array.isArray(data)) {
-        // Narrow type for map operation
-        const arrayData = data as (DictTableRow | ListCellValue)[];
-        // Only DictTableRow has rownum, verify type
-        if (arrayData.length > 0 && typeof arrayData[0] === 'object' && arrayData[0] !== null && 'rownum' in (arrayData[0] as object)) {
-             dataToStringify = (arrayData as DictTableRow[]).map((row) => {
-                const newRow = { ...row };
-                delete (newRow as Partial<DictTableRow>).rownum;
-                return newRow;
-             });
-        } else {
-            dataToStringify = data;
-        }
-      } else {
-        dataToStringify = data;
-      }
+      dataToStringify = Array.isArray(data)
+        ? data.map((row) => {
+            const newRow = { ...row };
+            delete newRow.rownum;
+            return newRow;
+          })
+        : data;
     }
     writeClipboard(JSON.stringify(dataToStringify), true);
     addNotification({
@@ -154,43 +145,36 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         }
         (onChangeRows as (newData: unknown) => void)([...data, defaultValue]);
       } else {
-        const newData = { ...(data as Record<string, unknown>) };
-        const newKey = `new_key_${Object.keys(newData).length}`;
-        newData[newKey] = "";
-        (onChangeRows as (newData: unknown) => void)(newData);
+        const newKey = `new_key_${Object.keys(data).length}`;
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
         const newRow = defaultRow(dataframeColumns);
         (onChangeRows as (newData: unknown) => void)([...data, newRow]);
       } else if (!Array.isArray(data)) {
-        const newData = { ...(data as Record<string, unknown>) };
-        const newKey = `new_key_${Object.keys(newData).length}`;
-        newData[newKey] = "";
-        (onChangeRows as (newData: unknown) => void)(newData);
+        const newKey = `new_key_${Object.keys(data).length}`;
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     }
   };
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
-      // Cast data to array for filtering
-      const arrayData = data as unknown[];
       (onChangeRows as (newData: unknown) => void)(
-        arrayData.filter((_, index) => {
+        data.filter((_, index) => {
           return !selectedRows.some(
             (selectedRow) => selectedRow.getData().rownum === index
           );
         })
       );
     } else {
-      // Use spread on casted object
-      const newData = { ...(data as Record<string, unknown>) };
+      const newData = { ...data };
       selectedRows.forEach((row) => {
         const key = row.getData().key;
         delete newData[key];
       });
-      (onChangeRows as (newData: unknown) => void)(newData as TableDataChange);
+      (onChangeRows as (newData: unknown) => void)(newData);
     }
   }, [data, selectedRows, onChangeRows]);
 
@@ -226,13 +210,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
-    // Type casting needed because TS isn't inferring array type correctly after check
-    const newData = [...(data as unknown[])];
+    const newData = [...data];
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
-    const reindexedData = newData.map((row, index) => ({ ...(row as object), rownum: index }));
-    onChangeRows(reindexedData as TableDataChange);
+    const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+    onChangeRows(reindexedData);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,
@@ -382,12 +365,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
           : data.length;
 
-        const newData = [...(data as unknown[])];
+        const newData = [...data];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
-        const reindexedData = newData.map((row, index) => ({ ...(row as object), rownum: index }));
-        onChangeRows(reindexedData as TableDataChange);
+        const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+        onChangeRows(reindexedData);
         
         addNotification({
           content: `Pasted ${newRows.length} row(s)`,
@@ -411,7 +394,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     // Build CSV content manually to exclude utility columns
     // Memoize headers to avoid recreating on each render
     const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
-    const rows = (data as unknown[]).map((row) => {
+    const rows = data.map((row) => {
       return dataframeColumns.map((col) => {
         const value = (row as Record<string, DataframeCellValue>)[col.name];
         // Escape quotes and wrap in quotes
@@ -441,7 +424,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (!dataframeColumns || !Array.isArray(data)) {return;}
 
     // Build clean data without utility columns
-    const cleanData = (data as unknown[]).map((row) => {
+    const cleanData = data.map((row) => {
       const cleanRow: Record<string, DataframeCellValue> = {};
       dataframeColumns.forEach((col) => {
         cleanRow[col.name] = (row as Record<string, DataframeCellValue>)[col.name];
@@ -578,8 +561,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     </div>
   );
 });
-
-TableActions.displayName = 'TableActions';
 
 export default TableActions;
 
