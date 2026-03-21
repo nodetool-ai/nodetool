@@ -176,6 +176,11 @@ const imageTypeMetadata = {
   optional: true
 };
 
+// Handle layout constants
+const DYNAMIC_HANDLE_START_TOP = 100;
+const DYNAMIC_HANDLE_SPACING = 40;
+const DYNAMIC_OUTPUT_START_TOP = 140;
+
 const outputImageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -331,33 +336,32 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           const imageDataUrl = canvasToDataUrl(canvas);
           setPreviewUrl(imageDataUrl);
 
-          // Store flattened image as output property for downstream nodes
-          updateNodeProperties(props.id, {
+          // Build all output properties in a single batch
+          const outputProps: Record<string, unknown> = {
             image: { type: "image", uri: imageDataUrl, asset_id: null, data: null }
-          });
+          };
 
           // Export mask if designated
           const maskCanvas = await exportMask(sketchDoc);
           if (maskCanvas) {
             const maskDataUrl = canvasToDataUrl(maskCanvas);
-            updateNodeProperties(props.id, {
-              mask: { type: "image", uri: maskDataUrl, asset_id: null, data: null }
-            });
+            outputProps.mask = { type: "image", uri: maskDataUrl, asset_id: null, data: null };
           }
 
           // Export individual layers marked as exposedAsOutput
           for (const layer of sketchDoc.layers) {
             if (layer.exposedAsOutput && layer.data) {
-              updateNodeProperties(props.id, {
-                [`layer_out_${layer.name}`]: {
-                  type: "image",
-                  uri: layer.data,
-                  asset_id: null,
-                  data: null
-                }
-              });
+              outputProps[`layer_out_${layer.name}`] = {
+                type: "image",
+                uri: layer.data,
+                asset_id: null,
+                data: null
+              };
             }
           }
+
+          // Single batched update
+          updateNodeProperties(props.id, outputProps);
         })
         .catch(() => {
           // Preview generation failed
@@ -451,7 +455,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           <div
             key={`input-${layer.id}`}
             className="handle-popup"
-            style={{ position: "absolute", left: 0, top: `${100 + idx * 40}px` }}
+            style={{ position: "absolute", left: 0, top: `${DYNAMIC_HANDLE_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
           >
             <HandleTooltip
               typeMetadata={imageTypeMetadata}
@@ -508,7 +512,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div
               key={`output-${layer.id}`}
               className="handle-popup"
-              style={{ position: "absolute", right: 0, top: `${140 + idx * 40}px` }}
+              style={{ position: "absolute", right: 0, top: `${DYNAMIC_OUTPUT_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
             >
               <HandleTooltip
                 typeMetadata={outputImageTypeMetadata}
