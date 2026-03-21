@@ -22,7 +22,7 @@ Reference parity: **ComfySketch** maps **C** → circle and **R** → rectangle;
 
 | Tool                     | NodeTool today                                | Parity / gaps                                                                                                                                                                 |
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Brush (B)                | Size, opacity, hardness, color                | [ ] **Pressure** from pointer events / tablet; [ ] optional **roundness** + **angle** (oval brush footprint)                                                                  |
+| Brush (B)                | Size, opacity, hardness, color                | [x] **Pressure** from pointer events / tablet; [x] optional **roundness** + **angle** (oval brush footprint)                                                                  |
 | Pencil (P)               | Size 1–10, square caps, pixel-aligned strokes | [ ] True **1px anti-aliased pencil** mode (always 1px feel at any zoom)                                                                                                       |
 | Line (L)                 | Free line + arrow                             | [x] **Shift**: horizontal / vertical / 45° constraint while dragging                                                                                                          |
 | Ellipse (O) (“circle”)   | Ellipse + fill options                        | [x] **Shift**: **perfect circle** from bounding box                                                                                                                           |
@@ -34,7 +34,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
 - [x] improve Blur brush: fixed hard edges by using circular radial-gradient mask blending
-- [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
+- [x] Selection tools (rectangle select; lasso and magic wand with Photoshop-style options are still pending)
 - [x] Crop tool (C key, drag to select crop region)
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
@@ -47,7 +47,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 | Type     | Target settings            | Status                                                        |
 | -------- | -------------------------- | ------------------------------------------------------------- |
-| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [ ] roundness + angle |
+| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [x] roundness + angle |
 | Soft     | Hardness, roundness, angle | [x] Softer default falloff (hardness capped at 0.3)           |
 | Airbrush | Flow, softness             | [x] Low-opacity radial dab accumulation per point             |
 | Spray    | Density                    | [x] Particle scatter (stochastic dots within brush disk)      |
@@ -106,7 +106,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 
 - [x] **Node / property widgets:** canvas **preset** dropdown + **custom W×H**
 - [x] **Node / property widgets:** **initial background** quick presets — black / white / gray (`backgroundColor` already exists)
-- [ ] Fix input image not showing up as layer
+- [x] Fix input image not showing up as layer
 - [ ] add "Expose" layer feature that creates additional dynamic inputs in node using layer name
 - [ ] Cleaner node UI styling
 
@@ -530,6 +530,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Undo history for layer operations** — layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 - [x] **Context menu two-column layout** — left side for active tool presets (size/opacity), right side for tool switching + actions; bolder header, section labels, shortcut hints
 - [x] **Color mode buttons** — bolder HEX/RGB/HSL toggle buttons with improved contrast and selected state
+- [x] **Pressure sensitivity** — read `PointerEvent.pressure` for brush/pencil/eraser; pressure affects size, opacity, or both (toggle + selector in toolbar)
+- [x] **Brush roundness + angle** — elliptical brush footprints via `roundness` (0.1–1.0) and `angle` (0–360°) settings for Round/Soft brush types
+- [x] **Rectangle selection tool** — marquee select with marching ants overlay; Escape deselects; Delete clears selection area on active layer
+- [x] **Fix input image loading** — fixed stale document reference when opening editor; input image now reliably appears as locked base layer
 
 ### Node / SketchInput
 
