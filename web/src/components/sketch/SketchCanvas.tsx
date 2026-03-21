@@ -1153,8 +1153,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const dx = pt.x - from.x;
             const dy = pt.y - from.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            // Interpolate points along the line for smooth stroke
-            const step = Math.max(1, Math.min(4, dist / 100));
+            // Interpolate points along the line at small intervals for smooth coverage
+            const STRAIGHT_LINE_STEP_DIVISOR = 100;
+            const step = Math.max(1, Math.min(4, dist / STRAIGHT_LINE_STEP_DIVISOR));
             const steps = Math.max(1, Math.ceil(dist / step));
             let prev = from;
             for (let i = 1; i <= steps; i++) {

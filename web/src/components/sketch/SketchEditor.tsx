@@ -33,6 +33,22 @@ const styles = (theme: Theme) =>
     overflow: "hidden"
   });
 
+/** Shared context menu styles */
+const CTX_SECTION_LABEL_SX = {
+  fontSize: "0.65rem",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  color: "grey.500",
+  px: "12px",
+  pt: "8px",
+  pb: "2px"
+} as const;
+
+const CTX_SHORTCUT_SX = {
+  color: "grey.500",
+  fontSize: "0.7rem"
+} as const;
+
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
   onDocumentChange?: (doc: SketchDocument) => void;
@@ -948,17 +964,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         >
           {/* LEFT: Active tool settings */}
           <Box className="ctx-col">
-            <Typography
-              sx={{
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "grey.500",
-                px: "12px",
-                pt: "8px",
-                pb: "2px"
-              }}
-            >
+            <Typography sx={CTX_SECTION_LABEL_SX}>
               Size
             </Typography>
 
@@ -1002,15 +1008,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
               </MenuItem>,
               <Typography
                 key="olabel"
-                sx={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  color: "grey.500",
-                  px: "12px",
-                  pt: "6px",
-                  pb: "2px"
-                }}
+                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
               >
                 Opacity
               </Typography>,
@@ -1092,15 +1090,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
               </MenuItem>,
               <Typography
                 key="olabel"
-                sx={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  color: "grey.500",
-                  px: "12px",
-                  pt: "6px",
-                  pb: "2px"
-                }}
+                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
               >
                 Opacity
               </Typography>,
@@ -1277,15 +1267,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
               </MenuItem>,
               <Typography
                 key="ilabel"
-                sx={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  color: "grey.500",
-                  px: "12px",
-                  pt: "6px",
-                  pb: "2px"
-                }}
+                sx={{ ...CTX_SECTION_LABEL_SX, pt: "6px" }}
               >
                 Strength
               </Typography>,
@@ -1334,17 +1316,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
           {/* RIGHT: Tool selection + actions */}
           <Box className="ctx-col">
-            <Typography
-              sx={{
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "grey.500",
-                px: "12px",
-                pt: "8px",
-                pb: "2px"
-              }}
-            >
+            <Typography sx={CTX_SECTION_LABEL_SX}>
               Switch Tool
             </Typography>
             <MenuItem
@@ -1354,7 +1326,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                 handleContextMenuClose();
               }}
             >
-              Brush &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>B</Typography>
+              Brush &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>B</Typography>
             </MenuItem>
             <MenuItem
               selected={activeTool === "pencil"}
@@ -1363,7 +1335,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                 handleContextMenuClose();
               }}
             >
-              Pencil &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>P</Typography>
+              Pencil &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>P</Typography>
             </MenuItem>
             <MenuItem
               selected={activeTool === "eraser"}
@@ -1372,7 +1344,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                 handleContextMenuClose();
               }}
             >
-              Eraser &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>E</Typography>
+              Eraser &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>E</Typography>
             </MenuItem>
             <MenuItem
               selected={activeTool === "fill"}
@@ -1381,7 +1353,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                 handleContextMenuClose();
               }}
             >
-              Fill &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>G</Typography>
+              Fill &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>G</Typography>
             </MenuItem>
             <MenuItem
               selected={activeTool === "blur"}
@@ -1390,20 +1362,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                 handleContextMenuClose();
               }}
             >
-              Blur &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>Q</Typography>
+              Blur &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>Q</Typography>
             </MenuItem>
 
-            <Typography
-              sx={{
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "grey.500",
-                px: "12px",
-                pt: "8px",
-                pb: "2px"
-              }}
-            >
+            <Typography sx={CTX_SECTION_LABEL_SX}>
               Actions
             </Typography>
             <MenuItem
@@ -1413,7 +1375,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
               }}
               disabled={!canUndo()}
             >
-              Undo &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>⌘Z</Typography>
+              Undo &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>⌘Z</Typography>
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -1422,7 +1384,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
               }}
               disabled={!canRedo()}
             >
-              Redo &nbsp;<Typography component="span" sx={{ color: "grey.500", fontSize: "0.7rem" }}>⌘⇧Z</Typography>
+              Redo &nbsp;<Typography component="span" sx={CTX_SHORTCUT_SX}>⌘⇧Z</Typography>
             </MenuItem>
             <MuiDivider />
             <MenuItem
