@@ -51,20 +51,28 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import {
   SketchTool,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
   FillSettings,
   BlurSettings,
   GradientSettings,
+  ColorMode,
   DEFAULT_SWATCHES,
   CANVAS_PRESETS,
-  isShapeTool
+  isShapeTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb
 } from "./types";
 
 // ─── Collapsible section persistence ──────────────────────────────────────
@@ -357,6 +365,9 @@ export interface SketchToolbarProps {
   onResetColors: () => void;
   onApplyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
   onBackgroundPreset: (color: string) => void;
+  colorMode: ColorMode;
+  onColorModeChange: (mode: ColorMode) => void;
+  onImportImage?: (file: File) => void;
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -401,7 +412,10 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onSwapColors,
   onResetColors,
   onApplyAdjustments,
-  onBackgroundPreset
+  onBackgroundPreset,
+  colorMode,
+  onColorModeChange,
+  onImportImage
 }) => {
   const theme = useTheme();
 
@@ -524,6 +538,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="move" aria-label="Move">
           <Tooltip title="Move (V)">
             <OpenWithIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="select" aria-label="Select">
+          <Tooltip title="Select">
+            <SelectAllIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
         <ToggleButton value="brush" aria-label="Brush">
@@ -656,6 +675,18 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           inputProps={{ maxLength: 7 }}
           fullWidth
         />
+        <ToggleButtonGroup
+          value={colorMode}
+          exclusive
+          onChange={(_e, val) => { if (val) { onColorModeChange(val); } }}
+          size="small"
+          fullWidth
+          sx={{ mt: "4px", "& .MuiToggleButton-root": { flex: 1, fontSize: "0.65rem", py: "2px" } }}
+        >
+          <ToggleButton value="hex" aria-label="HEX mode">HEX</ToggleButton>
+          <ToggleButton value="rgb" aria-label="RGB mode">RGB</ToggleButton>
+          <ToggleButton value="hsl" aria-label="HSL mode">HSL</ToggleButton>
+        </ToggleButtonGroup>
         <Box sx={{ display: "flex", gap: "4px", mt: "4px" }}>
           {([
             { label: "Black", color: "#000000" },
@@ -687,6 +718,27 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       >
         {activeTool === "brush" && (
           <>
+            <ToggleButtonGroup
+              value={brushSettings.brushType || "round"}
+              exclusive
+              onChange={(_, v) => { if (v) { onBrushSettingsChange({ brushType: v as BrushType }); } }}
+              size="small"
+              fullWidth
+              sx={{ mb: "4px" }}
+            >
+              <ToggleButton value="round" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Round
+              </ToggleButton>
+              <ToggleButton value="soft" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Soft
+              </ToggleButton>
+              <ToggleButton value="airbrush" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Air
+              </ToggleButton>
+              <ToggleButton value="spray" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Spray
+              </ToggleButton>
+            </ToggleButtonGroup>
             <Box className="setting-row">
               <Typography className="setting-label">Color</Typography>
               <input
@@ -1178,11 +1230,17 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <dt>A</dt><dd>Arrow</dd>
           <dt>T</dt><dd>Gradient</dd>
           <dt>C</dt><dd>Crop</dd>
-          <dt>M</dt><dd>Mirror</dd>
+          <dt>M</dt><dd>Mirror H</dd>
+          <dt>Shift+M</dt><dd>Mirror V</dd>
           <dt>X</dt><dd>Swap colors</dd>
           <dt>D</dt><dd>Reset colors</dd>
           <dt>Tab</dt><dd>Toggle UI</dd>
           <dt>[ / ]</dt><dd>Brush size</dd>
+          <dt>Shift+[/]</dt><dd>Hardness</dd>
+          <dt>0–9</dt><dd>Opacity</dd>
+          <dt>Alt+Click</dt><dd>Pick color</dd>
+          <dt>Alt+⌫</dt><dd>Fill FG</dd>
+          <dt>Ctrl+⌫</dt><dd>Fill BG</dd>
           <dt>Shift</dt><dd>Constrain</dd>
           <dt>Space</dt><dd>Pan</dd>
           <dt>+ / −</dt><dd>Zoom</dd>

@@ -12,6 +12,8 @@ import {
   Layer,
   HistoryEntry,
   Point,
+  Selection,
+  ColorMode,
   BrushSettings,
   PencilSettings,
   EraserSettings,
@@ -67,6 +69,7 @@ export interface SketchStore {
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setMaskLayer: (layerId: string | null) => void;
+  toggleAlphaLock: (layerId: string) => void;
   mergeLayerDown: (layerId: string) => void;
   flattenVisible: () => void;
 
@@ -77,6 +80,19 @@ export interface SketchStore {
   setBackgroundColor: (color: string) => void;
   swapColors: () => void;
   resetColors: () => void;
+
+  // ─── Color Mode ───────────────────────────────────────────────────────────
+  colorMode: ColorMode;
+  setColorMode: (mode: ColorMode) => void;
+
+  // ─── Selection ────────────────────────────────────────────────────────────
+  selection: Selection | null;
+  setSelection: (sel: Selection | null) => void;
+  selectAll: () => void;
+
+  // ─── Layer Isolation ──────────────────────────────────────────────────────
+  isolatedLayerId: string | null;
+  toggleIsolateLayer: (layerId: string) => void;
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   panelsHidden: boolean;
@@ -104,6 +120,9 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   historyIndex: -1,
   foregroundColor: "#ffffff",
   backgroundColor: "#000000",
+  colorMode: "hex" as ColorMode,
+  selection: null,
+  isolatedLayerId: null,
   panelsHidden: false,
 
   // ─── Document Actions ─────────────────────────────────────────────────
@@ -411,6 +430,16 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       };
     }),
 
+  toggleAlphaLock: (layerId: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, alphaLock: !l.alphaLock } : l
+        )
+      }
+    })),
+
   mergeLayerDown: (layerId: string) =>
     set((state) => {
       const { layers, activeLayerId, maskLayerId } = state.document;
@@ -476,6 +505,29 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     })),
   resetColors: () =>
     set({ foregroundColor: "#ffffff", backgroundColor: "#000000" }),
+
+  // ─── Color Mode ─────────────────────────────────────────────────────────
+  setColorMode: (mode: ColorMode) => set({ colorMode: mode }),
+
+  // ─── Selection ──────────────────────────────────────────────────────────
+  setSelection: (sel: Selection | null) => set({ selection: sel }),
+  selectAll: () => {
+    const state = get();
+    set({
+      selection: {
+        x: 0,
+        y: 0,
+        width: state.document.canvas.width,
+        height: state.document.canvas.height
+      }
+    });
+  },
+
+  // ─── Layer Isolation ────────────────────────────────────────────────────
+  toggleIsolateLayer: (layerId: string) =>
+    set((state) => ({
+      isolatedLayerId: state.isolatedLayerId === layerId ? null : layerId
+    })),
 
   // ─── UI State ───────────────────────────────────────────────────────────
   togglePanelsHidden: () =>

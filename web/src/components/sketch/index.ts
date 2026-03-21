@@ -21,6 +21,7 @@ export type {
   LayerType,
   BlendMode,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
@@ -30,6 +31,8 @@ export type {
   Point,
   Size,
   Color,
+  ColorMode,
+  Selection,
   HistoryEntry,
   SketchEditorState
 } from "./types";
@@ -53,6 +56,11 @@ export {
   createDefaultLayer,
   generateLayerId,
   isShapeTool,
+  isPaintingTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb,
   MAX_HISTORY_SIZE
 } from "./types";
 

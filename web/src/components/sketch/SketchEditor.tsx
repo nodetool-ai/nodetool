@@ -72,6 +72,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const renameLayer = useSketchStore((s) => s.renameLayer);
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
+  const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
   const redo = useSketchStore((s) => s.redo);
@@ -88,6 +89,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const setCanvasBackgroundColor = useSketchStore((s) => s.setCanvasBackgroundColor);
+  const colorMode = useSketchStore((s) => s.colorMode);
+  const setColorMode = useSketchStore((s) => s.setColorMode);
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
@@ -139,6 +142,22 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     return () => window.removeEventListener("sketch-eyedropper", handler);
   }, [setBrushSettings, setActiveTool]);
 
+  // ─── Alt+click eyedropper pick (stays on current tool) ─────────────
+  const handleEyedropperPick = useCallback(
+    (color: string) => {
+      setForegroundColor(color);
+      const tool = activeTool;
+      if (tool === "brush") {
+        setBrushSettings({ color });
+      } else if (tool === "pencil") {
+        setPencilSettings({ color });
+      } else if (tool === "fill") {
+        setFillSettings({ color });
+      }
+    },
+    [activeTool, setForegroundColor, setBrushSettings, setPencilSettings, setFillSettings]
+  );
+
   // ─── S + drag brush size change ────────────────────────────────────
   const handleBrushSizeChange = useCallback(
     (size: number) => {
@@ -186,6 +205,20 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       updateLayerData(activeLayerId, null);
     }
   }, [document.activeLayerId, pushHistory, updateLayerData]);
+
+  // ─── Fill layer with color ─────────────────────────────────────────
+  const handleFillLayerWithColor = useCallback(
+    (color: string) => {
+      const activeLayerId = document.activeLayerId;
+      const layer = document.layers.find((l) => l.id === activeLayerId);
+      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) { return; }
+      pushHistory("fill layer");
+      canvasRef.current.fillLayerWithColor(activeLayerId, color);
+      const data = canvasRef.current.getLayerData(activeLayerId);
+      updateLayerData(activeLayerId, data);
+    },
+    [document.activeLayerId, document.layers, pushHistory, updateLayerData]
+  );
 
   // ─── Export PNG download ───────────────────────────────────────────
   const handleExportPng = useCallback(() => {
@@ -290,7 +323,60 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           e.preventDefault();
           handleExportPng();
         }
+        // Ctrl+Backspace → fill with background color (Photoshop convention)
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          handleFillLayerWithColor(useSketchStore.getState().backgroundColor);
+        }
+      } else if (e.altKey) {
+        // Alt+Backspace → fill with foreground color (Photoshop convention)
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          handleFillLayerWithColor(useSketchStore.getState().foregroundColor);
+        }
+      } else if (e.shiftKey) {
+        // Shift+M → toggle vertical mirror
+        if (e.key === "M") {
+          setMirrorY((prev) => !prev);
+        }
+        // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
+        if (e.key === "{") {
+          const store = useSketchStore.getState();
+          const tool = store.activeTool;
+          if (tool === "brush") {
+            const newHardness = Math.max(0, store.document.toolSettings.brush.hardness - 0.1);
+            setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
+          } else if (tool === "eraser") {
+            const newHardness = Math.max(0, store.document.toolSettings.eraser.hardness - 0.1);
+            setEraserSettings({ hardness: Math.round(newHardness * 100) / 100 });
+          }
+        } else if (e.key === "}") {
+          const store = useSketchStore.getState();
+          const tool = store.activeTool;
+          if (tool === "brush") {
+            const newHardness = Math.min(1, store.document.toolSettings.brush.hardness + 0.1);
+            setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
+          } else if (tool === "eraser") {
+            const newHardness = Math.min(1, store.document.toolSettings.eraser.hardness + 0.1);
+            setEraserSettings({ hardness: Math.round(newHardness * 100) / 100 });
+          }
+        }
       } else {
+        // Number keys 0-9 → set brush opacity (Photoshop convention)
+        // 1=10%, 2=20%, ..., 9=90%, 0=100%
+        if (/^[0-9]$/.test(e.key)) {
+          const store = useSketchStore.getState();
+          const tool = store.activeTool;
+          const digit = parseInt(e.key, 10);
+          const opacity = digit === 0 ? 1 : digit / 10;
+          if (tool === "brush") {
+            setBrushSettings({ opacity });
+          } else if (tool === "pencil") {
+            setPencilSettings({ opacity });
+          } else if (tool === "eraser") {
+            setEraserSettings({ opacity });
+          }
+        } else {
         switch (e.key) {
           case "b": setActiveTool("brush"); break;
           case "p": setActiveTool("pencil"); break;
@@ -359,6 +445,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           case "Backspace":
             handleClearLayer();
             break;
+        }
         }
       }
     };
@@ -504,6 +591,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onResetColors={resetColors}
           onApplyAdjustments={handleApplyAdjustments}
           onBackgroundPreset={handleBackgroundPreset}
+          colorMode={colorMode}
+          onColorModeChange={setColorMode}
         />
       )}
 
@@ -523,6 +612,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onBrushSizeChange={handleBrushSizeChange}
           onContextMenu={handleContextMenu}
           onCropComplete={handleCropComplete}
+          onEyedropperPick={handleEyedropperPick}
         />
       </Box>
 
@@ -540,6 +630,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onMoveLayerDown={handleMoveLayerDown}
           onReorderLayers={reorderLayers}
           onSetMaskLayer={setMaskLayer}
+          onToggleAlphaLock={toggleAlphaLock}
           onLayerOpacityChange={setLayerOpacity}
           onLayerBlendModeChange={setLayerBlendMode}
           onRenameLayer={renameLayer}

@@ -22,6 +22,7 @@ import {
   SketchDocument,
   SketchTool,
   BrushSettings,
+  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
@@ -30,7 +31,8 @@ import {
   GradientSettings,
   Point,
   BlendMode,
-  isShapeTool
+  isShapeTool,
+  isPaintingTool
 } from "./types";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ export interface SketchCanvasRef {
   flattenVisible: () => string;
   cropCanvas: (x: number, y: number, width: number, height: number) => void;
   applyAdjustments: (brightness: number, contrast: number, saturation: number) => void;
+  fillLayerWithColor: (layerId: string, color: string) => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -90,6 +93,7 @@ export interface SketchCanvasProps {
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onEyedropperPick?: (color: string) => void;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -128,7 +132,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeEnd,
       onBrushSizeChange,
       onContextMenu,
-      onCropComplete
+      onCropComplete,
+      onEyedropperPick
     } = props;
 
     const theme = useTheme();
@@ -163,6 +168,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Crop tool state
     const cropStartRef = useRef<Point | null>(null);
+
+    // Alpha lock: snapshot of layer alpha before stroke starts
+    const alphaSnapshotRef = useRef<ImageData | null>(null);
+
+    // Stroke stabilizer: circular buffer of recent points for smoothing
+    const stabilizerBufferRef = useRef<Point[]>([]);
+    const STABILIZER_WINDOW = 4; // Number of points to average
 
     useEffect(() => {
       panOffsetRef.current = pan;
@@ -286,6 +298,47 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const drawBrushStroke = useCallback(
       (from: Point, to: Point, settings: BrushSettings, ctx: CanvasRenderingContext2D) => {
+        const brushType = settings.brushType || "round";
+
+        if (brushType === "spray") {
+          // Spray: scatter random dots within brush radius
+          ctx.save();
+          ctx.globalAlpha = settings.opacity;
+          ctx.fillStyle = settings.color;
+          const density = Math.max(5, Math.round(settings.size * 0.8));
+          const r = settings.size / 2;
+          for (let i = 0; i < density; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * r;
+            const px = to.x + Math.cos(angle) * dist;
+            const py = to.y + Math.sin(angle) * dist;
+            const dotSize = Math.max(1, Math.random() * 2);
+            ctx.beginPath();
+            ctx.arc(px, py, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+          return;
+        }
+
+        if (brushType === "airbrush") {
+          // Airbrush: low-opacity radial dab that accumulates over time
+          ctx.save();
+          const dabOpacity = settings.opacity * 0.15;
+          ctx.globalAlpha = dabOpacity;
+          const r = settings.size / 2;
+          const grad = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, r);
+          grad.addColorStop(0, settings.color);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+
+        // Round / Soft brush — standard stroke approach
         ctx.save();
         ctx.globalAlpha = settings.opacity;
         ctx.globalCompositeOperation = "source-over";
@@ -293,8 +346,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.lineWidth = settings.size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        if (settings.hardness < 1) {
-          ctx.filter = `blur(${(1 - settings.hardness) * settings.size * 0.3}px)`;
+        const effectiveHardness = brushType === "soft"
+          ? Math.min(settings.hardness, 0.3)
+          : settings.hardness;
+        if (effectiveHardness < 1) {
+          ctx.filter = `blur(${(1 - effectiveHardness) * settings.size * 0.3}px)`;
         }
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
@@ -347,28 +403,84 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const ctx = layerCanvas.getContext("2d");
         if (!ctx) { return; }
         const r = Math.round(settings.size / 2);
-        const x = Math.round(point.x) - r;
-        const y = Math.round(point.y) - r;
-        const w = r * 2;
-        const h = r * 2;
+        // Pad the sample region by 2× the blur strength so the CSS blur
+        // filter doesn't clip at the edges (the filter kernel extends beyond
+        // the drawn region by roughly 2× its radius).
+        const pad = Math.ceil(settings.strength * 2);
+        const x = Math.round(point.x) - r - pad;
+        const y = Math.round(point.y) - r - pad;
+        const w = (r + pad) * 2;
+        const h = (r + pad) * 2;
         // Clamp to canvas bounds
         const sx = Math.max(0, x);
         const sy = Math.max(0, y);
         const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
         const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
         if (sw <= 0 || sh <= 0) { return; }
-        // Read, blur via temp canvas, write back
+
+        // Read original pixels
         const imgData = ctx.getImageData(sx, sy, sw, sh);
+
+        // Create temp canvas for blurred version
         const tmp = window.document.createElement("canvas");
         tmp.width = sw;
         tmp.height = sh;
         const tmpCtx = tmp.getContext("2d");
         if (!tmpCtx) { return; }
         tmpCtx.putImageData(imgData, 0, 0);
+
+        // Create blurred version on a second temp canvas
+        const blurred = window.document.createElement("canvas");
+        blurred.width = sw;
+        blurred.height = sh;
+        const blurCtx = blurred.getContext("2d");
+        if (!blurCtx) { return; }
+        blurCtx.filter = `blur(${settings.strength}px)`;
+        blurCtx.drawImage(tmp, 0, 0);
+
+        // Blend blurred result into original using a circular gradient mask.
+        // This avoids the hard edges from clearRect.
+        const cx = Math.round(point.x) - sx;
+        const cy = Math.round(point.y) - sy;
+        const maskCanvas = window.document.createElement("canvas");
+        maskCanvas.width = sw;
+        maskCanvas.height = sh;
+        const maskCtx = maskCanvas.getContext("2d");
+        if (!maskCtx) { return; }
+
+        // Draw original pixels first
+        maskCtx.putImageData(imgData, 0, 0);
+
+        // Draw blurred pixels with a circular clip and radial gradient alpha
+        maskCtx.save();
+        maskCtx.beginPath();
+        maskCtx.arc(cx, cy, r, 0, Math.PI * 2);
+        maskCtx.clip();
+
+        // Use a radial gradient to soft-blend the edges
+        const grad = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.7, "rgba(255,255,255,0.8)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+
+        // Clear and draw blurred
+        maskCtx.globalCompositeOperation = "source-over";
+        maskCtx.clearRect(cx - r, cy - r, r * 2, r * 2);
+        maskCtx.drawImage(blurred, 0, 0);
+
+        // Apply radial gradient fade using destination-in
+        maskCtx.globalCompositeOperation = "destination-in";
+        maskCtx.fillStyle = grad;
+        maskCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+        maskCtx.restore();
+
+        // Now composite: put original back, then overlay masked blur
         ctx.save();
         ctx.clearRect(sx, sy, sw, sh);
-        ctx.filter = `blur(${settings.strength}px)`;
-        ctx.drawImage(tmp, sx, sy);
+        ctx.putImageData(imgData, sx, sy);
+        // Draw the soft-blurred circle on top
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(maskCanvas, sx, sy);
         ctx.restore();
       },
       []
@@ -703,8 +815,53 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Pointer Events ──────────────────────────────────────────────
 
+    /** Smooth a raw pointer point using a moving-average stabilizer */
+    const stabilizePoint = useCallback(
+      (raw: Point): Point => {
+        const buf = stabilizerBufferRef.current;
+        buf.push(raw);
+        if (buf.length > STABILIZER_WINDOW) {
+          buf.shift();
+        }
+        if (buf.length === 1) {
+          return raw;
+        }
+        let sx = 0, sy = 0;
+        for (const p of buf) {
+          sx += p.x;
+          sy += p.y;
+        }
+        return { x: sx / buf.length, y: sy / buf.length };
+      },
+      []
+    );
+
+    /** Convert RGB pixel values to a hex color string */
+    const rgbToHex = useCallback(
+      (r: number, g: number, b: number): string =>
+        `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`,
+      []
+    );
+
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
+        // Alt+click on a painting tool samples color (Photoshop eyedropper).
+        // This check MUST come before the Alt+click pan check below so that
+        // painting tools get eyedropper behavior instead of panning.
+        if (e.button === 0 && e.altKey && isPaintingTool(activeTool) && onEyedropperPick) {
+          const displayCanvas = displayCanvasRef.current;
+          if (displayCanvas) {
+            const ctx = displayCanvas.getContext("2d");
+            if (ctx) {
+              const pt = screenToCanvas(e.clientX, e.clientY);
+              const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
+              onEyedropperPick(rgbToHex(pixel[0], pixel[1], pixel[2]));
+            }
+          }
+          return;
+        }
+
+        // Alt+click (non-painting tools) or middle-click or Space+drag: pan canvas
         if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeldRef.current)) {
           isPanningRef.current = true;
           if (spaceHeldRef.current) {
@@ -754,7 +911,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               const pt = screenToCanvas(e.clientX, e.clientY);
               const pixel = ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
-              const hex = `#${pixel[0].toString(16).padStart(2, "0")}${pixel[1].toString(16).padStart(2, "0")}${pixel[2].toString(16).padStart(2, "0")}`;
+              const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
               containerRef.current?.dispatchEvent(
                 new CustomEvent("sketch-eyedropper", { detail: { color: hex }, bubbles: true })
               );
@@ -827,6 +984,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         lastPointRef.current = pt;
         onStrokeStart();
 
+        // Reset stroke stabilizer buffer for a fresh stroke
+        stabilizerBufferRef.current = [];
+
+        // Alpha lock: snapshot original alpha channel before drawing
+        if (activeLayer.alphaLock) {
+          const layerCanvasForSnapshot = getOrCreateLayerCanvas(activeLayer.id);
+          const snapCtx = layerCanvasForSnapshot.getContext("2d");
+          if (snapCtx) {
+            alphaSnapshotRef.current = snapCtx.getImageData(
+              0, 0, layerCanvasForSnapshot.width, layerCanvasForSnapshot.height
+            );
+          }
+        } else {
+          alphaSnapshotRef.current = null;
+        }
+
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
@@ -859,7 +1032,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onStrokeStart, onStrokeEnd, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        floodFill, redraw, withMirror
+        floodFill, redraw, withMirror, onEyedropperPick, rgbToHex
       ]
     );
 
@@ -936,10 +1109,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (activeTool === "brush") {
+          const smoothPt = stabilizePoint(pt);
+          const smoothLast = lastPointRef.current;
           withMirror(
             ctx,
             (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c),
-            lastPointRef.current, pt
+            smoothLast, smoothPt
           );
         } else if (activeTool === "pencil") {
           withMirror(
@@ -963,7 +1138,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       [
         doc, activeTool, screenToCanvas, onPanChange, onBrushSizeChange,
         getOrCreateLayerCanvas, drawBrushStroke, drawPencilStroke, drawEraserStroke, drawBlurStroke,
-        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror
+        drawOverlayShape, drawOverlayGradient, drawOverlayCrop, redraw, withMirror, stabilizePoint
       ]
     );
 
@@ -1040,6 +1215,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         lastPointRef.current = null;
+
+        // Alpha lock: restore original alpha channel after drawing.
+        // Note: iterates all pixels; for very large canvases a dirty-rect
+        // optimization could limit this to the stroke bounding box.
+        if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
+          const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
+          if (layerCanvas) {
+            const ctx = layerCanvas.getContext("2d");
+            if (ctx) {
+              const currentData = ctx.getImageData(0, 0, layerCanvas.width, layerCanvas.height);
+              const snapshot = alphaSnapshotRef.current;
+              // Replace alpha channel of drawn pixels with original alpha
+              for (let i = 3; i < currentData.data.length; i += 4) {
+                currentData.data[i] = Math.min(currentData.data[i], snapshot.data[i]);
+              }
+              ctx.putImageData(currentData, 0, 0);
+              redraw();
+            }
+          }
+          alphaSnapshotRef.current = null;
+        }
 
         if (activeLayer) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
@@ -1254,6 +1450,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           tmpCtx.drawImage(layerCanvas, 0, 0);
           ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
           ctx.drawImage(tmp, 0, 0);
+          redraw();
+        },
+        fillLayerWithColor: (layerId: string, color: string) => {
+          const canvas = getOrCreateLayerCanvas(layerId);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { return; }
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
           redraw();
         }
       }),

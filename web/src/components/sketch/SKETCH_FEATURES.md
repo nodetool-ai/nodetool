@@ -33,23 +33,23 @@ Reference parity: **ComfySketch** maps **C** → circle and **R** → rectangle;
 Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to date)**.
 
 - [x] **Flip active layer** horizontal / vertical (destructive; distinct from mirror-while-drawing)
-- [ ] imporove Blur brush: currently smears the image when dragging due to creating hard edges
+- [x] improve Blur brush: fixed hard edges by using circular radial-gradient mask blending
 - [ ] Selection tools (rectangle select, lasso, magic wand with Photoshop-style options)
 - [x] Crop tool (C key, drag to select crop region)
 - [x] Gradient tool / gradient fill (T key, linear + radial, drag to draw)
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
-- [ ] **Brush engine variants** (see **Brush types** below)
+- [x] **Brush engine variants** (see **Brush types** below)
 
 #### Brush types (engine / presets)
 
-> Today the brush is one radial gradient stamp. Split **Round / Soft / Airbrush / Spray** into distinct behaviors or presets.
+> Brush type selector (Round / Soft / Airbrush / Spray) in toolbar. Each type has distinct drawing behavior.
 
-| Type     | Target settings            | Status                                                     |
-| -------- | -------------------------- | ---------------------------------------------------------- |
-| Round    | Hardness, roundness, angle | [ ] Roundness + angle on stamp; hardness already           |
-| Soft     | Hardness, roundness, angle | [ ] Softer default falloff / separate preset from Round    |
-| Airbrush | Flow, softness             | [ ] Low-flow accumulation (opacity buildup per dab / time) |
-| Spray    | Density                    | [ ] Particle scatter (stochastic dots within brush disk)   |
+| Type     | Target settings            | Status                                                            |
+| -------- | -------------------------- | ----------------------------------------------------------------- |
+| Round    | Hardness, roundness, angle | [x] Default; hardness controls falloff; [ ] roundness + angle     |
+| Soft     | Hardness, roundness, angle | [x] Softer default falloff (hardness capped at 0.3)              |
+| Airbrush | Flow, softness             | [x] Low-opacity radial dab accumulation per point                 |
+| Spray    | Density                    | [x] Particle scatter (stochastic dots within brush disk)          |
 
 #### Color system
 
@@ -58,7 +58,9 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 #### Layers — extra parity
 
 - [x] **Merge down** / merge selected / flatten visible
-- [ ] **Drag-and-drop layer reordering**: limit to vertical dragging.
+- [x] **Drag-and-drop layer reordering**: vertical drag with drop indicator
+- [x] **Layer thumbnails**: small preview images in layers panel
+- [x] **Alpha lock per layer**: lock transparency — painting only affects existing opaque pixels (🔒 indicator)
 - [ ] Group / folder layers
 - [ ] **Segmentation → layers** — see Phase 3 **SAM** subsection below
 
@@ -156,6 +158,7 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | O                        | Ellipse                                          |
 | A                        | Arrow                                            |
 | M                        | Toggle mirror horizontal                         |
+| Shift+M                  | Toggle mirror vertical                           |
 | Tab                      | Toggle sketch UI / panels                        |
 | X                        | Swap foreground / background                     |
 | D                        | Reset colors to black / white                    |
@@ -163,13 +166,18 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 | Space (hold) + drag      | Pan canvas                                       |
 | Shift (shape tools)      | Constrain line (H/V/45°); square / circle bounds |
 | [ / ]                    | Decrease / increase brush size                   |
+| Shift+[ / Shift+]        | Decrease / increase hardness                     |
+| 0–9                      | Set brush opacity (0=100%, 1=10%…9=90%)          |
+| Alt+Click (paint tools)  | Eyedropper pick (stays on current tool)          |
+| Alt+Backspace            | Fill layer with foreground color                 |
+| Ctrl+Backspace           | Fill layer with background color                 |
 | + / −                    | Zoom in / out                                    |
 | Delete / Backspace       | Clear active layer                               |
 | Ctrl+Z                   | Undo                                             |
 | Ctrl+Shift+Z / Ctrl+Y    | Redo                                             |
 | Ctrl+0                   | Reset view (zoom + pan)                          |
 | Ctrl+S                   | Export PNG                                       |
-| Alt+Click / Middle-click | Pan canvas                                       |
+| Alt+Click / Middle-click | Pan canvas (non-paint tools)                     |
 | Scroll wheel             | Zoom                                             |
 | Right-click              | Context menu                                     |
 
@@ -328,8 +336,8 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 ### Backlog candidates
 
-- [ ] **Alt + click / long-press** temporary eyedropper while Brush/Pencil/Eraser is active
-- [ ] **Keyboard shortcut for vertical mirror** — **M** = horizontal only today; vertical is toolbar-only
+- [x] **Alt + click** temporary eyedropper while Brush/Pencil/Eraser/Fill is active — picks color without switching tool
+- [x] **Keyboard shortcut for vertical mirror** — **Shift+M** = vertical; **M** = horizontal
 - [ ] **Touch / tablet**: pinch-zoom, two-finger pan; optional palm rejection
 - [ ] **Pixel workflow**: pixel grid overlay, snap-to-pixel, crisp view at high zoom
 - [ ] **Rulers + draggable guides**
@@ -340,10 +348,10 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 ### Krita-inspired candidates
 
-- [ ] **Stroke stabilizer / lazy smoothing**
+- [x] **Stroke stabilizer / lazy smoothing** — moving-average smoothing (window=4) for brush strokes
 - [ ] **Rotate canvas (view only)**
 - [ ] **Wrap-around / tiling mode**
-- [ ] **Alpha lock** (“lock transparency”) per layer
+- [x] **Alpha lock** — painting only affects existing opaque pixels; lock transparency indicator in layers panel
 - [ ] **Isolate / solo layer**
 - [ ] **Pop-up palette** (radial HUD)
 - [ ] **Smudge / color-smudge brush**
@@ -490,6 +498,17 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [x] **Smoother zoom** — symmetric 1.15x factor for wheel + button zoom
 - [x] **Background presets** — black / white / gray quick buttons in Colors section
 - [x] **S + drag brush size** — horizontal drag while S held adjusts brush/pencil/eraser/blur size
+- [x] **Brush engine variants** — Round / Soft / Airbrush / Spray brush types with toolbar selector
+- [x] **Improved blur brush** — circular radial-gradient mask for soft blending (no more hard edges)
+- [x] **Alt+click eyedropper** — picks color while painting without switching tool (Photoshop convention)
+- [x] **Shift+[ / Shift+]** — decrease / increase hardness for brush and eraser
+- [x] **Number keys 0-9** — set brush/pencil/eraser opacity (0=100%, 1=10%…9=90%, Photoshop convention)
+- [x] **Layer thumbnails** — small preview images of layer content in layers panel
+- [x] **Alpha lock per layer** — lock transparency; painting only affects existing opaque pixels (🔒 indicator)
+- [x] **Shift+M** — toggle vertical mirror (M = horizontal)
+- [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
+- [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
+- [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
 
 ### Node / SketchInput
 

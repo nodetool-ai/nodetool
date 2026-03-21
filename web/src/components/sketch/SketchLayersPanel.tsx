@@ -31,6 +31,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import MasksIcon from "@mui/icons-material/Masks";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
+import LockIcon from "@mui/icons-material/Lock";
 import { Layer, BlendMode } from "./types";
 
 const styles = (theme: Theme) =>
@@ -58,6 +59,7 @@ const styles = (theme: Theme) =>
       borderRadius: "4px",
       cursor: "pointer",
       fontSize: "0.75rem",
+      minHeight: "36px",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700]
       },
@@ -68,6 +70,29 @@ const styles = (theme: Theme) =>
       "&.mask-layer": {
         borderLeft: `2px solid ${theme.vars.palette.warning.main}`
       }
+    },
+    "& .layer-thumbnail": {
+      width: "28px",
+      height: "28px",
+      borderRadius: "2px",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      backgroundColor: theme.vars.palette.grey[900],
+      objectFit: "contain",
+      flexShrink: 0,
+      imageRendering: "pixelated" as const
+    },
+    "& .layer-thumbnail-empty": {
+      width: "28px",
+      height: "28px",
+      borderRadius: "2px",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      backgroundColor: theme.vars.palette.grey[900],
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "0.5rem",
+      color: theme.vars.palette.grey[500]
     },
     "& .layer-name": {
       flex: 1,
@@ -105,6 +130,7 @@ export interface SketchLayersPanelProps {
   onMoveLayerDown: (index: number) => void;
   onReorderLayers: (fromIndex: number, toIndex: number) => void;
   onSetMaskLayer: (layerId: string | null) => void;
+  onToggleAlphaLock: (layerId: string) => void;
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
@@ -125,6 +151,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onMoveLayerDown,
   onReorderLayers,
   onSetMaskLayer,
+  onToggleAlphaLock,
   onLayerOpacityChange,
   onLayerBlendModeChange,
   onRenameLayer,
@@ -243,6 +270,25 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <MasksIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        <Tooltip
+          title={
+            layers.find((l) => l.id === activeLayerId)?.alphaLock
+              ? "Unlock Transparency"
+              : "Lock Transparency"
+          }
+        >
+          <IconButton
+            size="small"
+            onClick={() => onToggleAlphaLock(activeLayerId)}
+            color={
+              layers.find((l) => l.id === activeLayerId)?.alphaLock
+                ? "info"
+                : "default"
+            }
+          >
+            <LockIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Merge Down">
           <IconButton size="small" onClick={onMergeDown}>
             <CallMergeIcon fontSize="small" />
@@ -296,6 +342,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   )}
                 </IconButton>
 
+                {/* Layer thumbnail preview */}
+                {layer.data ? (
+                  <img
+                    className="layer-thumbnail"
+                    src={layer.data}
+                    alt={layer.name}
+                    draggable={false}
+                  />
+                ) : (
+                  <Box className="layer-thumbnail-empty" />
+                )}
+
                 {editingLayerId === layer.id ? (
                   <input
                     value={editName}
@@ -329,6 +387,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   >
                     {layer.name}
                     {isMask && " 🎭"}
+                    {layer.alphaLock && " 🔒"}
                   </Typography>
                 )}
 
