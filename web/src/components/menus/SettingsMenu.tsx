@@ -210,8 +210,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setMenuOpen(false);
   };
 
-  const id = isMenuOpen ? "docs" : undefined;
-
   const copyAuthToken = () => {
     const accessToken = session?.access_token;
     if (accessToken) {
@@ -528,13 +526,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     <div className="settings-section">
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>
+                          <InputLabel htmlFor="show-welcome-on-startup">
                             Show Welcome Screen
                           </InputLabel>
                           <Switch
+                            id="show-welcome-on-startup"
                             checked={!!settings.showWelcomeOnStartup}
                             onChange={handleShowWelcomeChange}
-                            inputProps={{ "aria-label": id }}
+                            inputProps={{ "aria-label": "show-welcome-on-startup" }}
                           />
                         </FormControl>
                         <Typography className="description">
@@ -544,10 +543,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>
+                          <InputLabel htmlFor="select-nodes-on-drag">
                             Select Nodes On Drag
                           </InputLabel>
                           <Switch
+                            id="select-nodes-on-drag"
                             sx={{
                               "&.MuiSwitch-root": {
                                 margin: "16px 0 0"
@@ -555,7 +555,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             }}
                             checked={!!settings.selectNodesOnDrag}
                             onChange={handleSelectNodesOnDragChange}
-                            inputProps={{ "aria-label": id }}
+                            inputProps={{ "aria-label": "select-nodes-on-drag" }}
                           />
                         </FormControl>
                         <Typography className="description">
@@ -570,10 +570,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       {isElectron && (
                         <div className="settings-item">
                           <FormControl>
-                            <InputLabel htmlFor={id}>
+                            <InputLabel htmlFor="sound-notifications">
                               Sound Notifications
                             </InputLabel>
                             <Switch
+                              id="sound-notifications"
                               sx={{
                                 "&.MuiSwitch-root": {
                                   margin: "16px 0 0"
@@ -581,7 +582,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               }}
                               checked={!!settings.soundNotifications}
                               onChange={handleSoundNotificationsChange}
-                              inputProps={{ "aria-label": id }}
+                              inputProps={{ "aria-label": "sound-notifications" }}
                             />
                           </FormControl>
                           <Typography className="description">
@@ -759,10 +760,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     <div className="settings-section">
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>Pan Controls</InputLabel>
+                          <InputLabel id="pan-controls-select-label" htmlFor="pan-controls-select">Pan Controls</InputLabel>
                           <Select
-                            id={id}
-                            labelId={id}
+                            id="pan-controls-select"
+                            labelId="pan-controls-select-label"
                             value={settings.panControls}
                             variant="standard"
                             onChange={handlePanControlsChange}
@@ -786,12 +787,12 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>
+                          <InputLabel id="node-selection-mode-select-label" htmlFor="node-selection-mode-select">
                             Node Selection Mode
                           </InputLabel>
                           <Select
-                            id={id}
-                            labelId={id}
+                            id="node-selection-mode-select"
+                            labelId="node-selection-mode-select-label"
                             value={settings.selectionMode}
                             variant="standard"
                             onChange={handleSelectionModeChange}
@@ -869,10 +870,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     <div className="settings-section">
                       <div className="settings-item">
                         <FormControl>
-                          <InputLabel htmlFor={id}>Time Format</InputLabel>
+                          <InputLabel id="time-format-select-label" htmlFor="time-format-select">Time Format</InputLabel>
                           <Select
-                            id={id}
-                            labelId={id}
+                            id="time-format-select"
+                            labelId="time-format-select-label"
                             value={settings.timeFormat}
                             variant="standard"
                             onChange={handleTimeFormatChange}
