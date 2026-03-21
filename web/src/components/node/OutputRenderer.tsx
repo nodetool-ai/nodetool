@@ -704,8 +704,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={firstMeta?.sample_rate || 22000}
-                    channels={firstMeta?.channels || 1}
+                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
+                    channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
               }
