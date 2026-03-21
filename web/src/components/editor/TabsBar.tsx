@@ -17,7 +17,6 @@ interface TabsBarProps {
 
 const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const tabsRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showScrollButtons, setShowScrollButtons] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -217,17 +216,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
           left: newScrollLeft,
           behavior: "smooth"
         });
-
-        // Clear previous timeout if exists
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-
-        // Set new timeout to check scrollability after animation
-        scrollTimeoutRef.current = setTimeout(() => {
-          checkScrollability();
-          scrollTimeoutRef.current = null;
-        }, 300);
+        setTimeout(checkScrollability, 300);
       }
     },
     [checkScrollability]
@@ -261,15 +250,6 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         tabsElement.removeEventListener("scroll", checkScrollability);
     }
   }, [checkScrollability]);
-
-  // Cleanup scroll timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <div className="tabs-container">

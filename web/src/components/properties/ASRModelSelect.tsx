@@ -3,7 +3,7 @@ import isEqual from "lodash/isEqual";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 interface ASRModelSelectProps {
@@ -16,11 +16,16 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadASRModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/asr`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch ASR models: ${res.status}`);
+    const { data, error } = await client.GET(
+      "/api/models/{model_type}" as any,
+      {
+        params: { path: { model_type: "asr" } }
+      }
+    );
+    if (error) {
+      throw error;
     }
-    return (await res.json()) as ASRModel[];
+    return data as unknown as ASRModel[];
   }, []);
 
   const { data: models } = useQuery({

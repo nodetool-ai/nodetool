@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent } from "react";
 import { Box, Tooltip, Typography, IconButton } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -16,7 +16,6 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
-import log from "loglevel";
 
 const tileStyles = (theme: Theme) =>
   css({
@@ -187,16 +186,8 @@ const FavoritesTiles = memo(function FavoritesTiles() {
 
   const handleCreateNode = useCreateNode();
 
-  // Use data attributes to avoid creating new function references on each render
-  // This is more efficient than curried handlers which create new closures
   const handleDragStart = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
+    (nodeType: string) => (event: ReactDragEvent<HTMLDivElement>) => {
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         event.preventDefault();
@@ -219,16 +210,12 @@ const FavoritesTiles = memo(function FavoritesTiles() {
     clearDrag();
   }, [setDragToCreate, clearDrag]);
 
-  const handleTileClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        return;
-      }
-
+  const onTileClick = useCallback(
+    (nodeType: string) => {
       const metadata = getMetadata(nodeType);
+
       if (!metadata) {
-        log.warn(`Metadata not found for node type: ${nodeType}`);
+        console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,
@@ -242,13 +229,8 @@ const FavoritesTiles = memo(function FavoritesTiles() {
     [getMetadata, addNotification, handleCreateNode]
   );
 
-  const handleTileMouseEnter = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        return;
-      }
-
+  const onTileMouseEnter = useCallback(
+    (nodeType: string) => {
       const metadata = getMetadata(nodeType);
       if (metadata) {
         setHoveredNode(metadata);
@@ -258,12 +240,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   );
 
   const handleUnfavorite = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        return;
-      }
-
+    (nodeType: string, event: React.MouseEvent) => {
       event.stopPropagation();
       removeFavorite(nodeType);
       addNotification({
@@ -290,6 +267,27 @@ const FavoritesTiles = memo(function FavoritesTiles() {
       return nodeType.split(".").pop() || nodeType;
     },
     [getMetadata]
+  );
+
+  const handleTileClick = useCallback(
+    (nodeType: string) => () => {
+      onTileClick(nodeType);
+    },
+    [onTileClick]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (nodeType: string) => () => {
+      onTileMouseEnter(nodeType);
+    },
+    [onTileMouseEnter]
+  );
+
+  const handleUnfavoriteClick = useCallback(
+    (nodeType: string) => (e: ReactMouseEvent) => {
+      handleUnfavorite(nodeType, e);
+    },
+    [handleUnfavorite]
   );
 
   if (favorites.length === 0) {
@@ -351,11 +349,10 @@ const FavoritesTiles = memo(function FavoritesTiles() {
               <div
                 className="favorite-tile"
                 draggable
-                onDragStart={handleDragStart}
+                onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={handleTileClick}
-                onMouseEnter={handleTileMouseEnter}
-                data-node-type={nodeType}
+                onClick={handleTileClick(nodeType)}
+                onMouseEnter={handleTileMouseEnter(nodeType)}
                 style={
                   {
                     background:
@@ -366,8 +363,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 <IconButton
                   size="small"
                   className="unfavorite-btn"
-                  onClick={handleUnfavorite}
-                  data-node-type={nodeType}
+                  onClick={handleUnfavoriteClick(nodeType)}
                   aria-label={`Remove ${displayName} from favorites`}
                 >
                   <StarBorderIcon fontSize="small" />

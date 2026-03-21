@@ -299,7 +299,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         <div className="stops-container" style={{ background: cssOutput }}>
           {gradient.stops.map((stop, index) => (
             <div
-              key={`${stop.position}-${stop.color}`}
+              key={index}
               className={`stop-marker ${selectedStopIndex === index ? "selected" : ""}`}
               style={{
                 left: `${stop.position}%`,

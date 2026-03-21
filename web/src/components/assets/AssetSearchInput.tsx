@@ -11,7 +11,6 @@ import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -220,7 +219,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       } catch (error) {
         // Don't log errors for aborted requests
         if (!abortController.signal.aborted) {
-          log.error("Global search error:", error);
+          console.error("Global search error:", error);
           setIsGlobalSearchActive(false);
           setGlobalSearchResults([]);
         }

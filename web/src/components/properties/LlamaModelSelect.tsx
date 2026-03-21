@@ -119,8 +119,8 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               color="text.secondary"
               sx={{ display: "block", mb: 1 }}
             >
-              {typeof (ollamaError as { detail?: unknown })?.detail === "string"
-                ? (ollamaError as { detail?: string }).detail
+              {typeof (ollamaError as any)?.detail === "string"
+                ? (ollamaError as any).detail
                 : "Please check that Ollama is running"}
             </Typography>
             {isElectron ? (

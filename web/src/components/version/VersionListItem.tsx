@@ -196,7 +196,7 @@ const VersionListItem = React.memo(function VersionListItem({
         <Box sx={{ display: "flex", gap: 0.5 }}>
           {compareMode ? (
             <Tooltip title="Select for comparison">
-              <IconButton size="small" onClick={handleClick} aria-label="Select for comparison">
+              <IconButton size="small" onClick={handleClick}>
                 <CompareIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -205,7 +205,7 @@ const VersionListItem = React.memo(function VersionListItem({
           ) : (
             <>
               <Tooltip title="Restore this version">
-                <IconButton size="small" onClick={handleRestore} aria-label="Restore this version">
+                <IconButton size="small" onClick={handleRestore}>
                   <RestoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

@@ -1,5 +1,4 @@
 import { AssetRef } from "../stores/ApiTypes";
-import log from "loglevel";
 
 /**
  * Helper function to get the thumbnail URL for an asset
@@ -19,12 +18,12 @@ export const getAssetThumbUrl = (
       const uint8Array =
         asset.data instanceof Uint8Array
           ? asset.data
-          : new Uint8Array(Object.values(asset.data as Record<string, number>));
+          : new Uint8Array(Object.values(asset.data as any));
 
       // Create a blob URL from the binary data
       return URL.createObjectURL(new Blob([uint8Array], { type: "image/png" }));
     } catch (error) {
-      log.error("Failed to create thumbnail URL from binary data:", error);
+      console.error("Failed to create thumbnail URL from binary data:", error);
     }
   }
 

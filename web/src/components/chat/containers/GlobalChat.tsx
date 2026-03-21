@@ -21,7 +21,6 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
-import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -81,14 +80,14 @@ const GlobalChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      log.error("Failed to connect GlobalChatStore:", err);
+      console.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        log.error("Error during GlobalChatStore disconnect:", err);
+        console.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -208,7 +207,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          log.error("Failed to handle thread logic:", error);
+          console.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -240,12 +239,9 @@ const GlobalChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) { return; }
 
-    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
-      viewportTimeoutId = setTimeout(() => {
+      setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -265,18 +261,16 @@ const GlobalChat: React.FC = () => {
     };
 
     // Use Visual Viewport API for better keyboard handling
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener(
+    if ((window as any).visualViewport) {
+      (window as any).visualViewport.addEventListener(
         "resize",
         handleViewportChange
       );
       return () => {
-        vv.removeEventListener(
+        (window as any).visualViewport.removeEventListener(
           "resize",
           handleViewportChange
         );
-        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
@@ -295,7 +289,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      log.error("Failed to create new thread:", error);
+      console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -310,7 +304,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        log.error("Failed to delete thread:", error);
+        console.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]

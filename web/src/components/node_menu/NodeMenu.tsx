@@ -12,7 +12,7 @@ import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import useNodeMenuStore, { type NodeMenuStore } from "../../stores/NodeMenuStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 // utils
 import Draggable from "react-draggable";
@@ -23,7 +23,6 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow } from "../ui_primitives";
-import log from "loglevel";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -202,11 +201,11 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       return;
     }
     try {
-      const state = useNodeMenuStore.getState() as NodeMenuStore | undefined;
+      const state: any = (useNodeMenuStore as any).getState?.();
       // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {
-      log.error("Error performing search:", error);
+      console.error("Error performing search:", error);
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 

@@ -17,19 +17,14 @@ function isImageValue(item: AssetRef): item is AssetRef & { data?: Uint8Array; u
 }
 
 export const AssetGrid: React.FC<Props> = ({ values, onOpenIndex }) => {
-  // Memoize the expensive filter/map operations to avoid recalculating on every render
-  const images: ImageSource[] = React.useMemo(
-    () =>
-      values
-        .filter(isImageValue)
-        .map((item): ImageSource | undefined =>
-          item.uri
-            ? resolveAssetUri(item.uri)
-            : item.data
-        )
-        .filter((image): image is ImageSource => image !== undefined),
-    [values]
-  );
+  const images: ImageSource[] = values
+    .filter(isImageValue)
+    .map((item): ImageSource | undefined =>
+      item.uri
+        ? resolveAssetUri(item.uri)
+        : item.data
+    )
+    .filter((image): image is ImageSource => image !== undefined);
   return <PreviewImageGrid images={images} onDoubleClick={onOpenIndex} />;
 };
 

@@ -151,7 +151,7 @@ export const paletteDark: PaletteOptions = {
     dark: "#229A16",
     contrastText: "#000"
   },
-  grey: ((): Record<number, string> => ({
+  grey: ((): any => ({
     0: "#fff", // white
     50: "#F5F5F5", // Standard MUI light grey
     100: "#D9D9D9", // from c_gray6

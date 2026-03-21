@@ -175,7 +175,8 @@ export const RunWorkflowButton = memo(
             backgroundColor: "var(--palette-primary-dark)"
           }
         };
-      }, [isRunning, theme]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [isRunning]);
 
       const content = isLoading ? (
         <CircularProgress size={size === "small" ? 16 : 20} color="inherit" />

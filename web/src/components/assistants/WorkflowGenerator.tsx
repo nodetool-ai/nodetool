@@ -8,8 +8,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
-import type { Graph } from "../../stores/ApiTypes";
-import log from "loglevel";
 
 const WorkflowGenerator: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
@@ -33,7 +31,6 @@ const WorkflowGenerator: React.FC = memo(() => {
 
       setIsLoading(true);
       try {
-        // The create-smart endpoint returns a Graph with nodes and edges
         const { data, error } = await client.POST(
           "/api/workflows/create-smart" as any,
           { body: { prompt: prompt.trim() } }
@@ -49,20 +46,19 @@ const WorkflowGenerator: React.FC = memo(() => {
           );
         }
 
-        if (data && "nodes" in data && "edges" in data && workflow) {
+        if (data && (data as any).nodes && (data as any).edges && workflow) {
           setPrompt("");
-          const workflowData = data as Graph;
-          const nodes = workflowData.nodes.map((node) =>
+          const nodes = (data as any).nodes.map((node: any) =>
             graphNodeToReactFlowNode(workflow, node)
           );
-          const edges = workflowData.edges.map((edge) =>
+          const edges = (data as any).edges.map((edge: any) =>
             graphEdgeToReactFlowEdge(edge)
           );
           setNodes(nodes);
           setEdges(edges);
         }
       } catch (err) {
-        log.error("Error creating workflow:", err);
+        console.error("Error creating workflow:", err);
       } finally {
         setIsLoading(false);
       }
@@ -70,9 +66,9 @@ const WorkflowGenerator: React.FC = memo(() => {
     [prompt, isLoading, workflow, setNodes, setEdges]
   );
 
-  const handleButtonClick = useCallback(() => {
-    // Call submit without an event - the form will handle the event properly
-    void handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent);
+  const handleButtonClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    handleSubmit(e as any);
   }, [handleSubmit]);
 
   return (

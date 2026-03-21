@@ -127,6 +127,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (event: React.FocusEvent<HTMLInputElement>) => {
       event.target.select();
       setState((prevState) => ({ ...prevState, isFocused: true }));
+      // handleFocusPan(event);
     },
     []
   );

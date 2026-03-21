@@ -2,16 +2,16 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
+import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface HuggingFaceModelSelectProps {
-  modelType: "hf.text_to_image" | "hf.image_to_image";
-  onChange: (value: HuggingFaceModelValue) => void;
-  value: HuggingFaceModelValueInput;
+  modelType: string;
+  onChange: (value: any) => void;
+  value: any;
 }
 
 type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
@@ -180,7 +180,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       // Also check model.path property directly
       const [repo_id, pathFromId] = (model.id || "").split(":");
 
-      const modelToPass: HuggingFaceModelValue = {
+      const modelToPass = {
         type: modelType,
         repo_id: repo_id || model.id || "",
         path: pathFromId || model.path || undefined

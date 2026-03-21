@@ -69,7 +69,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
           onClick={(e) => setTypeAnchor(e.currentTarget)}
           size="small"
           color={selectedTypes.length || openType ? "primary" : "default"}
-          aria-label="Filter by Type"
         >
           <CategoryIcon fontSize="small" />
         </IconButton>
@@ -100,7 +99,6 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
           onClick={(e) => setSizeAnchor(e.currentTarget)}
           size="small"
           color={sizeBucket || openSize ? "primary" : "default"}
-          aria-label="Filter by Size"
         >
           <StraightenIcon fontSize="small" />
         </IconButton>

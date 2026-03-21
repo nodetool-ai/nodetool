@@ -9,10 +9,9 @@ import {
   Message,
   PlanningUpdate,
   TaskUpdate,
-  StepResult,
-  LogUpdate
+  StepResult
 } from "../../../stores/ApiTypes";
-import useGlobalChatStore, { type StepToolCall } from "../../../stores/GlobalChatStore";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import StepView from "../../node/StepView";
 import StepResultDisplay from "../../node/StepResultDisplay";
@@ -329,7 +328,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const formatToolArgs = (args: Record<string, unknown> | string | null | undefined): string => {
+const formatToolArgs = (args: any): string => {
   if (args === null || args === undefined) {return "";}
   try {
     const obj = typeof args === "string" ? JSON.parse(args) : args;
@@ -342,7 +341,7 @@ const formatToolArgs = (args: Record<string, unknown> | string | null | undefine
 };
 
 interface ToolCallsSectionProps {
-  toolCalls: StepToolCall[];
+  toolCalls: any[];
 }
 
 const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCalls }) => {
@@ -424,7 +423,7 @@ interface AgentExecutionViewProps {
 
 interface TimelineItem {
   type: "planning" | "task" | "log";
-  data: PlanningUpdate | TaskUpdate | LogUpdate;
+  data: any;
   key: string;
 }
 
@@ -435,7 +434,7 @@ interface ConsolidatedExecution {
 }
 
 const normalizeExecutionMessage = (msg: Message) => {
-  let content: unknown = msg.content;
+  let content = msg.content as any;
   let eventType = msg.execution_event_type;
 
   if (typeof content === "string") {
@@ -454,7 +453,7 @@ const normalizeExecutionMessage = (msg: Message) => {
   }
 
   if (!eventType && content && typeof content === "object") {
-    eventType = (content as Record<string, unknown>).type as string | undefined;
+    eventType = content.type;
   }
 
   return { content, eventType };
@@ -526,15 +525,14 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         else if (taskUpdate.event === "step_started") {result.status = "executing";}
       } else if (eventType === "step_result") {
         const stepResult = content as StepResult;
-        const stepId = stepResult?.step?.id || (stepResult as unknown as { step_id?: string })?.step_id || (stepResult as unknown as { stepId?: string })?.stepId || stepResult?.step?.instructions;
+        const stepId = stepResult?.step?.id || (stepResult as any)?.step_id || (stepResult as any)?.stepId || stepResult?.step?.instructions;
         if (stepId) {
           result.stepResults.set(stepId, stepResult);
         }
       } else if (eventType === "log_update") {
-        const logUpdate = content as LogUpdate;
         result.timeline.push({
           type: "log",
-          data: logUpdate,
+          data: content,
           key: `log-${msgIndex}`
         });
       }
@@ -571,17 +569,14 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
 
   const renderTimelineItem = useCallback((item: TimelineItem) => {
     switch (item.type) {
-      case "planning": {
-        const planningUpdate = item.data as PlanningUpdate;
+      case "planning":
         return (
           <div key={item.key} style={planningItemStyle}>
-            <div className={`timeline-dot ${planningUpdate.status === "Success" ? "completed" : ""}`} />
-            <PlanningUpdateDisplay planningUpdate={planningUpdate} />
+            <div className={`timeline-dot ${item.data.status === "Success" ? "completed" : ""}`} />
+            <PlanningUpdateDisplay planningUpdate={item.data} />
           </div>
         );
-      }
-      case "log": {
-        const logUpdate = item.data as LogUpdate;
+      case "log":
         return (
           <div key={item.key} style={logItemStyle}>
              <div
@@ -589,11 +584,10 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
               style={logDotStyle}
             />
             <div className="log-entry">
-              {logUpdate.content}
+              {item.data.content}
             </div>
           </div>
         );
-      }
       case "task": {
         const taskUpdate = item.data as TaskUpdate;
         const task = taskUpdate.task;

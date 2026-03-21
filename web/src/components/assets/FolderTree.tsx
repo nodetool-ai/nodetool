@@ -104,20 +104,14 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     );
   }, [createTreeButtonClickHandler]);
 
-  // Memoize the root folders list to avoid creating a new array on every render
-  const rootFolders = useMemo(() =>
-    Object.values(folderTree).filter((rootFolder) => rootFolder?.id),
-    [folderTree]
-  );
-
   return (
     <Box className="folder-tree" css={styles(theme)}>
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}
       >
-        {rootFolders.map((rootFolder) =>
-          rootFolder ? renderTree(rootFolder) : null
+        {Object.values(folderTree).map((rootFolder) =>
+          rootFolder.id ? renderTree(rootFolder) : null
         )}
       </SimpleTreeView>
     </Box>

@@ -445,6 +445,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Distribute selected nodes evenly horizontally",
     registerCombo: true
   },
+  // {
+  //   title: "Distribute Vertically",
+  //   slug: "distributeVertical",
+  //   keyCombo: ["Control", "Shift", "D"],
+  //   category: "editor",
+  //   description: "Distribute selected nodes evenly vertically",
+  //   registerCombo: true
+  // },
   {
     title: "Delete Selected",
     slug: "deleteSelected",
@@ -521,6 +529,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
+
+  // K is conflicting with CommandMenu shortcut
+  // {
+  //   title: "Keyboard Shortcuts",
+  //   slug: "showKeyboardShortcuts",
+  //   keyCombo: ["K"],
+  //   category: "panel",
+  //   description: "Show Keyboard Shortcuts",
+  //   registerCombo: true
+  // },
 
   // ---------- WORKFLOW ----------------------------------------------------
   {

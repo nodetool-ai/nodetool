@@ -335,7 +335,7 @@ export function shouldUseComfyUIExecution(graph: Graph): boolean {
  */
 export async function executeViaComfyUI(
   graph: Graph,
-  onProgress?: (_progress: {
+  onProgress?: (progress: {
     type: string;
     data: unknown;
   }) => void,

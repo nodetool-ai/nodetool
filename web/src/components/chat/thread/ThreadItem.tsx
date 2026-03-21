@@ -51,7 +51,7 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
       </Typography>
       {showDate && (
         <Typography className="date">
-          {relativeTime(thread.updatedAt)}
+          {relativeTime((thread as any).updated_at || thread.updatedAt)}
         </Typography>
       )}
       <DeleteButton
@@ -68,7 +68,9 @@ export const ThreadItem = memo(ThreadItemBase, (prevProps, nextProps) => {
     prevProps.previewText === nextProps.previewText &&
     prevProps.showDate === nextProps.showDate &&
     prevProps.thread.title === nextProps.thread.title &&
-    prevProps.thread.updatedAt === nextProps.thread.updatedAt
+    // Check both potential update fields
+    ((prevProps.thread as any).updated_at || prevProps.thread.updatedAt) ===
+    ((nextProps.thread as any).updated_at || nextProps.thread.updatedAt)
   );
 });
 

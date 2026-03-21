@@ -28,7 +28,6 @@ import "./builtin/searchNodes";
 import "./builtin/deleteNode";
 import "./builtin/deleteEdge";
 import "./builtin/uiActions";
-import log from "loglevel";
 
 /**
  * Check if we're running in an Electron environment with IPC available.
@@ -102,7 +101,7 @@ export function initFrontendToolsIpc(): void {
 
   const ipc = getIpc();
   if (!ipc) {
-    log.warn("IPC methods not available - frontend tools IPC bridge not initialized");
+    console.warn("IPC methods not available - frontend tools IPC bridge not initialized");
     return;
   }
 
@@ -119,7 +118,7 @@ export function initFrontendToolsIpc(): void {
     (_event: unknown, ...args: unknown[]) => {
       const request = args[0] as { requestId: string; sessionId: string };
       const currentManifest = FrontendToolRegistry.getManifest();
-      log.debug(
+      console.debug(
         `[frontend-tools] Manifest requested (session=${request.sessionId}, requestId=${request.requestId}) -> ${currentManifest.length} tools`
       );
       ipc.send("frontend-tools-get-manifest-response", {
@@ -145,12 +144,12 @@ export function initFrontendToolsIpc(): void {
         args: unknown;
       };
       const { requestId, sessionId, toolCallId, name, args } = request;
-      log.debug(
+      console.debug(
         `[frontend-tools] Tool call requested: ${name} (session=${sessionId}, callId=${toolCallId}, requestId=${requestId})`
       );
 
       if (!FrontendToolRegistry.has(name)) {
-        log.warn(
+        console.warn(
           `[frontend-tools] Unknown tool requested: ${name} (session=${sessionId}, callId=${toolCallId})`
         );
         ipc.send("frontend-tools-call-response", {
@@ -204,11 +203,11 @@ export function initFrontendToolsIpc(): void {
             isError: false,
           },
         });
-        log.debug(
+        console.debug(
           `[frontend-tools] Tool call succeeded: ${name} (session=${sessionId}, callId=${toolCallId})`
         );
       } catch (error) {
-        log.error(
+        console.error(
           `[frontend-tools] Tool call failed: ${name} (session=${sessionId}, callId=${toolCallId})`,
           error
         );

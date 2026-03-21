@@ -1,13 +1,11 @@
 import React from "react";
-import { SxProps } from "@mui/material";
-import type { Theme } from "@mui/material/styles";
 import { RefreshButton } from "../../ui_primitives";
 
 interface ResetButtonProps {
   onClick: () => void;
   disabled?: boolean;
   tooltip?: string;
-  sx?: SxProps<Theme>;
+  sx?: any;
 }
 
 export const ResetButton: React.FC<ResetButtonProps> = ({

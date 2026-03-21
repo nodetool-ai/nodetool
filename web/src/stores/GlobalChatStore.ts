@@ -57,7 +57,6 @@ export type StepToolCall = {
   args: Record<string, unknown> | null;
   message?: string | null;
   startedAt: number;
-  status?: string | null;
 };
 
 export type AgentExecutionToolCalls = Record<
@@ -940,7 +939,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           );
 
           if (error) {
-            log.error("Summarize API error:", error);
+            console.error("Summarize API error:", error);
             throw new Error(
               error.detail?.[0]?.msg || "Failed to summarize thread"
             );
@@ -1051,7 +1050,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);
-          log.error("Failed to send stop signal:", error);
+          console.error("Failed to send stop signal:", error);
           set({
             error: "Failed to stop generation",
             status: "error",
@@ -1077,13 +1076,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       name: "global-chat-storage",
       // Persist minimal subset incl. selections; do not persist message cache
       // Note: Return type cast needed due to zustand persist middleware type limitations
-      partialize: (state): Pick<GlobalChatState, 'threads' | 'lastUsedThreadId' | 'selectedModel' | 'selectedTools' | 'selectedCollections'> => ({
+      partialize: (state) => ({
         threads: state.threads || {},
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
-      }),
+      }) as any,
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {

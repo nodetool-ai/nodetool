@@ -127,18 +127,12 @@ function InputProperty(props: PropertyProps) {
 export function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
-  // Dynamic schemas (e.g. FalAI) may attach `values` or `enum` directly to the
-  // property object rather than inside `property.type`.
-  const propertyWithExtras = property as Property & {
-    values?: (string | number)[];
-    enum?: (string | number)[];
-  };
   // If property has predefined values, treat it as an enum/select 
   // regardless of base type (often comes as 'str' from dynamic schemas)
   const hasValues = (property.type.values && property.type.values.length > 0) || 
                     (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
-                    (propertyWithExtras.values && propertyWithExtras.values.length > 0) ||
-                    (propertyWithExtras.enum && propertyWithExtras.enum.length > 0);
+                    ((property as any).values && (property as any).values.length > 0) ||
+                    ((property as any).enum && (property as any).enum.length > 0);
   
   if (hasValues) {
     return EnumProperty;

@@ -7,7 +7,7 @@ type AudioVisualizerProps = {
   height?: number;
 };
 
-const AudioVisualizerComponent = ({
+const AudioVisualizer = memo(({
   stream,
   version = 0,
   height = 64
@@ -20,16 +20,9 @@ const AudioVisualizerComponent = ({
     const canvas = canvasRef.current;
     if (!stream || !canvas) {return;}
 
-    // Use standard AudioContext or webkit-prefixed version for Safari support
-    const AudioContextConstructor =
-      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ||
-      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-
-    if (!AudioContextConstructor) {
-      return;
-    }
-
-    const audioContext: AudioContext = new AudioContextConstructor();
+    const AudioCtx =
+      (window as any).AudioContext || (window as any).webkitAudioContext;
+    const audioContext: AudioContext = new AudioCtx();
     audioContextRef.current = audioContext;
 
     const analyser = audioContext.createAnalyser();
@@ -127,11 +120,7 @@ const AudioVisualizerComponent = ({
   }, [stream, version]);
 
   return <canvas ref={canvasRef} style={{ width: "100%", height }} />;
-};
-
-AudioVisualizerComponent.displayName = "AudioVisualizer";
-
-const AudioVisualizer = memo(AudioVisualizerComponent);
+});
 AudioVisualizer.displayName = "AudioVisualizer";
 
-export default AudioVisualizer;
+export default memo(AudioVisualizer);

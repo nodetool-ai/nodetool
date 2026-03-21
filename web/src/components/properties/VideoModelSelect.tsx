@@ -3,7 +3,7 @@ import isEqual from "lodash/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { VideoModel } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -33,11 +33,16 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
   const loadVideoModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/video`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch video models: ${res.status}`);
+    const { data, error } = await client.GET(
+      "/api/models/{model_type}" as any,
+      {
+        params: { path: { model_type: "video" } }
+      }
+    );
+    if (error) {
+      throw error;
     }
-    return (await res.json()) as VideoModel[];
+    return data as unknown as VideoModel[];
   }, []);
 
   const { data: models } = useQuery({

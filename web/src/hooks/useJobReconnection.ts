@@ -3,7 +3,6 @@ import { useRunningJobs } from "./useRunningJobs";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
 import { client } from "../stores/ApiClient";
 import log from "loglevel";
-import { Job, RunStateInfo } from "../stores/ApiTypes";
 
 /**
  * Hook to automatically reconnect to running jobs on app reload
@@ -57,8 +56,7 @@ export const useJobReconnection = () => {
               const runnerStore = getWorkflowRunnerStore(job.workflow_id);
 
               // Determine initial state from job's run_state
-              // run_state may be present on enriched job objects even though JobResponse schema omits it
-              const runState = (job as Job & { run_state?: RunStateInfo | null }).run_state;
+              const runState = (job as any).run_state;
               let initialState: "running" | "paused" | "suspended" | undefined;
               if (runState?.status === "suspended") {
                 initialState = "suspended";

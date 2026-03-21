@@ -44,9 +44,9 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       adjustHeight();
     }, [value, adjustHeight]);
 
-    const handleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(event);
-    }, [onChange]);
+    };
 
     return (
       <textarea

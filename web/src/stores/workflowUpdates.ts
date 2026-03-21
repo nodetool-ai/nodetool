@@ -212,6 +212,8 @@ export const handleUpdate = (
 
   window.__UPDATES__.push(data);
 
+  // console.log("Received update", data);
+
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
     appendLog({

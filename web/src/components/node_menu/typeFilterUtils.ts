@@ -235,7 +235,7 @@ export const filterDataByType = (
   const buildTypeMeta = (t: string) => ({
     type: t,
     optional: true,
-    type_args: [] as TypeMetadata[],
+    type_args: [] as any[],
     type_name: t
   });
 

@@ -21,15 +21,15 @@ const styles = (theme: Theme) =>
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: `1px solid ${theme.vars.palette.grey[600] || "rgba(100, 100, 100, 0.75)"}`,
+      border: `1px solid ${(theme as any).vars?.palette?.grey?.[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
       minWidth: "unset !important",
       minHeight: "unset !important",
-      boxShadow: `0 0 0 1px ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.5)"}`,
+      boxShadow: `0 0 0 1px ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.5)"}`,
       transition: "all 0.15s ease",
       "&:hover": {
         transform: "scale(1.1)",
-        boxShadow: `0 0 0 2px ${theme.vars.palette.grey[800] || "rgba(0, 0, 0, 0.7)"}`
+        boxShadow: `0 0 0 2px ${(theme as any).vars?.palette?.grey?.[800] || "rgba(0, 0, 0, 0.7)"}`
       }
     }
   });
@@ -45,7 +45,7 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px",
     ".pick-color-button": {
       borderRadius: "50%",
-      border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,

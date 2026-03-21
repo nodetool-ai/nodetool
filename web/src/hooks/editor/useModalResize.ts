@@ -90,7 +90,7 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
   useEffect(() => {
     return () => {
       try {
-        (saveHeightToStorage as ReturnType<typeof saveHeightToStorage> & { cancel?: () => void }).cancel?.();
+        (saveHeightToStorage as any).cancel?.();
       } catch {
         /* empty */
       }
@@ -109,13 +109,13 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 }
 
 // local utility to avoid importing lodash globally here; caller may already bundle lodash
-function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: number): T & { cancel: () => void } {
+function debounce<T extends (...args: any[]) => void>(fn: T, wait: number) {
   let t: number | undefined;
   const debounced = (...args: Parameters<T>) => {
     if (t) {window.clearTimeout(t);}
     t = window.setTimeout(() => fn(...args), wait);
   };
-  (debounced as T & { cancel: () => void }).cancel = () => {
+  (debounced as any).cancel = () => {
     if (t) {
       window.clearTimeout(t);
       t = undefined;

@@ -60,7 +60,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         components={{
           code: (props) => <CodeBlock {...props} onInsert={onInsertCode} />,
           pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />,
-          a: ({ node: _node, ...props }) => {
+          a: ({ node, ...props }) => {
             const { href, children } = props;
             const isAudio =
               href &&

@@ -1,8 +1,8 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
-type GetResult = (_workflowId: string, _nodeId: string) => unknown;
-type FindNode = (_nodeId: string) => Node<NodeData> | undefined;
+type GetResult = (workflowId: string, nodeId: string) => unknown;
+type FindNode = (nodeId: string) => Node<NodeData> | undefined;
 
 const isLiteralSourceNode = (nodeType?: string) => {
   if (!nodeType) {

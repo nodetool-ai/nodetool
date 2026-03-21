@@ -110,6 +110,7 @@ export const useFitView = () => {
       }
 
       // Only auto-deselect if more than 1 node is selected
+      //  if (!explicitNodeIds.length && selectedNodes.length == 1) {
       if (selectedNodes.length > 1) {
         setTimeout(() => {
           setSelectedNodes([]);

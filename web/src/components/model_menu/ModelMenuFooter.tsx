@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 export interface ModelMenuFooterProps {
   filteredCount: number;
@@ -11,7 +10,7 @@ export interface ModelMenuFooterProps {
   totalActiveCount?: number; // enabled + available
 }
 
-const footerStyles = (theme: Theme) =>
+const footerStyles = (theme: any) =>
   css({
     borderTop: `1px solid ${theme.vars.palette.grey[600]}`,
     display: "flex",

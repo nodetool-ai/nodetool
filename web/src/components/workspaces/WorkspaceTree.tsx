@@ -370,19 +370,6 @@ const WorkspaceTree: React.FC = () => {
     setWorkspaceManagerOpen(true);
   }, [setWorkspaceManagerOpen]);
 
-  // Handle double-click on tree container to find the specific tree item
-  const handleTreeDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Find the closest tree item element to get the item ID
-    const target = e.target as HTMLElement;
-    const treeItem = target.closest('[data-testid="tree-item"]') as HTMLElement;
-    if (treeItem) {
-      const itemId = treeItem.getAttribute('data-itemid');
-      if (itemId) {
-        handleItemDoubleClick(e, itemId);
-      }
-    }
-  }, [handleItemDoubleClick]);
-
   if (!workflowId) {
     return (
       <Box css={workspaceTreeStyles(theme)}>
@@ -447,7 +434,19 @@ const WorkspaceTree: React.FC = () => {
         ) : isLoadingFiles ? (
           <Typography>Loading files...</Typography>
         ) : files.length > 0 ? (
-          <div onDoubleClick={handleTreeDoubleClick}>
+          <div
+            onDoubleClick={(e) => {
+              // Find the closest tree item element to get the item ID
+              const target = e.target as HTMLElement;
+              const treeItem = target.closest('[data-testid="tree-item"]') as HTMLElement;
+              if (treeItem) {
+                const itemId = treeItem.getAttribute('data-itemid');
+                if (itemId) {
+                  handleItemDoubleClick(e, itemId);
+                }
+              }
+            }}
+          >
             <RichTreeView
               onItemClick={handleItemClick}
               items={files}

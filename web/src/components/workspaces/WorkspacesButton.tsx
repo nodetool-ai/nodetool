@@ -1,21 +1,3 @@
-/**
- * WorkspacesButton
- *
- * A toolbar button that opens the Workspaces Manager dialog.
- * Uses the WorkspaceManagerStore to manage the open/closed state of the dialog.
- *
- * @example
- * ```tsx
- * <WorkspacesButton />
- * ```
- *
- * Features:
- * - Renders a ToolbarIconButton with a folder icon
- * - Opens WorkspacesManager dialog when clicked
- * - Manages dialog state through WorkspaceManagerStore
- * - Tooltip displays "Workspaces Manager" on hover
- */
-
 import React, { memo, useCallback } from "react";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";

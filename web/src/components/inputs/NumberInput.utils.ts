@@ -1,5 +1,3 @@
-import log from "loglevel";
-
 import {
   DRAG_SLOWDOWN_RAMP_PX,
   MIN_SPEED_FACTOR,
@@ -98,7 +96,7 @@ export const applyValueConstraints = (
 
   if (typeof min === "number" && typeof max === "number" && min > max) {
     if (!warnedInvalidBounds) {
-      log.warn(`Invalid bounds: min (${min}) > max (${max})`);
+      console.warn(`Invalid bounds: min (${min}) > max (${max})`);
       warnedInvalidBounds = true;
     }
     const temp = min;

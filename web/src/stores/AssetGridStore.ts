@@ -102,6 +102,14 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   setSelectedFolderId: (id) => set({ selectedFolderId: id }),
   setSelectedFolderIds: (ids) => set({ selectedFolderIds: ids }),
 
+  // // FILTERED ASSETS
+  // filteredAssets: {
+  //   assetsByType: {},
+  //   totalCount: 0,
+  // },
+  // setFilteredAssets: (sortedAssetsByType) => {
+  //   set({ filteredAssets: sortedAssetsByType });
+  // },
   assetSearchTerm: null,
   setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
   setSizeFilter: (filter: SizeFilterKey) => set({ sizeFilter: filter }),

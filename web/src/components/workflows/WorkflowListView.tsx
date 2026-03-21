@@ -344,7 +344,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
         itemCount={flatList.length}
         itemSize={getItemSize}
         onScroll={({ scrollOffset }) =>
-          onScroll?.({ currentTarget: { scrollTop: scrollOffset } } as React.UIEvent<HTMLDivElement>)
+          onScroll?.({ currentTarget: { scrollTop: scrollOffset } } as any)
         }
       >
         {Row}

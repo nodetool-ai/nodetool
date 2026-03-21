@@ -127,7 +127,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       if (response === undefined) {
         log.error("Received undefined response from server");
       } else if (typeof response === "object" && response !== null) {
-        log.info("Deleted asset IDs:", (response as { deleted_asset_ids?: string[] }).deleted_asset_ids);
+        log.info("Deleted asset IDs:", (response as any).deleted_asset_ids);
       }
       // Blur focused element to prevent aria-hidden focus warning
       if (document.activeElement instanceof HTMLElement) {

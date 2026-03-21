@@ -24,7 +24,6 @@ import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
 import { client } from "../../../stores/ApiClient";
 import { useQueryClient } from "@tanstack/react-query";
-import log from "loglevel";
 import AssetGridContent from "../../assets/AssetGridContent";
 import isEqual from "lodash/isEqual";
 
@@ -161,7 +160,7 @@ const JobItem = ({ job }: { job: Job }) => {
           runnerState.cancel();
         }
       } catch (err) {
-        log.error("Failed to cancel job:", err);
+        console.error("Failed to cancel job:", err);
       } finally {
         // Refresh the jobs list to show updated status
         queryClient.invalidateQueries({ queryKey: ["jobs"] });

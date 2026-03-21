@@ -22,7 +22,6 @@ import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import PanelHeadline from "../ui/PanelHeadline";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
-import log from "loglevel";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -165,8 +164,10 @@ const NodeExplorer: React.FC = () => {
         .join(" ")
         .toLowerCase();
 
+      const metadataBadgeColor = (metadata as any)?.badge_color;
       const accentColor =
         node.data?.color ||
+        metadataBadgeColor ||
         theme.vars.palette.primary.main;
 
       return {
@@ -199,7 +200,7 @@ const NodeExplorer: React.FC = () => {
       // Use findNode from store instead of depending on entire nodes array
       const node = findNode(nodeId);
       if (!node) {
-        log.warn("[NodeExplorer] node not found", { nodeId });
+        console.warn("[NodeExplorer] node not found", { nodeId });
         return;
       }
 

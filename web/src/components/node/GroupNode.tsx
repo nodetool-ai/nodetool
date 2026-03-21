@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -162,37 +162,15 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Optimization: Only subscribe to relevant booleans instead of full node/edge arrays
-  // Combined into a single loop to halve O(N) operations during drag frames
-  // Memoized to prevent returning a new object reference on every frame (which causes infinite re-renders)
-  const childrenStatusSelector = useMemo(() => {
-    let lastResult = { hasChildren: false, someChildrenBypassed: false };
-    return (state: ReturnType<typeof store.getState>) => {
-      let hasChildren = false;
-      let someChildrenBypassed = false;
-      for (let i = 0; i < state.nodes.length; i++) {
-        const node = state.nodes[i];
-        if (node.parentId === props.id) {
-          hasChildren = true;
-          if (node.data.bypassed) {
-            someChildrenBypassed = true;
-          }
-        }
-        if (hasChildren && someChildrenBypassed) {
-          break;
-        }
-      }
+  const hasChildren = useNodes((state) =>
+    state.nodes.some((node) => node.parentId === props.id)
+  );
 
-      if (
-        lastResult.hasChildren !== hasChildren ||
-        lastResult.someChildrenBypassed !== someChildrenBypassed
-      ) {
-        lastResult = { hasChildren, someChildrenBypassed };
-      }
-      return lastResult;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.id]); // store is a stable ref that doesn't change
-  const { hasChildren, someChildrenBypassed } = useNodes(childrenStatusSelector);
+  const someChildrenBypassed = useNodes((state) =>
+    state.nodes.some(
+      (node) => node.parentId === props.id && node.data.bypassed
+    )
+  );
 
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);

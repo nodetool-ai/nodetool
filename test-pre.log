@@ -216,27 +216,27 @@ PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 17.00ms
+      [PERF] computeSearchResults with 500 nodes: 14.27ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:578:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 62.31ms
+      [PERF] computeSearchResults with 2000 nodes: 46.23ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:591:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 23.92ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 17.47ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:613:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 2.83ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 3.00ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:636:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 1.22ms
+      [PERF] Average search time for 5 queries: 1.19ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:670:15)
 
@@ -254,7 +254,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 22.68ms
+      [PERF] Large tree (243 components) render: 22.96ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -311,14 +311,13 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:591:15)
 
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.013 s)
 PASS src/stores/__tests__/ResultsStore.test.ts
-PASS src/stores/__tests__/MiniAppsStore.test.ts
+PASS src/stores/__tests__/GlobalChatStore.test.ts
 PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
   ● Console
 
     console.log
-      [PERF] Set deduplication for 200 items: 0.029ms
+      [PERF] Set deduplication for 200 items: 0.027ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:77:15)
 
@@ -358,12 +357,12 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:552:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.25ms
+      [PERF] 100 nodes with 10 properties each: 0.16ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:587:13)
 
 PASS src/utils/__tests__/connectionValidation.integration.test.ts
-PASS src/hooks/__tests__/useColorConversion.test.ts
+PASS src/stores/__tests__/MiniAppsStore.test.ts
 PASS src/hooks/__tests__/useChatService.test.ts
   ● Console
 
@@ -381,6 +380,7 @@ PASS src/hooks/__tests__/useChatService.test.ts
       at Object.sendMessage (src/hooks/useChatService.ts:77:21)
       at Object.<anonymous> (src/hooks/__tests__/useChatService.test.ts:255:28)
 
+PASS src/hooks/__tests__/useColorConversion.test.ts
 PASS src/stores/__tests__/CollectionStore.test.ts
 PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/hooks/__tests__/useFindInWorkflow.test.ts
@@ -454,47 +454,46 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] Search 100 nodes: 0.06ms
+      [PERF] Search 100 nodes: 0.05ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:357:15)
 
     console.log
-      [PERF] Search 1000 nodes: 0.12ms
+      [PERF] Search 1000 nodes: 0.06ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:373:15)
 
     console.log
-      [PERF] Search 5000 nodes: 0.21ms
+      [PERF] Search 5000 nodes: 0.31ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:389:15)
 
     console.log
-      [PERF] Search times for different result sizes: 0.004ms, 0.220ms, 0.039ms
+      [PERF] Search times for different result sizes: 0.006ms, 0.090ms, 0.198ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:419:15)
 
     console.log
-      [PERF] Index 5000 nodes: 187.98ms
+      [PERF] Index 5000 nodes: 165.50ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:437:15)
 
     console.log
-      [PERF] 8 searches avg: 0.04ms
+      [PERF] 8 searches avg: 0.03ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:467:15)
 
 PASS src/hooks/__tests__/useRequiredSettings.test.ts
 PASS src/stores/__tests__/KeyPressedStore.test.ts
 PASS src/utils/__tests__/ColorUtils.test.ts
-PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/hooks/__tests__/useSelectionActions.test.ts
 PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
+PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/stores/__tests__/ConnectionStore.test.ts
 PASS src/hooks/__tests__/useProcessedEdges.test.ts
 PASS src/stores/__tests__/SettingsStore.test.ts
-PASS src/components/ui_primitives/__tests__/Panel.test.tsx
-PASS src/components/panels/__tests__/StatusMessage.test.tsx
 PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
+PASS src/components/panels/__tests__/StatusMessage.test.tsx
 PASS src/stores/__tests__/NotificationStore.test.ts
   ● Console
 
@@ -659,6 +658,7 @@ PASS src/components/ui/__tests__/PanelHeadline.test.tsx
 PASS src/utils/__tests__/clipboardUtils.test.ts
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
+PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -700,7 +700,6 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/components/ui_primitives/__tests__/CircularActionButton.test.tsx
   ● Console
@@ -908,12 +907,12 @@ PASS src/hooks/__tests__/useJobReconnection.test.tsx
           at async Promise.all (index 0)
       at reconnectJobs (src/hooks/useJobReconnection.ts:32:9)
 
-PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/hooks/__tests__/useHuggingFaceModels.test.tsx
+PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/hooks/nodes/__tests__/useRunFromHere.test.ts
 PASS src/components/ui_primitives/__tests__/EmptyState.test.tsx
-PASS src/components/ui_primitives/__tests__/KeyboardShortcutCard.test.tsx
 PASS src/stores/__tests__/AudioQueueStore.test.ts
+PASS src/components/ui_primitives/__tests__/KeyboardShortcutCard.test.tsx
 PASS src/hooks/__tests__/useNamespaceTree.test.ts
 PASS src/components/ui_primitives/__tests__/Dialog.test.tsx
   ● Console
@@ -1048,7 +1047,6 @@ PASS src/components/ui_primitives/__tests__/LabeledToggle.test.tsx
 PASS src/components/common/__tests__/ReasoningToggle.test.tsx
 PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/utils/__tests__/modelNormalization.test.ts
-PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
 
@@ -1197,6 +1195,7 @@ PASS src/hooks/__tests__/useWorkflowActions.test.ts
       at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:48:7)
       at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:240:28)
 
+PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
@@ -1206,8 +1205,8 @@ PASS src/utils/__tests__/edgeValue.test.ts
 PASS src/stores/__tests__/MetadataStore.test.ts
 PASS src/components/ui_primitives/__tests__/NavButton.test.tsx
 PASS src/hooks/__tests__/useInferredOutputTypes.test.ts
-PASS src/hooks/__tests__/useSecrets.test.tsx
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
+PASS src/hooks/__tests__/useSecrets.test.tsx
 PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/utils/__tests__/modelFilters.test.ts
 PASS src/stores/__tests__/AgentStore.test.ts
@@ -1335,7 +1334,6 @@ PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
       at src/hooks/useCollectionDragAndDrop.ts:116:21
       at src/hooks/__tests__/useCollectionDragAndDrop.test.ts:176:9
 
-PASS src/stores/__tests__/ApiClient.test.ts
 PASS src/utils/__tests__/fileExplorer.test.ts
   ● Console
 
@@ -1510,9 +1508,9 @@ PASS src/utils/__tests__/fileExplorer.test.ts
 
       at debugLog (src/utils/fileExplorer.ts:37:13)
 
+PASS src/stores/__tests__/ApiClient.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
-PASS src/hooks/nodes/__tests__/useRunSelectedNodes.test.ts
 PASS src/hooks/handlers/__tests__/useClipboardContentPaste.test.ts
   ● Console
 
@@ -1534,6 +1532,7 @@ PASS src/hooks/handlers/__tests__/useClipboardContentPaste.test.ts
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at Object.<anonymous> (src/hooks/handlers/__tests__/useClipboardContentPaste.test.ts:168:16)
 
+PASS src/hooks/nodes/__tests__/useRunSelectedNodes.test.ts
 PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/components/node/WorkflowNode/__tests__/extractDynamicIO.test.ts
 PASS src/stores/__tests__/LayoutStore.test.ts
@@ -2079,9 +2078,9 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
       at Object.<anonymous> (src/__tests__/components/chat/composer/SendMessageButton.test.tsx:254:7)
 
 PASS src/utils/modelNormalization.test.ts
-PASS src/hooks/__tests__/useApiKeyValidation.test.ts
 PASS src/hooks/__tests__/useRunningJobs.test.tsx
 PASS src/stores/__tests__/graphConversion.test.ts
+PASS src/hooks/__tests__/useApiKeyValidation.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
 PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/utils/__tests__/comfySchemaConverter.test.ts
@@ -2113,8 +2112,8 @@ PASS src/hooks/handlers/__tests__/useDropHandler.test.ts
       at src/hooks/handlers/useDropHandler.ts:179:19
       at src/hooks/handlers/__tests__/useDropHandler.test.ts:184:9
 
-PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/hooks/__tests__/useAlignNodes.test.ts
+PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/stores/__tests__/FileTabsStore.test.ts
 PASS src/stores/__tests__/WorkflowRunner.test.ts
   ● Console
@@ -2150,13 +2149,12 @@ PASS src/stores/__tests__/WorkflowRunner.test.ts
       at Object.<anonymous> (src/stores/__tests__/WorkflowRunner.test.ts:188:7)
 
 PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
-PASS src/components/ui_primitives/__tests__/HighlightText.test.tsx
 PASS src/hooks/__tests__/useCreateNode.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicProperty.test.ts
 PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
-PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.ts
+PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/sanitize.test.ts
 PASS src/stores/__tests__/FavoriteNodesStore.test.ts
 PASS src/stores/__tests__/ContextMenuStore.test.tsx
@@ -2214,8 +2212,8 @@ PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
 PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
 PASS src/components/ui_primitives/__tests__/SettingsButton.test.tsx
-PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
+PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/__tests__/components/vibecoding/extractHtml.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
 PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
@@ -2417,8 +2415,8 @@ PASS src/hooks/__tests__/useFloatingToolbarState.test.ts
 PASS src/hooks/__tests__/useFitNodeEvent.test.ts
 PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/stores/__tests__/RightPanelStore.test.ts
-PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/hooks/__tests__/useInputMinMax.test.ts
+PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/utils/__tests__/hfCache.test.ts
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
@@ -8929,6 +8927,7 @@ PASS src/utils/__tests__/identifierValidation.test.ts
 PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/components/ui_primitives/__tests__/DialogActionButtons.test.tsx
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
+PASS src/serverState/__tests__/checkHfCache.test.ts
 PASS src/components/common/__tests__/LogsTable.test.tsx
   ● Console
 
@@ -9034,7 +9033,6 @@ PASS src/components/common/__tests__/LogsTable.test.tsx
       at renderWithTheme (src/components/common/__tests__/LogsTable.test.tsx:78:16)
       at Object.<anonymous> (src/components/common/__tests__/LogsTable.test.tsx:98:5)
 
-PASS src/serverState/__tests__/checkHfCache.test.ts
 PASS src/stores/__tests__/SessionStateStore.test.ts
 PASS src/components/ui_primitives/__tests__/PlaybackButton.test.tsx
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
@@ -9863,9 +9861,9 @@ PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/components/properties/__tests__/AudioListProperty.test.tsx
 PASS src/__tests__/frontendTools.test.ts
 PASS src/utils/__tests__/titleizeString.test.ts
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx
-PASS src/__tests__/GlobalChatStore.toolcall.test.ts
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.009 s)
 PASS src/components/properties/__tests__/VideoListProperty.test.tsx
+PASS src/__tests__/GlobalChatStore.toolcall.test.ts
 PASS src/stores/__tests__/WorkflowManagerStore.test.ts
 PASS src/stores/formatNodeDocumentation.test.ts
 PASS src/hooks/handlers/__tests__/clipboard_perf.test.ts
@@ -9876,21 +9874,21 @@ PASS src/components/properties/__tests__/Model3DProperty.test.tsx
 PASS src/utils/__tests__/binary.test.ts
 PASS src/components/common/__tests__/PanelErrorBoundary.integration.test.tsx
 PASS src/components/assets/__tests__/AssetItem.test.tsx
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
+PASS src/components/properties/__tests__/PropertyDropzone.test.tsx
 PASS src/config/__tests__/shortcuts.test.ts
 PASS src/stores/__tests__/InspectedNodeStore.test.ts
 PASS src/hooks/nodes/__tests__/getChildNodes.test.ts
 PASS src/utils/__tests__/getFileExtension.test.ts
-PASS src/components/properties/__tests__/PropertyDropzone.test.tsx
 PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/hooks/assets/__tests__/useAssetDisplay.test.tsx
 PASS src/stores/__tests__/workflowResultHydration.test.ts
 PASS src/utils/errorHandling.test.ts
-PASS src/utils/__tests__/modelDownloadCheck.test.ts
 PASS src/utils/highlightText.test.ts
-PASS src/hooks/__tests__/useFocusPan.test.ts
+PASS src/utils/__tests__/modelDownloadCheck.test.ts
 PASS src/hooks/__tests__/useRunningTime.test.ts
+PASS src/hooks/__tests__/useFocusPan.test.ts
 PASS src/stores/__tests__/WorkspaceManagerStore.test.ts
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
 PASS src/hooks/handlers/__tests__/addNodeFromAsset.test.ts
 PASS src/__tests__/components/node/InputNodeNameWarning.test.tsx
 PASS src/components/node/__tests__/NodeExecutionTime.test.tsx
@@ -9901,30 +9899,33 @@ PASS src/utils/__tests__/nodeEquality.test.ts
 PASS src/utils/__tests__/timeFormat.test.ts
 PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
 PASS src/components/ui_primitives/__tests__/spacing.test.ts
-PASS src/__tests__/performance/assetCreationBenchmark.test.ts
-  ● Console
-
-    console.log
-      [PERF] Sequential execution (10 files): 504.05ms
-
-      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:41:13)
-
-    console.log
-      [PERF] Parallel execution (10 files): 50.26ms
-
-      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:49:13)
-
-    console.log
-      [PERF] Speedup: 10.03x
-
-      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:60:13)
-
+PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
 PASS src/stores/__tests__/fuseOptions.test.ts
 PASS src/lib/tools/__tests__/searchNodesTool.test.ts
 PASS src/providers/__tests__/MenuProvider.test.tsx
 PASS src/utils/__tests__/browser.test.ts
+PASS src/__tests__/performance/assetCreationBenchmark.test.ts
+  ● Console
+
+    console.log
+      [PERF] Sequential execution (10 files): 502.07ms
+
+      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:41:13)
+
+    console.log
+      [PERF] Parallel execution (10 files): 50.33ms
+
+      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:49:13)
+
+    console.log
+      [PERF] Speedup: 9.98x
+
+      at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:60:13)
+
 PASS src/components/ui_primitives/__tests__/Text.test.tsx
 PASS src/components/ui_primitives/__tests__/Card.test.tsx
+PASS src/serverState/__tests__/useAssetById.test.tsx
+PASS src/utils/__tests__/truncateString.test.ts
 PASS src/components/node_editor/__tests__/Alert.test.tsx
   ● Console
 
@@ -9943,11 +9944,10 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
           at li
           at Transition (/home/runner/work/nodetool/nodetool/web/node_modules/react-transition-group/cjs/Transition.js:135:30)
           at CSSTransition (/home/runner/work/nodetool/nodetool/web/node_modules/react-transition-group/cjs/CSSTransition.js:120:35)
-          at NotificationItem (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/Alert.tsx:96:3)
           at ul
           at TransitionGroup (/home/runner/work/nodetool/nodetool/web/node_modules/react-transition-group/cjs/TransitionGroup.js:57:30)
           at /home/runner/work/nodetool/nodetool/web/node_modules/@emotion/react/dist/emotion-element-a1829a1e.cjs.js:58:23
-          at /home/runner/work/nodetool/nodetool/web/src/components/node_editor/Alert.tsx:162:26
+          at /home/runner/work/nodetool/nodetool/web/src/components/node_editor/Alert.tsx:95:26
           at DefaultPropsProvider (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/DefaultPropsProvider/DefaultPropsProvider.js:17:3)
           at RtlProvider (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/system/RtlProvider/index.js:15:3)
           at ThemeProvider (/home/runner/work/nodetool/nodetool/web/node_modules/@mui/private-theming/ThemeProvider/ThemeProvider.js:40:5)
@@ -9970,8 +9970,6 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at src/components/ui_primitives/CopyButton.tsx:146:13
 
-PASS src/serverState/__tests__/useAssetById.test.tsx
-PASS src/utils/__tests__/truncateString.test.ts
 PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
   ● Console
 
@@ -10021,11 +10019,9 @@ PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
       at src/components/ui_primitives/CopyButton.tsx:146:13
 
 PASS src/hooks/editor/__tests__/useMonacoEditor.test.ts
-PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
 PASS src/components/ui_primitives/__tests__/FlexRow.test.tsx
 PASS src/utils/nodeDisplay.test.ts
-PASS src/stores/__tests__/CollectionStore.benchmark.test.ts
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -10128,14 +10124,16 @@ PASS src/hooks/__tests__/useIsDarkMode.test.ts
       at notifyMutationObservers (node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:160:22)
       at node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:133:5
 
+PASS src/stores/__tests__/CollectionStore.benchmark.test.ts
 PASS src/utils/__tests__/imageUploadValidation.test.ts
 PASS src/serverState/__tests__/useFolderTree.test.tsx
 PASS src/components/assets/__tests__/FolderItem.test.tsx
+PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
 PASS src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts
   ● Console
 
     console.log
-      Sequential duration: 304ms
+      Sequential duration: 303ms
 
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:34:13)
 
@@ -10145,9 +10143,8 @@ PASS src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:49:13)
 
 PASS src/serverState/__tests__/tryCacheFiles.test.ts
-PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
-PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/components/__tests__/Logo.test.tsx
+PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/stores/__tests__/CollectionsManagerStore.test.ts
 PASS src/components/node_editor/__tests__/DataFlowParticles.test.tsx
   ● Console
@@ -10215,15 +10212,15 @@ PASS src/components/node_editor/__tests__/DataFlowParticles.test.tsx
 
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
 PASS src/serverState/__tests__/useAsset.test.tsx
-PASS src/utils/sanitize.test.ts
 PASS src/components/properties/__tests__/BoolProperty.test.tsx
+PASS src/utils/sanitize.test.ts
 PASS src/stores/__tests__/uuidv4.test.ts
 PASS src/utils/binary.test.ts
 PASS src/__tests__/components/node/CalendarEventView.test.tsx
 PASS src/__tests__/components/assets/AssetExplorer.test.tsx
 PASS src/stores/__tests__/PanelStore.test.ts
-PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/hooks/__tests__/useLoraModels.test.ts
+PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/utils/__tests__/platform.test.ts
 PASS src/components/assets/__tests__/assetGridUtils.test.ts
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
@@ -10343,10 +10340,10 @@ PASS src/core/workflow/__tests__/runnerProtocol.test.ts
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
 PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 
-Test Suites: 1 skipped, 350 passed, 350 of 351 total
-Tests:       18 skipped, 4535 passed, 4553 total
+Test Suites: 1 skipped, 348 passed, 348 of 349 total
+Tests:       18 skipped, 4475 passed, 4493 total
 Snapshots:   0 total
-Time:        52.892 s
+Time:        52.394 s
 Ran all test suites.
 Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
 Running electron tests...

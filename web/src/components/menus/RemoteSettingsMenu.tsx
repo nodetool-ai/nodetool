@@ -22,7 +22,6 @@ import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
 import { isElectron, client } from "../../stores/ApiClient";
-import log from "loglevel";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -68,85 +67,6 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
   DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
 };
-
-interface SettingItemProps {
-  setting: SettingWithValue;
-  value: string;
-  onChange: (envVar: string, value: string) => void;
-}
-
-const SettingItem = memo(function SettingItem({
-  setting,
-  value,
-  onChange
-}: SettingItemProps) {
-  const handleChange = useCallback((e: unknown) => {
-    const target = e as { target: { value: string } };
-    onChange(setting.env_var, target.target.value);
-  }, [setting.env_var, onChange]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    e.stopPropagation();
-  }, []);
-
-  return (
-    <div className="settings-item large">
-      {setting.enum && setting.enum.length > 0 ? (
-        <FormControl variant="standard" fullWidth>
-          <InputLabel
-            id={`${setting.env_var.toLowerCase()}-label`}
-          >
-            {setting.env_var.replace(/_/g, " ")}
-          </InputLabel>
-          <Select
-            labelId={`${setting.env_var.toLowerCase()}-label`}
-            id={`${setting.env_var.toLowerCase()}-select`}
-            value={value || ""}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-          >
-            {setting.enum.map((option: string) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      ) : (
-        <TextField
-          type={setting.is_secret ? "password" : "text"}
-          autoComplete="off"
-          id={`${setting.env_var.toLowerCase()}-input`}
-          label={setting.env_var.replace(/_/g, " ")}
-          value={value || ""}
-          onChange={handleChange}
-          variant="standard"
-          onKeyDown={handleKeyDown}
-        />
-      )}
-      {setting.description && (
-        <Typography className="description">
-          {setting.description}
-        </Typography>
-      )}
-      {SETTING_LINKS[setting.env_var] && (
-        <div style={{ marginTop: "0.5em" }}>
-          <ExternalLink
-            href={SETTING_LINKS[setting.env_var]}
-            tooltipText={
-              SETTING_TOOLTIPS[setting.env_var] || ""
-            }
-          >
-            {SETTING_BUTTON_TITLES[setting.env_var] ||
-              "GET YOUR API KEY"}
-          </ExternalLink>
-        </div>
-      )}
-    </div>
-  );
-});
-
-SettingItem.displayName = "SettingItem";
 
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
@@ -320,7 +240,7 @@ const RemoteSettings = () => {
         window.open(authUrl, "_blank", "noopener,noreferrer,width=600,height=700");
       }
     } catch (error) {
-      log.error("OAuth initiation failed:", error);
+      console.error("OAuth initiation failed:", error);
       setHfOAuthLoading(false);
       addNotification({
         content: "Failed to initiate HuggingFace login",
@@ -329,6 +249,39 @@ const RemoteSettings = () => {
       });
     }
   }, [addNotification]);
+
+  /*
+  const handleGoogleOAuth = useCallback(async () => {
+    setGoogleOAuthLoading(true);
+
+    try {
+      const { data, error } = await (client as any).GET("/api/oauth/google/start");
+
+      if (error || !data?.auth_url) {
+        throw new Error("Failed to start Google OAuth flow");
+      }
+
+      const authUrl = data.auth_url;
+
+      if (isElectron && window.require) {
+        // Electron environment
+        const { shell } = window.require("electron");
+        shell.openExternal(authUrl);
+      } else {
+        // Web environment - open in new window/tab
+        window.open(authUrl, "_blank", "width=600,height=700");
+      }
+    } catch (error) {
+      console.error("Google OAuth initiation failed:", error);
+      setGoogleOAuthLoading(false);
+      addNotification({
+        content: "Failed to initiate Google login",
+        type: "error",
+        alert: true
+      });
+    }
+  }, [addNotification]);
+  */
 
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
@@ -423,6 +376,43 @@ const RemoteSettings = () => {
                 </div>
               </div>
 
+              {/* Google OAuth Section */}
+              {/* Google OAuth Section - Hidden for now
+              <div className="settings-section">
+                <Typography
+                  variant="h2"
+                  id="google-oauth"
+                >
+                  Google Authentication
+                </Typography>
+                <div className="settings-item large">
+                  <Typography className="description">
+                    Connect your Google account to access Gemini models and Google services
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleGoogleOAuth}
+                    disabled={googleOAuthLoading}
+                    startIcon={
+                      isGoogleConnected ? (
+                        <CheckCircleIcon />
+                      ) : googleOAuthLoading ? null : (
+                        <LoginIcon />
+                      )
+                    }
+                    sx={{ marginTop: "1em" }}
+                  >
+                    {isGoogleConnected
+                      ? "Connected to Google"
+                      : googleOAuthLoading
+                      ? "Connecting..."
+                      : "Connect with Google"}
+                  </Button>
+                </div>
+              </div>
+              */}
+
               {/* Render settings grouped by their group field */}
               {Array.from(displayedSettingsByGroup.entries()).map(
                 ([groupName, groupSettings]) => (
@@ -436,12 +426,66 @@ const RemoteSettings = () => {
                     {groupSettings
                       .filter((setting) => !setting.is_secret)
                       .map((setting) => (
-                        <SettingItem
+                        <div
                           key={setting.env_var}
-                          setting={setting}
-                          value={settingValues[setting.env_var] || ""}
-                          onChange={handleChange}
-                        />
+                          className="settings-item large"
+                        >
+                          {setting.enum && setting.enum.length > 0 ? (
+                            <FormControl variant="standard" fullWidth>
+                              <InputLabel
+                                id={`${setting.env_var.toLowerCase()}-label`}
+                              >
+                                {setting.env_var.replace(/_/g, " ")}
+                              </InputLabel>
+                              <Select
+                                labelId={`${setting.env_var.toLowerCase()}-label`}
+                                id={`${setting.env_var.toLowerCase()}-select`}
+                                value={settingValues[setting.env_var] || ""}
+                                onChange={(e) =>
+                                  handleChange(setting.env_var, e.target.value)
+                                }
+                                onKeyDown={(e) => e.stopPropagation()}
+                              >
+                                {setting.enum.map((option: string) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          ) : (
+                            <TextField
+                              type={setting.is_secret ? "password" : "text"}
+                              autoComplete="off"
+                              id={`${setting.env_var.toLowerCase()}-input`}
+                              label={setting.env_var.replace(/_/g, " ")}
+                              value={settingValues[setting.env_var] || ""}
+                              onChange={(e) =>
+                                handleChange(setting.env_var, e.target.value)
+                              }
+                              variant="standard"
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          )}
+                          {setting.description && (
+                            <Typography className="description">
+                              {setting.description}
+                            </Typography>
+                          )}
+                          {SETTING_LINKS[setting.env_var] && (
+                            <div style={{ marginTop: "0.5em" }}>
+                              <ExternalLink
+                                href={SETTING_LINKS[setting.env_var]}
+                                tooltipText={
+                                  SETTING_TOOLTIPS[setting.env_var] || ""
+                                }
+                              >
+                                {SETTING_BUTTON_TITLES[setting.env_var] ||
+                                  "GET YOUR API KEY"}
+                              </ExternalLink>
+                            </div>
+                          )}
+                        </div>
                       ))}
                   </div>
                 )

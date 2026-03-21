@@ -1,6 +1,6 @@
 {
   "name": "nodetool-electron",
-  "version": "0.6.3-rc.47",
+  "version": "0.6.3-rc.42",
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
@@ -75,15 +75,14 @@
     "node-stream-zip": "^1.15.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "tar": "^7.5.8",
+    "tar": "^7.4.3",
     "ws": "^8.18.0",
     "zustand": "^5.0.3"
   },
   "overrides": {
     "qs": ">=6.14.1",
     "express": ">=4.21.2",
-    "body-parser": ">=1.20.3",
-    "rollup": "^4.59.0"
+    "body-parser": ">=1.20.3"
   },
   "permissions": [
     "audioCapture"

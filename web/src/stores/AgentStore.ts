@@ -22,7 +22,6 @@ import {
 // Initialize the IPC bridge for frontend tools
 // This registers handlers that allow the Claude Agent to call frontend tools
 import "../lib/tools/frontendToolsIpc";
-import log from "loglevel";
 
 export type AgentProvider = "claude" | "codex";
 export interface AgentModelDescriptor {
@@ -230,7 +229,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
         modelsLoading: false
       });
     } catch (error) {
-      log.error("Failed to load agent models:", error);
+      console.error("Failed to load agent models:", error);
       set({ modelsLoading: false });
     }
   },
@@ -488,7 +487,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     const { sessionId } = get();
     if (sessionId && isAgentAvailable()) {
       window.api.agent!.stopExecution(sessionId).catch((err: unknown) => {
-        log.error("Failed to stop Claude Agent execution:", err);
+        console.error("Failed to stop Claude Agent execution:", err);
       });
     }
     set({ status: "connected", hasAssistantInCurrentTurn: false });
@@ -504,7 +503,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
     if (sessionId && isAgentAvailable()) {
       window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+        console.error("Failed to close Claude Agent session:", err);
       });
     }
     set({
@@ -532,7 +531,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     }
     if (sessionId && isAgentAvailable()) {
       await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+        console.error("Failed to close Claude Agent session:", err);
       });
     }
     set({
@@ -568,7 +567,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     }
     if (sessionId && isAgentAvailable()) {
       await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+        console.error("Failed to close Claude Agent session:", err);
       });
     }
     set({

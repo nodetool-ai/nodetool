@@ -2,7 +2,6 @@ import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
-import log from "loglevel";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -18,9 +17,9 @@ export function graphNodeToReactFlowNode(
     typeof node.data === "object" &&
     "workflow_id" in node.data
   ) {
-    log.warn(
+    console.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
-      (node.data as Record<string, unknown>).workflow_id,
+      (node.data as any).workflow_id,
       "will use:",
       workflow.id
     );

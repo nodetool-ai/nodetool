@@ -90,16 +90,12 @@ interface NotificationItemProps {
   notification: Notification;
   nodeRef: React.RefObject<HTMLLIElement>;
   onClose: (id: string) => void;
-  in?: boolean;
-  onExited?: () => void;
 }
 
 const NotificationItem = memo(function NotificationItem({
   notification,
   nodeRef,
-  onClose,
-  in: inProp,
-  onExited
+  onClose
 }: NotificationItemProps) {
   const handleClose = useCallback(() => {
     onClose(notification.id);
@@ -113,16 +109,21 @@ const NotificationItem = memo(function NotificationItem({
   return (
     <CSSTransition
       key={notification.id}
-      in={inProp}
       nodeRef={nodeRef}
       timeout={300}
       classNames="alert"
-      onExited={onExited}
+      onExited={() => {
+        // Ref will be cleaned up by parent
+      }}
     >
       <li ref={nodeRef} style={{ position: "relative" }}>
         <MUIAlert
           severity={mapTypeToSeverity(notification.type)}
-          onClose={handleClose}
+          onClose={
+            notification.type === "error" || notification.dismissable
+              ? handleClose
+              : undefined
+          }
           action={
             notification.action ? (
               <Button

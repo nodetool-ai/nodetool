@@ -87,13 +87,12 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [zoomTo]
   );
 
-  const handlePresetClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    const presetValue = event.currentTarget.dataset.preset;
-    if (presetValue) {
-      const preset = parseFloat(presetValue) as ZoomPreset;
+  const handlePresetClick = useCallback(
+    (preset: ZoomPreset) => () => {
       handlePresetZoom(preset);
-    }
-  }, [handlePresetZoom]);
+    },
+    [handlePresetZoom]
+  );
 
   const handleOpenZoomMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -276,8 +275,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           {ZOOM_PRESETS.map((preset) => (
             <ListItemButton
               key={preset}
-              onClick={handlePresetClick}
-              data-preset={preset.toString()}
+              onClick={handlePresetClick(preset)}
               selected={Math.abs(zoom - preset) < 0.01}
               sx={{
                 py: 0.5,

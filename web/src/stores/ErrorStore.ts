@@ -27,25 +27,21 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       const keysToRemove = new Set(
         Array.from(nodeIds).map((id) => hashKey(workflowId, id))
       );
-      set((state) => {
-        // Optimization: Clone and delete specific keys when specificIds is provided
-        const newErrors = { ...state.errors };
-        keysToRemove.forEach((key) => {
-          delete newErrors[key];
-        });
-        return { errors: newErrors };
-      });
+      set((state) => ({
+        errors: Object.fromEntries(
+          Object.entries(state.errors).filter(
+            ([key]) => !keysToRemove.has(key)
+          )
+        )
+      }));
     } else {
-      set((state) => {
-        // Optimization: Use for...in loop to avoid intermediate array allocation
-        const newErrors: Record<string, NodeError> = {};
-        for (const key in state.errors) {
-          if (!key.startsWith(workflowId)) {
-            newErrors[key] = state.errors[key];
-          }
-        }
-        return { errors: newErrors };
-      });
+      set((state) => ({
+        errors: Object.fromEntries(
+          Object.entries(state.errors).filter(
+            ([key]) => !key.startsWith(workflowId)
+          )
+        )
+      }));
     }
   },
   /**

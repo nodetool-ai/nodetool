@@ -140,7 +140,7 @@ const StringProperty = ({
         {isHovered && (
           <div className="string-action-buttons">
             <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
+              <IconButton size="small" onClick={toggleExpand}>
                 <OpenInFullIcon />
               </IconButton>
             </Tooltip>

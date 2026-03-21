@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import log from "loglevel";
 
 /**
  * Create the Supabase client using credentials from environment variables.
@@ -13,7 +12,7 @@ const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  log.warn(
+  console.warn(
     "Supabase credentials not found in environment. Using test placeholders for development."
   );
 }

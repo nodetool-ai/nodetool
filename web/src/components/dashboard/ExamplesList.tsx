@@ -117,15 +117,12 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
 }) => {
   const theme = useTheme();
 
-  const handleCardClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    const exampleId = event.currentTarget.dataset.exampleId;
-    if (exampleId) {
-      const example = startTemplates.find(t => t.id === exampleId);
-      if (example) {
-        handleExampleClick(example);
-      }
-    }
-  }, [startTemplates, handleExampleClick]);
+  const handleCardClick = useCallback(
+    (example: Workflow) => () => {
+      handleExampleClick(example);
+    },
+    [handleExampleClick]
+  );
 
   return (
     <Box className="examples-list" css={styles(theme)}>
@@ -151,8 +148,7 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={handleCardClick}
-                data-example-id={example.id}
+                onClick={handleCardClick(example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">

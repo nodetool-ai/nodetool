@@ -17,29 +17,10 @@ const SearchResults = memo(({
   results,
   handleCreateNode
 }: SearchResultsProps) => {
-  // Use data attributes to avoid creating new function references on each render
-  // This is more efficient than curried handlers which create new closures
-  const handleNodeClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (nodeType) {
-        const node = results.find((n) => n.node_type === nodeType);
-        if (node) {
-          handleCreateNode(node);
-        }
-      }
-    },
-    [results, handleCreateNode]
-  );
-
   const renderNode = useCallback((node: NodeMetadata) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton
-        key={node.title}
-        onClick={handleNodeClick}
-        data-node-type={node.node_type}
-      >
+      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -52,7 +33,7 @@ const SearchResults = memo(({
         ))}
       </ListItemButton>
     );
-  }, [handleNodeClick]);
+  }, [handleCreateNode]);
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>

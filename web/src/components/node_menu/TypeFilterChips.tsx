@@ -305,18 +305,6 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
       setMenuAnchor(null);
     }, []);
 
-    const handleLocalProviderClick = useCallback(() => {
-      setSelectedProviderType(
-        selectedProviderType === "local" ? "all" : "local"
-      );
-    }, [selectedProviderType, setSelectedProviderType]);
-
-    const handleApiProviderClick = useCallback(() => {
-      setSelectedProviderType(
-        selectedProviderType === "api" ? "all" : "api"
-      );
-    }, [selectedProviderType, setSelectedProviderType]);
-
     const menuOpen = Boolean(menuAnchor);
 
     return (
@@ -327,13 +315,21 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
               className={`provider-quick-chip ${selectedProviderType === "local" ? "selected" : ""}`}
               size="small"
               label="Local"
-              onClick={handleLocalProviderClick}
+              onClick={() =>
+                setSelectedProviderType(
+                  selectedProviderType === "local" ? "all" : "local"
+                )
+              }
             />
             <Chip
               className={`provider-quick-chip ${selectedProviderType === "api" ? "selected" : ""}`}
               size="small"
               label="API"
-              onClick={handleApiProviderClick}
+              onClick={() =>
+                setSelectedProviderType(
+                  selectedProviderType === "api" ? "all" : "api"
+                )
+              }
             />
           </Box>
           <span className="quick-label">Output:</span>

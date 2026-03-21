@@ -311,32 +311,16 @@ function initializePermissionHandlers(): void {
     }
   );
 
-  // Add CORS headers for localhost API requests to allow cross-origin access.
-  // This handles the localhost vs 127.0.0.1 mismatch. Restrict to trusted localhost
-  // origins only for security - do not use wildcard.
+  // Add CORS headers for localhost API requests to allow cross-origin access
+  // This handles the localhost vs 127.0.0.1 mismatch
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
     (details, callback) => {
-      // Only set CORS headers for requests from trusted localhost origins
-      const requestingOrigin = details.referrer || "";
-      const isTrustedOrigin =
-        requestingOrigin.startsWith("http://localhost:") ||
-        requestingOrigin.startsWith("http://127.0.0.1:") ||
-        requestingOrigin === "" || // Allow requests with no referrer (e.g., same-origin)
-        requestingOrigin.startsWith("file://"); // Allow local file requests
-
-      if (isTrustedOrigin) {
-        const responseHeaders = { ...details.responseHeaders };
-        // For localhost, we can use a wildcard since it's a trusted local environment
-        // This handles the localhost vs 127.0.0.1 mismatch correctly
-        responseHeaders["Access-Control-Allow-Origin"] = ["*"];
-        responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
-        responseHeaders["Access-Control-Allow-Headers"] = ["*"];
-        callback({ responseHeaders });
-      } else {
-        // Don't modify headers for untrusted origins
-        callback({ responseHeaders: details.responseHeaders });
-      }
+      const responseHeaders = { ...details.responseHeaders };
+      responseHeaders["Access-Control-Allow-Origin"] = ["*"];
+      responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
+      responseHeaders["Access-Control-Allow-Headers"] = ["*"];
+      callback({ responseHeaders });
     }
   );
 

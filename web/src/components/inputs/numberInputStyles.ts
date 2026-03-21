@@ -62,6 +62,22 @@ export const numberInputStyles = (theme: Theme) =>
       padding: 0
     },
 
+    // ".slider-value .property-label label": {
+    //   position: "relative",
+    //   display: "block",
+    //   textTransform: "capitalize",
+    //   fontWeight: 500,
+    //   fontSize: theme.fontSizeSmall,
+    //   color: theme.vars.palette.grey[300],
+    //   lineHeight: "1.2em",
+    //   letterSpacing: "0.01em",
+    //   overflow: "hidden",
+    //   textOverflow: "ellipsis",
+    //   whiteSpace: "nowrap",
+    //   margin: "-4px 8px 0 0",
+    //   padding: 0
+    // },
+
     ".slider-value .value": {
       display: "flex", // Use flex to match input
       alignItems: "center", // Center text vertically

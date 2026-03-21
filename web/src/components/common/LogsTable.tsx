@@ -279,7 +279,6 @@ const areEqual = (prevProps: ListChildComponentProps<RowItemData>, nextProps: Li
 };
 
 const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemData>) => {
-  const { toggleExpand } = data;
   const r = data.rows[index];
   const rowKey = data.rowKeys[index];
   const theme = useTheme();
@@ -298,10 +297,6 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
       event.stopPropagation();
   };
 
-  const handleRowClick = useCallback(() => {
-    toggleExpand(rowKey, index);
-  }, [toggleExpand, rowKey, index]);
-
   const open = Boolean(anchorEl);
   
   return (
@@ -312,7 +307,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           gridTemplateColumns: data.columns,
           borderLeftColor: colors.text
         }}
-        onClick={handleRowClick}
+        onClick={() => data.toggleExpand(rowKey, index)}
       >
         <Tooltip
           title={timeTooltip}
@@ -341,8 +336,6 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
                 size="small"
                 onClick={handleClick}
                 sx={{ padding: "2px" }}
-                aria-label="View log data"
-                title="View log data"
               >
                 <DataObjectIcon fontSize="inherit" />
               </IconButton>
@@ -554,7 +547,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
             className="scroll-to-bottom"
             onClick={scrollToBottom}
             size="small"
-            aria-label="Scroll to latest logs"
           >
             <KeyboardArrowDownIcon />
           </IconButton>

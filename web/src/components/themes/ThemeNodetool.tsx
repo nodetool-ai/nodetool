@@ -91,6 +91,9 @@ const ThemeNodetool = createTheme({
   components: {
     MuiTypography: {
       styleOverrides: {
+        // root: {
+        //   color: "var(--palette-text-primary)"
+        // },
         h1: ({ theme }) => ({
           cursor: "default",
           fontSize: "2em",

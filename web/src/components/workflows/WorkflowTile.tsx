@@ -8,8 +8,8 @@ import { DeleteButton, EditorButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
+import { escapeHtml } from "../../utils/highlightText";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
-import { addBreaks } from "../../utils/sanitize";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -21,6 +21,10 @@ interface WorkflowTileProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (e: React.MouseEvent, workflow: Workflow) => void;
 }
+
+const addBreaks = (text: string) => {
+  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+};
 
 export const WorkflowTile = ({
   workflow,

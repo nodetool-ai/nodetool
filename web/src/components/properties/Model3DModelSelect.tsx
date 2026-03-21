@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { BASE_URL } from "../../stores/BASE_URL";
-import { Model3DModelValue } from "../../stores/ApiTypes";
+import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { Menu, MenuItem, ListItemText, Typography, Divider } from "@mui/material";
@@ -49,7 +48,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
 ModelMenuItem.displayName = "ModelMenuItem";
 
 interface Model3DModelSelectProps {
-  onChange: (value: Model3DModelValue) => void;
+  onChange: (value: any) => void;
   value: string;
   task?: "text_to_3d" | "image_to_3d";
 }
@@ -64,11 +63,16 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
   const load3DModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/3d`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch 3D models: ${res.status}`);
+    const { data, error } = await client.GET(
+      "/api/models/{model_type}" as any,
+      {
+        params: { path: { model_type: "3d" } }
+      }
+    );
+    if (error) {
+      throw error;
     }
-    return (await res.json()) as Model3DModel[];
+    return data as unknown as Model3DModel[];
   }, []);
 
   const { data: models, isLoading } = useQuery({

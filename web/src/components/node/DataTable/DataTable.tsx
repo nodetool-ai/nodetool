@@ -139,8 +139,6 @@ const DataTable: React.FC<DataTableProps> = ({
   
   // Track if we're in the middle of a Tabulator edit to avoid clearing history
   const isInternalEditRef = useRef(false);
-  // Track timeout for cleanup
-  const editTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
@@ -274,11 +272,7 @@ const DataTable: React.FC<DataTableProps> = ({
       );
 
       // Reset the flag after a short delay to allow React state to update
-      // Clear any pending timeout before scheduling a new one
-      if (editTimeoutRef.current) {
-        clearTimeout(editTimeoutRef.current);
-      }
-      editTimeoutRef.current = setTimeout(() => {
+      setTimeout(() => {
         isInternalEditRef.current = false;
         updateHistoryState();
       }, 100);
@@ -314,10 +308,6 @@ const DataTable: React.FC<DataTableProps> = ({
     setTabulator(tabulatorInstance);
 
     return () => {
-      // Cleanup timeout on unmount
-      if (editTimeoutRef.current) {
-        clearTimeout(editTimeoutRef.current);
-      }
       tabulatorInstance.destroy();
       tabulatorRef.current = null;
       setIsTableReady(false);

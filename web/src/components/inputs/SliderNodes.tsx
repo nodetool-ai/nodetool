@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import Slider, { SliderProps } from "@mui/material/Slider";
+import Slider from "@mui/material/Slider";
 import React from "react";
 
 const sliderStyles = (theme: Theme) =>
@@ -39,7 +39,7 @@ const sliderStyles = (theme: Theme) =>
     }
   });
 
-const SliderNodes = React.memo((props: SliderProps) => {
+const SliderNodes = React.memo((props: any) => {
   return <Slider {...props} css={sliderStyles} />;
 });
 SliderNodes.displayName = "SliderNodes";

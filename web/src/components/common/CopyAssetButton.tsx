@@ -313,7 +313,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
         } catch (error) {
           setState("error");
           onCopyError?.(error as Error);
-          log.error("Failed to copy to clipboard:", error);
+          console.error("Failed to copy to clipboard:", error);
           timeoutRef.current = setTimeout(() => setState("idle"), FEEDBACK_TIMEOUT);
         }
       },

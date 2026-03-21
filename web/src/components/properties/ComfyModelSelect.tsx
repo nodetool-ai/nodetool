@@ -2,10 +2,8 @@ import { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
+import { client } from "../../stores/ApiClient";
 import { RepoPath } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
-
-type ComfyModelItem = { name?: string; path?: string; repo_id?: string; downloaded?: boolean };
 
 interface ComfyModelSelectProps {
   modelType: string;
@@ -19,11 +17,13 @@ const ComfyModelSelect = ({
   value
 }: ComfyModelSelectProps) => {
   const loadComfyModels = useCallback(async (modelType: string) => {
-    const res = await fetch(`${BASE_URL}/api/models/${modelType}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch models: ${res.status}`);
+    const { error, data } = await client.GET("/api/models/{model_type}" as any, {
+      params: { path: { model_type: modelType } }
+    });
+    if (error) {
+      throw error;
     }
-    return (await res.json()) as ComfyModelItem[];
+    return data;
   }, []);
 
   const {
@@ -38,10 +38,10 @@ const ComfyModelSelect = ({
 
   const options = useMemo(() => {
     if (!models || isLoading || isError) {return [];}
-    return (models as ComfyModelItem[])
+    return (models as Array<RepoPath | { name?: string }>)
       .map((model) => ({
-        value: model.name ?? model.path,
-        label: model.name ?? model.path ?? ""
+        value: (model as any).name ?? (model as RepoPath).path,
+        label: (model as any).name ?? (model as RepoPath).path ?? ""
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [models, isLoading, isError]);

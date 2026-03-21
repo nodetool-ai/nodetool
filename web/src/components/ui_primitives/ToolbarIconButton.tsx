@@ -129,7 +129,8 @@ export const ToolbarIconButton = memo(
               }
             };
         }
-      }, [variant, theme]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [variant]);
 
       // Build tooltip content with optional shortcut hint
       const tooltipContent = shortcut ? (

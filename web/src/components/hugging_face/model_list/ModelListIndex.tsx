@@ -287,15 +287,11 @@ const ModelListIndex: React.FC = () => {
 
   if (error) {
     // Extract error message - API returns {detail: "..."} or {detail: [{msg: "..."}]}
-    interface ApiErrorShape {
-      detail?: string | Array<{ msg: string }>;
-      message?: string;
-    }
-    const err = error as ApiErrorShape;
+    const err = error as any;
     const errorMessage =
       typeof err?.detail === "string"
         ? err.detail
-        : (err?.detail as Array<{ msg: string }>)?.[0]?.msg || err?.message || "Unknown error";
+        : err?.detail?.[0]?.msg || err?.message || "Unknown error";
 
     const isOllamaError = errorMessage.toLowerCase().includes("ollama");
 

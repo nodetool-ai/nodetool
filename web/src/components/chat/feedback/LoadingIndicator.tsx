@@ -81,30 +81,14 @@ const styles = {
   `,
 };
 
-export interface LoadingIndicatorProps {
-  /** Accessible label for screen readers describing the loading state */
-  ariaLabel?: string;
-  /** Custom class name */
-  className?: string;
-}
-
-export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
-  ariaLabel = "Loading",
-  className
-}) => {
+export const LoadingIndicator: React.FC = () => {
   return (
-    <div
-      css={styles.container}
-      className={`loading-container${className ? ` ${className}` : ""}`}
-      role="status"
-      aria-live="polite"
-      aria-label={ariaLabel}
-    >
+    <div css={styles.container} className="loading-container">
       <div css={styles.wrapper}>
-        <svg css={styles.svg} viewBox="0 0 28 28" aria-hidden="true">
+        <svg css={styles.svg} viewBox="0 0 28 28">
           <circle css={styles.circle} cx="14" cy="14" r="10" />
         </svg>
-        <div css={styles.core} aria-hidden="true" />
+        <div css={styles.core} />
       </div>
     </div>
   );
