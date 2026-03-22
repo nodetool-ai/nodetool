@@ -118,12 +118,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
   // ─── Initialize from prop ───────────────────────────────────────────
   const initializedRef = useRef(false);
+  const { setDocument } = store;
   useEffect(() => {
     if (initialDocument && !initializedRef.current) {
-      store.setDocument(initialDocument);
+      setDocument(initialDocument);
       initializedRef.current = true;
     }
-  }, [initialDocument, store.setDocument]);
+  }, [initialDocument, setDocument]);
 
   // ─── Autosave on document changes ──────────────────────────────────
   useEffect(() => {
