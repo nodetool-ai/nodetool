@@ -14,6 +14,7 @@ import { Box } from "@mui/material";
 import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchCanvasContextMenu from "./SketchCanvasContextMenu";
 import SketchToolbar from "./SketchToolbar";
+import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
 import { useSketchStore } from "./state";
@@ -61,7 +62,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     x: number;
     y: number;
   } | null>(null);
-  const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -109,12 +109,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const resetColors = useSketchStore((s) => s.resetColors);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
-  const setCanvasBackgroundColor = useSketchStore(
-    (s) => s.setCanvasBackgroundColor
-  );
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
-  const colorMode = useSketchStore((s) => s.colorMode);
-  const setColorMode = useSketchStore((s) => s.setColorMode);
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
@@ -543,81 +538,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     togglePanelsHidden
   });
 
-  // ─── Adjustment preview (auto-apply with snapshot) ──────────────
-  const handleAdjustmentPreview = useCallback(
-    (brightness: number, contrast: number, saturation: number) => {
-      if (!canvasRef.current) {
-        return;
-      }
-      const layerId = document.activeLayerId;
-      if (!layerId) {
-        return;
-      }
-
-      const allZero = brightness === 0 && contrast === 0 && saturation === 0;
-
-      if (allZero) {
-        // Restore original and clear base
-        if (adjustmentBaseRef.current !== null) {
-          canvasRef.current.restoreLayerCanvas(
-            layerId,
-            adjustmentBaseRef.current
-          );
-          const data = canvasRef.current.getLayerData(layerId);
-          updateLayerData(layerId, data);
-          adjustmentBaseRef.current = null;
-        }
-        return;
-      }
-
-      // Save base snapshot on first non-zero call
-      if (adjustmentBaseRef.current === null) {
-        adjustmentBaseRef.current =
-          canvasRef.current.snapshotLayerCanvas(layerId);
-        pushHistory("adjustments");
-      }
-
-      // Restore from base, then apply adjustments
-      if (adjustmentBaseRef.current) {
-        canvasRef.current.restoreLayerCanvas(
-          layerId,
-          adjustmentBaseRef.current
-        );
-      }
-      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
-      const data = canvasRef.current.getLayerData(layerId);
-      updateLayerData(layerId, data);
-    },
-    [pushHistory, document.activeLayerId, updateLayerData]
-  );
-
-  const handleResetAdjustments = useCallback(() => {
-    if (!canvasRef.current) {
-      return;
-    }
-    const layerId = document.activeLayerId;
-    if (!layerId) {
-      return;
-    }
-    if (adjustmentBaseRef.current !== null) {
-      canvasRef.current.restoreLayerCanvas(
-        layerId,
-        adjustmentBaseRef.current
-      );
-      const data = canvasRef.current.getLayerData(layerId);
-      updateLayerData(layerId, data);
-      adjustmentBaseRef.current = null;
-    }
-  }, [document.activeLayerId, updateLayerData]);
-
-  // ─── Background preset ─────────────────────────────────────────
-  const handleBackgroundPreset = useCallback(
-    (color: string) => {
-      setCanvasBackgroundColor(color);
-    },
-    [setCanvasBackgroundColor]
-  );
-
   // ─── Canvas resize ─────────────────────────────────────────────
   const handleCanvasResize = useCallback(
     (width: number, height: number) => {
@@ -672,80 +592,83 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       {!panelsHidden && (
         <SketchToolbar
           activeTool={activeTool}
-          brushSettings={toolSettings.brush}
-          pencilSettings={toolSettings.pencil}
-          eraserSettings={toolSettings.eraser}
-          shapeSettings={toolSettings.shape}
-          fillSettings={toolSettings.fill}
-          blurSettings={toolSettings.blur}
-          gradientSettings={toolSettings.gradient}
-          cloneStampSettings={toolSettings.cloneStamp}
-          zoom={zoom}
-          mirrorX={mirrorX}
-          mirrorY={mirrorY}
-          canUndo={canUndo()}
-          canRedo={canRedo()}
-          foregroundColor={safeForegroundColor}
-          backgroundColor={safeBackgroundColor}
           onToolChange={setActiveTool}
-          onBrushSettingsChange={setBrushSettings}
-          onPencilSettingsChange={setPencilSettings}
-          onEraserSettingsChange={setEraserSettings}
-          onShapeSettingsChange={setShapeSettings}
-          onFillSettingsChange={setFillSettings}
-          onBlurSettingsChange={setBlurSettings}
-          onGradientSettingsChange={setGradientSettings}
-          onCloneStampSettingsChange={setCloneStampSettings}
-          onMirrorXChange={setMirrorX}
-          onMirrorYChange={setMirrorY}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onZoomReset={handleZoomReset}
-          onClearLayer={handleClearLayer}
-          onExportPng={handleExportPng}
-          onFlipHorizontal={handleFlipHorizontal}
-          onFlipVertical={handleFlipVertical}
-          onMergeDown={handleMergeDown}
-          onFlattenVisible={handleFlattenVisible}
-          onForegroundColorChange={setForegroundColor}
-          onBackgroundColorChange={setBackgroundColor}
-          onSwapColors={swapColors}
-          onResetColors={resetColors}
-          onApplyAdjustments={handleAdjustmentPreview}
-          onResetAdjustments={handleResetAdjustments}
-          onBackgroundPreset={handleBackgroundPreset}
-          colorMode={colorMode}
-          onColorModeChange={setColorMode}
         />
       )}
 
-      <Box
-        className="sketch-editor__canvas-region"
-        sx={{ flex: 1, position: "relative", overflow: "hidden" }}
-      >
-        <SketchCanvas
-          ref={canvasRef}
-          className="sketch-editor__canvas"
-          document={document}
-          activeTool={activeTool}
-          zoom={zoom}
-          pan={pan}
-          mirrorX={mirrorX}
-          mirrorY={mirrorY}
-          isolatedLayerId={isolatedLayerId}
-          onZoomChange={setZoom}
-          onPanChange={setPan}
-          onStrokeStart={handleStrokeStart}
-          onStrokeEnd={handleStrokeEnd}
-          onBrushSizeChange={handleBrushSizeChange}
-          onContextMenu={handleContextMenu}
-          onCropComplete={handleCropComplete}
-          onEyedropperPick={handleEyedropperPick}
-          selection={selection}
-          onSelectionChange={setSelection}
-        />
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {!panelsHidden && (
+          <SketchToolTopBar
+            activeTool={activeTool}
+            brushSettings={toolSettings.brush}
+            pencilSettings={toolSettings.pencil}
+            eraserSettings={toolSettings.eraser}
+            shapeSettings={toolSettings.shape}
+            fillSettings={toolSettings.fill}
+            blurSettings={toolSettings.blur}
+            gradientSettings={toolSettings.gradient}
+            cloneStampSettings={toolSettings.cloneStamp}
+            zoom={zoom}
+            mirrorX={mirrorX}
+            mirrorY={mirrorY}
+            canUndo={canUndo()}
+            canRedo={canRedo()}
+            foregroundColor={safeForegroundColor}
+            backgroundColor={safeBackgroundColor}
+            onBrushSettingsChange={setBrushSettings}
+            onPencilSettingsChange={setPencilSettings}
+            onEraserSettingsChange={setEraserSettings}
+            onShapeSettingsChange={setShapeSettings}
+            onFillSettingsChange={setFillSettings}
+            onBlurSettingsChange={setBlurSettings}
+            onGradientSettingsChange={setGradientSettings}
+            onCloneStampSettingsChange={setCloneStampSettings}
+            onMirrorXChange={setMirrorX}
+            onMirrorYChange={setMirrorY}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onZoomReset={handleZoomReset}
+            onClearLayer={handleClearLayer}
+            onExportPng={handleExportPng}
+            onFlipHorizontal={handleFlipHorizontal}
+            onFlipVertical={handleFlipVertical}
+            onMergeDown={handleMergeDown}
+            onFlattenVisible={handleFlattenVisible}
+            onForegroundColorChange={setForegroundColor}
+            onBackgroundColorChange={setBackgroundColor}
+            onSwapColors={swapColors}
+            onResetColors={resetColors}
+          />
+        )}
+
+        <Box
+          className="sketch-editor__canvas-region"
+          sx={{ flex: 1, position: "relative", overflow: "hidden" }}
+        >
+          <SketchCanvas
+            ref={canvasRef}
+            className="sketch-editor__canvas"
+            document={document}
+            activeTool={activeTool}
+            zoom={zoom}
+            pan={pan}
+            mirrorX={mirrorX}
+            mirrorY={mirrorY}
+            isolatedLayerId={isolatedLayerId}
+            onZoomChange={setZoom}
+            onPanChange={setPan}
+            onStrokeStart={handleStrokeStart}
+            onStrokeEnd={handleStrokeEnd}
+            onBrushSizeChange={handleBrushSizeChange}
+            onContextMenu={handleContextMenu}
+            onCropComplete={handleCropComplete}
+            onEyedropperPick={handleEyedropperPick}
+            selection={selection}
+            onSelectionChange={setSelection}
+          />
+        </Box>
       </Box>
 
       {!panelsHidden && (
