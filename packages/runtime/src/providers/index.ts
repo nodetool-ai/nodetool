@@ -24,8 +24,11 @@ import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
+import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
+export { ClaudeAgentProvider };
+export type { OnToolCall } from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
@@ -113,3 +116,4 @@ registerBuiltinProvider("mistral", MistralProvider, {
 registerBuiltinProvider("replicate", ReplicateProvider, {
   REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"],
 });
+registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});

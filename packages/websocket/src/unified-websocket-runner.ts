@@ -1101,6 +1101,7 @@ export class UnifiedWebSocketRunner {
           messages: messagesToSend,
           model,
           tools: shouldIncludeTools && providerToolSchemas.length > 0 ? providerToolSchemas : undefined,
+          threadId,
         });
 
         // Phase 1: Stream chunks and collect tool calls
