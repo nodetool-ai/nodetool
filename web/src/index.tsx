@@ -104,6 +104,9 @@ const StandaloneMiniApp = React.lazy(
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
+const WorkflowGraphView = React.lazy(
+  () => import("./components/graph_view/WorkflowGraphView")
+);
 const TabsNodeEditor = React.lazy(
   () => import("./components/editor/TabsNodeEditor")
 );
@@ -386,6 +389,10 @@ function getRoutes() {
           <ModelListIndex />
         </ProtectedRoute>
       )
+    },
+    {
+      path: "graph/:workflowId",
+      element: <WorkflowGraphView />
     }
   ];
 
@@ -478,7 +485,7 @@ const AppWrapper = () => {
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest"].some((p) =>
+    ["/layouttest", "/chatmarkdowntest", "/graph"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 
