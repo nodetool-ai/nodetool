@@ -52,7 +52,7 @@ const App: React.FC = () => {
 
   const loadContentWithNoCaching = useCallback((initialURL: string) => {
     const timestamp = new Date().getTime();
-    window.location.href = `${initialURL}/index.html?nocache=${timestamp}`;
+    window.location.href = `${initialURL}/?nocache=${timestamp}`;
   }, []);
 
   const initializeApp = useCallback(async () => {
