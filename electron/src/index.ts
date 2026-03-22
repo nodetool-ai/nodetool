@@ -54,7 +54,7 @@ const simpleLogger = createSimpleLogger(logElement);
  */
 function loadContentWithNoCaching(initialURL: string): void {
   const timestamp = new Date().getTime();
-  window.location.href = `${initialURL}?nocache=${timestamp}`;
+  window.location.href = `${initialURL}/?nocache=${timestamp}`;
 }
 
 /**
