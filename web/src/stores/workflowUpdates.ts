@@ -206,11 +206,7 @@ export const handleUpdate = (
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
   const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
-  if (window.__UPDATES__ === undefined) {
-    window.__UPDATES__ = [];
-  }
-
-  window.__UPDATES__.push(data);
+  console.log("Received workflow update", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -305,11 +301,10 @@ export const handleUpdate = (
       workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_name,
-      content: `Output: ${
-        typeof update.value === "string"
+      content: `Output: ${typeof update.value === "string"
           ? update.value
           : JSON.stringify(update.value)
-      }`,
+        }`,
       severity: "info",
       timestamp: Date.now()
     });
@@ -468,6 +463,8 @@ export const handleUpdate = (
 
   if (data.type === "preview_update") {
     const preview = data as PreviewUpdate;
+    const currentPreview = useResultsStore.getState().getPreview(workflow.id, preview.node_id);
+    console.log("[workflowUpdates] preview_update", { nodeId: preview.node_id, value: preview.value, currentPreview, willAppend: currentPreview !== undefined });
     setPreview(workflow.id, preview.node_id, preview.value, true);
   }
 
