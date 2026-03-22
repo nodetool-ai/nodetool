@@ -20,9 +20,9 @@
 [ ] make brush sampling, interpolation, spacing, and pressure mapping explicit and deterministic.
 [ ] add first-class support for `reference`-style image-backed layers with source, crop, transform, and IO metadata.
 [ ] improve the round cursor drawing preview: always show correct size and rotation, etc.
-[ ] improve performance: there is a small stutter every time after drawing a stroke
-[ ] show transparency in layer previews - currently black instead of grid
-[ ] show a border around the canvas
+[x] improve performance: defer toDataURL encoding to next frame to eliminate stutter after each stroke
+[x] show transparency in layer previews — checkerboard pattern instead of black
+[x] show a border around the canvas — subtle white outline marks canvas boundaries
 [ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
 
 ---
@@ -50,7 +50,7 @@
 
 - [ ] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
 - [ ] Selection tools: add lasso and magic wand with Photoshop-style options.
-- [ ] Selection should stil be visible with other tools selected
+- [x] Selection should still be visible with other tools selected — overlay persists across tool switches and after shape/gradient/crop operations
 - [ ] Deselect with CTRL+D, allow to move selection, allow to add to and subtract from selection
 
 #### Color system

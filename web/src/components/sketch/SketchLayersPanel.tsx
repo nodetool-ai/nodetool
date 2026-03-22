@@ -166,7 +166,9 @@ const styles = (theme: Theme) =>
       height: "28px",
       borderRadius: "2px",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundImage:
+        "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
+      backgroundSize: "8px 8px",
       objectFit: "contain",
       flexShrink: 0,
       imageRendering: "pixelated" as const
