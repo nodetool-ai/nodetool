@@ -239,7 +239,7 @@ export const MessageView: React.FC<
             </div>
           );
         } else if (executionEventType === "log_update") {
-          const logContent = executionContent as any;
+          const logContent = executionContent as ExecutionEventContent | null;
           return (
             <div className="chat-message-list-item execution-event">
               <Box sx={{
@@ -285,7 +285,7 @@ export const MessageView: React.FC<
           </div>
         );
       } else if (executionEventType === "log_update") {
-        const logContent = executionContent as any;
+        const logContent = executionContent as ExecutionEventContent | null;
         return (
           <div className="chat-message-list-item execution-event">
             <Box sx={{

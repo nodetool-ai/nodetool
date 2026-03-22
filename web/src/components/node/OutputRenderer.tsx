@@ -700,12 +700,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 (c) => c.content_type === "audio"
               );
               if (audioChunks.length >= 2) {
-                const firstMeta = audioChunks[0].content_metadata as Record<string, any>;
+                const firstMeta = audioChunks[0].content_metadata;
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={firstMeta?.sample_rate || 22000}
-                    channels={firstMeta?.channels || 1}
+                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
+                    channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
               }

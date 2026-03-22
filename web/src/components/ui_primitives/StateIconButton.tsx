@@ -35,7 +35,7 @@
 
 import React, { memo, forwardRef, useCallback } from "react";
 import { IconButton, Tooltip, CircularProgress } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -112,7 +112,7 @@ export interface StateIconButtonProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Color variant for the button
    * @default "default"

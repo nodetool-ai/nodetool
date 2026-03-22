@@ -34,14 +34,13 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   const saveHeightToStorage = useMemo(
     () =>
-      debounce((height: any) => {
-        if (typeof height !== "number") {return;}
+      debounce(((height: number) => {
         try {
           localStorage.setItem(storageKey, height.toString());
         } catch {
           /* empty */
         }
-      }, 500),
+      }) as (...args: unknown[]) => void, 500),
     [storageKey]
   );
 
@@ -91,7 +90,7 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
   useEffect(() => {
     return () => {
       try {
-        (saveHeightToStorage as unknown as { cancel?: () => void }).cancel?.();
+        (saveHeightToStorage as { cancel?: () => void }).cancel?.();
       } catch {
         /* empty */
       }

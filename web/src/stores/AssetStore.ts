@@ -409,7 +409,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       let result: Asset[] = [];
       for (const node of nodes) {
         // Create a copy without children to return as a flat asset
-         
+
         const { children, ...asset } = node;
         result.push(asset);
         if (node.children && node.children.length > 0) {
