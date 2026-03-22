@@ -15,6 +15,7 @@ import SketchCanvas, { SketchCanvasRef } from "./SketchCanvas";
 import SketchCanvasContextMenu from "./SketchCanvasContextMenu";
 import SketchToolbar from "./SketchToolbar";
 import SketchLayersPanel from "./SketchLayersPanel";
+import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
 import { useSketchStore } from "./state";
 import {
   SketchDocument,
@@ -509,299 +510,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     }
   }, [pushHistory, flattenVisible, updateLayerData]);
 
-  // ─── Keyboard shortcuts ────────────────────────────────────────────
-  // Capture phase handler prevents shortcuts from reaching the node editor
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      // Prevent sketch shortcuts from bleeding to node editor
-      e.stopPropagation();
-
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === "z") {
-          e.preventDefault();
-          if (e.shiftKey) {
-            handleRedo();
-          } else {
-            handleUndo();
-          }
-        }
-        if (e.key === "y") {
-          e.preventDefault();
-          handleRedo();
-        }
-        if (e.key === "0") {
-          e.preventDefault();
-          handleZoomReset();
-        }
-        if (e.key === "1") {
-          e.preventDefault();
-          setZoom(1);
-        }
-        if (e.key === "s") {
-          e.preventDefault();
-          handleExportPng();
-        }
-        if (e.key === "a") {
-          e.preventDefault();
-          useSketchStore.getState().selectAll();
-        }
-        if (e.key === "d") {
-          e.preventDefault();
-          useSketchStore.getState().setSelection(null);
-        }
-        // Ctrl+Backspace → fill with background color (Photoshop convention)
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          handleFillLayerWithColor(useSketchStore.getState().backgroundColor);
-        }
-      } else if (e.altKey) {
-        // Alt+Backspace → fill with foreground color (Photoshop convention)
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          handleFillLayerWithColor(useSketchStore.getState().foregroundColor);
-        }
-      } else if (e.shiftKey) {
-        // Shift+M → toggle vertical mirror
-        if (e.key === "M") {
-          setMirrorY((prev) => !prev);
-        }
-        // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
-        if (e.key === "{") {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          if (tool === "brush") {
-            const newHardness = Math.max(
-              0,
-              store.document.toolSettings.brush.hardness - 0.1
-            );
-            setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
-          } else if (tool === "eraser") {
-            const newHardness = Math.max(
-              0,
-              store.document.toolSettings.eraser.hardness - 0.1
-            );
-            setEraserSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          }
-        } else if (e.key === "}") {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          if (tool === "brush") {
-            const newHardness = Math.min(
-              1,
-              store.document.toolSettings.brush.hardness + 0.1
-            );
-            setBrushSettings({ hardness: Math.round(newHardness * 100) / 100 });
-          } else if (tool === "eraser") {
-            const newHardness = Math.min(
-              1,
-              store.document.toolSettings.eraser.hardness + 0.1
-            );
-            setEraserSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          }
-        }
-      } else {
-        // Number keys 0-9 → set brush opacity (Photoshop convention)
-        // 1=10%, 2=20%, ..., 9=90%, 0=100%
-        if (/^[0-9]$/.test(e.key)) {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          const digit = parseInt(e.key, 10);
-          const opacity = digit === 0 ? 1 : digit / 10;
-          if (tool === "brush") {
-            setBrushSettings({ opacity });
-          } else if (tool === "pencil") {
-            setPencilSettings({ opacity });
-          } else if (tool === "eraser") {
-            setEraserSettings({ opacity });
-          }
-        } else {
-          switch (e.key) {
-            case "Escape":
-              useSketchStore.getState().setSelection(null);
-              break;
-            case "b":
-              setActiveTool("brush");
-              break;
-            case "p":
-              setActiveTool("pencil");
-              break;
-            case "e":
-              setActiveTool("eraser");
-              break;
-            case "i":
-              setActiveTool("eyedropper");
-              break;
-            case "g":
-              setActiveTool("fill");
-              break;
-            case "l":
-              setActiveTool("line");
-              break;
-            case "r":
-              setActiveTool("rectangle");
-              break;
-            case "o":
-              setActiveTool("ellipse");
-              break;
-            case "a":
-              setActiveTool("arrow");
-              break;
-            case "q":
-              setActiveTool("blur");
-              break;
-            case "t":
-              setActiveTool("gradient");
-              break;
-            case "c":
-              setActiveTool("crop");
-              break;
-            case "s":
-              setActiveTool("clone_stamp");
-              break;
-            case "m":
-              setMirrorX((prev) => !prev);
-              break;
-            case "v":
-              setActiveTool("move");
-              break;
-            case "x":
-              swapColors();
-              break;
-            case "d":
-              resetColors();
-              break;
-            case "Tab":
-              e.preventDefault();
-              togglePanelsHidden();
-              break;
-            case "[": {
-              const store = useSketchStore.getState();
-              const tool = store.activeTool;
-              if (tool === "brush") {
-                const newSize = Math.max(
-                  1,
-                  store.document.toolSettings.brush.size - 5
-                );
-                setBrushSettings({ size: newSize });
-              } else if (tool === "pencil") {
-                const newSize = Math.max(
-                  1,
-                  store.document.toolSettings.pencil.size - 1
-                );
-                setPencilSettings({ size: newSize });
-              } else if (tool === "eraser") {
-                const newSize = Math.max(
-                  1,
-                  store.document.toolSettings.eraser.size - 5
-                );
-                setEraserSettings({ size: newSize });
-              } else if (tool === "blur") {
-                const newSize = Math.max(
-                  1,
-                  store.document.toolSettings.blur.size - 5
-                );
-                setBlurSettings({ size: newSize });
-              } else if (tool === "clone_stamp") {
-                const newSize = Math.max(
-                  1,
-                  store.document.toolSettings.cloneStamp.size - 5
-                );
-                setCloneStampSettings({ size: newSize });
-              }
-              break;
-            }
-            case "]": {
-              const store = useSketchStore.getState();
-              const tool = store.activeTool;
-              if (tool === "brush") {
-                const newSize = Math.min(
-                  200,
-                  store.document.toolSettings.brush.size + 5
-                );
-                setBrushSettings({ size: newSize });
-              } else if (tool === "pencil") {
-                const newSize = Math.min(
-                  10,
-                  store.document.toolSettings.pencil.size + 1
-                );
-                setPencilSettings({ size: newSize });
-              } else if (tool === "eraser") {
-                const newSize = Math.min(
-                  200,
-                  store.document.toolSettings.eraser.size + 5
-                );
-                setEraserSettings({ size: newSize });
-              } else if (tool === "blur") {
-                const newSize = Math.min(
-                  200,
-                  store.document.toolSettings.blur.size + 5
-                );
-                setBlurSettings({ size: newSize });
-              } else if (tool === "clone_stamp") {
-                const newSize = Math.min(
-                  200,
-                  store.document.toolSettings.cloneStamp.size + 5
-                );
-                setCloneStampSettings({ size: newSize });
-              }
-              break;
-            }
-            case "=":
-            case "+":
-              handleZoomIn();
-              break;
-            case "-":
-              handleZoomOut();
-              break;
-            case "Delete":
-            case "Backspace":
-              handleClearLayer();
-              break;
-            case "ArrowUp": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              handleNudgeLayer(0, -amount);
-              break;
-            }
-            case "ArrowDown": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              handleNudgeLayer(0, amount);
-              break;
-            }
-            case "ArrowLeft": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              handleNudgeLayer(-amount, 0);
-              break;
-            }
-            case "ArrowRight": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              handleNudgeLayer(amount, 0);
-              break;
-            }
-          }
-        }
-      }
-    };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ─── Zoom handlers ─────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
   const handleZoomOut = useCallback(() => setZoom(zoom / 1.3), [zoom, setZoom]);
@@ -809,6 +517,31 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     setZoom(1);
     setPan({ x: 0, y: 0 });
   }, [setZoom, setPan]);
+
+  // ─── Keyboard shortcuts ────────────────────────────────────────────
+  useEditorKeyboardShortcuts({
+    handleUndo,
+    handleRedo,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomReset,
+    handleExportPng,
+    handleClearLayer,
+    handleFillLayerWithColor,
+    handleNudgeLayer,
+    setActiveTool,
+    setZoom,
+    setMirrorX,
+    setMirrorY,
+    setBrushSettings,
+    setPencilSettings,
+    setEraserSettings,
+    setBlurSettings,
+    setCloneStampSettings,
+    swapColors,
+    resetColors,
+    togglePanelsHidden
+  });
 
   // ─── Adjustment preview (auto-apply with snapshot) ──────────────
   const handleAdjustmentPreview = useCallback(
