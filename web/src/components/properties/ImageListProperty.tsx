@@ -14,6 +14,7 @@ import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import log from "loglevel";
 
 interface ImageItem {
@@ -40,7 +41,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       paddingTop: "100%", // 1:1 aspect ratio
-      backgroundColor: "rgba(0 0 0 / 0.2)",
+      ...alphaSurfaceBg,
       borderRadius: "6px",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
