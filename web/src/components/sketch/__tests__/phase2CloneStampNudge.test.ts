@@ -120,16 +120,12 @@ describe("Clone stamp store actions", () => {
   });
 
   it("should update metadata timestamp when changing clone stamp settings", () => {
-    const before = useSketchStore.getState().document.metadata.updatedAt;
-    // Small delay to ensure different timestamp
-    jest.useFakeTimers();
-    jest.advanceTimersByTime(100);
     useSketchStore.getState().setCloneStampSettings({ size: 50 });
     const after = useSketchStore.getState().document.metadata.updatedAt;
-    // The updatedAt should be a valid date string
+    // The updatedAt should be a valid ISO date string
     expect(typeof after).toBe("string");
     expect(after.length).toBeGreaterThan(0);
-    jest.useRealTimers();
+    expect(new Date(after).toISOString()).toBe(after);
   });
 });
 

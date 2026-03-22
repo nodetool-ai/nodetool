@@ -1035,7 +1035,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const srcPx = Math.round(sx - r);
           const srcPy = Math.round(sy - r);
 
-          // Bounds check
+          // Skip if source region is completely outside the canvas
+          // (partial overlaps are handled correctly by drawImage)
           if (
             srcPx + diameter < 0 || srcPx >= sourceCanvas.width ||
             srcPy + diameter < 0 || srcPy >= sourceCanvas.height
