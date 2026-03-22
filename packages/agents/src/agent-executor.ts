@@ -289,9 +289,13 @@ Safety and privacy:
     providerTools: ProviderTool[]
   ): AsyncGenerator<Chunk | ToolCall> {
     const finishTaskState: { args: FinishTaskArgs | null } = { args: null };
-    const getFinishTaskArgs = (): FinishTaskArgs | null => finishTaskState.args;
+    const getFinishTaskArgs = (): FinishTaskArgs | null =>
+      finishTaskState.args;
 
-    const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+    const onToolCall = async (
+      name: string,
+      args: Record<string, unknown>
+    ): Promise<string> => {
       if (name === "finish_task") {
         finishTaskState.args = args as FinishTaskArgs;
         return JSON.stringify({ status: "finished" });
