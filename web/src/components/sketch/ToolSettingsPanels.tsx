@@ -37,6 +37,9 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
+/** Reusable no-op function to avoid allocations in optional prop fallbacks. */
+const noop = () => {};
+
 /** Native color input returns #rrggbb; keep existing alpha from stored CSS color. */
 export function mergeHexPickerRgbPreserveAlpha(
   stored: string,
@@ -955,10 +958,10 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         brightness={adjustBrightness ?? 0}
         contrast={adjustContrast ?? 0}
         saturation={adjustSaturation ?? 0}
-        onBrightnessChange={onAdjustBrightnessChange ?? (() => {})}
-        onContrastChange={onAdjustContrastChange ?? (() => {})}
-        onSaturationChange={onAdjustSaturationChange ?? (() => {})}
-        onReset={onAdjustReset ?? (() => {})}
+        onBrightnessChange={onAdjustBrightnessChange ?? noop}
+        onContrastChange={onAdjustContrastChange ?? noop}
+        onSaturationChange={onAdjustSaturationChange ?? noop}
+        onReset={onAdjustReset ?? noop}
       />
     );
   }
