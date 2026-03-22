@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { getSecret } from "@nodetool/security";
 import { pack, unpack } from "msgpackr";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import {
   Graph,
   WorkflowRunner,
@@ -109,11 +107,7 @@ function formatSanitizedError(error: unknown): string {
 }
 
 function getAssetStoragePath(): string {
-  return (
-    process.env.ASSET_FOLDER ??
-    process.env.STORAGE_PATH ??
-    join(homedir(), ".local", "share", "nodetool", "assets")
-  );
+  return getDefaultAssetsPath();
 }
 
 function createRuntimeContext(opts: {

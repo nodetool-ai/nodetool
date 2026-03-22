@@ -9,10 +9,9 @@
 import Database from "better-sqlite3";
 import type { Database as DatabaseType } from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultVectorstoreDbPath } from "@nodetool/config";
 
 const log = createLogger("nodetool.vectorstore.sqlite-vec");
 
@@ -559,22 +558,10 @@ export class SqliteVecStore {
   readonly db: DatabaseType;
 
   constructor(dbPath?: string) {
-    const resolvedPath =
-      dbPath ??
-      process.env.VECTORSTORE_DB_PATH ??
-      join(
-        homedir(),
-        ".local",
-        "share",
-        "nodetool",
-        "vectorstore.db",
-      );
+    const resolvedPath = dbPath ?? getDefaultVectorstoreDbPath();
 
     // Ensure parent directory exists
-    const dir = resolvedPath.substring(0, resolvedPath.lastIndexOf("/"));
-    if (dir) {
-      mkdirSync(dir, { recursive: true });
-    }
+    mkdirSync(dirname(resolvedPath), { recursive: true });
 
     this.db = new Database(resolvedPath);
     this.db.pragma("journal_mode = WAL");

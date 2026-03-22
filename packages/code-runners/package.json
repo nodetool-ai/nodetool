@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool/config": "*",
     "dockerode": "^4.0.4"
   },
   "devDependencies": {

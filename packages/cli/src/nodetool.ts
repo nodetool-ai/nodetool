@@ -16,8 +16,7 @@
 import { program, Command } from "commander";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
-import { homedir } from "node:os";
+import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { workflowToDsl } from "@nodetool/dsl";
@@ -26,6 +25,7 @@ import {
   Workflow,
 } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
+import { getDefaultDbPath } from "@nodetool/config";
 import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
@@ -42,9 +42,8 @@ const __dirname = dirname(__filename);
 // ---------------------------------------------------------------------------
 
 async function setupDb(): Promise<void> {
-  const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
   try {
-    initDb(dbPath);
+    initDb(getDefaultDbPath());
   } catch {
     // fall back to env vars
   }

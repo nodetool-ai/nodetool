@@ -27,3 +27,10 @@ export {
   maskSecret,
   type DiagnosticResult,
 } from "./diagnostics.js";
+
+export {
+  getNodetoolDataDir,
+  getDefaultDbPath,
+  getDefaultVectorstoreDbPath,
+  getDefaultAssetsPath,
+} from "./paths.js";
