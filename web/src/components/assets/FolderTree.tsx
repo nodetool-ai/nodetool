@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
-import { Box, Button } from "@mui/material";
+import React, { useCallback, useMemo } from "react";
+import { Box } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
+import { type AssetTreeNode } from "../../stores/AssetStore";
+import { useFolderTree } from "../../serverState/useFolderTree";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -63,30 +65,21 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   sortBy = "name"
 }) => {
   const theme = useTheme();
-  const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
-  const [folderTree, setFolderTree] = useState<Record<string, AssetTreeNode>>(
-    {}
-  );
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  
+  // Fetch folder tree using useQuery
+  const { data: folderTree = {} } = useFolderTree(sortBy);
 
-  useEffect(() => {
-    const fetchFolderTree = async () => {
-      const tree = await loadFolderTree(sortBy);
-      setFolderTree(tree);
-      setExpandedItems(Object.keys(tree));
-    };
-    fetchFolderTree();
-  }, [loadFolderTree, sortBy]);
+  // Auto-expand all folders when tree data changes
+  const expandedItems = useMemo(() => Object.keys(folderTree), [folderTree]);
 
-  const renderTree = (node: AssetTreeNode): React.ReactNode => {
-    const handleOnSelect = (
-      event: React.MouseEvent,
-      node: AssetTreeNode
-    ) => {
+  const createTreeButtonClickHandler = useCallback((nodeId: string) => {
+    return (event: React.MouseEvent) => {
       event.stopPropagation();
-      onSelect(node.id);
+      onSelect(nodeId);
     };
+  }, [onSelect]);
 
+  const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     if (!node.id) {
       log.error("Node with undefined id found:", node);
       return null;
@@ -100,7 +93,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <Button onClick={(e) => handleOnSelect(e, node)}>&gt;</Button>
+            <EditorButton onClick={createTreeButtonClickHandler(node.id)} density="compact">{">"}</EditorButton>
           </div>
         }
       >
@@ -109,17 +102,22 @@ const FolderTree: React.FC<FolderTreeProps> = ({
           : null}
       </TreeItem>
     );
-  };
+  }, [createTreeButtonClickHandler]);
+
+  // Memoize the root folders list to avoid creating a new array on every render
+  const rootFolders = useMemo(() =>
+    Object.values(folderTree).filter((rootFolder) => rootFolder?.id),
+    [folderTree]
+  );
 
   return (
     <Box className="folder-tree" css={styles(theme)}>
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}
-        onExpandedItemsChange={(event, nodeIds) => setExpandedItems(nodeIds)}
       >
-        {Object.values(folderTree).map((rootFolder) =>
-          rootFolder.id ? renderTree(rootFolder) : null
+        {rootFolders.map((rootFolder) =>
+          rootFolder ? renderTree(rootFolder) : null
         )}
       </SimpleTreeView>
     </Box>

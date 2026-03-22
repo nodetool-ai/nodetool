@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import {
+  navigateToPage,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -7,8 +11,7 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("Dashboard", () => {
     test("should load dashboard page successfully", async ({ page }) => {
       // Navigate to dashboard
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
 
       // Verify we're on the dashboard
       await expect(page).toHaveURL(/\/dashboard/);
@@ -20,8 +23,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should display dashboard sections", async ({ page }) => {
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
 
       // Wait for dashboard content to load by checking body has content
       const body = await page.locator("body");
@@ -33,8 +35,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should allow navigation from dashboard", async ({ page }) => {
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
 
       // Check that we can navigate to other pages
       // This tests the left panel navigation
@@ -45,7 +46,7 @@ if (process.env.JEST_WORKER_ID) {
       const templatesLink = page.locator('a[href*="/templates"]');
       if (await templatesLink.count() > 0) {
         await templatesLink.first().click();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
         await expect(page).toHaveURL(/\/templates/);
       }
     });

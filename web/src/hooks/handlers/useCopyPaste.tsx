@@ -1,8 +1,4 @@
-/**
- * Custom hook that provides copy, cut, and paste functionality for nodes and edges in the flow editor.
- * Handles both single node and multi-node operations, preserves connections between copied nodes,
- * and supports both Electron clipboard API and localStorage fallback for data persistence.
- */
+/** Hook for copy/paste functionality of nodes and edges in the flow editor. */
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
@@ -12,17 +8,32 @@ import { NodeData } from "../../stores/NodeData";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { useClipboardContentPaste } from "./useClipboardContentPaste";
+import { isTextInputActive } from "../../utils/browser";
 
-const hasValidPosition = (position: any) =>
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface ClipboardData {
+  nodes: unknown[];
+  edges: unknown[];
+}
+
+const hasValidPosition = (position: unknown): position is Position =>
   !!position &&
-  typeof position.x === "number" &&
-  typeof position.y === "number";
+  typeof position === "object" &&
+  "x" in position &&
+  "y" in position &&
+  typeof (position as Position).x === "number" &&
+  typeof (position as Position).y === "number";
 
-const isValidNode = (node: any): node is Node<NodeData> =>
-  !!node && typeof node.id === "string" && hasValidPosition(node.position);
+const isValidNode = (node: unknown): node is Node<NodeData> =>
+  !!node && typeof node === "object" && "id" in node && typeof (node as Node<NodeData>).id === "string" && "position" in node && hasValidPosition((node as Node<NodeData>).position);
 
-const isValidEdge = (edge: any): edge is Edge =>
-  !!edge && typeof edge.source === "string" && typeof edge.target === "string";
+const isValidEdge = (edge: unknown): edge is Edge =>
+  !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
@@ -44,6 +55,9 @@ export const useCopyPaste = () => {
     })
   );
 
+  const { handleContentPaste, readClipboardContent, readClipboardText } =
+    useClipboardContentPaste();
+
   const selectedNodes = useMemo(() => {
     return nodes.filter((node) => node.selected);
   }, [nodes]);
@@ -52,7 +66,7 @@ export const useCopyPaste = () => {
     async (nodeId?: string) => {
       let nodesToCopy: Node[];
       if (nodeId && nodeId !== "") {
-        const node = nodes.find((node: any) => node.id === nodeId);
+        const node = nodes.find((node) => node.id === nodeId);
         nodesToCopy = node ? [node] : [];
       } else {
         nodesToCopy = selectedNodes;
@@ -71,11 +85,15 @@ export const useCopyPaste = () => {
         edges: connectedEdges
       });
 
-      // Use Electron's clipboard API if available, otherwise fallback to localStorage
-      if (window.api?.clipboardWriteText) {
-        await window.api.clipboardWriteText(serializedData);
-      } else {
-        localStorage.setItem("copiedNodesData", serializedData);
+      // Use Electron's clipboard API if available, otherwise fallback to browser clipboard API
+      if (window.api?.clipboard?.writeText) {
+        await window.api.clipboard.writeText(serializedData);
+      } else if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(serializedData);
+        } catch (error) {
+          log.debug("Browser clipboard write failed:", error);
+        }
       }
 
       // Let UI know we have valid node data available for paste
@@ -113,63 +131,87 @@ export const useCopyPaste = () => {
   );
 
   const handlePaste = useCallback(async () => {
-    let clipboardData: string | null = null;
+    // Skip paste handling if user is typing in a text field (should use native paste instead)
+    if (isTextInputActive()) {
+      return;
+    }
 
-    // Try to get data from Electron's clipboard first, then fallback to localStorage
-    if (window.api?.clipboardReadText) {
+    // 1. Check plain text clipboard for valid node JSON first.
+    //    This must happen before readClipboardContent() because that function
+    //    prioritizes image/HTML formats which can intercept node JSON text
+    //    (e.g. some environments wrap clipboard text in HTML tags).
+    let clipboardData: string | null = null;
+    const clipboardText = await readClipboardText();
+    if (clipboardText) {
       try {
-        clipboardData = await window.api.clipboardReadText();
-      } catch (error) {
-        console.warn("Failed to read from Electron clipboard:", error);
+        const parsed = JSON.parse(clipboardText);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          "nodes" in parsed &&
+          "edges" in parsed &&
+          Array.isArray((parsed as ClipboardData).nodes) &&
+          Array.isArray((parsed as ClipboardData).edges) &&
+          (parsed as ClipboardData).nodes.every(isValidNode) &&
+          (parsed as ClipboardData).edges.every(isValidEdge)
+        ) {
+          clipboardData = clipboardText;
+        }
+      } catch {
+        // Not JSON, continue to other checks
       }
     }
 
+    // 2. If clipboard text is not valid node data, check for images/files/other content
     if (!clipboardData) {
-      clipboardData = localStorage.getItem("copiedNodesData");
-    }
+      const clipboardContent = await readClipboardContent();
 
-    if (!clipboardData) {
-      console.warn("No valid data found in clipboard or localStorage");
+      if (
+        clipboardContent.type === "image" ||
+        clipboardContent.type === "file"
+      ) {
+        await handleContentPaste();
+        return;
+      }
+
+      // For text/HTML/RTF types that aren't node JSON, handle as content paste
+      if (
+        clipboardContent.type === "text" ||
+        clipboardContent.type === "html" ||
+        clipboardContent.type === "rtf"
+      ) {
+        await handleContentPaste();
+        return;
+      }
+
+      // No valid clipboard content found
+      log.debug("No valid data found in clipboard");
       return;
     }
 
     let parsedData: unknown;
     try {
       parsedData = JSON.parse(clipboardData);
-    } catch (error) {
-      log.warn("Failed to parse clipboard data", error);
-      setIsClipboardValid(false);
+    } catch {
       return;
     }
 
     if (
       !parsedData ||
       typeof parsedData !== "object" ||
-      !Array.isArray((parsedData as any).nodes) ||
-      !Array.isArray((parsedData as any).edges) ||
-      !(parsedData as any).nodes.every(isValidNode) ||
-      !(parsedData as any).edges.every(isValidEdge)
+      !("nodes" in parsedData) ||
+      !("edges" in parsedData) ||
+      !Array.isArray((parsedData as ClipboardData).nodes) ||
+      !Array.isArray((parsedData as ClipboardData).edges) ||
+      !(parsedData as ClipboardData).nodes.every(isValidNode) ||
+      !(parsedData as ClipboardData).edges.every(isValidEdge)
     ) {
-      log.warn("Clipboard data does not contain valid nodes/edges");
-      setIsClipboardValid(false);
       return;
     }
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
       log.warn("Mouse position not available");
-      return;
-    }
-
-    // Check if the active element is a text input (should use native paste instead)
-    const activeElement = document.activeElement;
-    const isTextInput =
-      activeElement instanceof HTMLInputElement ||
-      activeElement instanceof HTMLTextAreaElement ||
-      (activeElement as HTMLElement)?.isContentEditable;
-
-    // Skip node paste if user is typing in a text field
-    if (isTextInput) {
       return;
     }
 
@@ -230,16 +272,16 @@ export const useCopyPaste = () => {
           workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
-                x: positionAbsolute.x + offset.x,
-                y: positionAbsolute.y + offset.y
-              }
+              x: positionAbsolute.x + offset.x,
+              y: positionAbsolute.y + offset.y
+            }
             : undefined
         },
         position: {
           x: node.position.x + (newParentId ? 0 : offset.x),
           y: node.position.y + (newParentId ? 0 : offset.y)
         },
-        selected: false
+        selected: true // Select pasted nodes
       };
 
       newNodes.push(newNode);
@@ -255,14 +297,25 @@ export const useCopyPaste = () => {
           ...edge,
           id: uuidv4(), // Edge IDs can still be UUIDs
           source: newSource,
-          target: newTarget
+          target: newTarget,
+          selected: false // Edges should not be selected
         });
       }
     });
 
+    // Deselect existing nodes, then add the new selected nodes
+    const deselectedNodes = nodes.map((node) => ({
+      ...node,
+      selected: false
+    }));
+    const deselectedEdges = edges.map((edge) => ({
+      ...edge,
+      selected: false
+    }));
+
     // Update state
-    setNodes([...nodes, ...newNodes]);
-    setEdges([...edges, ...newEdges]);
+    setNodes([...deselectedNodes, ...newNodes]);
+    setEdges([...deselectedEdges, ...newEdges]);
   }, [
     generateNodeIds,
     reactFlow,
@@ -270,8 +323,11 @@ export const useCopyPaste = () => {
     edges,
     setNodes,
     setEdges,
-    setIsClipboardValid,
-    workflowId
+
+    workflowId,
+    handleContentPaste,
+    readClipboardContent,
+    readClipboardText
   ]);
 
   return { handleCopy, handleCut, handlePaste };

@@ -10,16 +10,15 @@ import {
   DialogActions,
   Button,
   MenuItem,
-  Typography,
   IconButton
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { validateIdentifierName } from "../../utils/identifierValidation";
 
 interface NodePropertyFormProps {
   id: string;
@@ -37,7 +36,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   supportsDynamicOutputs,
   dynamicOutputs,
   onAddProperty,
-  nodeType
+  nodeType: _nodeType
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
@@ -46,9 +45,18 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const [newOutputType, setNewOutputType] = useState("string");
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
+  const [inputNameError, setInputNameError] = useState<string | undefined>();
+  const [outputNameError, setOutputNameError] = useState<string | undefined>();
+
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
-    if (!name) {return;}
+    const validation = validateIdentifierName(name);
+
+    if (!validation.isValid) {
+      setOutputNameError(validation.error);
+      return;
+    }
+
     handleAddOutput(name, {
       type: newOutputType,
       type_args: [],
@@ -56,8 +64,40 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     });
     setNewOutputName("");
     setNewOutputType("string");
+    setOutputNameError(undefined);
     setShowOutputDialog(false);
   }, [newOutputName, newOutputType, handleAddOutput]);
+
+  const handleShowInputDialog = useCallback(() => {
+    setShowInputDialog(true);
+  }, []);
+
+  const handleHideInputDialog = useCallback(() => {
+    setShowInputDialog(false);
+  }, []);
+
+  const handleShowOutputDialog = useCallback(() => {
+    setShowOutputDialog(true);
+  }, []);
+
+  const handleHideOutputDialog = useCallback(() => {
+    setShowOutputDialog(false);
+  }, []);
+
+  const handleAddInputProperty = useCallback(() => {
+    const name = newInputName.trim();
+    const validation = validateIdentifierName(name);
+
+    if (!validation.isValid) {
+      setInputNameError(validation.error);
+      return;
+    }
+
+    onAddProperty(name);
+    setNewInputName("");
+    setInputNameError(undefined);
+    setShowInputDialog(false);
+  }, [newInputName, onAddProperty]);
 
   // Dynamic property creation is handled by dropping a connection onto the node
 
@@ -82,7 +122,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           })}
         >
           <Tooltip title="Add input">
-            <IconButton size="small" onClick={() => setShowInputDialog(true)}>
+            <IconButton size="small" onClick={handleShowInputDialog}>
               <Add fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -103,78 +143,19 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               top: 0
             })}
           >
-            {nodeType === "nodetool.agents.Agent" ? (
-              <Tooltip
-                title="Connect any node to this handle to use it as a tool. The agent will be able to call the connected node during execution."
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                placement="top"
+            <Tooltip title="Add output">
+              <IconButton
+                size="small"
+                onClick={handleShowOutputDialog}
               >
-                <Box
-                  component="button"
-                  onClick={() => setShowOutputDialog(true)}
-                  css={css({
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "4px 8px",
-                    marginRight: "8px",
-                    fontSize: theme.vars.fontSizeTiny,
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                    borderRadius: "4px",
-                    background: `linear-gradient(135deg, ${alpha(
-                      theme.palette.primary.main,
-                      0.15
-                    )}, ${alpha(theme.palette.primary.dark, 0.1)})`,
-                    color: theme.vars.palette.primary.main,
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.4
-                    )}`,
-                    letterSpacing: "0.02em",
-                    textTransform: "uppercase",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    outline: "none",
-                    "&:hover": {
-                      background: `linear-gradient(135deg, ${alpha(
-                        theme.palette.primary.main,
-                        0.25
-                      )}, ${alpha(theme.palette.primary.dark, 0.15)})`,
-                      borderColor: theme.vars.palette.primary.main,
-                      transform: "translateY(-1px)",
-                      boxShadow: `0 2px 4px ${alpha(
-                        theme.palette.primary.main,
-                        0.2
-                      )}`
-                    },
-                    "&:active": {
-                      transform: "translateY(0)"
-                    },
-                    "& svg": {
-                      fontSize: "14px"
-                    }
-                  })}
-                >
-                  <Add fontSize="small" />
-                  <span>Tools</span>
-                </Box>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Add output">
-                <IconButton
-                  size="small"
-                  onClick={() => setShowOutputDialog(true)}
-                >
-                  <Add fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
+                <Add fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           <Dialog
             open={showOutputDialog}
-            onClose={() => setShowOutputDialog(false)}
+            onClose={handleHideOutputDialog}
             maxWidth="xs"
             fullWidth
           >
@@ -186,10 +167,19 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                   label="Name"
                   size="small"
                   value={newOutputName}
-                  onChange={(e) => setNewOutputName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {onSubmitAdd();}
+                  onChange={(e) => {
+                    setNewOutputName(e.target.value);
+                    if (outputNameError) {
+                      setOutputNameError(undefined);
+                    }
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { onSubmitAdd(); }
+                  }}
+                  error={!!outputNameError}
+                  helperText={
+                    outputNameError || "Cannot start with a number"
+                  }
                   sx={{ flex: 1 }}
                 />
                 <TextField
@@ -215,7 +205,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             </DialogContent>
             <DialogActions>
               <Button
-                onClick={() => setShowOutputDialog(false)}
+                onClick={handleHideOutputDialog}
                 variant="text"
                 size="small"
               >
@@ -231,7 +221,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 
       <Dialog
         open={showInputDialog}
-        onClose={() => setShowInputDialog(false)}
+        onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
         sx={{
@@ -249,36 +239,44 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               label="Name"
               size="small"
               value={newInputName}
-              onChange={(e) => setNewInputName(e.target.value)}
+              onChange={(e) => {
+                setNewInputName(e.target.value);
+                if (inputNameError) {
+                  setInputNameError(undefined);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const name = newInputName.trim();
-                  if (!name) {return;}
+                  const validation = validateIdentifierName(name);
+
+                  if (!validation.isValid) {
+                    setInputNameError(validation.error);
+                    return;
+                  }
+
                   onAddProperty(name);
                   setNewInputName("");
+                  setInputNameError(undefined);
                   setShowInputDialog(false);
                 }
               }}
+              error={!!inputNameError}
+              helperText={inputNameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setShowInputDialog(false)}
+            onClick={handleHideInputDialog}
             variant="text"
             size="small"
           >
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              const name = newInputName.trim();
-              if (!name) {return;}
-              onAddProperty(name);
-              setNewInputName("");
-              setShowInputDialog(false);
-            }}
+            onClick={handleAddInputProperty}
             variant="contained"
             size="small"
           >

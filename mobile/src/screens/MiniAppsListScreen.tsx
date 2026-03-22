@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,23 +28,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    initializeAndLoadWorkflows();
-  }, []);
-
-  const initializeAndLoadWorkflows = async () => {
-    try {
-      setIsLoading(true);
-      await apiService.loadApiHost();
-      console.log('API Host loaded:', apiService.getApiHost());
-      await loadWorkflows();
-    } catch (error) {
-      console.error('Failed to initialize:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const loadWorkflows = async () => {
+  const loadWorkflows = useCallback(async () => {
     try {
       const data = await apiService.getWorkflows();
       console.log('Workflows loaded:', data);
@@ -64,7 +48,23 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigation]);
+
+  const initializeAndLoadWorkflows = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      await apiService.loadApiHost();
+      console.log('API Host loaded:', apiService.getApiHost());
+      await loadWorkflows();
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+      setIsLoading(false);
+    }
+  }, [loadWorkflows]);
+
+  useEffect(() => {
+    initializeAndLoadWorkflows();
+  }, [initializeAndLoadWorkflows]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

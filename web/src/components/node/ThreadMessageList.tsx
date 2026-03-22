@@ -181,7 +181,7 @@ const MessageView = (msg: Message) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <img key={c.image?.uri} src={c.image?.uri} alt="" />;
+            return <img key={c.image?.uri} src={c.image?.uri} alt="" draggable={false} />;
           } else {
             return <></>;
           }

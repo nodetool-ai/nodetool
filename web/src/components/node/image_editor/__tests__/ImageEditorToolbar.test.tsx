@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 // Mock theme
 jest.mock("@mui/material/styles", () => ({
@@ -50,11 +50,13 @@ jest.mock("../../../../stores/KeyPressedStore", () => ({
 }));
 
 import ImageEditorToolbar from "../ImageEditorToolbar";
-import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS } from "../types";
+import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS, DEFAULT_SHAPE_SETTINGS, DEFAULT_TEXT_SETTINGS } from "../types";
 
 describe("ImageEditorToolbar", () => {
   const mockOnToolChange = jest.fn();
   const mockOnBrushSettingsChange = jest.fn();
+  const mockOnShapeSettingsChange = jest.fn();
+  const mockOnTextSettingsChange = jest.fn();
   const mockOnAdjustmentsChange = jest.fn();
   const mockOnAction = jest.fn();
   const mockOnZoomChange = jest.fn();
@@ -64,6 +66,8 @@ describe("ImageEditorToolbar", () => {
   const defaultProps = {
     tool: "select" as const,
     brushSettings: DEFAULT_BRUSH_SETTINGS,
+    shapeSettings: DEFAULT_SHAPE_SETTINGS,
+    textSettings: DEFAULT_TEXT_SETTINGS,
     adjustments: DEFAULT_ADJUSTMENTS,
     zoom: 1,
     isCropping: false,
@@ -71,6 +75,8 @@ describe("ImageEditorToolbar", () => {
     canRedo: false,
     onToolChange: mockOnToolChange,
     onBrushSettingsChange: mockOnBrushSettingsChange,
+    onShapeSettingsChange: mockOnShapeSettingsChange,
+    onTextSettingsChange: mockOnTextSettingsChange,
     onAdjustmentsChange: mockOnAdjustmentsChange,
     onAction: mockOnAction,
     onZoomChange: mockOnZoomChange,
@@ -125,5 +131,46 @@ describe("ImageEditorToolbar", () => {
   it("displays zoom percentage correctly", () => {
     render(<ImageEditorToolbar {...defaultProps} zoom={1.5} />);
     expect(screen.getByText("150%")).toBeInTheDocument();
+  });
+
+  it("shows fill settings when fill tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="fill" />);
+    expect(screen.getByText("Fill Settings")).toBeInTheDocument();
+  });
+
+  it("shows shape settings when rectangle tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="rectangle" />);
+    expect(screen.getByText("Shape Settings")).toBeInTheDocument();
+    expect(screen.getByText("Stroke Width")).toBeInTheDocument();
+    expect(screen.getByText("Filled")).toBeInTheDocument();
+  });
+
+  it("shows shape settings when ellipse tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="ellipse" />);
+    expect(screen.getByText("Shape Settings")).toBeInTheDocument();
+    expect(screen.getByText("Stroke Width")).toBeInTheDocument();
+    expect(screen.getByText("Filled")).toBeInTheDocument();
+  });
+
+  it("shows shape settings without filled option when line tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="line" />);
+    expect(screen.getByText("Shape Settings")).toBeInTheDocument();
+    expect(screen.getByText("Stroke Width")).toBeInTheDocument();
+    expect(screen.queryByText("Filled")).not.toBeInTheDocument();
+  });
+
+  it("shows shape settings without filled option when arrow tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="arrow" />);
+    expect(screen.getByText("Shape Settings")).toBeInTheDocument();
+    expect(screen.getByText("Stroke Width")).toBeInTheDocument();
+    expect(screen.queryByText("Filled")).not.toBeInTheDocument();
+  });
+
+  it("shows text settings when text tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="text" />);
+    expect(screen.getByText("Text Settings")).toBeInTheDocument();
+    expect(screen.getByText("Font Size")).toBeInTheDocument();
+    expect(screen.getByText("Bold")).toBeInTheDocument();
+    expect(screen.getByText("Italic")).toBeInTheDocument();
   });
 });

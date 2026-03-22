@@ -4,7 +4,8 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useState
+  useState,
+  useCallback
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -16,7 +17,8 @@ import useGlobalChatStore, {
 } from "../../../stores/GlobalChatStore";
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import log from "loglevel";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -25,12 +27,20 @@ import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+  
+  // Consolidated Zustand store subscriptions to reduce re-renders
+  // Combine multiple subscriptions into single selectors to prevent re-renders
+  // when any individual value changes
   const {
+    // Connection
+    connect,
+    disconnect,
     status,
     sendMessage,
     progress,
     statusMessage,
     error,
+    // Thread management
     currentThreadId,
     threads,
     getCurrentMessagesSync,
@@ -38,32 +48,103 @@ const StandaloneChat: React.FC = () => {
     switchThread,
     fetchThread,
     stopGeneration,
+    threadsLoaded,
+    // Agent mode
     agentMode,
     setAgentMode,
+    // Task updates
     currentPlanningUpdate,
     currentTaskUpdate,
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread,
     currentLogUpdate,
-    threadsLoaded
-  } = useGlobalChatStore();
-  const runningToolCallId = useGlobalChatStore(
-    (s) => s.currentRunningToolCallId
+    // Tool execution
+    runningToolCallId,
+    runningToolMessage,
+    // Model and tools
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    setSelectedTools,
+    selectedCollections,
+    setSelectedCollections,
+  } = useGlobalChatStore(
+    useCallback(
+      (state) => ({
+        // Connection
+        connect: state.connect,
+        disconnect: state.disconnect,
+        status: state.status,
+        sendMessage: state.sendMessage,
+        progress: state.progress,
+        statusMessage: state.statusMessage,
+        error: state.error,
+        // Thread management
+        currentThreadId: state.currentThreadId,
+        threads: state.threads,
+        getCurrentMessagesSync: state.getCurrentMessagesSync,
+        createNewThread: state.createNewThread,
+        switchThread: state.switchThread,
+        fetchThread: state.fetchThread,
+        stopGeneration: state.stopGeneration,
+        threadsLoaded: state.threadsLoaded,
+        // Agent mode
+        agentMode: state.agentMode,
+        setAgentMode: state.setAgentMode,
+        // Task updates
+        currentPlanningUpdate: state.currentPlanningUpdate,
+        currentTaskUpdate: state.currentTaskUpdate,
+        currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
+        lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
+        currentLogUpdate: state.currentLogUpdate,
+        // Tool execution
+        runningToolCallId: state.currentRunningToolCallId,
+        runningToolMessage: state.currentToolMessage,
+        // Model and tools
+        selectedModel: state.selectedModel,
+        setSelectedModel: state.setSelectedModel,
+        selectedTools: state.selectedTools,
+        setSelectedTools: state.setSelectedTools,
+        selectedCollections: state.selectedCollections,
+        setSelectedCollections: state.setSelectedCollections,
+      }),
+      []
+    )
   );
-  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+
+  // Get connection state from WebSocket manager directly
+  const [connectionState, setConnectionState] = React.useState(
+    globalWebSocketManager.getConnectionState()
+  );
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      () => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  // Initialize GlobalChatStore connection on mount
+  useEffect(() => {
+    connect().catch((err) => {
+      log.error("Failed to connect GlobalChatStore:", err);
+    });
+
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        log.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
-
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const theme = useTheme();
   const [alertDismissed, setAlertDismissed] = useState(false);
 
@@ -96,9 +177,6 @@ const StandaloneChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while StandaloneChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -155,7 +233,7 @@ const StandaloneChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          console.error("Failed to handle thread logic:", error);
+          log.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -184,9 +262,12 @@ const StandaloneChat: React.FC = () => {
   useEffect(() => {
     if (!isMobile) {return;}
 
+    let viewportTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
-      setTimeout(() => {
+      if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
+      viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
           const chatArea = chatContainerRef.current.querySelector(
             ".chat-thread-container"
@@ -206,35 +287,37 @@ const StandaloneChat: React.FC = () => {
     };
 
     // Use Visual Viewport API for better keyboard handling
-    if ((window as any).visualViewport) {
-      (window as any).visualViewport.addEventListener(
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener(
         "resize",
         handleViewportChange
       );
       return () => {
-        (window as any).visualViewport.removeEventListener(
+        vv.removeEventListener(
           "resize",
           handleViewportChange
         );
+        if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       };
     }
   }, [isMobile]);
 
   // Map status to ChatView compatible status
-  const getChatViewStatus = () => {
+  const getChatViewStatus = useCallback(() => {
     if (status === "stopping") {return "loading";}
     return status;
-  };
+  }, [status]);
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
       const newThreadId = await createNewThread();
       switchThread(newThreadId);
       navigate(`/standalone-chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
-  };
+  }, [createNewThread, switchThread, navigate]);
 
   const mainAreaStyles = (_theme: Theme) =>
     css({
@@ -324,41 +407,25 @@ const StandaloneChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
-            <Alert
-              className="standalone-chat-status-alert"
-              severity={
-                status === "reconnecting"
-                  ? "info"
-                  : status === "disconnected"
-                  ? "warning"
-                  : "error"
-              }
-              onClose={() => setAlertDismissed(true)}
-              sx={{
-                position: "absolute",
-                top: "2rem",
-                left: "50%",
-                transform: "translateX(-50%)",
-                maxWidth: "600px",
-                width: "100%",
-                zIndex: 1001,
-                flexShrink: 0
-              }}
-            >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
-                : error}
-            </Alert>
-          )}
+        {!alertDismissed && error && (
+          <Alert
+            className="standalone-chat-status-alert"
+            severity="error"
+            onClose={() => setAlertDismissed(true)}
+            sx={{
+              position: "absolute",
+              top: "2rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
+              zIndex: 1001,
+              flexShrink: 0
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
         {/* Controls row */}
         <Box
@@ -371,6 +438,34 @@ const StandaloneChat: React.FC = () => {
             pt: 2
           }}
         >
+          {connectionState.isConnecting && (
+            <Box
+              role="status"
+              aria-live="polite"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                py: 0.5,
+                px: 1,
+                borderRadius: "999px",
+                backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`,
+                color: theme.vars.palette.info.main
+              }}
+            >
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: "currentColor"
+                }}
+              />
+              <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                {statusMessage || "Connecting"}
+              </Typography>
+            </Box>
+          )}
           <NewChatButton onNewThread={handleNewChat} />
         </Box>
 

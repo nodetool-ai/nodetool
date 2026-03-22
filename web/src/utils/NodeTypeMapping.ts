@@ -4,7 +4,13 @@ import { TypeName } from "../stores/ApiTypes";
  * Maps content types (MIME types) to internal node types
  */
 export const contentTypeToNodeType = (contentType: string): TypeName | null => {
-  switch (contentType) {
+  const normalizedContentType = contentType.toLowerCase().split(";")[0].trim();
+
+  if (normalizedContentType.startsWith("model/")) {
+    return "model_3d";
+  }
+
+  switch (normalizedContentType) {
     case "application/json":
     case "text/plain":
     case "text/html":
@@ -99,6 +105,8 @@ export const inputForType = (type: TypeName) => {
       return "nodetool.input.AudioInput";
     case "document":
       return "nodetool.input.DocumentInput";
+    case "model_3d":
+      return "nodetool.input.Model3DInput";
     default:
       return null;
   }
@@ -107,7 +115,7 @@ export const inputForType = (type: TypeName) => {
 /**
  * Maps internal types to output node type (generic Output node handles all types)
  */
-export const outputForType = (type: TypeName) => {
+export const outputForType = (_type: TypeName) => {
   return "nodetool.output.Output";
 };
 
@@ -134,6 +142,8 @@ export const constantToInputType = (constantType: string): string | null => {
       return "nodetool.input.DocumentInput";
     case "nodetool.constant.DataFrame":
       return "nodetool.input.DataFrameInput";
+    case "nodetool.constant.Model3D":
+      return "nodetool.input.Model3DInput";
     default:
       return null;
   }
@@ -162,6 +172,8 @@ export const inputToConstantType = (inputType: string): string | null => {
       return "nodetool.constant.Document";
     case "nodetool.input.DataFrameInput":
       return "nodetool.constant.DataFrame";
+    case "nodetool.input.Model3DInput":
+      return "nodetool.constant.Model3D";
     default:
       return null;
   }
@@ -196,6 +208,8 @@ export const constantForType = (type: TypeName) => {
       return "nodetool.input.Folder";
     case "document":
       return "nodetool.constant.Document";
+    case "model_3d":
+      return "nodetool.constant.Model3D";
     default:
       return null;
   }

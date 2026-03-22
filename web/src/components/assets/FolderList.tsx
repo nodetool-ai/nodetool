@@ -7,7 +7,7 @@ import {
   Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo, useMemo } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -167,13 +167,13 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     new Set()
   );
 
-  const handleSelect = (folder: Asset | RootFolder) => {
+  const handleSelect = useCallback((folder: Asset | RootFolder) => {
     if ((folder as Asset).user_id !== undefined) {
       navigateToFolder(folder as Asset);
     } else {
       navigateToFolderId(folder.id);
     }
-  };
+  }, [navigateToFolder, navigateToFolderId]);
 
   interface FolderNode extends Asset {
     children?: FolderNode[];
@@ -186,15 +186,16 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     children: FolderNode[];
   };
 
-  const hasChildNodes = (
-    folder: FolderNode | RootFolder
-  ): folder is FolderNode & { children: FolderNode[] } => {
-    return (
-      "children" in folder &&
-      Array.isArray(folder.children) &&
-      folder.children.length > 0
-    );
-  };
+  const hasChildNodes = useCallback(
+    (folder: FolderNode | RootFolder): folder is FolderNode & { children: FolderNode[] } => {
+      return (
+        "children" in folder &&
+        Array.isArray(folder.children) &&
+        folder.children.length > 0
+      );
+    },
+    []
+  );
 
   const handleRowDoubleClick = useCallback(
     (folderId: string, isRoot: boolean) => {
@@ -212,116 +213,135 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     []
   );
 
-  const renderFolder = (
-    folder: FolderNode | RootFolder,
-    level = 0,
-    isRoot = false
-  ) => {
-    if (!folder || !folder.id) {return null;}
-    const hasChildren = hasChildNodes(folder);
+  const handleExpandFolder = useCallback((folderId: string) => {
+    setExpandedFolderIds((previousExpandedIds) => {
+      const nextExpandedIds = new Set(previousExpandedIds);
+      if (nextExpandedIds.has(folderId)) {
+        nextExpandedIds.delete(folderId);
+      } else {
+        nextExpandedIds.add(folderId);
+      }
+      return nextExpandedIds;
+    });
+  }, []);
 
-    return hasChildren ? (
-      // Folder with children
-      <Accordion
-        slotProps={{ heading: { component: "div" } }}
-        className={"accordion " + (isRoot ? "root-folder" : "")}
-        key={folder.id}
-        sx={{
-          marginTop: "0 !important",
-          marginBottom: "0 !important"
-        }}
-        /* Keep root expanded; disable single-click toggle by controlling expanded */
-        expanded={isRoot ? true : expandedFolderIds.has(folder.id)}
-        onChange={() => {
-          /* no-op: only double-click toggles */
-        }}
-      >
-        <AccordionSummary
-          className="accordion-summary"
+  const handleFolderSelect = useCallback((folder: Asset | RootFolder) => {
+    handleSelect(folder);
+  }, [handleSelect]);
+
+  const handleFolderClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const noop = useCallback(() => {
+    /* no-op */
+  }, []);
+
+  const renderFolder = useCallback(
+    (
+      folder: FolderNode | RootFolder,
+      level = 0,
+      isRoot = false
+    ) => {
+      if (!folder || !folder.id) {return null;}
+      const hasChildren = hasChildNodes(folder);
+
+      return hasChildren ? (
+        // Folder with children
+        <Accordion
+          slotProps={{ heading: { component: "div" } }}
+          className={"accordion " + (isRoot ? "root-folder" : "")}
+          key={folder.id}
           sx={{
+            marginTop: "0 !important",
+            marginBottom: "0 !important"
+          }}
+          /* Keep root expanded; disable single-click toggle by controlling expanded */
+          expanded={isRoot ? true : expandedFolderIds.has(folder.id)}
+          onChange={noop}
+        >
+          <AccordionSummary
+            component="div"
+            className="accordion-summary"
+            sx={{
+              marginTop: 0,
+              marginBottom: 0,
+              cursor: "pointer"
+            }}
+            aria-controls={`panel-${folder.id}-content`}
+            id={`panel-${folder.id}-header`}
+            /* Prevent toggle interactions on the root summary */
+            onClick={handleFolderClick}
+          >
+            <div
+              className="row"
+              style={{
+                paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem`
+              }}
+              data-is-root={isRoot ? "true" : "false"}
+              onDoubleClick={() => handleRowDoubleClick(folder.id, isRoot)}
+            >
+              <FolderItem
+                folder={folder as Asset}
+                onSelect={() => handleFolderSelect(folder)}
+                isSelected={selectedFolderIds.includes(folder.id)}
+              >
+                {!isRoot && (
+                  <span
+                    className="expand-gutter"
+                    aria-hidden="true"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleExpandFolder(folder.id);
+                    }}
+                  >
+                    <ExpandMoreIcon />
+                  </span>
+                )}
+              </FolderItem>
+            </div>
+          </AccordionSummary>
+          <AccordionDetails>
+            {(("children" in folder ? folder.children : []) as FolderNode[]).map(
+              (childNode: FolderNode) => renderFolder(childNode, level + 1)
+            )}
+          </AccordionDetails>
+        </Accordion>
+      ) : (
+        // Folder without children
+        <Box
+          className={"childless " + (isRoot ? "root-folder" : "")}
+          sx={{
+            height: ROW_HEIGHT_REM + "rem",
             marginTop: 0,
             marginBottom: 0
           }}
-          aria-controls={`panel-${folder.id}-content`}
-          id={`panel-${folder.id}-header`}
-          /* Prevent toggle interactions on the root summary */
-          onClick={(e) => e.preventDefault()}
+          key={folder.id}
         >
           <div
             className="row"
-            style={{
-              paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem`
-            }}
-            data-is-root={isRoot ? "true" : "false"}
-            onDoubleClick={() => handleRowDoubleClick(folder.id, isRoot)}
+            style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
           >
             <FolderItem
               folder={folder as Asset}
-              onSelect={() => handleSelect(folder)}
+              onSelect={() => handleFolderSelect(folder)}
               isSelected={selectedFolderIds.includes(folder.id)}
-            >
-              {!isRoot && (
-                <span
-                  className="expand-gutter"
-                  aria-hidden="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setExpandedFolderIds((previousExpandedIds) => {
-                      const nextExpandedIds = new Set(previousExpandedIds);
-                      if (nextExpandedIds.has(folder.id)) {
-                        nextExpandedIds.delete(folder.id);
-                      } else {
-                        nextExpandedIds.add(folder.id);
-                      }
-                      return nextExpandedIds;
-                    });
-                  }}
-                >
-                  <ExpandMoreIcon />
-                </span>
-              )}
-            </FolderItem>
+            />
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
-          {(("children" in folder ? folder.children : []) as FolderNode[]).map(
-            (childNode: FolderNode) => renderFolder(childNode, level + 1)
-          )}
-        </AccordionDetails>
-      </Accordion>
-    ) : (
-      // Folder without children
-      <Box
-        className={"childless " + (isRoot ? "root-folder" : "")}
-        sx={{
-          height: ROW_HEIGHT_REM + "rem",
-          marginTop: 0,
-          marginBottom: 0
-        }}
-        key={folder.id}
-      >
-        <div
-          className="row"
-          style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
-        >
-          <FolderItem
-            folder={folder as Asset}
-            onSelect={() => handleSelect(folder)}
-            isSelected={selectedFolderIds.includes(folder.id)}
-          />
-        </div>
-      </Box>
-    );
-  };
+        </Box>
+      );
+    },
+    [expandedFolderIds, selectedFolderIds, handleRowDoubleClick, handleFolderSelect, handleFolderClick, handleExpandFolder, noop, hasChildNodes]
+  );
 
-  const rootFolder: RootFolder = {
+  const rootFolder: RootFolder = useMemo(() => ({
     id: currentUser?.id ?? "root",
     name: "ASSETS",
     content_type: "folder",
     children: (Object.values(folderTree || {}) as FolderNode[]) || [],
     parent_id: currentUser?.id || ""
-  };
+  }), [currentUser?.id, folderTree]);
 
   return (
     <div
@@ -337,4 +357,8 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   );
 };
 
-export default FolderList;
+const MemoizedFolderList = memo(FolderList);
+
+MemoizedFolderList.displayName = "FolderList";
+
+export default MemoizedFolderList;

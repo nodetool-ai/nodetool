@@ -1,19 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tooltip,
   ListSubheader,
   Box
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { toTitleCase, isHuggingFaceLocalProvider } from "../../utils/providerDisplay";
 import { useTheme } from "@mui/material/styles";
 
@@ -27,7 +25,7 @@ export interface RecentListProps<TModel extends ModelSelectorModel> {
   onSelect: (m: TModel) => void;
 }
 
-const requiredSecretForProvider = (provider?: string): string | null => {
+const _requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
   if (p.includes("openai")) {return "OPENAI_API_KEY";}
   if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
@@ -43,15 +41,17 @@ function RecentList<TModel extends ModelSelectorModel>({
 }: RecentListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const theme = useTheme();
-  // const secrets = useRemoteSettingsStore((s) => s.secrets);
+
+  const handleItemClick = useCallback(
+    (model: TModel) => () => {
+      onSelect(model);
+    },
+    [onSelect]
+  );
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
-      // const env = requiredSecretForProvider(m.provider);
-      // const ok =
-      //   !env ||
-      //   Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
       map[`${m.provider}:${m.id}`] = true;
     });
     return map;
@@ -97,7 +97,7 @@ function RecentList<TModel extends ModelSelectorModel>({
             className={`model-menu__recent-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
+            onClick={handleItemClick(m)}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>

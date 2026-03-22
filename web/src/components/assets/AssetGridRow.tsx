@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT,
@@ -7,30 +7,30 @@ import {
 import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import { IconButton, Typography, Tooltip } from "@mui/material";
+import { Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
+import { ExpandCollapseButton } from "../ui_primitives";
 
 interface AssetGridRowProps {
   index: number;
   style: React.CSSProperties;
   data: {
-    getItemsForRow: (index: number) => AssetOrDivider[];
+    getItemsForRow: (_index: number) => AssetOrDivider[];
     gridDimensions: { itemWidth: number; itemHeight: number; columns: number };
     footerHeight: number;
     itemSpacing: number;
     assetItemSize: number;
     selectedAssetIds: string[];
-    handleSelectAsset: (id: string) => void;
-    onDragStart: (id: string) => string[];
-    onDoubleClick: (asset: Asset) => void;
+    handleSelectAsset: (_id: string) => void;
+    onDragStart: (_id: string) => string[];
+    onDoubleClick: (_asset: Asset) => void;
     expandedTypes: Set<string>;
-    toggleExpanded: (type: string) => void;
+    toggleExpanded: (_type: string) => void;
   };
 }
 
@@ -51,19 +51,27 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
-  
+
+  // Memoize select handlers for each item to prevent re-renders
+  const selectHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const item of rowItems) {
+      if (!item.isDivider) {
+        handlers[item.id] = () => handleSelectAsset(item.id);
+      }
+    }
+    return handlers;
+  }, [rowItems, handleSelectAsset]);
+
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
-    // Only show context menu if clicking on the row itself or empty areas,
-    // not on asset items, dividers, or other interactive elements
     const target = event.target as HTMLElement;
     const isRowArea =
       target.classList.contains("asset-grid-row") ||
       target.classList.contains("asset-grid-row-item");
 
-    // Don't show context menu on divider rows or if clicking on interactive elements
     const isDividerRow = rowItems[0]?.isDivider;
     const isInteractiveElement =
       target.closest(".asset-item") ||
@@ -81,12 +89,25 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
+  // Empty callback for disabled button - prevents new function creation on each render
+  const emptyCallback = useCallback(() => {}, []);
+
+  const handleToggleExpanded = useCallback(() => {
+    if (rowItems.length > 0 && rowItems[0]?.isDivider) {
+      const divider = rowItems[0] as {
+        isDivider: true;
+        type: string;
+        count: number;
+      };
+      toggleExpanded(divider.type);
+    }
+  }, [rowItems, toggleExpanded]);
+
   if (rowItems.length === 0) {
     return null;
   }
 
   const isDividerRow = rowItems[0]?.isDivider;
-  // Add extra space for filenames when item size is large
   const extraFooterSpace = getExtraFooterSpace(assetItemSize);
 
   if (isDividerRow) {
@@ -96,7 +117,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       count: number;
     };
     const isExpanded = expandedTypes.has(divider.type);
-    
+
     return (
       <Tooltip
         title={`${isExpanded ? "Collapse" : "Expand"} ${divider.type} files`}
@@ -115,7 +136,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             cursor: "pointer"
           }}
           className="content-type-header"
-          onClick={() => toggleExpanded(divider.type)}
+          onClick={handleToggleExpanded}
         >
           <Typography
             variant="body2"
@@ -152,9 +173,13 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             />
           </span>
 
-          <IconButton size="small" tabIndex={-1}>
-            {isExpanded ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
+          <ExpandCollapseButton
+            expanded={isExpanded}
+            onClick={emptyCallback}
+            size="small"
+            nodrag={false}
+            sx={{ pointerEvents: 'none' }}
+          />
         </div>
       </Tooltip>
     );
@@ -198,7 +223,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               asset={item}
               draggable={true}
               isSelected={isSelected}
-              onSelect={() => handleSelectAsset(item.id)}
+              onSelect={selectHandlers[item.id]}
               onDoubleClick={onDoubleClick}
             />
           </div>

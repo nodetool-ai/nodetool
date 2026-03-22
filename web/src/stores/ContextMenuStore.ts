@@ -1,10 +1,8 @@
 /**
  * Context and hooks for managing the application's context menus.
- * Provides functionality to open and close context menus with specific positions,
- * types, and associated metadata.
  */
 
-import React, { createContext, useContext, useCallback, useState } from "react";
+import { createContext, useContext } from "react";
 import { TypeMetadata } from "./ApiTypes";
 
 type MenuPosition = { x: number; y: number };

@@ -120,7 +120,7 @@ export const createStyles = (theme: Theme) =>
       "&:hover": {
         color: theme.vars.palette.error.main,
         backgroundColor: theme.vars.palette.grey[500],
-        transform: "scale(1.05)"
+        transform: "translateY(-50%) scale(1.05)"
       },
 
       svg: { fontSize: "1.2em" }

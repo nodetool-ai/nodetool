@@ -4,10 +4,16 @@ import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
+import { useRecentNodesStore } from "../stores/RecentNodesStore";
 
-// This hook encapsulates the logic for creating a new node in the graph.
-// It handles translating screen coordinates to ReactFlow coordinates and
-
+/**
+ * Hook for creating new nodes in the workflow editor.
+ * 
+ * @example
+ * const handleCreateNode = useCreateNode();
+ * handleCreateNode(metadata); // at menu position
+ * handleCreateNode(metadata, { x: 100, y: 200 }); // at specific position
+ */
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
@@ -23,6 +29,7 @@ export const useCreateNode = (
     addNode: state.addNode,
     createNode: state.createNode
   }));
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
@@ -34,6 +41,9 @@ export const useCreateNode = (
       const newNode = createNode(metadata, rfPos);
       addNode(newNode);
 
+      // Track this node as recently used
+      addRecentNode(metadata.node_type);
+
       // Close the node menu after creating a node
       closeNodeMenu();
     },
@@ -43,6 +53,7 @@ export const useCreateNode = (
       clickPosition,
       createNode,
       addNode,
+      addRecentNode,
       closeNodeMenu
     ]
   );

@@ -33,12 +33,18 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
   label: file.name
 });
 
-const partitionDirectories = (files: FileInfo[]): [FileInfo[], FileInfo[]] =>
-  files.reduce<[FileInfo[], FileInfo[]]>(
-    ([dirs, files], item) =>
-      item.is_dir ? [[...dirs, item], files] : [dirs, [...files, item]],
-    [[], []]
-  );
+const partitionDirectories = (files: FileInfo[]): [FileInfo[], FileInfo[]] => {
+  const dirs: FileInfo[] = [];
+  const nonDirs: FileInfo[] = [];
+  for (const file of files) {
+    if (file.is_dir) {
+      dirs.push(file);
+    } else {
+      nonDirs.push(file);
+    }
+  }
+  return [dirs, nonDirs];
+};
 
 interface FileStore {
   fileTree: TreeViewItem[];
@@ -116,21 +122,27 @@ export const useFileStore = create<FileStore>((set, get) => ({
           fileItems.push(fileToTreeItem(file));
         }
 
-        const dirItems: TreeViewItem[] = [];
+        const dirsToProcess: FileInfo[] = [];
         for (const dir of directories) {
           if (budget.remaining <= 0) {break;}
           budget.remaining -= 1;
-          const children = await buildTreeRecursively(
-            dir.path,
-            depth + 1,
-            budget,
-            visited
-          );
-          dirItems.push({
-            ...fileToTreeItem(dir),
-            children
-          });
+          dirsToProcess.push(dir);
         }
+
+        const dirItems: TreeViewItem[] = await Promise.all(
+          dirsToProcess.map(async (dir) => {
+            const children = await buildTreeRecursively(
+              dir.path,
+              depth + 1,
+              budget,
+              visited
+            );
+            return {
+              ...fileToTreeItem(dir),
+              children
+            };
+          })
+        );
 
         // Combine and return all items
         return [...dirItems, ...fileItems];

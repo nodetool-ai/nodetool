@@ -12,6 +12,8 @@ export const fileToDataUrl = (file: File) =>
 export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
   switch (nodeType) {
     case "nodetool.input.StringInput":
+    case "nodetool.input.TextInput":
+    case "nodetool.input.MessageInput":
       return "string";
     case "nodetool.input.BooleanInput":
       return "boolean";
@@ -19,12 +21,49 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "integer";
     case "nodetool.input.FloatInput":
       return "float";
+    case "nodetool.input.ColorInput":
+      return "color";
     case "nodetool.input.ImageInput":
       return "image";
+    case "nodetool.input.VideoInput":
+      return "video";
     case "nodetool.input.AudioInput":
+    case "nodetool.input.RealtimeAudioInput":
       return "audio";
+    case "nodetool.input.DocumentInput":
+      return "document";
+    case "nodetool.input.DataFrameInput":
+    case "nodetool.input.DataframeInput":
+      return "dataframe";
     case "nodetool.input.FilePathInput":
       return "file_path";
+    case "nodetool.input.FolderPathInput":
+      return "folder_path";
+    case "nodetool.input.Folder":
+      return "folder";
+    case "nodetool.input.SelectInput":
+      return "select";
+    case "nodetool.input.LanguageModelInput":
+      return "language_model";
+    case "nodetool.input.ImageModelInput":
+      return "image_model";
+    case "nodetool.input.VideoModelInput":
+      return "video_model";
+    case "nodetool.input.TTSModelInput":
+      return "tts_model";
+    case "nodetool.input.ASRModelInput":
+      return "asr_model";
+    case "nodetool.input.EmbeddingModelInput":
+      return "embedding_model";
+    case "nodetool.input.ImageListInput":
+      return "image_list";
+    case "nodetool.input.VideoListInput":
+      return "video_list";
+    case "nodetool.input.AudioListInput":
+      return "audio_list";
+    case "nodetool.input.TextListInput":
+    case "nodetool.input.StringListInput":
+      return "text_list";
     default:
       return null;
   }

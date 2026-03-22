@@ -4,6 +4,9 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+import log from "loglevel";
+
+export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -25,19 +28,48 @@ const defaultMetadata: Record<string, NodeMetadata> = {
         required: false
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: "output",
+        type: {
+          type: "any",
+          optional: true,
+          type_args: []
+        },
+        stream: false
+      }
+    ],
     the_model_info: {},
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: false,
-    is_streaming_output: false
+    is_streaming_output: false,
+    required_settings: []
+  },
+  [WORKFLOW_NODE_TYPE]: {
+    title: "Workflow",
+    description:
+      "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
+    namespace: "nodetool.workflows",
+    node_type: WORKFLOW_NODE_TYPE,
+    layout: "default",
+    basic_fields: [],
+    is_dynamic: true,
+    properties: [],
+    outputs: [],
+    the_model_info: {},
+    recommended_models: [],
+    expose_as_tool: false,
+    supports_dynamic_outputs: true,
+    is_streaming_output: true,
+    required_settings: []
   }
 };
 
 export const loadMetadata = async () => {
   const { data, error } = await client.GET("/api/nodes/metadata", {});
   if (error) {
-    console.error(error);
+    log.error(error);
     return "error";
   }
 
@@ -50,7 +82,7 @@ export const loadMetadata = async () => {
   });
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
-    (result, md) => [...result, ...md.recommended_models],
+    (result, md) => [...result, ...(md.recommended_models ?? [])],
     []
   );
 

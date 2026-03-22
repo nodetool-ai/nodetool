@@ -5,7 +5,22 @@ import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes } from "../contexts/NodeContext";
 
-export const useDuplicateNodes = (vertical: boolean = false) => {
+/**
+ * Hook for duplicating selected nodes and their connected edges.
+ *
+ * @param vertical - If true, duplicates vertically; if false, horizontally
+ * @param keepUpstreamConnections - If true (default), preserves incoming edges from non-selected nodes
+ *
+ * @example
+ * const duplicateNodes = useDuplicateNodes();
+ * duplicateNodes(); // Duplicate horizontally
+ * const duplicateVertical = useDuplicateNodes(true);
+ * const duplicateIsolated = useDuplicateNodes(false, false);
+ */
+export const useDuplicateNodes = (
+  vertical: boolean = false,
+  keepUpstreamConnections: boolean = true
+) => {
   const reactFlow = useReactFlow();
   const {
     nodes,
@@ -92,19 +107,34 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
 
     const newEdges: Edge[] = [];
     for (const edge of connectedEdges) {
-      const newSource = oldToNewIds.get(edge.source) || edge.source;
-      const newTarget = oldToNewIds.get(edge.target) || edge.target;
+      const sourceInSelection = selectedNodeIds.includes(edge.source);
+      const targetInSelection = selectedNodeIds.includes(edge.target);
 
-      // Only duplicate edges where both nodes are in selected nodes
-      if (
-        selectedNodeIds.includes(edge.source) &&
-        selectedNodeIds.includes(edge.target)
-      ) {
+      // Duplicate edges where both nodes are in selected nodes (internal edges)
+      if (sourceInSelection && targetInSelection) {
+        const newSource = oldToNewIds.get(edge.source)!;
+        const newTarget = oldToNewIds.get(edge.target)!;
         newEdges.push({
           ...edge,
-          id: uuidv4(), // Edge IDs can still be UUIDs
+          id: uuidv4(),
           source: newSource,
-          target: newTarget
+          target: newTarget,
+          selected: false
+        });
+      }
+      // Preserve upstream connections: edges from non-selected sources to selected targets
+      else if (
+        keepUpstreamConnections &&
+        !sourceInSelection &&
+        targetInSelection
+      ) {
+        const newTarget = oldToNewIds.get(edge.target)!;
+        newEdges.push({
+          ...edge,
+          id: uuidv4(),
+          source: edge.source, // Keep original source (upstream node)
+          target: newTarget, // Connect to duplicated target
+          selected: false
         });
       }
     }
@@ -115,10 +145,17 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
       selected: false
     }));
 
+    // Deselect old edges
+    const updatedEdges = edges.map((edge) => ({
+      ...edge,
+      selected: false
+    }));
+
     setNodes([...updatedNodes, ...newNodes]);
-    setEdges([...edges, ...newEdges]);
+    setEdges([...updatedEdges, ...newEdges]);
   }, [
     vertical,
+    keepUpstreamConnections,
     generateNodeIds,
     getSelectedNodes,
     reactFlow.getNodesBounds,

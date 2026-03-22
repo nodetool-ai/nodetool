@@ -9,7 +9,12 @@ import {
 
 import { logMessage } from "./logger";
 import path from "path";
-import { readSettings, updateSettings } from "./settings";
+import {
+  readSettings,
+  updateSettings,
+  updateSetting,
+  getModelServiceStartupDefaults,
+} from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
 import { fileExists } from "./utils";
@@ -18,6 +23,8 @@ import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
 import { InstallToLocationData, IpcChannels, PythonPackages, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
+import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
+import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";
@@ -43,6 +50,8 @@ interface InstallationPreferences {
 interface InstallationSelection extends InstallationPreferences {
   installOllama?: boolean;
   installLlamaCpp?: boolean;
+  startOllamaOnStartup?: boolean;
+  startLlamaCppOnStartup?: boolean;
 }
 
 function sanitizePackageSelection(packages: unknown): PythonPackages {
@@ -67,29 +76,41 @@ function normalizeModelBackend(backend: unknown): ModelBackend {
 }
 
 function normalizeInstallLocation(location: unknown): string {
-  if (typeof location === "string") {
-    const trimmed = location.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
+  if (location == null || typeof location !== "string" || location.trim().length === 0) {
+    return getDefaultInstallLocation();
   }
-  return getDefaultInstallLocation();
+  return location.trim();
 }
 
 function persistInstallationPreferences(
   location: unknown,
   packages: unknown,
-  modelBackend: unknown
+  modelBackend: unknown,
+  startupSettings?: {
+    startOllamaOnStartup?: unknown;
+    startLlamaCppOnStartup?: unknown;
+  }
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
   const sanitizedPackages = sanitizePackageSelection(packages);
   const normalizedBackend = normalizeModelBackend(modelBackend);
+  const startupDefaults = getModelServiceStartupDefaults(normalizedBackend);
+  const startOllamaOnStartup =
+    typeof startupSettings?.startOllamaOnStartup === "boolean"
+      ? startupSettings.startOllamaOnStartup
+      : startupDefaults.startOllamaOnStartup;
+  const startLlamaCppOnStartup =
+    typeof startupSettings?.startLlamaCppOnStartup === "boolean"
+      ? startupSettings.startLlamaCppOnStartup
+      : startupDefaults.startLlamaCppOnStartup;
 
   try {
     updateSettings({
       CONDA_ENV: normalizedLocation,
       [PYTHON_PACKAGES_SETTING_KEY]: sanitizedPackages,
       [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
+      START_OLLAMA_ON_STARTUP: startOllamaOnStartup,
+      START_LLAMA_CPP_ON_STARTUP: startLlamaCppOnStartup,
     });
     logMessage(
       `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}, packages=${
@@ -161,17 +182,31 @@ async function promptForInstallLocation(
           modelBackend,
           installOllama,
           installLlamaCpp,
+          startOllamaOnStartup,
+          startLlamaCppOnStartup,
         }: InstallToLocationData
       ) => {
         const preferences = persistInstallationPreferences(
           location,
           packages,
-          modelBackend
+          modelBackend,
+          {
+            startOllamaOnStartup,
+            startLlamaCppOnStartup,
+          }
         );
         resolve({
           ...preferences,
           installOllama,
           installLlamaCpp,
+          startOllamaOnStartup:
+            typeof startOllamaOnStartup === "boolean"
+              ? startOllamaOnStartup
+              : undefined,
+          startLlamaCppOnStartup:
+            typeof startLlamaCppOnStartup === "boolean"
+              ? startLlamaCppOnStartup
+              : undefined,
         });
       }
     );
@@ -643,6 +678,26 @@ async function provisionPythonEnvironment(
     location
   );
 
+  // Detect GPU platform with torchruntime (detection only, torch will be installed via uv pip)
+  let torchPlatformResult: TorchruntimeDetectionResult;
+  try {
+    torchPlatformResult = await detectTorchPlatform();
+    logMessage(`Torch platform detection result: ${JSON.stringify(torchPlatformResult)}`);
+    
+    // Save detected platform to settings for later use by uv pip install
+    saveTorchPlatform(torchPlatformResult);
+  } catch (error: any) {
+    logMessage(`Failed to detect GPU platform: ${error.message}`, "error");
+    // Fallback to CPU
+    torchPlatformResult = {
+      platform: "cpu",
+      indexUrl: "https://download.pytorch.org/whl/cpu",
+      error: error.message,
+    };
+    saveTorchPlatform(torchPlatformResult);
+  }
+
+  // PyTorch and other packages will be installed via uv pip with the correct index URL
   await updateCondaEnvironment(packages);
 
   const condaEnvPath = location;
@@ -651,8 +706,10 @@ async function provisionPythonEnvironment(
     installLlamaCpp: options?.installLlamaCpp,
   });
   
-  if (modelBackend === "llama_cpp" && (options?.installLlamaCpp ?? true)) {
-    await ensureLlamaCppInstalled(condaEnvPath, modelBackend);
+  const shouldInstallLlamaCpp =
+    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
+  if (shouldInstallLlamaCpp) {
+    await ensureLlamaCppInstalled(condaEnvPath);
   }
 
   logMessage("Python environment installation completed successfully");
@@ -676,8 +733,9 @@ async function provisionPythonEnvironment(
  * Installation Process:
  * 1. `promptForInstallLocation()` prompts the user for an installation directory
  * 2. `createEnvironmentWithMicromamba()` builds the environment from `environment.lock.yml`
- * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
- * 4. `updateCondaEnvironment()` installs/upgrades required Python packages via uv pip
+   * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
+   * 4. `installTorchWithUvs()` installs PyTorch with automatic GPU detection
+   * 5. `updateCondaEnvironment()` installs/upgrades required Python packages via uv pip
  *
  * Update Process:
  * - Checks for package updates using pip
@@ -751,27 +809,27 @@ async function installCondaPackages(
   
   const packageSpecs: string[] = [];
 
-  // Conditional installation based on selected backend
-  if (modelBackend === "ollama") {
-    if (options?.installOllama ?? true) {
-      packageSpecs.push(OLLAMA_SPEC);
-    } else {
-      logMessage(
-        "Skipping Ollama conda package installation (external Ollama selected)",
-        "info"
-      );
-    }
-  } else if (modelBackend === "llama_cpp") {
-    if (options?.installLlamaCpp ?? true) {
-      packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
-    } else {
-      logMessage(
-        "Skipping llama.cpp conda package installation (external llama.cpp selected)",
-        "info"
-      );
-    }
-  } 
-  // If "none", we install nothing extra
+  const shouldInstallOllama = options?.installOllama ?? modelBackend === "ollama";
+  const shouldInstallLlamaCpp =
+    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
+
+  if (shouldInstallOllama) {
+    packageSpecs.push(OLLAMA_SPEC);
+  } else {
+    logMessage(
+      "Skipping Ollama conda package installation (not selected or external Ollama selected)",
+      "info"
+    );
+  }
+
+  if (shouldInstallLlamaCpp) {
+    packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
+  } else {
+    logMessage(
+      "Skipping llama.cpp conda package installation (not selected or external llama.cpp selected)",
+      "info"
+    );
+  }
 
   if (packageSpecs.length === 0) {
     logMessage(`No backend-specific packages to install for backend: ${modelBackend}`);
@@ -804,14 +862,8 @@ async function installCondaPackages(
 }
 
 async function ensureLlamaCppInstalled(
-  envPrefix: string,
-  modelBackend: ModelBackend
+  envPrefix: string
 ): Promise<void> {
-  // Double check logic: we only run this if backend is llama_cpp
-  if (modelBackend !== "llama_cpp") {
-    return;
-  }
-
   const executableName =
     os.platform() === "win32" ? "llama-server.exe" : "llama-server";
   const condaBinDir =
@@ -827,7 +879,10 @@ async function ensureLlamaCppInstalled(
 
   logMessage("llama.cpp binary missing, reinstalling package via micromamba");
   const micromambaExecutable = await ensureMicromambaAvailable();
-  await installCondaPackages(micromambaExecutable, envPrefix, modelBackend);
+  await installCondaPackages(micromambaExecutable, envPrefix, "llama_cpp", {
+    installOllama: false,
+    installLlamaCpp: true,
+  });
 
   if (!(await fileExists(llamaBinaryPath))) {
     throw new Error(
@@ -836,32 +891,34 @@ async function ensureLlamaCppInstalled(
   }
 }
 
-// async function ensureOllamaCondaInstalled(envPrefix: string): Promise<string> {
-//   const condaBinDir =
-//     os.platform() === "win32"
-//       ? path.join(envPrefix, "Scripts")
-//       : path.join(envPrefix, "bin");
-//   const binaryName = os.platform() === "win32" ? "ollama.exe" : "ollama";
-//   const binaryPath = path.join(condaBinDir, binaryName);
+async function ensureOllamaInstalled(
+  envPrefix: string
+): Promise<void> {
+  const executableName =
+    os.platform() === "win32" ? "ollama.exe" : "ollama";
+  const condaBinDir =
+    os.platform() === "win32"
+      ? path.join(envPrefix, "Scripts")
+      : path.join(envPrefix, "bin");
+  const ollamaBinaryPath = path.join(condaBinDir, executableName);
 
-//   if (await fileExists(binaryPath)) {
-//     logMessage(`Ollama binary already available at ${binaryPath}`);
-//     return binaryPath;
-//   }
+  if (await fileExists(ollamaBinaryPath)) {
+    logMessage(`Ollama binary already present at ${ollamaBinaryPath}`);
+    return;
+  }
 
-//   logMessage(
-//     "Ollama binary not found in conda environment, installing via conda..."
-//   );
-//   await installCondaPackages(envPrefix);
+  logMessage("Ollama binary missing, reinstalling package via micromamba");
+  const micromambaExecutable = await ensureMicromambaAvailable();
+  await installCondaPackages(micromambaExecutable, envPrefix, "ollama", {
+    installOllama: true,
+    installLlamaCpp: false,
+  });
 
-//   if (!(await fileExists(binaryPath))) {
-//     throw new Error(
-//       "Ollama binary is still missing after conda installation. Please reinstall or install Ollama manually."
-//     );
-//   }
+  if (!(await fileExists(ollamaBinaryPath))) {
+    throw new Error(
+      "Ollama binary was not found after conda installation. Please try reinstalling manually."
+    );
+  }
+}
 
-//   logMessage(`Ollama installed at ${binaryPath}`);
-//   return binaryPath;
-// }
-
-export { promptForInstallLocation, installCondaEnvironment };
+export { promptForInstallLocation, installCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled };

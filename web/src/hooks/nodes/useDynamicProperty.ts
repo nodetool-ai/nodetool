@@ -42,8 +42,6 @@ export const useDynamicProperty = (
         dynamicProperties[oldPropertyName];
       delete updatedDynamicProperties[oldPropertyName];
 
-      //   updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
-
       updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });

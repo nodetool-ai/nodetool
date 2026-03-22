@@ -29,7 +29,7 @@ NodeTool has five workspaces:
 The header bar is your creative command center (always visible at the top):
 
 - **Logo/Title** – Click to return to Dashboard
-- **Models** – Manage your AI models (Flux, SDXL, etc.)
+- **Models** – Manage your AI models (Flux, Qwen Image, etc.)
 - **Assets** – Access your media library
 - **Templates** – Browse creative workflow templates
 - **Chat** – Open conversational AI mode

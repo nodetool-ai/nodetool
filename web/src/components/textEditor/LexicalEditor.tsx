@@ -44,8 +44,10 @@ const styles = (theme: Theme) =>
       textDecoration: "line-through"
     },
     ".editor-input p, .editor-input ol,.editor-input ul": {
+      color: theme.vars.palette.text.primary,
       fontWeight: "300",
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1.5em"
     },
     ".editor-text-code": {
       backgroundColor: theme.vars.palette.action.selected,
@@ -66,6 +68,7 @@ const styles = (theme: Theme) =>
     },
     ".editor-heading-h1": {
       fontSize: theme.fontSizeBigger,
+      lineHeight: "1.2",
       fontWeight: "bold",
       margin: "0.5em 0"
     },
@@ -120,7 +123,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       p: {
-        lineHeight: "1.25em",
+        lineHeight: "1.5em",
         paddingTop: 0,
         marginTop: 0,
         marginBlockEnd: "0.5em"
@@ -188,23 +191,26 @@ const LexicalPlugins = ({
   return (
     <>
       <Global styles={styles(theme)} />
-      <RichTextPlugin
-        contentEditable={
-          <ContentEditable
-            className={`editor editor-input nodrag ${
-              isFocused ? "focused  nowheel" : ""
-            } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
-            spellCheck={false}
-            onClick={(e) => e.stopPropagation()}
-            onFocus={handleFocus}
-            onBlur={handleInternalBlur}
-          />
-        }
-        placeholder={
-          <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
-        }
-        ErrorBoundary={() => null}
-      />
+      {/* Wrap in a block container to avoid Chrome flex + contenteditable focus issues */}
+      <div style={{ display: "block", flex: 1, minHeight: 0, overflow: "auto" }}>
+        <RichTextPlugin
+          contentEditable={
+            <ContentEditable
+              className={`editor editor-input nodrag ${
+                isFocused ? "focused  nowheel" : ""
+              } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
+              spellCheck={false}
+              onClick={(e) => e.stopPropagation()}
+              onFocus={handleFocus}
+              onBlur={handleInternalBlur}
+            />
+          }
+          placeholder={
+            <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
+          }
+          ErrorBoundary={() => null}
+        />
+      </div>
       <HistoryPlugin />
       <OnChangePlugin onChange={onChange} />
       <LinkPlugin />

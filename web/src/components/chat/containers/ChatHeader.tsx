@@ -1,7 +1,7 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
 import { ResetButton } from "../controls/ResetButton";
 import { MinimizeButton } from "../controls/MinimizeButton";
+import { FlexRow, Text } from "../../ui_primitives";
 
 interface ChatHeaderProps {
   isMinimized: boolean;
@@ -22,13 +22,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   icon,
   description
 }) => (
-  <Box
+  <FlexRow
     className="chat-header"
+    justify="space-between"
+    align="center"
     sx={{
-      display: "flex",
       cursor: "grab",
-      justifyContent: "space-between",
-      alignItems: "center",
       mb: isMinimized ? 0 : 2,
       position: "sticky",
       top: 0,
@@ -42,33 +41,31 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <ResetButton onClick={onReset} disabled={messagesCount === 0} />
     )}
     {isMinimized && title && (
-      <Typography
-        variant="body2"
+      <FlexRow
+        gap={3}
+        align="center"
         onClick={onMinimize}
         sx={{
-          color: "text.secondary",
           padding: "1.5em 1em 0 1.5em",
           textAlign: "center",
           width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
           cursor: "pointer",
           userSelect: "none",
+          color: "text.secondary",
           "&:hover": {
             color: "palette-grey-100"
           }
         }}
       >
         {icon}
-        {title}
-      </Typography>
+        <Text size="small" color="secondary">{title}</Text>
+      </FlexRow>
     )}
     {description && !isMinimized && (
-      <Typography
-        variant="body2"
+      <Text
+        size="small"
+        color="secondary"
         sx={{
-          color: "text.secondary",
           flexGrow: 1,
           userSelect: "none",
           textAlign: "center",
@@ -77,10 +74,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         }}
       >
         {description}
-      </Typography>
+      </Text>
     )}
     {onMinimize && (
       <MinimizeButton onClick={onMinimize} isMinimized={isMinimized} />
     )}
-  </Box>
+  </FlexRow>
 );

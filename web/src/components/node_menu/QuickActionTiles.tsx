@@ -2,8 +2,12 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useContext, useMemo } from "react";
-import type { CSSProperties, MouseEvent, DragEvent as ReactDragEvent, ReactNode } from "react";
+import { memo, useCallback, useMemo } from "react";
+import type {
+  CSSProperties,
+  DragEvent as ReactDragEvent,
+  ReactNode
+} from "react";
 import { Box, Tooltip, Typography } from "@mui/material";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
@@ -12,13 +16,19 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import ApiIcon from "@mui/icons-material/Api";
+import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
+import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { IconForType, colorForType } from "../../config/data_types";
+import log from "loglevel";
 
 export type QuickActionDefinition = {
   key: string;
@@ -130,8 +140,195 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 8px 24px rgba(14, 165, 233, 0.35), 0 0 16px rgba(56, 189, 248, 0.25)",
     iconColor: "#e0f2fe"
+  },
+  {
+    key: "fal-dynamic",
+    label: "FalAI",
+    nodeType: DYNAMIC_FAL_NODE_TYPE,
+    icon: <ApiIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(167, 139, 250, 0.5))",
+    shadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(139, 92, 246, 0.35), 0 0 16px rgba(167, 139, 250, 0.25)",
+    iconColor: "#e9d5ff"
+  },
+  {
+    key: "kie-dynamic",
+    label: "KieAI",
+    nodeType: DYNAMIC_KIE_NODE_TYPE,
+    icon: <ApiIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(229, 92, 32, 0.4), rgba(255, 140, 66, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(229, 92, 32, 0.6), rgba(255, 140, 66, 0.5))",
+    shadow: "0 4px 12px rgba(229, 92, 32, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(229, 92, 32, 0.35), 0 0 16px rgba(255, 140, 66, 0.25)",
+    iconColor: "#ffe0cc"
+  },
+  {
+    key: "replicate-dynamic",
+    label: "Replicate",
+    nodeType: DYNAMIC_REPLICATE_NODE_TYPE,
+    icon: <ApiIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(129, 140, 248, 0.5))",
+    shadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(59, 130, 246, 0.35), 0 0 16px rgba(129, 140, 248, 0.25)",
+    iconColor: "#dbeafe"
   }
 ];
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const cleanHex = hex.replace("#", "");
+  if (cleanHex.length !== 6) {
+    return `rgba(255, 255, 255, ${alpha})`;
+  }
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const buildConstantNode = ({
+  key,
+  label,
+  nodeType,
+  iconType
+}: {
+  key: string;
+  label: string;
+  nodeType: string;
+  iconType: string;
+}): QuickActionDefinition => {
+  const baseColor = colorForType(iconType);
+  return {
+    key,
+    label,
+    nodeType,
+    icon: (
+      <IconForType
+        iconName={iconType}
+        showTooltip={false}
+        iconSize="normal"
+        svgProps={{ style: { color: baseColor } }}
+      />
+    ),
+    gradient: `linear-gradient(135deg, ${hexToRgba(
+      baseColor,
+      0.35
+    )}, ${hexToRgba(baseColor, 0.18)})`,
+    hoverGradient: `linear-gradient(135deg, ${hexToRgba(
+      baseColor,
+      0.55
+    )}, ${hexToRgba(baseColor, 0.32)})`,
+    shadow: `0 4px 12px ${hexToRgba(baseColor, 0.18)}`,
+    hoverShadow: `0 8px 24px ${hexToRgba(
+      baseColor,
+      0.35
+    )}, 0 0 16px ${hexToRgba(baseColor, 0.22)}`,
+    iconColor: baseColor
+  };
+};
+
+export const CONSTANT_NODES: QuickActionDefinition[] = [
+  buildConstantNode({
+    key: "constant-bool",
+    label: "Bool",
+    nodeType: "nodetool.constant.Bool",
+    iconType: "bool"
+  }),
+  buildConstantNode({
+    key: "constant-dataframe",
+    label: "Data Frame",
+    nodeType: "nodetool.constant.DataFrame",
+    iconType: "dataframe"
+  }),
+  buildConstantNode({
+    key: "constant-date",
+    label: "Date",
+    nodeType: "nodetool.constant.Date",
+    iconType: "date"
+  }),
+  buildConstantNode({
+    key: "constant-datetime",
+    label: "Date Time",
+    nodeType: "nodetool.constant.DateTime",
+    iconType: "datetime"
+  }),
+  buildConstantNode({
+    key: "constant-dict",
+    label: "Dict",
+    nodeType: "nodetool.constant.Dict",
+    iconType: "dict"
+  }),
+  buildConstantNode({
+    key: "constant-audio",
+    label: "Audio",
+    nodeType: "nodetool.constant.Audio",
+    iconType: "audio"
+  }),
+  buildConstantNode({
+    key: "constant-document",
+    label: "Document",
+    nodeType: "nodetool.constant.Document",
+    iconType: "document"
+  }),
+  buildConstantNode({
+    key: "constant-float",
+    label: "Float",
+    nodeType: "nodetool.constant.Float",
+    iconType: "float"
+  }),
+  buildConstantNode({
+    key: "constant-image",
+    label: "Image",
+    nodeType: "nodetool.constant.Image",
+    iconType: "image"
+  }),
+  buildConstantNode({
+    key: "constant-integer",
+    label: "Integer",
+    nodeType: "nodetool.constant.Integer",
+    iconType: "int"
+  }),
+  buildConstantNode({
+    key: "constant-json",
+    label: "JSON",
+    nodeType: "nodetool.constant.JSON",
+    iconType: "json"
+  }),
+  buildConstantNode({
+    key: "constant-list",
+    label: "List",
+    nodeType: "nodetool.constant.List",
+    iconType: "list"
+  }),
+  buildConstantNode({
+    key: "constant-model-3d",
+    label: "Model 3D",
+    nodeType: "nodetool.constant.Model3D",
+    iconType: "model_3d"
+  }),
+  buildConstantNode({
+    key: "constant-string",
+    label: "String",
+    nodeType: "nodetool.constant.String",
+    iconType: "str"
+  }),
+  buildConstantNode({
+    key: "constant-video",
+    label: "Video",
+    nodeType: "nodetool.constant.Video",
+    iconType: "video"
+  })
+].sort((a, b) => a.label.localeCompare(b.label));
 
 const tileStyles = (theme: Theme) =>
   css({
@@ -165,7 +362,16 @@ const tileStyles = (theme: Theme) =>
       gridAutoRows: "1fr",
       gap: "8px",
       alignContent: "start",
-      overflowY: "auto",
+      overflow: "visible",
+      padding: "2px"
+    },
+    ".constants-container": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+      gridAutoRows: "1fr",
+      gap: "8px",
+      alignContent: "start",
+      marginTop: "12px",
       padding: "2px",
       "&::-webkit-scrollbar": {
         width: "6px"
@@ -193,7 +399,7 @@ const tileStyles = (theme: Theme) =>
       overflow: "hidden",
       border: "1px solid rgba(255, 255, 255, 0.06)",
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      minHeight: "80px",
+      minHeight: "30px",
       background: "rgba(255, 255, 255, 0.02)",
       "&::before": {
         content: '""',
@@ -231,6 +437,19 @@ const tileStyles = (theme: Theme) =>
         boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}, 0 4px 12px rgba(0,0,0,0.5)`
       }
     },
+    ".constant-tile": {
+      minHeight: "70px",
+      padding: "10px 6px",
+      "& .tile-icon": {
+        marginBottom: "4px",
+        "& svg": {
+          fontSize: "1.5rem"
+        }
+      },
+      "& .tile-label": {
+        fontSize: "var(--fontSizeNormal)"
+      }
+    },
     ".tile-icon": {
       display: "flex",
       alignItems: "center",
@@ -243,7 +462,7 @@ const tileStyles = (theme: Theme) =>
       }
     },
     ".tile-label": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
@@ -257,7 +476,7 @@ const tileStyles = (theme: Theme) =>
 const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
-  
+
   const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
     setDragToCreate: state.setDragToCreate,
     setHoveredNode: state.setHoveredNode
@@ -272,7 +491,13 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const handleCreateNode = useCreateNode();
 
   const handleDragStart = useCallback(
-    (nodeType: string) => (event: ReactDragEvent<HTMLDivElement>) => {
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         event.preventDefault();
@@ -292,7 +517,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     },
     [getMetadata, setDragToCreate, setActiveDrag]
   );
-  
+
   const handleDragEnd = useCallback(() => {
     setDragToCreate(false);
     clearDrag();
@@ -302,13 +527,13 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     (action: QuickActionDefinition) => {
       const { nodeType, label } = action;
       const metadata = getMetadata(nodeType);
-      
+
       if (!metadata) {
-        console.warn(`Metadata not found for node type: ${nodeType}`);
+        log.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${label}.`,
-          timeout: 4000
+          timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
@@ -328,10 +553,59 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [getMetadata, setHoveredNode]
   );
 
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
+  const handleTileClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (nodeType) {
+        const metadata = getMetadata(nodeType);
+        if (metadata) {
+          const definition = [...QUICK_ACTION_BUTTONS, ...CONSTANT_NODES].find(
+            (d) => d.nodeType === nodeType
+          );
+          if (definition) {
+            onTileClick(definition);
+          }
+        }
+      }
+    },
+    [getMetadata, onTileClick]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (nodeType) {
+        onTileMouseEnter(nodeType);
+      }
+    },
+    [onTileMouseEnter]
+  );
+
+  // Memoize tooltip subtitle style to avoid recreating on every render
+  const tooltipSubtitleStyle = useMemo(
+    () => ({
+      fontSize: "0.7rem" as const,
+      opacity: 0.75,
+      marginTop: "4px"
+    }),
+    []
+  );
+
+  // Memoize constants header style
+  const constantsHeaderStyle = useMemo(
+    () => ({
+      marginTop: "16px",
+      marginBottom: "8px"
+    }),
+    []
+  );
+
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">Quick Actions</Typography>
+        <Typography variant="h5">Multi-Model Nodes</Typography>
       </div>
       <div className="tiles-container">
         {QUICK_ACTION_BUTTONS.map((definition) => {
@@ -352,27 +626,23 @@ const QuickActionTiles = memo(function QuickActionTiles() {
               title={
                 <div>
                   <div>{label}</div>
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      opacity: 0.75,
-                      marginTop: "4px"
-                    }}
-                  >
+                  <div style={tooltipSubtitleStyle}>
                     Click to place · Shift-click to auto add
                   </div>
                 </div>
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile"
                 draggable
-                onDragStart={handleDragStart(nodeType)}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(definition)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
                 style={
                   {
                     "--quick-gradient": gradient,
@@ -380,8 +650,66 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
                     "--quick-icon-color": iconColor,
-                    // Use a separate variable for the initial background so we can override it easily or use the class
-                    background: "rgba(18, 18, 20, 0.5)" 
+                    background: theme.vars.palette.action.hoverBackground
+                  } as CSSProperties
+                }
+              >
+                <div className="tile-icon" style={{ color: iconColor }}>
+                  {icon}
+                </div>
+                <Typography className="tile-label">{label}</Typography>
+              </div>
+            </Tooltip>
+          );
+        })}
+      </div>
+      <div className="tiles-header" style={constantsHeaderStyle}>
+        <Typography variant="h5">Constants</Typography>
+      </div>
+      <div className="constants-container">
+        {CONSTANT_NODES.map((definition) => {
+          const {
+            key,
+            label,
+            nodeType,
+            icon,
+            gradient,
+            hoverGradient,
+            shadow,
+            hoverShadow = shadow,
+            iconColor
+          } = definition;
+          return (
+            <Tooltip
+              key={key}
+              title={
+                <div>
+                  <div>{label} Constant</div>
+                  <div style={tooltipSubtitleStyle}>
+                    Click to place
+                  </div>
+                </div>
+              }
+              placement="top"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <div
+                className="quick-tile constant-tile"
+                draggable
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
+                style={
+                  {
+                    "--quick-gradient": gradient,
+                    "--quick-hover-tile-bg": hoverGradient,
+                    "--quick-shadow": shadow,
+                    "--quick-shadow-hover": hoverShadow ?? shadow,
+                    "--quick-icon-color": iconColor,
+                    background: theme.vars.palette.action.hoverBackground
                   } as CSSProperties
                 }
               >
@@ -398,4 +726,4 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   );
 });
 
-export default QuickActionTiles;
+export default memo(QuickActionTiles);

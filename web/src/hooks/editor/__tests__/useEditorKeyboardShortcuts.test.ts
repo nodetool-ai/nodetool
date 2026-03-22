@@ -30,14 +30,14 @@ describe("useEditorKeyboardShortcuts", () => {
     // Expect six registrations (ctrl/meta x f/a/e)
     expect((useCombo as jest.Mock).mock.calls.length).toBe(6);
     const calls = (useCombo as jest.Mock).mock.calls;
-    const combos = calls.map((c: any[]) => c[0].join("+"));
+    const combos = calls.map((c: any[]) => c[0].join("+").toLowerCase());
     expect(combos).toEqual(
       expect.arrayContaining([
-        "ctrl+shift+f",
+        "control+shift+f",
         "meta+shift+f",
-        "ctrl+shift+a",
+        "control+shift+a",
         "meta+shift+a",
-        "ctrl+shift+e",
+        "control+shift+e",
         "meta+shift+e"
       ])
     );

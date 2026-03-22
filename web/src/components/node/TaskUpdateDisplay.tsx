@@ -10,11 +10,11 @@ import StepView from "./StepView";
 const styles = (theme: Theme) =>
   css({
     "@keyframes aiColorShift": {
-      "0%": { color: "#00FFFF" } /* Aqua */,
-      "25%": { color: "#7B68EE" } /* MediumSlateBlue */,
-      "50%": { color: "#AFEEEE" } /* PaleTurquoise */,
-      "75%": { color: "#48D1CC" } /* MediumTurquoise */,
-      "100%": { color: "#00FFFF" } /* Aqua */
+      "0%": { color: theme.vars.palette.info.main },
+      "25%": { color: theme.vars.palette.secondary.main },
+      "50%": { color: theme.vars.palette.info.light },
+      "75%": { color: theme.vars.palette.primary.light },
+      "100%": { color: theme.vars.palette.info.main }
     },
 
     ".task-update-container": {

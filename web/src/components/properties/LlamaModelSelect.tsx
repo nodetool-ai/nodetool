@@ -10,12 +10,13 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
+import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LlamaModelValue) => void;
   value: string;
 }
 
@@ -61,6 +62,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
       handleClose();
     },
     [onChange, handleClose]
+  );
+
+  const handleMenuItemClick = useCallback(
+    (repoId: string) => () => {
+      handleModelSelect(repoId);
+    },
+    [handleModelSelect]
   );
 
   // no providers menu; just one list of models
@@ -111,8 +119,8 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               color="text.secondary"
               sx={{ display: "block", mb: 1 }}
             >
-              {typeof (ollamaError as any)?.detail === "string"
-                ? (ollamaError as any).detail
+              {typeof (ollamaError as { detail?: unknown })?.detail === "string"
+                ? (ollamaError as { detail?: string }).detail
                 : "Please check that Ollama is running"}
             </Typography>
             {isElectron ? (
@@ -145,7 +153,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           sortedModels.map((model) => (
             <EditorMenuItem
               key={model.repo_id}
-              onClick={() => handleModelSelect(model.repo_id)}
+              onClick={handleMenuItemClick(model.repo_id)}
               selected={value === model.repo_id}
             >
               {value === model.repo_id && (

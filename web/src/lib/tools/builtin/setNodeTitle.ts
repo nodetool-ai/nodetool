@@ -1,19 +1,15 @@
+import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
 import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_set_node_title",
   description: "Set a node's display title (ui property).",
-  hidden: true,
-  parameters: {
-    type: "object",
-    properties: {
-      node_id: { type: "string" },
-      title: { type: "string" },
-      workflow_id: optionalWorkflowIdSchema
-    },
-    required: ["node_id", "title"]
-  },
+  parameters: z.object({
+    node_id: z.string(),
+    title: z.string(),
+    workflow_id: optionalWorkflowIdSchema
+  }),
   async execute({ node_id, title, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);

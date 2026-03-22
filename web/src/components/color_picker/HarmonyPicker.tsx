@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Tooltip, IconButton } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { Box, Typography, Tooltip } from "@mui/material";
+import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
   generateHarmony,
@@ -94,10 +94,22 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
     }));
   }, [color, harmonyInfo]);
 
-  const handleCopyAll = (colors: string[]) => {
-    const colorsText = colors.join(", ");
-    navigator.clipboard.writeText(colorsText);
-  };
+  const handleColorSelectWithHarmony = useCallback(
+    (harmonyColor: string, harmonyType: HarmonyType) => {
+      onColorSelect(harmonyColor);
+      if (onHarmonyChange) {
+        onHarmonyChange(harmonyType);
+      }
+    },
+    [onColorSelect, onHarmonyChange]
+  );
+
+  const handleSelectColorWithHarmony = useCallback(
+    (harmonyColor: string, harmonyType: HarmonyType) => () => {
+      handleColorSelectWithHarmony(harmonyColor, harmonyType);
+    },
+    [handleColorSelectWithHarmony]
+  );
 
   return (
     <Box css={styles(theme)}>
@@ -116,14 +128,11 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                 {harmony.description}
               </Typography>
             </div>
-            <Tooltip title="Copy all colors">
-              <IconButton
-                size="small"
-                onClick={() => handleCopyAll(harmony.colors)}
-              >
-                <ContentCopyIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Tooltip>
+            <CopyButton
+              tooltip="Copy all colors"
+              value={harmony.colors.join(", ")}
+              buttonSize="small"
+            />
           </div>
           <div className="harmony-colors">
             {harmony.colors.map((harmonyColor, index) => {
@@ -136,12 +145,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                   <div
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
-                    onClick={() => {
-                      onColorSelect(harmonyColor);
-                      if (onHarmonyChange) {
-                        onHarmonyChange(harmony.type);
-                      }
-                    }}
+                    onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}
                   >
                     <span className="color-hex" style={{ color: textHex }}>
                       {harmonyColor.replace("#", "")}
@@ -157,4 +161,4 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
   );
 };
 
-export default HarmonyPicker;
+export default memo(HarmonyPicker);

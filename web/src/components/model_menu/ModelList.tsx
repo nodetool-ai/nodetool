@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import {
   Box,
   List,
@@ -15,18 +15,14 @@ import {
 import FavoriteStar from "./FavoriteStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
-  toTitleCase,
-  formatGenericProviderName,
   isLocalProvider,
   isCloudProvider,
   isHuggingFaceInferenceProvider
 } from "../../utils/providerDisplay";
 import {
   requiredSecretForProvider,
-  ModelSelectorModel,
-  useLanguageModelMenuStore
+  ModelSelectorModel
 } from "../../stores/ModelMenuStore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -42,20 +38,62 @@ const listStyles = css({
   maxHeight: 600
 });
 
+/**
+ * HighlightedModelName - Memoized component for highlighting search term in model name.
+ * Uses useMemo to avoid creating RegExp on every render.
+ */
+const HighlightedModelName = memo<{
+  name: string;
+  searchTerm: string;
+  primaryColor: string;
+}>(({ name, searchTerm, primaryColor }) => {
+  const highlightedName = useMemo(() => {
+    if (!searchTerm || !name) {
+      return { parts: [{ text: name, isMatch: false }] };
+    }
+
+    // Split the name by search term, creating a RegExp only when searchTerm changes
+    const parts = name.split(new RegExp(`(${searchTerm})`, "gi"));
+    return {
+      parts: parts.map((part) => ({
+        text: part,
+        isMatch: part.toLowerCase() === searchTerm.toLowerCase()
+      }))
+    };
+  }, [name, searchTerm]);
+
+  return (
+    <>
+      {highlightedName.parts.map((part, i) =>
+        part.isMatch ? (
+          <span key={i} style={{ color: primaryColor, fontWeight: 600 }}>
+            {part.text}
+          </span>
+        ) : (
+          part.text
+        )
+      )}
+    </>
+  );
+});
+
+HighlightedModelName.displayName = "HighlightedModelName";
+
 export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
+  searchTerm?: string;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
   models,
-  onSelect
+  onSelect,
+  searchTerm = ""
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const { isApiKeySet } = useSecrets();
   const theme = useTheme();
-  const searchTerm = useLanguageModelMenuStore((s) => s.search);
 
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
@@ -72,19 +110,19 @@ function ModelList<TModel extends ModelSelectorModel>({
         !providerEnabled && !hasKey
           ? "Enable provider and add API key in Settings to use this model"
           : !providerEnabled
-          ? "Enable provider in the left sidebar to use this model"
-          : !hasKey
-          ? "Add API key in Settings to use this model"
-          : "";
+            ? "Enable provider in the left sidebar to use this model"
+            : !hasKey
+              ? "Add API key in Settings to use this model"
+              : "";
       return (
         <div style={style} key={`${m.provider}:${m.id}`}>
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
-              className={`model-menu__model-item ${
-                available ? "" : "is-unavailable"
-              } ${fav ? "is-favorite" : ""}`}
+              className={`model-menu__model-item ${available ? "" : "is-unavailable"
+                } ${fav ? "is-favorite" : ""}`}
               aria-disabled={!available}
               onClick={() => available && onSelect(m)}
+              sx={{ width: "100%", textAlign: "left" }}
             >
               <ListItemIcon sx={{ minWidth: 30 }}>
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
@@ -102,7 +140,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                       width: "100%"
                     }}
                   >
-                    <div
+                    <span
                       className="model-name"
                       style={{
                         overflow: "hidden",
@@ -112,8 +150,12 @@ function ModelList<TModel extends ModelSelectorModel>({
                         flex: "1 1 auto"
                       }}
                     >
-                      {m.path || m.name}
-                    </div>
+                      <HighlightedModelName
+                        name={m.path || m.name}
+                        searchTerm={searchTerm}
+                        primaryColor={theme.vars.palette.primary.main}
+                      />
+                    </span>
                     {available && isLocalProvider(m.provider) && (
                       <Tooltip
                         title="Runs locally on your device"
@@ -123,15 +165,14 @@ function ModelList<TModel extends ModelSelectorModel>({
                           className="badge-local"
                           style={{
                             flex: "0 0 auto",
-                            padding: "1px 6px",
-                            fontSize: theme.vars.fontSizeTiny,
-                            lineHeight: 1.2,
+                            padding: "0px 6px",
+                            fontSize: "10px",
+                            lineHeight: 1.4,
                             borderRadius: 4,
-                            background: "transparent",
-                            color: theme.vars.palette.c_provider_local,
-                            letterSpacing: 0.3,
-                            border: `1px solid ${theme.vars.palette.c_provider_local}`,
-                            cursor: "help"
+                            background: theme.vars.palette.action.hover,
+                            color: theme.vars.palette.text.secondary,
+                            letterSpacing: 0.2,
+                            border: "none"
                           }}
                         >
                           Local
@@ -148,18 +189,17 @@ function ModelList<TModel extends ModelSelectorModel>({
                             className="badge-hf-api"
                             style={{
                               flex: "0 0 auto",
-                              padding: "1px 6px",
-                              fontSize: theme.vars.fontSizeTiny,
-                              lineHeight: 1.2,
+                              padding: "0px 6px",
+                              fontSize: "10px",
+                              lineHeight: 1.4,
                               borderRadius: 4,
-                              background: "transparent",
-                              color: theme.vars.palette.c_provider_hf,
-                              letterSpacing: 0.3,
-                              border: `1px solid ${theme.vars.palette.c_provider_hf}`,
+                              background: theme.vars.palette.action.hover,
+                              color: theme.vars.palette.text.secondary,
+                              letterSpacing: 0.2,
+                              border: "none",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 2,
-                              cursor: "help"
+                              gap: 2
                             }}
                           >
                             HF API
@@ -180,18 +220,17 @@ function ModelList<TModel extends ModelSelectorModel>({
                             className="badge-api"
                             style={{
                               flex: "0 0 auto",
-                              padding: "1px 6px",
-                              fontSize: theme.vars.fontSizeTiny,
-                              lineHeight: 1.2,
+                              padding: "0px 6px",
+                              fontSize: "10px",
+                              lineHeight: 1.4,
                               borderRadius: 4,
-                              background: "transparent",
-                              color: theme.vars.palette.c_provider_api,
-                              letterSpacing: 0.3,
-                              border: `1px solid ${theme.vars.palette.c_provider_api}`,
+                              background: theme.vars.palette.action.hover,
+                              color: theme.vars.palette.text.secondary,
+                              letterSpacing: 0.2,
+                              border: "none",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 2,
-                              cursor: "help"
+                              gap: 2
                             }}
                           >
                             API
@@ -204,23 +243,27 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Box>
                 }
                 secondary={
-                  m.path ? (
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                    >
-                      <div
-                        style={{
-                          fontSize: theme.vars.fontSizeTiny,
-                          color: theme.vars.palette.text.secondary
-                        }}
-                      >
-                        {m.name}
-                      </div>
-                    </Box>
-                  ) : undefined
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: theme.vars.fontSizeTiny,
+                      color: theme.vars.palette.text.secondary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
+                  </span>
                 }
                 primaryTypographyProps={{
+                  component: "div",
                   noWrap: true
+                }}
+                secondaryTypographyProps={{
+                  component: "div"
                 }}
               />
             </ListItemButton>
@@ -235,10 +278,11 @@ function ModelList<TModel extends ModelSelectorModel>({
       isApiKeySet,
       onSelect,
       theme.vars.fontSizeTiny,
-      theme.vars.palette.c_provider_local,
-      theme.vars.palette.c_provider_api,
-      theme.vars.palette.c_provider_hf,
-      theme.vars.palette.text.secondary
+
+      theme.vars.palette.text.secondary,
+      searchTerm,
+      theme.vars.palette.primary.main,
+      theme.vars.palette.action.hover
     ]
   );
 
@@ -263,7 +307,7 @@ function ModelList<TModel extends ModelSelectorModel>({
         <AutoSizer>
           {({ height, width }) => {
             const safeHeight = Math.max(height || 0, 320);
-            const safeWidth = Math.max(width || 0, 250);
+            const safeWidth = Math.max(width || 0, 350);
             return (
               <List
                 dense
@@ -273,26 +317,26 @@ function ModelList<TModel extends ModelSelectorModel>({
                   overflowX: "hidden",
                   height: safeHeight,
                   width: safeWidth,
-                  "& .MuiListItemButton-root": { py: 0.4 },
+                  "& .MuiListItemButton-root": { py: 0.5 },
                   "& .MuiListItemText-primary": {
                     fontSize: theme.vars.fontSizeNormal
                   },
                   "& .MuiListItemText-secondary": {
                     color: theme.vars.palette.text.secondary,
-                    fontSize: theme.vars.fontSizeSmaller
+                    fontSize: theme.vars.fontSizeSmall
                   },
                   "& .model-menu__model-item.is-unavailable": {
                     opacity: 0.55,
                     cursor: "not-allowed"
                   },
                   "& .model-menu__model-item.is-unavailable .MuiListItemText-primary":
-                    {
-                      color: theme.vars.palette.text.disabled
-                    },
+                  {
+                    color: theme.vars.palette.text.disabled
+                  },
                   "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary":
-                    {
-                      color: theme.vars.palette.text.disabled
-                    },
+                  {
+                    color: theme.vars.palette.text.disabled
+                  },
                   "& .MuiListItemButton-root:hover .favorite-star": {
                     opacity: 1
                   }

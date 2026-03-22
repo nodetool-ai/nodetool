@@ -10,6 +10,7 @@ import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
 import { numberInputStyles } from "./numberInputStyles";
+import { formatFloat } from "./NumberInput.utils";
 
 // Drag-tuning constants
 export const DRAG_THRESHOLD = 10; // px before drag counts (to prevent accidental dragging when clicking to set value)
@@ -28,7 +29,12 @@ export interface InputProps {
   min?: number;
   max?: number;
   value: number;
-  onChange: (event: any, value: number) => void;
+  onChange: (event: React.ChangeEvent<HTMLInputElement> | null, value: number) => void;
+  /**
+   * Called when the user finishes changing the value (on mouseup for drag, on blur for text input).
+   * Useful for triggering actions only when the user has committed their change.
+   */
+  onChangeComplete?: (value: number) => void;
   id: string;
   size?: "small" | "medium";
   color?: "primary" | "secondary";
@@ -65,10 +71,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const sliderVisible = (props.showSlider ?? hasBounds) && hasBounds;
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
-    localValue: props.value?.toString() ?? "",
+    localValue: props.inputType === "float" ? formatFloat(props.value ?? 0) : (props.value?.toString() ?? ""),
     originalValue: props.value ?? 0,
     dragStartX: 0,
-    decimalPlaces: 1,
+    decimalPlaces: props.inputType === "float" ? 2 : 0,
     isDragging: false,
     hasExceededDragThreshold: false,
     dragInitialValue: props.value ?? 0,
@@ -94,8 +100,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     dragStateRef,
     setSpeedFactorState
   );
-
-  // const handleFocusPan = useFocusPan(props.nodeId);
 
   useCombo(
     ["Escape"],
@@ -123,7 +127,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (event: React.FocusEvent<HTMLInputElement>) => {
       event.target.select();
       setState((prevState) => ({ ...prevState, isFocused: true }));
-      // handleFocusPan(event);
     },
     []
   );
@@ -153,16 +156,26 @@ const NumberInput: React.FC<InputProps> = (props) => {
           ...prevState,
           inputIsFocused: false,
           isDefault: finalValue === props.value,
-          localValue: finalValue.toString()
+          localValue:
+            props.inputType === "float"
+              ? formatFloat(finalValue)
+              : finalValue.toString()
         }));
 
         props.onChange(null, finalValue);
+        // Call onChangeComplete when user finishes editing via text input
+        if (props.onChangeComplete) {
+          props.onChangeComplete(finalValue);
+        }
       } else {
-        setState((prevState) => ({
-          ...prevState,
-          inputIsFocused: false,
-          localValue: (props.value ?? 0).toString()
-        }));
+      setState((prevState) => ({
+        ...prevState,
+        inputIsFocused: false,
+        localValue:
+          props.inputType === "float"
+            ? formatFloat(props.value ?? 0)
+            : (props.value ?? 0).toString()
+      }));
       }
     },
     [props, state.localValue, state.originalValue]
@@ -243,7 +256,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
   useEffect(() => {
     // Sync with external value changes, but only when not dragging or focused.
     if (!inputIsFocused && !state.isDragging) {
-      const newValueStr = (props.value ?? 0).toString();
+      const isFloat = props.inputType === "float";
+      const newValueStr = isFloat
+        ? formatFloat(props.value ?? 0)
+        : (props.value ?? 0).toString();
       setState((prevState) => {
         // Only update if the string representation changed to prevent
         // an infinite re-render loop.
@@ -256,7 +272,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         };
       });
     }
-  }, [props.value, inputIsFocused, state.isDragging]);
+  }, [props.inputType, props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
     if (!state.isDragging) {
@@ -267,8 +283,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     // effect dependency array minimal and prevents re-running this effect on every
     // render while dragging (which previously caused listener churn and could
     // contribute to deep update loops).
-    const moveHandler = handleMouseMove;
-    const upHandler = handleMouseUp;
+    const moveHandler = (e: MouseEvent) => handleMouseMove(e);
+    const upHandler = () => handleMouseUp();
 
     document.addEventListener("mousemove", moveHandler);
     document.addEventListener("mouseup", upHandler);
@@ -277,8 +293,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", upHandler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isDragging]);
+  }, [state.isDragging, handleMouseMove, handleMouseUp]);
 
   // Track mouse position during drag
   useEffect(() => {
@@ -306,16 +321,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onContextMenu={handleContextMenu}
       tabIndex={-1}
     >
-      <EditableInput
-        value={state.localValue}
-        onChange={handleValueChange}
-        onBlur={() => handleBlur(true)}
-        onFocus={handleInputFocus}
-        isDefault={state.isDefault}
-        tabIndex={props.tabIndex}
-        onFocusChange={setInputIsFocused}
-        shouldFocus={inputIsFocused}
-      />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
           <PropertyLabel
@@ -325,13 +330,25 @@ const NumberInput: React.FC<InputProps> = (props) => {
             showTooltip={!state.isDragging}
           />
         )}
-        {!inputIsFocused && (
-          <DisplayValue
-            value={props.value}
-            isFloat={props.inputType === "float"}
-            decimalPlaces={state.decimalPlaces}
+        <div className="value-container">
+          <EditableInput
+            value={state.localValue}
+            onChange={handleValueChange}
+            onBlur={() => handleBlur(true)}
+            onFocus={handleInputFocus}
+            isDefault={state.isDefault}
+            tabIndex={props.tabIndex}
+            onFocusChange={setInputIsFocused}
+            shouldFocus={inputIsFocused}
           />
-        )}
+          {!inputIsFocused && (
+            <DisplayValue
+              value={props.value}
+              isFloat={props.inputType === "float"}
+              decimalPlaces={state.decimalPlaces}
+            />
+          )}
+        </div>
       </div>
       {sliderVisible &&
         typeof props.min === "number" &&
@@ -361,6 +378,8 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.inputType === nextProps.inputType &&
     prevProps.hideLabel === nextProps.hideLabel &&
     prevProps.showSlider === nextProps.showSlider &&
-    prevProps.changed === nextProps.changed
+    prevProps.changed === nextProps.changed &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onChangeComplete === nextProps.onChangeComplete
   );
 });

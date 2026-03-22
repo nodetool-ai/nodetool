@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { useRouteError } from "react-router-dom";
 import { Typography, Box, Button, ThemeProvider } from "@mui/material";
-import { CopyToClipboardButton } from "./components/common/CopyToClipboardButton";
+import { CopyButton } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -134,10 +134,10 @@ const ErrorBoundary: React.FC = () => {
           {errorMessage}
         </Typography>
         <Box position="relative" width="100%" maxWidth="80vw">
-          <CopyToClipboardButton
-            copyValue={stackTrace}
+          <CopyButton
+            value={stackTrace}
             tooltipPlacement="top"
-            size="large"
+            buttonSize="large"
             sx={{ position: "absolute", top: 25, right: 5 }}
           />
           <Typography variant="body1" className="error-stack-trace">

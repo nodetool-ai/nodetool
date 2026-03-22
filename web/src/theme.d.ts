@@ -71,6 +71,8 @@ declare module "@mui/material/styles" {
     fontFamily1: string;
     fontFamily2: string;
     // Ensure theme.vars is treated as always present in our codebase
+    // MUI's internal theme.vars structure is complex and cannot be easily typed
+     
     vars: any;
     rounded: {
       dialog: string;

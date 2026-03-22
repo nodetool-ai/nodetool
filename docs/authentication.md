@@ -1,21 +1,21 @@
 ---
 layout: page
-title: "NodeTool Worker Authentication"
+title: "NodeTool Server Authentication"
 ---
 
 
 
 See [API Reference](api-reference.md) for a matrix of endpoints, auth requirements, and streaming behavior. The NodeTool
-worker uses token-based authentication to secure all endpoints when deployed.
+server uses token-based authentication to secure all endpoints when deployed.
 For environment variable defaults and precedence, see the [Configuration Guide](configuration.md#environment-variables-index).
 
 ## Quick Start
 
-**Authentication is enabled by default!** The worker automatically generates a secure token on first run.
+**Authentication is enabled by default!** The server automatically generates a secure token on first run.
 
 ```bash
-# Start the worker
-python -m nodetool.deploy.worker
+# Start the server
+python -m nodetool.api.run_server
 
 # The token is automatically generated and displayed
 # Copy it from the console output to use with requests
@@ -27,9 +27,9 @@ ______________________________________________________________________
 
 ### Token Generation Priority
 
-The worker looks for a token in this order:
+The server looks for a token in this order:
 
-1. **Environment variable** `WORKER_AUTH_TOKEN`
+1. **Environment variable** `SERVER_AUTH_TOKEN`
 1. **Config file** `~/.config/nodetool/deployment.yaml`
 1. **Auto-generate** a new token and save it to the config file
 
@@ -52,7 +52,7 @@ On first run, if no token is found:
 **File format:**
 
 ```yaml
-worker_auth_token: your-auto-generated-token-here
+server_auth_token: your-auto-generated-token-here
 ```
 
 ______________________________________________________________________
@@ -61,17 +61,17 @@ ______________________________________________________________________
 
  All API requests (except `/health` and `/ping`) require authentication when
  `AUTH_PROVIDER` is `static` or `supabase`. In local development (default
- `ENV=development` and `AUTH_PROVIDER=local`) the worker and API server accept
+ `ENV=development` and `AUTH_PROVIDER=local`) the server and API server accept
  requests without a token for convenience.
 
 When authentication is enforced, send the static token in the header:
 
 ```bash
 # Get token from config file
-TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep worker_auth_token | cut -d' ' -f2)
+TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep server_auth_token | cut -d' ' -f2)
 
 # Use in requests
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/v1/models
+curl -H "Authorization: Bearer $TOKEN" http://localhost:7777/v1/models
 ```
 
 ### Example Requests
@@ -81,7 +81,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/v1/models
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -X POST http://localhost:8000/v1/chat/completions \
+  -X POST http://localhost:7777/v1/chat/completions \
   -d '{
     "model": "llama3.2:latest",
     "messages": [{"role": "user", "content": "Hello"}]
@@ -92,14 +92,14 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8000/admin/collections
+  http://localhost:7777/admin/collections
 ```
 
 **Upload File:**
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  -X PUT http://localhost:8000/admin/storage/assets/image.png \
+  -X PUT http://localhost:7777/admin/storage/assets/image.png \
   --data-binary @image.png
 ```
 
@@ -113,7 +113,7 @@ Choose the auth strategy via `AUTH_PROVIDER`:
 # Valid values:
 #  none      – no authentication; requests run as user "1"
 #  local     – development convenience; requests run as user "1"
-#  static    – pre-shared token only (worker token)
+#  static    – pre-shared token only (server token)
 #  supabase  – validate Supabase JWTs
 
 export AUTH_PROVIDER=supabase
@@ -129,7 +129,7 @@ export SUPABASE_KEY=your-service-role-key
 Behavior:
 
 - HTTP and WebSocket endpoints enforce auth when `AUTH_PROVIDER` is `static` or `supabase`.
-- With `supabase`, clients send `Authorization: Bearer <supabase_jwt>`. Static worker tokens also work for admin endpoints where applicable.
+- With `supabase`, clients send `Authorization: Bearer <supabase_jwt>`. Static server tokens also work for admin endpoints where applicable.
 - With `local` or `none`, endpoints do not enforce auth and default to user `"1"`.
 
 Caching (Supabase):
@@ -150,17 +150,17 @@ You can override the auto-generated token by setting the environment variable:
 
 ```bash
 # Set your own token
-export WORKER_AUTH_TOKEN="my-custom-secure-token"
+export SERVER_AUTH_TOKEN="my-custom-secure-token"
 
-# Start worker (will use this token instead)
-python -m nodetool.deploy.worker
+# Start server (will use this token instead)
+python -m nodetool.api.run_server
 ```
 
 This is useful for:
 
 - Docker deployments with secrets
 - CI/CD pipelines
-- Multiple worker instances with shared token
+- Multiple server instances with shared token
 
 ______________________________________________________________________
 
@@ -172,8 +172,8 @@ ______________________________________________________________________
 
 ```bash
 docker run -v ~/.config/nodetool:/root/.config/nodetool \
-  -p 8000:8000 \
-  nodetool-worker
+  -p 7777:7777 \
+  nodetool-server
 ```
 
 The token persists across container restarts.
@@ -185,9 +185,9 @@ The token persists across container restarts.
 TOKEN=$(openssl rand -base64 32)
 
 # Run with token
-docker run -e WORKER_AUTH_TOKEN="$TOKEN" \
-  -p 8000:8000 \
-  nodetool-worker
+docker run -e SERVER_AUTH_TOKEN="$TOKEN" \
+  -p 7777:7777 \
+  nodetool-server
 ```
 
 ### Docker Compose
@@ -195,16 +195,16 @@ docker run -e WORKER_AUTH_TOKEN="$TOKEN" \
 ```yaml
 version: '3.8'
 services:
-  worker:
-    image: nodetool-worker
+  server:
+    image: nodetool-server
     ports:
-      - "8000:8000"
+      - "7777:7777"
     volumes:
       # Mount config to persist token
       - ./config:/root/.config/nodetool
     # OR use environment variable
     environment:
-      - WORKER_AUTH_TOKEN=${WORKER_AUTH_TOKEN}
+      - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN}
 ```
 
 ______________________________________________________________________
@@ -213,7 +213,7 @@ ______________________________________________________________________
 
 ### From Console Output
 
-The full token is displayed when the worker starts:
+The full token is displayed when the server starts:
 
 ```
 ======================================================================
@@ -240,9 +240,9 @@ Get-Content $env:APPDATA\nodetool\deployment.yaml
 ### Programmatically
 
 ```python
-from nodetool.deploy.auth import get_worker_auth_token
+from nodetool.deploy.auth import get_server_auth_token
 
-token = get_worker_auth_token()
+token = get_server_auth_token()
 print(f"Token: {token}")
 ```
 
@@ -272,27 +272,27 @@ chmod 600 ~/.config/nodetool/deployment.yaml
 # Delete the config file
 rm ~/.config/nodetool/deployment.yaml
 
-# Restart worker (new token will be generated)
-python -m nodetool.deploy.worker
+# Restart server (new token will be generated)
+python -m nodetool.api.run_server
 ```
 
 Or set a new environment variable:
 
 ```bash
-export WORKER_AUTH_TOKEN="$(openssl rand -base64 32)"
+export SERVER_AUTH_TOKEN="$(openssl rand -base64 32)"
 ```
 
 ### 3. Use Different Tokens per Environment
 
 ```bash
 # Development
-export WORKER_AUTH_TOKEN="dev-token"
+export SERVER_AUTH_TOKEN="dev-token"
 
 # Staging
-export WORKER_AUTH_TOKEN="staging-token"
+export SERVER_AUTH_TOKEN="staging-token"
 
 # Production
-export WORKER_AUTH_TOKEN="$(openssl rand -base64 32)"
+export SERVER_AUTH_TOKEN="$(openssl rand -base64 32)"
 ```
 
 ### 4. Use HTTPS in Production
@@ -308,7 +308,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:7777;
     }
 }
 ```
@@ -362,14 +362,14 @@ ______________________________________________________________________
 
 ```bash
 # Check token source
-python -m nodetool.deploy.worker
+python -m nodetool.api.run_server
 # Look for "Source: ..." in the output
 
 # Verify token in config
 cat ~/.config/nodetool/deployment.yaml
 
 # Check environment variable
-echo $WORKER_AUTH_TOKEN
+echo $SERVER_AUTH_TOKEN
 ```
 
 ### Can't Find Config File
@@ -381,8 +381,8 @@ ls -la ~/.config/nodetool/
 # Create directory if missing
 mkdir -p ~/.config/nodetool
 
-# Restart worker to generate token
-python -m nodetool.deploy.worker
+# Restart server to generate token
+python -m nodetool.api.run_server
 ```
 
 ### Token Not Persisting (Docker)
@@ -390,13 +390,13 @@ python -m nodetool.deploy.worker
 ```bash
 # Mount config directory as volume
 docker run -v nodetool-config:/root/.config/nodetool \
-  -p 8000:8000 \
-  nodetool-worker
+  -p 7777:7777 \
+  nodetool-server
 
 # Or use environment variable
-docker run -e WORKER_AUTH_TOKEN="your-token" \
-  -p 8000:8000 \
-  nodetool-worker
+docker run -e SERVER_AUTH_TOKEN="your-token" \
+  -p 7777:7777 \
+  nodetool-server
 ```
 
 ______________________________________________________________________
@@ -409,7 +409,7 @@ ______________________________________________________________________
 import requests
 
 TOKEN = "your-token-here"
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7777"
 
 headers = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -433,7 +433,7 @@ print(response.json())
 
 ```javascript
 const TOKEN = "your-token-here";
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:7777";
 
 const headers = {
   "Authorization": `Bearer ${TOKEN}`,
@@ -461,8 +461,8 @@ console.log(await chat.json());
 ```bash
 #!/bin/bash
 
-TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep worker_auth_token | awk '{print $2}')
-BASE_URL="http://localhost:8000"
+TOKEN=$(cat ~/.config/nodetool/deployment.yaml | grep server_auth_token | awk '{print $2}')
+BASE_URL="http://localhost:7777"
 
 # List models
 curl -H "Authorization: Bearer $TOKEN" \
@@ -506,7 +506,7 @@ config = load_deployment_config()
 
 # Generate new token
 new_token = generate_secure_token()
-config['worker_auth_token'] = new_token
+config['server_auth_token'] = new_token
 
 # Save config
 save_deployment_config(config)
@@ -528,7 +528,7 @@ ______________________________________________________________________
 
 ## Security Hardening
 
-- Production: set `AUTH_PROVIDER` to `supabase` or `static`, terminate TLS in front of all non-public endpoints, and rotate worker/proxy tokens via your secrets manager.
+- Production: set `AUTH_PROVIDER` to `supabase` or `static`, terminate TLS in front of all non-public endpoints, and rotate server/proxy tokens via your secrets manager.
 - Staging: disable terminal WebSocket (`NODETOOL_ENABLE_TERMINAL_WS` unset), keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
 - Development: keep `AUTH_PROVIDER=local` to isolated machines only and avoid storing real secrets in `.env.development`.
 

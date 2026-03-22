@@ -43,15 +43,15 @@ global:
   auto_certbot: false
 
 services:
-  - name: nodetool-worker
+  - name: nodetool-server
     path: /
     image: nodetool:latest
-    internal_port: 8000
+    internal_port: 7777
     host_port: null              # auto-select unless using host_port mode
     mem_limit: 8g
     cpus: 4.0
     environment:
-      NODETOOL_API_URL: http://localhost:8000
+      NODETOOL_API_URL: http://localhost:7777
     volumes:
       /data/workspace:
         bind: /workspace
@@ -98,7 +98,7 @@ All proxy commands are exposed by `nodetool cli`:
 
 ## Related Documentation
 
-- [Self-Hosted Deployment](self_hosted.md) – end-to-end instructions for pairing the proxy with worker containers.  
+- [Self-Hosted Deployment](self-hosted-deployment.md) – end-to-end instructions for pairing the proxy with server containers.  
 - [Deployment Guide](deployment.md) – CLI workflow for applying proxy-enabled deployments.  
 - [Configuration Guide](configuration.md) – how environment variables and secrets are supplied to services.  
 - [Docker Resource Management](docker-resource-management.md) – tuning container limits for multi-tenant setups.

@@ -10,6 +10,7 @@ import TextProperty from "../properties/TextProperty";
 import ImageProperty from "../properties/ImageProperty";
 import AudioProperty from "../properties/AudioProperty";
 import VideoProperty from "../properties/VideoProperty";
+import Model3DProperty from "../properties/Model3DProperty";
 import IntegerProperty from "../properties/IntegerProperty";
 import FloatProperty from "../properties/FloatProperty";
 import EnumProperty from "../properties/EnumProperty";
@@ -32,6 +33,8 @@ import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
+import SelectProperty from "../properties/SelectProperty";
+import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { useTheme } from "@mui/material/styles";
@@ -39,10 +42,15 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
+import ImageListProperty from "../properties/ImageListProperty";
+import VideoListProperty from "../properties/VideoListProperty";
+import AudioListProperty from "../properties/AudioListProperty";
+import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
+import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
@@ -89,6 +97,11 @@ export type PropertyProps = {
   propertyIndex: string;
   isInspector?: boolean;
   onChange: (value: any) => void;
+  /**
+   * Called when the user finishes changing the value (e.g., on mouseup for sliders).
+   * Useful for triggering actions only when the user has committed their change.
+   */
+  onChangeComplete?: () => void;
   tabIndex?: number;
   isDynamicProperty?: boolean;
   /**
@@ -111,9 +124,26 @@ function InputProperty(props: PropertyProps) {
   );
 }
 
-function getComponentForProperty(
+export function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
+  // Dynamic schemas (e.g. FalAI) may attach `values` or `enum` directly to the
+  // property object rather than inside `property.type`.
+  const propertyWithExtras = property as Property & {
+    values?: (string | number)[];
+    enum?: (string | number)[];
+  };
+  // If property has predefined values, treat it as an enum/select 
+  // regardless of base type (often comes as 'str' from dynamic schemas)
+  const hasValues = (property.type.values && property.type.values.length > 0) || 
+                    (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
+                    (propertyWithExtras.values && propertyWithExtras.values.length > 0) ||
+                    (propertyWithExtras.enum && propertyWithExtras.enum.length > 0);
+  
+  if (hasValues) {
+    return EnumProperty;
+  }
+
   if (property.json_schema_extra?.type) {
     return componentForType(property.json_schema_extra.type as string);
   } else {
@@ -146,10 +176,22 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ColorProperty;
     case "image":
       return ImageProperty;
+    case "image_size":
+      return ImageSizeProperty;
+    case "image_list":
+      return ImageListProperty;
+    case "video_list":
+      return VideoListProperty;
+    case "audio_list":
+      return AudioListProperty;
+    case "text_list":
+      return TextListProperty;
     case "audio":
       return AudioProperty;
     case "video":
       return VideoProperty;
+    case "model_3d":
+      return Model3DProperty;
     case "collection":
       return CollectionProperty;
     case "json":
@@ -168,6 +210,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return FolderProperty;
     case "asset":
       return AssetProperty;
+    case "select":
+      return SelectProperty;
     case "workflow":
       return WorkflowProperty;
     case "dataframe":
@@ -202,10 +246,8 @@ function handleUnionType(
   return getComponentForProperty({
     ...property,
     type: {
+      ...property.type,
       type: reducedType,
-      optional: property.type.optional,
-      type_args: property.type.type_args,
-      type_name: property.type.type_name
     }
   });
 }
@@ -222,6 +264,14 @@ function handleListType(
         return ToolsListProperty;
       case "str":
         return StringListProperty;
+      case "image":
+        return ImageListProperty;
+      case "video":
+        return VideoListProperty;
+      case "audio":
+        return AudioListProperty;
+      case "text":
+        return TextListProperty;
     }
   }
   return ListProperty;
@@ -271,6 +321,7 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  hideActionIcons?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -284,6 +335,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   controlKeyPressed,
   tabIndex,
   isDynamicProperty,
+  hideActionIcons,
   isInspector,
   onValueChange
 }: PropertyInputProps) => {
@@ -296,6 +348,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     })
   );
   const metadata = useMetadataStore((state) => state.metadata);
+
+  // Auto-run hook for input nodes - triggers downstream workflow execution on property changes
+  const { onPropertyChange, onPropertyChangeComplete } = useInputNodeAutoRun({
+    nodeId: id,
+    nodeType,
+    propertyName: property.name
+  });
 
   const onChange = useCallback(
     (value: any) => {
@@ -320,11 +379,15 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       } else {
         updateNodeProperties(id, { [property.name]: value });
       }
+
+      // Trigger auto-run (hook decides based on settings and node type)
+      onPropertyChange();
     },
     [
       findNode,
       id,
       isDynamicProperty,
+      onPropertyChange,
       onValueChange,
       property.name,
       updateNodeData,
@@ -335,6 +398,11 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   // Calculate changed state: value differs from default
   const isChanged = value !== property.default;
 
+  // Handle slider/number input change complete
+  const handleChangeComplete = useCallback(() => {
+    onPropertyChangeComplete();
+  }, [onPropertyChangeComplete]);
+
   const propertyProps = {
     property: property,
     value: value,
@@ -342,6 +410,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeType: nodeType,
     nodeId: id,
     onChange: onChange,
+    onChangeComplete: handleChangeComplete,
     tabIndex: tabIndex,
     isDynamicProperty: isDynamicProperty,
     isInspector: isInspector,
@@ -381,21 +450,27 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         }
 
         if (isDynamicProperty) {
-          // For dynamic properties, get default from metadata
+          // For dynamic properties, get default from metadata or the property object itself
           const nodeMetadata = metadata?.[node.type as string];
+          let defaultValue = property.default;
+
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
             );
-            if (propertyDef && node.data.dynamic_properties) {
-              const updatedDynamicProperties = {
-                ...node.data.dynamic_properties,
-                [property.name]: propertyDef.default
-              };
-              updateNodeData(id, {
-                dynamic_properties: updatedDynamicProperties
-              });
+            if (propertyDef) {
+              defaultValue = propertyDef.default;
             }
+          }
+
+          if (defaultValue !== undefined && node.data.dynamic_properties) {
+            const updatedDynamicProperties = {
+              ...node.data.dynamic_properties,
+              [property.name]: defaultValue
+            };
+            updateNodeData(id, {
+              dynamic_properties: updatedDynamicProperties
+            });
           }
         } else {
           // For regular properties, get default from metadata or property
@@ -448,6 +523,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const componentType = componentFor(property);
 
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedName(e.target.value);
+  }, []);
+
   let inputField: React.ReactNode = null;
   if (componentType) {
     if (isDynamicProperty && isEditingName) {
@@ -455,7 +534,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
             value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
+            onChange={handleNameChange}
             onBlur={handleNameSubmit}
             autoFocus
           />
@@ -482,6 +561,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [isDynamicProperty, property.name]
   );
 
+  const handleEditNameClick = useCallback(() => {
+    setIsEditingName(true);
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDeleteProperty(property.name);
+  }, [handleDeleteProperty, property.name]);
+
   return (
     <div
       className="property-input-container"
@@ -490,20 +577,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       {inputField}
-      {isDynamicProperty && (
+      {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
-          {isDynamicProperty && (
-            <Edit
-              className="action-icon"
-              onClick={() => setIsEditingName(true)}
-            />
-          )}
-          {handleDeleteProperty && (
-            <Close
-              className="action-icon close"
-              onClick={() => handleDeleteProperty(property.name)}
-            />
-          )}
+          <Edit
+            className="action-icon"
+            onClick={handleEditNameClick}
+          />
+          <Close
+            className="action-icon close"
+            onClick={handleDeleteClick}
+          />
         </div>
       )}
     </div>

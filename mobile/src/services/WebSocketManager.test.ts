@@ -75,7 +75,7 @@ describe('WebSocketManager', () => {
   let manager: WebSocketManager | null = null;
 
   const defaultConfig = {
-    url: 'ws://localhost:8000/ws/chat',
+    url: 'ws://localhost:7777/ws/chat',
     reconnect: false,
     timeoutInterval: 300000,
   };
@@ -588,7 +588,7 @@ describe('WebSocketManager', () => {
   describe('Reconnection logic (unit tests)', () => {
     it('calculates reconnect delay with exponential backoff', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectInterval: 1000,
         reconnectDecay: 1.5,
@@ -613,7 +613,7 @@ describe('WebSocketManager', () => {
 
     it('shouldReconnect returns false for no-reconnect codes', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectAttempts: 10,
         timeoutInterval: 300000,
@@ -629,7 +629,7 @@ describe('WebSocketManager', () => {
 
     it('shouldReconnect returns false when intentional disconnect', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectAttempts: 10,
         timeoutInterval: 300000,
@@ -642,7 +642,7 @@ describe('WebSocketManager', () => {
 
     it('shouldReconnect returns false when reconnect disabled', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: false,
         timeoutInterval: 300000,
       });
@@ -653,7 +653,7 @@ describe('WebSocketManager', () => {
 
     it('shouldReconnect returns false when max attempts exceeded', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectAttempts: 3,
         timeoutInterval: 300000,
@@ -666,7 +666,7 @@ describe('WebSocketManager', () => {
 
     it('shouldReconnect returns true for recoverable close', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectAttempts: 10,
         timeoutInterval: 300000,
@@ -678,7 +678,7 @@ describe('WebSocketManager', () => {
 
     it('scheduleReconnect does not create duplicate timers', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         reconnect: true,
         reconnectInterval: 1000,
         timeoutInterval: 300000,
@@ -696,7 +696,7 @@ describe('WebSocketManager', () => {
 
     it('clearTimers clears both timers', () => {
       manager = new WebSocketManager({
-        url: 'ws://localhost:8000/ws/chat',
+        url: 'ws://localhost:7777/ws/chat',
         timeoutInterval: 300000,
       });
       

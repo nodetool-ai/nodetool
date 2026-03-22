@@ -7,12 +7,6 @@ import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import SummarizeIcon from "@mui/icons-material/Summarize";
-import TranslateIcon from "@mui/icons-material/Translate";
-import ShortTextIcon from "@mui/icons-material/ShortText";
-import SpellcheckIcon from "@mui/icons-material/Spellcheck";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -35,7 +29,7 @@ import Markdown from "react-markdown";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
@@ -60,11 +54,12 @@ import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 import { NewChatButton } from "../chat";
+import log from "loglevel";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
   onError: (error: Error) => {
-    console.error(error);
+    log.error(error);
   },
   nodes: [
     HeadingNode,
@@ -100,6 +95,20 @@ interface TextEditorModalProps {
 
 const styles = (theme: Theme) =>
   css({
+    "@keyframes modalSlideIn": {
+      "0%": {
+        opacity: 0,
+        transform: "scale(0.97) translateY(8px)"
+      },
+      "100%": {
+        opacity: 1,
+        transform: "scale(1) translateY(0)"
+      }
+    },
+    "@keyframes pulseGlow": {
+      "0%, 100%": { opacity: 0.6 },
+      "50%": { opacity: 1 }
+    },
     ".modal-overlay": {
       position: "fixed",
       top: "72px",
@@ -107,13 +116,14 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
-      backdropFilter: "blur(4px)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
+      backdropFilter: "blur(12px) saturate(150%)",
+      WebkitBackdropFilter: "blur(12px) saturate(150%)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
-      transition: "all 0.2s ease-in-out"
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     },
     ".modal-overlay.fullscreen": {
       top: 0,
@@ -121,113 +131,138 @@ const styles = (theme: Theme) =>
       width: "100vw",
       height: "100vh",
       padding: 0,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.85)`
     },
     ".modal-content": {
-      background: theme.vars.palette.glass.backgroundDialogContent, // More opaque for better readability
-      backdropFilter: "blur(16px)", // Stronger blur
-      WebkitBackdropFilter: "blur(16px)",
-      color: theme.vars.palette.grey[100],
+      background: `linear-gradient(160deg, 
+        rgba(${theme.vars.palette.background.paperChannel} / 0.96), 
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.99))`,
+      backdropFilter: "blur(24px) saturate(180%)",
+      WebkitBackdropFilter: "blur(24px) saturate(180%)",
+      color: theme.vars.palette.text.primary,
       fontSize: "var(--fontSizeBigger)",
-      width: "92%",
-      maxWidth: "1600px",
+      width: "100%",
+      maxWidth: "2400px",
       height: "100%",
       margin: "auto",
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`,
       borderRadius: theme.vars.rounded.dialog,
-      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)", // Custom XL shadow for glassmorphism
-      overflow: "hidden" // Ensure border-radius clips content
+      boxShadow: `0 48px 100px -24px rgba(0, 0, 0, 0.65),
+        0 24px 48px -12px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255,255,255,0.06) inset,
+        0 1px 0 0 rgba(255,255,255,0.08) inset`,
+      overflow: "hidden",
+      transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+      animation: "modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards"
     },
     ".modal-content.fullscreen": {
       width: "100%",
       maxWidth: "100%",
       height: "100%",
       borderRadius: 0,
-      borderLeft: 0,
-      borderRight: 0,
-      borderTop: 0,
-      borderBottom: 0
+      border: "none",
+      background: theme.vars.palette.background.default,
+      animation: "none"
     },
     ".modal-header": {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center", // Center aligned items
-      padding: "0.75em 1.5em",
-      minHeight: "3.5em",
-      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, transparent 100%)`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      position: "relative", // Changed from sticky to avoid layout issues if not needed, or keep sticky if content scrolls
+      alignItems: "center",
+      padding: "0.6em 1.25em",
+      minHeight: "3.2em",
+      position: "relative",
+      background: `linear-gradient(90deg, 
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.5) 0%, 
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.15) 100%)`,
+      borderBottom: "none",
       zIndex: 5,
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "2px",
+        background: `linear-gradient(90deg, 
+          ${theme.vars.palette.primary.main}60, 
+          ${theme.vars.palette.primary.main}10 60%, 
+          transparent 100%)`,
+        opacity: 0.7
+      },
       h4: {
         cursor: "default",
         fontWeight: "600",
         margin: "0",
-        fontSize: "var(--fontSizeBig)",
-        letterSpacing: "0.02em",
+        fontSize: "1rem",
+        letterSpacing: "-0.01em",
         color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 2px rgba(0,0,0,0.2)"
+        textShadow: "0 1px 3px rgba(0,0,0,0.2)"
       }
     },
     ".title-and-description": {
       flex: 1,
       display: "flex",
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: "1em",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "0.15em",
       overflow: "hidden"
     },
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: ".5em",
+      gap: "0.35em",
+      backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
+      padding: "3px 7px",
+      borderRadius: "12px",
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
+      boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.03)`,
       "& + .toolbar-group": {
-        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-        marginLeft: ".5em",
-        paddingLeft: ".5em"
+        marginLeft: "0.4em"
       }
     },
     ".code-tools": {
       display: "flex",
       alignItems: "center",
-      gap: ".35em",
-      marginRight: "0.5em"
+      gap: "0.35em",
+      marginRight: "0.4em"
     },
     ".language-select": {
-      background: "rgba(0,0,0,0.2)",
-      color: theme.vars.palette.grey[100],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      border: "none",
       borderRadius: "6px",
-      padding: "4px 8px",
-      fontSize: "var(--fontSizeSmaller)",
+      padding: "3px 6px",
+      fontSize: "0.75rem",
+      fontWeight: 600,
       outline: "none",
-      transition: "all 0.2s ease",
       cursor: "pointer",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      transition: "all 0.2s ease",
       "&:hover": {
-        borderColor: theme.vars.palette.grey[500],
-        background: "action.selected"
+        color: theme.vars.palette.text.primary,
+        background: `rgba(${theme.vars.palette.action.activeChannel} / 0.1)`
       },
       "&:focus": {
-        borderColor: theme.vars.palette.primary.main
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
       }
     },
     ".description": {
       width: "100%",
-      maxWidth: "600px",
-      maxHeight: "1.5em",
+      maxWidth: "550px",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
       padding: "0",
       margin: "0",
-      fontSize: "var(--fontSizeSmaller)",
-      opacity: 0.7,
-      p: {
-        margin: 0,
-        display: "inline"
-      }
+      fontSize: "0.78rem",
+      color: theme.vars.palette.text.secondary,
+      fontWeight: 400,
+      opacity: 0.8
     },
     ".modal-body": {
       position: "relative",
@@ -241,17 +276,19 @@ const styles = (theme: Theme) =>
       ".editor": {
         flex: 1,
         width: "100%",
-        fontSize: "var(--fontSizeSmall)",
-        lineHeight: "1.5",
-        color: theme.vars.palette.grey[100],
+        fontSize: "14.5px",
+        lineHeight: "1.7",
+        color: theme.vars.palette.text.secondary,
         outline: "none",
         overflow: "auto !important",
         height: "100%",
-        padding: "1em 1.5em",
+        padding: "1.5em 2em 1.5em 3em",
         pre: {
           height: "100%",
           overflowWrap: "break-word",
-          fontFamily: "'JetBrains Mono', 'Fira Code', monospace"
+          fontFamily:
+            "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Consolas, monospace",
+          fontVariantLigatures: "common-ligatures"
         },
         textarea: {
           overflowWrap: "break-word",
@@ -286,119 +323,181 @@ const styles = (theme: Theme) =>
         flexDirection: "column",
         height: "100%",
         overflow: "hidden",
-        position: "relative"
+        position: "relative",
+        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04)`
       },
       ".assistant-pane": {
         width: "35%",
-        minWidth: "300px",
+        minWidth: "320px",
         maxWidth: "500px",
-        borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
-        background: "action.disabledBackground", // Subtle transform
+        borderLeft: "none",
+        background: `linear-gradient(180deg,
+          rgba(${theme.vars.palette.background.paperChannel} / 0.6) 0%,
+          rgba(${theme.vars.palette.background.paperChannel} / 0.4) 100%)`,
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "hidden"
+        overflow: "hidden",
+        boxShadow: `-1px 0 0 rgba(${theme.vars.palette.common.whiteChannel} / 0.06),
+          -12px 0 32px -8px rgba(0,0,0,0.12)`,
+        position: "relative",
+        "&::before": {
+          content: "''",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: "1px",
+          background: `linear-gradient(180deg,
+            ${theme.vars.palette.primary.main}30,
+            rgba(${theme.vars.palette.common.whiteChannel} / 0.06) 30%,
+            rgba(${theme.vars.palette.common.whiteChannel} / 0.03) 70%,
+            transparent 100%)`,
+          zIndex: 1
+        },
+        // --- Layout overrides for chat components in narrow panel ---
+        ".new-chat-section": {
+          padding: "0.4em 0.6em",
+          flexShrink: 0,
+          ".new-chat-button": {
+            height: "2.2em !important",
+            fontSize: "var(--fontSizeTiny) !important"
+          }
+        },
+        ".chat-view": {
+          padding: "0 10px 10px 10px !important",
+          minHeight: 0,
+          flex: 1
+        },
+        ".chat-thread-container": {
+          paddingBottom: "8px"
+        },
+        ".chat-input-section": {
+          width: "100% !important",
+          maxWidth: "100% !important",
+          margin: "0 !important",
+          padding: "0 !important"
+        },
+        ".chat-composer-wrapper": {
+          width: "100% !important"
+        }
       }
     },
     ".actions": {
       display: "flex",
-      gap: ".6em",
+      gap: "0.6em",
       alignItems: "center",
       flexWrap: "nowrap"
     },
     ".copy-to-clipboard-button": {
       position: "absolute",
-      right: "1.5em",
-      top: "1em"
+      right: "2em",
+      top: "1.5em",
+      zIndex: 10
     },
     ".button": {
-      padding: "6px 10px",
+      padding: "5px",
+      minWidth: "32px",
+      minHeight: "32px",
       cursor: "pointer",
-      color: theme.vars.palette.text.primary,
-      textTransform: "none",
-      borderRadius: "6px",
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "600",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      color: theme.vars.palette.text.secondary,
+      borderRadius: "10px",
+      fontSize: "0.85rem",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: "32px",
-      minHeight: "32px",
-      background: `linear-gradient(180deg, ${theme.vars.palette.action.hover} 0%, ${theme.vars.palette.action.hover} 100%)`,
-      border: "none",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+      background: "transparent",
+      border: "1px solid transparent",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        background: `linear-gradient(180deg, ${theme.vars.palette.action.focus} 0%, ${theme.vars.palette.action.selected} 100%)`,
-        boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+        boxShadow: `0 0 12px rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
+        transform: "scale(1.05)"
       },
       "&:active": {
-        background: "action.disabledBackground",
-        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)"
+        transform: "scale(0.97)"
       }
     },
     ".button-close": {
-      marginLeft: "0.5em",
-      padding: "6px",
-      minWidth: "32px",
-      minHeight: "32px",
-      borderRadius: "6px",
-      color: theme.vars.palette.grey[400],
-      transition: "all 0.2s ease",
+      marginLeft: "0.35em",
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
-        backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.2)`, // Subtle red hover
-        color: "error.main"
+        backgroundColor: theme.vars.palette.error.main,
+        borderColor: theme.vars.palette.error.main,
+        color: theme.vars.palette.common.white,
+        boxShadow: `0 4px 16px rgba(${theme.vars.palette.error.mainChannel} / 0.4)`,
+        transform: "scale(1.05)"
       }
     },
     ".button-ghost": {
       padding: "6px",
       cursor: "pointer",
-      color: theme.vars.palette.grey[300],
-      fontSize: "var(--fontSizeSmaller)",
-      borderRadius: "6px",
+      color: theme.vars.palette.grey[400],
+      fontSize: "0.85rem",
+      borderRadius: "10px",
       background: "transparent",
       border: "1px solid transparent",
-      minWidth: "32px",
-      minHeight: "32px",
+      minWidth: "30px",
+      minHeight: "30px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.2s ease",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        backgroundColor: "action.selected",
-        color: theme.vars.palette.text.primary,
-        borderColor: "action.selected"
+        color: theme.vars.palette.primary.light,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`,
+        boxShadow: `0 0 10px rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
+      },
+      "&.active": {
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
+        boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15)`
       }
     },
     ".resize-handle": {
       position: "relative",
-      height: "12px",
+      height: "18px",
       width: "100%",
       cursor: "row-resize",
-      backgroundColor: "transparent",
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
+      borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      transition: "all 0.2s ease",
+      transition: "all 0.25s ease",
       "&:hover": {
-        backgroundColor: "action.hover"
+        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.05)`
+      },
+      "&:hover .resize-handle-dots": {
+        opacity: 1,
+        gap: "3px"
       },
       "&:hover .resize-handle-thumb": {
         backgroundColor: theme.vars.palette.primary.main,
-        transform: "translate(-50%, -50%) scaleX(1.1)"
+        width: "72px",
+        height: "4px",
+        boxShadow: `0 0 12px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
       }
     },
     ".resize-handle-thumb": {
       position: "absolute",
-      width: "60px",
-      height: "4px",
+      width: "40px",
+      height: "3px",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      backgroundColor: theme.vars.palette.grey[700],
-      borderRadius: "10px",
-      transition: "all 0.2s ease"
+      backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
+      borderRadius: "100px",
+      transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
+    },
+    ".loading-container": {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "100%",
+      animation: "pulseGlow 2s ease-in-out infinite"
     },
     "@media (max-width: 1200px)": {
       ".modal-content": {
@@ -411,12 +510,11 @@ const styles = (theme: Theme) =>
     },
     "@media (max-width: 900px)": {
       ".title-and-description": {
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: ".25em"
+        gap: "0.15em"
       },
       ".description": {
-        display: "none"
+        display: "block",
+        fontSize: "0.7rem"
       },
       ".modal-body": {
         flexDirection: "column"
@@ -428,12 +526,15 @@ const styles = (theme: Theme) =>
         marginLeft: 0,
         marginTop: "0",
         borderLeft: "none",
-        borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
-        height: "40%"
+        borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+        height: "40%",
+        "&::before": {
+          display: "none"
+        }
       },
       ".button": {
-        minWidth: "36px",
-        minHeight: "36px"
+        minWidth: "34px",
+        minHeight: "34px"
       }
     }
   });
@@ -466,7 +567,7 @@ const TextEditorModal = ({
   } = useMonacoEditor();
 
   // Editor mode toggle (extracted hook)
-  const { isCodeEditor, setIsCodeEditor, toggleEditorMode } = useEditorMode({
+  const { isCodeEditor, toggleEditorMode } = useEditorMode({
     storageKey: "textEditorModal_useCodeEditor",
     onCodeEnabled: () => {
       void loadMonacoIfNeeded();
@@ -536,7 +637,6 @@ const TextEditorModal = ({
 
   // Chat integration
   const {
-    handleAITransform,
     status,
     progress,
     statusMessage,
@@ -657,55 +757,20 @@ const TextEditorModal = ({
       if (isCodeEditor && monacoRef.current) {
         const editor = monacoRef.current;
         const selection = editor.getSelection();
-        const range = selection || editor.getModel().getFullModelRange();
-        editor.executeEdits("insert-from-chat", [
-          { range, text, forceMoveMarkers: true }
-        ]);
-        editor.focus();
+        const model = editor.getModel();
+        if (model) {
+          const range = selection || model.getFullModelRange();
+          editor.executeEdits("insert-from-chat", [
+            { range, text, forceMoveMarkers: true }
+          ]);
+          editor.focus();
+        }
       } else {
         insertIntoLexical(text);
       }
     },
     [isCodeEditor, insertIntoLexical, monacoRef]
   );
-
-  const handleImproveSelection = useCallback(async () => {
-    await handleAITransform(
-      "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:"
-    );
-  }, [handleAITransform]);
-
-  const handleSummarizeSelection = useCallback(async () => {
-    await handleAITransform(
-      "Summarize the following text in 3-5 bullet points. Return only the summary:",
-      { shouldReplace: false }
-    );
-  }, [handleAITransform]);
-
-  const handleExplainSelection = useCallback(async () => {
-    await handleAITransform(
-      "Explain the following text simply and clearly. Return only the explanation:",
-      { shouldReplace: false }
-    );
-  }, [handleAITransform]);
-
-  const handleShortenSelection = useCallback(async () => {
-    await handleAITransform(
-      "Rewrite the following text to be more concise while preserving meaning. Return only the shortened text:"
-    );
-  }, [handleAITransform]);
-
-  const handleFixGrammarSelection = useCallback(async () => {
-    await handleAITransform(
-      "Fix grammar, spelling, and punctuation in the following text without changing its meaning. Return only the corrected text:"
-    );
-  }, [handleAITransform]);
-
-  const handleTranslateSelection = useCallback(async () => {
-    await handleAITransform(
-      "Translate the following text to English. Return only the translation:"
-    );
-  }, [handleAITransform]);
 
   // Clean-up the debounced function when the component unmounts
   useEffect(() => {
@@ -744,6 +809,19 @@ const TextEditorModal = ({
   };
 
   useCombo(["escape"], onClose);
+
+  // Direct keydown listener for Escape - more reliable than useCombo when Monaco is focused
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true); // Use capture phase
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [onClose]);
 
   // Shortcuts: fullscreen, assistant pane, editor mode (hook)
   useEditorKeyboardShortcuts({
@@ -865,61 +943,6 @@ const TextEditorModal = ({
                     </button>
                   </Tooltip>
                 )}
-                {!readOnly && (
-                  <>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Improve">
-                      <button
-                        className="button"
-                        onClick={handleImproveSelection}
-                      >
-                        <AutoFixHighIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Summarize">
-                      <button
-                        className="button"
-                        onClick={handleSummarizeSelection}
-                      >
-                        <SummarizeIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Explain">
-                      <button
-                        className="button"
-                        onClick={handleExplainSelection}
-                      >
-                        <HelpOutlineIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Shorten">
-                      <button
-                        className="button"
-                        onClick={handleShortenSelection}
-                      >
-                        <ShortTextIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip
-                      enterDelay={TOOLTIP_ENTER_DELAY}
-                      title="Fix Grammar"
-                    >
-                      <button
-                        className="button"
-                        onClick={handleFixGrammarSelection}
-                      >
-                        <SpellcheckIcon />
-                      </button>
-                    </Tooltip>
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Translate">
-                      <button
-                        className="button"
-                        onClick={handleTranslateSelection}
-                      >
-                        <TranslateIcon />
-                      </button>
-                    </Tooltip>
-                  </>
-                )}
               </div>
               <div className="toolbar-group">
                 <Tooltip
@@ -988,20 +1011,16 @@ const TextEditorModal = ({
 
           <div className="modal-body">
             {isLoading ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%"
-                }}
-              >
+              <div className="loading-container">
                 <CircularProgress />
               </div>
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
                 <div className="editor-pane">
-                  <CopyToClipboardButton copyValue={value} />
+                  <CopyButton
+                    value={value}
+                    className="copy-to-clipboard-button"
+                  />
                   {isCodeEditor ? (
                     <div style={{ height: "100%" }}>
                       {MonacoEditor ? (
@@ -1108,7 +1127,7 @@ const TextEditorModal = ({
                 </div>
                 {assistantVisible && (
                   <div className="assistant-pane">
-                    <NewChatButton onNewThread={createNewThread} />
+                    <NewChatButton onNewThread={() => void createNewThread()} />
                     <ChatView
                       status={
                         status === "stopping" ? "loading" : (status as any)
@@ -1132,7 +1151,7 @@ const TextEditorModal = ({
                       helpMode={false}
                       workflowAssistant={true}
                       onStop={stopGeneration}
-                      onNewChat={createNewThread}
+                      onNewChat={() => void createNewThread()}
                       onInsertCode={(text) => insertIntoEditor(text)}
                     />
                   </div>

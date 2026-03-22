@@ -3,7 +3,7 @@ import isEqual from "lodash/isEqual";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ASRModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 interface ASRModelSelectProps {
@@ -12,20 +12,15 @@ interface ASRModelSelectProps {
 }
 
 const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadASRModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "asr" } }
-      }
-    );
-    if (error) {
-      throw error;
+    const res = await fetch(`${BASE_URL}/api/models/asr`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ASR models: ${res.status}`);
     }
-    return data as unknown as ASRModel[];
+    return (await res.json()) as ASRModel[];
   }, []);
 
   const { data: models } = useQuery({
@@ -40,12 +35,12 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
     return models.find((m) => m.id === value);
   }, [models, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -62,7 +57,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -71,14 +66,14 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="asr-model-button"
         active={!!value}
         label={currentSelectedModelDetails?.name || value || "Select Model"}
         subLabel="Select ASR Model"
         onClick={handleClick}
       />
       <ASRModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
       />

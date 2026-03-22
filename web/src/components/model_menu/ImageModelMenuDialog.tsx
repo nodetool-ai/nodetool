@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -9,18 +9,21 @@ export interface ImageModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
   task?: "text_to_image" | "image_to_image";
+  anchorEl?: HTMLElement | null;
 }
 
-export default function ImageModelMenuDialog({
+function ImageModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  task
+  task,
+  anchorEl
 }: ImageModelMenuDialogProps) {
   const modelData = useImageModelsByProvider({ task });
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
@@ -30,3 +33,5 @@ export default function ImageModelMenuDialog({
     />
   );
 }
+
+export default memo(ImageModelMenuDialog);

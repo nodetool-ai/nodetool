@@ -1,16 +1,16 @@
 import { test, expect } from "@playwright/test";
-
-// Backend API URL - matches the nodetool server URL used in e2e tests
-const BACKEND_URL = "http://localhost:7777";
-const BACKEND_WS_URL = "ws://localhost:7777";
+import { BACKEND_URL, BACKEND_WS_URL } from "./support/backend";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 // Test timeouts
 const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test
 const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
 
-// Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
+// Skip when executed by Jest or in CI (requires local server with network access for downloads)
+if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
+  test.skip("skipped in jest runner or CI", () => {});
 } else {
   test.describe("Model Download", () => {
     // Use a very small test model from HuggingFace (< 1MB)
@@ -22,8 +22,7 @@ if (process.env.JEST_WORKER_ID) {
       test.setTimeout(TEST_TIMEOUT_MS);
 
       // Navigate to models page
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
 
       // Start the download and wait for completion using WebSocket inside the page context
       const downloadResult = await page.evaluate(async ({ repoId, wsUrl, timeoutMs }: { repoId: string; wsUrl: string; timeoutMs: number }) => {
@@ -106,8 +105,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test("should connect to download WebSocket endpoint", async ({ page }) => {
       // Navigate to models page
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
 
       // Test that we can connect to the WebSocket endpoint
       const canConnect = await page.evaluate(async (wsUrl: string) => {

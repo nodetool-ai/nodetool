@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import useRemoteSettingsStore from "../RemoteSettingStore";
 import * as ApiClient from "../ApiClient";
 
@@ -359,7 +359,7 @@ describe("RemoteSettingStore", () => {
 
   describe("Store Separation from Secrets", () => {
     it("should not have secrets property", () => {
-      const { result } = renderHook(() => useRemoteSettingsStore());
+      renderHook(() => useRemoteSettingsStore());
 
       const state = useRemoteSettingsStore.getState();
       expect(Object.keys(state)).not.toContain("secrets");

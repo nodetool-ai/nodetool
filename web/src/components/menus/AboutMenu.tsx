@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Typography, Box, CircularProgress, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -8,6 +8,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { FlexRow, Text, Caption } from "../ui_primitives";
+import log from "loglevel";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity
@@ -37,7 +39,7 @@ const InfoRow: React.FC<{
   value: string | null;
   copyable?: boolean;
   onCopy?: (value: string) => void;
-}> = ({ label, value, copyable = false, onCopy }) => {
+}> = memo(({ label, value, copyable = false, onCopy }) => {
   const theme = useTheme();
 
   const handleCopy = () => {
@@ -47,11 +49,10 @@ const InfoRow: React.FC<{
   };
 
   return (
-    <Box
+    <FlexRow
+      justify="space-between"
+      align="flex-start"
       sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
         padding: "0.5em 0",
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         "&:last-child": {
@@ -59,35 +60,32 @@ const InfoRow: React.FC<{
         }
       }}
     >
-      <Typography
+      <Caption
         sx={{
-          color: theme.vars.palette.text.secondary,
           minWidth: "140px",
           flexShrink: 0
         }}
       >
         {label}
-      </Typography>
-      <Box
+      </Caption>
+      <FlexRow
+        gap={2}
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5em",
           flex: 1,
           justifyContent: "flex-end",
           textAlign: "right"
         }}
       >
-        <Typography
+        <Text
+          size="small"
           sx={{
-            color: theme.vars.palette.text.primary,
             wordBreak: "break-all",
-            fontFamily: "monospace",
-            fontSize: "0.9em"
+            fontFamily: "monospace"
           }}
         >
           {value || "N/A"}
-        </Typography>
+        </Text>
         {copyable && value && (
           <ContentCopyIcon
             sx={{
@@ -101,16 +99,17 @@ const InfoRow: React.FC<{
             onClick={handleCopy}
           />
         )}
-      </Box>
-    </Box>
+      </FlexRow>
+    </FlexRow>
   );
-};
+});
+InfoRow.displayName = "InfoRow";
 
 const FeatureStatus: React.FC<{
   label: string;
   available: boolean;
   version?: string | null;
-}> = ({ label, available, version }) => {
+}> = memo(({ label, available, version }) => {
   const theme = useTheme();
 
   return (
@@ -153,9 +152,10 @@ const FeatureStatus: React.FC<{
       </Box>
     </Box>
   );
-};
+});
+FeatureStatus.displayName = "FeatureStatus";
 
-const AboutMenu: React.FC = () => {
+const AboutMenu: React.FC = memo(() => {
   const theme = useTheme();
   const [systemInfo, setSystemInfo] = useState<SystemInfoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,7 +178,7 @@ const AboutMenu: React.FC = () => {
         setSystemInfo(info ?? null);
       } catch (err) {
         setError("Failed to load system information");
-        console.error("Failed to fetch system info:", err);
+        log.error("Failed to fetch system info:", err);
       } finally {
         setLoading(false);
       }
@@ -187,16 +187,16 @@ const AboutMenu: React.FC = () => {
     fetchSystemInfo();
   }, []);
 
-  const handleCopy = (value: string) => {
+  const handleCopy = useCallback((value: string) => {
     navigator.clipboard.writeText(value);
     addNotification({
       type: "info",
       alert: true,
       content: "Copied to clipboard!"
     });
-  };
+  }, [addNotification]);
 
-  const handleCopyAll = () => {
+  const handleCopyAll = useCallback(() => {
     if (!systemInfo) {return;}
 
     const text = `NodeTool System Information
@@ -233,7 +233,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       alert: true,
       content: "System information copied to clipboard!"
     });
-  };
+  }, [systemInfo, addNotification]);
 
   if (loading) {
     return (
@@ -429,6 +429,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       </div>
     </Box>
   );
-};
+});
+AboutMenu.displayName = "AboutMenu";
 
-export default AboutMenu;
+export default memo(AboutMenu);

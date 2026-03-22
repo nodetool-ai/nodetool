@@ -17,6 +17,9 @@ import {
   InstallLocationData,
   IpcChannels,
   IpcEvents,
+  LocalhostProxyWsCloseRequest,
+  LocalhostProxyWsOpenRequest,
+  LocalhostProxyWsSendRequest,
   MenuEventData,
   PackageUpdateInfo,
   PythonPackages,
@@ -25,6 +28,10 @@ import {
   Workflow,
   ModelDirectory,
   SystemDirectory,
+  DialogOpenFileRequest,
+  DialogOpenFolderRequest,
+  AgentSessionOptions,
+  LocalhostProxyRequest,
 } from "./types.d";
 
 // ============================================================================
@@ -42,7 +49,7 @@ type ClipboardType = "clipboard" | "selection";
  * This pattern ensures all event listeners can be properly cleaned up.
  */
 function createEventSubscription<T extends keyof IpcEvents>(
-  channel: T
+  channel: T,
 ): (callback: (data: IpcEvents[T]) => void) => () => void {
   return (callback: (data: IpcEvents[T]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: IpcEvents[T]) =>
@@ -137,14 +144,8 @@ const api = {
   // ============================================================================
 
   /** Run a workflow as an app */
-  runApp: (workflowId: string) => ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
-
-  /** Clipboard helpers (legacy names) */
-  clipboardWriteText: (text: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, { text }),
-  clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
-  clipboardWriteImage: (dataUrl: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, { dataUrl }),
+  runApp: (workflowId: string) =>
+    ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
 
   /** OS integration (legacy names) */
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
@@ -178,7 +179,8 @@ const api = {
   onServerLog: createEventSubscription(IpcChannels.SERVER_LOG),
 
   /** Restart llama server (legacy name) */
-  restartLlamaServer: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
+  restartLlamaServer: () =>
+    ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
 
   /** Log viewer (legacy names) */
   getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
@@ -195,7 +197,9 @@ const api = {
   onMenuEvent: (callback: (data: MenuEventData) => void) => {
     const existingUnsubscribe = menuEventUnsubscribers.get(callback);
     if (existingUnsubscribe) existingUnsubscribe();
-    const unsubscribe = createEventSubscription(IpcChannels.MENU_EVENT)(callback);
+    const unsubscribe = createEventSubscription(IpcChannels.MENU_EVENT)(
+      callback,
+    );
     menuEventUnsubscribers.set(callback, unsubscribe);
   },
   unregisterMenuEvent: (callback: (data: MenuEventData) => void) => {
@@ -291,8 +295,12 @@ const api = {
 
     /** Subscribe to package updates available event */
     onUpdatesAvailable: createEventSubscription(
-      IpcChannels.PACKAGE_UPDATES_AVAILABLE
+      IpcChannels.PACKAGE_UPDATES_AVAILABLE,
     ),
+
+    /** Check package versions against expected versions */
+    checkVersion: () =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
   },
 
   // ============================================================================
@@ -318,7 +326,10 @@ const api = {
 
     /** Show an item in the file explorer */
     showItemInFolder: (fullPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHOW_ITEM_IN_FOLDER,
+        validatePath(fullPath),
+      ),
 
     /** Open a model directory (huggingface or ollama) */
     openModelDirectory: (target: ModelDirectory) =>
@@ -332,7 +343,10 @@ const api = {
 
     /** Open a system directory (installation or logs) */
     openSystemDirectory: (target: SystemDirectory) =>
-      ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY, target),
+      ipcRenderer.invoke(
+        IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY,
+        target,
+      ),
 
     /** Open a URL in the system browser */
     openExternal: (url: string) =>
@@ -391,7 +405,8 @@ const api = {
       }),
 
     /** Read find pasteboard text (macOS only) */
-    readFindText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FIND_TEXT),
+    readFindText: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FIND_TEXT),
 
     /** Write to find pasteboard (macOS only) */
     writeFindText: (text: string) =>
@@ -404,6 +419,32 @@ const api = {
     /** Get available clipboard formats */
     availableFormats: (type?: ClipboardType) =>
       ipcRenderer.invoke(IpcChannels.CLIPBOARD_AVAILABLE_FORMATS, type),
+
+    /** Read file paths from clipboard (cross-platform) */
+    readFilePaths: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FILE_PATHS),
+
+    /** Read raw buffer data from clipboard for a specific format (returns base64) */
+    readBuffer: (format: string) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_BUFFER, format),
+
+    /** Get comprehensive clipboard content info for smart paste decisions */
+    getContentInfo: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_GET_CONTENT_INFO),
+
+    /** Read file content as data URL */
+    readFileAsDataURL: (filePath: string) =>
+      ipcRenderer.invoke(
+        IpcChannels.FILE_READ_AS_DATA_URL,
+        validatePath(filePath),
+      ),
+
+    /** Read file content as buffer */
+    readFileBuffer: (filePath: string) =>
+      ipcRenderer.invoke(
+        IpcChannels.FILE_READ_BUFFER,
+        validatePath(filePath),
+      ),
   },
 
   // ============================================================================
@@ -422,7 +463,8 @@ const api = {
   // ============================================================================
   installer: {
     /** Select a custom install location */
-    selectLocation: () => ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+    selectLocation: () =>
+      ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
 
     /** Install to a specific location */
     install: (
@@ -430,7 +472,9 @@ const api = {
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
-      installLlamaCpp?: boolean
+      installLlamaCpp?: boolean,
+      startOllamaOnStartup?: boolean,
+      startLlamaCppOnStartup?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
@@ -438,11 +482,13 @@ const api = {
         modelBackend,
         installOllama,
         installLlamaCpp,
+        startOllamaOnStartup,
+        startLlamaCppOnStartup,
       }),
 
     /** Subscribe to install location prompt */
     onLocationPrompt: createEventSubscription(
-      IpcChannels.INSTALL_LOCATION_PROMPT
+      IpcChannels.INSTALL_LOCATION_PROMPT,
     ),
 
     /** Subscribe to update/install progress */
@@ -455,6 +501,10 @@ const api = {
   updates: {
     /** Subscribe to update available event */
     onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
+
+    /** Restart and install the downloaded update */
+    restartAndInstall: () =>
+      ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
   },
 
   // ============================================================================
@@ -471,18 +521,24 @@ const api = {
   shell: {
     /** Show a file in the file manager */
     showItemInFolder: (fullPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER,
+        validatePath(fullPath),
+      ),
 
     /** Open a file in the desktop's default manner */
     openPath: (path: string) =>
       ipcRenderer.invoke(IpcChannels.SHELL_OPEN_PATH, validatePath(path)),
 
     /** Open an external URL in the default browser */
-    openExternal: (url: string, options?: {
-      activate?: boolean;
-      workingDirectory?: string;
-      logUsage?: boolean;
-    }) =>
+    openExternal: (
+      url: string,
+      options?: {
+        activate?: boolean;
+        workingDirectory?: string;
+        logUsage?: boolean;
+      },
+    ) =>
       ipcRenderer.invoke(IpcChannels.SHELL_OPEN_EXTERNAL, {
         url: validateUrl(url),
         options,
@@ -493,8 +549,7 @@ const api = {
       ipcRenderer.invoke(IpcChannels.SHELL_TRASH_ITEM, validatePath(path)),
 
     /** Play the system beep sound */
-    beep: () =>
-      ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
+    beep: () => ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
 
     /** Create or update a Windows shortcut (Windows only) */
     writeShortcutLink: (
@@ -509,7 +564,7 @@ const api = {
         iconIndex?: number;
         appUserModelId?: string;
         toastActivatorClsid?: string;
-      }
+      },
     ) =>
       ipcRenderer.invoke(IpcChannels.SHELL_WRITE_SHORTCUT_LINK, {
         shortcutPath: validatePath(shortcutPath),
@@ -519,7 +574,25 @@ const api = {
 
     /** Read a Windows shortcut (Windows only) */
     readShortcutLink: (shortcutPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_READ_SHORTCUT_LINK, validatePath(shortcutPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHELL_READ_SHORTCUT_LINK,
+        validatePath(shortcutPath),
+      ),
+  },
+
+  // ============================================================================
+  // localhostProxy: Generic localhost-only HTTP requests via main process
+  // ============================================================================
+  localhostProxy: {
+    request: (request: LocalhostProxyRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_REQUEST, request),
+    wsOpen: (request: LocalhostProxyWsOpenRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_OPEN, request),
+    wsSend: (request: LocalhostProxyWsSendRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_SEND, request),
+    wsClose: (request: LocalhostProxyWsCloseRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_CLOSE, request),
+    onWsEvent: createEventSubscription(IpcChannels.LOCALHOST_PROXY_WS_EVENT),
   },
 
   // ============================================================================
@@ -536,6 +609,28 @@ const api = {
 
     /** Get system information for about dialog */
     getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
+
+    /** Get auto-updates setting (opt-in, default is false) */
+    getAutoUpdates: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_AUTO_UPDATES),
+
+    /** Set auto-updates setting (opt-in) */
+    setAutoUpdates: (enabled: boolean) =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
+
+    /** Get startup settings for managed local model services */
+    getModelServicesStartup: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP),
+
+    /** Update startup settings for managed local model services */
+    setModelServicesStartup: (update: {
+      startOllamaOnStartup?: boolean;
+      startLlamaCppOnStartup?: boolean;
+    }) =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP, update),
+
+    /** Open the settings window */
+    openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
   },
 
   // ============================================================================
@@ -548,8 +643,126 @@ const api = {
       graph?: Record<string, unknown>;
       errors?: string[];
       preferred_save?: "desktop" | "downloads";
-    }) =>
-      ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+    }) => ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+  },
+
+  // ============================================================================
+  // dialog: Native file/folder dialogs
+  // ============================================================================
+  dialog: {
+    /** Open a native file selection dialog */
+    openFile: (options?: DialogOpenFileRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FILE, options || {}),
+
+    /** Open a native folder selection dialog */
+    openFolder: (options?: DialogOpenFolderRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
+  },
+
+  // ============================================================================
+  // agent: Claude Agent SDK operations
+  // ============================================================================
+  agent: {
+    /** Create a new Claude Agent session */
+    createSession: (options: AgentSessionOptions) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
+
+    /** List available models for the selected provider */
+    listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
+
+    /** Send a message to an active Claude Agent session */
+    sendMessage: (sessionId: string, message: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_SEND_MESSAGE, {
+        sessionId,
+        message,
+      }),
+
+    /** Stop execution of the currently running turn for a session */
+    stopExecution: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_STOP_EXECUTION, sessionId),
+
+    /** Close an active Claude Agent session */
+    closeSession: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
+
+    /** Subscribe to streaming messages from the Claude Agent */
+    onStreamMessage: createEventSubscription(
+      IpcChannels.AGENT_STREAM_MESSAGE,
+    ),
+  },
+
+  // ============================================================================
+  // frontendTools: Frontend tools for Claude Agent integration
+  // ============================================================================
+  frontendTools: {
+    /** Get the manifest of available frontend tools */
+    getManifest: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_GET_MANIFEST, {
+        sessionId,
+      }),
+
+    /** Call a frontend tool and return its result */
+    call: (
+      sessionId: string,
+      toolCallId: string,
+      name: string,
+      args: unknown,
+    ) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_CALL, {
+        sessionId,
+        toolCallId,
+        name,
+        args,
+      }),
+
+    /** Subscribe to tool abort events */
+    onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
+  },
+
+  // ============================================================================
+  // logging: Renderer -> main logging bridge
+  // ============================================================================
+  logging: {
+    log: (
+      level: "info" | "warn" | "error",
+      message: string,
+      source?: string,
+    ) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_LOG, {
+        level,
+        message,
+        source,
+      }),
+  },
+
+  // ============================================================================
+  // ipc: Low-level IPC methods for registering handlers
+  // ============================================================================
+  ipc: {
+    /** Invoke a main-process IPC handler */
+    invoke: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.invoke(channel, ...args),
+
+    /** Send an event to the main process */
+    send: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.send(channel, ...args),
+
+    /** Register a listener for IPC send events from the main process */
+    on: (
+      channel: string,
+      listener: (event: Electron.IpcRendererEvent, ...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.on(channel, listener);
+    },
+
+    /** Remove a listener for IPC send events */
+    off: (
+      channel: string,
+      listener: (...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.removeListener(channel, listener);
+    },
   },
 };
 

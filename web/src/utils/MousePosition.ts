@@ -70,7 +70,6 @@ export const addWiggleMovement = (x: number, y: number) => {
 
   // Calculate direction changes
   let directionChanges = 0;
-  let totalDistance = 0;
 
   for (let i = 2; i < wiggleHistory.length; i++) {
     const prev = wiggleHistory[i - 2];
@@ -90,8 +89,6 @@ export const addWiggleMovement = (x: number, y: number) => {
       dist1 > WIGGLE_DISTANCE_THRESHOLD &&
       dist2 > WIGGLE_DISTANCE_THRESHOLD
     ) {
-      totalDistance += dist1 + dist2;
-
       // Calculate dot product to detect direction change
       const dotProduct = vec1.x * vec2.x + vec1.y * vec2.y;
       const magnitude1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);

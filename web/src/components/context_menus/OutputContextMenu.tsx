@@ -1,4 +1,5 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, memo } from "react";
+import { shallow } from "zustand/shallow";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -7,7 +8,6 @@ import ContextMenuItem from "./ContextMenuItem";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
-import ConstructionIcon from "@mui/icons-material/Construction";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import HubIcon from "@mui/icons-material/Hub";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -18,8 +18,10 @@ import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
+import { constantForType } from "../../utils/NodeTypeMapping";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -38,21 +40,22 @@ const OutputContextMenu: React.FC = () => {
     type: state.type,
     handleId: state.handleId
   }));
-  const { openNodeMenu } = useNodeMenuStore();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  // Combine multiple useNodes subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the node state change
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
     (state) => ({
       createNode: state.createNode,
       addNode: state.addNode,
       addEdge: state.addEdge,
       generateEdgeId: state.generateEdgeId
-    })
+    }),
+    shallow
   );
   const reactFlowInstance = useReactFlow();
-  const { getMetadata } = useMetadataStore((state) => ({
-    getMetadata: state.getMetadata
-  }));
-  const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
-  const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const [outputNodeMetadata, setOutputNodeMetadata] = useState<unknown>();
+  const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
     typeMetadata: _typeMetadata,
@@ -116,7 +119,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createNodeWithEdge = useCallback(
     (
-      metadata: any,
+      metadata: unknown,
       position: { x: number; y: number },
       nodeType: string,
       targetHandle: string | null = null
@@ -127,7 +130,7 @@ const OutputContextMenu: React.FC = () => {
       }
 
       const newNode = createNode(
-        metadata,
+        metadata as NodeMetadata,
         reactFlowInstance.screenToFlowPosition({
           x: position.x + 150,
           y: position.y
@@ -138,8 +141,9 @@ const OutputContextMenu: React.FC = () => {
         newNode.data.dynamic_properties[targetHandle] = true;
       }
 
-      if (metadata.style) {
-        newNode.style = metadata.style;
+      const extendedMetadata = metadata as NodeMetadata & { style?: unknown };
+      if (extendedMetadata.style) {
+        newNode.style = extendedMetadata.style as React.CSSProperties;
       }
 
       newNode.data.size = {
@@ -225,28 +229,6 @@ const OutputContextMenu: React.FC = () => {
     [getMetadata, createNodeWithEdge]
   );
 
-  const createToolResultNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.workflows.base_node.ToolResult");
-      if (!metadata) {
-        return;
-      }
-      const targetHandle =
-        sourceHandle === "output" ? sourceType?.type : sourceHandle;
-
-      createNodeWithEdge(
-        metadata,
-        {
-          x: event.clientX - 230,
-          y: event.clientY - 220
-        },
-        "tool_result",
-        targetHandle
-      );
-    },
-    [getMetadata, createNodeWithEdge, sourceHandle, sourceType]
-  );
-
   const createOutputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!outputNodeMetadata) {
@@ -281,7 +263,34 @@ const OutputContextMenu: React.FC = () => {
     [saveNodeMetadata, createNodeWithEdge]
   );
 
-  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
+  const constantNodeType = sourceType?.type ? constantForType(sourceType.type) : null;
+
+  const createConstantNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!constantNodeType) {
+        return;
+      }
+      const metadata = getMetadata(constantNodeType);
+      if (!metadata) {
+        return;
+      }
+      const targetHandle =
+        metadata.properties?.[0]?.name ??
+        getTargetHandle(sourceType?.type || "", "constant");
+      createNodeWithEdge(
+        metadata,
+        {
+          x: event.clientX - 230,
+          y: event.clientY - 170
+        },
+        "constant",
+        targetHandle
+      );
+    },
+    [constantNodeType, getMetadata, getTargetHandle, sourceType, createNodeWithEdge]
+  );
+
+  const handleOpenNodeMenu = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -293,54 +302,52 @@ const OutputContextMenu: React.FC = () => {
       connectDirection: "source"
     });
     closeContextMenu();
-  };
+  }, [openNodeMenu, sourceType, closeContextMenu]);
 
-  const handleCreatePreviewNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreatePreviewNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createPreviewNode(event);
     }
     closeContextMenu();
-  };
+  }, [createPreviewNode, closeContextMenu]);
 
-  const handleCreateRerouteNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateRerouteNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createRerouteNode(event as React.MouseEvent);
     }
     closeContextMenu();
-  };
+  }, [createRerouteNode, closeContextMenu]);
 
-  const handleCreateOutputNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateOutputNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createOutputNode(event);
     }
     closeContextMenu();
-  };
+  }, [createOutputNode, closeContextMenu]);
 
-  const handleCreateToolResultNode = (
-    event?: React.MouseEvent<HTMLElement>
-  ) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createToolResultNode(event);
-    }
-    closeContextMenu();
-  };
-
-  const handleCreateSaveNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateSaveNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createSaveNode(event);
     }
     closeContextMenu();
-  };
+  }, [createSaveNode, closeContextMenu]);
+
+  const handleCreateConstantNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      createConstantNode(event);
+    }
+    closeContextMenu();
+  }, [createConstantNode, closeContextMenu]);
 
   const handleShowConnectableNodes = (
     event?: React.MouseEvent<HTMLElement>
@@ -399,7 +406,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-preview-node"
           IconComponent={<VisibilityIcon />}
         />
-        {outputNodeMetadata && (
+        {outputNodeMetadata != null && (
           <ContextMenuItem
             onClick={handleCreateOutputNode}
             label="Create Output Node"
@@ -413,13 +420,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-reroute-node"
           IconComponent={<AltRouteIcon />}
         />
-        <ContextMenuItem
-          onClick={handleCreateToolResultNode}
-          label="Create Tool Result Node"
-          addButtonClassName="create-tool-result-node"
-          IconComponent={<ConstructionIcon />}
-        />
-        {saveNodeMetadata && (
+        {saveNodeMetadata != null && (
           <ContextMenuItem
             onClick={handleCreateSaveNode}
             label={`Create Save${
@@ -432,6 +433,14 @@ const OutputContextMenu: React.FC = () => {
             } Node`}
             addButtonClassName="create-save-node"
             IconComponent={<SaveAltIcon />}
+          />
+        )}
+        {constantNodeType && (
+          <ContextMenuItem
+            onClick={handleCreateConstantNode}
+            label="Create Constant Node"
+            addButtonClassName="create-constant-node"
+            IconComponent={<DataObjectIcon />}
           />
         )}
         <Divider />
@@ -452,5 +461,4 @@ const OutputContextMenu: React.FC = () => {
   );
 };
 
-export default OutputContextMenu;
-
+export default memo(OutputContextMenu);

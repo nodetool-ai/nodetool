@@ -20,7 +20,8 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
   is_dynamic: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  is_streaming_output: false
+  is_streaming_output: false,
+  required_settings: []
 };
 
 /**
@@ -40,5 +41,6 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
   is_dynamic: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  is_streaming_output: false
+  is_streaming_output: false,
+  required_settings: []
 };

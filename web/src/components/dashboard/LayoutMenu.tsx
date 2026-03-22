@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Button,
   Menu,
@@ -19,6 +19,12 @@ import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
 import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 
+/** Minimal shape of a panel entry in SerializedDockview.panels */
+interface SerializedPanel {
+  id?: string;
+  params?: Record<string, unknown>;
+}
+
 interface LayoutMenuProps {
   dockviewApi: DockviewApi | null;
 }
@@ -27,40 +33,49 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
-  const {
-    layouts,
-    activeLayoutId,
-    addLayout,
-    setActiveLayoutId,
-    updateActiveLayout
-  } = useLayoutStore();
+
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const { layouts, activeLayoutId, addLayout, setActiveLayoutId, updateActiveLayout } =
+    useLayoutStore(
+      useCallback(
+        (state) => ({
+          layouts: state.layouts,
+          activeLayoutId: state.activeLayoutId,
+          addLayout: state.addLayout,
+          setActiveLayoutId: state.setActiveLayoutId,
+          updateActiveLayout: state.updateActiveLayout
+        }),
+        []
+      )
+    );
+
   const open = Boolean(anchorEl);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
-  const handleSaveAsNewClick = () => {
+  const handleSaveAsNewClick = useCallback(() => {
     setSaveDialogOpen(true);
     handleClose();
-  };
+  }, [handleClose]);
 
-  const handleSaveDialogClose = () => {
+  const handleSaveDialogClose = useCallback(() => {
     setSaveDialogOpen(false);
     setNewLayoutName("");
-  };
+  }, []);
 
-  const handleSaveNewLayout = () => {
+  const handleSaveNewLayout = useCallback(() => {
     if (dockviewApi && newLayoutName) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        // Preserve params for mini-app panels to save selected workflow
-        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
-             delete (panel as any).params;
+        const p = panel as SerializedPanel;
+        if (p.id !== "mini-app" && !p.id?.startsWith("mini-app")) {
+             delete p.params;
         }
       });
 
@@ -73,23 +88,23 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
       setActiveLayoutId(newLayout.id);
       handleSaveDialogClose();
     }
-  };
+  }, [dockviewApi, newLayoutName, addLayout, setActiveLayoutId, handleSaveDialogClose]);
 
-  const handleUpdateLayout = () => {
+  const handleUpdateLayout = useCallback(() => {
     if (dockviewApi) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
-        // Preserve params for mini-app panels to save selected workflow
-        if ((panel as any).id !== "mini-app" && !(panel as any).id.startsWith("mini-app")) {
-            delete (panel as any).params;
+        const p = panel as SerializedPanel;
+        if (p.id !== "mini-app" && !p.id?.startsWith("mini-app")) {
+            delete p.params;
         }
       });
       updateActiveLayout(layout);
     }
     handleClose();
-  };
+  }, [dockviewApi, updateActiveLayout, handleClose]);
 
-  const handleLayoutSelect = (layoutId: string | null) => {
+  const handleLayoutSelect = useCallback((layoutId: string | null) => {
     setActiveLayoutId(layoutId);
     if (dockviewApi) {
       if (layoutId === null) {
@@ -102,16 +117,30 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
       }
     }
     handleClose();
-  };
+  }, [dockviewApi, layouts, setActiveLayoutId, handleClose]);
+
+  const handleSelectDefaultLayout = useCallback(() => {
+    handleLayoutSelect(null);
+  }, [handleLayoutSelect]);
+
+  const handleSelectLayout = useCallback(
+    (layoutId: string) => () => {
+      handleLayoutSelect(layoutId);
+    },
+    [handleLayoutSelect]
+  );
+
+  // Memoize button sx prop to prevent unnecessary re-renders
+  const buttonSx = useMemo(() => ({
+    padding: "0.2em 0.5em",
+    border: 0
+  }), []);
 
   return (
     <div>
       <Button
         className="layout-menu-button"
-        sx={{
-          padding: "0.2em 0.5em",
-          border: 0
-        }}
+        sx={buttonSx}
         onClick={handleClick}
         variant="outlined"
         startIcon={<Layers />}
@@ -120,7 +149,7 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
       </Button>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         <MenuItem
-          onClick={() => handleLayoutSelect(null)}
+          onClick={handleSelectDefaultLayout}
           selected={activeLayoutId === null}
         >
           <ListItemText>Default Layout</ListItemText>
@@ -129,7 +158,7 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
         {(layouts || []).map((layout) => (
           <MenuItem
             key={layout.id}
-            onClick={() => handleLayoutSelect(layout.id)}
+            onClick={handleSelectLayout(layout.id)}
             selected={layout.id === activeLayoutId}
           >
             <ListItemText>{layout.name}</ListItemText>
@@ -174,4 +203,4 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   );
 };
 
-export default LayoutMenu;
+export default React.memo(LayoutMenu);

@@ -41,3 +41,8 @@ jobs:
         run: |
           cd electron
           npm ci
+
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm ci

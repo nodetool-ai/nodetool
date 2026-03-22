@@ -24,27 +24,27 @@ function normalizePath(p: string): string {
   return path.resolve(expanded);
 }
 
-function dirExists(target?: string | null): target is string {
+async function dirExistsAsync(target?: string | null): Promise<boolean> {
   if (!target) {
     return false;
   }
   try {
-    const stats = fs.statSync(target);
+    const stats = await fs.promises.stat(target);
     return stats.isDirectory();
   } catch {
     return false;
   }
 }
 
-function ensureDir(target?: string | null): string | undefined {
+async function ensureDir(target?: string | null): Promise<string | undefined> {
   if (!target) {
     return undefined;
   }
   const candidate = normalizePath(target);
-  return dirExists(candidate) ? candidate : undefined;
+  return (await dirExistsAsync(candidate)) ? candidate : undefined;
 }
 
-export function getOllamaModelsDir(): string | undefined {
+export async function getOllamaModelsDir(): Promise<string | undefined> {
   const envOverride = expandUserPath(process.env.OLLAMA_MODELS);
   if (envOverride) {
     const resolved = normalizePath(envOverride);
@@ -59,12 +59,12 @@ export function getOllamaModelsDir(): string | undefined {
     let candidate: string | undefined;
     if (process.platform === "win32") {
       const base = process.env.USERPROFILE || os.homedir();
-      candidate = ensureDir(path.join(base, ".ollama", "models"));
+      candidate = await ensureDir(path.join(base, ".ollama", "models"));
     } else if (process.platform === "darwin") {
-      candidate = ensureDir(path.join(os.homedir(), ".ollama", "models"));
+      candidate = await ensureDir(path.join(os.homedir(), ".ollama", "models"));
     } else {
-      const userPath = ensureDir(path.join(os.homedir(), ".ollama", "models"));
-      candidate = userPath ?? ensureDir("/usr/share/ollama/.ollama/models");
+      const userPath = await ensureDir(path.join(os.homedir(), ".ollama", "models"));
+      candidate = userPath ?? await ensureDir("/usr/share/ollama/.ollama/models");
     }
 
     if (candidate) {
@@ -79,7 +79,7 @@ export function getOllamaModelsDir(): string | undefined {
   return undefined;
 }
 
-export function getHuggingFaceCacheDir(): string | undefined {
+export async function getHuggingFaceCacheDir(): Promise<string | undefined> {
   const candidates: (string | undefined)[] = [];
   const envOverride =
     process.env.HF_HUB_CACHE ??
@@ -102,7 +102,7 @@ export function getHuggingFaceCacheDir(): string | undefined {
   candidates.push(path.join(os.homedir(), DEFAULT_HF_SUBDIR));
 
   for (const candidate of candidates) {
-    const resolved = ensureDir(candidate);
+    const resolved = await ensureDir(candidate);
     if (resolved) {
       return resolved;
     }
@@ -112,14 +112,17 @@ export function getHuggingFaceCacheDir(): string | undefined {
   return undefined;
 }
 
-function getValidExplorableRoots(): string[] {
+async function getValidExplorableRoots(): Promise<string[]> {
+  const [ollamaDir, hfCache] = await Promise.all([
+    getOllamaModelsDir(),
+    getHuggingFaceCacheDir(),
+  ]);
+
   const safeRoots: string[] = [];
-  const ollamaDir = getOllamaModelsDir();
   if (ollamaDir) {
     safeRoots.push(ollamaDir);
   }
 
-  const hfCache = getHuggingFaceCacheDir();
   if (hfCache) {
     safeRoots.push(hfCache);
   }
@@ -141,7 +144,7 @@ export async function openPathInExplorer(
   await logMessage(
     `[fileExplorer] Received request to open path: ${requestedPath}`
   );
-  const safeRoots = getValidExplorableRoots();
+  const safeRoots = await getValidExplorableRoots();
   await logMessage(
     `[fileExplorer] Safe roots resolved: ${
       safeRoots.length > 0 ? safeRoots.join(", ") : "<none>"
@@ -223,7 +226,7 @@ export async function openModelDirectory(
     `[fileExplorer] Request to open model directory: ${target}`
   );
   const dir =
-    target === "ollama" ? getOllamaModelsDir() : getHuggingFaceCacheDir();
+    target === "ollama" ? await getOllamaModelsDir() : await getHuggingFaceCacheDir();
 
   if (!dir) {
     const label =
@@ -247,10 +250,10 @@ export async function openModelDirectory(
 /**
  * Gets the nodetool installation directory (conda environment)
  */
-export function getInstallationDir(): string | undefined {
+export async function getInstallationDir(): Promise<string | undefined> {
   try {
     const condaEnv = getCondaEnvPath();
-    if (condaEnv && dirExists(condaEnv)) {
+    if (condaEnv && await dirExistsAsync(condaEnv)) {
       return condaEnv;
     }
     return undefined;
@@ -266,10 +269,10 @@ export function getInstallationDir(): string | undefined {
 /**
  * Gets the nodetool logs directory
  */
-export function getLogsDir(): string | undefined {
+export async function getLogsDir(): Promise<string | undefined> {
   try {
     const logDir = path.dirname(LOG_FILE);
-    if (logDir && dirExists(logDir)) {
+    if (logDir && await dirExistsAsync(logDir)) {
       return logDir;
     }
     return undefined;
@@ -296,10 +299,10 @@ export async function openSystemDirectory(
   let label: string;
   
   if (target === "installation") {
-    dir = getInstallationDir();
+    dir = await getInstallationDir();
     label = "Nodetool installation";
   } else if (target === "logs") {
-    dir = getLogsDir();
+    dir = await getLogsDir();
     label = "Nodetool logs";
   } else {
     return {

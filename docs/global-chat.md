@@ -22,9 +22,7 @@ The chat maintains a persistent WebSocket connection and automatically reconnect
 
 ### Opening Global Chat
 
-- **From Dashboard**: Click the **Chat** icon in the left sidebar
-- **From Recent Threads**: Select a conversation from your Dashboard
-- **Quick Access**: Use the keyboard shortcut or system tray
+- **From the App**: Click **Chat** in the navigation menu.
 - **Standalone Window**: Click system tray icon → **Chat** for a dedicated window
 
 ### Standalone Chat
@@ -34,43 +32,6 @@ Access chat in a focused, dedicated window:
 1. Click the NodeTool icon in your system tray
 2. Select **Chat** from the menu
 3. A new window opens with just the chat interface
-
-Benefits of standalone chat:
-- **Minimal interface**: No editor, panels, or distractions
-- **Quick access**: Chat without opening the full application
-- **Background availability**: Keep chat accessible while using other apps
-- **Thread sync**: All conversations sync with the main app
-
-### Interface Layout
-
-The Global Chat interface consists of:
-
-- **Thread List**: Left sidebar showing all your conversations
-- **Chat View**: Main conversation area with message history
-- **Input Area**: Message composer with tools and model selection
-- **Control Panel**: Model selection, tools, and settings
-
-## Thread Management
-
-### Creating and Managing Threads
-
-- **New Thread**: Click **New Chat** to start a fresh conversation
-- **Thread Switching**: Click any thread in the sidebar to switch
-- **Auto-Naming**: Threads are automatically named from your first message
-- **Thread Deletion**: Use the delete button to remove unwanted threads
-- **Thread Persistence**: All threads are saved and synced across sessions
-
-### Thread Features
-
-- **Message History**: Complete conversation history with timestamps
-- **Rich Content**: Support for text, images, audio, and video messages
-- **Search**: Find specific messages within threads
-- **Export**: Save conversation history for external use
-
-Use the search bar to find messages inside the current thread. The search is exact match and supports timestamp
-filtering.
-
-Threads are stored locally and synced via the backend. After restarts, the last used thread reopens automatically.
 
 ## Agent Mode
 
@@ -101,17 +62,3 @@ The agent:
 - **Manages dependencies** between tasks
 - **Adapts** based on intermediate results
 
-### Planning Updates
-
-During agent execution, you'll see:
-
-- **Current Plan**: The agent's overall strategy
-- **Active Task**: What the agent is currently working on
-- **Progress Updates**: Real-time status of task execution
-- **Reasoning**: The agent's thought process and decision-making
-
-When an agent creates or modifies a workflow, Global Chat sends `workflow_created` or `workflow_updated` events. Open
-editors update automatically through auto-layout.
-
-Frontend tools (`ui_add_node`, `ui_align_nodes`, etc.) allow the agent to manipulate the editor directly. You can
-inspect which tools are available by opening the Tools menu in the Chat input panel.

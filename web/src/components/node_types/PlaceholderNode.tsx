@@ -8,13 +8,14 @@ import isEqual from "lodash/isEqual";
 import { Container, Tooltip, Button } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
-import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import type { Edge } from "@xyflow/react";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const humanizeType = (type: string) => {
@@ -25,6 +26,14 @@ interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
     workflow_id?: string;
     collapsed?: boolean;
+    /** Original node type string preserved from the missing node */
+    originalType?: string;
+    /** Node type stored in the node data */
+    node_type?: string;
+    /** Display title for the node */
+    title?: string;
+    /** Property values from the original node */
+    properties?: Record<string, unknown>;
   };
 }
 
@@ -60,14 +69,9 @@ const styles = (theme: Theme) =>
       margin: "8px 0"
     },
     ".search-button": {
-      // backgroundColor: "var(--palette-grey-400)",
-      // padding: 0,
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.1em",
       minWidth: "unset"
-      // "&:hover": {
-      //   backgroundColor: "var(--palette-grey-200)"
-      // }
     },
     ".install-button": {
       position: "relative",
@@ -77,7 +81,7 @@ const styles = (theme: Theme) =>
       padding: "6px 12px",
       borderRadius: 10,
       color:
-        (theme as any).vars?.palette?.primary?.contrastText ||
+        theme.vars?.palette?.primary?.contrastText ||
         "var(--palette-text-primary)",
       backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
       backgroundSize: "200% 200%",
@@ -139,13 +143,38 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
-  const edges = useNodes((n) => n.edges);
-  const incomingEdges = edges.filter((e) => e.target === props.id);
+  const incomingEdgeHandles = useNodes(
+    useMemo(() => {
+      let lastEdges: Edge[] | null = null;
+      let lastResult: string[] = [];
+      return (state: NodeStoreState) => {
+        if (state.edges === lastEdges) {
+          return lastResult;
+        }
+        lastEdges = state.edges;
+
+        const newHandles = state.edges
+          .filter((e) => e.target === props.id)
+          .map((e) => e.targetHandle || "");
+
+        // Only return new reference if contents actually changed
+        if (
+          newHandles.length === lastResult.length &&
+          newHandles.every((val, index) => val === lastResult[index])
+        ) {
+          return lastResult;
+        }
+
+        lastResult = newHandles;
+        return lastResult;
+      };
+    }, [props.id])
+  );
 
   // Resolve the type/namespace to display strictly from originalType when available
   const resolvedType = useMemo(() => {
-    const originalType = (nodeData as any)?.originalType as string | undefined;
-    const nodeDataType = (nodeData as any)?.node_type as string | undefined;
+    const originalType = nodeData?.originalType;
+    const nodeDataType = nodeData?.node_type;
     return originalType || nodeType || nodeDataType || "";
   }, [nodeType, nodeData]);
 
@@ -155,7 +184,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
   const installPackage = useCallback(() => {
     // Pass the node type to the package manager to pre-fill the search
-    const nodeTypeToSearch = (nodeData as any)?.originalType || nodeType || "";
+    const nodeTypeToSearch = nodeData?.originalType || nodeType || "";
     if (window.api?.showPackageManager) {
       // Use the Electron API with node search if available
       (window.api.showPackageManager as (nodeSearch?: string) => void)(
@@ -169,9 +198,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
   const mockProperties = useMemo(() => {
     const safeProperties =
-      (nodeData as any)?.properties &&
-      typeof (nodeData as any).properties === "object"
-        ? (nodeData as any).properties
+      nodeData?.properties &&
+      typeof nodeData.properties === "object"
+        ? nodeData.properties
         : {};
     const props = Object.entries(safeProperties).map(([key, value]) => ({
       name: key,
@@ -180,9 +209,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       optional: true,
       required: false
     }));
-    incomingEdges.forEach((edge) => {
+    incomingEdgeHandles.forEach((handle) => {
       props.push({
-        name: edge.targetHandle || "",
+        name: handle,
         type: { type: "any", optional: true, type_args: [] },
         default: null,
         optional: true,
@@ -190,14 +219,14 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       });
     });
     return props;
-  }, [nodeData, incomingEdges]);
+  }, [nodeData, incomingEdgeHandles]);
 
   // Compute a better header title for missing node
   const computedHeaderTitle = useMemo(() => {
-    const originalType = (nodeData as any)?.originalType as string | undefined;
+    const originalType = nodeData?.originalType;
     const sourceType =
-      originalType || nodeType || (nodeData as any)?.node_type || "";
-    const preferredTitle = (nodeData as any)?.title as string | undefined;
+      originalType || nodeType || nodeData?.node_type || "";
+    const preferredTitle = nodeData?.title;
     const raw =
       preferredTitle && preferredTitle.trim().length > 0
         ? preferredTitle
@@ -230,7 +259,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       output_schema: {},
       the_model_info: {},
       recommended_models: [],
-      is_streaming_output: false
+      is_streaming_output: false,
+      required_settings: []
     }),
     [
       computedHeaderTitle,
@@ -266,6 +296,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         data={nodeData || {}}
         showMenu={false}
         selected={props.selected}
+        workflowId={nodeData?.workflow_id}
       />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -301,14 +332,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-      <NodeFooter
-        id={props.id}
-        data={nodeData}
-        nodeNamespace={resolvedNamespace}
-        metadata={mockMetadata}
-        nodeType={resolvedType || nodeType || ""}
-        workflowId={nodeData.workflow_id || ""}
-      />
     </Container>
   );
 };

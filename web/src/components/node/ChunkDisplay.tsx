@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { Button } from "@mui/material";
 
@@ -8,7 +8,9 @@ interface ChunkDisplayProps {
   chunk: string;
 }
 
-const ChunkDisplay: React.FC<ChunkDisplayProps> = ({ chunk }) => {
+const SCROLL_AMOUNT = 50;
+
+const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
   const chunkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,39 +19,65 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = ({ chunk }) => {
     }
   }, [chunk]);
 
-  const scrollAmount = 50;
-
-  const scrollUp = () => {
+  const scrollUp = useCallback(() => {
     if (chunkRef.current) {
-      chunkRef.current.scrollTop -= scrollAmount;
+      chunkRef.current.scrollTop -= SCROLL_AMOUNT;
     }
-  };
+  }, []);
 
-  const scrollDown = () => {
+  const scrollDown = useCallback(() => {
     if (chunkRef.current) {
-      chunkRef.current.scrollTop += scrollAmount;
+      chunkRef.current.scrollTop += SCROLL_AMOUNT;
     }
-  };
+  }, []);
+
+  const containerStyles = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "flex-start" as const,
+    }),
+    []
+  );
+
+  const chunkStyles = useMemo(
+    () => ({
+      overflowY: "scroll" as const,
+      maxHeight: "200px",
+      flexGrow: 1,
+      marginRight: "8px",
+    }),
+    []
+  );
+
+  const buttonContainerStyles = useMemo(
+    () => ({
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: "4px",
+    }),
+    []
+  );
+
+  const chunkCss = useMemo(
+    () =>
+      css({
+        marginTop: "0.5em",
+        padding: "0.5em",
+      }),
+    []
+  );
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-start" }}>
+    <div style={containerStyles}>
       <div
         className="node-chunk"
         ref={chunkRef}
-        css={css({
-          marginTop: "0.5em",
-          padding: "0.5em"
-        })}
-        style={{
-          overflowY: "scroll",
-          maxHeight: "200px",
-          flexGrow: 1,
-          marginRight: "8px"
-        }}
+        css={chunkCss}
+        style={chunkStyles}
       >
         <MarkdownRenderer content={chunk} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <div style={buttonContainerStyles}>
         <Button size="small" onClick={scrollUp}>
           ↑
         </Button>
@@ -59,6 +87,8 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = ({ chunk }) => {
       </div>
     </div>
   );
-};
+});
+
+ChunkDisplay.displayName = "ChunkDisplay";
 
 export default ChunkDisplay;

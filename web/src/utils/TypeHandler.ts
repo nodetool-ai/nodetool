@@ -32,26 +32,9 @@ export const typeToString = (type: TypeMetadata): string => {
  * Create a slug from a string. Used for namespaces.
  */
 export const Slugify = (input: string): string => {
+  if (!input) {return "";}
   return input.replaceAll(".", "_").replaceAll("-", "_").toLowerCase();
 };
-
-/**
- * Checks if a type is connectable to a union type. This is the case if the type
- * is connectable to at least one of the type arguments of the union type.
- *
- * @param the_type The type.
- * @param union_type The union type.
- */
-
-// const isConnectableToUnion = (
-//   the_type: TypeMetadata,
-//   union_type: TypeMetadata
-// ): boolean => {
-//   if (union_type.type_args) {
-//     return union_type.type_args.some((t) => isConnectable(the_type, t));
-//   }
-//   return false;
-// };
 
 /**
  * Checks if two types are equal. This is the case if they have the same type
@@ -77,19 +60,18 @@ export const typesAreEqual = (a: TypeMetadata, b: TypeMetadata): boolean => {
 };
 
 /**
- * Checks if two enum types are connectable. This is the case if the values of
- * the first enum type are a subset of the values of the second enum type.
+ * Checks if two enum types are connectable by matching their type_name.
+ * Enum-to-enum connections are only allowed when both enums have the same type_name.
  *
  * @param a The first enum type.
  * @param b The second enum type.
  */
 const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
-  if (a.values) {
-    return (
-      new Set(a.values).size === new Set(b.values).size &&
-      a.values.every((value) => b.values?.includes(value))
-    );
+  // Both must have a type_name and they must match
+  if (a.type_name && b.type_name) {
+    return a.type_name === b.type_name;
   }
+  // If either side lacks type_name, enum↔enum is not connectable
   return false;
 };
 
@@ -234,6 +216,26 @@ export const isConnectable = (
     return true;
   }
 
+  // COLLECT HANDLE LOGIC: Allow connecting T -> list[T]
+  // This enables "collect" handles where multiple outputs of type T can connect
+  // to a single input of type list[T].
+  // Note: We exclude list sources here because list -> list connections
+  // are handled separately in the switch statement below with proper element
+  // type compatibility checking.
+  const isTargetListWithElement =
+    target.type === "list" &&
+    target.type_args &&
+    target.type_args.length === 1 &&
+    target.type_args[0];
+  const isSourceNotAList = source.type !== "list";
+
+  if (isTargetListWithElement && isSourceNotAList) {
+    const targetElementType = target.type_args[0];
+    if (isConnectable(source, targetElementType, allowAny)) {
+      return true;
+    }
+  }
+
   if (source.type === "union") {
     // this is not 100% safe but we want to be able to connect
     // if the union is a subset of the target
@@ -256,17 +258,30 @@ export const isConnectable = (
     return !nonObjectTypes.includes(source.type);
   }
 
+  // Enum connection policy:
+  // - str -> enum: allowed (string can be parsed as enum value)
+  // - enum -> str: allowed (enum value is a string)
+  // - enum -> enum: allowed only when type_name matches
   if (target.type === "enum") {
-    return source.type === "str";
+    if (source.type === "str") {
+      return true;
+    }
+    if (source.type === "enum") {
+      return isEnumConnectable(source, target);
+    }
+    return false;
   }
 
   switch (source.type) {
     case "union":
+      // Union handling stays the same
+      break;
     case "enum":
       if (target.type === "str") {
         return true;
       }
-      return target.type === "enum" && isEnumConnectable(source, target);
+      // enum -> enum already handled above
+      return false;
     case "list":
       if (target.type === "list") {
         if (source.type_args.length === 0 || target.type_args.length === 0) {
@@ -304,4 +319,64 @@ export const isConnectable = (
       return source.type === target.type;
   }
   return false;
+};
+
+/**
+ * Checks if a target type is a "collect" handle - a list type that can accept
+ * multiple connections of its element type T.
+ *
+ * A collect handle is defined as:
+ * - A list type with exactly one type argument (list[T])
+ * - Does NOT have type argument "any" (list[any] is not a collect handle)
+ *
+ * @param type The type to check.
+ * @returns True if the type is a collect handle.
+ */
+export const isCollectType = (type: TypeMetadata): boolean => {
+  if (!type || type.type !== "list") {
+    return false;
+  }
+  // Must have exactly one type argument
+  if (!type.type_args || type.type_args.length !== 1) {
+    return false;
+  }
+  // The element type must not be "any"
+  const elementType = type.type_args[0];
+  if (!elementType || elementType.type === "any") {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Checks if a source type can be "collected" into a target list type.
+ * This allows connecting an output of type T to an input of type list[T].
+ *
+ * @param source The source type (e.g., "image").
+ * @param target The target type (e.g., "list[image]").
+ * @returns True if the source type can be collected into the target type.
+ */
+export const canCollect = (
+  source: TypeMetadata,
+  target: TypeMetadata
+): boolean => {
+  // Target must be a collect type (list[T] where T is not "any")
+  if (!isCollectType(target)) {
+    return false;
+  }
+
+  // Safety check for source
+  if (!source || !source.type) {
+    return false;
+  }
+
+  // Get the element type of the target list
+  // isCollectType already validates that type_args[0] exists, but add defensive check
+  const targetElementType = target.type_args?.[0];
+  if (!targetElementType) {
+    return false;
+  }
+
+  // Check if the source type is connectable to the element type
+  return isConnectable(source, targetElementType, true);
 };

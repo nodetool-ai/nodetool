@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   List,
   ListItem,
@@ -11,8 +10,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  useTheme,
-  IconButton
+  useTheme
 } from "@mui/material";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -27,9 +25,9 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import DataObjectIcon from "@mui/icons-material/DataObject";
-import CloseIcon from "@mui/icons-material/Close";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+
+//primitives
+import { CloseButton } from "../ui_primitives";
 
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -111,6 +109,9 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Memoized divider style to prevent object creation on each render
+const dividerSx = { margin: "12px 0" } as const;
+
 interface MobilePaneMenuProps {
   open: boolean;
   onClose: () => void;
@@ -130,13 +131,10 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
   // Get center of viewport for node positioning
   const getViewportCenter = useCallback(() => {
-    const viewport = reactFlowInstance.getViewport();
-    const bounds = reactFlowInstance.getViewport();
-    
     // Get center of visible area
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
-    
+
     return reactFlowInstance.screenToFlowPosition({
       x: centerX,
       y: centerY
@@ -178,7 +176,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
   const addInputNode = useCallback(
-    (nodeType: string) => {
+    (nodeType: string) => () => {
       handleAction(() => {
         const metadata = useMetadataStore
           .getState()
@@ -206,19 +204,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     });
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
-  const addToolResultNode = useCallback(() => {
-    handleAction(() => {
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.workflows.base_node.ToolResult`);
-      if (metadata) {
-        const position = getViewportCenter();
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-    });
-  }, [handleAction, createNode, addNode, getViewportCenter]);
-
   return (
     <Dialog
       open={open}
@@ -236,9 +221,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     >
       <div className="menu-header">
         <div className="menu-title">Canvas Menu</div>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </div>
 
       <DialogContent className="menu-content">
@@ -271,7 +254,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* AI Nodes */}
           <div className="menu-section-title">AI Nodes</div>
@@ -288,25 +271,12 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addToolResultNode}>
-              <ListItemIcon className="menu-item-icon">
-                <DataObjectIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary="Add Tool Result" 
-                secondary="Tool execution result"
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* Input Nodes */}
           <div className="menu-section-title">Input Nodes</div>
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("StringInput")}>
+            <ListItemButton onClick={addInputNode("StringInput")}>
               <ListItemIcon className="menu-item-icon">
                 <TextFieldsIcon />
               </ListItemIcon>
@@ -319,7 +289,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("IntegerInput")}>
+            <ListItemButton onClick={addInputNode("IntegerInput")}>
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
@@ -332,7 +302,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("FloatInput")}>
+            <ListItemButton onClick={addInputNode("FloatInput")}>
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
@@ -345,7 +315,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("ChatInput")}>
+            <ListItemButton onClick={addInputNode("ChatInput")}>
               <ListItemIcon className="menu-item-icon">
                 <ChatIcon />
               </ListItemIcon>
@@ -358,7 +328,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("ImageInput")}>
+            <ListItemButton onClick={addInputNode("ImageInput")}>
               <ListItemIcon className="menu-item-icon">
                 <ImageIcon />
               </ListItemIcon>
@@ -370,7 +340,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* Organization */}
           <div className="menu-section-title">Organization</div>

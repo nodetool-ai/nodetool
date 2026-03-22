@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -14,6 +13,7 @@ import {
   Divider
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
+import { Dialog } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
@@ -33,24 +33,6 @@ import { isElectron } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
   css({
-    ".MuiDialog-paper": {
-      width: "92%",
-      maxWidth: "920px",
-      margin: "auto",
-      borderRadius: (theme as any)?.rounded?.dialog ?? 6,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      color: theme.vars.palette.text.primary,
-      boxShadow: theme.shadows[8]
-    },
-    ".MuiDialogTitle-root": {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeBig,
-      fontWeight: 400,
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em",
-      paddingRight: theme.spacing(7)
-    },
     ".download-actions": {
       padding: "8px 24px 16px",
       justifyContent: "space-between",
@@ -76,9 +58,13 @@ const styles = (theme: Theme) =>
   });
 
 const DownloadManagerDialog: React.FC = () => {
-  const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
+  const isDialogOpen = useModelDownloadStore((state) => state.isDialogOpen);
+  const closeDialog = useModelDownloadStore((state) => state.closeDialog);
+  const downloads = useModelDownloadStore((state) => state.downloads);
 
-  const hasActiveDownloads = Object.keys(downloads).length > 0;
+  // Memoize download names to avoid recomputing Object.keys on every render
+  const downloadNames = useMemo(() => Object.keys(downloads), [downloads]);
+  const hasActiveDownloads = downloadNames.length > 0;
 
   const theme = useTheme();
 
@@ -105,23 +91,8 @@ const DownloadManagerDialog: React.FC = () => {
       onClose={closeDialog}
       maxWidth="md"
       fullWidth
-      slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
-          }
-        }
-      }}
     >
       <DialogTitle sx={{ color: "inherit", position: "relative" }}>
-        <DownloadingIcon sx={{ color: theme.vars.palette.primary.main }} />
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
         <Tooltip title="Close">
           <IconButton
@@ -135,8 +106,8 @@ const DownloadManagerDialog: React.FC = () => {
       </DialogTitle>
       <DialogContent className="download-dialog-content">
         <Box mt={1} className="downloads-list">
-          {Object.keys(downloads).length > 0 ? (
-            Object.keys(downloads).map((name) => (
+          {hasActiveDownloads ? (
+            downloadNames.map((name) => (
               <DownloadProgress key={name} name={name} />
             ))
           ) : (
@@ -188,6 +159,7 @@ const DownloadManagerDialog: React.FC = () => {
       </DialogContent>
       <DialogActions className="download-actions">
         <Typography
+          component="div"
           variant="body1"
           sx={{
             padding: "0 1.5em .5em 1em",

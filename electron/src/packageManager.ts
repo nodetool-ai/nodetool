@@ -1,7 +1,8 @@
 import { spawn } from "child_process";
+import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getUVPath } from "./config";
-import { emitServerLog } from "./events";
+import { getProcessEnv, getUVPath, getPythonPath } from "./config";
+import { emitServerLog, emitBootMessage } from "./events";
 import {
   PackageInfo,
   PackageModel,
@@ -12,6 +13,8 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
+import { getTorchIndexUrl } from "./torchPlatformCache";
+import { fileExists } from "./utils";
 
 /**
  * Package Manager Module
@@ -30,6 +33,39 @@ const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
+
+// Get the app version dynamically from Electron's app.getVersion()
+function getAppVersion(): string {
+  try {
+    return app.getVersion();
+  } catch {
+    return "0.0.0";
+  }
+}
+
+// Get all installed nodetool-* pip packages (excluding torchruntime which has separate installation)
+async function getInstalledNodetoolPackages(): Promise<string[]> {
+  try {
+    const output = await runUvCommand(["pip", "list", "--format=json"]);
+    const allPackages = JSON.parse(output);
+    return allPackages
+      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
+      .map((pkg: any) => pkg.name);
+  } catch (error: any) {
+    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+    return [];
+  }
+}
+
+// Export a function to get expected version for a specific package
+export function getExpectedVersion(packageName: string): string | null {
+  return getAppVersion();
+}
+
+// Export a function to get all packages that need version checking
+export async function getPackagesWithVersionRequirements(): Promise<string[]> {
+  return await getInstalledNodetoolPackages();
+}
 
 // Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
@@ -242,7 +278,6 @@ export async function fetchAllNodes(
         allNodes.push(...result.value);
       }
     }
-    console.log("allNodes", allNodes);
     nodeCache = allNodes;
     return allNodes;
   } catch (error: any) {
@@ -483,13 +518,30 @@ async function runUvCommand(
   options?: { stdin?: string }
 ): Promise<string> {
   const uvPath = getUVPath();
+  const pythonPath = getPythonPath();
   const command = [uvPath, ...args];
+
+  // Check if uv executable exists before attempting to spawn
+  const uvExists = await fileExists(uvPath);
+  if (!uvExists) {
+    const errorMsg = `Python environment not properly installed: uv executable not found at ${uvPath}. ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
 
   return new Promise((resolve, reject) => {
     logMessage(`Running uv command: ${command.join(" ")}`);
 
+    const env = getProcessEnv();
+    // Set UV_PYTHON to explicitly tell uv which Python to use
+    env.UV_PYTHON = pythonPath;
+    // Clear any other Python environment variables
+    delete env.PYTHONHOME;
+    delete env.PYTHONPATH;
+
     const process = spawn(command[0], command.slice(1), {
-      env: getProcessEnv(),
+      env,
       stdio: "pipe",
     });
 
@@ -536,7 +588,15 @@ async function runUvCommand(
     });
 
     process.on("error", (error) => {
-      reject(new Error(`Failed to run command: ${error.message}`));
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run uv at ${uvPath}. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(new Error(`Failed to run command: ${error.message}`));
+      }
     });
   });
 }
@@ -625,7 +685,9 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+    const message = `Installing ${packageName} v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -641,9 +703,11 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package installation: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);
@@ -712,7 +776,10 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Updating to ${packageSpec} with Nodetool extra index (forcing reinstall)`);
+    const message = `Updating ${packageName} to v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
+    emitBootMessage(message);
 
     const args = [
       "pip",
@@ -731,9 +798,11 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package update: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);
@@ -780,10 +849,181 @@ export function getInstallCommandForPackage(repoId: string): string {
   return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
-/**
- * Export package index URL for external use
- */
 export { PACKAGE_INDEX_URL };
+
+/**
+ * Check a single package version against expected version
+ * Returns { needsUpdate: true } if version doesn't match, { currentVersion: "x.y.z" } if ok
+ */
+export async function checkPackageVersion(
+  packageName: string
+): Promise<{ needsUpdate: boolean; currentVersion?: string; expectedVersion?: string }> {
+  const expectedVersion = getExpectedVersion(packageName);
+
+  if (!expectedVersion) {
+    return { needsUpdate: false };
+  }
+
+  try {
+    const output = await runUvCommand(["pip", "show", packageName]);
+    const versionMatch = output.match(/^Version: (.+)$/m);
+    const currentVersion = versionMatch ? versionMatch[1] : null;
+
+    if (!currentVersion) {
+      logMessage(`Package ${packageName} not installed, needs installation`);
+      return { needsUpdate: true, expectedVersion };
+    }
+
+    const versionsMatch = compareVersions(currentVersion, expectedVersion);
+    if (versionsMatch !== 0) {
+      logMessage(
+        `Package ${packageName} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
+      );
+      return { needsUpdate: true, currentVersion, expectedVersion };
+    }
+
+    return { needsUpdate: false, currentVersion };
+  } catch (error: any) {
+    if (error.message.includes("package not found")) {
+      logMessage(`Package ${packageName} not installed, needs installation`);
+      return { needsUpdate: true, expectedVersion };
+    }
+    logMessage(
+      `Failed to check version for ${packageName}: ${error.message}`,
+      "warn"
+    );
+    return { needsUpdate: false };
+  }
+}
+
+/**
+ * Check all expected package versions
+ * Returns list of packages that need to be installed/updated
+ */
+export async function checkExpectedPackageVersions(): Promise<
+  Array<{
+    packageName: string;
+    currentVersion?: string;
+    expectedVersion: string | null;
+  }>
+> {
+  const expectedVersion = getAppVersion();
+  const packagesNeedingUpdate: Array<{
+    packageName: string;
+    currentVersion?: string;
+    expectedVersion: string | null;
+  }> = [];
+
+  try {
+    // Optimization: fetch all installed packages in one go using pip list
+    // This avoids spawning a separate process for each package version check
+    const installedPackages = await listInstalledPackagesInternal();
+    const nodetoolPackages = installedPackages.filter((pkg) =>
+      pkg.name.startsWith("nodetool-")
+    );
+
+    for (const pkg of nodetoolPackages) {
+      const currentVersion = pkg.version;
+
+      if (!currentVersion) {
+        continue;
+      }
+
+      const versionsMatch = compareVersions(currentVersion, expectedVersion);
+      if (versionsMatch !== 0) {
+        logMessage(
+          `Package ${pkg.name} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
+        );
+        packagesNeedingUpdate.push({
+          packageName: pkg.name,
+          currentVersion,
+          expectedVersion,
+        });
+      }
+    }
+  } catch (error: any) {
+    logMessage(
+      `Failed to check expected package versions: ${error.message}`,
+      "error"
+    );
+  }
+
+  return packagesNeedingUpdate;
+}
+
+/**
+ * Install or update packages to their expected versions
+ * Returns summary of installation results
+ */
+export async function installExpectedPackages(): Promise<{
+  success: boolean;
+  packagesChecked: number;
+  packagesUpdated: number;
+  failures: Array<{ packageName: string; error: string }>;
+}> {
+  const packagesNeedingUpdate = await checkExpectedPackageVersions();
+  const failures: Array<{ packageName: string; error: string }> = [];
+  let packagesUpdated = 0;
+
+  if (packagesNeedingUpdate.length > 0) {
+    const packageNames = packagesNeedingUpdate.map((p) => p.packageName).join(", ");
+    logMessage(`Installing expected packages: ${packageNames}`);
+
+    const expectedVersion = getAppVersion();
+    const packageSpecs = packagesNeedingUpdate.map(
+      (p) => `${p.packageName}==${expectedVersion}`
+    );
+
+    try {
+      const message = `Installing ${packagesNeedingUpdate.length} packages (v${expectedVersion})...`;
+      logMessage(message);
+      emitServerLog(message);
+      emitBootMessage(message);
+
+      const args = [
+        "pip",
+        "install",
+        "--prerelease=allow",
+        "--index-url",
+        PYPI_SIMPLE_INDEX_URL,
+        "--extra-index-url",
+        PACKAGE_INDEX_URL,
+        "--index-strategy",
+        "unsafe-best-match",
+        "--system",
+        ...packageSpecs,
+      ];
+
+      const torchIndexUrl = getTorchIndexUrl();
+      if (torchIndexUrl) {
+        args.push("--extra-index-url", torchIndexUrl);
+      }
+
+      await runUvCommand(args);
+      const successMessage = `Successfully installed ${packageNames} (v${expectedVersion})`;
+      logMessage(successMessage);
+      emitServerLog(successMessage);
+      emitBootMessage(successMessage);
+
+      packagesUpdated = packagesNeedingUpdate.length;
+    } catch (error: any) {
+      logMessage(`Failed to install packages: ${error.message}`, "error");
+      for (const pkg of packagesNeedingUpdate) {
+        failures.push({
+          packageName: pkg.packageName,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  return {
+    success: failures.length === 0,
+    packagesChecked: packagesNeedingUpdate.length,
+    packagesUpdated,
+    failures,
+  };
+}
 
 /**
  * Validate repository ID format

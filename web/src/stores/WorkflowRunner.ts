@@ -2,15 +2,13 @@
  * Workflow runner WebSocket bridge.
  *
  * Expects the backend runner protocol to accept `run_job` and `reconnect_job`
- * commands via `globalWebSocketManager`, keyed by workflow_id and job_id. The
+ * commands via `globalWebSocketManager`, keyed by workflow_id. The
  * server streams JobUpdate/Prediction/NodeProgress/NodeUpdate/TaskUpdate and
  * PlanningUpdate messages in order, and acknowledges a reconnect by replaying
  * in-flight updates for the given job_id.
  *
  * State machine: idle → connecting → connected → running → (cancelled|error).
- * `ensureConnection` subscribes to workflow_id topics, while reconnects also
- * subscribe to job_id channels so the UI continues receiving status after a
- * reload or tab switch.
+ * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
@@ -40,8 +38,8 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
-import { queryClient } from "../queryClient";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
+import { getNodeStore } from "./workflowUpdates";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -86,11 +84,12 @@ export type WorkflowRunner = {
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   run: (
-    params: any,
+    params: Record<string, unknown>,
     workflow: WorkflowAttributes,
     nodes: Node<NodeData>[],
     edges: Edge[],
-    resource_limits?: any
+    resource_limits?: Record<string, unknown>,
+    subgraphNodeIds?: Set<string>
   ) => Promise<void>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -100,7 +99,7 @@ export type WorkflowRunner = {
   ensureConnection: () => Promise<void>;
   cleanup: () => void;
   // Streaming inputs
-  streamInput: (inputName: string, value: any, handle?: string) => void;
+  streamInput: (inputName: string, value: unknown, handle?: string) => void;
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
@@ -125,8 +124,8 @@ export const createWorkflowRunnerStore = (
     unsubscribe: null,
     state: "idle",
     statusMessage: null,
-    messageHandler: (workflow: WorkflowAttributes, data: MsgpackData) => {
-      console.warn("No message handler set");
+    messageHandler: (_workflow: WorkflowAttributes, _data: MsgpackData) => {
+      log.warn("No message handler set");
     },
     setMessageHandler: (handler: MessageHandler) => {
       set({ messageHandler: handler });
@@ -141,32 +140,6 @@ export const createWorkflowRunnerStore = (
       try {
         await globalWebSocketManager.ensureConnection();
         set({ state: "connected" });
-
-        // Subscribe to messages for this workflow
-        const currentUnsubscribe = get().unsubscribe;
-        if (currentUnsubscribe) {
-          currentUnsubscribe();
-        }
-
-        const unsubscribe = globalWebSocketManager.subscribe(
-          workflowId,
-          (message: any) => {
-            log.debug(
-              `WorkflowRunner[${workflowId}]: Received message`,
-              message
-            );
-            const workflow = get().workflow;
-            if (workflow) {
-              // Capture job_id from responses if present
-              if (message.job_id && !get().job_id) {
-                set({ job_id: message.job_id });
-              }
-              get().messageHandler(workflow, message);
-            }
-          }
-        );
-
-        set({ unsubscribe });
       } catch (error) {
         log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
         set({ state: "error" });
@@ -202,26 +175,6 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflowId
         }
       });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
-        }
-      });
     },
 
     /**
@@ -253,30 +206,10 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflow.id
         }
       });
-
-      // Also subscribe to job_id for messages
-      const jobUnsubscribe = globalWebSocketManager.subscribe(
-        jobId,
-        (message: any) => {
-          const workflow = get().workflow;
-          if (workflow) {
-            get().messageHandler(workflow, message);
-          }
-        }
-      );
-
-      // Combine unsubscribers
-      const existingUnsubscribe = get().unsubscribe;
-      set({
-        unsubscribe: () => {
-          existingUnsubscribe?.();
-          jobUnsubscribe();
-        }
-      });
     },
 
     // Push a streaming item to a streaming InputNode by name
-    streamInput: async (inputName: string, value: any, handle?: string) => {
+    streamInput: async (inputName: string, value: unknown, handle?: string) => {
       const { job_id } = get();
       if (!job_id) {
         log.warn("streamInput called without an active job");
@@ -318,19 +251,25 @@ export const createWorkflowRunnerStore = (
 
     /**
      * Run the current workflow.
+     * If subgraphNodeIds is provided, only clears results/previews/outputs for those specific nodes,
+     * preserving state for nodes outside the subgraph.
      */
     run: async (
-      params: any,
+      params: Record<string, unknown>,
       workflow: WorkflowAttributes,
       nodes: Node<NodeData>[],
       edges: Edge[],
-      resource_limits?: any
+      resource_limits?: Record<string, unknown>,
+      subgraphNodeIds?: Set<string>
     ) => {
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
       await get().ensureConnection();
 
       set({ workflow, nodes, edges });
+
+      const jobId = uuidv4();
+      set({ job_id: jobId });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
@@ -343,6 +282,7 @@ export const createWorkflowRunnerStore = (
       const clearChunks = useResultsStore.getState().clearChunks;
       const clearPlanningUpdates =
         useResultsStore.getState().clearPlanningUpdates;
+      const clearOutputResults = useResultsStore.getState().clearOutputResults;
 
       let auth_token = "local_token";
       let user = "1";
@@ -359,16 +299,23 @@ export const createWorkflowRunnerStore = (
         statusMessage: "Workflow starting..."
       });
 
-      clearStatuses(workflow.id);
-      clearEdges(workflow.id);
-      clearErrors(workflow.id);
-      clearResults(workflow.id);
-      clearPreviews(workflow.id);
-      clearProgress(workflow.id);
-      clearToolCalls(workflow.id);
-      clearTasks(workflow.id);
-      clearPlanningUpdates(workflow.id);
-      clearChunks(workflow.id);
+      // When running a subgraph, only clear state for the subgraph nodes.
+      // Derive edge IDs from edges that belong to the subgraph.
+      const subgraphEdgeIds = subgraphNodeIds
+        ? new Set(edges.map((e) => e.id))
+        : undefined;
+
+      clearStatuses(workflow.id, subgraphNodeIds);
+      clearEdges(workflow.id, subgraphEdgeIds);
+      clearErrors(workflow.id, subgraphNodeIds);
+      clearResults(workflow.id, subgraphNodeIds);
+      clearOutputResults(workflow.id, subgraphNodeIds);
+      clearPreviews(workflow.id, subgraphNodeIds);
+      clearProgress(workflow.id, subgraphNodeIds);
+      clearToolCalls(workflow.id, subgraphNodeIds);
+      clearTasks(workflow.id, subgraphNodeIds);
+      clearPlanningUpdates(workflow.id, subgraphNodeIds);
+      clearChunks(workflow.id, subgraphNodeIds);
 
       set({
         state: "running",
@@ -412,11 +359,11 @@ export const createWorkflowRunnerStore = (
       await globalWebSocketManager.send({
         type: "run_job",
         command: "run_job",
-        data: req
+        data: {
+          ...(req as RunJobRequest & { job_id: string }),
+          job_id: jobId
+        }
       });
-
-      // Invalidate running jobs query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
 
       set({
         state: "running",
@@ -429,11 +376,15 @@ export const createWorkflowRunnerStore = (
      */
     addNotification: (notification: Omit<Notification, "id" | "timestamp">) => {
       useNotificationStore.getState().addNotification(notification);
+      const nextNotifications = [
+        ...get().notifications,
+        { ...notification, id: uuidv4(), timestamp: new Date() }
+      ];
       set({
-        notifications: [
-          ...get().notifications,
-          { ...notification, id: uuidv4(), timestamp: new Date() }
-        ]
+        notifications:
+          nextNotifications.length > 50
+            ? nextNotifications.slice(-50)
+            : nextNotifications
       });
     },
 
@@ -536,7 +487,7 @@ export const createWorkflowRunnerStore = (
   }));
 
   store.setState({
-    messageHandler: createRunnerMessageHandler(store)
+    messageHandler: createRunnerMessageHandler(store, getNodeStore)
   });
 
   return store;
@@ -557,6 +508,31 @@ export const getWorkflowRunnerStore = (
   return store;
 };
 
+const defaultWorkflowRunner: WorkflowRunner = {
+  workflow: null,
+  nodes: [],
+  edges: [],
+  job_id: null,
+  unsubscribe: null,
+  state: "idle",
+  statusMessage: null,
+  setStatusMessage: () => {},
+  notifications: [],
+  messageHandler: () => {},
+  setMessageHandler: () => {},
+  addNotification: () => {},
+  cancel: async () => {},
+  pause: async () => {},
+  resume: async () => {},
+  run: async () => {},
+  reconnect: async () => {},
+  reconnectWithWorkflow: async () => {},
+  ensureConnection: async () => {},
+  cleanup: () => {},
+  streamInput: () => {},
+  endInputStream: () => {}
+};
+
 export function useWebsocketRunner<T>(
   selector: (state: WorkflowRunner) => T,
   equalityFn?: (a: T, b: T) => boolean
@@ -565,13 +541,24 @@ export function useWebsocketRunner<T>(
     (state) => state.currentWorkflowId
   );
 
+  // Always create/get a store to maintain hook order
+  // Use a placeholder ID when no workflow is selected
+  const store = getWorkflowRunnerStore(currentWorkflowId || "__no_workflow__");
+
+  // Use the selector with the store, but return default values if no workflow
+  const selectedValue = useStoreWithEqualityFn(
+    store,
+    selector,
+    equalityFn ?? shallow
+  );
+
+  // Return default values when there's no current workflow to prevent errors
+  // while maintaining proper hook call order
   if (!currentWorkflowId) {
-    throw new Error("No current workflow id");
+    return selector(defaultWorkflowRunner);
   }
 
-  const store = getWorkflowRunnerStore(currentWorkflowId);
-
-  return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
+  return selectedValue;
 }
 
 export default useWebsocketRunner;

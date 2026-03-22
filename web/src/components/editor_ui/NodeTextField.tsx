@@ -11,7 +11,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, memo } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -38,10 +38,6 @@ export interface NodeTextFieldProps
    * Validation failed — shows error state
    */
   invalid?: boolean;
-  /**
-   * Density variant
-   */
-  density?: "compact" | "normal";
 }
 
 /**
@@ -67,7 +63,9 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
       sx,
       changed,
       invalid,
-      density = "compact",
+      // Extract legacy props that Autocomplete passes - these contain critical refs
+      InputProps,
+      inputProps,
       ...props
     },
     ref
@@ -95,27 +93,35 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
           scopeClass,
           className
         )}
-        slotProps={{
-          ...slotProps,
-          input: {
-            ...slotProps?.input,
-            className: cn(
-              editorClassNames.nodrag,
-              editorUiClasses.control,
-              scopeClass,
-              (slotProps?.input as SlotPropsWithClassName | undefined)
-                ?.className
-            )
-          },
-          htmlInput: {
-            ...slotProps?.htmlInput,
-            className: cn(
-              editorClassNames.nodrag,
-              (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
-                ?.className
-            )
-          }
-        }}
+        slotProps={
+          {
+            ...slotProps,
+            input: {
+              // Merge legacy InputProps (from Autocomplete) with slotProps.input
+              ...InputProps,
+              ...slotProps?.input,
+              className: cn(
+                editorClassNames.nodrag,
+                editorUiClasses.control,
+                scopeClass,
+                (InputProps as SlotPropsWithClassName | undefined)?.className,
+                (slotProps?.input as SlotPropsWithClassName | undefined)
+                  ?.className
+              )
+            },
+            htmlInput: {
+              // Merge legacy inputProps (from Autocomplete) with slotProps.htmlInput
+              ...inputProps,
+              ...slotProps?.htmlInput,
+              className: cn(
+                editorClassNames.nodrag,
+                (inputProps as SlotPropsWithClassName | undefined)?.className,
+                (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
+                  ?.className
+              )
+            }
+          } as any
+        }
         sx={{
           // Semantic: changed state - shows right border indicator
           ...(changed && {
@@ -149,3 +155,8 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
 );
 
 NodeTextField.displayName = "NodeTextField";
+
+const NodeTextFieldMemo = memo(NodeTextField);
+NodeTextFieldMemo.displayName = "NodeTextField";
+
+export default NodeTextFieldMemo;

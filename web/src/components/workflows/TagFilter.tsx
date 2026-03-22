@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Button, Tooltip } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+import { memo, useCallback, useMemo } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -12,7 +14,34 @@ interface TagFilterProps {
   onSelectTag: (tag: string | null) => void;
 }
 
-const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag }) => {
+const TagFilter = memo(({
+  tags,
+  selectedTag,
+  onSelectTag
+}: TagFilterProps) => {
+  const sortedTags = useMemo(() =>
+    Object.keys(tags)
+      .filter((tag) => tag !== "start")
+      .sort((a, b) => a.localeCompare(b)),
+    [tags]
+  );
+
+  const handleSelectGettingStarted = useCallback(() => {
+    onSelectTag("getting-started");
+  }, [onSelectTag]);
+
+  const handleSelectAll = useCallback(() => {
+    onSelectTag(null);
+  }, [onSelectTag]);
+
+  const handleSelectTag = useCallback((tag: string) => {
+    onSelectTag(tag);
+  }, [onSelectTag]);
+
+  const handleTagClick = useCallback((tag: string) => () => {
+    handleSelectTag(tag);
+  }, [handleSelectTag]);
+
   return (
     <Box className="tag-menu">
       <div className="button-row">
@@ -21,31 +50,30 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
-          <Button
-            onClick={() => onSelectTag("getting-started")}
+          <EditorButton
+            onClick={handleSelectGettingStarted}
             variant="outlined"
             className={selectedTag === "getting-started" ? "selected" : ""}
+            density="normal"
           >
             Getting Started
-          </Button>
+          </EditorButton>
         </Tooltip>
-        {Object.keys(tags)
-          .filter((tag) => tag !== "start")
-          .sort((a, b) => a.localeCompare(b))
-          .map((tag) => (
+        {sortedTags.map((tag) => (
             <Tooltip
               key={tag}
               title={`Show ${tag} examples`}
               enterDelay={TOOLTIP_ENTER_DELAY}
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
-              <Button
-                onClick={() => onSelectTag(tag)}
+              <EditorButton
+                onClick={handleTagClick(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
+                density="normal"
               >
                 {tag}
-              </Button>
+              </EditorButton>
             </Tooltip>
           ))}
         <Tooltip
@@ -53,16 +81,19 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
-          <Button
-            onClick={() => onSelectTag(null)}
+          <EditorButton
+            onClick={handleSelectAll}
             className={selectedTag === null ? "selected" : ""}
+            density="normal"
           >
             SHOW ALL
-          </Button>
+          </EditorButton>
         </Tooltip>
       </div>
     </Box>
   );
-};
+});
+
+TagFilter.displayName = "TagFilter";
 
 export default TagFilter;

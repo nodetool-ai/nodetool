@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
@@ -38,3 +38,5 @@ export const EmailRenderer: React.FC<{ value: Email }> = ({ value }) => {
     </div>
   );
 };
+
+export default memo(EmailRenderer);

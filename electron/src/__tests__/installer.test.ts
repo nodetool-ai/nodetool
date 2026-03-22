@@ -29,6 +29,10 @@ jest.mock("../ipc", () => ({
 
 jest.mock("../settings", () => ({
   updateSettings: jest.fn(),
+  getModelServiceStartupDefaults: jest.fn().mockReturnValue({
+    startOllamaOnStartup: true,
+    startLlamaCppOnStartup: false,
+  }),
 }));
 
 jest.mock("../python", () => ({
@@ -64,6 +68,8 @@ describe("installer promptForInstallLocation", () => {
       CONDA_ENV: "/chosen",
       PYTHON_PACKAGES: ["pkg"],
       MODEL_BACKEND: "ollama",
+      START_OLLAMA_ON_STARTUP: true,
+      START_LLAMA_CPP_ON_STARTUP: false,
     });
     expect(result).toMatchObject({
       location: "/chosen",

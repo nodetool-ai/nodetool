@@ -1,16 +1,5 @@
 /**
- * NodeMenuStore
- *
- * This module manages the state and behavior of the node selection menu in the application.
- * It handles:
- * - Opening/closing the node menu
- * - Node searching and filtering
- * - Type-based filtering
- * - Path/namespace navigation
- * - Node documentation display
- * - Connection direction for node linking
- *
- * The store uses Zustand for state management and Fuse.js for fuzzy searching.
+ * NodeMenuStore manages the state and behavior of the node selection menu.
  */
 
 import { create } from "zustand";
@@ -39,7 +28,10 @@ export interface OpenNodeMenuParams {
   connectDirection?: ConnectDirection;
   searchTerm?: string;
   selectedPath?: string[];
+  centerOnScreen?: boolean;
 }
+
+export type ProviderFilterType = "all" | "api" | "local";
 
 export type NodeMenuStore = {
   isMenuOpen: boolean;
@@ -59,6 +51,8 @@ export type NodeMenuStore = {
   setSelectedInputType: (inputType: string) => void;
   selectedOutputType: string;
   setSelectedOutputType: (outputType: string) => void;
+  selectedProviderType: ProviderFilterType;
+  setSelectedProviderType: (providerType: ProviderFilterType) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
   searchResults: NodeMetadata[];
@@ -105,6 +99,13 @@ export type NodeMenuStore = {
   >;
   // Guard to prevent immediate close right after open
   closeBlockUntil: number;
+
+  // Keyboard navigation for search results
+  selectedIndex: number;
+  setSelectedIndex: (index: number) => void;
+  moveSelectionUp: () => void;
+  moveSelectionDown: () => void;
+  getSelectedNode: () => NodeMetadata | null;
 };
 
 type NodeMenuStoreOptions = {
@@ -127,7 +128,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         get().selectedPath,
         get().selectedInputType,
         get().selectedOutputType,
-        get().searchResults
+        get().searchResults,
+        get().selectedProviderType
       );
 
     // Optimized search scheduling - no synchronous isLoading update
@@ -177,6 +179,14 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           scheduleSearch(get().searchTerm);
         }
       },
+      selectedProviderType: "all",
+      setSelectedProviderType: (providerType) => {
+        const current = get().selectedProviderType;
+        if (current !== providerType) {
+          set({ selectedProviderType: providerType });
+          scheduleSearch(get().searchTerm);
+        }
+      },
 
       setDragToCreate: (dragToCreate) => {
         set({ dragToCreate });
@@ -199,7 +209,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Don't clear hoveredNode here as it causes extra re-renders
         const currentTerm = get().searchTerm;
         if (currentTerm !== term) {
-          set({ searchTerm: term });
+          // Reset keyboard selection when search term changes
+          set({ searchTerm: term, selectedIndex: -1 });
         }
         // Run debounced search with the provided term
         scheduleSearch(term);
@@ -212,11 +223,13 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const searchTerm = get().searchTerm;
         const selectedInputType = get().selectedInputType;
         const selectedOutputType = get().selectedOutputType;
+        const selectedProviderType = get().selectedProviderType;
         const cacheKey = JSON.stringify({
           path: newPath,
           searchTerm,
           selectedInputType,
-          selectedOutputType
+          selectedOutputType,
+          selectedProviderType
         });
         const cache = get().searchResultsCache;
         if (cache[cacheKey]) {
@@ -252,7 +265,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             newPath,
             selectedInputType as TypeName,
             selectedOutputType as TypeName,
-            true
+            true,
+            selectedProviderType
           );
         // Store in cache
         set((state) => ({
@@ -292,12 +306,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
        * @param searchId - Optional ID to cancel outdated searches
        */
       performSearch: (term: string, searchId?: number) => {
-        console.debug("[NodeMenuStore] performSearch", {
-          term,
-          searchId,
-          isMenuOpen: get().isMenuOpen,
-          selectedPath: get().selectedPath
-        });
         // Check against the local pendingSearchId to detect stale requests
         // Note: searchId comes from scheduleSearch which uses pendingSearchId
         if (searchId !== undefined && searchId !== pendingSearchId) {
@@ -319,7 +327,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             store.selectedPath,
             store.selectedInputType as TypeName,
             store.selectedOutputType as TypeName,
-            true
+            true,
+            store.selectedProviderType
           );
 
         set({
@@ -396,10 +405,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: [...newHighlightedNamespaces] });
       },
       closeNodeMenu: () => {
-        console.debug("[NodeMenuStore] closeNodeMenu executing", {
-          isOpen: get().isMenuOpen
-        });
-        console.trace("[NodeMenuStore] closeNodeMenu trace");
         if (get().isMenuOpen) {
           if (get().dragToCreate) {
             set({ dragToCreate: false });
@@ -418,13 +423,14 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             highlightedNamespaces: [],
             selectedInputType: "",
             selectedOutputType: "",
+            selectedProviderType: "all",
             showDocumentation: false,
-            selectedNodeType: null
+            selectedNodeType: null,
+            selectedIndex: -1
           });
         }
       },
       openNodeMenu: (params: OpenNodeMenuParams) => {
-        console.debug("[NodeMenuStore] openNodeMenu called", params);
         set({ clickPosition: { x: params.x, y: params.y } });
         const { menuWidth, menuHeight } = get();
 
@@ -445,9 +451,19 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const actualMenuHeight =
           menuHeight && menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
 
-        // 1. Start with the desired visual position at the mouse cursor
-        let visualX = params.x;
-        let visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        // Calculate position based on whether we should center on screen
+        let visualX: number;
+        let visualY: number;
+
+        if (params.centerOnScreen) {
+          // Center the menu on the screen
+          visualX = (window.innerWidth - actualMenuWidth) / 2;
+          visualY = (window.innerHeight - actualMenuHeight) / 2;
+        } else {
+          // Start with the desired visual position at the mouse cursor
+          visualX = params.x;
+          visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        }
 
         // 2. Check if the menu overflows the window edges and adjust
         // Adjust X if it overflows the right edge
@@ -500,14 +516,10 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             params.dropType && params.connectDirection === "source"
               ? params.dropType
               : "",
+          selectedProviderType: "all",
           menuWidth: 950,
           menuHeight: 900
         });
-
-        // debug: after state set
-        setTimeout(() => {
-          console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
-        }, 0);
 
         // Perform search when opening if needed
         if (shouldSearchOnOpen) {
@@ -516,7 +528,31 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         }
       },
       isLoading: false,
-      searchResultsCache: {}
+      searchResultsCache: {},
+
+      // Keyboard navigation for search results
+      selectedIndex: -1,
+      setSelectedIndex: (index: number) => set({ selectedIndex: index }),
+      moveSelectionUp: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
+        set({ selectedIndex: newIndex });
+      },
+      moveSelectionDown: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
+        set({ selectedIndex: newIndex });
+      },
+      getSelectedNode: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
+        return allNodes[selectedIndex];
+      }
     };
   });
 

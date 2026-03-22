@@ -5,29 +5,41 @@ export const tableStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
     width: "100%",
-    // Main container
+    overflow: "hidden",
+    // Main container - Tabulator controls its own height
     ".dicttable, .datatable": {
       width: "100%",
-      height: "calc(100% - 20px)",
-      maxHeight: "800px",
       position: "relative",
-      overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[900]}`
     },
 
-    // Tabulator base
+    // Tabulator base - has fixed pixel height set in component
     ".tabulator": {
       fontSize: theme.fontSizeSmall,
-      fontFamily: theme.fontFamily1,
-      height: "200px"
+      fontFamily: theme.fontFamily1
     },
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
       backgroundColor: theme.vars.palette.grey[800],
-      borderTop: `1px solid ${theme.vars.palette.grey[900]}`
+      borderTop: `1px solid ${theme.vars.palette.grey[900]}`,
+      scrollbarWidth: "thin",
+      scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
+      "&::-webkit-scrollbar": {
+        width: "8px",
+        height: "8px"
+      },
+      "&::-webkit-scrollbar-track": {
+        background: theme.vars.palette.grey[900]
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.vars.palette.grey[600],
+        borderRadius: "4px"
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        background: theme.vars.palette.grey[500]
+      }
     },
 
     // Column resize handle
@@ -79,11 +91,11 @@ export const tableStyles = (theme: Theme) =>
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `6px solid ${"var(--palette-primary-main)"}`
+        borderBottom: `6px solid ${theme.vars.palette.primary.main}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `6px solid ${"var(--palette-primary-main)"}`
+        borderTop: `6px solid ${theme.vars.palette.primary.main}`
       },
 
     // cell
@@ -109,7 +121,7 @@ export const tableStyles = (theme: Theme) =>
       alignItems: "flex-start",
       height: "2em",
       "& .disabled": {
-        color: "var(--action-disabled)"
+        color: theme.vars.palette.action.disabled
       },
       "& button": {
         padding: ".1em",
@@ -127,12 +139,12 @@ export const tableStyles = (theme: Theme) =>
 
     // Datetime picker
     ".datetime-picker": {
-      backgroundColor: "var(--palette-primary-main)"
+      backgroundColor: theme.vars.palette.primary.main
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
       borderRadius: "8px",
-      backgroundColor: "white"
+      backgroundColor: theme.vars.palette.common.white
     },
     ".datetime": {
       "& button": {
@@ -143,9 +155,9 @@ export const tableStyles = (theme: Theme) =>
         top: "0",
         right: ".5em",
         borderRadius: "8px",
-        backgroundColor: "white",
+        backgroundColor: theme.vars.palette.common.white,
         "&:hover svg": {
-          color: "var(--palette-primary-main)"
+          color: theme.vars.palette.primary.main
         },
         "& svg": {
           color: theme.vars.palette.grey[1000],
@@ -164,7 +176,7 @@ export const tableStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[1000],
       fontSize: theme.fontSizeSmall,
       "&::selection": {
-        backgroundColor: "var(--palette-primary-main)"
+        backgroundColor: theme.vars.palette.primary.main
       }
     },
 

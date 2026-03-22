@@ -1,5 +1,7 @@
 # Quick Start Guide for NodeTool Mobile App
 
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile Quick Start**
+
 This guide will help you get the NodeTool mobile app running on your device.
 
 ## Prerequisites
@@ -28,7 +30,7 @@ conda activate nodetool
 nodetool serve
 ```
 
-The server should be running at `http://localhost:8000` by default.
+The server should be running at `http://localhost:7777` by default.
 
 ### 3. Start Expo Development Server
 
@@ -73,18 +75,18 @@ npm run ios
    - **Windows**: Run `ipconfig`
 2. Look for an IP like `192.168.x.x` or `10.0.x.x`
 3. In the mobile app, go to Settings
-4. Enter `http://YOUR_IP:8000` (e.g., `http://192.168.1.100:8000`)
+4. Enter `http://YOUR_IP:7777` (e.g., `http://192.168.1.100:7777`)
 5. Tap "Test Connection" to verify
 
 ### For Android Emulator
 
 If using Android Studio emulator:
-- Use `http://10.0.2.2:8000` (Android's special alias for host localhost)
+- Use `http://10.0.2.2:7777` (Android's special alias for host localhost)
 
 ### For iOS Simulator
 
 If using iOS Simulator on macOS:
-- Use `http://localhost:8000` (simulators can access Mac's localhost directly)
+- Use `http://localhost:7777` (simulators can access Mac's localhost directly)
 
 ## Using the App
 
@@ -111,7 +113,7 @@ If using iOS Simulator on macOS:
 **Check Server:**
 ```bash
 # Make sure server is running
-curl http://localhost:8000/api/workflows/
+curl http://localhost:7777/api/workflows/
 ```
 
 **Check Network:**
@@ -120,7 +122,7 @@ curl http://localhost:8000/api/workflows/
 - Try a personal hotspot as an alternative
 
 **Check Firewall:**
-- Make sure your firewall allows incoming connections on port 8000
+- Make sure your firewall allows incoming connections on port 7777
 - On macOS: System Preferences > Security & Privacy > Firewall
 - On Windows: Windows Defender Firewall settings
 

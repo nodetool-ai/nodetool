@@ -39,44 +39,6 @@ import {
   extractFiles
 } from "./serialization";
 
-/**
- * Custom hook for optional ReactFlow position conversion
- * Returns a function that converts screen coordinates to flow coordinates if available
- */
-function useOptionalScreenToFlowPosition(useFlowPosition: boolean = false): (
-  screenX: number,
-  screenY: number
-) => { x: number; y: number } {
-  // Try to access ReactFlow context only if useFlowPosition is true
-  // We use dynamic import pattern to avoid hook rules issues
-  const screenToFlowRef = useRef<
-    ((pos: { x: number; y: number }) => { x: number; y: number }) | null
-  >(null);
-
-  // This will be set when used inside ReactFlow context
-  if (useFlowPosition && typeof window !== "undefined") {
-    try {
-      // Check if we're in a ReactFlow context by looking for the store
-      const reactFlowStore = (window as any).__REACT_FLOW_STORE__;
-      if (reactFlowStore) {
-        screenToFlowRef.current = reactFlowStore.getState().screenToFlowPosition;
-      }
-    } catch {
-      // Not in ReactFlow context
-    }
-  }
-
-  return useCallback(
-    (screenX: number, screenY: number) => {
-      if (screenToFlowRef.current) {
-        return screenToFlowRef.current({ x: screenX, y: screenY });
-      }
-      return { x: screenX, y: screenY };
-    },
-    []
-  );
-}
-
 export function useDropZone<T extends DragDataType = DragDataType>(
   config: DropZoneConfig<T>
 ) {
@@ -102,7 +64,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
         return acceptsFiles;
       }
 
-      if (!data) return false;
+      if (!data) {return false;}
 
       // Type check
       if (!config.accepts.includes(data.type as T)) {
@@ -163,7 +125,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
       setIsOver(false);
       setCanDrop(false);
 
-      if (config.disabled) return;
+      if (config.disabled) {return;}
 
       const position = getPosition(event);
 
@@ -185,9 +147,9 @@ export function useDropZone<T extends DragDataType = DragDataType>(
 
       // Handle internal drag data
       const data = deserializeDragData(event.dataTransfer);
-      if (!data) return;
+      if (!data) {return;}
 
-      if (!config.accepts.includes(data.type as T)) return;
+      if (!config.accepts.includes(data.type as T)) {return;}
 
       // Validate
       if (

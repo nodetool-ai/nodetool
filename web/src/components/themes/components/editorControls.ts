@@ -28,30 +28,26 @@ export const editorControlsComponents: Components<Theme> = {
               }
             ),
 
-            "& fieldset": {
+            "& .MuiOutlinedInput-notchedOutline": {
               borderColor: theme.vars.palette.divider,
               borderWidth: "1px",
               transition: theme.transitions.create(["border-color"], {
                 duration: theme.transitions.duration.shortest
-              })
-            },
-
-            // We're not using MUI's floating InputLabel inside the control in the editor.
-            // Make the outline sit flush so we don't get a "notch gap" at the top.
-            "& .MuiOutlinedInput-notchedOutline": {
+              }),
+              // Make the outline sit flush so we don't get a "notch gap" at the top.
               top: 0
             },
 
             "&:hover": {
               backgroundColor: theme.vars.palette.action.selected,
-              "& fieldset": {
+              "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.vars.palette.text.secondary
               }
             },
 
             "&.Mui-focused": {
               backgroundColor: theme.vars.palette.action.selected,
-              "& fieldset": {
+              "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.vars.palette.primary.main
               }
             },
@@ -65,14 +61,14 @@ export const editorControlsComponents: Components<Theme> = {
             [`&.${editorUiClasses.scopeInspector} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYInspector} ${editor.padXInspector}`,
               minHeight: "1.7em",
-              lineHeight: "1.2em",
-              fontSize: theme.fontSizeSmall
+              lineHeight: "1.5em",
+              fontSize: theme.fontSizeSmaller
             },
             [`&.${editorUiClasses.scopeNode} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYNode} ${editor.padXNode}`,
               minHeight: "1.7em",
-              lineHeight: "1.2em",
-              fontSize: theme.fontSizeTiny
+              lineHeight: "1.5em",
+              fontSize: theme.fontSizeSmaller
             },
 
             // Multiline textarea

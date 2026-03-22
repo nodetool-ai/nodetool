@@ -39,6 +39,8 @@ const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
 const FALLBACK_LOCK_FILE_NAME = "environment.lock.yml";
 
 // Returns a sane default install location if settings do not define CONDA_ENV
+// IMPORTANT: These paths MUST match getDefaultInstallLocation() in python.ts
+// to avoid looking in the wrong place when settings are unavailable
 const getDefaultCondaEnvPath = (): string => {
   switch (process.platform) {
     case "win32":
@@ -51,12 +53,8 @@ const getDefaultCondaEnvPath = (): string => {
             "conda_env"
           );
     case "darwin":
-      return process.env.SUDO_USER
-        ? path.join("/Library/Application Support/nodetool/conda_env")
-        : path.join(
-            os.homedir(),
-            "Library/Application Support/nodetool/conda_env"
-          );
+      // Use ~/nodetool_env to match getDefaultInstallLocation() in python.ts
+      return path.join(os.homedir(), "nodetool_env");
     case "linux":
       return process.env.SUDO_USER
         ? "/opt/nodetool/conda_env"
@@ -104,10 +102,23 @@ const getCondaEnvPath = (): string => {
     return condaPathFromSettings;
   }
 
+  // CONDA_ENV not set - use default and persist it immediately to avoid future inconsistencies
   const fallbackPath = getDefaultCondaEnvPath();
   logMessage(
-    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
+    `CONDA_ENV not set in settings. Using and persisting default path: ${fallbackPath}`
   );
+  
+  // Persist the default so it's always consistent going forward
+  try {
+    updateSetting("CONDA_ENV", fallbackPath);
+    logMessage(`Persisted default CONDA_ENV to settings: ${fallbackPath}`);
+  } catch (error) {
+    logMessage(
+      `Failed to persist default CONDA_ENV to settings: ${error}`,
+      "warn"
+    );
+  }
+  
   return fallbackPath;
 };
 
@@ -281,8 +292,34 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
 
+  // Create dedicated cache directories inside app userData
+  // This fixes macOS permission issues when Electron spawns uv
+  const userDataPath = app.getPath("userData");
+  const uvCacheDir = path.join(userDataPath, "uv-cache");
+  const xdgCacheHome = path.join(userDataPath, "cache");
+  
+  // Set HOME if not already set (needed on macOS for GUI processes)
+  const homeDir = baseEnv.HOME || os.homedir();
+
+  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
+  // This ensures consistency between Electron app and CLI usage
+  const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
+
+  // Ensure cache directories exist
+  try {
+    fs.mkdirSync(uvCacheDir, { recursive: true });
+    fs.mkdirSync(xdgCacheHome, { recursive: true });
+    fs.mkdirSync(hfHome, { recursive: true });
+  } catch (error) {
+    logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
+  }
+
   return {
     ...baseEnv,
+    HOME: homeDir,
+    XDG_CACHE_HOME: xdgCacheHome,
+    UV_CACHE_DIR: uvCacheDir,
+    HF_HOME: hfHome,
     PYTHONPATH: srcPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
