@@ -1,4 +1,4 @@
-const DEFAULT_BACKEND_URL = "http://localhost:7777";
+const DEFAULT_BACKEND_URL = "http://127.0.0.1:7777";
 
 const normalizeUrl = (url: string) => url.replace(/\/$/, "");
 
@@ -16,6 +16,6 @@ export const BACKEND_HOST = (() => {
   try {
     return new URL(BACKEND_URL).host;
   } catch {
-    return "localhost:7777";
+    return "127.0.0.1:7777";
   }
 })();

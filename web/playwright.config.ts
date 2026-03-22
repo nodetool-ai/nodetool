@@ -18,36 +18,26 @@ const shouldStartFrontend = process.env.E2E_START_FRONTEND !== 'false';
 
 const backendCommand = 'PORT=7777 HOST=127.0.0.1 node ../packages/websocket/dist/server.js';
 
-const webServers = process.env.CI ? [
+const webServers: Array<{
+  command: string;
+  url: string;
+  reuseExistingServer: boolean;
+  timeout: number;
+}> = [
   ...(shouldStartBackend
     ? [{
         command: backendCommand,
         url: BACKEND_HEALTH_URL,
-        reuseExistingServer: false,
-        timeout: 120 * 1000,
-      }]
-    : []),
-  {
-    command: 'npm start',
-    url: FRONTEND_URL,
-    reuseExistingServer: false,
-    timeout: 120 * 1000,
-  },
-] : [
-  ...(shouldStartBackend
-    ? [{
-        command: backendCommand,
-        url: BACKEND_HEALTH_URL,
-        reuseExistingServer: true,
-        timeout: 120 * 1000,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
       }]
     : []),
   ...(shouldStartFrontend
     ? [{
         command: 'npm start',
         url: FRONTEND_URL,
-        reuseExistingServer: true,
-        timeout: 120 * 1000,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
       }]
     : []),
 ];
