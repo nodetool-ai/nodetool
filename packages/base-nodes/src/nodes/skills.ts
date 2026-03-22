@@ -128,14 +128,14 @@ async function getAssetBytes(
     // Handle /api/storage/ paths — resolve to local asset files on disk
     if (asset.uri.startsWith("/api/storage/")) {
       try {
-        const { homedir } = await import("node:os");
+        const { getDefaultAssetsPath } = await import("@nodetool/config");
         const isTemp = asset.uri.startsWith("/api/storage/temp/");
         const key = isTemp
           ? asset.uri.slice("/api/storage/temp/".length)
           : asset.uri.slice("/api/storage/".length);
         const rootDir = isTemp
           ? (process.env.TEMP_STORAGE_PATH ?? path.join(tmpdir(), "nodetool", "temp"))
-          : (process.env.ASSET_FOLDER ?? process.env.STORAGE_PATH ?? path.join(homedir(), ".local", "share", "nodetool", "assets"));
+          : getDefaultAssetsPath();
         return await readFile(path.join(rootDir, key));
       } catch { /* fall through */ }
     }

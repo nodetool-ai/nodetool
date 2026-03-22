@@ -8,10 +8,9 @@
  */
 
 import { join, resolve, dirname } from "node:path";
-import { homedir } from "node:os";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
@@ -95,9 +94,9 @@ const log = createLogger("nodetool.websocket.server");
 // Database setup
 // ---------------------------------------------------------------------------
 
-const dbPath =
-  process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
+const dbPath = getDefaultDbPath();
 try {
+  mkdirSync(dirname(dbPath), { recursive: true });
   initDb(dbPath);
   log.info("Database ready", { path: dbPath });
   setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));

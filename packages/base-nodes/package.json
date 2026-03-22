@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "@nodetool/config": "*",
     "@nodetool/code-runners": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*",

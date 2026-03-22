@@ -16,6 +16,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool/config": "*",
     "@nodetool/agents": "*",
     "@nodetool/base-nodes": "*",
     "@nodetool/elevenlabs-nodes": "*",

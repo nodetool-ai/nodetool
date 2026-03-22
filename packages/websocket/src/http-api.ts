@@ -3,7 +3,7 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
 import os from "node:os";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -52,8 +52,7 @@ function getAssetFileName(assetId: string, contentType: string): string {
 }
 
 function getAssetStoragePath(opts?: StorageHandlerOptions): string {
-  return process.env.ASSET_FOLDER ?? opts?.storagePath ?? process.env.STORAGE_PATH ??
-    nodePath.join(os.homedir(), ".local", "share", "nodetool", "assets");
+  return opts?.storagePath ?? getDefaultAssetsPath();
 }
 
 type JsonObject = Record<string, unknown>;
