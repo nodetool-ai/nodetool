@@ -25,6 +25,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-jobs-${Date.now()}`,
           description: "E2E jobs test workflow",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();
@@ -109,7 +110,7 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         const name = `e2e-jobs-test-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "e2e job test", access: "private" }
+          data: { name, description: "e2e job test", access: "private", graph: { nodes: [], edges: [] } }
         });
         const workflow = await createRes.json();
 
@@ -142,7 +143,7 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         const name = `e2e-jobs-kb-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "e2e kb test", access: "private" }
+          data: { name, description: "e2e kb test", access: "private", graph: { nodes: [], edges: [] } }
         });
         const workflow = await createRes.json();
 

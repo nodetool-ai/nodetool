@@ -31,80 +31,63 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: "3.11"
-          environment-file: environment.yml
-          activate-environment: nodetool
-          auto-activate-base: false
-          miniforge-version: latest
-
-      - name: Install nodetool-core and nodetool-base
-        shell: bash -l {0}
-        run: |
-          for i in {1..3}; do
-            uv pip install "fastapi==0.115.6" --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ --pre nodetool-core nodetool-base && break || sleep 15
-          done
-
-      - name: Verify nodetool installation
-        shell: bash -l {0}
-        run: |
-          which nodetool
-          nodetool --help
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
 
-      - name: Install web dependencies
-        run: |
-          cd web
-          npm ci
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3
+
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Install Playwright browsers
         run: |
           cd web
           npx playwright install --with-deps chromium
 
-      - name: Start nodetool server
-        shell: bash -l {0}
+      - name: Create data directory
+        run: mkdir -p $HOME/.local/share/nodetool
+
+      - name: Start backend server
         run: |
-          nodetool serve --port 7777 --mock > /tmp/nodetool-server.log 2>&1 &
-          echo $! > /tmp/nodetool-server.pid
-          
-      - name: Wait for nodetool server to be ready
+          PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js > /tmp/backend-server.log 2>&1 &
+          echo $! > /tmp/backend-server.pid
+
+      - name: Wait for backend to be ready
         uses: jtalk/url-health-check-action@v4
         with:
-          url: http://localhost:7777/health
-          max-attempts: 60
+          url: http://127.0.0.1:7777/health
+          max-attempts: 30
           retry-delay: 2s
 
       - name: Run E2E tests
-        shell: bash
         run: |
           cd web
           npx playwright test
         env:
           CI: true
+          E2E_START_BACKEND: "false"
+          E2E_BACKEND_URL: "http://127.0.0.1:7777"
 
       - name: Stop servers
         if: always()
-        shell: bash
         run: |
-          if [ -f /tmp/nodetool-server.pid ]; then
-            kill $(cat /tmp/nodetool-server.pid) || true
+          if [ -f /tmp/backend-server.pid ]; then
+            kill $(cat /tmp/backend-server.pid) || true
           fi
 
-      - name: Upload nodetool server logs
+      - name: Upload backend server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: nodetool-server-logs
-          path: /tmp/nodetool-server.log
+          name: backend-server-logs
+          path: /tmp/backend-server.log
           retention-days: 7
 
       - name: Upload Playwright report

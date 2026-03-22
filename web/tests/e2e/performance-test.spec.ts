@@ -142,7 +142,7 @@ if (process.env.CI === "true") {
 
   test("should measure zoom performance", async ({ page, request }) => {
     const wf = await (await request.post(`${BACKEND_API_URL}/workflows/`, {
-      data: { name: `perf-zoom-${Date.now()}`, access: "private" }
+      data: { name: `perf-zoom-${Date.now()}`, access: "private", graph: { nodes: [], edges: [] } }
     })).json();
     await page.goto(`/editor/${wf.id}`, { waitUntil: "domcontentloaded" });
 
@@ -172,7 +172,7 @@ if (process.env.CI === "true") {
 
   test("should measure selection performance", async ({ page, request }) => {
     const wf = await (await request.post(`${BACKEND_API_URL}/workflows/`, {
-      data: { name: `perf-sel-${Date.now()}`, access: "private" }
+      data: { name: `perf-sel-${Date.now()}`, access: "private", graph: { nodes: [], edges: [] } }
     })).json();
     await page.goto(`/editor/${wf.id}`, { waitUntil: "domcontentloaded" });
 

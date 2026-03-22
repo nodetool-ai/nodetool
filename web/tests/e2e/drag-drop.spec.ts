@@ -19,6 +19,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-drag-drop-${Date.now()}`,
           description: "E2E drag drop test workflow",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();

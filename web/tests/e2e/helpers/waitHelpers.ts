@@ -8,16 +8,20 @@
 import { Page, Locator, expect } from "@playwright/test";
 
 /**
- * Wait for the React Flow editor to be fully loaded and interactive
+ * Wait for the React Flow editor to be fully loaded and interactive.
+ * Uses a longer default timeout in CI where resource loading is slower.
  */
-export async function waitForEditorReady(page: Page, timeout = 10000): Promise<void> {
-  // Wait for the ReactFlow container
+export async function waitForEditorReady(
+  page: Page,
+  timeout = process.env.CI ? 30_000 : 15_000,
+): Promise<void> {
+  // Wait for the ReactFlow container to appear
   const canvas = page.locator(".react-flow");
   await expect(canvas).toBeVisible({ timeout });
   
   // Wait for viewport to be ready
   const viewport = page.locator(".react-flow__viewport");
-  await expect(viewport).toBeVisible({ timeout: 5000 });
+  await expect(viewport).toBeVisible({ timeout: 10_000 });
   
   // Wait for any loading indicators to disappear
   await page.waitForFunction(

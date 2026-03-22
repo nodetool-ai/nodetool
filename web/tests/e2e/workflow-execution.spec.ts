@@ -19,6 +19,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-execution-${Date.now()}`,
           description: "E2E workflow execution test",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();

@@ -254,10 +254,12 @@ const PanelRight: React.FC = () => {
       : undefined
   );
 
-  // Get the current workflow reactively for the WorkflowForm
-  // Note: This is only used when activeNodeStore exists and workflow panel is active
+  // Read the workflow imperatively – we cannot call the store as a hook
+  // conditionally because that violates the Rules of Hooks.  Calling
+  // activeNodeStore((s) => …) IS a hook under the hood (useSyncExternalStore),
+  // and activeNodeStore can be undefined on some renders.
   const currentWorkflow = activeNodeStore
-    ? activeNodeStore((state) => state.getWorkflow())
+    ? activeNodeStore.getState().getWorkflow()
     : null;
   const {
     openWorkflows,

@@ -19,6 +19,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-node-ops-${Date.now()}`,
           description: "E2E node operations test workflow",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();
@@ -475,7 +476,8 @@ if (process.env.JEST_WORKER_ID) {
           data: {
             name: workflowName,
             description: "Test",
-            access: "private"
+            access: "private",
+            graph: { nodes: [], edges: [] }
           }
         });
         const workflow = await createResponse.json();
@@ -505,7 +507,8 @@ if (process.env.JEST_WORKER_ID) {
           data: {
             name: workflowName,
             description: "Test",
-            access: "private"
+            access: "private",
+            graph: { nodes: [], edges: [] }
           }
         });
         const workflow = await createResponse.json();
@@ -537,7 +540,8 @@ if (process.env.JEST_WORKER_ID) {
           data: {
             name: workflowName,
             description: "Test",
-            access: "private"
+            access: "private",
+            graph: { nodes: [], edges: [] }
           }
         });
         const workflow = await createResponse.json();
@@ -715,7 +719,8 @@ if (process.env.JEST_WORKER_ID) {
           data: {
             name: workflowName,
             description: "Test",
-            access: "private"
+            access: "private",
+            graph: { nodes: [], edges: [] }
           }
         });
         const workflow = await createResponse.json();
