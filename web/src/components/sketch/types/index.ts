@@ -57,7 +57,8 @@ export type SketchTool =
   | "arrow"
   | "blur"
   | "gradient"
-  | "crop";
+  | "crop"
+  | "clone_stamp";
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
@@ -110,6 +111,15 @@ export interface GradientSettings {
   type: "linear" | "radial";
 }
 
+export type CloneStampSampling = "active_layer" | "composited";
+
+export interface CloneStampSettings {
+  size: number;
+  opacity: number;
+  hardness: number;
+  sampling: CloneStampSampling;
+}
+
 export interface ToolSettings {
   brush: BrushSettings;
   pencil: PencilSettings;
@@ -118,6 +128,7 @@ export interface ToolSettings {
   fill: FillSettings;
   blur: BlurSettings;
   gradient: GradientSettings;
+  cloneStamp: CloneStampSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
@@ -306,6 +317,13 @@ export const DEFAULT_GRADIENT_SETTINGS: GradientSettings = {
   type: "linear"
 };
 
+export const DEFAULT_CLONE_STAMP_SETTINGS: CloneStampSettings = {
+  size: 20,
+  opacity: 1,
+  hardness: 0.8,
+  sampling: "active_layer"
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
@@ -313,7 +331,8 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   shape: DEFAULT_SHAPE_SETTINGS,
   fill: DEFAULT_FILL_SETTINGS,
   blur: DEFAULT_BLUR_SETTINGS,
-  gradient: DEFAULT_GRADIENT_SETTINGS
+  gradient: DEFAULT_GRADIENT_SETTINGS,
+  cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS
 };
 
 export function generateLayerId(): string {
@@ -432,6 +451,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
       gradient: {
         ...DEFAULT_GRADIENT_SETTINGS,
         ...doc.toolSettings?.gradient
+      },
+      cloneStamp: {
+        ...DEFAULT_CLONE_STAMP_SETTINGS,
+        ...doc.toolSettings?.cloneStamp
       }
     },
     metadata: {
@@ -448,7 +471,7 @@ export function isShapeTool(tool: SketchTool): tool is ShapeToolType {
 
 /** Check if a tool is a painting tool (supports Alt+click eyedropper) */
 export function isPaintingTool(tool: SketchTool): boolean {
-  return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill";
+  return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill" || tool === "clone_stamp";
 }
 
 export const MAX_HISTORY_SIZE = 30;

@@ -116,6 +116,7 @@
 | G                        | Fill                                             |
 | I                        | Eyedropper                                       |
 | Q                        | Blur brush                                       |
+| S                        | Clone stamp tool                                 |
 | T                        | Gradient tool                                    |
 | C                        | Crop tool                                        |
 | L                        | Line                                             |
@@ -130,17 +131,24 @@
 | S (hold) + drag          | Adjust brush size                                |
 | Space (hold) + drag      | Pan canvas                                       |
 | Shift (shape tools)      | Constrain line (H/V/45°); square / circle bounds |
+| Alt (shapes)             | Draw rectangle / ellipse from center             |
 | [ / ]                    | Decrease / increase brush size                   |
 | Shift+[ / Shift+]        | Decrease / increase hardness                     |
 | 0–9                      | Set brush opacity (0=100%, 1=10%…9=90%)          |
 | Alt+Click (paint tools)  | Eyedropper pick (stays on current tool)          |
+| Alt+Click (clone stamp)  | Set clone stamp source point                     |
 | Alt+Backspace            | Fill layer with foreground color                 |
 | Ctrl+Backspace           | Fill layer with background color                 |
+| Arrow keys               | Nudge active layer by 1px                        |
+| Shift+Arrow keys         | Nudge active layer by 10px                       |
 | + / −                    | Zoom in / out                                    |
 | Delete / Backspace       | Clear active layer                               |
 | Ctrl+Z                   | Undo                                             |
 | Ctrl+Shift+Z / Ctrl+Y    | Redo                                             |
 | Ctrl+0                   | Reset view (zoom + pan)                          |
+| Ctrl+1                   | Zoom to 100% (actual pixels)                     |
+| Ctrl+A                   | Select all                                       |
+| Ctrl+D                   | Deselect                                         |
 | Ctrl+S                   | Export PNG                                       |
 | Alt+Click / Middle-click | Pan canvas (non-paint tools)                     |
 | Scroll wheel             | Zoom                                             |
@@ -155,8 +163,8 @@
 - [ ] Add `M` for marquee tool.
 - [ ] Add `L` for lasso tool.
 - [ ] Add `W` for magic wand / quick select.
-- [ ] Add `Ctrl + A` for select all.
-- [ ] Add `Ctrl + D` for deselect.
+- [x] Add `Ctrl + A` for select all.
+- [x] Add `Ctrl + D` for deselect.
 - [ ] Add `Ctrl + Shift + I` for invert selection.
 - [ ] Add `Ctrl + Shift + D` for reselect last selection.
 - [ ] Add `Shift + drag` to add to selection.
@@ -171,12 +179,12 @@
 - [x] Add `Esc` to cancel active selection / transform-like interactions.
 - [x] Add `Shift + drag` shape constraints for line, square, and circle drawing.
 - [ ] Add `Ctrl + Shift + T` for repeat last transform.
-- [ ] Add `Arrow` keys to nudge by 1px.
-- [ ] Add `Shift + Arrow` keys to nudge by 10px.
+- [x] Add `Arrow` keys to nudge by 1px.
+- [x] Add `Shift + Arrow` keys to nudge by 10px.
 
 ### Painting & Drawing
 
-- [ ] Add `S` for clone stamp.
+- [x] Add `S` for clone stamp.
 - [ ] Add `J` for healing brush / spot heal.
 - [ ] Add `Shift + 0–9` to set brush flow.
 
@@ -197,8 +205,8 @@
 - [x] Add `Tab` to hide / show panels.
 - [ ] Add `Z` for zoom tool.
 - [ ] Add `H` for hand / pan tool.
-- [ ] Add `Ctrl + 1` for 100% actual pixels.
-- [ ] Add `Space + drag` to pan from any tool.
+- [x] Add `Ctrl + 1` for 100% actual pixels.
+- [x] Add `Space + drag` to pan from any tool.
 - [ ] Add `F` to cycle screen modes.
 - [ ] Add `Ctrl + ;` to show / hide guides.
 
@@ -223,7 +231,7 @@ web/src/components/sketch/
 ├── types/index.ts            # Type definitions, defaults, format version
 ├── state/useSketchStore.ts   # Zustand store (document, tools, layers, history)
 ├── serialization/index.ts    # Serialization, flattening, image loading
-└── __tests__/                # 15 test suites, 291+ tests
+└── __tests__/                # 16 test suites, 310+ tests
 ```
 
 ### Integration Points
