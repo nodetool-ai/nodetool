@@ -22,6 +22,13 @@ export {
   useColorActions
 } from "./hooks";
 
+export {
+  useCompositing,
+  useCanvasImperativeHandle,
+  useOverlayRenderer,
+  usePointerHandlers
+} from "./sketchCanvasHooks";
+
 export { useCollapsedSections } from "./useCollapsedSections";
 
 export {

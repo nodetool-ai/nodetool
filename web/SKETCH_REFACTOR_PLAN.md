@@ -36,7 +36,7 @@ Primary files:
 
 - [x] Move duplicated tool metadata and quick-action behavior into shared helpers/config.
 
-- [ ] Split `SketchCanvas` into smaller units by concern:
+- [x] Split `SketchCanvas` into smaller units by concern:
   - compositing and redraw
   - imperative canvas methods
   - overlay and cursor rendering
