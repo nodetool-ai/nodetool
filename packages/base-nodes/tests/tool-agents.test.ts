@@ -1,58 +1,58 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { makeExecuteBashTool, makeSetOutputTool } from "../src/nodes/skills.js";
+import { makeExecuteBashTool, makeSetOutputTool } from "../src/nodes/tool-agents.js";
 import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { ProcessingContext } from "@nodetool/runtime";
 import {
-  ShellAgentSkillNode,
-  BrowserSkillNode,
-  SQLiteSkillNode,
-  SupabaseSkillNode,
-  DocumentSkillNode,
-  DocxSkillNode,
-  EmailSkillNode,
-  FfmpegSkillNode,
-  FilesystemSkillNode,
-  GitSkillNode,
-  HtmlSkillNode,
-  HttpApiSkillNode,
-  ImageSkillNode,
-  MediaSkillNode,
-  PdfLibSkillNode,
-  PptxSkillNode,
-  SpreadsheetSkillNode,
-  VectorStoreSkillNode,
-  YtDlpDownloaderSkillNode,
-  SKILLS_NODES,
-} from "../src/nodes/skills.js";
+  ShellAgentNode,
+  BrowserAgentNode,
+  SQLiteAgentNode,
+  SupabaseAgentNode,
+  DocumentAgentNode,
+  DocxAgentNode,
+  EmailAgentNode,
+  FfmpegAgentNode,
+  FilesystemAgentNode,
+  GitAgentNode,
+  HtmlAgentNode,
+  HttpApiAgentNode,
+  ImageAgentNode,
+  MediaAgentNode,
+  PdfLibAgentNode,
+  PptxAgentNode,
+  SpreadsheetAgentNode,
+  VectorStoreAgentNode,
+  YtDlpDownloaderAgentNode,
+  TOOL_AGENT_NODES,
+} from "../src/nodes/tool-agents.js";
 
-describe("Skills node registration", () => {
-  it("exports 19 skill nodes", () => {
-    expect(SKILLS_NODES.length).toBe(19);
+describe("Tool agent node registration", () => {
+  it("exports 19 tool agent nodes", () => {
+    expect(TOOL_AGENT_NODES.length).toBe(19);
   });
 });
 
 const skillClasses = [
-  { cls: ShellAgentSkillNode, type: "skills._shell_agent.ShellAgentSkill", title: "Shell Agent Skill" },
-  { cls: BrowserSkillNode, type: "skills.browser.BrowserSkill", title: "Browser Skill" },
-  { cls: SQLiteSkillNode, type: "skills.data.SQLiteSkill", title: "SQLite Skill" },
-  { cls: SupabaseSkillNode, type: "skills.data.SupabaseSkill", title: "Supabase Skill" },
-  { cls: DocumentSkillNode, type: "skills.document.DocumentSkill", title: "Document Skill" },
-  { cls: DocxSkillNode, type: "skills.docx.DocxSkill", title: "DOCX Skill" },
-  { cls: EmailSkillNode, type: "skills.email.EmailSkill", title: "Email Skill" },
-  { cls: FfmpegSkillNode, type: "skills.ffmpeg.FfmpegSkill", title: "FFmpeg Skill" },
-  { cls: FilesystemSkillNode, type: "skills.filesystem.FilesystemSkill", title: "Filesystem Skill" },
-  { cls: GitSkillNode, type: "skills.git.GitSkill", title: "Git Skill" },
-  { cls: HtmlSkillNode, type: "skills.html.HtmlSkill", title: "HTML Skill" },
-  { cls: HttpApiSkillNode, type: "skills.httpapi.HttpApiSkill", title: "HTTP API Skill" },
-  { cls: ImageSkillNode, type: "skills.image.ImageSkill", title: "Image Skill" },
-  { cls: MediaSkillNode, type: "skills.media.MediaSkill", title: "Media Skill" },
-  { cls: PdfLibSkillNode, type: "skills.pdf_lib.PdfLibSkill", title: "PDF-lib Skill" },
-  { cls: PptxSkillNode, type: "skills.pptx.PptxSkill", title: "PPTX Skill" },
-  { cls: SpreadsheetSkillNode, type: "skills.spreadsheet.SpreadsheetSkill", title: "Spreadsheet Skill" },
-  { cls: VectorStoreSkillNode, type: "skills.vectorstore.VectorStoreSkill", title: "Vector Store Skill" },
-  { cls: YtDlpDownloaderSkillNode, type: "skills.ytdlp.YtDlpDownloaderSkill", title: "yt-dlp Downloader Skill" },
+  { cls: ShellAgentNode, type: "nodetool.agents.ShellAgent", title: "Shell Agent" },
+  { cls: BrowserAgentNode, type: "nodetool.agents.BrowserAgent", title: "Browser Agent" },
+  { cls: SQLiteAgentNode, type: "nodetool.agents.SQLiteAgent", title: "SQLite Agent" },
+  { cls: SupabaseAgentNode, type: "nodetool.agents.SupabaseAgent", title: "Supabase Agent" },
+  { cls: DocumentAgentNode, type: "nodetool.agents.DocumentAgent", title: "Document Agent" },
+  { cls: DocxAgentNode, type: "nodetool.agents.DocxAgent", title: "DOCX Agent" },
+  { cls: EmailAgentNode, type: "nodetool.agents.EmailAgent", title: "Email Agent" },
+  { cls: FfmpegAgentNode, type: "nodetool.agents.FfmpegAgent", title: "FFmpeg Agent" },
+  { cls: FilesystemAgentNode, type: "nodetool.agents.FilesystemAgent", title: "Filesystem Agent" },
+  { cls: GitAgentNode, type: "nodetool.agents.GitAgent", title: "Git Agent" },
+  { cls: HtmlAgentNode, type: "nodetool.agents.HtmlAgent", title: "HTML Agent" },
+  { cls: HttpApiAgentNode, type: "nodetool.agents.HttpApiAgent", title: "HTTP API Agent" },
+  { cls: ImageAgentNode, type: "nodetool.agents.ImageAgent", title: "Image Agent" },
+  { cls: MediaAgentNode, type: "nodetool.agents.MediaAgent", title: "Media Agent" },
+  { cls: PdfLibAgentNode, type: "nodetool.agents.PdfLibAgent", title: "PDF-lib Agent" },
+  { cls: PptxAgentNode, type: "nodetool.agents.PptxAgent", title: "PPTX Agent" },
+  { cls: SpreadsheetAgentNode, type: "nodetool.agents.SpreadsheetAgent", title: "Spreadsheet Agent" },
+  { cls: VectorStoreAgentNode, type: "nodetool.agents.VectorStoreAgent", title: "Vector Store Agent" },
+  { cls: YtDlpDownloaderAgentNode, type: "nodetool.agents.YtDlpDownloaderAgent", title: "yt-dlp Downloader Agent" },
 ];
 
 describe.each(skillClasses)("$title", ({ cls, type, title }) => {
@@ -79,54 +79,54 @@ describe.each(skillClasses)("$title", ({ cls, type, title }) => {
 });
 
 // Specific defaults overrides
-describe("Skill-specific defaults", () => {
-  it("BrowserSkillNode has timeout_seconds 150", () => {
-    const node = new BrowserSkillNode();
+describe("Agent-specific defaults", () => {
+  it("BrowserAgentNode has timeout_seconds 150", () => {
+    const node = new BrowserAgentNode();
     expect(node.serialize().timeout_seconds).toBe(150);
   });
 
-  it("SQLiteSkillNode has db_path", () => {
-    const node = new SQLiteSkillNode();
+  it("SQLiteAgentNode has db_path", () => {
+    const node = new SQLiteAgentNode();
     const d = node.serialize();
     expect(d.db_path).toBe("memory.db");
     expect(d.allow_mutation).toBe(false);
   });
 
-  it("FfmpegSkillNode has audio/video refs", () => {
-    const node = new FfmpegSkillNode();
+  it("FfmpegAgentNode has audio/video refs", () => {
+    const node = new FfmpegAgentNode();
     const d = node.serialize();
     expect(d.audio).toHaveProperty("type", "audio");
     expect(d.video).toHaveProperty("type", "video");
   });
 
-  it("ImageSkillNode has image ref and timeout 90", () => {
-    const node = new ImageSkillNode();
+  it("ImageAgentNode has image ref and timeout 90", () => {
+    const node = new ImageAgentNode();
     const d = node.serialize();
     expect(d.image).toHaveProperty("type", "image");
     expect(d.timeout_seconds).toBe(90);
   });
 
-  it("YtDlpDownloaderSkillNode has url and output_dir", () => {
-    const node = new YtDlpDownloaderSkillNode();
+  it("YtDlpDownloaderAgentNode has url and output_dir", () => {
+    const node = new YtDlpDownloaderAgentNode();
     const d = node.serialize();
     expect(d.url).toBe("");
     expect(d.output_dir).toBe("downloads/yt-dlp");
     expect(d.timeout_seconds).toBe(300);
   });
 
-  it("PdfLibSkillNode has document ref", () => {
-    const node = new PdfLibSkillNode();
+  it("PdfLibAgentNode has document ref", () => {
+    const node = new PdfLibAgentNode();
     const d = node.serialize();
     expect(d.document).toHaveProperty("type", "document");
   });
 
-  it("DocxSkillNode has timeout 300", () => {
-    const node = new DocxSkillNode();
+  it("DocxAgentNode has timeout 300", () => {
+    const node = new DocxAgentNode();
     expect(node.serialize().timeout_seconds).toBe(300);
   });
 
-  it("HtmlSkillNode has max_output_chars 180000", () => {
-    const node = new HtmlSkillNode();
+  it("HtmlAgentNode has max_output_chars 180000", () => {
+    const node = new HtmlAgentNode();
     expect(node.serialize().max_output_chars).toBe(180000);
   });
 });
@@ -213,9 +213,9 @@ describe("makeSetOutputTool", () => {
   });
 });
 
-describe("SkillNode agent loop integration", () => {
+describe("ToolAgentNode agent loop integration", () => {
   it("ShellAgentSkill calls runAgentLoop and returns text", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     const workspaceDir = await mkdtemp(path.join(tmpdir(), "skill-int-"));
 
     const context = {
@@ -264,7 +264,7 @@ describe("SkillNode agent loop integration", () => {
       workspaceDir,
     } as any;
 
-    const node = new ImageSkillNode();
+    const node = new ImageAgentNode();
     const result = await node.process(
       { prompt: "Create an image", model: { provider: "mock", id: "test-model" } },
       context

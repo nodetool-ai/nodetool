@@ -1,7 +1,7 @@
 /**
- * Agent-backed skill nodes for prompt-driven task execution.
+ * Tool-agent nodes for prompt-driven task execution.
  *
- * Each skill node runs an agent loop: the LLM can call tools (execute_bash,
+ * Each agent node runs an agent loop: the LLM can call tools (execute_bash,
  * set_output_image, etc.), see results, and iterate until it produces output.
  * Uses runAgentLoop() from agents.ts for the loop mechanics.
  */
@@ -269,12 +269,12 @@ export function makeSetOutputTool(
 }
 
 // ---------------------------------------------------------------------------
-// Base skill node
+// Base tool-agent node
 // ---------------------------------------------------------------------------
 
-class SkillNode extends BaseNode {
+class ToolAgentNode extends BaseNode {
   static readonly description: string =
-    "Base skill node (not directly usable).";
+    "Base tool-agent node (not directly usable).";
 
   /** Override in subclasses with the skill-specific system prompt. */
   static readonly _systemPrompt: string =
@@ -291,7 +291,7 @@ class SkillNode extends BaseNode {
     const tools: ToolLike[] = [
       makeExecuteBashTool(workspaceDir, ((this as any).timeout_seconds ?? 120) * 1000),
     ];
-    const config = (this.constructor as typeof SkillNode)._outputSinkConfig;
+    const config = (this.constructor as typeof ToolAgentNode)._outputSinkConfig;
     this._outputSinks = {};
     for (const [outputName, toolName] of Object.entries(config)) {
       const sink: string[] = [];
@@ -388,7 +388,7 @@ class SkillNode extends BaseNode {
       augmentedPrompt += `\n\nInput files available in the workspace directory:\n${workspaceFiles.map(f => `- ${f}`).join("\n")}`;
     }
 
-    const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
+    const systemPrompt = (this.constructor as typeof ToolAgentNode)._systemPrompt;
     const { text } = await runAgentLoop({
       context,
       providerId,
@@ -409,9 +409,9 @@ class SkillNode extends BaseNode {
 // ShellAgentSkill
 // ---------------------------------------------------------------------------
 
-export class ShellAgentSkillNode extends SkillNode {
-  static readonly nodeType = "skills._shell_agent.ShellAgentSkill";
-      static readonly title = "Shell Agent Skill";
+export class ShellAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.ShellAgent";
+      static readonly title = "Shell Agent";
       static readonly description = "Reusable prompt-driven skill backed by execute_bash.";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -444,9 +444,9 @@ export class ShellAgentSkillNode extends SkillNode {
 // BrowserSkill
 // ---------------------------------------------------------------------------
 
-export class BrowserSkillNode extends SkillNode {
-  static readonly nodeType = "skills.browser.BrowserSkill";
-      static readonly title = "Browser Skill";
+export class BrowserAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.BrowserAgent";
+      static readonly title = "Browser Agent";
       static readonly description = "Prompt-driven browser skill with bounded tool validation and schema outputs.\n    Supports extraction and browser automation workflows.\n    skills, browser, scrape, extraction, automation";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -484,9 +484,9 @@ export class BrowserSkillNode extends SkillNode {
 // SQLiteSkill
 // ---------------------------------------------------------------------------
 
-export class SQLiteSkillNode extends SkillNode {
-  static readonly nodeType = "skills.data.SQLiteSkill";
-      static readonly title = "SQLite Skill";
+export class SQLiteAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.SQLiteAgent";
+      static readonly title = "SQLite Agent";
       static readonly description = "Prompt-driven SQLite skill with guarded query execution.\n    skills, data, sqlite, query";
     static readonly metadataOutputTypes = {
     text: "str",
@@ -529,9 +529,9 @@ export class SQLiteSkillNode extends SkillNode {
 // SupabaseSkill
 // ---------------------------------------------------------------------------
 
-export class SupabaseSkillNode extends SkillNode {
-  static readonly nodeType = "skills.data.SupabaseSkill";
-      static readonly title = "Supabase Skill";
+export class SupabaseAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.SupabaseAgent";
+      static readonly title = "Supabase Agent";
       static readonly description = "Prompt-driven Supabase skill with guarded SELECT execution.\n    skills, data, supabase, query";
     static readonly metadataOutputTypes = {
     text: "str",
@@ -568,9 +568,9 @@ export class SupabaseSkillNode extends SkillNode {
 // DocumentSkill
 // ---------------------------------------------------------------------------
 
-export class DocumentSkillNode extends SkillNode {
-  static readonly nodeType = "skills.document.DocumentSkill";
-      static readonly title = "Document Skill";
+export class DocumentAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.DocumentAgent";
+      static readonly title = "Document Agent";
       static readonly description = "Prompt-driven document skill for model-based document analysis.\n    skills, document, extraction, conversion, markdown";
     static readonly metadataOutputTypes = {
     text: "str",
@@ -606,9 +606,9 @@ export class DocumentSkillNode extends SkillNode {
 // DocxSkill
 // ---------------------------------------------------------------------------
 
-export class DocxSkillNode extends SkillNode {
-  static readonly nodeType = "skills.docx.DocxSkill";
-      static readonly title = "DOCX Skill";
+export class DocxAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.DocxAgent";
+      static readonly title = "DOCX Agent";
       static readonly description = "Prompt-driven DOCX creation skill.\n    skills, docx, word, document creation, docx-js";
     static readonly metadataOutputTypes = {
     document: "document",
@@ -678,9 +678,9 @@ export class DocxSkillNode extends SkillNode {
 // EmailSkill
 // ---------------------------------------------------------------------------
 
-export class EmailSkillNode extends SkillNode {
-  static readonly nodeType = "skills.email.EmailSkill";
-      static readonly title = "Email Skill";
+export class EmailAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.EmailAgent";
+      static readonly title = "Email Agent";
       static readonly description = "Prompt-driven email skill for IMAP/SMTP and message processing tasks.\n    skills, email, imap, smtp, messaging";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -715,9 +715,9 @@ export class EmailSkillNode extends SkillNode {
 // FfmpegSkill
 // ---------------------------------------------------------------------------
 
-export class FfmpegSkillNode extends SkillNode {
-  static readonly nodeType = "skills.ffmpeg.FfmpegSkill";
-      static readonly title = "FFmpeg Skill";
+export class FfmpegAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.FfmpegAgent";
+      static readonly title = "FFmpeg Agent";
       static readonly description = "Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.\n    skills, ffmpeg, media, video, audio, transcode, remux";
     static readonly metadataOutputTypes = {
     video: "video",
@@ -801,9 +801,9 @@ export class FfmpegSkillNode extends SkillNode {
 // FilesystemSkill
 // ---------------------------------------------------------------------------
 
-export class FilesystemSkillNode extends SkillNode {
-  static readonly nodeType = "skills.filesystem.FilesystemSkill";
-      static readonly title = "Filesystem Skill";
+export class FilesystemAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.FilesystemAgent";
+      static readonly title = "Filesystem Agent";
       static readonly description = "Prompt-driven filesystem skill for file inspection and transformations.\n    skills, filesystem, files, directories, io";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -838,9 +838,9 @@ export class FilesystemSkillNode extends SkillNode {
 // GitSkill
 // ---------------------------------------------------------------------------
 
-export class GitSkillNode extends SkillNode {
-  static readonly nodeType = "skills.git.GitSkill";
-      static readonly title = "Git Skill";
+export class GitAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.GitAgent";
+      static readonly title = "Git Agent";
       static readonly description = "Prompt-driven Git skill for repository inspection and change management.\n    skills, git, repository, version-control";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -875,9 +875,9 @@ export class GitSkillNode extends SkillNode {
 // HtmlSkill
 // ---------------------------------------------------------------------------
 
-export class HtmlSkillNode extends SkillNode {
-  static readonly nodeType = "skills.html.HtmlSkill";
-      static readonly title = "HTML Skill";
+export class HtmlAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.HtmlAgent";
+      static readonly title = "HTML Agent";
       static readonly description = "Prompt-driven HTML creation skill.\n    skills, html, web, template, static-site";
     static readonly metadataOutputTypes = {
     html: "html",
@@ -927,9 +927,9 @@ export class HtmlSkillNode extends SkillNode {
 // HttpApiSkill
 // ---------------------------------------------------------------------------
 
-export class HttpApiSkillNode extends SkillNode {
-  static readonly nodeType = "skills.httpapi.HttpApiSkill";
-      static readonly title = "HTTP API Skill";
+export class HttpApiAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.HttpApiAgent";
+      static readonly title = "HTTP API Agent";
       static readonly description = "Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.\n    skills, http, api, rest, graphql";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -972,9 +972,9 @@ export class HttpApiSkillNode extends SkillNode {
 // ImageSkill
 // ---------------------------------------------------------------------------
 
-export class ImageSkillNode extends SkillNode {
-  static readonly nodeType = "skills.image.ImageSkill";
-      static readonly title = "Image Skill";
+export class ImageAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.ImageAgent";
+      static readonly title = "Image Agent";
       static readonly description = "Prompt-driven image skill for model-based image reasoning.\n    skills, image, agent, transform, extraction";
     static readonly metadataOutputTypes = {
     image: "image",
@@ -1021,9 +1021,9 @@ export class ImageSkillNode extends SkillNode {
 // MediaSkill
 // ---------------------------------------------------------------------------
 
-export class MediaSkillNode extends SkillNode {
-  static readonly nodeType = "skills.media.MediaSkill";
-      static readonly title = "Media Skill";
+export class MediaAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.MediaAgent";
+      static readonly title = "Media Agent";
       static readonly description = "Prompt-driven media skill for model-based audio/video reasoning.\n    skills, media, audio, video, agent";
     static readonly metadataOutputTypes = {
     video: "video",
@@ -1084,9 +1084,9 @@ export class MediaSkillNode extends SkillNode {
 // PdfLibSkill
 // ---------------------------------------------------------------------------
 
-export class PdfLibSkillNode extends SkillNode {
-  static readonly nodeType = "skills.pdf_lib.PdfLibSkill";
-      static readonly title = "PDF-lib Skill";
+export class PdfLibAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.PdfLibAgent";
+      static readonly title = "PDF-lib Agent";
       static readonly description = "Prompt-driven PDF processing skill with pdf-lib and complementary tooling.\n    skills, pdf, pdf-lib, qpdf, poppler, pdfjs, pypdfium2";
     static readonly metadataOutputTypes = {
     document: "document",
@@ -1177,9 +1177,9 @@ export class PdfLibSkillNode extends SkillNode {
 // PptxSkill
 // ---------------------------------------------------------------------------
 
-export class PptxSkillNode extends SkillNode {
-  static readonly nodeType = "skills.pptx.PptxSkill";
-      static readonly title = "PPTX Skill";
+export class PptxAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.PptxAgent";
+      static readonly title = "PPTX Agent";
       static readonly description = "Prompt-driven PowerPoint generation skill with PptxGenJS.\n    skills, pptx, powerpoint, pptxgenjs, slides";
     static readonly metadataOutputTypes = {
     document: "document",
@@ -1254,9 +1254,9 @@ export class PptxSkillNode extends SkillNode {
 // SpreadsheetSkill
 // ---------------------------------------------------------------------------
 
-export class SpreadsheetSkillNode extends SkillNode {
-  static readonly nodeType = "skills.spreadsheet.SpreadsheetSkill";
-      static readonly title = "Spreadsheet Skill";
+export class SpreadsheetAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.SpreadsheetAgent";
+      static readonly title = "Spreadsheet Agent";
       static readonly description = "Prompt-driven spreadsheet skill for CSV/XLSX processing.\n    skills, spreadsheet, csv, xlsx, tabular";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -1291,9 +1291,9 @@ export class SpreadsheetSkillNode extends SkillNode {
 // VectorStoreSkill
 // ---------------------------------------------------------------------------
 
-export class VectorStoreSkillNode extends SkillNode {
-  static readonly nodeType = "skills.vectorstore.VectorStoreSkill";
-      static readonly title = "Vector Store Skill";
+export class VectorStoreAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.VectorStoreAgent";
+      static readonly title = "Vector Store Agent";
       static readonly description = "Prompt-driven vector store skill for indexing and similarity search workflows.\n    skills, vectorstore, embeddings, rag, retrieval";
     static readonly metadataOutputTypes = {
     text: "str"
@@ -1327,9 +1327,9 @@ export class VectorStoreSkillNode extends SkillNode {
 // YtDlpDownloaderSkill
 // ---------------------------------------------------------------------------
 
-export class YtDlpDownloaderSkillNode extends SkillNode {
-  static readonly nodeType = "skills.ytdlp.YtDlpDownloaderSkill";
-      static readonly title = "yt-dlp Downloader Skill";
+export class YtDlpDownloaderAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.YtDlpDownloaderAgent";
+      static readonly title = "yt-dlp Downloader Agent";
       static readonly description = "Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.\n    skills, media, yt-dlp, downloader, youtube, bilibili, twitter";
     static readonly metadataOutputTypes = {
     video: "video",
@@ -1390,24 +1390,24 @@ export class YtDlpDownloaderSkillNode extends SkillNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const SKILLS_NODES: readonly NodeClass[] = [
-  ShellAgentSkillNode,
-  BrowserSkillNode,
-  SQLiteSkillNode,
-  SupabaseSkillNode,
-  DocumentSkillNode,
-  DocxSkillNode,
-  EmailSkillNode,
-  FfmpegSkillNode,
-  FilesystemSkillNode,
-  GitSkillNode,
-  HtmlSkillNode,
-  HttpApiSkillNode,
-  ImageSkillNode,
-  MediaSkillNode,
-  PdfLibSkillNode,
-  PptxSkillNode,
-  SpreadsheetSkillNode,
-  VectorStoreSkillNode,
-  YtDlpDownloaderSkillNode,
+export const TOOL_AGENT_NODES: readonly NodeClass[] = [
+  ShellAgentNode,
+  BrowserAgentNode,
+  SQLiteAgentNode,
+  SupabaseAgentNode,
+  DocumentAgentNode,
+  DocxAgentNode,
+  EmailAgentNode,
+  FfmpegAgentNode,
+  FilesystemAgentNode,
+  GitAgentNode,
+  HtmlAgentNode,
+  HttpApiAgentNode,
+  ImageAgentNode,
+  MediaAgentNode,
+  PdfLibAgentNode,
+  PptxAgentNode,
+  SpreadsheetAgentNode,
+  VectorStoreAgentNode,
+  YtDlpDownloaderAgentNode,
 ];

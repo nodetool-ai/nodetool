@@ -784,7 +784,7 @@ export { MESSAGING_NODES } from "./nodes/messaging.js";
 export { MISTRAL_NODES } from "./nodes/mistral.js";
 export { OPENAI_NODES } from "./nodes/openai.js";
 export { SEARCH_NODES } from "./nodes/search.js";
-export { SKILLS_NODES } from "./nodes/skills.js";
+export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 export {
   TeamAgentNode,
@@ -862,7 +862,7 @@ import { MESSAGING_NODES } from "./nodes/messaging.js";
 import { MISTRAL_NODES } from "./nodes/mistral.js";
 import { OPENAI_NODES } from "./nodes/openai.js";
 import { SEARCH_NODES } from "./nodes/search.js";
-import { SKILLS_NODES } from "./nodes/skills.js";
+import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
 
@@ -937,7 +937,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...SEARCH_NODES,
-  ...SKILLS_NODES,
+  ...TOOL_AGENT_NODES,
   ...ANTHROPIC_NODES,
   ...TEAM_NODES,
 ];
