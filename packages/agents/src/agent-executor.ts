@@ -283,11 +283,11 @@ Safety and privacy:
   private async *executeAgentic(
     providerTools: ProviderTool[]
   ): AsyncGenerator<Chunk | ToolCall> {
-    let finishTaskArgs: Record<string, unknown> | null = null;
+    const state: { finishTaskArgs: Record<string, unknown> | null } = { finishTaskArgs: null };
 
     const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
       if (name === "finish_task") {
-        finishTaskArgs = args;
+        state.finishTaskArgs = args;
         return JSON.stringify({ status: "finished" });
       }
       const tool = this.tools.find((t) => t.name === name);
@@ -320,10 +320,10 @@ Safety and privacy:
     }
 
     // Check if finish_task was called via MCP
-    if (finishTaskArgs) {
+    if (state.finishTaskArgs) {
       this.completed = true;
-      this._result = finishTaskArgs.result ?? null;
-      this._metadata = (finishTaskArgs.metadata as Record<string, unknown>) ?? null;
+      this._result = state.finishTaskArgs.result ?? null;
+      this._metadata = (state.finishTaskArgs.metadata as Record<string, unknown>) ?? null;
       return;
     }
 
@@ -334,7 +334,7 @@ Safety and privacy:
       { role: "user", content: `Now call finish_task with the final result and metadata. The result type should be '${this.outputType}'.` },
     ];
 
-    finishTaskArgs = null;
+    state.finishTaskArgs = null;
     const nudgeResponse = await this.provider.generateMessageTraced({
       messages: nudgeMessages,
       model: this.model,
@@ -352,10 +352,11 @@ Safety and privacy:
       }
     }
 
-    if (finishTaskArgs) {
+    const nudgeFinishArgs = state.finishTaskArgs as Record<string, unknown> | null;
+    if (nudgeFinishArgs) {
       this.completed = true;
-      this._result = finishTaskArgs.result ?? null;
-      this._metadata = (finishTaskArgs.metadata as Record<string, unknown>) ?? null;
+      this._result = nudgeFinishArgs.result ?? null;
+      this._metadata = (nudgeFinishArgs.metadata as Record<string, unknown>) ?? null;
     } else {
       this.completed = true;
       this._result = String(response.content ?? "Task incomplete");
