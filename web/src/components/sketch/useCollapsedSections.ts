@@ -15,7 +15,17 @@ export function useCollapsedSections<K extends string>(
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        return JSON.parse(stored) as Record<K, boolean>;
+        const parsed = JSON.parse(stored);
+        // Validate structure: must be an object with boolean values
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const result = { ...defaults };
+          for (const key of Object.keys(defaults)) {
+            if (typeof parsed[key] === "boolean") {
+              (result as Record<string, boolean>)[key] = parsed[key];
+            }
+          }
+          return result;
+        }
       }
     } catch {
       // localStorage parse failed, use defaults

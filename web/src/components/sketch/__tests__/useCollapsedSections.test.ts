@@ -120,4 +120,44 @@ describe("useCollapsedSections", () => {
     expect(sections.section1).toBe(false);
     expect(sections.section2).toBe(true);
   });
+
+  it("falls back to defaults when stored data has wrong types", () => {
+    const corrupted = JSON.stringify({ section1: "not-a-boolean", section2: 42 });
+    localStorageMock.setItem(storageKey, corrupted);
+    localStorageMock.getItem.mockReturnValueOnce(corrupted);
+
+    const { result } = renderHook(() =>
+      useCollapsedSections<TestKeys>(storageKey, defaults)
+    );
+    const [sections] = result.current;
+    // Non-boolean values should fall back to defaults
+    expect(sections.section1).toBe(false);
+    expect(sections.section2).toBe(true);
+  });
+
+  it("falls back to defaults when stored data is an array", () => {
+    const corrupted = JSON.stringify([true, false]);
+    localStorageMock.setItem(storageKey, corrupted);
+    localStorageMock.getItem.mockReturnValueOnce(corrupted);
+
+    const { result } = renderHook(() =>
+      useCollapsedSections<TestKeys>(storageKey, defaults)
+    );
+    const [sections] = result.current;
+    expect(sections.section1).toBe(false);
+    expect(sections.section2).toBe(true);
+  });
+
+  it("merges valid stored values with defaults for missing keys", () => {
+    const partial = JSON.stringify({ section1: true });
+    localStorageMock.setItem(storageKey, partial);
+    localStorageMock.getItem.mockReturnValueOnce(partial);
+
+    const { result } = renderHook(() =>
+      useCollapsedSections<TestKeys>(storageKey, defaults)
+    );
+    const [sections] = result.current;
+    expect(sections.section1).toBe(true); // from stored
+    expect(sections.section2).toBe(true); // from defaults
+  });
 });
