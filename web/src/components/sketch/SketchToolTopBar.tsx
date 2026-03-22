@@ -150,6 +150,9 @@ export interface SketchToolTopBarProps {
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
   cloneStampSettings: CloneStampSettings;
+  adjustBrightness: number;
+  adjustContrast: number;
+  adjustSaturation: number;
   zoom: number;
   mirrorX: boolean;
   mirrorY: boolean;
@@ -165,6 +168,10 @@ export interface SketchToolTopBarProps {
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
+  onAdjustBrightnessChange: (value: number) => void;
+  onAdjustContrastChange: (value: number) => void;
+  onAdjustSaturationChange: (value: number) => void;
+  onAdjustReset: () => void;
   onMirrorXChange: (mirrorX: boolean) => void;
   onMirrorYChange: (mirrorY: boolean) => void;
   onUndo: () => void;
@@ -195,6 +202,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   blurSettings,
   gradientSettings,
   cloneStampSettings,
+  adjustBrightness,
+  adjustContrast,
+  adjustSaturation,
   zoom,
   mirrorX,
   mirrorY,
@@ -210,6 +220,10 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onBlurSettingsChange,
   onGradientSettingsChange,
   onCloneStampSettingsChange,
+  onAdjustBrightnessChange,
+  onAdjustContrastChange,
+  onAdjustSaturationChange,
+  onAdjustReset,
   onMirrorXChange,
   onMirrorYChange,
   onUndo,
@@ -339,6 +353,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         blurSettings={blurSettings}
         gradientSettings={gradientSettings}
         cloneStampSettings={cloneStampSettings}
+        adjustBrightness={adjustBrightness}
+        adjustContrast={adjustContrast}
+        adjustSaturation={adjustSaturation}
         onBrushSettingsChange={onBrushSettingsChange}
         onPencilSettingsChange={onPencilSettingsChange}
         onEraserSettingsChange={onEraserSettingsChange}
@@ -347,6 +364,10 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onBlurSettingsChange={onBlurSettingsChange}
         onGradientSettingsChange={onGradientSettingsChange}
         onCloneStampSettingsChange={onCloneStampSettingsChange}
+        onAdjustBrightnessChange={onAdjustBrightnessChange}
+        onAdjustContrastChange={onAdjustContrastChange}
+        onAdjustSaturationChange={onAdjustSaturationChange}
+        onAdjustReset={onAdjustReset}
       />
 
       <Divider orientation="vertical" flexItem />

@@ -207,6 +207,9 @@ export function useEditorKeyboardShortcuts(
             case "c":
               params.setActiveTool("crop");
               break;
+            case "j":
+              params.setActiveTool("adjust");
+              break;
             case "s":
               params.setActiveTool("clone_stamp");
               break;

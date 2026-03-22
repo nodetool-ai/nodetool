@@ -32,6 +32,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
+import TuneIcon from "@mui/icons-material/Tune";
 import { SketchTool } from "./types";
 
 const styles = (theme: Theme) =>
@@ -173,6 +174,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="crop" aria-label="Crop">
           <Tooltip title="Crop (C)" placement="right">
             <CropIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="adjust" aria-label="Adjustments">
+          <Tooltip title="Adjustments (J)" placement="right">
+            <TuneIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
       </ToggleButtonGroup>

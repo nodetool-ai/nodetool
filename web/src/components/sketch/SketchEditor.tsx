@@ -62,6 +62,11 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     x: number;
     y: number;
   } | null>(null);
+  const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
+  const [adjBrightness, setAdjBrightness] = useState(0);
+  const [adjContrast, setAdjContrast] = useState(0);
+  const [adjSaturation, setAdjSaturation] = useState(0);
+  const adjustDebounceRef = useRef<number | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -513,6 +518,92 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     setPan({ x: 0, y: 0 });
   }, [setZoom, setPan]);
 
+  // ─── Adjustment preview (auto-apply with snapshot) ──────────────
+  const handleAdjustmentPreview = useCallback(
+    (brightness: number, contrast: number, saturation: number) => {
+      if (!canvasRef.current) {
+        return;
+      }
+      const layerId = document.activeLayerId;
+      if (!layerId) {
+        return;
+      }
+
+      const allZero = brightness === 0 && contrast === 0 && saturation === 0;
+
+      if (allZero) {
+        // Restore original and clear base
+        if (adjustmentBaseRef.current !== null) {
+          canvasRef.current.restoreLayerCanvas(
+            layerId,
+            adjustmentBaseRef.current
+          );
+          const data = canvasRef.current.getLayerData(layerId);
+          updateLayerData(layerId, data);
+          adjustmentBaseRef.current = null;
+        }
+        return;
+      }
+
+      // Save base snapshot on first non-zero call
+      if (adjustmentBaseRef.current === null) {
+        adjustmentBaseRef.current =
+          canvasRef.current.snapshotLayerCanvas(layerId);
+        pushHistory("adjustments");
+      }
+
+      // Restore from base, then apply adjustments
+      if (adjustmentBaseRef.current) {
+        canvasRef.current.restoreLayerCanvas(
+          layerId,
+          adjustmentBaseRef.current
+        );
+      }
+      canvasRef.current.applyAdjustments(brightness, contrast, saturation);
+      const data = canvasRef.current.getLayerData(layerId);
+      updateLayerData(layerId, data);
+    },
+    [pushHistory, document.activeLayerId, updateLayerData]
+  );
+
+  const handleResetAdjustments = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const layerId = document.activeLayerId;
+    if (!layerId) {
+      return;
+    }
+    if (adjustmentBaseRef.current !== null) {
+      canvasRef.current.restoreLayerCanvas(
+        layerId,
+        adjustmentBaseRef.current
+      );
+      const data = canvasRef.current.getLayerData(layerId);
+      updateLayerData(layerId, data);
+      adjustmentBaseRef.current = null;
+    }
+    setAdjBrightness(0);
+    setAdjContrast(0);
+    setAdjSaturation(0);
+  }, [document.activeLayerId, updateLayerData]);
+
+  // Auto-apply adjustments with 100ms debounce
+  useEffect(() => {
+    if (adjustDebounceRef.current !== null) {
+      clearTimeout(adjustDebounceRef.current);
+    }
+    adjustDebounceRef.current = window.setTimeout(() => {
+      handleAdjustmentPreview(adjBrightness, adjContrast, adjSaturation);
+      adjustDebounceRef.current = null;
+    }, 100);
+    return () => {
+      if (adjustDebounceRef.current !== null) {
+        clearTimeout(adjustDebounceRef.current);
+      }
+    };
+  }, [adjBrightness, adjContrast, adjSaturation, handleAdjustmentPreview]);
+
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
     handleUndo,
@@ -608,6 +699,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             blurSettings={toolSettings.blur}
             gradientSettings={toolSettings.gradient}
             cloneStampSettings={toolSettings.cloneStamp}
+            adjustBrightness={adjBrightness}
+            adjustContrast={adjContrast}
+            adjustSaturation={adjSaturation}
             zoom={zoom}
             mirrorX={mirrorX}
             mirrorY={mirrorY}
@@ -623,6 +717,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             onBlurSettingsChange={setBlurSettings}
             onGradientSettingsChange={setGradientSettings}
             onCloneStampSettingsChange={setCloneStampSettings}
+            onAdjustBrightnessChange={setAdjBrightness}
+            onAdjustContrastChange={setAdjContrast}
+            onAdjustSaturationChange={setAdjSaturation}
+            onAdjustReset={handleResetAdjustments}
             onMirrorXChange={setMirrorX}
             onMirrorYChange={setMirrorY}
             onUndo={handleUndo}
