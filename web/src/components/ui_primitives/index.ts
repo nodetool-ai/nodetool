@@ -94,6 +94,9 @@ export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
 export { TagButton } from "./TagButton";
 export type { TagButtonProps } from "./TagButton";
 
+export { TagInput } from "./TagInput";
+export type { TagInputProps, TagValidationResult } from "./TagInput";
+
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
 

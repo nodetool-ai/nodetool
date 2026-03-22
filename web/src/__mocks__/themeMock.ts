@@ -61,6 +61,15 @@ const mockTheme = createTheme({
     warning: { main: "#ff9800" },
     success: { main: "#4caf50" },
     divider: "#2f2f2f",
+    text: {
+      primary: "#ffffff",
+      secondary: "#bdbdbd",
+      disabled: "#9e9e9e"
+    },
+    background: {
+      default: "#202020",
+      paper: "#232323"
+    },
     action: {
       hover: "rgba(255,255,255,0.08)",
       selected: "rgba(255,255,255,0.16)",
@@ -68,17 +77,7 @@ const mockTheme = createTheme({
       disabledBackground: "rgba(255,255,255,0.12)",
       active: "rgba(255,255,255,0.54)"
     },
-    // Provide text palette when MUI Typography reads from theme.vars
-    text: {
-      primary: "#ffffff",
-      secondary: "#bdbdbd",
-      disabled: "#9e9e9e"
-    },
     Paper: {
-      paper: "#232323"
-    },
-    background: {
-      default: "#202020",
       paper: "#232323"
     },
     c_link: "#77b4e6",
