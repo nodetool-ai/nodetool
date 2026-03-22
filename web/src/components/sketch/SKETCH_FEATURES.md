@@ -43,11 +43,11 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 - [ ] Decide healing brush scope for v1 and document the exact behavior in the tool spec.
 - [ ] Selection tools rectangle select; lasso and magic wand with Photoshop-style options
 
-- [ ] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
-- [ ] **Layers** remove up/down buttons, not needed with drag. add buttons for expose as input / output instead with arrow left / right
-- [ ] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
+- [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
+- [ ] **Layers** add buttons for expose as input / output per layer. create dynamic handles for node.
+- [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
-- [ ] **Improve Moving Tool** moving layer out of canvas bounds should not crop it
+- [x] **Improve Moving Tool** moving layer out of canvas bounds should not crop it
 
 #### Color system
 
