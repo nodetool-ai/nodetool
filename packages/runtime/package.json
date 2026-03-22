@@ -26,6 +26,9 @@
     "openai": "^4.104.0",
     "ws": "^8.19.0"
   },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/ws": "^8.18.1",
