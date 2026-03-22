@@ -56,7 +56,8 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       alias: {
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
-      }
+      },
+      conditions: ["development", "import", "module", "browser", "default"],
     },
     plugins: [
       react({
