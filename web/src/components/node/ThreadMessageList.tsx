@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import ImageView from "./ImageView";
 import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
@@ -175,7 +176,7 @@ const MessageView = (msg: Message) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <img key={c.image?.uri} src={c.image?.uri} alt="" draggable={false} />;
+            return <ImageView key={c.image?.uri} source={c.image?.uri} />;
           } else {
             return <></>;
           }

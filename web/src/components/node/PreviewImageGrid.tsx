@@ -14,6 +14,7 @@ import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { Dialog } from "../ui_primitives";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
 
@@ -48,7 +49,7 @@ const styles = (theme: Theme, gap: number) =>
       aspectRatio: "1 / 1",
       borderRadius: 6,
       overflow: "hidden",
-      background: theme.vars.palette.background.default,
+      ...alphaSurfaceBg,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       transition: "transform 0.08s ease-out, box-shadow 0.08s ease-out",
@@ -62,8 +63,7 @@ const styles = (theme: Theme, gap: number) =>
       width: "100%",
       height: "100%",
       objectFit: "cover" as const,
-      display: "block",
-      backgroundColor: theme.vars.palette.grey[900]
+      display: "block"
     },
     ".kind-badge": {
       position: "absolute",

@@ -17,6 +17,7 @@ import isEqual from "lodash/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import log from "loglevel";
 
 interface PropertyDropzoneProps {
@@ -110,6 +111,11 @@ const PropertyDropzone = ({
         letterSpacing: "1px",
         fontSize: "10px",
         color: theme.vars.palette.grey[500]
+      },
+      ".dropzone .image-preview-surface": {
+        ...alphaSurfaceBg,
+        borderRadius: "4px",
+        overflow: "hidden"
       },
       ".dropzone img": {
         width: "100%",
@@ -347,7 +353,7 @@ const PropertyDropzone = ({
               open={openViewer}
               onClose={handleCloseViewer}
             />
-            <div style={{ position: "relative" }}>
+            <div className="image-preview-surface" style={{ position: "relative" }}>
               <img
                 ref={imageRef}
                 src={asset?.get_url || uri || ""}
