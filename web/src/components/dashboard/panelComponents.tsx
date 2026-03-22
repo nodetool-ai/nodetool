@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { IDockviewPanelProps } from "dockview";
+import { IDockviewPanelProps, DockviewApi } from "dockview";
 import ChatView from "../chat/containers/ChatView";
 import WorkflowList from "../workflows/WorkflowList";
 import RecentChats from "./RecentChats";
@@ -13,6 +13,7 @@ import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
+import log from "loglevel";
 
 export const createPanelComponents = () => ({
   "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
@@ -110,11 +111,14 @@ export const createPanelComponents = () => ({
       workflowId={props.params?.workflowId}
       onWorkflowSelect={(workflowId) => {
         // Try to find the panel via containerApi
-        const panel = (props.containerApi as any).getPanel?.(props.api.id);
+        const containerApiWithGetPanel = props.containerApi as DockviewApi & {
+          getPanel?: (id: string) => { update: (p: { params: PanelProps }) => void } | null;
+        };
+        const panel = containerApiWithGetPanel.getPanel?.(props.api.id);
         if (panel) {
             panel.update({ params: { ...props.params, workflowId } });
         } else {
-            console.error("Could not find panel to update");
+            log.error("Could not find panel to update");
         }
       }}
     />

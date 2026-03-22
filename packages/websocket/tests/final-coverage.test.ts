@@ -9,8 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { pack, unpack } from "msgpackr";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Thread,
   Message,
   Workflow,
@@ -53,8 +52,7 @@ class MockWebSocket implements WebSocketConnection {
 }
 
 function setupModels() {
-  const factory = new MemoryAdapterFactory();
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
+  initTestDb();
 }
 
 // ── models-api.ts: test via creating actual temp cache dirs ──────────
@@ -334,9 +332,8 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
 // ── unified-websocket-runner.ts: stream_input success and error catch ──
 
 describe("UnifiedWebSocketRunner: stream_input success path", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Job.createTable();
   });
 
   it("stream_input succeeds when runner.pushInputValue works", async () => {
@@ -374,10 +371,8 @@ describe("UnifiedWebSocketRunner: stream_input success path", () => {
 // ── unified-websocket-runner.ts: chat_message stale seq ──────────────
 
 describe("UnifiedWebSocketRunner: chat_message stale sequence", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Thread.createTable();
-    await Message.createTable();
   });
 
   it("skips processing when requestSeq is stale", async () => {
@@ -420,9 +415,8 @@ describe("UnifiedWebSocketRunner: chat_message stale sequence", () => {
 // ── http-api.ts: /v1/ prefix routing and /api/oauth/ routing ─────────
 
 describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupModels();
-    await Workflow.createTable();
   });
 
   it("routes /v1/chat/completions through OpenAI handler", async () => {
@@ -457,9 +451,6 @@ describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
 
   it("routes /api/oauth/hf/tokens through OAuth handler", async () => {
     const { handleApiRequest } = await import("../src/http-api.js");
-    const { OAuthCredential } = await import("@nodetool/models");
-    await OAuthCredential.createTable();
-
     const res = await handleApiRequest(
       new Request("http://localhost/api/oauth/hf/tokens", {
         headers: { "x-user-id": "user-1" },
@@ -474,12 +465,8 @@ describe("HTTP API: /v1/ and /api/oauth/ routing from handleApiRequest", () => {
 
 describe("OAuth API: GitHub start host handling", () => {
   beforeEach(async () => {
-    const { MemoryAdapterFactory, setGlobalAdapterResolver, OAuthCredential } = await import("@nodetool/models");
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema: any) => factory.getAdapter(schema));
-    const { resetOAuthTableInit, oauthStateStore } = await import("../src/oauth-api.js");
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+    initTestDb();
+    const { oauthStateStore } = await import("../src/oauth-api.js");
     oauthStateStore.clear();
     process.env.GITHUB_CLIENT_ID = "test-gh-id";
   });
@@ -544,12 +531,8 @@ describe("OAuth API: GitHub start host handling", () => {
 
 describe("OAuth API: GitHub tokens", () => {
   beforeEach(async () => {
-    const { MemoryAdapterFactory, setGlobalAdapterResolver, OAuthCredential } = await import("@nodetool/models");
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema: any) => factory.getAdapter(schema));
-    const { resetOAuthTableInit, oauthStateStore } = await import("../src/oauth-api.js");
-    resetOAuthTableInit();
-    await OAuthCredential.createTable();
+    initTestDb();
+    const { oauthStateStore } = await import("../src/oauth-api.js");
     oauthStateStore.clear();
   });
 

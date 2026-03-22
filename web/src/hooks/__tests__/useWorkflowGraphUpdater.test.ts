@@ -1,3 +1,4 @@
+import log from "loglevel";
 jest.mock("../../contexts/EditorInsertionContext", () => ({
   EditorInsertionProvider: ({ children }: any) => children,
   useEditorInsertion: () => null,
@@ -64,7 +65,7 @@ describe("useWorkflowGraphUpdater", () => {
   });
 
   it("logs warning when no current workflow found", () => {
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
     mockGetCurrentWorkflow.mockReturnValue(null);
 
     mockChatState = {
@@ -80,7 +81,7 @@ describe("useWorkflowGraphUpdater", () => {
   });
 
   it("logs warning when no node store found for workflow", () => {
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
     mockGetCurrentWorkflow.mockReturnValue({ id: "workflow-123" });
     mockGetNodeStore.mockReturnValue(null);
 

@@ -108,7 +108,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
 }) => {
   const theme = useTheme();
   const [localValue, setLocalValue] = useState(value);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;

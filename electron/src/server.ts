@@ -16,12 +16,12 @@ import {
 
 /**
  * Resolves the path to the Node.js-based backend server entry point.
- * In packaged mode: resources/packages/websocket/dist/server.js
+ * In packaged mode: resources/backend/server.mjs
  * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
  */
 function getNodeBackendPath(): string {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "packages", "websocket", "dist", "server.js");
+    return path.join(process.resourcesPath, "backend", "server.mjs");
   }
   return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
 }
@@ -518,22 +518,33 @@ async function startServer(): Promise<void> {
     backendEntryPoint,
   ];
 
-  logMessage(`Starting backend server with command: node ${args.join(" ")}`);
+  logMessage(`Starting backend server with command: ${nodeExecutable} ${args.join(" ")}`);
+  logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
+
+  // afterPack promotes the staged backend/_modules directory to a real
+  // backend/node_modules directory so Node.js can resolve externalized
+  // ESM packages with standard package resolution.
+  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
+  logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
+
+  const backendEnv: Record<string, string> = {
+    ...getProcessEnv(),
+    PORT: String(selectedPort),
+    STATIC_FOLDER: webPath,
+    NODETOOL_PYTHON: getPythonPath(),
+    OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+    LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
+    NODE_ENV: "production",
+    NODE_PATH: backendNodeModules,
+  };
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
     command: nodeExecutable,
     args,
-    env: {
-      ...getProcessEnv(),
-      PORT: String(selectedPort),
-      STATIC_FOLDER: webPath,
-      NODETOOL_PYTHON: getPythonPath(),
-      OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
-      LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-      NODE_ENV: "production",
-    },
+    env: backendEnv,
+    cwd: path.dirname(backendEntryPoint),
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => handleServerOutput(Buffer.from(line)),

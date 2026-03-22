@@ -13,9 +13,6 @@ import {
   Thread,
   Asset,
   Secret,
-  MemoryAdapterFactory,
-  getGlobalAdapterResolver,
-  setGlobalAdapterResolver,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 import { getSecret } from "@nodetool/security";
@@ -104,73 +101,9 @@ export interface WorkflowRequestBody {
   html_app?: string | null;
 }
 
-const defaultMemoryFactory = new MemoryAdapterFactory();
-let workflowTableInitialized = false;
-let workflowVersionTableInitialized = false;
-let messageTableInitialized = false;
-let threadTableInitialized = false;
-let jobTableInitialized = false;
-let assetTableInitialized = false;
-let secretTableInitialized = false;
-
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
-
-function ensureAdapterResolver(): void {
-  if (!getGlobalAdapterResolver()) {
-    setGlobalAdapterResolver((schema) => defaultMemoryFactory.getAdapter(schema));
-  }
-}
-
-async function ensureWorkflowTable(): Promise<void> {
-  if (workflowTableInitialized) return;
-  ensureAdapterResolver();
-  await Workflow.createTable();
-  workflowTableInitialized = true;
-}
-
-async function ensureWorkflowVersionTable(): Promise<void> {
-  if (workflowVersionTableInitialized) return;
-  ensureAdapterResolver();
-  await WorkflowVersion.createTable();
-  workflowVersionTableInitialized = true;
-}
-
-async function ensureMessageTable(): Promise<void> {
-  if (messageTableInitialized) return;
-  ensureAdapterResolver();
-  await Message.createTable();
-  messageTableInitialized = true;
-}
-
-async function ensureThreadTable(): Promise<void> {
-  if (threadTableInitialized) return;
-  ensureAdapterResolver();
-  await Thread.createTable();
-  threadTableInitialized = true;
-}
-
-async function ensureJobTable(): Promise<void> {
-  if (jobTableInitialized) return;
-  ensureAdapterResolver();
-  await Job.createTable();
-  jobTableInitialized = true;
-}
-
-async function ensureSecretTable(): Promise<void> {
-  if (secretTableInitialized) return;
-  ensureAdapterResolver();
-  await Secret.createTable();
-  secretTableInitialized = true;
-}
-
-async function ensureAssetTable(): Promise<void> {
-  if (assetTableInitialized) return;
-  ensureAdapterResolver();
-  await Asset.createTable();
-  assetTableInitialized = true;
-}
 
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -193,7 +126,7 @@ function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, { status });
 }
 
-function getUserId(request: Request, headerName: string): string {
+export function getUserId(request: Request, headerName: string): string {
   return request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1";
 }
 
@@ -236,7 +169,7 @@ function toWorkflowResponse(workflow: Workflow): JsonObject {
   };
 }
 
-async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -258,7 +191,7 @@ async function handleNodeMetadata(request: Request, options: HttpApiOptions): Pr
   return jsonResponse(nodes);
 }
 
-function parseLimit(url: URL, defaultLimit = 100): number {
+export function parseLimit(url: URL, defaultLimit = 100): number {
   const raw = url.searchParams.get("limit");
   if (!raw) return defaultLimit;
   const parsed = Number.parseInt(raw, 10);
@@ -364,7 +297,7 @@ interface AutosaveBody {
   max_versions?: number;
 }
 
-async function handleWorkflowAutosave(
+export async function handleWorkflowAutosave(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -373,7 +306,6 @@ async function handleWorkflowAutosave(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
@@ -405,7 +337,6 @@ async function handleWorkflowAutosave(
   // Create a version and prune old ones if WorkflowVersion table is available
   const version: JsonObject | null = null;
   try {
-    await ensureWorkflowVersionTable();
     await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
   } catch {
     // non-fatal
@@ -416,12 +347,11 @@ async function handleWorkflowAutosave(
 
 // ── Workflow tools ─────────────────────────────────────────────────────
 
-async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
   const [workflows] = await Workflow.paginateTools(userId, { limit });
@@ -484,7 +414,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   return workflows;
 }
 
-async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -492,7 +422,7 @@ async function handleWorkflowExamples(request: Request, options: HttpApiOptions)
   return jsonResponse({ workflows, next: null });
 }
 
-async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -513,7 +443,7 @@ async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOp
 
 // ── Workflow app page ──────────────────────────────────────────────────
 
-async function handleWorkflowApp(
+export async function handleWorkflowApp(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -567,7 +497,7 @@ function deriveWorkflowName(workflow: Workflow): string {
   return `${label} Workflow`;
 }
 
-async function handleWorkflowGenerateName(
+export async function handleWorkflowGenerateName(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -576,7 +506,6 @@ async function handleWorkflowGenerateName(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
   if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
@@ -586,7 +515,7 @@ async function handleWorkflowGenerateName(
 
 // ── Workflow DSL export (stub) ─────────────────────────────────────────
 
-async function handleWorkflowDslExport(
+export async function handleWorkflowDslExport(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -596,7 +525,6 @@ async function handleWorkflowDslExport(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) {
@@ -624,7 +552,7 @@ async function handleWorkflowDslExport(
 
 // ── Workflow Gradio export (stub) ──────────────────────────────────────
 
-async function handleWorkflowGradioExport(
+export async function handleWorkflowGradioExport(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
@@ -633,7 +561,6 @@ async function handleWorkflowGradioExport(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
   if (workflow.user_id !== userId) {
@@ -665,14 +592,12 @@ interface VersionCreateBody {
   description?: string;
 }
 
-async function handleWorkflowVersions(
+export async function handleWorkflowVersions(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
-  await ensureWorkflowVersionTable();
 
   if (request.method === "POST") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -702,15 +627,13 @@ async function handleWorkflowVersions(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleWorkflowVersionByNumber(
+export async function handleWorkflowVersionByNumber(
   request: Request,
   workflowId: string,
   versionNumber: number,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
-  await ensureWorkflowVersionTable();
 
   if (request.method === "GET") {
     const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
@@ -736,7 +659,7 @@ async function handleWorkflowVersionByNumber(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleWorkflowVersionDeleteById(
+export async function handleWorkflowVersionDeleteById(
   request: Request,
   _workflowId: string,
   versionId: string,
@@ -746,7 +669,6 @@ async function handleWorkflowVersionDeleteById(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowVersionTable();
   const version = (await WorkflowVersion.get(versionId)) as WorkflowVersion | null;
   if (!version) return errorResponse(404, "Version not found");
   if (version.user_id !== userId) return errorResponse(404, "Version not found");
@@ -754,12 +676,11 @@ async function handleWorkflowVersionDeleteById(
   return new Response(null, { status: 204 });
 }
 
-async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
 
   if (request.method === "GET") {
-    await ensureWorkflowTable();
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode") ?? undefined;
     // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
@@ -772,7 +693,6 @@ async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): P
   }
 
   if (request.method === "POST") {
-    await ensureWorkflowTable();
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
@@ -787,11 +707,10 @@ async function handleWorkflowsRoot(request: Request, options: HttpApiOptions): P
   return errorResponse(405, "Method not allowed");
 }
 
-async function handlePublicWorkflows(request: Request): Promise<Response> {
+export async function handlePublicWorkflows(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  await ensureWorkflowTable();
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
   const [workflows] = await Workflow.paginatePublic({ limit });
@@ -801,11 +720,10 @@ async function handlePublicWorkflows(request: Request): Promise<Response> {
   });
 }
 
-async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
+export async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  await ensureWorkflowTable();
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow || workflow.access !== "public") {
     return errorResponse(404, "Workflow not found");
@@ -813,13 +731,12 @@ async function handlePublicWorkflowById(request: Request, workflowId: string): P
   return jsonResponse(toWorkflowResponse(workflow));
 }
 
-async function handleWorkflowById(
+export async function handleWorkflowById(
   request: Request,
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureWorkflowTable();
 
   if (request.method === "GET") {
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -881,12 +798,10 @@ function toMessageResponse(msg: Message): JsonObject {
   };
 }
 
-async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
-    await ensureThreadTable();
-    await ensureMessageTable();
     const body = await parseJsonBody<MessageCreateBody>(request);
     if (!body || typeof body.role !== "string" || body.content === undefined) {
       return errorResponse(400, "Invalid JSON body");
@@ -914,7 +829,6 @@ async function handleMessagesRoot(request: Request, options: HttpApiOptions): Pr
   }
 
   if (request.method === "GET") {
-    await ensureMessageTable();
     const url = new URL(request.url);
     const threadId = url.searchParams.get("thread_id");
     if (!threadId) {
@@ -940,13 +854,12 @@ async function handleMessagesRoot(request: Request, options: HttpApiOptions): Pr
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleMessageById(
+export async function handleMessageById(
   request: Request,
   messageId: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureMessageTable();
   const msg = (await Message.get(messageId)) as Message | null;
   if (!msg || msg.user_id !== userId) {
     return errorResponse(404, "Message not found");
@@ -985,11 +898,10 @@ function toThreadResponse(thread: Thread): JsonObject {
   };
 }
 
-async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   if (request.method === "POST") {
-    await ensureThreadTable();
     const body = await parseJsonBody<ThreadCreateBody>(request);
     const title = body?.title ?? "New Thread";
     const thread = (await Thread.create({
@@ -1000,7 +912,6 @@ async function handleThreadsRoot(request: Request, options: HttpApiOptions): Pro
   }
 
   if (request.method === "GET") {
-    await ensureThreadTable();
     const url = new URL(request.url);
     const limit = parseLimit(url, 10);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
@@ -1016,13 +927,12 @@ async function handleThreadsRoot(request: Request, options: HttpApiOptions): Pro
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleThreadById(
+export async function handleThreadById(
   request: Request,
   threadId: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureThreadTable();
 
   if (request.method === "GET") {
     const thread = await Thread.find(userId, threadId);
@@ -1046,7 +956,6 @@ async function handleThreadById(
     const thread = await Thread.find(userId, threadId);
     if (!thread) return errorResponse(404, "Thread not found");
     // Delete all messages in the thread
-    await ensureMessageTable();
     while (true) {
       const [messages] = await Message.paginate(threadId, { limit: 100 });
       if (!messages.length) break;
@@ -1077,7 +986,6 @@ const THREAD_TITLE_TRUNC_LEN = THREAD_TITLE_MAX_LEN - 3;
  * a title from the first user message instead.
  */
 async function deriveThreadTitle(threadId: string): Promise<string> {
-  await ensureMessageTable();
   const [messages] = await Message.paginate(threadId, { limit: 10 });
   for (const msg of messages) {
     const content = msg.content;
@@ -1110,7 +1018,7 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
   return "New Thread";
 }
 
-async function handleThreadSummarize(
+export async function handleThreadSummarize(
   request: Request,
   threadId: string,
   options: HttpApiOptions
@@ -1119,7 +1027,6 @@ async function handleThreadSummarize(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureThreadTable();
   const thread = await Thread.find(userId, threadId);
   if (!thread) return errorResponse(404, "Thread not found");
 
@@ -1156,13 +1063,12 @@ function toBackgroundJobResponse(job: Job): JsonObject {
   };
 }
 
-async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const url = new URL(request.url);
   const limit = parseLimit(url, 100);
@@ -1176,7 +1082,7 @@ async function handleJobsRoot(request: Request, options: HttpApiOptions): Promis
   });
 }
 
-async function handleJobById(
+export async function handleJobById(
   request: Request,
   jobId: string,
   options: HttpApiOptions
@@ -1186,7 +1092,6 @@ async function handleJobById(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const job = (await Job.get(jobId)) as Job | null;
   if (!job || job.user_id !== userId) {
@@ -1202,7 +1107,7 @@ async function handleJobById(
   return new Response(null, { status: 204 });
 }
 
-async function handleJobCancel(
+export async function handleJobCancel(
   request: Request,
   jobId: string,
   options: HttpApiOptions
@@ -1212,7 +1117,6 @@ async function handleJobCancel(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureJobTable();
 
   const job = (await Job.get(jobId)) as Job | null;
   if (!job || job.user_id !== userId) {
@@ -1227,14 +1131,14 @@ async function handleJobCancel(
 
 // ── Trigger job stubs ─────────────────────────────────────────────
 
-async function handleTriggersRunning(request: Request): Promise<Response> {
+export async function handleTriggersRunning(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   return jsonResponse({ workflows: [] });
 }
 
-async function handleTriggerStart(
+export async function handleTriggerStart(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
@@ -1244,7 +1148,7 @@ async function handleTriggerStart(
   return errorResponse(501, "Trigger workflows not available in standalone mode");
 }
 
-async function handleTriggerStop(
+export async function handleTriggerStop(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
@@ -1256,7 +1160,7 @@ async function handleTriggerStop(
 
 // ── Nodes dummy ───────────────────────────────────────────────────
 
-async function handleNodesDummy(request: Request): Promise<Response> {
+export async function handleNodesDummy(request: Request): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
@@ -1276,19 +1180,26 @@ interface SecretUpdateBody {
   description?: string;
 }
 
-function toSecretResponse(secret: Secret): JsonObject {
+async function toSecretResponse(secret: Secret): Promise<JsonObject> {
+  let isUnreadable = false;
+  try {
+    await secret.getDecryptedValue();
+  } catch {
+    isUnreadable = true;
+  }
+
   return {
     ...secret.toSafeObject(),
     is_configured: true,
+    is_unreadable: isUnreadable,
   };
 }
 
-async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureSecretTable();
 
   const [configuredSecrets] = await Secret.listForUser(userId, 1000);
   const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
@@ -1296,7 +1207,10 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
   // Return all registry secrets with is_configured flag
   const registrySecrets = getRegisteredSettings().filter((d) => d.isSecret);
   const result = registrySecrets.map((def) => {
-    const configured = configuredMap.get(def.envVar);
+    return { def, configured: configuredMap.get(def.envVar) };
+  });
+
+  const normalizedResults = await Promise.all(result.map(async ({ def, configured }) => {
     if (configured) {
       return toSecretResponse(configured);
     }
@@ -1305,39 +1219,40 @@ async function handleSecretsRoot(request: Request, options: HttpApiOptions): Pro
       user_id: userId,
       description: def.description ?? "",
       is_configured: false,
+      is_unreadable: false,
     };
-  });
+  }));
 
   // Also include any DB secrets not in the registry
   for (const s of configuredSecrets) {
     if (!registrySecrets.some((d) => d.envVar === s.key)) {
-      result.push(toSecretResponse(s));
+      normalizedResults.push(await toSecretResponse(s));
     }
   }
 
   return jsonResponse({
-    secrets: result,
+    secrets: normalizedResults,
     next_key: null,
   });
 }
 
-async function handleSecretByKey(
+export async function handleSecretByKey(
   request: Request,
   key: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureSecretTable();
 
   if (request.method === "GET") {
     const secret = await Secret.find(userId, key);
     if (!secret) return errorResponse(404, "Secret not found");
 
-    const response = toSecretResponse(secret) as Record<string, unknown>;
+    const response = await toSecretResponse(secret) as Record<string, unknown>;
     const url = new URL(request.url);
     if (url.searchParams.get("decrypt") === "true") {
       try {
         response.value = await secret.getDecryptedValue();
+        response.is_unreadable = false;
       } catch (err) {
         const detail = err instanceof Error ? err.message : "Failed to decrypt secret";
         return errorResponse(500, detail);
@@ -1358,7 +1273,7 @@ async function handleSecretByKey(
         value: body.value,
         description: body.description,
       });
-      return jsonResponse(toSecretResponse(secret));
+      return jsonResponse(await toSecretResponse(secret));
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to update secret";
       return errorResponse(500, detail);
@@ -1457,9 +1372,8 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
   return collected;
 }
 
-async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
 
   if (request.method === "GET") {
     const url = new URL(request.url);
@@ -1571,13 +1485,12 @@ async function handleAssetsRoot(request: Request, options: HttpApiOptions): Prom
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleAssetById(
+export async function handleAssetById(
   request: Request,
   assetId: string,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
 
   if (request.method === "GET") {
     // Special case: home folder
@@ -1656,10 +1569,9 @@ async function handleAssetById(
   return errorResponse(405, "Method not allowed");
 }
 
-async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
+export async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const url = new URL(request.url);
   const query = url.searchParams.get("query") ?? "";
   if (query.length < 2) {
@@ -1684,19 +1596,18 @@ async function handleAssetsSearch(request: Request, options: HttpApiOptions): Pr
   });
 }
 
-async function handleAssetRecursive(
+export async function handleAssetRecursive(
   request: Request,
   folderId: string,
   options: HttpApiOptions,
 ): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const assets = await getAllAssetsRecursive(userId, folderId);
   return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)) });
 }
 
-async function handleAssetByFilename(
+export async function handleAssetByFilename(
   request: Request,
   filename: string,
   options: HttpApiOptions,
@@ -1704,14 +1615,13 @@ async function handleAssetByFilename(
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   if (!filename) return errorResponse(400, "filename is required");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const [assets] = await Asset.paginate(userId, { limit: 10000 });
   const asset = assets.find((a) => a.name === filename) ?? null;
   if (!asset) return errorResponse(404, "Asset not found");
   return jsonResponse(toAssetResponse(asset));
 }
 
-async function handleAssetThumbnail(
+export async function handleAssetThumbnail(
   request: Request,
   assetId: string,
   options: HttpApiOptions,
@@ -1722,7 +1632,6 @@ async function handleAssetThumbnail(
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  await ensureAssetTable();
   const asset = await Asset.find(userId, assetId);
   if (!asset) return errorResponse(404, "Asset not found");
 
@@ -1920,7 +1829,6 @@ export async function handleApiRequest(
     if (inner && !inner.includes("/")) {
       if (request.method !== "GET") return errorResponse(405, "Method not allowed");
       const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-      await ensureAssetTable();
       const url = new URL(request.url);
       const limit = parseLimit(url, 100);
       const [assets] = await Asset.paginate(userId, { parentId: decodeURIComponent(inner), limit });
@@ -1954,7 +1862,6 @@ export async function handleApiRequest(
   }
 
   if (pathname === "/api/jobs/running/all") {
-    await ensureJobTable();
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [jobs] = await Job.paginate(userId, { limit: 500 });
     const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
@@ -2025,7 +1932,6 @@ export async function handleApiRequest(
   if (pathname === "/api/workflows/names") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-    await ensureWorkflowTable();
     const [workflows] = await Workflow.paginate(userId, { limit: 1000 });
     const names: Record<string, string> = {};
     for (const wf of workflows) names[wf.id] = wf.name;

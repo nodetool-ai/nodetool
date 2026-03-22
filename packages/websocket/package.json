@@ -8,7 +8,9 @@
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
+    "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",
+    "dev:fast": "node ../../scripts/run-websocket-dev.mjs server stale",
     "test-ui": "node ../../scripts/run-websocket-dev.mjs test-ui",
     "devserver": "npm run test-ui",
     "test": "vitest run",
@@ -34,12 +36,21 @@
     "@nodetool/runtime": "*",
     "@nodetool/security": "*",
     "msgpackr": "^1.11.2",
-    "ws": "^8.18.3"
+    "fastify": "^5.2.0",
+    "@fastify/websocket": "^11.0.1",
+    "@fastify/cors": "^10.0.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/ws": "^8.5.13",
     "typescript": "^5.4.0",
     "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   }
 }

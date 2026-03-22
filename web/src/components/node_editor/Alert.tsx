@@ -88,14 +88,18 @@ const styles = () =>
 
 interface NotificationItemProps {
   notification: Notification;
-  nodeRef: React.RefObject<HTMLLIElement>;
+  nodeRef: React.RefObject<HTMLLIElement | null>;
   onClose: (id: string) => void;
+  in?: boolean;
+  onExited?: () => void;
 }
 
 const NotificationItem = memo(function NotificationItem({
   notification,
   nodeRef,
-  onClose
+  onClose,
+  in: inProp,
+  onExited
 }: NotificationItemProps) {
   const handleClose = useCallback(() => {
     onClose(notification.id);
@@ -107,36 +111,41 @@ const NotificationItem = memo(function NotificationItem({
   }, [notification.action, notification.id, onClose]);
 
   return (
-    <li ref={nodeRef} style={{ position: "relative" }}>
-      <MUIAlert
-        severity={mapTypeToSeverity(notification.type)}
-        onClose={
-          notification.type === "error" || notification.dismissable
-            ? handleClose
-            : undefined
-        }
-        action={
-          notification.action ? (
-            <Button
-              color="inherit"
-              size="small"
-              onClick={handleActionClick}
-            >
-              {notification.action.label}
-            </Button>
-          ) : undefined
-        }
-      >
-        {notification.content}
-      </MUIAlert>
-      {(notification.dismissable || notification.type === "error") && (
-        <CopyButton
-          value={notification.content}
-          className={`copy-button ${notification.action ? "has-action" : ""}`}
-          tooltip="Copy to clipboard"
-        />
-      )}
-    </li>
+    <CSSTransition
+      key={notification.id}
+      in={inProp}
+      nodeRef={nodeRef}
+      timeout={300}
+      classNames="alert"
+      onExited={onExited}
+    >
+      <li ref={nodeRef} style={{ position: "relative" }}>
+        <MUIAlert
+          severity={mapTypeToSeverity(notification.type)}
+          onClose={handleClose}
+          action={
+            notification.action ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={handleActionClick}
+              >
+                {notification.action.label}
+              </Button>
+            ) : undefined
+          }
+        >
+          {notification.content}
+        </MUIAlert>
+        {(notification.dismissable || notification.type === "error") && (
+          <CopyButton
+            value={notification.content}
+            className={`copy-button ${notification.action ? "has-action" : ""}`}
+            tooltip="Copy to clipboard"
+          />
+        )}
+      </li>
+    </CSSTransition>
   );
 });
 
@@ -154,17 +163,12 @@ const Alert: React.FC = memo(() => {
     Notification[]
   >([]);
 
-  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement | null>>>({});
+  const [_show, setShow] = useState<Record<string, boolean>>({});
   // Store timeout IDs in a ref so they persist across effect re-runs
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());
-
-  const clearNotificationTimeouts = useCallback((id: string) => {
-    const timeouts = timeoutsRef.current.get(id);
-    if (timeouts) {
-      timeouts.forEach(clearTimeout);
-      timeoutsRef.current.delete(id);
-    }
-  }, []);
+  // Track the timeout created in handleClose to prevent memory leaks
+  const handleCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
@@ -174,6 +178,10 @@ const Alert: React.FC = memo(() => {
         timeouts.forEach(clearTimeout);
       });
       timeoutsMap.clear();
+      // Clean up the handleClose timeout
+      if (handleCloseTimeoutRef.current) {
+        clearTimeout(handleCloseTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -188,7 +196,11 @@ const Alert: React.FC = memo(() => {
       // Clear timeouts for removed notifications
       prev.forEach((n) => {
         if (!storeIds.has(n.id)) {
-          clearNotificationTimeouts(n.id);
+          const timeouts = timeoutsRef.current.get(n.id);
+          if (timeouts) {
+            timeouts.forEach(clearTimeout);
+            timeoutsRef.current.delete(n.id);
+          }
         }
       });
       return filtered;
@@ -227,33 +239,50 @@ const Alert: React.FC = memo(() => {
     }
 
     newNotifications.forEach((notification) => {
-      const autoDismissTimeout = setTimeout(() => {
-        removeNotification(notification.id);
-        setVisibleNotifications((prev) =>
-          prev.filter((item) => item.id !== notification.id)
-        );
-        clearNotificationTimeouts(notification.id);
-      }, notification.timeout ?? NOTIFICATION_TIMEOUT_DEFAULT);
+      setShow((s) => ({ ...s, [notification.id]: true }));
 
+      const showTimeout = setTimeout(() => {
+        setShow((s) => ({ ...s, [notification.id]: false }));
+
+        const removeTimeout = setTimeout(() => {
+          setVisibleNotifications((prev) =>
+            prev.filter((item) => item.id !== notification.id)
+          );
+          // Clean up tracked timeouts for this notification
+          timeoutsRef.current.delete(notification.id);
+        }, TRANSITION_DURATION);
+
+        // Track the inner timeout
+        const existing = timeoutsRef.current.get(notification.id) || [];
+        existing.push(removeTimeout);
+        timeoutsRef.current.set(notification.id, existing);
+      }, notification.timeout || NOTIFICATION_TIMEOUT_DEFAULT);
+
+      // Track the outer timeout in the ref
       const existing = timeoutsRef.current.get(notification.id) || [];
-      existing.push(autoDismissTimeout);
+      existing.push(showTimeout);
       timeoutsRef.current.set(notification.id, existing);
     });
   }, [
     notifications,
     lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp,
-    removeNotification,
-    clearNotificationTimeouts
+    updateLastDisplayedTimestamp
   ]);
 
   const handleClose = useCallback((id: string) => {
-    clearNotificationTimeouts(id);
-    removeNotification(id);
-    setVisibleNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
-    );
-  }, [clearNotificationTimeouts, removeNotification]);
+    setShow((s) => ({ ...s, [id]: false }));
+    // Clear any existing timeout to prevent memory leaks
+    if (handleCloseTimeoutRef.current) {
+      clearTimeout(handleCloseTimeoutRef.current);
+    }
+    // Track the new timeout
+    handleCloseTimeoutRef.current = setTimeout(() => {
+      removeNotification(id);
+      setVisibleNotifications((prev) =>
+        prev.filter((notification) => notification.id !== id)
+      );
+    }, TRANSITION_DURATION);
+  }, [removeNotification]);
 
   return (
     <TransitionGroup component="ul" css={styles()} className="alert-list">
@@ -264,22 +293,12 @@ const Alert: React.FC = memo(() => {
         const nodeRef = nodeRefs.current[notification.id];
 
         return (
-          <CSSTransition
+          <NotificationItem
             key={notification.id}
+            notification={notification}
             nodeRef={nodeRef}
-            timeout={TRANSITION_DURATION}
-            classNames="alert"
-            onExited={() => {
-              clearNotificationTimeouts(notification.id);
-              delete nodeRefs.current[notification.id];
-            }}
-          >
-            <NotificationItem
-              notification={notification}
-              nodeRef={nodeRef}
-              onClose={handleClose}
-            />
-          </CSSTransition>
+            onClose={handleClose}
+          />
         );
       })}
     </TransitionGroup>

@@ -10,28 +10,9 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
-import {
-  Secret,
-  MemoryAdapterFactory,
-  getGlobalAdapterResolver,
-  setGlobalAdapterResolver,
-} from "@nodetool/models";
+import { Secret } from "@nodetool/models";
 interface SettingsHandlerOptions {
   userIdHeader?: string;
-}
-
-// ── Secret table lazy-init ─────────────────────────────────────────
-
-const _memFactory = new MemoryAdapterFactory();
-let _secretTableReady = false;
-
-async function ensureSecretTable(): Promise<void> {
-  if (_secretTableReady) return;
-  if (!getGlobalAdapterResolver()) {
-    setGlobalAdapterResolver((schema) => _memFactory.getAdapter(schema));
-  }
-  await Secret.createTable();
-  _secretTableReady = true;
 }
 
 // ── Settings file path ─────────────────────────────────────────────
@@ -197,7 +178,7 @@ function errorResponse(status: number, detail: string): Response {
 // ── Handlers ───────────────────────────────────────────────────────
 
 async function handleGetSettings(userId: string): Promise<Response> {
-  await ensureSecretTable();
+
   const currentSettings = await loadSettings();
   const result: SettingWithValue[] = [];
 
@@ -236,7 +217,7 @@ async function handleGetSettings(userId: string): Promise<Response> {
 
 
 async function handleUpdateSettings(request: Request, userId: string): Promise<Response> {
-  await ensureSecretTable();
+
   let body: { settings?: Record<string, unknown>; secrets?: Record<string, unknown> };
   try {
     body = (await request.json()) as { settings?: Record<string, unknown>; secrets?: Record<string, unknown> };

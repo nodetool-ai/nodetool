@@ -3,8 +3,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
-  MemoryAdapterFactory,
-  setGlobalAdapterResolver,
+  initTestDb,
   Job,
 } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
@@ -284,10 +283,8 @@ describe("T-WS-11: Storage KV API", () => {
 // ── T-WS-18 — Job persistence in WebSocket runner ───────────────────
 
 describe("T-WS-18: Job persistence in unified-websocket-runner", () => {
-  beforeEach(async () => {
-    const factory = new MemoryAdapterFactory();
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Job.createTable();
+  beforeEach(() => {
+    initTestDb();
   });
 
   it("Job record exists with status completed after successful run_job", async () => {

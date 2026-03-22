@@ -8,7 +8,6 @@ on:
       - "web/**"
       - "electron/**"
       - "mobile/**"
-      - "packages/**"
       - ".github/workflows/e2e.yml"
   pull_request:
     branches:
@@ -17,7 +16,6 @@ on:
       - "web/**"
       - "electron/**"
       - "mobile/**"
-      - "packages/**"
       - ".github/workflows/e2e.yml"
 
 permissions:
@@ -33,29 +31,52 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.11"
+          environment-file: environment.yml
+          activate-environment: nodetool
+          auto-activate-base: false
+          miniforge-version: latest
+
+      - name: Install nodetool-core and nodetool-base
+        shell: bash -l {0}
+        run: |
+          for i in {1..3}; do
+            uv pip install "fastapi==0.115.6" --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ --pre nodetool-core nodetool-base && break || sleep 15
+          done
+
+      - name: Verify nodetool installation
+        shell: bash -l {0}
+        run: |
+          which nodetool
+          nodetool --help
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TS backend packages
-        run: npm run build:packages
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
 
       - name: Install Playwright browsers
         run: |
           cd web
           npx playwright install --with-deps chromium
 
-      - name: Start TS backend server
+      - name: Start nodetool server
+        shell: bash -l {0}
         run: |
-          PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js > /tmp/nodetool-server.log 2>&1 &
+          nodetool serve --port 7777 --mock > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
-
-      - name: Wait for backend server to be ready
+          
+      - name: Wait for nodetool server to be ready
         uses: jtalk/url-health-check-action@v4
         with:
           url: http://localhost:7777/health
@@ -69,7 +90,6 @@ jobs:
           npx playwright test
         env:
           CI: true
-          E2E_START_BACKEND: "false"
 
       - name: Stop servers
         if: always()
@@ -79,7 +99,7 @@ jobs:
             kill $(cat /tmp/nodetool-server.pid) || true
           fi
 
-      - name: Upload server logs
+      - name: Upload nodetool server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -107,7 +127,7 @@ jobs:
     name: Electron End-to-End Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-
+    
     strategy:
       fail-fast: false
       matrix:
@@ -117,18 +137,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.11"
+          environment-file: environment.yml
+          activate-environment: nodetool
+          auto-activate-base: false
+          miniforge-version: latest
+
+      - name: Install nodetool-core and nodetool-base
+        shell: bash -l {0}
+        run: |
+          for i in {1..3}; do
+            uv pip install "fastapi==0.115.6" --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ --pre nodetool-core nodetool-base && break || sleep 15
+          done
+
+      - name: Verify nodetool installation
+        shell: bash -l {0}
+        run: |
+          which nodetool
+          nodetool --help
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: electron/package-lock.json
           check-latest: true
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TS backend packages
-        run: npm run build:packages
 
       - name: Install Electron dependencies
         run: |

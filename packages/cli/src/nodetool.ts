@@ -22,9 +22,7 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
-  SQLiteAdapterFactory,
-  setGlobalAdapterResolver,
-  Secret,
+  initDb,
   Workflow,
 } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
@@ -46,9 +44,7 @@ const __dirname = dirname(__filename);
 async function setupDb(): Promise<void> {
   const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
   try {
-    const factory = new SQLiteAdapterFactory(dbPath);
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Secret.createTable();
+    initDb(dbPath);
   } catch {
     // fall back to env vars
   }

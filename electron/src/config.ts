@@ -63,30 +63,26 @@ const getDefaultCondaEnvPath = (): string => {
 };
 
 const getCondaEnvPath = (): string => {
-  logMessage("=== Getting Conda Environment Path ===");
-
-  // Detect if a conda environment is already activated in the shell
-  if (process.env.CONDA_PREFIX) {
-    const activeEnv = process.env.CONDA_PREFIX;
-    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
-    logMessage("! WARNING: DETECTED ACTIVATED CONDA ENVIRONMENT", "warn");
-    logMessage(`! USING: ${activeEnv}`, "warn");
-    logMessage("! IGNORING CONDA_ENV SETTING FROM CONFIG FILE", "warn");
-    logMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "warn");
-    return activeEnv;
+  // In explicit dev mode, prefer an already-activated conda environment so
+  // local Electron development can reuse the shell environment.
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    const activeEnv = process.env.CONDA_PREFIX?.trim();
+    if (activeEnv) {
+      logMessage(`Using activated conda environment in dev mode: ${activeEnv}`, "warn");
+      return activeEnv;
+    }
   }
 
   let settings: Record<string, unknown> = {};
   try {
     settings = readSettings();
-    logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
   } catch (error) {
     logMessage(
       `Failed to read settings, using default conda path. Error: ${error}`,
       "error"
     );
     const fallbackOnError = getDefaultCondaEnvPath();
-    logMessage(`Conda path fallback (readSettings error): ${fallbackOnError}`);
+    logMessage(`Conda path fallback: ${fallbackOnError}`);
     return fallbackOnError;
   }
 
@@ -96,7 +92,7 @@ const getCondaEnvPath = (): string => {
     typeof condaPathFromSettings === "string" &&
     condaPathFromSettings.trim().length > 0
   ) {
-    logMessage(`Final conda path (from settings): ${condaPathFromSettings}`);
+    logMessage(`Conda env path: ${condaPathFromSettings}`);
     return condaPathFromSettings;
   }
 
@@ -105,18 +101,17 @@ const getCondaEnvPath = (): string => {
   logMessage(
     `CONDA_ENV not set in settings. Using and persisting default path: ${fallbackPath}`
   );
-  
+
   // Persist the default so it's always consistent going forward
   try {
     updateSetting("CONDA_ENV", fallbackPath);
-    logMessage(`Persisted default CONDA_ENV to settings: ${fallbackPath}`);
   } catch (error) {
     logMessage(
       `Failed to persist default CONDA_ENV to settings: ${error}`,
       "warn"
     );
   }
-  
+
   return fallbackPath;
 };
 
@@ -135,15 +130,9 @@ const getNodePath = (): string =>
  */
 const getPythonPath = (): string => {
   const condaPath = getCondaEnvPath();
-  const pythonPath =
-    process.platform === "win32"
-      ? path.join(condaPath, "python.exe")
-      : path.join(condaPath, "bin", "python");
-
-  logMessage(`getPythonPath() - condaPath: ${condaPath}`);
-  logMessage(`getPythonPath() - pythonPath: ${pythonPath}`);
-
-  return pythonPath;
+  return process.platform === "win32"
+    ? path.join(condaPath, "python.exe")
+    : path.join(condaPath, "bin", "python");
 };
 
 /**
@@ -283,6 +272,32 @@ const getProcessEnv = (): ProcessEnv => {
     if (typeof value === "string") {
       baseEnv[key] = value;
     }
+  }
+
+  const envKeysToClear = [
+    "CONDA_PREFIX",
+    "CONDA_DEFAULT_ENV",
+    "CONDA_PROMPT_MODIFIER",
+    "CONDA_SHLVL",
+    "CONDA_EXE",
+    "CONDA_PYTHON_EXE",
+    "_CE_CONDA",
+    "_CE_M",
+    "VIRTUAL_ENV",
+    "PYTHONHOME",
+    "PYTHONPATH",
+    "UV_PYTHON",
+    "UV_PROJECT_ENVIRONMENT",
+  ] as const;
+
+  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] === "string");
+  for (const key of envKeysToClear) {
+    delete baseEnv[key];
+  }
+  if (clearedKeys.length > 0) {
+    logMessage(
+      `Cleared inherited environment markers before launching bundled runtime: ${clearedKeys.join(", ")}`
+    );
   }
 
   const pathSegmentsWin = [

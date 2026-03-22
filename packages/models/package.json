@@ -6,10 +6,12 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./secret": {
+      "development": "./src/secret.ts",
       "import": "./dist/secret.js",
       "types": "./dist/secret.d.ts"
     }
@@ -23,10 +25,12 @@
     "@nodetool/config": "*",
     "@nodetool/protocol": "*",
     "@nodetool/security": "*",
-    "better-sqlite3": "^12.8.0"
+    "better-sqlite3": "^12.8.0",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.4.5",
     "vitest": "^1.6.1"
   }

@@ -114,7 +114,7 @@ interface Tool {
   name: string;
   description: string;
   category: string;
-  icon: JSX.Element;
+  icon: React.JSX.Element;
 }
 
 const TOOLS: Tool[] = [

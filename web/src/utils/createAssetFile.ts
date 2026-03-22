@@ -2,11 +2,7 @@ import log from "loglevel";
 import type { Chunk } from "../stores/ApiTypes";
 import { authHeader } from "../stores/ApiClient";
 import { client } from "../stores/ApiClient";
-import {
-  getMimeTypeFromUri,
-  resolveAssetUri
-} from "../components/node/output/hooks";
-import { normalizeOutputType } from "../components/node/output/types";
+import { resolveAssetUri } from "../components/node/output/hooks";
 
 interface AssetFileResult {
   file: File;
@@ -116,10 +112,10 @@ const toUint8Array = (input: any): Uint8Array => {
   }
   if (typeof input === "object") {
     if ("data" in input) {
-      return toUint8Array((input as any).data);
+      return toUint8Array((input as { data: unknown }).data);
     }
     if ("content" in input) {
-      return toUint8Array((input as any).content);
+      return toUint8Array((input as { content: unknown }).content);
     }
     return new Uint8Array(Object.values(input as Record<string, number>));
   }
@@ -273,9 +269,7 @@ const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => 
 
 const getOutputType = (output: any): string | undefined => {
   if (output && typeof output === "object") {
-    return typeof output.type === "string"
-      ? normalizeOutputType(output.type)
-      : undefined;
+    return output.type;
   }
   return undefined;
 };
@@ -320,8 +314,6 @@ const getMimeType = (
     (asString(output.mime_type) && output.mime_type) ||
     (asString(output.mimeType) && output.mimeType) ||
     (asString(output.type) && output.type) ||
-    getMimeTypeFromUri(output.uri) ||
-    getMimeTypeFromUri(output.filename) ||
     (asString(output.data?.mime_type) && output.data?.mime_type) ||
     (asString(output.data?.mimeType) && output.data?.mimeType) ||
     fallback
@@ -354,21 +346,6 @@ const buildFilename = (
   }
 
   return `${desired.slice(0, dotIndex)}${suffix}${desired.slice(dotIndex)}`;
-};
-
-const filenameFromUri = (uri: string | undefined): string | undefined => {
-  if (!uri) {
-    return undefined;
-  }
-
-  try {
-    const parsed = new URL(uri, window.location.origin);
-    const candidate = parsed.pathname.split("/").pop();
-    return candidate && candidate.trim() !== "" ? candidate : undefined;
-  } catch {
-    const candidate = uri.split("?")[0]?.split("/").pop();
-    return candidate && candidate.trim() !== "" ? candidate : undefined;
-  }
 };
 
 const isExternalUrl = (url: string): boolean => {
@@ -416,8 +393,7 @@ const createSingleAssetFile = async (
     (data.startsWith("http://") || data.startsWith("https://"));
   const outputUri = typeof output?.uri === "string" ? output.uri : undefined;
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
-  let desiredFilename =
-    (output?.filename as string | undefined) ?? filenameFromUri(outputUri);
+  let desiredFilename = output?.filename as string | undefined;
 
   const shouldFetchFromUri =
     typeof outputUri === "string" &&

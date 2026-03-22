@@ -242,14 +242,6 @@ const welcomeStyles = (theme: Theme) =>
         color: theme.vars.palette.grey[1000]
       }
     },
-    // ".MuiTabs-root": {
-    //   marginBottom: "1.5em",
-    //   "& .MuiTab-root": {
-    //     fontSize: theme.fontSizeBig,
-    //     padding: "1em 2em",
-    //     transition: "all 0.2s"
-    //   }
-    // },
     ".setup-list-item": {
       display: "flex",
       flexDirection: "column",

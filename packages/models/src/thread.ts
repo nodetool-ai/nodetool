@@ -4,43 +4,13 @@
  * Port of Python's `nodetool.models.thread`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
-
-// ── Schema ───────────────────────────────────────────────────────────
-
-const THREAD_SCHEMA: TableSchema = {
-  table_name: "nodetool_threads",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    title: { type: "string" },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const THREAD_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_threads_user_id",
-    columns: ["user_id"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
+import { eq, desc, asc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { threads } from "./schema/threads.js";
 
 export class Thread extends DBModel {
-  static override schema = THREAD_SCHEMA;
-  static override indexes = THREAD_INDEXES;
+  static override table = threads;
 
   declare id: string;
   declare user_id: string;
@@ -48,7 +18,7 @@ export class Thread extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -61,16 +31,12 @@ export class Thread extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
   /** Find a thread by id, scoped to the user. */
   static async find(
     userId: string,
     threadId: string,
   ): Promise<Thread | null> {
-    const thread = await (Thread as unknown as ModelClass<Thread>).get(
-      threadId,
-    );
+    const thread = await Thread.get<Thread>(threadId);
     if (!thread) return null;
     if (thread.user_id === userId) return thread;
     return null;
@@ -81,14 +47,18 @@ export class Thread extends DBModel {
     userId: string,
     opts: { limit?: number; startKey?: string; reverse?: boolean } = {},
   ): Promise<[Thread[], string]> {
-    const { limit = 50, startKey: _startKey, reverse = true } = opts;
-    const cond = field("user_id").equals(userId);
+    const { limit = 50, reverse = true } = opts;
+    const db = getDb();
+    const rows = db.select().from(threads)
+      .where(eq(threads.user_id, userId))
+      .orderBy(reverse ? desc(threads.updated_at) : asc(threads.updated_at))
+      .limit(limit + 1)
+      .all();
 
-    return (Thread as unknown as ModelClass<Thread>).query({
-      condition: cond,
-      orderBy: "updated_at",
-      reverse,
-      limit,
-    });
+    const items = rows.map(r => new Thread(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 }

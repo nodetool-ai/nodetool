@@ -72,7 +72,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   vector_hybrid_search: "Search for documents in the vector database",
 };
 
-const TOOL_ICONS: Record<string, JSX.Element> = {
+const TOOL_ICONS: Record<string, React.JSX.Element> = {
   read_file: <Description fontSize="small" sx={{ mr: 0.5 }} />,
   write_file: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
   list_directory: <Folder fontSize="small" sx={{ mr: 0.5 }} />,

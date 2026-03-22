@@ -25,7 +25,7 @@ import type { Theme } from "@mui/material/styles";
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
   if (React.isValidElement(node)) {
-    return React.Children.toArray(node.props.children)
+    return React.Children.toArray((node.props as { children?: ReactNode }).children)
       .map(extractText)
       .join(" ");
   }
@@ -222,7 +222,7 @@ const WelcomePanel: React.FC = () => {
       return React.cloneElement(
         content,
         {},
-        React.Children.map(content.props.children, (child) =>
+        React.Children.map((content.props as { children?: ReactNode }).children, (child) =>
           typeof child === "string"
             ? highlightText(child, searchTerm)
             : renderContent(child)

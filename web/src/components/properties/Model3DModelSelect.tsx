@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { client } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -64,16 +64,11 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
   const load3DModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "3d" } }
-      }
-    );
-    if (error) {
-      throw error;
+    const res = await fetch(`${BASE_URL}/api/models/3d`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch 3D models: ${res.status}`);
     }
-    return data as unknown as Model3DModel[];
+    return (await res.json()) as Model3DModel[];
   }, []);
 
   const { data: models, isLoading } = useQuery({

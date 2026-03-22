@@ -1,37 +1,26 @@
 /**
- * Integration tests for domain models using SQLiteAdapter.
+ * Integration tests for domain models using Drizzle with in-memory SQLite.
  *
- * Mirrors models.test.ts but uses SQLiteAdapterFactory with :memory:
- * to validate that domain models work correctly with real SQL storage.
+ * Validates that domain models work correctly with real SQL storage.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setGlobalAdapterResolver, ModelObserver } from "../src/base-model.js";
-import { SQLiteAdapterFactory } from "../src/sqlite-adapter.js";
+import { ModelObserver } from "../src/base-model.js";
+import { initTestDb } from "../src/db.js";
 import { Job } from "../src/job.js";
 import { Workflow } from "../src/workflow.js";
 import { Asset } from "../src/asset.js";
 import { Message } from "../src/message.js";
 import { Thread } from "../src/thread.js";
-import type { ModelClass } from "../src/base-model.js";
 
 // ── Setup ────────────────────────────────────────────────────────────
 
-let factory: SQLiteAdapterFactory;
-
-async function setup() {
-  factory = new SQLiteAdapterFactory(":memory:");
-  setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-  await (Job as unknown as ModelClass).createTable();
-  await (Workflow as unknown as ModelClass).createTable();
-  await (Asset as unknown as ModelClass).createTable();
-  await (Message as unknown as ModelClass).createTable();
-  await (Thread as unknown as ModelClass).createTable();
+function setup() {
+  initTestDb();
 }
 
 function teardown() {
   ModelObserver.clear();
-  factory.close();
 }
 
 // ── Job ──────────────────────────────────────────────────────────────
@@ -41,7 +30,7 @@ describe("Job model (SQLite)", () => {
   afterEach(teardown);
 
   it("creates with defaults", async () => {
-    const job = await (Job as unknown as ModelClass<Job>).create({
+    const job = await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
     });
@@ -53,7 +42,7 @@ describe("Job model (SQLite)", () => {
   });
 
   it("state transitions", async () => {
-    const job = await (Job as unknown as ModelClass<Job>).create({
+    const job = await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
     });
@@ -78,7 +67,7 @@ describe("Job model (SQLite)", () => {
   });
 
   it("markFailed records error", async () => {
-    const job = await (Job as unknown as ModelClass<Job>).create({
+    const job = await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
     });
@@ -88,7 +77,7 @@ describe("Job model (SQLite)", () => {
   });
 
   it("heartbeat and stale check", async () => {
-    const job = await (Job as unknown as ModelClass<Job>).create({
+    const job = await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
     });
@@ -99,17 +88,17 @@ describe("Job model (SQLite)", () => {
   });
 
   it("paginate by user and status", async () => {
-    await (Job as unknown as ModelClass<Job>).create({
+    await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
       status: "running",
     });
-    await (Job as unknown as ModelClass<Job>).create({
+    await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w2",
       status: "completed",
     });
-    await (Job as unknown as ModelClass<Job>).create({
+    await Job.create<Job>({
       user_id: "u2",
       workflow_id: "w3",
       status: "running",
@@ -123,14 +112,14 @@ describe("Job model (SQLite)", () => {
   });
 
   it("persists state transitions through save and reload", async () => {
-    const job = await (Job as unknown as ModelClass<Job>).create({
+    const job = await Job.create<Job>({
       user_id: "u1",
       workflow_id: "w1",
     });
     job.markRunning("worker-1");
     await job.save();
 
-    const reloaded = await (Job as unknown as ModelClass<Job>).get(job.id);
+    const reloaded = await Job.get<Job>(job.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.status).toBe("running");
     expect(reloaded!.worker_id).toBe("worker-1");
@@ -144,7 +133,7 @@ describe("Workflow model (SQLite)", () => {
   afterEach(teardown);
 
   it("creates with defaults", async () => {
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).create({
+    const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "My Workflow",
     });
@@ -154,7 +143,7 @@ describe("Workflow model (SQLite)", () => {
   });
 
   it("find respects ownership", async () => {
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).create({
+    const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Private WF",
     });
@@ -164,7 +153,7 @@ describe("Workflow model (SQLite)", () => {
   });
 
   it("find allows public access", async () => {
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).create({
+    const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Public WF",
       access: "public",
@@ -173,11 +162,11 @@ describe("Workflow model (SQLite)", () => {
   });
 
   it("paginate filters by user", async () => {
-    await (Workflow as unknown as ModelClass<Workflow>).create({
+    await Workflow.create<Workflow>({
       user_id: "u1",
       name: "WF1",
     });
-    await (Workflow as unknown as ModelClass<Workflow>).create({
+    await Workflow.create<Workflow>({
       user_id: "u2",
       name: "WF2",
     });
@@ -194,30 +183,26 @@ describe("Workflow model (SQLite)", () => {
       ],
       edges: [{ source: "n1", target: "n2", sourceHandle: "out" }],
     };
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).create({
+    const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Graph WF",
       graph,
     });
 
-    const reloaded = await (Workflow as unknown as ModelClass<Workflow>).get(
-      wf.id,
-    );
+    const reloaded = await Workflow.get<Workflow>(wf.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.graph).toEqual(graph);
   });
 
   it("round-trips tags JSON array through SQLite", async () => {
     const tags = ["ai", "image", "generation"];
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).create({
+    const wf = await Workflow.create<Workflow>({
       user_id: "u1",
       name: "Tagged WF",
       tags,
     });
 
-    const reloaded = await (Workflow as unknown as ModelClass<Workflow>).get(
-      wf.id,
-    );
+    const reloaded = await Workflow.get<Workflow>(wf.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.tags).toEqual(tags);
   });
@@ -230,7 +215,7 @@ describe("Asset model (SQLite)", () => {
   afterEach(teardown);
 
   it("creates with defaults", async () => {
-    const asset = await (Asset as unknown as ModelClass<Asset>).create({
+    const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
       content_type: "image/jpeg",
@@ -240,7 +225,7 @@ describe("Asset model (SQLite)", () => {
   });
 
   it("computed properties", async () => {
-    const img = await (Asset as unknown as ModelClass<Asset>).create({
+    const img = await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
       content_type: "image/jpeg",
@@ -249,7 +234,7 @@ describe("Asset model (SQLite)", () => {
     expect(img.fileExtension).toBe("jpg");
     expect(img.hasThumbnail).toBe(true);
 
-    const folder = await (Asset as unknown as ModelClass<Asset>).create({
+    const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "My Folder",
       content_type: "folder",
@@ -259,18 +244,18 @@ describe("Asset model (SQLite)", () => {
   });
 
   it("paginate and getChildren", async () => {
-    const folder = await (Asset as unknown as ModelClass<Asset>).create({
+    const folder = await Asset.create<Asset>({
       user_id: "u1",
       name: "Folder",
       content_type: "folder",
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "file1.txt",
       content_type: "text/plain",
       parent_id: folder.id,
     });
-    await (Asset as unknown as ModelClass<Asset>).create({
+    await Asset.create<Asset>({
       user_id: "u1",
       name: "file2.txt",
       content_type: "text/plain",
@@ -283,16 +268,14 @@ describe("Asset model (SQLite)", () => {
 
   it("round-trips metadata JSON through SQLite", async () => {
     const metadata = { width: 1920, height: 1080, format: "jpeg" };
-    const asset = await (Asset as unknown as ModelClass<Asset>).create({
+    const asset = await Asset.create<Asset>({
       user_id: "u1",
       name: "photo.jpg",
       content_type: "image/jpeg",
       metadata,
     });
 
-    const reloaded = await (Asset as unknown as ModelClass<Asset>).get(
-      asset.id,
-    );
+    const reloaded = await Asset.get<Asset>(asset.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.metadata).toEqual(metadata);
   });
@@ -305,7 +288,7 @@ describe("Message model (SQLite)", () => {
   afterEach(teardown);
 
   it("creates with defaults", async () => {
-    const msg = await (Message as unknown as ModelClass<Message>).create({
+    const msg = await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       content: "Hello world",
@@ -315,17 +298,17 @@ describe("Message model (SQLite)", () => {
   });
 
   it("paginate by thread", async () => {
-    await (Message as unknown as ModelClass<Message>).create({
+    await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       content: "msg1",
     });
-    await (Message as unknown as ModelClass<Message>).create({
+    await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       content: "msg2",
     });
-    await (Message as unknown as ModelClass<Message>).create({
+    await Message.create<Message>({
       user_id: "u1",
       thread_id: "t2",
       content: "msg3",
@@ -348,7 +331,7 @@ describe("Message model (SQLite)", () => {
         function: { name: "search", arguments: '{"q":"test"}' },
       },
     ];
-    const msg = await (Message as unknown as ModelClass<Message>).create({
+    const msg = await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       role: "assistant",
@@ -356,9 +339,7 @@ describe("Message model (SQLite)", () => {
       tool_calls: toolCalls,
     });
 
-    const reloaded = await (Message as unknown as ModelClass<Message>).get(
-      msg.id,
-    );
+    const reloaded = await Message.get<Message>(msg.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.tool_calls).toEqual(toolCalls);
   });
@@ -366,7 +347,7 @@ describe("Message model (SQLite)", () => {
   it("round-trips input_files and output_files JSON through SQLite", async () => {
     const inputFiles = [{ name: "input.txt", uri: "file:///tmp/input.txt" }];
     const outputFiles = [{ name: "output.png", uri: "file:///tmp/output.png" }];
-    const msg = await (Message as unknown as ModelClass<Message>).create({
+    const msg = await Message.create<Message>({
       user_id: "u1",
       thread_id: "t1",
       content: "process files",
@@ -374,9 +355,7 @@ describe("Message model (SQLite)", () => {
       output_files: outputFiles,
     });
 
-    const reloaded = await (Message as unknown as ModelClass<Message>).get(
-      msg.id,
-    );
+    const reloaded = await Message.get<Message>(msg.id);
     expect(reloaded).not.toBeNull();
     expect(reloaded!.input_files).toEqual(inputFiles);
     expect(reloaded!.output_files).toEqual(outputFiles);
@@ -390,7 +369,7 @@ describe("Thread model (SQLite)", () => {
   afterEach(teardown);
 
   it("creates with defaults", async () => {
-    const thread = await (Thread as unknown as ModelClass<Thread>).create({
+    const thread = await Thread.create<Thread>({
       user_id: "u1",
       title: "Test Thread",
     });
@@ -399,7 +378,7 @@ describe("Thread model (SQLite)", () => {
   });
 
   it("find scoped to user", async () => {
-    const thread = await (Thread as unknown as ModelClass<Thread>).create({
+    const thread = await Thread.create<Thread>({
       user_id: "u1",
       title: "Private Thread",
     });
@@ -408,11 +387,11 @@ describe("Thread model (SQLite)", () => {
   });
 
   it("paginate by user", async () => {
-    await (Thread as unknown as ModelClass<Thread>).create({
+    await Thread.create<Thread>({
       user_id: "u1",
       title: "Thread A",
     });
-    await (Thread as unknown as ModelClass<Thread>).create({
+    await Thread.create<Thread>({
       user_id: "u2",
       title: "Thread B",
     });

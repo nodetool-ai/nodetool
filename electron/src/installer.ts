@@ -3,6 +3,7 @@ import type { Stats } from "fs";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
+  installRequiredPythonPackages,
   runCommand,
 } from "./python";
 
@@ -607,6 +608,7 @@ async function createEnvironmentWithMicromamba(
     destinationPrefix,
     "--file",
     lockFilePath,
+    "--override-channels",
     "--strict-channel-priority",
   ];
 
@@ -648,6 +650,8 @@ async function provisionCondaEnvironment(
     installOllama: options?.installOllama,
     installLlamaCpp: options?.installLlamaCpp,
   });
+
+  await installRequiredPythonPackages();
 
   const shouldInstallLlamaCpp =
     options?.installLlamaCpp ?? modelBackend === "llama_cpp";
@@ -775,6 +779,7 @@ async function installCondaPackages(
     "--prefix",
     envPrefix,
     ...packageSpecs,
+    "--override-channels",
     "--strict-channel-priority",
   ];
   for (const channel of CONDA_CHANNELS) {

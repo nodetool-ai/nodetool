@@ -43,5 +43,13 @@
     "@types/react": "^18.3.3",
     "vitest": "^1.6.1",
     "typescript": "^5.4.5"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   }
 }

@@ -20,9 +20,8 @@ dist/
 electron/dist/
 electron/dist-web/
 electron/dist-electron/
+electron/backend-bundle/
 electron/resources/micromamba
-electron/resources/environment-*.yml
-electron/resources/environment.lock.yml
 conda-lock.yml
 # Temporary build files
 .tmp/

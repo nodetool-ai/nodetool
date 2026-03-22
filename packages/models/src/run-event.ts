@@ -2,21 +2,12 @@
  * RunEvent model -- append-only audit log for workflow execution.
  *
  * Port of Python's `nodetool.models.run_event`.
- *
- * AUDIT-ONLY: This event log is for observability and debugging purposes only.
- * It is NOT the source of truth for workflow execution. All scheduling and
- * recovery decisions must be based on mutable state tables (Job, RunNodeState).
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, gt, lte, desc, asc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { runEvents } from "./schema/run-events.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -40,45 +31,8 @@ export type EventType =
   | "OutboxEnqueued"
   | "OutboxSent";
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const RUN_EVENT_SCHEMA: TableSchema = {
-  table_name: "run_events",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    run_id: { type: "string" },
-    seq: { type: "number" },
-    event_type: { type: "string" },
-    event_time: { type: "datetime" },
-    node_id: { type: "string", optional: true },
-    payload: { type: "json", optional: true },
-  },
-};
-
-const RUN_EVENT_INDEXES: IndexSpec[] = [
-  {
-    name: "idx_run_events_run_seq",
-    columns: ["run_id", "seq"],
-    unique: true,
-  },
-  {
-    name: "idx_run_events_run_node",
-    columns: ["run_id", "node_id"],
-    unique: false,
-  },
-  {
-    name: "idx_run_events_run_type",
-    columns: ["run_id", "event_type"],
-    unique: false,
-  },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class RunEvent extends DBModel {
-  static override schema = RUN_EVENT_SCHEMA;
-  static override indexes = RUN_EVENT_INDEXES;
+  static override table = runEvents;
 
   declare id: string;
   declare run_id: string;
@@ -88,7 +42,7 @@ export class RunEvent extends DBModel {
   declare node_id: string | null;
   declare payload: Record<string, unknown> | null;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     this.id ??= createTimeOrderedUuid();
     this.event_time ??= new Date().toISOString();
@@ -96,22 +50,17 @@ export class RunEvent extends DBModel {
     this.payload ??= null;
   }
 
-  // ── Static methods ────────────────────────────────────────────────
-
   /** Get the next sequence number for a run. */
   static async getNextSeq(runId: string): Promise<number> {
-    const [results] = await (
-      RunEvent as unknown as ModelClass<RunEvent>
-    ).query({
-      condition: field("run_id").equals(runId),
-      orderBy: "seq",
-      reverse: true,
-      limit: 1,
-      columns: ["seq"],
-    });
+    const db = getDb();
+    const rows = db.select({ seq: runEvents.seq }).from(runEvents)
+      .where(eq(runEvents.run_id, runId))
+      .orderBy(desc(runEvents.seq))
+      .limit(1)
+      .all();
 
-    if (results.length === 0) return 0;
-    return results[0].seq + 1;
+    if (rows.length === 0) return 0;
+    return rows[0].seq + 1;
   }
 
   /** Append a new event with automatic sequence number. */
@@ -122,7 +71,7 @@ export class RunEvent extends DBModel {
     nodeId?: string,
   ): Promise<RunEvent> {
     const seq = await RunEvent.getNextSeq(runId);
-    return (RunEvent as unknown as ModelClass<RunEvent>).create({
+    return RunEvent.create<RunEvent>({
       id: createTimeOrderedUuid(),
       run_id: runId,
       seq,
@@ -145,31 +94,21 @@ export class RunEvent extends DBModel {
     } = {},
   ): Promise<RunEvent[]> {
     const { seqGt, seqLte, eventType, nodeId, limit = 1000 } = opts;
+    const db = getDb();
 
-    let cond = field("run_id").equals(runId);
+    const conditions = [eq(runEvents.run_id, runId)];
+    if (seqGt !== undefined) conditions.push(gt(runEvents.seq, seqGt));
+    if (seqLte !== undefined) conditions.push(lte(runEvents.seq, seqLte));
+    if (eventType !== undefined) conditions.push(eq(runEvents.event_type, eventType));
+    if (nodeId !== undefined) conditions.push(eq(runEvents.node_id, nodeId));
 
-    if (seqGt !== undefined) {
-      cond = cond.and(field("seq").greaterThan(seqGt));
-    }
-    if (seqLte !== undefined) {
-      cond = cond.and(field("seq").lessThanOrEqual(seqLte));
-    }
-    if (eventType !== undefined) {
-      cond = cond.and(field("event_type").equals(eventType));
-    }
-    if (nodeId !== undefined) {
-      cond = cond.and(field("node_id").equals(nodeId));
-    }
+    const rows = db.select().from(runEvents)
+      .where(and(...conditions))
+      .orderBy(asc(runEvents.seq))
+      .limit(limit)
+      .all();
 
-    const [results] = await (
-      RunEvent as unknown as ModelClass<RunEvent>
-    ).query({
-      condition: cond,
-      orderBy: "seq",
-      limit,
-    });
-
-    return results;
+    return rows.map(r => new RunEvent(r as Record<string, unknown>));
   }
 
   /** Deserialize a RunEvent from a plain object (e.g. from JSON). */
@@ -190,24 +129,17 @@ export class RunEvent extends DBModel {
     runId: string,
     opts: { eventType?: EventType; nodeId?: string } = {},
   ): Promise<RunEvent | null> {
-    let cond = field("run_id").equals(runId);
+    const db = getDb();
+    const conditions = [eq(runEvents.run_id, runId)];
+    if (opts.eventType) conditions.push(eq(runEvents.event_type, opts.eventType));
+    if (opts.nodeId) conditions.push(eq(runEvents.node_id, opts.nodeId));
 
-    if (opts.eventType) {
-      cond = cond.and(field("event_type").equals(opts.eventType));
-    }
-    if (opts.nodeId) {
-      cond = cond.and(field("node_id").equals(opts.nodeId));
-    }
+    const rows = db.select().from(runEvents)
+      .where(and(...conditions))
+      .orderBy(desc(runEvents.seq))
+      .limit(1)
+      .all();
 
-    const [results] = await (
-      RunEvent as unknown as ModelClass<RunEvent>
-    ).query({
-      condition: cond,
-      orderBy: "seq",
-      reverse: true,
-      limit: 1,
-    });
-
-    return results.length > 0 ? results[0] : null;
+    return rows.length > 0 ? new RunEvent(rows[0] as Record<string, unknown>) : null;
   }
 }

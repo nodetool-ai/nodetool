@@ -4,15 +4,10 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import type { TableSchema } from "./database-adapter.js";
-import type { Row } from "./database-adapter.js";
-import {
-  DBModel,
-  createTimeOrderedUuid,
-  type IndexSpec,
-  type ModelClass,
-} from "./base-model.js";
-import { field } from "./condition-builder.js";
+import { eq, and, desc } from "drizzle-orm";
+import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import { getDb } from "./db.js";
+import { workflows } from "./schema/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -23,44 +18,8 @@ export interface WorkflowGraph {
   edges: Record<string, unknown>[];
 }
 
-// ── Schema ───────────────────────────────────────────────────────────
-
-const WORKFLOW_SCHEMA: TableSchema = {
-  table_name: "nodetool_workflows",
-  primary_key: "id",
-  columns: {
-    id: { type: "string" },
-    user_id: { type: "string" },
-    name: { type: "string" },
-    tool_name: { type: "string", optional: true },
-    description: { type: "string", optional: true },
-    tags: { type: "json", optional: true },
-    thumbnail: { type: "string", optional: true },
-    thumbnail_url: { type: "string", optional: true },
-    graph: { type: "json" },
-    settings: { type: "json", optional: true },
-    package_name: { type: "string", optional: true },
-    path: { type: "string", optional: true },
-    run_mode: { type: "string", optional: true },
-    workspace_id: { type: "string", optional: true },
-    html_app: { type: "string", optional: true },
-    receive_clipboard: { type: "boolean", optional: true },
-    access: { type: "string" },
-    created_at: { type: "datetime" },
-    updated_at: { type: "datetime" },
-  },
-};
-
-const WORKFLOW_INDEXES: IndexSpec[] = [
-  { name: "idx_workflows_user_id", columns: ["user_id"], unique: false },
-  { name: "idx_workflows_access", columns: ["access"], unique: false },
-];
-
-// ── Model ────────────────────────────────────────────────────────────
-
 export class Workflow extends DBModel {
-  static override schema = WORKFLOW_SCHEMA;
-  static override indexes = WORKFLOW_INDEXES;
+  static override table = workflows;
 
   declare id: string;
   declare user_id: string;
@@ -82,7 +41,7 @@ export class Workflow extends DBModel {
   declare created_at: string;
   declare updated_at: string;
 
-  constructor(data: Row) {
+  constructor(data: Record<string, unknown>) {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
@@ -103,7 +62,7 @@ export class Workflow extends DBModel {
     this.created_at ??= now;
     this.updated_at ??= now;
 
-    // SQLite stores booleans as 0/1
+    // Handle raw integer booleans from legacy data
     if (typeof this.receive_clipboard === "number") {
       this.receive_clipboard = this.receive_clipboard !== 0;
     }
@@ -116,7 +75,6 @@ export class Workflow extends DBModel {
 
   // ── Graph helpers ─────────────────────────────────────────────────
 
-  /** Check if the workflow graph contains trigger nodes. */
   hasTriggerNodes(): boolean {
     if (!this.graph || !this.graph.nodes) return false;
     return this.graph.nodes.some((node) => {
@@ -125,12 +83,10 @@ export class Workflow extends DBModel {
     });
   }
 
-  /** Check if this workflow has a tool_name set. */
   hasToolName(): boolean {
     return this.tool_name != null && this.tool_name !== "";
   }
 
-  /** Return the graph as a WorkflowGraph. */
   getGraph(): WorkflowGraph {
     return {
       nodes: this.graph?.nodes ?? [],
@@ -138,7 +94,6 @@ export class Workflow extends DBModel {
     };
   }
 
-  /** Alias for getGraph (matches Python's get_api_graph). */
   getApiGraph(): WorkflowGraph {
     return this.getGraph();
   }
@@ -150,15 +105,13 @@ export class Workflow extends DBModel {
     userId: string,
     workflowId: string,
   ): Promise<Workflow | null> {
-    const wf = await (Workflow as unknown as ModelClass<Workflow>).get(
-      workflowId,
-    );
+    const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
     if (wf.user_id === userId || wf.access === "public") return wf;
     return null;
   }
 
-  /** Paginate workflows for a user (includes their own + public). */
+  /** Paginate workflows for a user. */
   static async paginate(
     userId: string,
     opts: {
@@ -168,16 +121,23 @@ export class Workflow extends DBModel {
     } = {},
   ): Promise<[Workflow[], string]> {
     const { limit = 50, access, runMode } = opts;
-    let cond = field("user_id").equals(userId);
-    if (access) cond = cond.and(field("access").equals(access));
-    if (runMode) cond = cond.and(field("run_mode").equals(runMode));
+    const db = getDb();
 
-    return (Workflow as unknown as ModelClass<Workflow>).query({
-      condition: cond,
-      orderBy: "updated_at",
-      reverse: true,
-      limit,
-    });
+    const conditions = [eq(workflows.user_id, userId)];
+    if (access) conditions.push(eq(workflows.access, access));
+    if (runMode) conditions.push(eq(workflows.run_mode, runMode));
+
+    const rows = db.select().from(workflows)
+      .where(and(...conditions))
+      .orderBy(desc(workflows.updated_at))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 
   /** Paginate public workflows only. */
@@ -185,12 +145,18 @@ export class Workflow extends DBModel {
     opts: { limit?: number } = {},
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
-    return (Workflow as unknown as ModelClass<Workflow>).query({
-      condition: field("access").equals("public"),
-      orderBy: "updated_at",
-      reverse: true,
-      limit,
-    });
+    const db = getDb();
+    const rows = db.select().from(workflows)
+      .where(eq(workflows.access, "public"))
+      .orderBy(desc(workflows.updated_at))
+      .limit(limit + 1)
+      .all();
+
+    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    if (items.length <= limit) return [items, ""];
+    items.pop();
+    const cursor = items[items.length - 1]?.id ?? "";
+    return [items, cursor];
   }
 
   /** Paginate workflows that are configured as tools. */
@@ -199,21 +165,21 @@ export class Workflow extends DBModel {
     opts: { limit?: number } = {},
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
-    const cond = field("user_id")
-      .equals(userId)
-      .and(field("run_mode").equals("tool"));
+    const db = getDb();
+    const rows = db.select().from(workflows)
+      .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
+      .orderBy(desc(workflows.updated_at))
+      .limit(limit + 1)
+      .all();
 
-    const [results, cursor] = await (
-      Workflow as unknown as ModelClass<Workflow>
-    ).query({
-      condition: cond,
-      orderBy: "updated_at",
-      reverse: true,
-      limit,
-    });
-
-    // Filter to only those with a tool_name set (matches Python)
-    const tools = results.filter((w) => w.hasToolName());
+    const items = rows.map(r => new Workflow(r as Record<string, unknown>));
+    if (items.length <= limit) {
+      const tools = items.filter(w => w.hasToolName());
+      return [tools, ""];
+    }
+    items.pop();
+    const tools = items.filter(w => w.hasToolName());
+    const cursor = items[items.length - 1]?.id ?? "";
     return [tools, cursor];
   }
 
@@ -245,18 +211,15 @@ export class Workflow extends DBModel {
     userId: string,
     toolName: string,
   ): Promise<Workflow | null> {
-    const cond = field("user_id")
-      .equals(userId)
-      .and(field("tool_name").equals(toolName))
-      .and(field("run_mode").equals("tool"));
-
-    const [results] = await (
-      Workflow as unknown as ModelClass<Workflow>
-    ).query({
-      condition: cond,
-      limit: 1,
-    });
-
-    return results.length > 0 ? results[0] : null;
+    const db = getDb();
+    const row = db.select().from(workflows)
+      .where(and(
+        eq(workflows.user_id, userId),
+        eq(workflows.tool_name, toolName),
+        eq(workflows.run_mode, "tool"),
+      ))
+      .limit(1)
+      .get();
+    return row ? new Workflow(row as Record<string, unknown>) : null;
   }
 }
