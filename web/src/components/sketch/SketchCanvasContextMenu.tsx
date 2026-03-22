@@ -15,22 +15,6 @@ import {
   ToggleButtonGroup,
   Typography
 } from "@mui/material";
-import type { SvgIconProps } from "@mui/material/SvgIcon";
-import OpenWithIcon from "@mui/icons-material/OpenWith";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import BrushIcon from "@mui/icons-material/Brush";
-import CreateIcon from "@mui/icons-material/Create";
-import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
-import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
-import ColorizeIcon from "@mui/icons-material/Colorize";
-import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
-import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
-import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
-import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
-import BlurOnIcon from "@mui/icons-material/BlurOn";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import GradientIcon from "@mui/icons-material/Gradient";
-import CropIcon from "@mui/icons-material/Crop";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
@@ -52,33 +36,7 @@ import {
   parseColorToRgba,
   rgbaToCss
 } from "./types";
-
-type ToolIconComponent = React.ComponentType<SvgIconProps>;
-
-interface ToolDefinition {
-  tool: SketchTool;
-  label: string;
-  shortcut?: string;
-  Icon: ToolIconComponent;
-}
-
-const TOOL_DEFINITIONS: ToolDefinition[] = [
-  { tool: "move", label: "Move", shortcut: "V", Icon: OpenWithIcon },
-  { tool: "select", label: "Select", Icon: SelectAllIcon },
-  { tool: "brush", label: "Brush", shortcut: "B", Icon: BrushIcon },
-  { tool: "pencil", label: "Pencil", shortcut: "P", Icon: CreateIcon },
-  { tool: "eraser", label: "Eraser", shortcut: "E", Icon: AutoFixNormalIcon },
-  { tool: "fill", label: "Fill", shortcut: "G", Icon: FormatColorFillIcon },
-  { tool: "eyedropper", label: "Eyedropper", shortcut: "I", Icon: ColorizeIcon },
-  { tool: "blur", label: "Blur", shortcut: "Q", Icon: BlurOnIcon },
-  { tool: "clone_stamp", label: "Clone Stamp", shortcut: "S", Icon: ContentCopyIcon },
-  { tool: "line", label: "Line", shortcut: "L", Icon: HorizontalRuleIcon },
-  { tool: "rectangle", label: "Rectangle", shortcut: "R", Icon: RectangleOutlinedIcon },
-  { tool: "ellipse", label: "Ellipse", shortcut: "O", Icon: CircleOutlinedIcon },
-  { tool: "arrow", label: "Arrow", shortcut: "A", Icon: ArrowRightAltIcon },
-  { tool: "gradient", label: "Gradient", shortcut: "T", Icon: GradientIcon },
-  { tool: "crop", label: "Crop", shortcut: "C", Icon: CropIcon }
-];
+import { CONTEXT_MENU_TOOLS, getToolDefinition, type ToolDefinition } from "./toolDefinitions";
 
 const BRUSH_SIZE_PRESETS = [4, 12, 24, 48];
 const PENCIL_SIZE_PRESETS = [1, 3, 5, 8];
@@ -89,10 +47,6 @@ const BLUR_SIZE_PRESETS = [10, 20, 40, 60];
 const CLONE_STAMP_SIZE_PRESETS = [10, 20, 40, 80];
 const OPACITY_PRESETS = [0.25, 0.5, 0.75, 1];
 const STRENGTH_PRESETS = [2, 5, 10];
-
-function getToolDefinition(tool: SketchTool): ToolDefinition {
-  return TOOL_DEFINITIONS.find((item) => item.tool === tool) ?? TOOL_DEFINITIONS[0];
-}
 
 function getBrushTypeLabel(brushType: BrushType): string {
   switch (brushType) {
@@ -1197,7 +1151,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 gap: 0.7
               }}
             >
-              {TOOL_DEFINITIONS.map((definition) => (
+              {CONTEXT_MENU_TOOLS.map((definition) => (
                 <ToolGridButton
                   key={definition.tool}
                   definition={definition}
