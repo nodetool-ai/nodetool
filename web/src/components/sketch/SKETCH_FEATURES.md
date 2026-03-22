@@ -41,11 +41,11 @@ Fill, eraser, eyedropper: shipped — see **Appendix: Shipped — Phase 2 (to da
 - [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this is correct behavior matching Photoshop.
 - [x] **Performance** rAF-batched redraw coalesces layer compositing during active drawing (one redraw per animation frame instead of per pointer move event); reduces jank on large canvases
 - [x] **Performance** blur tool: cached temporary canvases (avoids 3 canvas allocations per pointer move); checkerboard: cached as CanvasPattern (avoids 262K fillRect calls per redraw on 4K canvases)
-- [ ] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
-- [ ] **Layers** remove up/down buttons, not needed with drag. add buttons for expose as input / output instead with arrow left / right
-- [ ] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
+- [x] **FIX ADJUSTMENTS** fixed: use synchronous canvas snapshots instead of slow async data URL encode/decode; adjustments now preview in real-time without degradation
+- [x] **Layers** removed up/down buttons (drag-to-reorder sufficient); expose input/output buttons already present with arrow indicators
+- [x] **Canvas show transparency as grid** fixed: transparent areas now show checkerboard grid instead of solid black; background color only applies to flattened export
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
-- [ ] **Improve Moving Tool** moving layer out of canvas bounds should not crop it
+- [x] **Improve Moving Tool** fixed: padded snapshot buffer preserves content when moving layer outside canvas bounds
 
 #### Brush types (engine / presets)
 

@@ -68,6 +68,8 @@ const styles = (theme: Theme) =>
 export interface SketchCanvasRef {
   getLayerData: (layerId: string) => string | null;
   setLayerData: (layerId: string, data: string | null) => void;
+  snapshotLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
+  restoreLayerCanvas: (layerId: string, source: HTMLCanvasElement) => void;
   flattenToDataUrl: () => string;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
@@ -358,12 +360,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
       drawCheckerboard(ctx, displayCanvas.width, displayCanvas.height);
 
-      const hasVisibleLayer = doc.layers.some((layer) => layer.visible);
-      if (hasVisibleLayer) {
-        ctx.fillStyle = doc.canvas.backgroundColor;
-        ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
-      }
-
       for (const layer of doc.layers) {
         if (!layer.visible) {
           continue;
@@ -384,7 +380,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.restore();
       }
-    }, [doc.layers, doc.canvas.backgroundColor, isolatedLayerId]);
+    }, [doc.layers, isolatedLayerId]);
 
     /**
      * Batched redraw using requestAnimationFrame.
@@ -1269,14 +1265,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           moveStartRef.current = pt;
           isDrawingRef.current = true;
           onStrokeStart();
-          // Snapshot the current layer content before moving
+          // Snapshot the current layer content before moving.
+          // Use a padded canvas so content is preserved when moved outside
+          // the visible bounds and then moved back.
           const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+          const pad = Math.max(layerCanvas.width, layerCanvas.height);
           const snapshot = window.document.createElement("canvas");
-          snapshot.width = layerCanvas.width;
-          snapshot.height = layerCanvas.height;
+          snapshot.width = layerCanvas.width + pad * 2;
+          snapshot.height = layerCanvas.height + pad * 2;
           const snapCtx = snapshot.getContext("2d");
           if (snapCtx) {
-            snapCtx.drawImage(layerCanvas, 0, 0);
+            snapCtx.drawImage(layerCanvas, pad, pad);
           }
           moveLayerSnapshotRef.current = snapshot;
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -1509,8 +1508,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
             const ctx = layerCanvas.getContext("2d");
             if (ctx) {
+              // The snapshot is padded; calculate the source offset to draw
+              // from so that content moved outside bounds is preserved.
+              const pad =
+                (moveLayerSnapshotRef.current.width - layerCanvas.width) / 2;
               ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
-              ctx.drawImage(moveLayerSnapshotRef.current, dx, dy);
+              ctx.drawImage(
+                moveLayerSnapshotRef.current,
+                pad - dx,
+                pad - dy,
+                layerCanvas.width,
+                layerCanvas.height,
+                0,
+                0,
+                layerCanvas.width,
+                layerCanvas.height
+              );
               requestRedraw();
             }
           }
@@ -1815,6 +1828,33 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           } else {
             redraw();
           }
+        },
+        snapshotLayerCanvas: (layerId: string) => {
+          const source = layerCanvasesRef.current.get(layerId);
+          if (!source) {
+            return null;
+          }
+          const snapshot = window.document.createElement("canvas");
+          snapshot.width = source.width;
+          snapshot.height = source.height;
+          const ctx = snapshot.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(source, 0, 0);
+          }
+          return snapshot;
+        },
+        restoreLayerCanvas: (
+          layerId: string,
+          source: HTMLCanvasElement
+        ) => {
+          const canvas = getOrCreateLayerCanvas(layerId);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            return;
+          }
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(source, 0, 0);
+          redraw();
         },
         flattenToDataUrl: () => {
           const canvas = window.document.createElement("canvas");

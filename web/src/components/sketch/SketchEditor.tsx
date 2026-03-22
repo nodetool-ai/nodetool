@@ -59,7 +59,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     x: number;
     y: number;
   } | null>(null);
-  const adjustmentBaseRef = useRef<string | null>(null);
+  const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const document = useSketchStore((s) => s.document);
@@ -737,25 +737,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     setPan({ x: 0, y: 0 });
   }, [setZoom, setPan]);
 
-  // ─── Layer reorder ─────────────────────────────────────────────────
-  const handleMoveLayerUp = useCallback(
-    (index: number) => {
-      if (index < document.layers.length - 1) {
-        handleReorderLayers(index, index + 1);
-      }
-    },
-    [document.layers.length, handleReorderLayers]
-  );
-
-  const handleMoveLayerDown = useCallback(
-    (index: number) => {
-      if (index > 0) {
-        handleReorderLayers(index, index - 1);
-      }
-    },
-    [handleReorderLayers]
-  );
-
   // ─── Adjustment preview (auto-apply with snapshot) ──────────────
   const handleAdjustmentPreview = useCallback(
     (brightness: number, contrast: number, saturation: number) => {
@@ -772,8 +753,12 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       if (allZero) {
         // Restore original and clear base
         if (adjustmentBaseRef.current !== null) {
-          canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
-          updateLayerData(layerId, adjustmentBaseRef.current);
+          canvasRef.current.restoreLayerCanvas(
+            layerId,
+            adjustmentBaseRef.current
+          );
+          const data = canvasRef.current.getLayerData(layerId);
+          updateLayerData(layerId, data);
           adjustmentBaseRef.current = null;
         }
         return;
@@ -781,12 +766,18 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
 
       // Save base snapshot on first non-zero call
       if (adjustmentBaseRef.current === null) {
-        adjustmentBaseRef.current = canvasRef.current.getLayerData(layerId);
+        adjustmentBaseRef.current =
+          canvasRef.current.snapshotLayerCanvas(layerId);
         pushHistory("adjustments");
       }
 
       // Restore from base, then apply adjustments
-      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
+      if (adjustmentBaseRef.current) {
+        canvasRef.current.restoreLayerCanvas(
+          layerId,
+          adjustmentBaseRef.current
+        );
+      }
       canvasRef.current.applyAdjustments(brightness, contrast, saturation);
       const data = canvasRef.current.getLayerData(layerId);
       updateLayerData(layerId, data);
@@ -803,8 +794,12 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       return;
     }
     if (adjustmentBaseRef.current !== null) {
-      canvasRef.current.setLayerData(layerId, adjustmentBaseRef.current);
-      updateLayerData(layerId, adjustmentBaseRef.current);
+      canvasRef.current.restoreLayerCanvas(
+        layerId,
+        adjustmentBaseRef.current
+      );
+      const data = canvasRef.current.getLayerData(layerId);
+      updateLayerData(layerId, data);
       adjustmentBaseRef.current = null;
     }
   }, [document.activeLayerId, updateLayerData]);
@@ -952,8 +947,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onAddLayer={handleAddLayer}
           onRemoveLayer={handleRemoveLayer}
           onDuplicateLayer={handleDuplicateLayer}
-          onMoveLayerUp={handleMoveLayerUp}
-          onMoveLayerDown={handleMoveLayerDown}
           onReorderLayers={handleReorderLayers}
           onSetMaskLayer={handleSetMaskLayer}
           onToggleAlphaLock={handleToggleAlphaLock}

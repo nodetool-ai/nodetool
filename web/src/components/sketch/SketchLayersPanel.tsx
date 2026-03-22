@@ -29,8 +29,6 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -228,8 +226,6 @@ export interface SketchLayersPanelProps {
   onAddLayer: (fillColor?: string | null) => void;
   onRemoveLayer: (layerId: string) => void;
   onDuplicateLayer: (layerId: string) => void;
-  onMoveLayerUp: (index: number) => void;
-  onMoveLayerDown: (index: number) => void;
   onReorderLayers: (fromIndex: number, toIndex: number) => void;
   onSetMaskLayer: (layerId: string | null) => void;
   onToggleAlphaLock: (layerId: string) => void;
@@ -256,8 +252,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onAddLayer,
   onRemoveLayer,
   onDuplicateLayer,
-  onMoveLayerUp,
-  onMoveLayerDown,
   onReorderLayers,
   onSetMaskLayer,
   onToggleAlphaLock,
@@ -654,31 +648,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                       <OutputIcon sx={{ fontSize: "11px" }} />
                     </IconButton>
                   </Tooltip>
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 0 }}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMoveLayerUp(realIdx);
-                    }}
-                    disabled={realIdx >= layers.length - 1}
-                    sx={{ padding: "2px" }}
-                  >
-                    <ArrowUpwardIcon sx={{ fontSize: "12px" }} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMoveLayerDown(realIdx);
-                    }}
-                    disabled={realIdx <= 0}
-                    sx={{ padding: "2px" }}
-                  >
-                    <ArrowDownwardIcon sx={{ fontSize: "12px" }} />
-                  </IconButton>
                 </Box>
               </Box>
             </Box>
