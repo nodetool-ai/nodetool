@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   useRightPanelStore,
   RightPanelView
@@ -30,6 +30,10 @@ export const useResizeRightPanel = (
   );
 
   const ref = useRef<HTMLDivElement>(null);
+  const dragHandlersRef = useRef<{
+    handleMouseMove?: ((e: MouseEvent) => void);
+    handleMouseUp?: (() => void);
+  }>({});
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
@@ -88,7 +92,10 @@ export const useResizeRightPanel = (
 
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        dragHandlersRef.current = {};
       };
+
+      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
@@ -97,6 +104,19 @@ export const useResizeRightPanel = (
     },
     [panelPosition, panel.panelSize, panel.activeView, actions]
   );
+
+  // Clean up any remaining drag event listeners on unmount
+  useEffect(() => {
+    return () => {
+      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
+      if (handleMouseMove) {
+        document.removeEventListener("mousemove", handleMouseMove);
+      }
+      if (handleMouseUp) {
+        document.removeEventListener("mouseup", handleMouseUp);
+      }
+    };
+  }, []);
 
   return {
     ref,
