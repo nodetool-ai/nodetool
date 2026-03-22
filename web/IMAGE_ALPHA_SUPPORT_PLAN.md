@@ -13,13 +13,16 @@ Goal: support transparent images consistently across the web app so alpha is pre
 
 ## Phase 1: Shared Visual Foundation
 
-- [ ] Decide on the common transparency treatment:
+- [x] Decide on the common transparency treatment:
   - Decision: use a subtle checkerboard-style alpha background for app-owned image preview surfaces.
   - Decision: do not add a user-facing toggle in the first pass.
   - Decision: keep the treatment visually quiet so opaque images still look normal.
-- [ ] Add a shared reusable wrapper or styling primitive for image surfaces.
-- [ ] Keep the visual treatment subtle enough to work in dark UI while still making transparency obvious.
-- [ ] Verify the shared treatment works for both `object-fit: contain` and `object-fit: cover` layouts.
+- [x] Add a shared reusable wrapper or styling primitive for image surfaces.
+  - Added `web/src/styles/AlphaSurface.ts` with `alphaSurfaceBg` (plain object) and `alphaSurfaceCss` (Emotion block).
+- [x] Keep the visual treatment subtle enough to work in dark UI while still making transparency obvious.
+  - Uses two low-contrast dark tones (`#1e1e1e` / `#2a2a2a`) with 12px tiles.
+- [x] Verify the shared treatment works for both `object-fit: contain` and `object-fit: cover` layouts.
+  - Verified: the tiled background renders independently of image sizing.
 - [ ] Keep layout changes minimal in the first pass:
   - no extra padding unless a specific surface truly needs it
   - do not change existing sizing or fit behavior unless a surface is too misleading without it
@@ -102,22 +105,22 @@ Goal: support transparent images consistently across the web app so alpha is pre
 ## Decisions
 
 - [x] Transparency treatment:
-  Use a subtle checkerboard-style alpha background on app-owned image preview surfaces. This gives a clear signal without making the UI feel noisy.
+      Use a subtle checkerboard-style alpha background on app-owned image preview surfaces. This gives a clear signal without making the UI feel noisy.
 
 - [x] Scope for first pass:
-  Apply the alpha-aware treatment to real image preview surfaces in the app, not every incidental or decorative image. No user-facing toggle in the first run.
+      Apply the alpha-aware treatment to real image preview surfaces in the app, not every incidental or decorative image. No user-facing toggle in the first run.
 
 - [x] Layout behavior:
-  Prefer minimal layout change in the first pass. Keep existing `contain` / `cover` behavior unless a specific surface proves too misleading without a fit change. Avoid adding extra padding unless it is truly needed for readability.
+      Prefer minimal layout change in the first pass. Keep existing `contain` / `cover` behavior unless a specific surface proves too misleading without a fit change. Avoid adding extra padding unless it is truly needed for readability.
 
 - [x] Reuse strategy:
-  Do not build a large global abstraction. Use one small shared alpha-surface primitive or styling helper, then keep per-surface layout behavior local and understandable.
+      Do not build a large global abstraction. Use one small shared alpha-surface primitive or styling helper, then keep per-surface layout behavior local and understandable.
 
 - [x] Backend dependency:
-  Assume the TypeScript backend path. Flat JPEG thumbnails are acceptable in the first pass. Do not scope work around `nodetool-core`, and do not require backend thumbnail changes for the initial rollout.
+      Assume the TypeScript backend path. Flat JPEG thumbnails are acceptable in the first pass. Do not scope work around `nodetool-core`, and do not require backend thumbnail changes for the initial rollout.
 
 - [x] Out of scope:
-  Exclude the current `ImageEditor` work from this plan because that area will be replaced soon.
+      Exclude the current `ImageEditor` work from this plan because that area will be replaced soon.
 
 ## Future Suggestions
 
