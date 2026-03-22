@@ -4,11 +4,12 @@ import {
   escapeHtml
 } from "../utils/highlightText";
 import { SplitNodeDescription } from "./NodeMenuStore";
+import type { NodeMetadata } from "./ApiTypes";
 
 export const formatNodeDocumentation = (
   fullDocumentation: string,
   searchTerm?: string,
-  searchInfo?: any
+  searchInfo?: NodeMetadata["searchInfo"]
 ): SplitNodeDescription => {
   const safeDocumentation = (fullDocumentation ?? "").toString();
   const lines = safeDocumentation.split("\n").map((line) => line.trim());

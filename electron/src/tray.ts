@@ -1,17 +1,114 @@
 import { Tray, Menu, app, BrowserWindow, shell } from "electron";
 import path from "path";
+import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createWindow, createLogViewerWindow } from "./window";
+import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow } from "./window";
 import { execSync } from "child_process";
-import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
+import {
+  stopServer,
+  initializeBackendServer,
+  isServerRunning,
+  getServerState,
+  isOllamaRunning,
+  isLlamaServerRunning,
+  startOllamaService,
+  stopOllamaService,
+  startLlamaCppService,
+  stopLlamaCppService,
+  isOllamaResponsive,
+  isLlamaServerResponsive,
+} from "./server";
 import { fetchWorkflows } from "./api";
-import { readSettings, updateSetting } from "./settings";
+import {
+  readSettings,
+  readSettingsAsync,
+  updateSetting,
+  getModelServiceStartupSettings,
+  updateModelServiceStartupSettings,
+} from "./settings";
 import { createMiniAppWindow, createChatWindow } from "./workflowWindow";
 import type { Workflow } from "./types";
 import { EventEmitter } from "events";
+import { getOllamaPath, getLlamaServerPath, getCondaEnvPath } from "./config";
+import { ensureOllamaInstalled, ensureLlamaCppInstalled } from "./installer";
 
 let trayInstance: Electron.Tray | null = null;
+
+function formatNodeToolStatus(connected: boolean, port?: number): string {
+  return connected
+    ? `NodeTool: Running${port ? ` on ${port}` : ""}`
+    : "NodeTool: Stopped";
+}
+
+function formatModelServiceStatus(
+  name: string,
+  running: boolean,
+  externalManaged: boolean | undefined,
+  port?: number
+): string {
+  if (running) {
+    return `${name}: Running${port ? ` on ${port}` : ""} (managed)`;
+  }
+  if (externalManaged) {
+    return `${name}: Running externally${port ? ` on ${port}` : ""}`;
+  }
+  return `${name}: Stopped`;
+}
+
+async function detectOllamaStatus(
+  preferredPort?: number,
+): Promise<{ running: boolean; external: boolean; port?: number }> {
+  const candidatePorts = Array.from(
+    new Set([preferredPort, 11434, 11435].filter((value): value is number => typeof value === "number"))
+  );
+  for (const port of candidatePorts) {
+    if (await isOllamaResponsive(port)) {
+      return {
+        running: true,
+        external: true,
+        port,
+      };
+    }
+  }
+  return { running: false, external: false, port: preferredPort };
+}
+
+async function detectLlamaStatus(
+  preferredPort?: number,
+): Promise<{ running: boolean; external: boolean; port?: number }> {
+  const candidatePorts = Array.from(
+    new Set([preferredPort, 8080].filter((value): value is number => typeof value === "number"))
+  );
+  for (const port of candidatePorts) {
+    if (await isLlamaServerResponsive(port)) {
+      return {
+        running: true,
+        external: true,
+        port,
+      };
+    }
+  }
+  return { running: false, external: false, port: preferredPort };
+}
+
+async function isOllamaInstalled(): Promise<boolean> {
+  try {
+    await fs.access(getOllamaPath());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isLlamaCppInstalled(): Promise<boolean> {
+  try {
+    await fs.access(getLlamaServerPath());
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Internal event emitter for main-process events.
@@ -217,10 +314,10 @@ function focusNodeTool(): void {
 
 /**
  * Gets menu items for the close behavior settings.
+ * @param {Record<string, any>} settings - The current application settings
  * @returns {Electron.MenuItemConstructorOptions[]} Menu items for close behavior
  */
-function getCloseBehaviorMenuItems(): Electron.MenuItemConstructorOptions[] {
-  const settings = readSettings();
+function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.MenuItemConstructorOptions[] {
   const currentAction = settings.windowCloseAction;
 
   return [
@@ -295,24 +392,43 @@ function buildWorkflowsSubmenu(workflows: Workflow[]): Electron.MenuItemConstruc
 async function updateTrayMenu(): Promise<void> {
   if (!trayInstance) return;
 
+  const settings = await readSettingsAsync();
   const connected = await isServerRunning();
-  const statusIndicator = connected ? "🟢" : "🔴";
   const ollamaRunning = isOllamaRunning();
   const llamaServerRunning = isLlamaServerRunning();
   const state = getServerState();
-  const backendLabel = connected
-    ? `${statusIndicator} NodeTool: ${state.serverPort ?? "unknown"}`
-    : `${statusIndicator} NodeTool: stopped`;
-  const ollamaLabel = ollamaRunning
-    ? `🟢 Ollama: ${state.ollamaPort ?? "unknown"}`
-    : state.ollamaExternalManaged
-      ? `🟢 Ollama (external): ${state.ollamaPort ?? "unknown"}`
-      : "🔴 Ollama: stopped";
-  const llamaLabel = llamaServerRunning
-    ? `🟢 Llama.cpp: ${state.llamaPort ?? "unknown"}`
-    : state.llamaExternalManaged
-      ? `🟢 Llama.cpp (external): ${state.llamaPort ?? "unknown"}`
-      : "🔴 Llama.cpp: stopped";
+  const startupSettings = getModelServiceStartupSettings(settings);
+  const ollamaDetected = await detectOllamaStatus(state.ollamaPort);
+  const llamaDetected = await detectLlamaStatus(state.llamaPort);
+  const ollamaInstalledInEnv = await isOllamaInstalled();
+  const llamaCppInstalledInEnv = await isLlamaCppInstalled();
+  const ollamaManagedRunning = ollamaRunning;
+  const llamaManagedRunning = llamaServerRunning;
+  const ollamaRunningResolved = ollamaManagedRunning || ollamaDetected.running;
+  const llamaRunningResolved = llamaManagedRunning || llamaDetected.running;
+  const ollamaExternalResolved = !ollamaManagedRunning && ollamaDetected.running;
+  const llamaExternalResolved = !llamaManagedRunning && llamaDetected.running;
+  if (ollamaDetected.port && state.ollamaPort !== ollamaDetected.port) {
+    state.ollamaPort = ollamaDetected.port;
+  }
+  state.ollamaExternalManaged = ollamaExternalResolved;
+  if (llamaDetected.port && state.llamaPort !== llamaDetected.port) {
+    state.llamaPort = llamaDetected.port;
+  }
+  state.llamaExternalManaged = llamaExternalResolved;
+  const nodeToolLabel = formatNodeToolStatus(connected, state.serverPort);
+  const ollamaLabel = formatModelServiceStatus(
+    "Ollama",
+    ollamaRunningResolved,
+    ollamaExternalResolved,
+    ollamaDetected.port ?? state.ollamaPort
+  );
+  const llamaLabel = formatModelServiceStatus(
+    "Llama.cpp",
+    llamaRunningResolved,
+    llamaExternalResolved,
+    llamaDetected.port ?? state.llamaPort
+  );
 
   // Fetch workflows if connected
   let workflows: Workflow[] = [];
@@ -328,7 +444,7 @@ async function updateTrayMenu(): Promise<void> {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: backendLabel,
+      label: nodeToolLabel,
       enabled: false,
     },
     {
@@ -338,6 +454,162 @@ async function updateTrayMenu(): Promise<void> {
     {
       label: llamaLabel,
       enabled: false,
+    },
+    {
+      label: "Managed Model Services",
+      submenu: [
+        {
+          label: "Ollama",
+          submenu: [
+            {
+              label: ollamaLabel,
+              enabled: false,
+            },
+            ...(ollamaInstalledInEnv
+              ? [
+                  {
+                    label: "Start Ollama",
+                    enabled: !ollamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await startOllamaService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to start Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                  {
+                    label: "Stop Ollama",
+                    enabled: ollamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await stopOllamaService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to stop Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]
+              : [
+                  {
+                    label: "Install Ollama",
+                    click: async () => {
+                      try {
+                        logMessage("Installing Ollama from tray...", "info");
+                        await ensureOllamaInstalled(getCondaEnvPath());
+                        logMessage("Ollama installation complete", "info");
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to install Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]),
+          ],
+        },
+        {
+          label: "Llama.cpp",
+          submenu: [
+            {
+              label: llamaLabel,
+              enabled: false,
+            },
+            ...(llamaCppInstalledInEnv
+              ? [
+                  {
+                    label: "Start Llama.cpp",
+                    enabled: !llamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await startLlamaCppService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to start Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                  {
+                    label: "Stop Llama.cpp",
+                    enabled: llamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await stopLlamaCppService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to stop Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]
+              : [
+                  {
+                    label: "Install Llama.cpp",
+                    click: async () => {
+                      try {
+                        logMessage("Installing Llama.cpp from tray...", "info");
+                        await ensureLlamaCppInstalled(getCondaEnvPath());
+                        logMessage("Llama.cpp installation complete", "info");
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to install Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]),
+          ],
+        },
+        { type: "separator" },
+        {
+          label: "Start Ollama on App Startup",
+          type: "checkbox",
+          checked: startupSettings.startOllamaOnStartup,
+          click: () => {
+            updateModelServiceStartupSettings({
+              startOllamaOnStartup: !startupSettings.startOllamaOnStartup,
+            });
+            logMessage(
+              `Tray updated startup setting: startOllamaOnStartup=${!startupSettings.startOllamaOnStartup}`,
+              "info"
+            );
+            void updateTrayMenu();
+          },
+        },
+        {
+          label: "Start Llama.cpp on App Startup",
+          type: "checkbox",
+          checked: startupSettings.startLlamaCppOnStartup,
+          click: () => {
+            updateModelServiceStartupSettings({
+              startLlamaCppOnStartup: !startupSettings.startLlamaCppOnStartup,
+            });
+            logMessage(
+              `Tray updated startup setting: startLlamaCppOnStartup=${!startupSettings.startLlamaCppOnStartup}`,
+              "info"
+            );
+            void updateTrayMenu();
+          },
+        },
+      ],
     },
     {
       label: "Start Service",
@@ -390,12 +662,16 @@ async function updateTrayMenu(): Promise<void> {
       click: () => createLogViewerWindow(),
     },
     {
+      label: "Settings",
+      click: () => createSettingsWindow(),
+    },
+    {
       label: "Open Log File",
       click: () => {
         shell.openPath(LOG_FILE);
       },
     },
-    ...getCloseBehaviorMenuItems(),
+    ...getCloseBehaviorMenuItems(settings),
     { type: "separator" },
     { label: "Quit NodeTool", role: "quit" },
   ]);

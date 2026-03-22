@@ -1,7 +1,7 @@
 import React from "react";
-import { Box, Fab } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { CreateFab } from "../../ui_primitives";
 
 interface NewChatButtonProps {
   onNewThread: () => void;
@@ -10,47 +10,41 @@ interface NewChatButtonProps {
 export const NewChatButton: React.FC<NewChatButtonProps> = ({
   onNewThread
 }) => {
-  const theme = useTheme();
   return (
     <Box className="new-chat-section">
-      <Fab
-        className={`new-chat-button`}
+      <CreateFab
+        className="new-chat-button"
+        icon={<AddIcon sx={{ fontSize: "1.3rem" }} />}
+        label="New Chat"
+        tooltip="Start a new chat"
         onClick={onNewThread}
-        variant="extended"
-        aria-label="New Chat"
-        sx={{
-          width: "calc(100% - 32px)",
-          margin: "16px",
-          height: "48px",
+        fabColor="default"
+        nodrag={false}
+        sx={(theme) => ({
+          height: "2.75em",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
-          borderRadius: "16px",
-          color: "primary.contrastText",
-          background: (theme as any).vars.palette.primary.main,
-          boxShadow: `0 4px 20px ${(theme as any).vars.palette.primary.main}40`,
-          textTransform: "none",
-          fontWeight: 600,
-          fontSize: "0.95rem",
-          letterSpacing: "0.02em",
+          border: `1px solid ${theme.vars.palette.grey[600]}`,
+          borderRadius: ".5em",
+          color: theme.vars.palette.text.primary,
+          background: theme.vars.palette.grey[800],
+          boxShadow: "2px 2px 0px var(--palette-grey-600)",
+          fontSize: "var(--fontSizeSmaller)",
+          fontWeight: 300,
+          textTransform: "uppercase",
           justifyContent: "center",
-          border: "1px solid rgba(255,255,255,0.1)",
-          
+          transition: "all 0.1s ease-in-out",
           "&:hover": {
-            background: (theme as any).vars.palette.primary.light,
-            boxShadow: `0 8px 30px ${(theme as any).vars.palette.primary.main}60`,
-            border: "1px solid rgba(255,255,255,0.2)",
+            background: theme.vars.palette.grey[700],
+            boxShadow: "0px 0px 3px var(--palette-grey-500)",
+            border: `1px solid ${theme.vars.palette.grey[700]}`
           },
           "&:active": {
-            boxShadow: `0 2px 10px ${(theme as any).vars.palette.primary.main}40`,
-          },
-          "& svg": {
-             fontSize: "1.3rem",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)"
           }
-        }}
-      >
-        <AddIcon sx={{ mr: 1 }} /> New Chat
-      </Fab>
+        })}
+      />
     </Box>
   );
 };

@@ -1,33 +1,28 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { TTSModel } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
+import { BASE_URL } from "../../stores/BASE_URL";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface TTSModelSelectProps {
-  onChange: (value: any) => void;
-  value: any; // Can be string (legacy) or TTSModel object
+  onChange: (value: TTSModelValue) => void;
+  value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const loadTTSModels = useCallback(async () => {
-    const { data, error } = await client.GET(
-      "/api/models/{model_type}" as any,
-      {
-        params: { path: { model_type: "tts" } }
-      }
-    );
-    if (error) {
-      throw error;
+    const res = await fetch(`${BASE_URL}/api/models/tts`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch TTS models: ${res.status}`);
     }
-    return data as unknown as TTSModel[];
+    return (await res.json()) as TTSModel[];
   }, []);
 
   const { data: models } = useQuery({
@@ -58,12 +53,12 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     return "";
   }, [value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -83,7 +78,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -115,11 +110,16 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     }));
   }, [currentSelectedModelDetails?.voices]);
 
+  const containerStyle = useMemo(() => ({
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    gap: "4px"
+  }), []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <div style={containerStyle}>
       <ModelSelectButton
         ref={buttonRef}
-        className="tts-model-button"
         active={!!modelId}
         label={
           currentSelectedModelDetails?.name || modelId || "Select TTS Model"
@@ -141,7 +141,8 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
       )}
 
       <TTSModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
       />
@@ -149,4 +150,4 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
   );
 };
 
-export default React.memo(TTSModelSelect, isEqual);
+export default memo(TTSModelSelect, isEqual);

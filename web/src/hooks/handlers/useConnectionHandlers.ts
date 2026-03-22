@@ -1,10 +1,15 @@
 import { useCallback, useRef } from "react";
-import { OnConnectStartParams, Connection } from "@xyflow/react";
+import { Connection, type OnConnectStart, type OnConnectEnd } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import useConnectionStore from "../../stores/ConnectionStore";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { isConnectable, Slugify, typeToString } from "../../utils/TypeHandler";
-import { findOutputHandle, findInputHandle } from "../../utils/handleUtils";
+import {
+  findOutputHandle,
+  findInputHandle,
+  getAllInputHandles,
+  getAllOutputHandles
+} from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -13,6 +18,8 @@ import {
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
 import { wouldCreateCycle } from "../../utils/graphCycle";
+import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
+import log from "loglevel";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -66,22 +73,22 @@ export default function useConnectionHandlers() {
   const { openContextMenu } = useContextMenu();
 
   /* CONNECT START */
-  const onConnectStart = useCallback(
-    (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
+  const onConnectStart: OnConnectStart = useCallback(
+    (event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
-        console.warn("Missing required data for connection start");
+        log.warn("Missing required data for connection start");
         return;
       }
 
       const node = findNode(nodeId);
       if (!node) {
-        console.warn(`Node with id ${nodeId} not found`);
+        log.warn(`Node with id ${nodeId} not found`);
         return;
       }
 
       const nodeMetadata = getMetadata(node.type || "");
       if (!nodeMetadata) {
-        console.warn(`Metadata for node type ${node.type} not found`);
+        log.warn(`Metadata for node type ${node.type} not found`);
         return;
       }
 
@@ -90,12 +97,12 @@ export default function useConnectionHandlers() {
       try {
         const node = findNode(nodeId);
         if (!node) {
-          console.warn(`Node with id ${nodeId} not found`);
+          log.warn(`Node with id ${nodeId} not found`);
           return;
         }
         startConnecting(node, handleId, handleType, nodeMetadata);
       } catch (error) {
-        console.error("Error starting connection:", error);
+        log.error("Error starting connection:", error);
         endConnecting();
       }
     },
@@ -109,20 +116,43 @@ export default function useConnectionHandlers() {
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
       if (!sourceNode || !targetNode) {
-        console.warn("Invalid source or target node", { source, target });
+        log.warn("Invalid source or target node", { source, target });
         return;
       }
       if (!sourceHandle || !targetHandle) {
-        console.warn(
+        log.warn(
           `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
         );
         return;
       }
+
+      // Control edge: skip type validation, delegate to NodeStore
+      if (targetHandle === CONTROL_HANDLE_ID || sourceHandle === CONTROL_HANDLE_ID) {
+        if (wouldCreateCycle(edges, source, target)) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: "Cannot create a cyclic connection"
+          });
+          return;
+        }
+        // Normalize: control edges always use __control__ for both handles
+        const controlConnection: Connection = {
+          source,
+          sourceHandle: CONTROL_HANDLE_ID,
+          target,
+          targetHandle: CONTROL_HANDLE_ID
+        };
+        connectionCreated.current = true;
+        onConnect(controlConnection);
+        return;
+      }
+
       const sourceMetadata = getMetadata(sourceNode.type || "");
       const targetMetadata = getMetadata(targetNode.type || "");
 
       if (!sourceMetadata || !targetMetadata) {
-        console.warn("Missing metadata for source or target node");
+        log.warn("Missing metadata for source or target node");
         return;
       }
 
@@ -140,17 +170,16 @@ export default function useConnectionHandlers() {
         targetNode.data.dynamic_properties[targetHandle] !== undefined;
 
       if (!sourceHandleMetadata) {
-        console.warn(`Invalid source handle. Source: ${sourceHandle}`);
+        log.warn(`Invalid source handle. Source: ${sourceHandle}`);
         return;
       }
 
       if (!targetHandleMetadata && !isDynamicProperty) {
-        console.warn(`Invalid target handle. Target: ${targetHandle}`);
+        log.warn(`Invalid target handle. Target: ${targetHandle}`);
         return;
       }
 
       if (
-        isDynamicProperty ||
         isConnectable(
           sourceHandleMetadata.type,
           targetHandleMetadata?.type || {
@@ -226,8 +255,14 @@ export default function useConnectionHandlers() {
   );
 
   /* CONNECT END */
-  const onConnectEnd = useCallback(
-    (event: any) => {
+  const onConnectEnd: OnConnectEnd = useCallback(
+    (event, _connectionState) => {
+      // Only handle mouse events, not touch events
+      // Note: In tests, event may be a mock object that doesn't inherit from MouseEvent
+      if (event instanceof TouchEvent) {
+        return;
+      }
+
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
       if (!connectNodeId || !connectHandleId || !connectType) {
@@ -237,19 +272,45 @@ export default function useConnectionHandlers() {
       if (!connectNode) {
         return;
       }
+
+      // Type guard to ensure event.target is an HTMLElement
+      // Note: For production code, we check instanceof HTMLElement
+      // For tests, we check if target has the necessary properties
+      const target = event.target;
+      if (!target) {
+        return;
+      }
+      // Check if target is an HTMLElement OR has the necessary properties for tests
+      const isHTMLElement = target instanceof HTMLElement;
+      const hasTestProperties =
+        "classList" in target &&
+        "closest" in target &&
+        typeof target.classList === "object" &&
+        typeof target.closest === "function";
+
+      if (!isHTMLElement && !hasTestProperties) {
+        return;
+      }
+
+      // Cast target to HTMLElement for production use or test mocks
+      const htmlTarget = target as HTMLElement;
       const targetIsGroup = findClassNameinElementOrParents(
-        event.target,
+        htmlTarget,
         "loop-node"
       );
-      const targetIsPane = event.target.classList.contains("react-flow__pane");
+      const targetIsPane = htmlTarget.classList.contains("react-flow__pane");
       const targetIsNode =
-        event.target.closest(".react-flow__node") !== null &&
+        htmlTarget.closest(".react-flow__node") !== null &&
         !targetIsGroup &&
         !targetIsPane;
 
       // targetIsNode: try to auto-connect or create dynamic property
       if (!connectionCreated.current && targetIsNode) {
-        const nodeId = event.target.closest(".react-flow__node").dataset.id;
+        const closestNode = htmlTarget.closest(".react-flow__node") as HTMLElement | null;
+        const nodeId = closestNode?.dataset.id;
+        if (!nodeId) {
+          return;
+        }
         const node = findNode(nodeId);
         if (!node) {
           return;
@@ -257,7 +318,7 @@ export default function useConnectionHandlers() {
 
         const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
-          console.warn(`Metadata for node type ${node.type} not found`);
+          log.warn(`Metadata for node type ${node.type} not found`);
           return;
         }
 
@@ -267,7 +328,13 @@ export default function useConnectionHandlers() {
         ) {
           const sourceNodeType = connectNode.type?.split(".").pop();
           const dynamicOutputs = node.data?.dynamic_outputs || {};
-          const sourceHandle = sourceNodeType || connectHandleId || "";
+          const baseHandle = sourceNodeType || connectHandleId || "";
+          let sourceHandle = baseHandle;
+          let counter = 1;
+          while (sourceHandle in dynamicOutputs) {
+            sourceHandle = `${baseHandle}_${counter}`;
+            counter++;
+          }
           const dynamicOutput = {
             type: connectType?.type || "",
             optional: false,
@@ -292,47 +359,6 @@ export default function useConnectionHandlers() {
           return;
         }
 
-        // Handle dynamic properties case
-        if (nodeMetadata.is_dynamic && connectDirection === "source") {
-          // Use the source node's name as the property name
-          const sourceNodeName =
-            connectNode.data?.title ||
-            connectNode.type?.split(".").pop() ||
-            connectHandleId ||
-            "";
-          const dynamicProps = node.data?.dynamic_properties || {};
-
-          // Find a unique name if the property already exists
-          let propertyName = sourceNodeName;
-          let counter = 1;
-          while (dynamicProps[propertyName]) {
-            propertyName = `${sourceNodeName}_${counter}`;
-            counter++;
-          }
-
-          const newConnection = {
-            source: connectNodeId || "",
-            sourceHandle: connectHandleId || "",
-            target: nodeId,
-            targetHandle: propertyName,
-            className: Slugify(connectType?.type || "")
-          };
-
-          // Create the dynamic property
-          if (!dynamicProps[propertyName]) {
-            const updatedProps = {
-              ...dynamicProps,
-              [propertyName]: ""
-            };
-            updateNodeData(nodeId, {
-              dynamic_properties: updatedProps
-            });
-          }
-
-          handleOnConnect(newConnection);
-          endConnecting();
-          return;
-        }
 
         // Auto-connect for reroute nodes regardless of drop location
         if (nodeMetadata.node_type === REROUTE_NODE_TYPE) {
@@ -377,15 +403,29 @@ export default function useConnectionHandlers() {
           return;
         }
 
+        // Auto-create control edge when dragging from an Agent's control handle onto a node body
+        if (
+          connectDirection === "source" &&
+          connectHandleId === CONTROL_HANDLE_ID
+        ) {
+          const controlConnection: Connection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: CONTROL_HANDLE_ID
+          };
+          handleOnConnect(controlConnection);
+          endConnecting();
+          return;
+        }
+
         // Generic fallback: pick compatible handle(s)
         if (connectType) {
           if (connectDirection === "source") {
-            const matchingInputs =
-              (nodeMetadata.properties || []).filter(
-                (property) =>
-                  property?.type &&
-                  isConnectable(connectType, property.type, true)
-              ) ?? [];
+            const allInputs = getAllInputHandles(node, nodeMetadata);
+            const matchingInputs = allInputs.filter(
+              (handle) => isConnectable(connectType, handle.type, true)
+            );
 
             if (matchingInputs.length === 1) {
               const matchingInput = matchingInputs[0];
@@ -402,16 +442,15 @@ export default function useConnectionHandlers() {
 
             if (matchingInputs.length > 1) {
               const options: ConnectionMatchOption[] = matchingInputs.map(
-                (property) => ({
-                  id: property.name,
-                  label: property.title || property.name,
-                  description: property.description || undefined,
-                  typeLabel: typeToString(property.type),
+                (handle) => ({
+                  id: handle.name,
+                  label: handle.name,
+                  typeLabel: typeToString(handle.type),
                   connection: {
                     source: connectNodeId || "",
                     sourceHandle: connectHandleId || "",
                     target: nodeId,
-                    targetHandle: property.name
+                    targetHandle: handle.name
                   }
                 })
               );
@@ -420,11 +459,10 @@ export default function useConnectionHandlers() {
               }
             }
           } else if (connectDirection === "target") {
-            const matchingOutputs =
-              (nodeMetadata.outputs || []).filter(
-                (output) =>
-                  output?.type && isConnectable(output.type, connectType, true)
-              ) ?? [];
+            const allOutputs = getAllOutputHandles(node, nodeMetadata);
+            const matchingOutputs = allOutputs.filter(
+              (handle) => isConnectable(handle.type, connectType, true)
+            );
 
             if (matchingOutputs.length === 1) {
               const matchingOutput = matchingOutputs[0];
@@ -441,13 +479,13 @@ export default function useConnectionHandlers() {
 
             if (matchingOutputs.length > 1) {
               const options: ConnectionMatchOption[] = matchingOutputs.map(
-                (output) => ({
-                  id: output.name,
-                  label: output.name,
-                  typeLabel: typeToString(output.type),
+                (handle) => ({
+                  id: handle.name,
+                  label: handle.name,
+                  typeLabel: typeToString(handle.type),
                   connection: {
                     source: nodeId,
-                    sourceHandle: output.name,
+                    sourceHandle: handle.name,
                     target: connectNodeId || "",
                     targetHandle: connectHandleId || ""
                   }
@@ -459,10 +497,63 @@ export default function useConnectionHandlers() {
             }
           }
         }
+
+        // Handle dynamic properties case (if no auto-connection was possible)
+        // Note: For FAL nodes, we only want inputs derived from the schema, so we skip manual creation.
+        if (
+          nodeMetadata.is_dynamic &&
+          connectDirection === "source" &&
+          node.type !== "fal.DynamicFal" &&
+          node.type !== "kie.DynamicKie"
+        ) {
+          // Use the source node's name as the property name
+          const sourceNodeName =
+            connectNode.data?.title ||
+            connectNode.type?.split(".").pop() ||
+            connectHandleId ||
+            "";
+          const dynamicProps = node.data?.dynamic_properties || {};
+
+          // Find a unique name if the property already exists
+          let propertyName = sourceNodeName;
+          let counter = 1;
+          while (dynamicProps[propertyName]) {
+            propertyName = `${sourceNodeName}_${counter}`;
+            counter++;
+          }
+
+          const newConnection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: propertyName,
+            className: Slugify(connectType?.type || "")
+          };
+
+          // Create the dynamic property
+          if (!dynamicProps[propertyName]) {
+            const updatedProps = {
+              ...dynamicProps,
+              [propertyName]: ""
+            };
+            updateNodeData(nodeId, {
+              dynamic_properties: updatedProps
+            });
+          }
+
+          handleOnConnect(newConnection);
+          endConnecting();
+          return;
+        }
       }
 
-      // targetIsPane: open context menu for output
-      if (!connectionCreated.current && (targetIsPane || targetIsGroup)) {
+      // targetIsPane: open context menu for output (skip during edge reconnection)
+      const { isReconnecting } = useConnectionStore.getState();
+      if (
+        !connectionCreated.current &&
+        !isReconnecting &&
+        (targetIsPane || targetIsGroup)
+      ) {
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
@@ -475,6 +566,9 @@ export default function useConnectionHandlers() {
           );
         }
         if (connectDirection === "target") {
+          // Get min/max/default from ConnectionStore before it gets reset
+          const { connectMin, connectMax, connectDefault } =
+            useConnectionStore.getState();
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
@@ -482,7 +576,10 @@ export default function useConnectionHandlers() {
             event.clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
-            connectHandleId || ""
+            connectHandleId || "",
+            undefined,
+            undefined,
+            { connectMin, connectMax, connectDefault } // Pass min/max/default through payload
           );
         }
       }

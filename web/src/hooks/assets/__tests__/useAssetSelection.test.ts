@@ -1,6 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
 import { useAssetSelection } from "../useAssetSelection";
-import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
 
 jest.mock("../../../stores/KeyPressedStore", () => ({

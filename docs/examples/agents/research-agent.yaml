@@ -1,0 +1,57 @@
+# Research Agent Configuration
+# This agent conducts web research and synthesizes findings
+
+name: research-assistant
+description: Autonomous research agent for gathering and synthesizing information
+
+# System prompt that defines agent behavior
+system_prompt: |
+  You are a research assistant specializing in thorough, accurate information gathering.
+  
+  Your workflow:
+  1. Break down research objectives into specific queries
+  2. Use search tools to find relevant sources
+  3. Extract and verify information from credible sources
+  4. Organize findings systematically in the workspace
+  5. Synthesize results into a comprehensive, well-structured report
+  
+  Guidelines:
+  - Prioritize authoritative and recent sources
+  - Cross-reference information across multiple sources
+  - Cite sources clearly
+  - Note any conflicting information or uncertainties
+  - Structure findings logically and coherently
+
+# Model configuration
+model:
+  provider: openai  # Options: openai, anthropic, google, ollama, etc.
+  id: gpt-4o        # Model identifier
+  name: GPT-4o      # Display name (optional)
+
+# Planning agent configuration
+# The planning agent breaks down tasks and coordinates execution
+planning_agent:
+  enabled: true  # Always true for agent command
+  model:
+    provider: openai
+    id: gpt-4o-mini  # Planning can use a faster/cheaper model
+    name: GPT-4o Mini
+
+# Available tools for the agent
+tools:
+  - google_search   # Web search capability
+  - browser         # Browse and extract web page content
+  - write_file      # Save research findings
+  - read_file       # Read previously saved files
+  - list_directory  # List workspace files
+
+# Execution parameters
+max_tokens: 8192          # Maximum response length
+context_window: 8192      # Context window size
+temperature: 0.7          # Response randomness (0.0 - 1.0)
+max_iterations: 10        # Maximum planning/execution cycles
+
+# Workspace configuration
+workspace:
+  path: ~/.nodetool-workspaces/research  # Agent workspace directory
+  auto_create: true                      # Create workspace if it doesn't exist

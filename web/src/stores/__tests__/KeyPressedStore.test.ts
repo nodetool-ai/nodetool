@@ -1,7 +1,6 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import {
   useKeyPressedStore,
-  initKeyListeners,
   registerComboCallback,
   unregisterComboCallback
 } from "../KeyPressedStore";
@@ -269,6 +268,190 @@ describe("KeyPressedStore", () => {
       });
 
       expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("does not execute copy callback when an input element is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("c+control", { callback, preventDefault: false });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", {
+        key: "c",
+        ctrlKey: true
+      });
+      act(() => {
+        setKeysPressed({ control: true, c: true }, event);
+      });
+
+      // The global copy callback should NOT fire when input is focused
+      expect(callback).not.toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("c+control");
+    });
+
+    it("does not execute copy callback when a textarea is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("c+meta", { callback, preventDefault: false });
+
+      // Create and focus a textarea element
+      const textarea = document.createElement("textarea");
+      document.body.appendChild(textarea);
+      textarea.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", {
+        key: "c",
+        metaKey: true
+      });
+      act(() => {
+        setKeysPressed({ meta: true, c: true }, event);
+      });
+
+      // The global copy callback should NOT fire when textarea is focused
+      expect(callback).not.toHaveBeenCalled();
+
+      document.body.removeChild(textarea);
+      unregisterComboCallback("c+meta");
+    });
+
+    it("executes copy callback when no input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("c+control", { callback, preventDefault: false });
+
+      // Ensure no input is focused (focus body)
+      (document.body as HTMLElement).focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", {
+        key: "c",
+        ctrlKey: true
+      });
+      act(() => {
+        setKeysPressed({ control: true, c: true }, event);
+      });
+
+      // The global copy callback SHOULD fire when no input is focused
+      expect(callback).toHaveBeenCalled();
+
+      unregisterComboCallback("c+control");
+    });
+
+    it("allows escape callback when input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("escape", { callback, preventDefault: true });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Escape" });
+      act(() => {
+        setKeysPressed({ escape: true }, event);
+      });
+
+      // Escape should still work even when input is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("escape");
+    });
+
+    it("suppresses delete callback when input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("delete", { callback, preventDefault: true });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Delete" });
+      act(() => {
+        setKeysPressed({ delete: true }, event);
+      });
+
+      // Delete should be suppressed when input is focused (to allow text editing)
+      expect(callback).not.toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("delete");
+    });
+
+    it("suppresses backspace callback when input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("backspace", { callback, preventDefault: true });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Backspace" });
+      act(() => {
+        setKeysPressed({ backspace: true }, event);
+      });
+
+      // Backspace should be suppressed when input is focused (to allow text editing)
+      expect(callback).not.toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("backspace");
+    });
+
+    it("allows delete callback when canvas is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("delete", { callback, preventDefault: true });
+
+      // Create and focus a canvas element (simulating react-flow__pane)
+      const canvas = document.createElement("div");
+      canvas.classList.add("react-flow__pane");
+      document.body.appendChild(canvas);
+      canvas.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Delete" });
+      act(() => {
+        setKeysPressed({ delete: true }, event);
+      });
+
+      // Delete should work when canvas is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(canvas);
+      unregisterComboCallback("delete");
+    });
+
+    it("allows backspace callback when canvas is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("backspace", { callback, preventDefault: true });
+
+      // Create and focus a canvas element (simulating react-flow__renderer)
+      const canvas = document.createElement("div");
+      canvas.classList.add("react-flow__renderer");
+      document.body.appendChild(canvas);
+      canvas.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Backspace" });
+      act(() => {
+        setKeysPressed({ backspace: true }, event);
+      });
+
+      // Backspace should work when canvas is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(canvas);
+      unregisterComboCallback("backspace");
     });
   });
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, memo } from "react";
+import React, { useMemo, useCallback, memo, useRef } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
@@ -15,9 +15,10 @@ export type NodeOutputProps = {
   id: string;
   output: OutputSlot;
   isDynamic?: boolean;
+  isStreamingOutput?: boolean;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -27,6 +28,9 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  // Track timeout to cleanup on unmount
+  const contextMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
     if (
@@ -59,7 +63,11 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
       event.preventDefault();
-      setTimeout(() => {
+      // Clear any pending timeout before scheduling a new one
+      if (contextMenuTimeoutRef.current) {
+        clearTimeout(contextMenuTimeoutRef.current);
+      }
+      contextMenuTimeoutRef.current = setTimeout(() => {
         openContextMenu(
           "output-context-menu",
           id,
@@ -74,6 +82,15 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
     [openContextMenu]
   );
 
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (contextMenuTimeoutRef.current) {
+        clearTimeout(contextMenuTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {
       return true;
@@ -85,6 +102,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   }, [connectDirection, connectNodeId, effectiveConnectType, id, output.type]);
 
   const classConnectable = useMemo(() => {
+    // Control edges can connect from any Agent node
+    if (effectiveConnectType?.type === "control") {
+      return "is-connectable";
+    }
     if (connectDirection === "source") {
       if (connectNodeId === id && connectHandleId === output.name) {
         return "is-connectable";
@@ -115,6 +136,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
         paramName={output.name}
         className={classConnectable}
         handlePosition="right"
+        isStreamingOutput={isStreamingOutput}
       >
         <Handle
           type="source"
@@ -122,7 +144,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
           position={Position.Right}
           isConnectable={isConnectable}
           onContextMenu={(e) => outputContextMenu(e, id, output)}
-          className={`${classConnectable} ${Slugify(output.type.type)}`}
+          className={`${classConnectable} ${Slugify(output.type.type)}${isStreamingOutput ? " streaming-handle" : ""}`}
         />
       </HandleTooltip>
     </div>

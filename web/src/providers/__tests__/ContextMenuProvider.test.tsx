@@ -145,4 +145,43 @@ describe('ContextMenuProvider', () => {
     });
     expect(removeSpy).toHaveBeenCalledWith('mouseup', firstHandler);
   });
+
+  test('cleanup on unmount removes listeners and clears timeout', () => {
+    const { getCtx, unmount } = setup();
+    act(() => {
+      getCtx().openContextMenu('menu', 'id', 0, 0);
+    });
+    // At this point, timeout is set but not yet fired
+    const addSpyCallsBefore = addSpy.mock.calls.length;
+
+    // Unmount before timeout fires
+    act(() => {
+      unmount();
+    });
+
+    // Advance timers past the timeout - if cleanup didn't work, this would add a listener
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    // No new listener should be added after unmount
+    expect(addSpy.mock.calls.length).toBe(addSpyCallsBefore);
+  });
+
+  test('cleanup on unmount removes existing listeners', () => {
+    const { getCtx, unmount } = setup();
+    act(() => {
+      getCtx().openContextMenu('menu', 'id', 0, 0);
+      jest.advanceTimersByTime(500);
+    });
+    const handler = addSpy.mock.calls[0][1] as any;
+
+    // Unmount while listener is active
+    act(() => {
+      unmount();
+    });
+
+    // Listener should be removed
+    expect(removeSpy).toHaveBeenCalledWith('mouseup', handler);
+  });
 });

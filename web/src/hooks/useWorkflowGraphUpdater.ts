@@ -9,6 +9,7 @@ import useGlobalChatStore from "../stores/GlobalChatStore";
 import { graphNodeToReactFlowNode } from "../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../stores/graphEdgeToReactFlowEdge";
 import { Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
+import log from "loglevel";
 
 /**
  * Hook that subscribes to workflow graph updates from the GlobalChatStore
@@ -24,6 +25,7 @@ export const useWorkflowGraphUpdater = () => {
   const lastProcessedUpdate = useRef<any>(null);
 
   useEffect(() => {
+    let layoutTimeout: ReturnType<typeof setTimeout> | null = null;
     // Subscribe to the GlobalChatStore for workflow graph updates
     const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
       const update = state.lastWorkflowGraphUpdate;
@@ -40,14 +42,14 @@ export const useWorkflowGraphUpdater = () => {
       const currentWorkflow = getCurrentWorkflow();
       
       if (!currentWorkflow) {
-        console.warn("No current workflow found to update");
+        log.warn("No current workflow found to update");
         return;
       }
 
       const nodeStore = getNodeStore(currentWorkflow.id);
       
       if (!nodeStore) {
-        console.warn(`No node store found for workflow ${currentWorkflow.id}`);
+        log.warn(`No node store found for workflow ${currentWorkflow.id}`);
         return;
       }
 
@@ -66,7 +68,7 @@ export const useWorkflowGraphUpdater = () => {
         nodeStore.getState().setNodes(reactFlowNodes);
         nodeStore.getState().setEdges(reactFlowEdges);
 
-        setTimeout(() => {
+        layoutTimeout = setTimeout(() => {
           nodeStore.getState().autoLayout();
         }, 100);
 
@@ -74,11 +76,16 @@ export const useWorkflowGraphUpdater = () => {
         nodeStore.getState().setWorkflowDirty(false);
         
       } catch (error) {
-        console.error("Error updating workflow graph:", error);
+        log.error("Error updating workflow graph:", error);
       }
     });
 
-    // Cleanup subscription on unmount
-    return unsubscribe;
+// Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+      if (layoutTimeout) {
+        clearTimeout(layoutTimeout);
+      }
+    };
   }, [getCurrentWorkflow, getNodeStore]);
 };

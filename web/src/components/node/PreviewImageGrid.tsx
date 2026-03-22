@@ -1,28 +1,36 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Button, IconButton, Checkbox, Tooltip, Dialog } from "@mui/material";
+import { Box, Button, IconButton, Checkbox, Tooltip } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
+import AssetViewer from "../assets/AssetViewer";
+import { CopyAssetButton } from "../common/CopyAssetButton";
+import { Dialog } from "../ui_primitives";
 
 export type ImageSource = Uint8Array | string;
 
 export interface PreviewImageGridProps {
   images: ImageSource[];
   onDoubleClick?: (index: number) => void;
+  onOpenInViewer?: (index: number) => void; // Open in asset viewer
   itemSize?: number; // base min size for tiles
   gap?: number; // grid gap in px
   enableSelection?: boolean; // enable multi-select mode
+  showActions?: boolean; // show copy/download/open buttons on hover
 }
 
 const styles = (theme: Theme, gap: number) =>
   css({
     "&": {
+      position: "relative",
       width: "100%",
       height: "100%",
       overflow: "auto"
@@ -77,7 +85,7 @@ const styles = (theme: Theme, gap: number) =>
       fontSize: 11,
       color: theme.vars.palette.text.primary,
       background:
-        "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)",
+        `linear-gradient(180deg, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0) 0%, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.55) 100%)`,
       WebkitLineClamp: 1,
       display: "-webkit-box",
       WebkitBoxOrient: "vertical" as const,
@@ -98,17 +106,44 @@ const styles = (theme: Theme, gap: number) =>
       outline: `3px solid ${theme.vars.palette.primary.main}`,
       outlineOffset: -3
     },
+    ".tile-actions": {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      display: "flex",
+      gap: 2,
+      zIndex: 5,
+      opacity: 0,
+      transition: "opacity 0.15s ease"
+    },
+    ".tile:hover .tile-actions": {
+      opacity: 1
+    },
+    ".tile-action-btn": {
+      width: 24,
+      height: 24,
+      padding: 4,
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+      color: theme.vars.palette.common.white,
+      borderRadius: 4,
+      "&:hover": {
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+      },
+      "& svg": {
+        fontSize: 14
+      }
+    },
     ".tile .select-checkbox": {
       position: "absolute",
       top: 4,
       right: 4,
       zIndex: 5,
       padding: 2,
-      backgroundColor: "rgba(0,0,0,0.5)",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.5)`,
       borderRadius: 4,
-      color: "#fff",
+      color: theme.vars.palette.common.white,
       "&:hover": {
-        backgroundColor: "rgba(0,0,0,0.7)"
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.7)`
       }
     },
     ".action-bar": {
@@ -119,28 +154,29 @@ const styles = (theme: Theme, gap: number) =>
       display: "flex",
       gap: 8,
       padding: "8px 16px",
-      backgroundColor: "rgba(0,0,0,0.85)",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
       borderRadius: 8,
       zIndex: 100,
       alignItems: "center"
     },
     ".action-bar .action-button": {
-      color: "#fff",
+      color: theme.vars.palette.common.white,
       fontSize: 13,
       textTransform: "none"
     },
     ".select-mode-toggle": {
       position: "absolute",
-      top: 8,
-      right: 8,
+      top: 2,
+      right: 4,
       zIndex: 50,
-      backgroundColor: "rgba(0,0,0,0.6)",
-      color: "#fff",
-      fontSize: 12,
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+      color: theme.vars.palette.common.white,
+      fontSize: 11,
       textTransform: "none",
-      padding: "4px 12px",
+      padding: "2px 8px",
+      minWidth: "unset",
       "&:hover": {
-        backgroundColor: "rgba(0,0,0,0.8)"
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)`
       }
     },
     ".compare-dialog .MuiPaper-root": {
@@ -151,17 +187,6 @@ const styles = (theme: Theme, gap: number) =>
       overflow: "hidden"
     }
   });
-
-// Helper to safely revoke previous blob URLs
-function revokeAll(urls: string[]) {
-  urls.forEach((u) => {
-    try {
-      if (u && u.startsWith("blob:")) {URL.revokeObjectURL(u);}
-    } catch {
-      console.error("Error revoking blob URL", u);
-    }
-  });
-}
 
 function toArrayBuffer(view: Uint8Array): ArrayBuffer {
   const buffer = view.buffer as ArrayBuffer;
@@ -174,9 +199,11 @@ function toArrayBuffer(view: Uint8Array): ArrayBuffer {
 const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   images,
   onDoubleClick,
+  onOpenInViewer,
   itemSize = 128,
   gap = 8,
-  enableSelection = true
+  enableSelection = true,
+  showActions = true
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +213,10 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [compareImages, setCompareImages] = useState<[string, string] | null>(null);
+
+  // Asset viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
   // Reset selection when images change
   useEffect(() => {
@@ -211,7 +242,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   const handleCompare = useCallback(() => {
-    if (selectedIndices.size !== 2) {return;}
+    if (selectedIndices.size !== 2) { return; }
     const indices = Array.from(selectedIndices);
     const map = urlMapRef.current;
     const urlA = map.get(images[indices[0]]);
@@ -227,6 +258,51 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     setCompareImages(null);
   }, []);
 
+  const handleDownloadImage = useCallback((index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const img = images[index];
+    const url = urlMapRef.current.get(img);
+    if (!url) { return; }
+
+    // Create a temporary link to download
+    const link = document.createElement("a");
+    link.href = url;
+
+    let filename = `image-${index + 1}.png`; // fallback
+    try {
+      const parts = url.split("?")[0].split("/").pop();
+      if (parts && parts.includes(".")) {
+        filename = decodeURIComponent(parts);
+      }
+    } catch {
+      // Filename extraction failed, use fallback
+    }
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [images]);
+
+  const handleOpenInViewer = useCallback((index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onOpenInViewer) {
+      onOpenInViewer(index);
+    } else {
+      const img = images[index];
+      const url = urlMapRef.current.get(img);
+      if (url) {
+        setViewerUrl(url);
+        setViewerOpen(true);
+      }
+    }
+  }, [images, onOpenInViewer]);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerOpen(false);
+    setViewerUrl(null);
+  }, []);
+
   const toggleSelectionMode = useCallback(() => {
     setSelectionMode((prev) => {
       if (prev) {
@@ -240,23 +316,27 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   // Map each ImageSource to a persistent URL. Strings map to themselves.
   const urlMapRef = useRef<Map<ImageSource, string>>(new Map());
-  const [version, setVersion] = useState(0); // force rerender when map changes
+  const [_version, setVersion] = useState(0); // force rerender when map changes
 
   // Build URLs for current images and cleanup URLs for removed ones
   useEffect(() => {
     const map = urlMapRef.current;
-    const currentSet = new Set<ImageSource>(images);
+    const currentSet = new Set<ImageSource>(images.filter((img) => img != null));
 
     // Add new URLs
     let changed = false;
     images.forEach((img) => {
+      // Skip null/undefined images
+      if (img === null || img === undefined) {
+        return;
+      }
       if (!map.has(img)) {
         const url =
           typeof img === "string"
             ? img
             : URL.createObjectURL(
-                new Blob([toArrayBuffer(img)], { type: "image/png" })
-              );
+              new Blob([toArrayBuffer(img)], { type: "image/png" })
+            );
         map.set(img, url);
         changed = true;
       }
@@ -277,7 +357,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       }
     }
 
-    if (changed) {setVersion((v) => v + 1);}
+    if (changed) { setVersion((v) => v + 1); }
 
     // Cleanup all on unmount
     return () => {
@@ -300,7 +380,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   // Lightweight resize observer to trigger reflow on container changes, if needed later.
   useEffect(() => {
-    if (!containerRef.current) {return;}
+    if (!containerRef.current) { return; }
     const ro = new ResizeObserver(() => {
       // no-op for now; grid is auto-fill and responds via CSS
     });
@@ -309,7 +389,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   return (
-    <div css={styles(theme as any, gap)} ref={containerRef}>
+    <div className="preview-image-grid" css={styles(theme, gap)} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
         <Button
@@ -324,19 +404,33 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
       <div
         className="grid"
-        style={{
+        style={useMemo(() => ({
           gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`
-        }}
+        }), [itemSize])}
       >
         {images.map((img, idx) => {
+          // Skip null/undefined images
+          if (img === null || img === undefined) {
+            return null;
+          }
           const isSelected = selectedIndices.has(idx);
+          // Use stable key: for strings use the URL, for Uint8Array use index
+          const key = typeof img === 'string' ? img : `bytes-${idx}`;
           return (
             <div
-              key={idx}
+              key={key}
               className={`tile ${isSelected ? "selected" : ""}`}
               onDoubleClick={() => {
-                if (!selectionMode && onDoubleClick) {
+                if (selectionMode) { return; }
+                if (onDoubleClick) {
                   onDoubleClick(idx);
+                } else {
+                  // Default: open in viewer
+                  const url = urlMapRef.current.get(img);
+                  if (url) {
+                    setViewerUrl(url);
+                    setViewerOpen(true);
+                  }
                 }
               }}
               onClick={(e) => {
@@ -351,9 +445,38 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                   src={urlMapRef.current.get(img) as string}
                   alt={`image-${idx + 1}`}
                   loading="lazy"
+                  draggable={false}
                 />
               ) : (
                 <div className="placeholder">IMAGE</div>
+              )}
+              {/* Action buttons on hover */}
+              {showActions && !selectionMode && (
+                <div className="tile-actions">
+                  <CopyAssetButton
+                    contentType="image/png"
+                    url={urlMapRef.current.get(img) || ""}
+                    className="tile-action-btn"
+                  />
+                  <Tooltip title="Download" placement="top">
+                    <IconButton
+                      className="tile-action-btn"
+                      size="small"
+                      onClick={(e) => handleDownloadImage(idx, e)}
+                    >
+                      <DownloadIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Open in Viewer (double-click)" placement="top">
+                    <IconButton
+                      className="tile-action-btn"
+                      size="small"
+                      onClick={(e) => handleOpenInViewer(idx, e)}
+                    >
+                      <OpenInNewIcon />
+                    </IconButton>
+                  </Tooltip>
+                </div>
               )}
               {selectionMode && (
                 <Checkbox
@@ -387,7 +510,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             </span>
           </Tooltip>
           <Tooltip title="Clear selection">
-            <IconButton size="small" onClick={clearSelection} sx={{ color: "#fff" }}>
+            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }}>
               <ClearIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -413,9 +536,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 top: 8,
                 right: 8,
                 zIndex: 10,
-                backgroundColor: "rgba(0,0,0,0.6)",
-                color: "#fff",
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.8)" }
+                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+                color: theme.vars.palette.common.white,
+                "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
               }}
             >
               <ClearIcon />
@@ -432,8 +555,32 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           </Box>
         </Dialog>
       )}
+
+      {/* Asset Viewer for full-screen viewing */}
+      {viewerUrl && (
+        <AssetViewer
+          url={viewerUrl}
+          contentType="image/*"
+          open={viewerOpen}
+          onClose={handleCloseViewer}
+        />
+      )}
     </div>
   );
 };
 
-export default PreviewImageGrid;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// Custom comparison to avoid re-rendering on every prop change
+const arePropsEqual = (prevProps: PreviewImageGridProps, nextProps: PreviewImageGridProps) => {
+  return (
+    prevProps.images === nextProps.images &&
+    prevProps.itemSize === nextProps.itemSize &&
+    prevProps.gap === nextProps.gap &&
+    prevProps.enableSelection === nextProps.enableSelection &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.onDoubleClick === nextProps.onDoubleClick &&
+    prevProps.onOpenInViewer === nextProps.onOpenInViewer
+  );
+};
+
+export default memo(PreviewImageGrid, arePropsEqual);

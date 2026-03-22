@@ -191,6 +191,41 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
     setLinkUrl("");
   }, [editor, linkUrl]);
 
+  const handleCancelLink = useCallback(() => {
+    setLinkDialogOpen(false);
+  }, []);
+
+  const handleLinkUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setLinkUrl(e.target.value);
+  }, []);
+
+  const handleLinkKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleLinkSubmit();
+    }
+  }, [handleLinkSubmit]);
+
+  const handleFormatBold = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
+  }, [editor]);
+
+  const handleFormatItalic = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
+  }, [editor]);
+
+  const handleFormatUnderline = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
+  }, [editor]);
+
+  const handleFormatStrikethrough = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
+  }, [editor]);
+
+  const handleFormatCode = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
+  }, [editor]);
+
   if (!isText) {
     return null;
   }
@@ -200,37 +235,35 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
       {createPortal(
         <div ref={popupRef} css={toolbarStyles}>
           <button
-            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
+            onClick={handleFormatBold}
             className={isBold ? "active" : ""}
             aria-label="Format Bold"
           >
             <FormatBoldIcon />
           </button>
           <button
-            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
+            onClick={handleFormatItalic}
             className={isItalic ? "active" : ""}
             aria-label="Format Italic"
           >
             <FormatItalicIcon />
           </button>
           <button
-            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")}
+            onClick={handleFormatUnderline}
             className={isUnderline ? "active" : ""}
             aria-label="Format Underline"
           >
             <FormatUnderlinedIcon />
           </button>
           <button
-            onClick={() =>
-              editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")
-            }
+            onClick={handleFormatStrikethrough}
             className={isStrikethrough ? "active" : ""}
             aria-label="Format Strikethrough"
           >
             <StrikethroughSIcon />
           </button>
           <button
-            onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code")}
+            onClick={handleFormatCode}
             className={isCode ? "active" : ""}
             aria-label="Format Code"
           >
@@ -249,7 +282,7 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
       )}
       <Dialog
         open={linkDialogOpen}
-        onClose={() => setLinkDialogOpen(false)}
+        onClose={handleCancelLink}
         maxWidth="sm"
         fullWidth
       >
@@ -263,18 +296,13 @@ export function FloatingTextFormatToolbar(): JSX.Element | null {
             fullWidth
             variant="outlined"
             value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleLinkSubmit();
-              }
-            }}
+            onChange={handleLinkUrlChange}
+            onKeyDown={handleLinkKeyDown}
             placeholder="https://example.com"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCancelLink}>Cancel</Button>
           <Button onClick={handleLinkSubmit} variant="contained">
             Insert
           </Button>

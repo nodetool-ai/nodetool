@@ -1,34 +1,63 @@
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalChatStore from "../stores/GlobalChatStore";
 import { Message, LanguageModel } from "../stores/ApiTypes";
 import { truncateString } from "../utils/truncateString";
+import log from "loglevel";
 
+/**
+ * Chat service hook that provides a unified interface for chat operations.
+ * Combines GlobalChatStore state and actions for easy consumption by components.
+ * 
+ * This hook handles the complexity of:
+ * - Thread management (creation, switching, deletion)
+ * - Message sending with model selection
+ * - Navigation to chat routes
+ * - Thread preview generation
+ * 
+ * @param selectedModel - The currently selected language model for chat responses
+ * @returns Object containing chat state and handler functions
+ * 
+ * @example
+ * ```typescript
+ * const { 
+ *   status, 
+ *   sendMessage, 
+ *   onNewThread, 
+ *   onSelectThread,
+ *   threads,
+ *   currentThreadId 
+ * } = useChatService(selectedModel);
+ * 
+ * // Send a message
+ * await sendMessage({ role: 'user', content: 'Hello!' });
+ * 
+ * // Create new thread
+ * await onNewThread();
+ * ```
+ */
 export const useChatService = (selectedModel: LanguageModel | null) => {
   const navigate = useNavigate();
-  const {
-    connect,
-    disconnect,
-    status,
-    sendMessage,
-    createNewThread,
-    switchThread,
-    threads,
-    messageCache,
-    currentThreadId,
-    ...rest
-  } = useGlobalChatStore();
+  const status = useGlobalChatStore((state) => state.status);
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
       if (!selectedModel) {
-        console.error("No model selected");
-        return;
-      }
-
-      // Only return early if we're in a failed state
-      if (status === "failed") {
-        console.error("Chat service connection failed");
+        log.error("No model selected");
         return;
       }
 
@@ -38,10 +67,6 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
           model: selectedModel.id
         };
 
-        if (status !== "connected") {
-          await connect();
-        }
-
         // Use existing thread if available, otherwise create new one
         let threadId = currentThreadId;
         if (!threadId) {
@@ -50,7 +75,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         } else {
           // Verify thread exists in store before sending message
           if (!threads[threadId]) {
-            console.warn(
+            log.warn(
               `Current thread ${threadId} not found in store, creating new thread`
             );
             threadId = await createNewThread();
@@ -66,14 +91,12 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
           navigate(`/chat/${targetThreadId}`);
         }, 100);
       } catch (error) {
-        console.error("Failed to send message:", error);
+        log.error("Failed to send message:", error);
       }
     },
     [
       selectedModel,
       sendMessage,
-      status,
-      connect,
       navigate,
       createNewThread,
       switchThread,
@@ -96,7 +119,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      log.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -138,6 +161,13 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
     getThreadPreview,
     threads,
     currentThreadId,
-    ...rest
+    deleteThread,
+    progress,
+    statusMessage,
+    stopGeneration,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    lastTaskUpdatesByThread,
+    currentLogUpdate
   };
 };

@@ -21,7 +21,6 @@ import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { shallow } from "zustand/shallow";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
@@ -36,10 +35,16 @@ import {
   IDockviewPanelProps,
   IDockviewPanel
 } from "dockview";
+
+/** IDockviewPanel exposes an internal `group` property not present in its public type */
+type IDockviewPanelWithGroup = IDockviewPanel & {
+  group?: { api?: { setSize: (size: { width?: number; height?: number }) => void } } & { setSize?: (size: { width?: number; height?: number }) => void };
+};
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
+import log from "loglevel";
 
 const panelComponents = {
-  "asset-folders": (_props: IDockviewPanelProps) => (
+  "asset-folders": () => (
     <PanelErrorBoundary>
       <AssetFoldersPanel />
     </PanelErrorBoundary>
@@ -74,60 +79,29 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
-  const openAsset = useAssetGridStore((state) => state.openAsset);
+  // Separate selectors prevent unnecessary re-renders when only one value changes
+  // Setters are pulled out of selectors since they never change reference
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
+  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
+
+  const openAsset = useAssetGridStore((state) => state.openAsset);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
-  );
-  const setRenameDialogOpen = useAssetGridStore(
-    (state) => state.setRenameDialogOpen
-  );
-  const currentAudioAsset = useAssetGridStore(
-    (state) => state.currentAudioAsset
-  );
+  const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
-  const _isGlobalSearchActive = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const _isGlobalSearchMode = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const _globalSearchResults = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const _setIsGlobalSearchActive = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const _setIsGlobalSearchMode = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const _setCurrentFolderId = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
-  void _isGlobalSearchActive;
-  void _isGlobalSearchMode;
-  void _globalSearchResults;
-  void _setIsGlobalSearchActive;
-  void _setIsGlobalSearchMode;
-  void _setCurrentFolderId;
   const theme = useTheme();
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
 
-  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore(
-    (state) => ({
-      F2KeyPressed: state.isKeyPressed("F2"),
-      spaceKeyPressed: state.isKeyPressed(" ")
-    }),
-    shallow
-  );
+  // Separate selectors prevent unnecessary re-renders when only one key state changes
+  const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
+  const spaceKeyPressed = useKeyPressedStore((state) => state.isKeyPressed(" "));
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
@@ -181,7 +155,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (user) {
       navigateToFolderId(user?.id);
     } else {
-      console.error("User is not logged in");
+      log.error("User is not logged in");
     }
   }
 
@@ -191,7 +165,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     (event: DockviewReadyEvent) => {
       const { api } = event;
       // Add folders panel first with an initial size
-      const foldersPanel: IDockviewPanel = api.addPanel({
+      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders",
@@ -215,7 +189,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       // Enforce initial size
       const applyInitialSize = () => {
         const groupApi =
-          (foldersPanel as any)?.group?.api ?? (foldersPanel as any)?.group;
+          foldersPanel?.group?.api ?? foldersPanel?.group;
         if (groupApi && typeof groupApi.setSize === "function") {
           if (isFullscreenAssets) {
             groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });

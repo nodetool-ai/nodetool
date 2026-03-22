@@ -1,6 +1,10 @@
 import { test, expect, Page } from "@playwright/test";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import {
+  navigateToPage,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -16,12 +20,14 @@ async function checkPageForErrors(page: Page): Promise<void> {
 
 // Helper function to upload a file and wait for completion
 async function uploadFile(page: Page, filePath: string): Promise<void> {
-  // Wait for the upload button container to be visible
-  const uploadContainer = page.locator(".file-upload-button").first();
-  await expect(uploadContainer).toBeVisible({ timeout: 10000 });
+  // Wait for the upload button to be visible
+  // The UploadButton component uses the class "upload-button"
+  const uploadButton = page.locator(".upload-button").first();
+  await expect(uploadButton).toBeVisible({ timeout: 10000 });
 
-  // Get the hidden file input inside the upload button container
-  const fileInput = uploadContainer.locator('input[type="file"]');
+  // The hidden file input is a sibling before the button in the UploadButton component
+  // It's located within the asset-actions section (not other file inputs on the page)
+  const fileInput = page.locator('.asset-actions input[type="file"]').first();
 
   // Set the file directly on the input (bypassing the click/filechooser flow)
   await fileInput.setInputFiles(filePath);
@@ -34,7 +40,7 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
   );
 
   // Wait for network to settle after upload
-  await page.waitForLoadState("networkidle");
+  await waitForPageReady(page);
 }
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -43,16 +49,14 @@ if (process.env.JEST_WORKER_ID) {
 } else {
   test.describe("Asset Management", () => {
     test("should load asset explorer page", async ({ page }) => {
-      await page.goto("/assets");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/assets");
 
       // Verify we're on the assets page
       await checkPageForErrors(page);
     });
 
     test("should display asset explorer interface", async ({ page }) => {
-      await page.goto("/assets");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/assets");
 
       // Wait for content to load by checking body has content
       const body = await page.locator("body");
@@ -64,8 +68,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should handle empty asset state gracefully", async ({ page }) => {
-      await page.goto("/assets");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/assets");
 
       // Wait for the page to fully render by checking URL is stable
       await expect(page).toHaveURL(/\/assets/);
@@ -76,8 +79,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should upload a text file and display it in the asset list", async ({ page }) => {
-      await page.goto("/assets");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/assets");
 
       // Upload the test text file
       const testFilePath = path.join(__dirname, "fixtures", "test-document.txt");
@@ -88,8 +90,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should upload an image file and display it in the asset list", async ({ page }) => {
-      await page.goto("/assets");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/assets");
 
       // Upload the test image file
       const testFilePath = path.join(__dirname, "fixtures", "test-image.png");

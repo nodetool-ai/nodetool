@@ -13,14 +13,25 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../lib/dragdrop";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import log from "loglevel";
 
-// Node spacing when dropping multiple assets
+/** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
+/** Vertical spacing between nodes when dropping multiple assets */
 const MULTI_NODE_VERTICAL_SPACING = 250;
+/** Number of nodes per row when laying out multiple dropped assets */
 const NODES_PER_ROW = 2;
 
-// File type detection
+/**
+ * Detects the file type based on MIME type.
+ * 
+ * @param file - The file to analyze
+ * @returns Detected type: "png", "json", "csv", "document", or "unknown"
+ */
 function detectFileType(file: File): string {
+  const fileName = file.name.toLowerCase();
+
   switch (file.type) {
     case "image/png":
       return "png";
@@ -37,10 +48,64 @@ function detectFileType(file: File): string {
     case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
       return "document";
     default:
+      if (fileName.endsWith(".png")) {
+        return "png";
+      }
+      if (fileName.endsWith(".json")) {
+        return "json";
+      }
+      if (fileName.endsWith(".csv")) {
+        return "csv";
+      }
+      if (
+        fileName.endsWith(".pdf") ||
+        fileName.endsWith(".docx") ||
+        fileName.endsWith(".xlsx") ||
+        fileName.endsWith(".pptx")
+      ) {
+        return "document";
+      }
       return "unknown";
   }
 }
 
+const isAssetResult = (value: unknown): value is Asset => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.name === "string" &&
+    typeof record.content_type === "string"
+  );
+};
+
+/**
+ * Hook for handling drop events on the ReactFlow canvas.
+ * 
+ * This hook manages dropping various content onto the workflow canvas:
+ * - External files (images, JSON, CSV, documents)
+ * - Assets from the asset browser
+ * - Nodes from the node menu
+ * 
+ * It handles file processing, node creation, and error notifications.
+ * 
+ * @returns Object containing onDrop and onDragOver handlers for the canvas
+ * 
+ * @example
+ * ```typescript
+ * const { onDrop, onDragOver } = useDropHandler();
+ * 
+ * return (
+ *   <ReactFlow
+ *     onDrop={onDrop}
+ *     onDragOver={onDragOver}
+ *   />
+ * );
+ * ```
+ */
 export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
@@ -55,6 +120,7 @@ export const useDropHandler = () => {
     (state) => state.addNotification
   );
   const addNodeFromAsset = useAddNodeFromAsset();
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -74,6 +140,8 @@ export const useDropHandler = () => {
         const node = dragData.payload as NodeMetadata;
         const newNode = createNode(node, position);
         addNode(newNode);
+        // Track this node as recently used
+        addRecentNode(node.node_type);
         return;
       }
 
@@ -83,34 +151,73 @@ export const useDropHandler = () => {
           const selectedAssetIds = dragData.payload as string[];
           // If multiple assets are selected, create nodes for all of them
           if (selectedAssetIds.length > 1) {
-            selectedAssetIds.forEach((assetId, index) => {
-              // Offset each node to avoid overlap
-              const offsetX =
-                (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
-              const offsetY =
-                Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING;
-              const nodePosition = {
-                x: position.x + offsetX,
-                y: position.y + offsetY
-              };
+            const results = await Promise.all(
+              selectedAssetIds.map(async (assetId, index) => {
+                // Offset each node to avoid overlap
+                const offsetX =
+                  (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
+                const offsetY =
+                  Math.floor(index / NODES_PER_ROW) *
+                  MULTI_NODE_VERTICAL_SPACING;
+                const nodePosition = {
+                  x: position.x + offsetX,
+                  y: position.y + offsetY
+                };
 
-              getAsset(assetId).then((asset: Asset) => {
-                addNodeFromAsset(asset, nodePosition);
+                try {
+                  const asset = await getAsset(assetId);
+                  addNodeFromAsset(asset, nodePosition);
+                  return { success: true };
+                } catch (error) {
+                  return { success: false, assetId, error };
+                }
+              })
+            );
+
+            const failures = results.filter((r) => !r.success);
+            if (failures.length > 0) {
+              log.error(
+                `[drop] Failed to load ${failures.length} assets`,
+                failures
+              );
+              addNotification({
+                type: "error",
+                content: `Failed to load ${failures.length} asset${failures.length > 1 ? "s" : ""}. Check console for details.`,
+                alert: true
               });
-            });
+            }
             return;
           } else if (selectedAssetIds.length === 1) {
             // Single asset from multiple selection
-            getAsset(selectedAssetIds[0]).then((asset: Asset) => {
+            try {
+              const asset = await getAsset(selectedAssetIds[0]);
               addNodeFromAsset(asset, position);
-            });
+            } catch (error) {
+              log.error(
+                `[drop] Failed to load asset ${selectedAssetIds[0]}`,
+                error
+              );
+              addNotification({
+                type: "error",
+                content: `Failed to load asset: ${error instanceof Error ? error.message : "Unknown error"}`,
+                alert: true
+              });
+            }
             return;
           }
         } else if (dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          getAsset(asset.id).then((fetchedAsset: Asset) => {
+          try {
+            const fetchedAsset = await getAsset(asset.id);
             addNodeFromAsset(fetchedAsset, position);
-          });
+          } catch (error) {
+            log.error(`[drop] Failed to load asset ${asset.id}`, error);
+            addNotification({
+              type: "error",
+              content: `Failed to load asset: ${error instanceof Error ? error.message : "Unknown error"}`,
+              alert: true
+            });
+          }
           return;
         }
       }
@@ -118,8 +225,17 @@ export const useDropHandler = () => {
       // Handle external file drops
       if (hasExternalFiles(event.dataTransfer) && user) {
         const files = extractFiles(event.dataTransfer);
+        log.info("[drop] External files detected", {
+          count: files.length,
+          names: files.map((file) => file.name)
+        });
         for (const file of files) {
           const fileType = detectFileType(file);
+          log.info("[drop] Processing file", {
+            name: file.name,
+            mime: file.type || "(empty)",
+            detectedType: fileType
+          });
           let result: FileHandlerResult;
 
           switch (fileType) {
@@ -137,17 +253,23 @@ export const useDropHandler = () => {
           }
 
           if (result.success) {
-            if (result.data && "id" in result.data) {
+            if (isAssetResult(result.data)) {
               addNodeFromAsset(result.data, position);
             }
           } else {
-            addNotification({
-              type: "error",
-              content: `Failed to process file: ${result.error}`,
-              alert: true
-            });
+              addNotification({
+                type: "error",
+                content: `Failed to process file: ${result.error}`,
+                alert: true
+              });
+              log.error("[drop] File processing failed", {
+                name: file.name,
+                error: result.error
+              });
+            }
           }
-        }
+      } else if (hasExternalFiles(event.dataTransfer) && !user) {
+        log.warn("[drop] Ignoring external file drop: no authenticated user");
       }
     },
     [
@@ -157,6 +279,7 @@ export const useDropHandler = () => {
       addNode,
       getAsset,
       addNodeFromAsset,
+      addRecentNode,
       handlePngFile,
       handleJsonFile,
       handleCsvFile,
@@ -168,7 +291,10 @@ export const useDropHandler = () => {
   /* DRAG OVER */
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    // Use "copy" for external file drops since source apps (like Eagle)
+    // may only allow "copy", causing a forbidden cursor if we force "move"
+    const hasFiles = Array.from(event.dataTransfer.types).includes("Files");
+    event.dataTransfer.dropEffect = hasFiles ? "copy" : "move";
   }, []);
 
   return { onDrop, onDragOver };

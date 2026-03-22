@@ -14,17 +14,23 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
-      width: "100%",
-      height: "100%"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
     },
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: `2px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${theme.vars.palette.grey[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
       minWidth: "unset !important",
       minHeight: "unset !important",
-      outline: `1px solid ${(theme as any).vars?.palette?.grey?.[0] || "white"}`
+      boxShadow: `0 0 0 1px ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.5)"}`,
+      transition: "all 0.15s ease",
+      "&:hover": {
+        transform: "scale(1.1)",
+        boxShadow: `0 0 0 2px ${theme.vars.palette.grey[800] || "rgba(0, 0, 0, 0.7)"}`
+      }
     }
   });
 
@@ -39,7 +45,7 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px",
     ".pick-color-button": {
       borderRadius: "50%",
-      border: `1px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,
@@ -67,7 +73,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   onColorChange,
   label,
   showCustom = false,
-  isNodeProperty = false,
   buttonSize = 20
 }) => {
   const theme = useTheme();
@@ -75,13 +80,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const [showModal, setShowModal] = useState(false);
   const currentColorRef = useRef(color || "#ffffff");
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
   const open = Boolean(anchorEl);
   const id = open ? "color-picker-popover" : undefined;
@@ -91,14 +96,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       onColorChange(newColor);
       handleClose();
     },
-    [onColorChange]
+    [onColorChange, handleClose]
   );
 
   const handleOpenModal = useCallback(() => {
     currentColorRef.current = color || "#ffffff";
     setShowModal(true);
     handleClose();
-  }, [color]);
+  }, [color, handleClose]);
 
   const handleModalChange = useCallback(
     (newColor: string, alpha: number) => {

@@ -8,6 +8,26 @@ export interface UserLayout {
   layout: SerializedDockview;
 }
 
+export interface AutosaveSettings {
+  enabled: boolean;
+  intervalMinutes: number; // 1-60, default 10
+  saveBeforeRun: boolean;
+  saveOnClose: boolean;
+  maxVersionsPerWorkflow: number; // default 50
+  keepManualVersionsDays: number; // default 90
+  keepAutosaveVersionsDays: number; // default 7
+}
+
+export const defaultAutosaveSettings: AutosaveSettings = {
+  enabled: true,
+  intervalMinutes: 10,
+  saveBeforeRun: true,
+  saveOnClose: true,
+  maxVersionsPerWorkflow: 50,
+  keepManualVersionsDays: 90,
+  keepAutosaveVersionsDays: 7
+};
+
 export interface Settings {
   gridSnap: number;
   connectionSnap: number;
@@ -21,13 +41,20 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
   soundNotifications: boolean;
+  /**
+   * When enabled, changing any node property will trigger execution of
+   * the downstream subgraph automatically (like "Run from here").
+   */
+  instantUpdate: boolean;
+  autosave: AutosaveSettings;
 }
 
 interface SettingsStore {
   settings: Settings;
   isMenuOpen: boolean;
   settingsTab: number;
-  setMenuOpen: (value: boolean, tab?: number) => void;
+  searchFilter: string;
+  setMenuOpen: (value: boolean, tab?: number, searchFilter?: string) => void;
   setGridSnap: (value: number) => void;
   setConnectionSnap: (value: number) => void;
   setPanControls: (value: string) => void;
@@ -42,6 +69,8 @@ interface SettingsStore {
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  setInstantUpdate: (value: boolean) => void;
+  updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -56,17 +85,24 @@ export const defaultSettings: Settings = {
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true,
-  soundNotifications: true
+  soundNotifications: true,
+  instantUpdate: false,
+  autosave: { ...defaultAutosaveSettings }
 };
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       settings: { ...defaultSettings },
       isMenuOpen: false,
       settingsTab: 0,
-      setMenuOpen: (value: boolean, tab?: number) =>
-        set({ isMenuOpen: value, settingsTab: tab ?? 0 }),
+      searchFilter: "",
+      setMenuOpen: (value: boolean, tab?: number, searchFilter?: string) =>
+        set({
+          isMenuOpen: value,
+          settingsTab: tab ?? 0,
+          searchFilter: searchFilter ?? ""
+        }),
       setGridSnap: (value: number) =>
         set((state) => ({
           settings: {
@@ -165,6 +201,20 @@ export const useSettingsStore = create<SettingsStore>()(
             ...state.settings,
             soundNotifications: value
           }
+        })),
+      setInstantUpdate: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            instantUpdate: value
+          }
+        })),
+      updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            autosave: { ...state.settings.autosave, ...newSettings }
+          }
         }))
     }),
     {
@@ -172,7 +222,23 @@ export const useSettingsStore = create<SettingsStore>()(
       partialize: (state) => ({
         settings: state.settings
         // Don't persist menuAnchorEl state
-      })
+      }),
+      // Merge persisted state with defaults to handle new settings being added
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsStore> | undefined;
+        return {
+          ...currentState,
+          settings: {
+            ...defaultSettings,
+            ...persisted?.settings,
+            // Deep merge autosave settings to ensure new defaults are included
+            autosave: {
+              ...defaultAutosaveSettings,
+              ...persisted?.settings?.autosave
+            }
+          }
+        };
+      }
     }
   )
 );

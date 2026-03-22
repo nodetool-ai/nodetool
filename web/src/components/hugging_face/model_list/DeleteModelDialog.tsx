@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
@@ -10,18 +9,18 @@ import {
   Box,
   useTheme
 } from "@mui/material";
+import { Dialog } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import {
   isFileExplorerAvailable,
-  openHuggingfacePath,
   openOllamaPath,
   openInExplorer
 } from "../../../utils/fileExplorer";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { useState } from "react";
 import { useModels } from "./useModels";
+import log from "loglevel";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
@@ -38,47 +37,45 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const fileExplorerAvailable = isFileExplorerAvailable();
 
   const deleteHFModel = async (repoId: string) => {
-    setDeletingModels((prev) => new Set(prev).add(repoId));
-    try {
-      const { error } = await client.DELETE("/api/models/huggingface", {
-        params: { query: { repo_id: repoId } }
-      });
-      if (error) {throw error;}
-      addNotification({
-        type: "success",
-        content: `Deleted model ${repoId}`,
-        dismissable: true
-      });
-      queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
-      queryClient.invalidateQueries({ queryKey: ["allModels"] });
-    } finally {
-      setDeletingModels((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(repoId);
-        return newSet;
-      });
-    }
+    const { error } = await client.DELETE("/api/models/huggingface", {
+      params: { query: { repo_id: repoId } }
+    });
+    if (error) { throw error; }
+    addNotification({
+      type: "success",
+      content: `Deleted model ${repoId}`,
+      dismissable: true
+    });
+    queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
+    queryClient.invalidateQueries({ queryKey: ["allModels"] });
   };
 
   const deleteOllamaModel = async (modelName: string) => {
-    setDeletingModels((prev) => new Set(prev).add(modelName));
-    try {
-      const response = await fetch(
-        `${BASE_URL}/api/models/ollama_model?model_name=${encodeURIComponent(
-          modelName
-        )}`,
-        {
-          method: "DELETE",
-          headers: await authHeader()
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`Delete failed: ${await response.text()}`);
+    const response = await fetch(
+      `${BASE_URL}/api/models/ollama?model_name=${encodeURIComponent(
+        modelName
+      )}`,
+      {
+        method: "DELETE",
+        headers: await authHeader()
       }
+    );
+    if (!response.ok) {
+      throw new Error(`Delete failed: ${await response.text()}`);
+    }
+    return modelName;
+  };
+
+  const deleteHFModelMutation = useMutation({
+    mutationFn: deleteHFModel
+  });
+
+  const deleteOllamaModelMutation = useMutation({
+    mutationFn: deleteOllamaModel,
+    onSuccess: (modelName) => {
       addNotification({
         type: "success",
         content: `Deleted Ollama model ${modelName}`,
@@ -86,24 +83,14 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       });
       queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
       queryClient.invalidateQueries({ queryKey: ["allModels"] });
-    } finally {
-      setDeletingModels((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(modelName);
-        return newSet;
-      });
     }
-  };
-
-  const deleteHFModelMutation = useMutation({
-    mutationFn: deleteHFModel
   });
 
-  const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) {return;}
+  const handleShowInExplorer = useCallback(async (modelId: string) => {
+    if (!modelId) { return; }
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) {return;}
+    if (!model) { return; }
 
     const isOllama = model?.type === "llama_model";
 
@@ -118,7 +105,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
     }
-  };
+  }, [allModels, addNotification]);
 
   const modelForExplorer = modelId
     ? allModels?.find((m) => m.id === modelId)
@@ -135,13 +122,13 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       const model = allModels?.find((m) => m.id === modelId);
       try {
         if (model?.type === "llama_model") {
-          await deleteOllamaModel(modelId);
+          await deleteOllamaModelMutation.mutateAsync(modelId);
         } else {
           await deleteHFModel(modelId);
         }
         onClose();
       } catch (error: any) {
-        console.error("Deletion error:", error);
+        log.error("Deletion error:", error);
 
         // Extract error message
         const errorMessage = error.message || "Unknown error";
@@ -176,7 +163,13 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   };
 
   const isDeleting =
-    (modelId && deletingModels.has(modelId)) || deleteHFModelMutation.isPending;
+    deleteHFModelMutation.isPending || deleteOllamaModelMutation.isPending;
+
+  const handleShowInExplorerClick = useCallback(() => {
+    if (modelId) {
+      handleShowInExplorer(modelId);
+    }
+  }, [modelId, handleShowInExplorer]);
 
   return (
     <Dialog
@@ -212,7 +205,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => modelId && handleShowInExplorer(modelId)}
+          onClick={handleShowInExplorerClick}
           disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer

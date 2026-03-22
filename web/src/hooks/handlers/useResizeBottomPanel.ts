@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { BottomPanelView, useBottomPanelStore } from "../../stores/BottomPanelStore";
 
 const DEFAULT_PANEL_SIZE = 300;
@@ -28,6 +28,10 @@ export const useResizeBottomPanel = () => {
   const lastSizeRef = useRef(
     Math.max(MIN_PANEL_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE)
   );
+  const dragHandlersRef = useRef<{
+    handleMouseMove?: ((e: MouseEvent) => void);
+    handleMouseUp?: (() => void);
+  }>({});
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
@@ -82,7 +86,10 @@ export const useResizeBottomPanel = () => {
 
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        dragHandlersRef.current = {};
       };
+
+      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
@@ -96,6 +103,19 @@ export const useResizeBottomPanel = () => {
   if (panel.panelSize > MIN_DRAG_SIZE) {
     lastSizeRef.current = panel.panelSize;
   }
+
+  // Clean up any remaining drag event listeners on unmount
+  useEffect(() => {
+    return () => {
+      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
+      if (handleMouseMove) {
+        document.removeEventListener("mousemove", handleMouseMove);
+      }
+      if (handleMouseUp) {
+        document.removeEventListener("mouseup", handleMouseUp);
+      }
+    };
+  }, []);
 
   return {
     ref,

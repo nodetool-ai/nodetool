@@ -9,8 +9,7 @@ import rehypeRaw from "rehype-raw";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
-import "../../../styles/markdown/github-markdown-dark.css";
-// import "../../../styles/markdown/github-markdown-light.css";
+import "../../../styles/markdown/github-markdown.css";
 
 interface ChatMarkdownProps {
   content: string;
@@ -30,7 +29,7 @@ const styles = (_theme: Theme) =>
       justifyContent: "space-between",
       alignItems: "center",
       backgroundColor: "var(--palette-grey-800)",
-      color: "var(--palette-grey-200)",
+      color: "var(--palette-text-primary)",
       paddingTop: "5px",
       paddingBottom: "5px",
       paddingLeft: "1em",
@@ -48,7 +47,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
+const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
 }) => {
@@ -61,7 +60,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
         components={{
           code: (props) => <CodeBlock {...props} onInsert={onInsertCode} />,
           pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />,
-          a: ({ node, ...props }) => {
+          a: ({ node: _node, ...props }) => {
             const { href, children } = props;
             const isAudio =
               href &&
@@ -89,6 +88,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
       </ReactMarkdown>
     </div>
   );
-};
+});
+
+ChatMarkdown.displayName = "ChatMarkdown";
 
 export default ChatMarkdown;

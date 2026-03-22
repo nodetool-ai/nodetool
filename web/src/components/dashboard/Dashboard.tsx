@@ -6,7 +6,8 @@ import React, {
   useState,
   useEffect,
   useMemo,
-  useRef
+  useRef,
+  memo
 } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -30,6 +31,7 @@ import { uuidv4 } from "../../stores/uuidv4";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -70,10 +72,12 @@ const styles = (theme: Theme) =>
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();
+
+  // Subscribe to settings individually to prevent unnecessary re-renders
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
+
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
-  // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
   const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
 
   const isMountedRef = useRef(true);
@@ -81,13 +85,19 @@ const Dashboard: React.FC = () => {
   // Ensure WebSocket connection while dashboard is visible
   useEnsureChatConnected({ disconnectOnUnmount: false });
 
-  const tryParseModel = (model: string) => {
+  // Close panelLeft when dashboard route is opened
+  useEffect(() => {
+    usePanelStore.getState().setVisibility(false);
+  }, []);
+
+  const tryParseModel = useCallback((model: string) => {
     try {
       return JSON.parse(model);
     } catch {
+      // JSON parsing failed, return default model
       return DEFAULT_MODEL;
     }
-  };
+  }, []);
 
   const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const savedModel = localStorage.getItem("selectedModel");
@@ -110,7 +120,7 @@ const Dashboard: React.FC = () => {
   const {
     loadingExampleId,
     handleCreateNewWorkflow,
-    handleWorkflowClick,
+    handleWorkflowClick: _handleWorkflowClick,
     handleExampleClick,
     handleViewAllTemplates
   } = useWorkflowActions();
@@ -135,10 +145,10 @@ const Dashboard: React.FC = () => {
     setSelectedModel(model);
   }, []);
 
-  const handleOrderChange = useCallback(
-    (_: any, newOrder: any) => {
+  const _handleOrderChange = useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newOrder: string | null) => {
       if (newOrder !== null) {
-        setWorkflowOrder(newOrder);
+        setWorkflowOrder(newOrder as "name" | "date");
       }
     },
     [setWorkflowOrder]
@@ -159,13 +169,6 @@ const Dashboard: React.FC = () => {
         handleCreateNewWorkflow
       },
       activity: {
-        // Workflows
-        sortedWorkflows,
-        isLoadingWorkflows,
-        settings,
-        handleOrderChange,
-        handleCreateNewWorkflow,
-        handleWorkflowClick,
         // Chats
         threads: threads as { [key: string]: Thread },
         currentThreadId,
@@ -181,14 +184,7 @@ const Dashboard: React.FC = () => {
         handleExampleClick,
         handleViewAllTemplates
       },
-      workflows: {
-        sortedWorkflows,
-        isLoadingWorkflows,
-        settings,
-        handleOrderChange,
-        handleCreateNewWorkflow,
-        handleWorkflowClick
-      },
+      workflows: {},
       "recent-chats": {
         threads: threads as { [key: string]: Thread },
         currentThreadId,
@@ -222,10 +218,7 @@ const Dashboard: React.FC = () => {
     handleViewAllTemplates,
     sortedWorkflows,
     isLoadingWorkflows,
-    settings,
-    handleOrderChange,
     handleCreateNewWorkflow,
-    handleWorkflowClick,
     threads,
     currentThreadId,
     onNewThread,
@@ -485,4 +478,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

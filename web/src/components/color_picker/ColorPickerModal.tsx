@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -201,8 +201,18 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const { addRecentColor, preferredColorMode, setPreferredColorMode } =
-    useColorPickerStore();
+    useColorPickerStore(
+      useCallback(
+        (state) => ({
+          addRecentColor: state.addRecentColor,
+          preferredColorMode: state.preferredColorMode,
+          setPreferredColorMode: state.setPreferredColorMode
+        }),
+        []
+      )
+    );
 
   // Internal state
   const [color, setColor] = useState(initialColor || "#ff0000");
@@ -210,6 +220,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   const [colorMode, setColorMode] = useState<ColorMode>(preferredColorMode);
   const [activeTab, setActiveTab] = useState<TabType>("swatches");
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [gradient, setGradient] = useState<GradientValue>({
     type: "linear",
     angle: 90,
@@ -232,6 +243,15 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   useEffect(() => {
     onChange(color, alpha);
   }, [color, alpha, onChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle saturation/brightness change
   const handleSaturationChange = useCallback(
@@ -311,7 +331,17 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
       navigator.clipboard.writeText(textToCopy);
       setCopiedFormat(format);
-      setTimeout(() => setCopiedFormat(null), 1500);
+
+      // Clear previous timeout if exists
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+
+      // Set new timeout and store reference
+      copiedTimeoutRef.current = setTimeout(() => {
+        setCopiedFormat(null);
+        copiedTimeoutRef.current = null;
+      }, 1500);
     },
     [color, alpha]
   );
@@ -339,6 +369,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [handleApply]
   );
 
+  const handleCopyHex = useCallback(() => {
+    copyColor("hex");
+  }, [copyColor]);
+
   const content = (
     <div css={styles(theme)}>
       <div className="modal-overlay" onClick={handleOverlayClick}>
@@ -349,7 +383,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
             <div className="header-actions">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <Tooltip title="Close (Esc)">
-                <IconButton size="small" onClick={handleApply}>
+                <IconButton size="small" onClick={handleApply} aria-label="Close color picker">
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -394,7 +428,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 <Tooltip title="Click to copy HEX">
                   <div
                     className="preview-swatch"
-                    onClick={() => copyColor("hex")}
+                    onClick={handleCopyHex}
                   >
                     <div className="preview-swatch-bg" />
                     <div
@@ -487,4 +521,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ColorPickerModal;
+ColorPickerModal.displayName = 'ColorPickerModal';
+
+export default memo(ColorPickerModal);

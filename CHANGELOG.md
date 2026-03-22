@@ -31,6 +31,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated global chat documentation with standalone window feature
 - Improved getting started guide with onboarding panel section
 
+### Fixed
+
+#### Electron
+- Fixed auto-updater crash when `app-update.yml` is missing on Windows
+  - Added `app-update.yml` to packaged app resources
+  - Hardened updater logic to gracefully handle missing config file
+  - Auto-updater now logs warnings instead of crashing when config is unavailable
+
+### Troubleshooting
+
+#### Windows: Auto-update crash with "ENOENT: no such file or directory, app-update.yml"
+
+If you encounter an error like:
+```
+Error: ENOENT: no such file or directory, open
+'C:\Users\<user>\AppData\Local\Programs\Nodetool\resources\app-update.yml'
+```
+
+This is caused by a missing auto-update configuration file in older installations. To resolve:
+
+1. Uninstall Nodetool from Windows Settings > Apps
+2. Delete the installation directory: `C:\Users\<user>\AppData\Local\Programs\Nodetool\`
+3. Download and install the latest version from [GitHub releases](https://github.com/nodetool-ai/nodetool/releases)
+
+This issue has been fixed in the latest release, and future installations will include the required configuration file.
+
 ## [Unreleased] - 2025-12-20
 
 ### Added

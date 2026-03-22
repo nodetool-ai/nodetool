@@ -45,7 +45,7 @@ Generate and transform written content:
 - [Flashcard Generator](flashcard-generator.md) - Turn content into study materials
 - [Story to Video Generator](story-to-video-generator.md) - Bring written stories to life
 
-## 📚 Smart Document Workflows
+## 📚 Document Workflows
 
 Work with documents and knowledge:
 
@@ -56,7 +56,7 @@ Work with documents and knowledge:
 
 ## 🤖 Productivity & Automation
 
-Save time with smart workflows:
+Save time with these workflows:
 
 - [Meeting Transcript Summarizer](meeting-transcript-summarizer.md) - Auto-summarize meetings
 - [Categorize Mails](categorize-mails.md) - Organize emails automatically

@@ -11,7 +11,7 @@ NodeTool terminology in plain language. Simple explanations followed by technica
 ## Core Concepts
 
 ### NodeTool
-The platform you're using! NodeTool is a visual environment for building AI workflows. You connect nodes (building blocks) to create powerful automations without writing code.
+The platform you're using! NodeTool is a visual environment for building AI workflows. You connect nodes (building blocks) to create automations without writing code.
 
 ### Workflow
 A **workflow** is your project – a collection of connected nodes that accomplish a task together. Think of it like a recipe: each step (node) does something specific, and together they create the final result.
@@ -70,7 +70,7 @@ The main work area where you build workflows by placing and connecting nodes. Pa
 A special node that shows you intermediate results while your workflow runs. Add previews anywhere to debug or monitor progress.
 
 ### Mini-App
-A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs – perfect for sharing with non-technical users.
+A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs, making them easy to share with non-technical users.
 
 ### Global Chat
 NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or enable Agent Mode for autonomous task completion.
@@ -105,13 +105,13 @@ How NodeTool runs your workflow – either in the same process, a separate subpr
 
 ## Infrastructure
 
-### Worker
-The background process that actually runs your workflows. Workers connect to the server and execute jobs.
+### Server
+The background process that actually runs your workflows. Servers connect to the server and execute jobs.
 
-*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (often via `nodetool serve` or `nodetool worker`).*
+*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (often via `nodetool serve` or `nodetool serve --mode private`).*
 
 ### API Server
-The backend service that handles requests, manages workflows, and coordinates workers.
+The backend service that handles requests, manages workflows, and coordinates servers.
 
 *Technical: FastAPI server handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
 

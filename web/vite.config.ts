@@ -14,6 +14,13 @@ export default defineConfig(async ({ mode }) => {
       changeOrigin: true,
       secure: false
     },
+    "/comfy-api": {
+      target: "http://localhost:8000",
+      changeOrigin: true,
+      secure: false,
+      ws: true,
+      rewrite: (path) => path.replace(/^\/comfy-api/, "/api")
+    },
     "/ws": {
       target: "http://localhost:7777",
       ws: true,
@@ -32,6 +39,9 @@ export default defineConfig(async ({ mode }) => {
       allowedHosts: [".nodetool.ai", "localhost"],
       port: 3000,
       proxy: proxyConfig
+    },
+    optimizeDeps: {
+      exclude: ["@tanstack/react-query"]
     },
     plugins: [
       react({
@@ -52,7 +62,24 @@ export default defineConfig(async ({ mode }) => {
         : {
             rollupOptions: {
               output: {
-                manualChunks: undefined
+                manualChunks: {
+                  "vendor-react": ["react", "react-dom", "react-router-dom"],
+                  "vendor-mui": [
+                    "@mui/material",
+                    "@mui/icons-material",
+                    "@emotion/react",
+                    "@emotion/styled"
+                  ],
+                  "vendor-plotly": ["react-plotly.js"],
+                  "vendor-three": [
+                    "three",
+                    "@react-three/fiber",
+                    "@react-three/drei"
+                  ],
+                  "vendor-editor": ["@monaco-editor/react", "lexical"],
+                  "vendor-pdf": ["react-pdf"],
+                  "vendor-waveform": ["wavesurfer.js"]
+                }
               }
             }
           })

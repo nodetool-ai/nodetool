@@ -2,6 +2,10 @@ import { test, expect } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
+import { BACKEND_API_URL } from "./support/backend";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -9,8 +13,7 @@ if (process.env.JEST_WORKER_ID) {
 } else {
   test.describe("Collections", () => {
     test("should load collections page", async ({ page }) => {
-      await page.goto("/collections");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/collections");
 
       // Verify we're on the collections page
       await expect(page).toHaveURL(/\/collections/);
@@ -22,8 +25,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("should display collections interface", async ({ page }) => {
-      await page.goto("/collections");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/collections");
 
       // Wait for content to load by checking body has content
       const body = await page.locator("body");
@@ -37,8 +39,7 @@ if (process.env.JEST_WORKER_ID) {
     test("should handle empty collections state gracefully", async ({
       page
     }) => {
-      await page.goto("/collections");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/collections");
 
       // Wait for the page to fully render by checking URL is stable
       await expect(page).toHaveURL(/\/collections/);
@@ -57,7 +58,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Step 1: Create a collection via API
       const createResponse = await request.post(
-        "http://localhost:7777/api/collections/",
+        `${BACKEND_API_URL}/collections/`,
         {
           data: {
             name: collectionName,
@@ -68,8 +69,7 @@ if (process.env.JEST_WORKER_ID) {
       expect(createResponse.ok()).toBe(true);
 
       // Step 2: Navigate to collections page and verify collection exists
-      await page.goto("/collections");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/collections");
 
       // Wait for collection list to load and show our new collection
       await expect(page.getByText(collectionName)).toBeVisible({
@@ -124,7 +124,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Cleanup: Delete the collection via API
         await request.delete(
-          `http://localhost:7777/api/collections/${collectionName}`
+          `${BACKEND_API_URL}/collections/${collectionName}`
         );
       }
     });

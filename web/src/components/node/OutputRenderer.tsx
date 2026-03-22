@@ -7,7 +7,6 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -16,12 +15,10 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
@@ -33,12 +30,15 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
   typeFor,
   renderSVGDocument,
   useImageAssets,
   useRevokeBlobUrls,
-  useVideoSrc
+  useVideoSrc,
+  resolveAssetUri,
+  getMimeTypeFromUri
 } from "./output";
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
@@ -51,7 +51,9 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-// import left for future reuse of audio stream component when needed
+import PlotlyRenderer from "./output/PlotlyRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
+import { isTextLikeChunk } from "./outputChunkUtils";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -127,16 +129,16 @@ const stableKeyForOutputValue = (v: any): string => {
     return `arr:${hashBytesBounded(v)}`;
   }
   if (t === "object") {
-    const id = (v as any).id;
+    const id = (v as Record<string, unknown>).id;
     if (typeof id === "string" || typeof id === "number") {
       return `id:${String(id)}`;
     }
-    const uri = (v as any).uri;
+    const uri = (v as Record<string, unknown>).uri;
     if (typeof uri === "string" && uri) {
       return `uri:${uri}`;
     }
-    const type = (v as any).type;
-    const name = (v as any).name;
+    const type = (v as Record<string, unknown>).type;
+    const name = (v as Record<string, unknown>).name;
     if (typeof type === "string" && typeof name === "string") {
       return `type-name:${type}:${name}`;
     }
@@ -148,6 +150,7 @@ const stableKeyForOutputValue = (v: any): string => {
     try {
       return `json:${hashStringBounded(JSON.stringify(v))}`;
     } catch {
+      // JSON.stringify failed, return generic type
       return "object";
     }
   }
@@ -170,8 +173,7 @@ const concatTextChunksSafely = (
     if (!c) {
       continue;
     }
-    const piece =
-      typeof (c as any).content === "string" ? (c as any).content : "";
+    const piece = typeof c.content === "string" ? c.content : "";
     if (!piece) {
       used++;
       continue;
@@ -220,53 +222,55 @@ const useDraggableScroll = () => {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const scrollTop = useRef(0);
+  const isDraggingState = useRef(false);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) {
-      return;
-    }
-    isDragging.current = true;
-    startY.current = e.clientY;
-    scrollTop.current = scrollRef.current.scrollTop;
-    scrollRef.current.style.cursor = "grabbing";
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMoveRef = useRef((e: MouseEvent) => {
     if (!isDragging.current || !scrollRef.current) {
       return;
     }
     e.preventDefault();
     const deltaY = e.clientY - startY.current;
     scrollRef.current.scrollTop = scrollTop.current - deltaY;
-  }, []);
+  });
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUpRef = useRef(() => {
     if (!scrollRef.current) {
       return;
     }
     isDragging.current = false;
+    isDraggingState.current = false;
     scrollRef.current.style.cursor = "grab";
-  }, []);
+  });
 
+  // Set up global listeners once
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
+    const handleGlobalMouseUp = () => handleMouseUpRef.current();
 
-    if (isDragging.current) {
-      document.addEventListener("mousemove", handleGlobalMouseMove);
-      document.addEventListener("mouseup", handleGlobalMouseUp);
-    }
+    document.addEventListener("mousemove", handleGlobalMouseMove);
+    document.addEventListener("mouseup", handleGlobalMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleGlobalMouseMove);
       document.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, []); // Empty deps - listeners set up once and check refs internally
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) {
+      return;
+    }
+    isDragging.current = true;
+    isDraggingState.current = true;
+    startY.current = e.clientY;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
 
   return {
     scrollRef,
     handleMouseDown,
-    isDragging: isDragging.current
+    isDragging: isDraggingState.current
   };
 };
 
@@ -293,9 +297,56 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const [openModel3D, setOpenModel3D] = useState<{
+    url: string;
+    contentType?: string;
+  } | null>(null);
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
+  const documentDataPreview = useMemo(() => {
+    if (type !== "document") {
+      return { url: "", isPdf: false };
+    }
+
+    let bytes: Uint8Array | null = null;
+    const data = value?.data;
+
+    if (data instanceof Uint8Array) {
+      bytes = data;
+    } else if (Array.isArray(data)) {
+      bytes = new Uint8Array(data);
+    } else if (data && typeof data === "object") {
+      const numericEntries = Object.entries(data)
+        .filter(([k, v]) => /^\d+$/.test(k) && typeof v === "number")
+        .sort((a, b) => Number(a[0]) - Number(b[0]));
+      if (numericEntries.length > 0) {
+        bytes = new Uint8Array(numericEntries.map(([, v]) => Number(v)));
+      }
+    }
+
+    if (!bytes || bytes.length === 0) {
+      return { url: "", isPdf: false };
+    }
+
+    const isPdf =
+      bytes.length >= 4 &&
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46;
+    const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
+    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    return { url, isPdf };
+  }, [type, value]);
+
+  useEffect(() => {
+    return () => {
+      if (documentDataPreview.url) {
+        URL.revokeObjectURL(documentDataPreview.url);
+      }
+    };
+  }, [documentDataPreview.url]);
 
   const computedViewer = useImageAssets(value);
   useRevokeBlobUrls(computedViewer.urls);
@@ -311,27 +362,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
+  const handleModel3DDoubleClick = useCallback(
+    (url: string, contentType?: string) => () => {
+      setOpenModel3D({ url, contentType });
+    },
+    []
+  );
+
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    let config: PlotlyConfig | undefined;
     switch (type) {
       case "plotly_config":
-        config = value as PlotlyConfig;
-        return (
-          <div
-            className="render-content"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
-        );
+        return <PlotlyRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
@@ -341,13 +384,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
             />
           ));
         } else {
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-            imageSource = value.uri;
+            imageSource = resolveAssetUri(value.uri);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -357,15 +399,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
+          return <ImageView source={imageSource} />;
         }
       case "audio": {
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
         if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-          // Use URI if available
-          audioSource = value.uri;
+          // Use URI if available (resolve asset:// to /api/storage/)
+          audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
           // Convert array of bytes to Uint8Array
           audioSource = new Uint8Array(value.data);
@@ -380,8 +422,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           audioSource = "";
         }
 
-        const metadata = (value as any).metadata || {};
-        const mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        const metadata = (value as { metadata?: { format?: string } }).metadata || {};
+        let mimeType = getMimeTypeFromUri(value?.uri);
+        if (!mimeType) {
+          mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        }
 
         return (
           <div className="audio" style={{ padding: "1em" }}>
@@ -394,6 +439,79 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           </div>
         );
       }
+      case "html": {
+        const uri =
+          value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
+            ? resolveAssetUri(value.uri)
+            : "";
+        if (uri) {
+          return (
+            <iframe
+              src={uri}
+              sandbox=""
+              style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+              title="HTML output"
+            />
+          );
+        }
+
+        let html = "";
+        if (typeof value?.data === "string") {
+          html = value.data;
+        } else if (value?.data instanceof Uint8Array) {
+          html = new TextDecoder("utf-8").decode(value.data);
+        } else if (Array.isArray(value?.data)) {
+          html = new TextDecoder("utf-8").decode(new Uint8Array(value.data));
+        }
+
+        if (!html) {
+          return <TextRenderer text="" showActions={showTextActions} />;
+        }
+
+        return (
+          <iframe
+            srcDoc={html}
+            sandbox=""
+            style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+            title="HTML output"
+          />
+        );
+      }
+      case "document": {
+        const rawUri =
+          value?.uri && typeof value.uri === "string" ? value.uri : "";
+        const uriFromRef =
+          rawUri && !rawUri.startsWith("memory://") ? resolveAssetUri(rawUri) : "";
+        const uri = uriFromRef || documentDataPreview.url;
+        const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
+        const isPdf =
+          documentDataPreview.isPdf ||
+          mimeType === "application/pdf" ||
+          rawUri.toLowerCase().endsWith(".pdf") ||
+          uri.toLowerCase().endsWith(".pdf");
+
+        if (uri && isPdf) {
+          return (
+            <iframe
+              src={uri}
+              style={{ width: "100%", height: "100%", minHeight: 360, border: "none" }}
+              title="PDF output"
+            />
+          );
+        }
+
+        if (uri) {
+          return (
+            <div className="output value" style={{ padding: "0.75em" }}>
+              <a href={uri} target="_blank" rel="noreferrer">
+                Open document
+              </a>
+            </div>
+          );
+        }
+
+        return <JSONRenderer value={value} showActions={showTextActions} />;
+      }
       case "video":
         return (
           <video
@@ -402,8 +520,44 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             style={{ width: "100%", height: "100%" }}
           />
         );
+      case "model_3d": {
+        const rawUri: string =
+          (value && typeof value === "object" && typeof value.uri === "string"
+            ? value.uri
+            : "") || "";
+
+        if (!rawUri) {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
+
+        const url = resolveAssetUri(rawUri);
+        const format =
+          value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
+            ? ((value as Record<string, unknown>).format as string)
+            : undefined;
+        const contentType = getMimeTypeFromUri(url) ||
+          (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
+
+        return (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              display: "flex",
+              flex: 1
+            }}
+          >
+            <LazyModel3DViewer
+              url={url}
+              compact={true}
+              onDoubleClick={handleModel3DDoubleClick(url, contentType)}
+            />
+          </div>
+        );
+      }
       case "dataframe":
-        return <DataTable dataframe={value as DataframeRef} editable={false} />;
+        return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
         return (
           <div className="tensor nodrag">
@@ -466,7 +620,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string") {
+          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -481,7 +635,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 }}
               >
                 <List sx={{ p: 1 }}>
-                  {value.map((v: any) => (
+                  {value.map((v: string) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
@@ -515,7 +669,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (typeof value[0] === "object") {
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
-              const allText = chunks.every((c) => c.content_type === "text");
+              const allText = chunks.every((c) => isTextLikeChunk(c));
               if (allText) {
                 const { text, truncated, totalChunks } =
                   concatTextChunksSafely(chunks);
@@ -546,12 +700,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 (c) => c.content_type === "audio"
               );
               if (audioChunks.length >= 2) {
-                const firstMeta = (audioChunks[0] as any).content_metadata;
+                const firstMeta = audioChunks[0].content_metadata;
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={firstMeta?.sample_rate || 22000}
-                    channels={firstMeta?.channels || 1}
+                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
+                    channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
               }
@@ -562,11 +716,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${(c as any)?.content_type ?? ""}:${
-                          (c as any)?.done ? 1 : 0
+                        `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
                         }:${hashStringBounded(
-                          typeof (c as any)?.content === "string"
-                            ? (c as any).content
+                          typeof c.content === "string"
+                            ? c.content
                             : ""
                         )}`,
                         seen
@@ -589,7 +742,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video"].includes(value[0].type)) {
+            if (["audio", "video", "html"].includes(value[0].type)) {
               const seen = new Map<string, number>();
               return (
                 <Container>
@@ -627,7 +780,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 description: ""
               }))
             };
-            return <DataTable dataframe={df} editable={false} />;
+            return <DataframeRenderer dataframe={df} />;
           }
         }
 
@@ -693,19 +846,29 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   }, [
     value,
     type,
+    documentDataPreview,
     onDoubleClickAsset,
     videoRef,
     handleMouseDown,
     scrollRef,
-    showTextActions
+    showTextActions,
+    handleModel3DDoubleClick
   ]);
+
+  const handleCloseAsset = useCallback(() => {
+    setLocalOpenAsset(null);
+  }, []);
+
+  const handleCloseModel3D = useCallback(() => {
+    setOpenModel3D(null);
+  }, []);
 
   if (!shouldRender) {
     return null;
   }
 
   return (
-    <div className="nodrag" style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%" }}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -713,7 +876,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
-          onClose={() => setLocalOpenAsset(null)}
+          onClose={handleCloseAsset}
+        />
+      )}
+      {openModel3D && (
+        <AssetViewer
+          url={openModel3D.url}
+          contentType={openModel3D.contentType}
+          open={true}
+          onClose={handleCloseModel3D}
         />
       )}
       {renderContent}

@@ -77,12 +77,13 @@ export const prepareItems = (
     image: [],
     audio: [],
     video: [],
+    model_3d: [],
     text: [],
     other: []
   };
 
   assets.forEach((asset) => {
-    const type = asset.content_type.split("/")[0];
+    const type = getAssetCategory(asset.content_type);
     if (type in assetsByType) {
       assetsByType[type].push(asset);
     } else {
@@ -105,6 +106,17 @@ export const prepareItems = (
       ];
     }
   );
+};
+
+export const getAssetCategory = (contentType: string): string => {
+  const normalized = contentType.toLowerCase().split(";")[0].trim();
+  const topLevelType = normalized.split("/")[0] || "other";
+
+  if (topLevelType === "model") {
+    return "model_3d";
+  }
+
+  return topLevelType || "other";
 };
 
 export const calculateRowCount = (

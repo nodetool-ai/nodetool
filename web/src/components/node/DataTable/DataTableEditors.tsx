@@ -14,7 +14,7 @@ export const integerEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -31,14 +31,25 @@ export const integerEditor: Editor = (
     }
   }
 
-  editor.addEventListener("change", onChange);
-  editor.addEventListener("blur", onChange);
-  editor.addEventListener("keydown", function (e) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       onChange();
     } else if (e.key === "Escape") {
       cancel(null);
     }
+  }
+
+  editor.addEventListener("change", onChange);
+  editor.addEventListener("blur", onChange);
+  editor.addEventListener("keydown", onKeyDown);
+
+  // Register cleanup function via onRendered callback
+  onRendered(() => {
+    return () => {
+      editor.removeEventListener("change", onChange);
+      editor.removeEventListener("blur", onChange);
+      editor.removeEventListener("keydown", onKeyDown);
+    };
   });
 
   return editor;
@@ -49,7 +60,7 @@ export const floatEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -66,25 +77,38 @@ export const floatEditor: Editor = (
     }
   }
 
-  editor.addEventListener("change", onChange);
-  editor.addEventListener("blur", onChange);
-  editor.addEventListener("keydown", function (e) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       onChange();
     } else if (e.key === "Escape") {
       cancel(null);
     }
+  }
+
+  editor.addEventListener("change", onChange);
+  editor.addEventListener("blur", onChange);
+  editor.addEventListener("keydown", onKeyDown);
+
+  // Register cleanup function via onRendered callback
+  onRendered(() => {
+    return () => {
+      editor.removeEventListener("change", onChange);
+      editor.removeEventListener("blur", onChange);
+      editor.removeEventListener("keydown", onKeyDown);
+    };
   });
 
   return editor;
 };
+
+const datePickerRoots = new Map<HTMLElement, { root: import("react-dom/client").Root }>();
 
 export const datetimeEditor: Editor = (
   cell: CellComponent,
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("div");
   editor.style.width = "100%";
@@ -99,17 +123,30 @@ export const datetimeEditor: Editor = (
     }
   };
 
+  const onBlur = () => cancel(null);
+  editor.addEventListener("blur", onBlur);
+
   onRendered(() => {
     const root = createRoot(editor);
+    datePickerRoots.set(editor, { root });
     root.render(
       <CustomDatePicker
         value={cell.getValue() as string}
         onChange={handleDateChange}
       />
     );
-  });
 
-  editor.addEventListener("blur", () => cancel(null));
+    return () => {
+      // Cleanup React root
+      const entry = datePickerRoots.get(editor);
+      if (entry) {
+        entry.root.unmount();
+        datePickerRoots.delete(editor);
+      }
+      // Cleanup blur event listener
+      editor.removeEventListener("blur", onBlur);
+    };
+  });
 
   return editor;
 };

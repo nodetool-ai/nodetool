@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import {
   Box,
   List,
@@ -13,14 +13,33 @@ interface SearchResultsProps {
   handleCreateNode: (node: NodeMetadata) => void;
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({
+const SearchResults = memo(({
   results,
   handleCreateNode
-}) => {
-  const renderNode = (node: NodeMetadata) => {
+}: SearchResultsProps) => {
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (nodeType) {
+        const node = results.find((n) => n.node_type === nodeType);
+        if (node) {
+          handleCreateNode(node);
+        }
+      }
+    },
+    [results, handleCreateNode]
+  );
+
+  const renderNode = useCallback((node: NodeMetadata) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton
+        key={node.title}
+        onClick={handleNodeClick}
+        data-node-type={node.node_type}
+      >
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -33,13 +52,15 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         ))}
       </ListItemButton>
     );
-  };
+  }, [handleNodeClick]);
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>
       {results.map(renderNode)}
     </List>
   );
-};
+});
+
+SearchResults.displayName = "SearchResults";
 
 export default SearchResults;

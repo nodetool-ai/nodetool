@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { typeToString, Slugify, valueMatchesType, isConnectable } from "../TypeHandler";
+import { typeToString, Slugify, valueMatchesType, isConnectable, isCollectType, canCollect } from "../TypeHandler";
 import { TypeMetadata } from "../../stores/ApiTypes";
 
 describe("TypeHandler", () => {
@@ -480,6 +480,177 @@ describe("TypeHandler", () => {
       const dict1: TypeMetadata = { type: "dict", optional: false, type_args: [] };
       const dict2: TypeMetadata = { type: "dict", optional: false, type_args: [] };
       expect(isConnectable(dict1, dict2)).toBe(true);
+    });
+
+    // Tests for T -> list[T] collection feature
+    it("should allow connecting T to list[T] (collect handle)", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listStr: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "str", optional: false, type_args: [] }]
+      };
+      expect(isConnectable(str, listStr)).toBe(true);
+    });
+
+    it("should allow connecting image to list[image] (collect handle)", () => {
+      const image: TypeMetadata = { type: "image", optional: false, type_args: [] };
+      const listImage: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "image", optional: false, type_args: [] }]
+      };
+      expect(isConnectable(image, listImage)).toBe(true);
+    });
+
+    it("should NOT allow connecting incompatible T to list[U]", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listNumber: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "number", optional: false, type_args: [] }]
+      };
+      expect(isConnectable(str, listNumber)).toBe(false);
+    });
+
+    it("should NOT apply collect logic to list -> list connections", () => {
+      const listStr: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "str", optional: false, type_args: [] }]
+      };
+      const listNumber: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "number", optional: false, type_args: [] }]
+      };
+      // list[str] should NOT connect to list[number] via collect logic
+      expect(isConnectable(listStr, listNumber)).toBe(false);
+    });
+
+    it("should allow connecting any type to list[any] (normal any behavior, not collect)", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listAny: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "any", optional: false, type_args: [] }]
+      };
+      // This is allowed via the "any" rule, not collect
+      expect(isConnectable(str, listAny)).toBe(true);
+    });
+  });
+
+  describe("isCollectType", () => {
+    it("should return true for list[T] where T is not any", () => {
+      const listStr: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "str", optional: false, type_args: [] }]
+      };
+      expect(isCollectType(listStr)).toBe(true);
+    });
+
+    it("should return true for list[image]", () => {
+      const listImage: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "image", optional: false, type_args: [] }]
+      };
+      expect(isCollectType(listImage)).toBe(true);
+    });
+
+    it("should return false for list[any]", () => {
+      const listAny: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "any", optional: false, type_args: [] }]
+      };
+      expect(isCollectType(listAny)).toBe(false);
+    });
+
+    it("should return false for list without type args", () => {
+      const list: TypeMetadata = { type: "list", optional: false, type_args: [] };
+      expect(isCollectType(list)).toBe(false);
+    });
+
+    it("should return false for non-list types", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      expect(isCollectType(str)).toBe(false);
+    });
+
+    it("should return false for dict types", () => {
+      const dict: TypeMetadata = {
+        type: "dict",
+        optional: false,
+        type_args: [
+          { type: "str", optional: false, type_args: [] },
+          { type: "number", optional: false, type_args: [] }
+        ]
+      };
+      expect(isCollectType(dict)).toBe(false);
+    });
+
+    it("should return false for undefined/null", () => {
+      expect(isCollectType(undefined as any)).toBe(false);
+      expect(isCollectType(null as any)).toBe(false);
+    });
+  });
+
+  describe("canCollect", () => {
+    it("should return true when T can be collected into list[T]", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listStr: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "str", optional: false, type_args: [] }]
+      };
+      expect(canCollect(str, listStr)).toBe(true);
+    });
+
+    it("should return true when image can be collected into list[image]", () => {
+      const image: TypeMetadata = { type: "image", optional: false, type_args: [] };
+      const listImage: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "image", optional: false, type_args: [] }]
+      };
+      expect(canCollect(image, listImage)).toBe(true);
+    });
+
+    it("should return false when types are incompatible", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listNumber: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "number", optional: false, type_args: [] }]
+      };
+      expect(canCollect(str, listNumber)).toBe(false);
+    });
+
+    it("should return false when target is list[any] (not a collect type)", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const listAny: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "any", optional: false, type_args: [] }]
+      };
+      expect(canCollect(str, listAny)).toBe(false);
+    });
+
+    it("should return false when target is not a list", () => {
+      const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      const str2: TypeMetadata = { type: "str", optional: false, type_args: [] };
+      expect(canCollect(str, str2)).toBe(false);
+    });
+
+    it("should return false when source is undefined/null", () => {
+      const listStr: TypeMetadata = {
+        type: "list",
+        optional: false,
+        type_args: [{ type: "str", optional: false, type_args: [] }]
+      };
+      expect(canCollect(undefined as any, listStr)).toBe(false);
+      expect(canCollect(null as any, listStr)).toBe(false);
     });
   });
 });

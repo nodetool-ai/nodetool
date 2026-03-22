@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
-import type { ProviderInfo } from "../stores/ApiTypes";
 
 /**
  * Hook to fetch and cache available providers with their capabilities.
@@ -82,5 +81,12 @@ export const useASRProviders = () => {
  */
 export const useVideoProviders = () => {
   return useProvidersByCapability("text_to_video");
+};
+
+/**
+ * Get providers that support embeddings.
+ */
+export const useEmbeddingProviders = () => {
+  return useProvidersByCapability("generate_embedding");
 };
 

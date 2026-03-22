@@ -35,7 +35,7 @@
   overflow: hidden;
   border-radius: 8px;
   border: none;
-  background-color: rgba(255, 255, 255, 0.13);
+  background-color: var(--palette-grey-700);
   box-shadow: none;
   overflow: visible;
 }
@@ -44,7 +44,7 @@
   .react-flow__node-nodetool\.workflows\.base_node\.Comment,
 .react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
-  background-color: rgba(0, 0, 0, 0.07);
+  background-color: var(--palette-grey-900);
 }
 .react-flow.zoomed-out
   .react-flow__node-nodetool\.workflows\.base_node\.Group
@@ -100,6 +100,111 @@
   display: none;
 }
 
+/* Constant.String uses a custom node (ConstantStringNode) —
+   keep the input handle flush left. */
+.react-flow__node-nodetool\.constant\.String .input-handle-wrapper {
+  left: -8px !important;
+}
+
+/* Let Constant.Model3D use the full body area */
+.react-flow__node-nodetool\.constant\.Model3D .node-content-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D .node-content-container > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D .node-inputs {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D .node-property.model_3d {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .property-label {
+  display: none;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .dropzone,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .property-input-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model3d-property,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .drop-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .dropzone.dropped,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-preview,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-3d-viewer,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .canvas-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .dropzone,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .dropzone.dropped,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-container {
+  border-radius: 0 !important;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .handle-popup {
+  left: -8px !important;
+}
+
 /* Collapsed Loop node - styles moved to collapsed.css */
 
 /* Datatable */
@@ -115,5 +220,5 @@
 
 .react-flow__node-default .node-header {
   border: 0;
-  background-color: rgba(68, 68, 68, 0.27);
+  background-color: var(--palette-grey-700);
 }

@@ -1,6 +1,37 @@
-function updateOutput(message) {
+function updateOutput(message, type = "info") {
   const outputContent = document.getElementById("outputContent");
-  outputContent.textContent += message + "\n";
+  const timestamp = new Date().toLocaleTimeString();
+  
+  let typeIcon = "";
+  let typeClass = "";
+  
+  switch (type) {
+    case "success":
+      typeIcon = "✓";
+      typeClass = "text-success";
+      break;
+    case "error":
+      typeIcon = "✕";
+      typeClass = "text-error";
+      break;
+    case "warning":
+      typeIcon = "⚠";
+      typeClass = "text-warning";
+      break;
+    case "info":
+    default:
+      typeIcon = "→";
+      typeClass = "text-accent";
+      break;
+  }
+  
+  const formattedMessage = `[${timestamp}] ${typeIcon} ${message}`;
+  const messageSpan = document.createElement("span");
+  messageSpan.className = typeClass;
+  messageSpan.textContent = formattedMessage + "\n";
+  
+  outputContent.appendChild(messageSpan);
+  outputContent.scrollTop = outputContent.scrollHeight;
   console.log(message);
 }
 
@@ -10,9 +41,9 @@ function updateWsMessages(message) {
 
   if (typeof message === "string") {
     displayMessage =
-      message.length > 100 ? message.slice(0, 100) + "..." : message;
+      message.length > 300 ? message.slice(0, 300) + "..." : message;
   } else if (message instanceof ArrayBuffer || message instanceof Uint8Array) {
-    displayMessage = "[Binary data]";
+    displayMessage = "[Binary data - " + message.byteLength + " bytes]";
   } else if (typeof message === "object") {
     try {
       const stringified = JSON.stringify(
@@ -38,34 +69,51 @@ function updateWsMessages(message) {
         2
       );
       displayMessage =
-        stringified.length > 200
-          ? stringified.slice(0, 200) + "..."
+        stringified.length > 300
+          ? stringified.slice(0, 300) + "..."
           : stringified;
     } catch (error) {
       displayMessage = "[Unserializable object]";
     }
   } else {
     displayMessage =
-      String(message).length > 100
-        ? String(message).slice(0, 100) + "..."
+      String(message).length > 300
+        ? String(message).slice(0, 300) + "..."
         : String(message);
   }
 
-  wsContent.textContent += displayMessage + "\n\n";
+  const timestamp = new Date().toLocaleTimeString();
+  const messageSpan = document.createElement("span");
+  messageSpan.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${escapeHtml(displayMessage)}\n\n`;
+  wsContent.appendChild(messageSpan);
   wsContent.scrollTop = wsContent.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function showProgressBar() {
   const progressContainer = document.getElementById("progressContainer");
   if (progressContainer) {
-    progressContainer.style.display = "flex";
+    progressContainer.classList.add("visible");
   }
 }
 
 function hideProgressBar() {
   const progressContainer = document.getElementById("progressContainer");
+  const progressBar = document.querySelector(".progress-bar-fill");
+  const progressText = document.getElementById("progressText");
+  
+  if (progressBar && progressText) {
+    progressBar.style.width = "0%";
+    progressText.textContent = "0%";
+  }
+  
   if (progressContainer) {
-    progressContainer.style.display = "none";
+    progressContainer.classList.remove("visible");
   }
 }
 
@@ -93,11 +141,11 @@ function checkWorkflowIO(workflow) {
 
   let warningMessage = "";
   if (!hasInputs && !hasOutputs) {
-    warningMessage = "Warning: This workflow has no inputs or outputs.";
+    warningMessage = "This workflow has no inputs or outputs.";
   } else if (!hasInputs) {
-    warningMessage = "Warning: This workflow has no inputs.";
+    warningMessage = "This workflow has no inputs.";
   } else if (!hasOutputs) {
-    warningMessage = "Warning: This workflow has no outputs.";
+    warningMessage = "This workflow has no outputs.";
   }
 
   console.log("Warning message:", warningMessage);
@@ -106,71 +154,44 @@ function checkWorkflowIO(workflow) {
 
 function displayWarning(message) {
   let warningElement = document.getElementById("workflowWarning");
+  const dynamicInputs = document.getElementById("dynamicInputs");
+  const workflowForm = document.getElementById("workflowForm");
+  
   if (!warningElement) {
     warningElement = document.createElement("div");
     warningElement.id = "workflowWarning";
     warningElement.className = "warning-message";
-    document
-      .getElementById("workflowForm")
-      .insertBefore(warningElement, document.getElementById("dynamicInputs"));
-  }
-
-  warningElement.textContent = message;
-  warningElement.style.display = message ? "block" : "none";
-
-  // Create custom tooltip
-  let tooltip = warningElement.querySelector(".custom-tooltip");
-  if (!tooltip) {
-    tooltip = document.createElement("div");
-    tooltip.className = "custom-tooltip";
-    tooltip.innerHTML = `
-    <ul>
-      <li><strong>Workflows without inputs:</strong><br/> Will use default input values.</li>
-      <li><strong>Workflows without outputs:</strong><br/> Results will not be visible here.<br/>
-      Useful in some cases, but usually not.
-      </li>      
-    </ul>
-  `;
-    warningElement.appendChild(tooltip);
-  }
-  // Add tooltip functionality for both desktop and mobile
-  const showTooltip = () => {
-    tooltip.style.visibility = "visible";
-    tooltip.style.opacity = "1";
-  };
-
-  const hideTooltip = () => {
-    tooltip.style.visibility = "hidden";
-    tooltip.style.opacity = "0";
-  };
-
-  // For desktop
-  warningElement.addEventListener("mouseover", showTooltip);
-  warningElement.addEventListener("mouseout", hideTooltip);
-
-  // For mobile
-  warningElement.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // Prevent default touch behavior
-    showTooltip();
-  });
-
-  warningElement.addEventListener("touchend", (e) => {
-    e.preventDefault(); // Prevent default touch behavior
-    hideTooltip();
-  });
-
-  // Close tooltip when tapping outside
-  document.addEventListener("touchstart", (e) => {
-    if (!warningElement.contains(e.target)) {
-      hideTooltip();
+    
+    if (workflowForm && dynamicInputs) {
+      workflowForm.insertBefore(warningElement, dynamicInputs);
+    } else if (workflowForm) {
+      workflowForm.appendChild(warningElement);
+    } else {
+      console.warn("Cannot display warning: workflowForm not found");
+      return;
     }
-  });
+  }
+
+  warningElement.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+    <span>${message}</span>
+  `;
+  warningElement.style.display = message ? "flex" : "none";
 }
 
 function getInputValues(schema) {
   const values = {};
   for (const [key, value] of Object.entries(schema.properties)) {
     const input = document.getElementById(key);
+    if (!input) {
+      console.warn(`Input element not found for key: ${key}`);
+      continue;
+    }
+    
     if (input.type === "checkbox") {
       values[key] = input.checked;
     } else if (input.type === "range") {
@@ -186,89 +207,33 @@ function getInputValues(schema) {
 
 async function runWorkflow(workflowRunner, workflowId, params) {
   try {
-    updateOutput("Running workflow...");
+    updateOutput("Running workflow...", "info");
     showProgressBar();
 
     if (
       !workflowRunner.socket ||
       workflowRunner.socket.readyState !== WebSocket.OPEN
     ) {
-      updateOutput("Connecting to WebSocket...");
+      updateOutput("Connecting to WebSocket...", "info");
       await workflowRunner.connect();
-      updateOutput("WebSocket connected.");
+      updateOutput("WebSocket connected.", "success");
     }
 
-    updateOutput("Sending workflow run request...");
+    updateOutput("Sending workflow run request...", "info");
     const result = await workflowRunner.run(workflowId, params);
-    updateOutput("Workflow request sent. Waiting for response...");
+    updateOutput("Workflow request sent. Waiting for response...", "info");
 
-    // Add a timeout to prevent hanging indefinitely
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Workflow execution timed out")), 60000)
     );
 
     const workflowResult = await Promise.race([result, timeoutPromise]);
-    updateOutput("Workflow completed");
+    updateOutput("Workflow completed successfully", "success");
     return workflowResult;
   } catch (error) {
-    updateOutput("Error: " + error.message);
+    updateOutput("Error: " + error.message, "error");
     throw error;
   } finally {
     hideProgressBar();
   }
-}
-
-function handleResult(result) {
-  const resultsContainer = document.getElementById("results");
-  const outputFields = resultsContainer.querySelectorAll(".output-field");
-
-  if (!result || typeof result !== "object") {
-    console.error("Invalid result:", result);
-    updateOutput("Error: Received invalid result from the workflow");
-    outputFields.forEach((field) => {
-      const placeholder = field.querySelector('[class$="-placeholder"]');
-      placeholder.textContent = "No data available";
-    });
-    return;
-  }
-
-  outputFields.forEach((field) => {
-    const label = field.querySelector("label").textContent;
-    const placeholder = field.querySelector('[class$="-placeholder"]');
-
-    let outputValue = result[label];
-
-    if (outputValue === undefined || outputValue === null) {
-      placeholder.textContent = "No data available";
-      return;
-    }
-
-    if (typeof outputValue === "object") {
-      if (outputValue.type === "image" && outputValue.data) {
-        const img = document.createElement("img");
-        const data = new Uint8Array(outputValue.data);
-        const blob = new Blob([data], { type: "image/png" });
-        img.src = URL.createObjectURL(blob);
-        placeholder.innerHTML = "";
-        placeholder.appendChild(img);
-      } else if (outputValue.type === "audio" && outputValue.data) {
-        const audio = placeholder;
-        const data = new Uint8Array(outputValue.data);
-        const blob = new Blob([data], { type: "audio/mpeg" });
-        audio.src = URL.createObjectURL(blob);
-      } else if (outputValue.type === "video" && outputValue.data) {
-        const video = placeholder;
-        const data = new Uint8Array(outputValue.data);
-        const blob = new Blob([data], { type: "video/mp4" });
-        video.src = URL.createObjectURL(blob);
-      } else {
-        placeholder.textContent = JSON.stringify(outputValue, null, 2);
-      }
-    } else {
-      placeholder.textContent = String(outputValue);
-    }
-  });
-
-  console.log("Full result object:", result);
-  updateOutput("Workflow completed successfully");
 }

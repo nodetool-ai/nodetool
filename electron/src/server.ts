@@ -22,7 +22,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { readSettings } from "./settings";
+import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -30,21 +30,9 @@ let llamaWatchdog: Watchdog | null = null;
 const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
-/**
- * Server Management Module
- *
- * This module handles the lifecycle and management of the NodeTool backend server.
- * It provides functionality for starting, stopping, and monitoring the Python-based
- * backend server process, including health checks, port availability verification,
- * and process management. The module also handles Ollama AI service dependencies
- * and server output logging.
- */
+/** Server Management Module */
 
-/**
- * Checks if a specific port is available for use
- * @param port - The port number to check
- * @returns Promise resolving to true if port is available, false otherwise
- */
+/** Checks if a specific port is available for use */
 async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net
@@ -265,7 +253,7 @@ async function startOllamaServer(): Promise<void> {
 /**
  * Checks if a llama-server is already running on a specific port
  */
-async function isLlamaServerResponsive(
+export async function isLlamaServerResponsive(
   port: number,
   timeoutMs = 2000
 ): Promise<boolean> {
@@ -452,22 +440,27 @@ async function startServer(): Promise<void> {
     throw error;
   }
 
-  // Determine model backend preference
-  let modelBackend = "ollama";
+  // Determine managed local model services startup policy
+  let startupSettings = {
+    startOllamaOnStartup: true,
+    startLlamaCppOnStartup: false,
+  };
   try {
-    const settings = readSettings();
-    const configuredBackend = settings["MODEL_BACKEND"];
-    if (typeof configuredBackend === "string" && (configuredBackend === "ollama" || configuredBackend === "llama_cpp" || configuredBackend === "none")) {
-        modelBackend = configuredBackend;
-    }
+    const settings = await readSettingsAsync();
+    startupSettings = getModelServiceStartupSettings(settings);
   } catch (error) {
-    logMessage(`Failed to read settings for model backend, defaulting to ${modelBackend}: ${error}`, "warn");
+    logMessage(
+      `Failed to read settings for model service startup, defaulting to ollama=true llama_cpp=false: ${error}`,
+      "warn"
+    );
   }
-  
-  logMessage(`Model Backend Priority: ${modelBackend}`);
 
-  // Attempt to start Ollama if selected (default)
-  if (modelBackend === "ollama") {
+  logMessage(
+    `Model service startup settings: ollama=${startupSettings.startOllamaOnStartup}, llama_cpp=${startupSettings.startLlamaCppOnStartup}`
+  );
+
+  // Attempt to start Ollama if enabled on startup.
+  if (startupSettings.startOllamaOnStartup) {
     try {
         logMessage("Starting Ollama server...");
         await startOllamaServer();
@@ -483,11 +476,11 @@ async function startServer(): Promise<void> {
         }
     }
   } else {
-    logMessage("Skipping Ollama server startup (backend not set to 'ollama')");
+    logMessage("Skipping Ollama server startup (disabled in settings)");
   }
 
-  // Attempt to start llama-server if selected
-  if (modelBackend === "llama_cpp") {
+  // Attempt to start llama-server if enabled on startup.
+  if (startupSettings.startLlamaCppOnStartup) {
     try {
         logMessage("Starting llama-server...");
         await startLlamaServer();
@@ -499,7 +492,7 @@ async function startServer(): Promise<void> {
         );
     }
   } else {
-    logMessage("Skipping llama-server startup (backend not set to 'llama_cpp')");
+    logMessage("Skipping llama-server startup (disabled in settings)");
   }
 
   const basePort = 7777;
@@ -515,6 +508,7 @@ async function startServer(): Promise<void> {
     "serve",
     "--port",
     String(selectedPort),
+    "--mcp",
     "--static-folder",
     webPath,
   ];
@@ -860,6 +854,74 @@ async function stopServer(): Promise<void> {
 }
 
 /**
+ * Starts the Ollama server watchdog if it is not currently running.
+ */
+async function startOllamaService(): Promise<void> {
+  if (ollamaWatchdog) {
+    logMessage("Ollama server is already running", "info");
+    return;
+  }
+  await startOllamaServer();
+  emitServerStateChanged();
+}
+
+/**
+ * Stops the Ollama server watchdog if it is managed by this app.
+ */
+async function stopOllamaService(): Promise<void> {
+  if (!ollamaWatchdog) {
+    if (serverState.ollamaExternalManaged) {
+      logMessage(
+        "Ollama appears externally managed; tray stop is only available for app-managed Ollama",
+        "warn"
+      );
+    } else {
+      logMessage("Ollama server is not running", "info");
+    }
+    return;
+  }
+
+  await ollamaWatchdog.stopGracefully();
+  ollamaWatchdog = null;
+  serverState.ollamaExternalManaged = false;
+  emitServerStateChanged();
+}
+
+/**
+ * Starts the llama-server watchdog if it is not currently running.
+ */
+async function startLlamaCppService(): Promise<void> {
+  if (llamaWatchdog) {
+    logMessage("llama-server is already running", "info");
+    return;
+  }
+  await startLlamaServer();
+  emitServerStateChanged();
+}
+
+/**
+ * Stops the llama-server watchdog if it is managed by this app.
+ */
+async function stopLlamaCppService(): Promise<void> {
+  if (!llamaWatchdog) {
+    if (serverState.llamaExternalManaged) {
+      logMessage(
+        "llama-server appears externally managed; tray stop is only available for app-managed llama-server",
+        "warn"
+      );
+    } else {
+      logMessage("llama-server is not running", "info");
+    }
+    return;
+  }
+
+  await llamaWatchdog.stopGracefully();
+  llamaWatchdog = null;
+  serverState.llamaExternalManaged = false;
+  emitServerStateChanged();
+}
+
+/**
  * Returns the current server state
  * @returns Current server state object
  */
@@ -899,4 +961,8 @@ export {
   isServerRunning,
   isOllamaRunning,
   isLlamaServerRunning,
+  startOllamaService,
+  stopOllamaService,
+  startLlamaCppService,
+  stopLlamaCppService,
 };

@@ -10,7 +10,7 @@ interface PreRendererProps {
 }
 
 export const PreRenderer: React.FC<PreRendererProps> = ({
-  node,
+  node: _node,
   children,
   ...props
 }) => {

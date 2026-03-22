@@ -6,8 +6,9 @@ import * as path from "path";
 
 import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
-import { checkPermissions } from "./utils";
+import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrlAsync } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -47,15 +48,18 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
     },
   ];
 
-  const errors: string[] = [];
+  const results = await Promise.all(
+    pathsToCheck.map(async ({ path, mode, desc }) => {
+      const { accessible, error } = await checkPermissions(path, mode);
+      logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
+      if (!accessible && error) {
+        return `${desc}: ${error}`;
+      }
+      return null;
+    })
+  );
 
-  for (const { path, mode, desc } of pathsToCheck) {
-    const { accessible, error } = await checkPermissions(path, mode);
-    logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
-    if (!accessible && error) {
-      errors.push(`${desc}: ${error}`);
-    }
-  }
+  const errors = results.filter((e): e is string => e !== null);
 
   return {
     valid: errors.length === 0,
@@ -65,37 +69,63 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 
 /**
  * Check if the Python environment is installed
+ * Verifies both Python and uv executables exist to detect partial/corrupted installs
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
   let pythonExecutablePath: string | null = null;
+  let uvExecutablePath: string | null = null;
+  
   try {
     pythonExecutablePath = getPythonPath();
+    uvExecutablePath = getUVPath();
   } catch (error) {
-    // If we cannot even resolve a python path, treat as not installed so installer is triggered
+    // If we cannot even resolve paths, treat as not installed so installer is triggered
     logMessage(
-      `Failed to resolve Python path, treating as not installed: ${error}`,
+      `Failed to resolve executable paths, treating as not installed: ${error}`,
       "error",
     );
     return false;
   }
 
   logMessage(`Python executable path: ${pythonExecutablePath}`);
+  logMessage(`UV executable path: ${uvExecutablePath}`);
 
-  try {
-    logMessage("Attempting to access Python executable...");
-    await fs.access(pythonExecutablePath);
-    logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-    return true;
-  } catch (error) {
-    logMessage(
-      `✗ Python executable not found at ${pythonExecutablePath}`,
-      "error",
-    );
-    logMessage(`Access error: ${error}`, "error");
-    return false;
-  }
+  // Check Python and UV executables in parallel
+  const [pythonExists, uvExists] = await Promise.all([
+    fs.access(pythonExecutablePath).then(
+      () => {
+        logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `✗ Python executable not found at ${pythonExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(uvExecutablePath).then(
+      () => {
+        logMessage(`✓ UV executable found at ${uvExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        logMessage("Will trigger reinstallation to complete the environment setup");
+        return false;
+      }
+    ),
+  ]);
+
+  return pythonExists && uvExists;
 }
 
 /**
@@ -111,7 +141,9 @@ function convertToPep440Version(npmVersion: string): string {
 /**
  * Update the Python environment packages using wheel-based package index
  */
-async function updateCondaEnvironment(packages: string[]): Promise<void> {
+async function updateCondaEnvironment(
+  packages: string[]
+): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
 
@@ -155,23 +187,26 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     const allPackages = [...corePackages, ...additionalPackages];
 
+    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
+    const torchIndexUrl = await getTorchIndexUrlAsync();
+
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
       "--extra-index-url",
       PACKAGE_INDEX_URL,
+      // Add PyTorch index URL for the detected GPU platform
+      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
       "--index-strategy",
       "unsafe-best-match",
       "--system",
       ...allPackages,
     ];
 
-    if (process.platform !== "darwin") {
-      installCommand.push("--extra-index-url");
-      installCommand.push("https://download.pytorch.org/whl/cu129");
+    if (torchIndexUrl) {
+      logMessage(`Using torch index URL: ${torchIndexUrl}`);
     }
-
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 
@@ -188,7 +223,19 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
  * Helper function to run pip commands
  */
 async function runCommand(command: string[]): Promise<void> {
-  const updateProcess = spawn(command[0], command.slice(1), {
+  const executable = command[0];
+  
+  // Check if executable exists before attempting to spawn
+  const executableExists = await fileExists(executable);
+  if (!executableExists) {
+    const errorMsg = `Python environment not properly installed: executable not found at ${executable}. ` +
+      `This may happen if the installation was interrupted (e.g., by a macOS permission dialog). ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
+
+  const updateProcess = spawn(executable, command.slice(1), {
     stdio: "pipe",
     env: getProcessEnv(),
   });
@@ -204,6 +251,25 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv output and emit boot messages
+      // Look for lines like "Downloading package-name-version"
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Installing package-name-version"
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Updating package-name"
+      const updatingMatch = line.match(/Updating\s+([a-zA-Z0-9_-]+)/i);
+      if (updatingMatch) {
+        emitBootMessage(`Updating ${updatingMatch[1]}...`);
+      }
     }
   });
 
@@ -216,6 +282,17 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv stderr output (some progress info goes to stderr)
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
     }
   });
 
@@ -228,7 +305,18 @@ async function runCommand(command: string[]): Promise<void> {
       }
     });
 
-    updateProcess.on("error", reject);
+    updateProcess.on("error", (error) => {
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run ${executable}. ` +
+          `This may happen if the installation was interrupted. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(error);
+      }
+    });
   });
 }
 /**

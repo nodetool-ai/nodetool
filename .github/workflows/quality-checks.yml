@@ -1,0 +1,140 @@
+name: Quality Checks
+
+on:
+  workflow_call:
+    inputs:
+      fail-fast:
+        description: 'Whether to fail fast on first error'
+        required: false
+        type: boolean
+        default: true
+      skip-tests:
+        description: 'Whether to skip running tests'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      typecheck-passed:
+        description: 'Whether typecheck passed'
+        value: ${{ jobs.quality.outputs.typecheck-passed }}
+      lint-passed:
+        description: 'Whether lint passed'
+        value: ${{ jobs.quality.outputs.lint-passed }}
+      test-passed:
+        description: 'Whether tests passed'
+        value: ${{ jobs.quality.outputs.test-passed }}
+      all-passed:
+        description: 'Whether all checks passed'
+        value: ${{ jobs.quality.outputs.all-passed }}
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    outputs:
+      typecheck-passed: ${{ steps.set-outputs.outputs.typecheck-passed }}
+      lint-passed: ${{ steps.set-outputs.outputs.lint-passed }}
+      test-passed: ${{ steps.set-outputs.outputs.test-passed }}
+      all-passed: ${{ steps.set-outputs.outputs.all-passed }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Run TypeScript type check
+        id: typecheck
+        continue-on-error: ${{ !inputs.fail-fast }}
+        run: |
+          echo "::group::TypeScript Type Check"
+          make typecheck
+          echo "::endgroup::"
+
+      - name: Run ESLint
+        id: lint
+        continue-on-error: ${{ !inputs.fail-fast }}
+        run: |
+          echo "::group::ESLint Check"
+          make lint
+          echo "::endgroup::"
+
+      - name: Run Tests
+        id: test
+        if: ${{ !inputs.skip-tests }}
+        continue-on-error: ${{ !inputs.fail-fast }}
+        run: |
+          echo "::group::Test Suite"
+          make test
+          echo "::endgroup::"
+
+      - name: Set outputs
+        id: set-outputs
+        if: always()
+        run: |
+          echo "typecheck-passed=${{ steps.typecheck.outcome == 'success' }}" >> $GITHUB_OUTPUT
+          echo "lint-passed=${{ steps.lint.outcome == 'success' }}" >> $GITHUB_OUTPUT
+          echo "test-passed=${{ steps.test.outcome == 'success' || inputs.skip-tests }}" >> $GITHUB_OUTPUT
+          
+          if [ "${{ steps.typecheck.outcome }}" == "success" ] && \
+             [ "${{ steps.lint.outcome }}" == "success" ] && \
+             ( [ "${{ steps.test.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ); then
+            echo "all-passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "all-passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate quality report
+        if: always()
+        run: |
+          echo "## Quality Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
+            echo "✅ **TypeScript Type Check**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **TypeScript Type Check**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.lint.outcome }}" == "success" ]; then
+            echo "✅ **ESLint**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **ESLint**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ inputs.skip-tests }}" == "true" ]; then
+            echo "⏭️ **Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.test.outcome }}" == "success" ]; then
+            echo "✅ **Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.typecheck.outcome }}" == "success" ] && \
+             [ "${{ steps.lint.outcome }}" == "success" ] && \
+             ( [ "${{ steps.test.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ); then
+            echo "✅ **Overall**: All quality checks passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Overall**: Some quality checks failed. Please review the logs above." >> $GITHUB_STEP_SUMMARY
+          fi

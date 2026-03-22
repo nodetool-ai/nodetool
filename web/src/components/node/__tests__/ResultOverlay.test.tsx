@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import ResultOverlay from "../ResultOverlay";
 import "@testing-library/jest-dom";
 
@@ -12,58 +13,60 @@ jest.mock("../OutputRenderer", () => ({
   )
 }));
 
+// Mock NodeHistoryPanel
+jest.mock("../NodeHistoryPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="node-history-panel" />
+}));
+
+// Mock NodeResultHistoryStore
+jest.mock("../../../stores/NodeResultHistoryStore", () => ({
+  useNodeResultHistoryStore: (selector: any) => {
+    const mockState = {
+      getHistory: () => []
+    };
+    return selector ? selector(mockState) : mockState;
+  }
+}));
+
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+};
+
 describe("ResultOverlay", () => {
-  const mockOnShowInputs = jest.fn();
-
-  beforeEach(() => {
-    mockOnShowInputs.mockClear();
-  });
-
   it("renders the result using OutputRenderer", () => {
     const result = { type: "image", url: "test.png" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
+    renderWithProviders(<ResultOverlay result={result} />);
 
     const outputRenderer = screen.getByTestId("output-renderer");
     expect(outputRenderer).toBeInTheDocument();
     expect(outputRenderer).toHaveTextContent(JSON.stringify(result));
   });
 
-  it("displays a button to show inputs", () => {
-    const result = { data: "test" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
-
-    const button = screen.getByRole("button", { name: /show inputs/i });
-    expect(button).toBeInTheDocument();
-  });
-
-  it("calls onShowInputs when the button is clicked", async () => {
-    const user = userEvent.setup();
-    const result = { data: "test" };
-    render(<ResultOverlay result={result} onShowInputs={mockOnShowInputs} />);
-
-    const button = screen.getByRole("button", { name: /show inputs/i });
-    await user.click(button);
-
-    expect(mockOnShowInputs).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders with different result types", () => {
+  it("renders with string result", () => {
     const stringResult = "test string";
-    const { rerender } = render(
-      <ResultOverlay result={stringResult} onShowInputs={mockOnShowInputs} />
-    );
+    renderWithProviders(<ResultOverlay result={stringResult} />);
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
       JSON.stringify(stringResult)
     );
+  });
 
+  it("renders with object result", () => {
     const objectResult = { key: "value", nested: { data: 123 } };
-    rerender(
-      <ResultOverlay result={objectResult} onShowInputs={mockOnShowInputs} />
-    );
+    renderWithProviders(<ResultOverlay result={objectResult} />);
 
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
       JSON.stringify(objectResult)
     );
+  });
+
+  it("renders without nodeId and workflowId", () => {
+    const result = { test: "data" };
+    renderWithProviders(<ResultOverlay result={result} />);
+
+    expect(screen.getByTestId("output-renderer")).toBeInTheDocument();
+    // Should not show session results header when no nodeId/workflowId
+    expect(screen.queryByText(/Session Results/)).not.toBeInTheDocument();
   });
 });

@@ -6,12 +6,13 @@ This file provides specific guidance for GitHub Copilot when generating code sug
 
 NodeTool is a React/TypeScript application for building AI workflows visually. Key technologies:
 
-- **Frontend**: React 18.2, TypeScript 5.7, Vite, Material-UI (MUI) v7
-- **State Management**: Zustand 4.5 with temporal (undo/redo) support
-- **Flow Editor**: ReactFlow (@xyflow/react) v12
-- **Data Fetching**: TanStack Query (React Query) v5
-- **Testing**: Jest 29 + React Testing Library 16
-- **Routing**: React Router v7
+- **Frontend (Web)**: React 18.2, TypeScript 5.7, Vite 6, Material-UI (MUI) v7
+- **State Management**: Zustand 4.5.7 (web), 5.0.3 (electron) with temporal (undo/redo) support
+- **Flow Editor**: ReactFlow (@xyflow/react) v12.10.0
+- **Data Fetching**: TanStack Query (React Query) v5.62.3
+- **Testing**: Jest 29.7.0 + React Testing Library 16.1.0 + Playwright for E2E
+- **Routing**: React Router v7.12.0
+- **Desktop**: Electron 35.7.5 with React 19.1.0
 
 ## Code Generation Guidelines
 
@@ -626,11 +627,13 @@ export async function calculateLayout(
 
 ## Resources
 
-- Main AGENTS.md: `/AGENTS.md` - Complete project documentation
-- Web README: `/web/README.md` - Web-specific documentation  
-- Testing Guide: `/web/TESTING.md` - Comprehensive test documentation
-- Component Guide: `/web/src/components/AGENTS.md` - Component architecture
-- Store Guide: `/web/src/stores/AGENTS.md` - State management patterns
+- **Main AGENTS.md**: `/AGENTS.md` - Complete project documentation
+- **Web UI Guide**: `/web/src/AGENTS.md` - Web-specific guidelines
+- **Testing Guide**: `/web/TESTING.md` - Comprehensive test documentation (Jest, RTL, Playwright)
+- **Electron Guide**: `/electron/src/AGENTS.md` - Desktop app guidelines
+- **Component Guide**: `/web/src/components/AGENTS.md` - Component architecture
+- **Store Guide**: `/web/src/stores/AGENTS.md` - State management patterns
+- **Mobile Guide**: `/mobile/README.md` - React Native mobile app
 
 ## Mandatory Post-Change Verification
 
@@ -653,6 +656,19 @@ This ensures:
 - Type safety across the codebase
 - Consistent code style and patterns
 - No regressions in existing functionality
+
+## Code Review for Regressions
+
+After making changes and before submitting a PR, review your code for potential regressions:
+
+1. **Manual Testing**: Run the affected features manually to ensure they work correctly
+2. **Test Coverage**: Verify that existing tests still pass and cover the changes
+3. **Side Effects**: Look for unintended side effects in related code
+4. **Quality Checks**: Confirm no new TypeScript errors or lint warnings were introduced
+5. **Edge Cases**: Test edge cases and error handling scenarios
+6. **Performance**: Consider any performance implications of your changes
+
+This review helps catch issues before they reach production and ensures your changes don't break existing functionality.
 
 ---
 
@@ -939,7 +955,7 @@ npx playwright show-trace test-results/path-to-trace/trace.zip
 
 ### 8. Electron E2E CI/CD
 
-The `.github/workflows/electron-e2e.yml` workflow:
+The `.github/workflows/e2e.yml` workflow:
 - Runs on Ubuntu, macOS, and Windows
 - Installs dependencies and Playwright browsers
 - Builds the Electron app
@@ -950,14 +966,23 @@ For more details, see `electron/README.md`.
 
 ## Version Information
 
+### Web Package
 - React: 18.2.0
 - TypeScript: 5.7.2
+- Vite: 6.4.1
 - Material-UI: 7.2.0
 - Zustand: 4.5.7
-- ReactFlow: 12.8.2
+- ReactFlow: 12.10.0
 - TanStack Query: 5.62.3
+- React Router: 7.12.0
 - Jest: 29.7.0
 - React Testing Library: 16.1.0
+
+### Electron Package
+- Electron: 35.7.5
+- React: 19.1.0
+- TypeScript: 5.3.3
+- Zustand: 5.0.3
 
 ---
 

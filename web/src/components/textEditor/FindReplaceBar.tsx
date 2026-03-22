@@ -3,12 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
-import { Box, IconButton, TextField, Tooltip } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { CloseButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 
@@ -63,7 +62,7 @@ const styles = (theme: Theme) =>
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
-        "& fieldset": {
+        "& .MuiOutlinedInput-notchedOutline": {
           border: "none"
         },
         "&:hover ": {
@@ -90,13 +89,13 @@ const styles = (theme: Theme) =>
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
-        "& fieldset": {
+        "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[500]
         },
-        "&:hover fieldset": {
+        "&:hover .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[400]
         },
-        "&.Mui-focused fieldset": {
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.grey[0]
         }
       }
@@ -187,6 +186,10 @@ const FindReplaceBar = ({
     }
   }, [onReplace, searchTerm, replaceTerm]);
 
+  const handleToggleReplace = useCallback(() => {
+    setShowReplace(!showReplace);
+  }, [showReplace]);
+
   if (!isVisible) {return null;}
 
   const isValidSearch = isValidInput(searchTerm);
@@ -194,10 +197,9 @@ const FindReplaceBar = ({
   return (
     <Box className="find-replace-bar" css={styles(theme)}>
       <div className="search-group">
-        <TextField
+        <NodeTextField
           className="search-input"
           placeholder="Find..."
-          size="small"
           value={searchTerm}
           onChange={handleSearchChange}
           onKeyDown={handleKeyDown}
@@ -219,49 +221,35 @@ const FindReplaceBar = ({
           {totalMatches > 0 ? `${currentMatch}/${totalMatches}` : "0/0"}
         </div>
 
-        <Tooltip title="Previous" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <span>
-            <IconButton
-              className="toolbar-button"
-              onClick={onPrevious}
-              disabled={totalMatches === 0}
-              size="small"
-            >
-              <KeyboardArrowUpIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<KeyboardArrowUpIcon fontSize="small" />}
+          tooltip="Previous"
+          onClick={onPrevious}
+          disabled={totalMatches === 0}
+          className="toolbar-button"
+        />
 
-        <Tooltip title="Next" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <span>
-            <IconButton
-              className="toolbar-button"
-              onClick={onNext}
-              disabled={totalMatches === 0}
-              size="small"
-            >
-              <KeyboardArrowDownIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<KeyboardArrowDownIcon fontSize="small" />}
+          tooltip="Next"
+          onClick={onNext}
+          disabled={totalMatches === 0}
+          className="toolbar-button"
+        />
 
-        <Tooltip title="Toggle Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="toolbar-button"
-            onClick={() => setShowReplace(!showReplace)}
-            size="small"
-          >
-            <ReplaceIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ReplaceIcon fontSize="small" />}
+          tooltip="Toggle Replace"
+          onClick={handleToggleReplace}
+          className="toolbar-button"
+        />
       </div>
 
       {showReplace && (
         <div className="search-group">
-          <TextField
+          <NodeTextField
             className="replace-input"
             placeholder="Replace with..."
-            size="small"
             value={replaceTerm}
             onChange={handleReplaceChange}
             onKeyDown={handleKeyDown}
@@ -273,39 +261,29 @@ const FindReplaceBar = ({
             }}
           />
 
-          <Tooltip title="Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <IconButton
-                className="toolbar-button"
-                onClick={handleReplace}
-                disabled={!isValidSearch || totalMatches === 0}
-                size="small"
-              >
-                Replace
-              </IconButton>
-            </span>
-          </Tooltip>
+          <span>
+            <ToolbarIconButton
+              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Replace</span>}
+              tooltip="Replace"
+              onClick={handleReplace}
+              disabled={!isValidSearch || totalMatches === 0}
+              className="toolbar-button"
+            />
+          </span>
 
-          <Tooltip title="Replace All" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <IconButton
-                className="toolbar-button"
-                onClick={handleReplaceAll}
-                disabled={!isValidSearch || totalMatches === 0}
-                size="small"
-              >
-                All
-              </IconButton>
-            </span>
-          </Tooltip>
+          <span>
+            <ToolbarIconButton
+              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>All</span>}
+              tooltip="Replace All"
+              onClick={handleReplaceAll}
+              disabled={!isValidSearch || totalMatches === 0}
+              className="toolbar-button"
+            />
+          </span>
         </div>
       )}
 
-      <Tooltip title="Close Find/Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <IconButton className="toolbar-button" onClick={onClose} size="small">
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <CloseButton onClick={() => onClose?.()} buttonSize="small" tooltip="Close Find/Replace" className="toolbar-button" />
     </Box>
   );
 };

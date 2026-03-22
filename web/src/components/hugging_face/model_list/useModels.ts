@@ -13,12 +13,10 @@ import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { getHfCacheKey } from "../../../utils/hfCache";
 
 export const useModels = () => {
-  const {
-    modelSearchTerm,
-    selectedModelType,
-    maxModelSizeGB,
-    filterStatus
-  } = useModelManagerStore();
+  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
+  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
+  const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );

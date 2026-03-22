@@ -3,7 +3,7 @@
  * Based on color theory principles.
  */
 
-import { RGB, HSL, rgbToHsl, hslToRgb, rgbToHex, hexToRgb } from "./colorConversion";
+import { HSL, rgbToHsl, hslToRgb, rgbToHex, hexToRgb } from "./colorConversion";
 
 export type HarmonyType =
   | "complementary"

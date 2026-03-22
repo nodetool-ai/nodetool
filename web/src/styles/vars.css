@@ -2,11 +2,11 @@
   /* Canonical font family definitions */
   --fontFamily1: Inter, Arial, sans-serif;
   --fontFamily2: "JetBrains Mono", Inter, Arial, sans-serif;
-  
+
   /* General */
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);
- 
+
   /* Highlights */
   --c_link: var(--palette-c_link);
   --c_link_visited: var(--palette-c_link_visited);
@@ -36,4 +36,3 @@
   --c_node_header_bg: var(--palette-c_node_header_bg);
   --c_node_header_bg_group: var(--palette-c_node_header_bg_group);
 }
-

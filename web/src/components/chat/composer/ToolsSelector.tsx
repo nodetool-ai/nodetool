@@ -255,6 +255,15 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     [selectedTools, onChange]
   );
 
+  // Memoize toggle handlers for each tool to prevent re-renders
+  const toggleHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const tool of TOOLS) {
+      handlers[tool.id] = () => handleToggleTool(tool.id);
+    }
+    return handlers;
+  }, [handleToggleTool]);
+
   const groupedTools = useMemo(() => {
     return TOOLS.reduce<Record<string, Tool[]>>((acc, tool) => {
       if (!acc[tool.category]) {
@@ -268,7 +277,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const selectedToolIcons = useMemo(() => {
     return selectedTools
       .map((toolId) => TOOLS.find((tool) => tool.id === toolId))
-      .filter(Boolean)
+      .filter((tool): tool is Tool => tool !== undefined)
       .slice(0, 3);
   }, [selectedTools]);
 
@@ -292,14 +301,14 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               <Box sx={{ display: "flex", gap: "2px" }}>
                 {selectedToolIcons.map((tool) => (
                   <Box
-                    key={tool!.id}
+                    key={tool.id}
                     sx={{
                       display: "flex",
                       alignItems: "center",
                       "& > svg": { fontSize: "16px" }
                     }}
                   >
-                    {tool!.icon}
+                    {tool.icon}
                   </Box>
                 ))}
                 {selectedTools.length > 3 && (
@@ -376,7 +385,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
                       <div
                         key={tool.id}
                         className={`tool-item ${isSelected ? "selected" : ""}`}
-                        onClick={() => handleToggleTool(tool.id)}
+                        onClick={toggleHandlers[tool.id]}
                       >
                         <ListItemIcon
                           className={`tool-icon ${

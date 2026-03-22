@@ -1,4 +1,5 @@
 import { Fab, Tooltip } from "@mui/material";
+import { useCallback, memo } from "react";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import { useNavigate } from "react-router-dom";
 
@@ -6,14 +7,18 @@ interface RunAsAppFabProps {
   workflowId: string;
 }
 
-const RunAsAppFab = ({ workflowId }: RunAsAppFabProps) => {
+const RunAsAppFab = memo(function RunAsAppFab({ workflowId }: RunAsAppFabProps) {
   const navigate = useNavigate();
+
+  const handleNavigate = useCallback(() => {
+    navigate(`/apps/${workflowId}`);
+  }, [navigate, workflowId]);
 
   return (
     <Tooltip title="Run as App" placement="left">
       <Fab
         size="medium"
-        onClick={() => navigate(`/apps/${workflowId}`)}
+        onClick={handleNavigate}
         sx={{
           borderRadius: 0,
           position: "fixed",
@@ -37,6 +42,6 @@ const RunAsAppFab = ({ workflowId }: RunAsAppFabProps) => {
       </Fab>
     </Tooltip>
   );
-};
+});
 
 export default RunAsAppFab;

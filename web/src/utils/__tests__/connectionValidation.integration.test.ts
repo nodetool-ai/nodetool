@@ -4,7 +4,7 @@
  * with the connection validation system end-to-end.
  */
 
-import { Node, Edge } from "@xyflow/react";
+import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import {
@@ -99,7 +99,8 @@ const textProcessorMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const mathCalculatorMetadata: NodeMetadata = {
@@ -139,7 +140,8 @@ const mathCalculatorMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const dynamicProcessorMetadata: NodeMetadata = {
@@ -171,7 +173,8 @@ const dynamicProcessorMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const createTestNode = (

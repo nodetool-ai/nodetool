@@ -8,71 +8,90 @@ import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import isEqual from "lodash/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
+import EmbeddingModelSelect from "./EmbeddingModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
+import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: Theme) =>
   css({
     // Model selects that use the custom `Select` component need slightly tighter density.
-    // This is intentionally co-located with ModelProperty rather than global CSS.
     "& .select-container .options-list": {
-      padding: "2px 0"
+      padding: "2px 0",
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.rounded.buttonSmall,
     },
     "& .select-container .option": {
       fontSize: theme.fontSizeSmaller,
-      borderTop: `1px solid ${theme.vars.palette.grey[600]}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      color: theme.vars.palette.text.primary,
+      padding: "4px 8px"
     },
     "& .select-container .option:first-of-type": {
       borderTop: "none"
     },
     "& .select-container .option:hover": {
-      backgroundColor: `${theme.vars.palette.grey[500]} !important`
+      backgroundColor: theme.vars.palette.action.hover,
+      cursor: "pointer"
     },
     "& .select-container .select-header-text": {
-      fontSize: `${theme.fontSizeSmaller} !important`
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.primary
     },
     "& .select-container .select-header": {
-      padding: "0 4px !important"
+      padding: "0 4px",
+      minHeight: "28px",
+      borderRadius: theme.rounded.buttonSmall,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.paper
     }
   });
 
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
-  const edges = useNodes((state) => state.edges);
   const theme = useTheme();
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) =>
-        edge.target === props.nodeId &&
-        edge.targetHandle === props.property.name
-    );
-  }, [edges, props.nodeId, props.property.name]);
+
+  const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
     [modelType]
   );
 
-  const renderModelSelect = () => {
-    // Map node type to task-specific filters for generic nodes
+  // Memoize task calculations to avoid recalculation on every render
+  const { imageTask, videoTask, model3dTask } = useMemo(() => {
     const imageTask =
       props.nodeType === "nodetool.image.TextToImage"
         ? ("text_to_image" as const)
         : props.nodeType === "nodetool.image.ImageToImage"
-        ? ("image_to_image" as const)
-        : undefined;
+          ? ("image_to_image" as const)
+          : undefined;
     const videoTask =
       props.nodeType === "nodetool.video.TextToVideo"
         ? ("text_to_video" as const)
         : props.nodeType === "nodetool.video.ImageToVideo"
-        ? ("image_to_video" as const)
-        : undefined;
+          ? ("image_to_video" as const)
+          : undefined;
+    const model3dTask =
+      props.nodeType === "nodetool.model3d.TextTo3D"
+        ? ("text_to_3d" as const)
+        : props.nodeType === "nodetool.model3d.ImageTo3D"
+          ? ("image_to_3d" as const)
+          : undefined;
+    return { imageTask, videoTask, model3dTask };
+  }, [props.nodeType]);
+
+  // Memoize model select component to avoid recreation on every render
+  const modelSelectComponent = useMemo(() => {
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
@@ -86,6 +105,13 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "language_model") {
       return (
         <LanguageModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
+    } else if (modelType === "embedding_model") {
+      return (
+        <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />
@@ -120,6 +146,14 @@ const ModelProperty = (props: PropertyProps) => {
           task={videoTask}
         />
       );
+    } else if (modelType === "model_3d_model") {
+      return (
+        <Model3DModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+          task={model3dTask}
+        />
+      );
     } else if (modelType === "llama_model") {
       return (
         <LlamaModelSelect
@@ -130,14 +164,14 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType.startsWith("hf.")) {
       return (
         <HuggingFaceModelSelect
-          modelType={modelType}
+          modelType={modelType as "hf.text_to_image" | "hf.image_to_image"}
           onChange={props.onChange}
           value={props.value}
         />
       );
     }
     return null;
-  };
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
@@ -146,7 +180,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {!isConnected && renderModelSelect()}
+      {!isConnected && modelSelectComponent}
     </div>
   );
 };

@@ -8,7 +8,9 @@
   .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not(
     [class*="Group"]
   ):not([class*="Comment"]):not([class*="CompareImages"]) {
-  height: auto !important;
+  /* Keep default auto height, but allow ReactFlow inline height to win when a node
+     is explicitly resized vertically (e.g. result-toggle nodes). */
+  height: auto;
 }
 
 .react-flow__node {
@@ -81,6 +83,7 @@
 .react-flow__node-toolbar button:hover {
   opacity: 1;
 }
+
 
 /* --------------------------------------------- */
 /* Special cases                                  */

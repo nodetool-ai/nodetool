@@ -48,14 +48,14 @@ type WaveSurferProps = {
   mimeType?: string;
 };
 
-const wsprops: WaveSurferProps = {
+const getWsprops = (theme: Theme): WaveSurferProps => ({
   fontSize: "tiny",
   alwaysShowControls: false,
   filename: "",
   cursorWidth: 1,
-  cursorColor: "#eee",
-  waveColor: "#ddd",
-  progressColor: "#555",
+  cursorColor: theme.palette.divider,
+  waveColor: theme.palette.grey[300],
+  progressColor: theme.palette.text.secondary,
   source: "",
   barAlign: "bottom",
   barGap: 1,
@@ -74,7 +74,7 @@ const wsprops: WaveSurferProps = {
   dragToSeek: true,
   autoplay: false,
   playOnLoad: false
-};
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -130,6 +130,7 @@ const formatTime = (time: number) => {
 
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const theme = useTheme();
+  const wsprops = getWsprops(theme);
   const {
     source,
     alwaysShowControls = wsprops.alwaysShowControls,
@@ -197,11 +198,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
   useEffect(() => {
     if (source instanceof Uint8Array) {
-      const copied = new Uint8Array(source.byteLength);
-      copied.set(source);
-      const blob = new Blob([copied.buffer as ArrayBuffer], {
-        type: mimeType
-      });
+      const blob = new Blob([source], { type: mimeType });
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
@@ -236,7 +233,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           container: `#${minimapId}`,
           waveColor,
           progressColor,
-          cursorColor: "#eee",
+          cursorColor: theme.palette.divider,
           height: minimapHeight,
           barHeight: minimapBarHeight,
           barAlign: "bottom",
@@ -285,7 +282,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           log.info("Decode: ", duration + "s");
         });
         waveSurfer.on("audioprocess", handleAudioProcess);
-        waveSurfer.on("seeking", handleSeekingProcess as any);
+        waveSurfer.on("seeking", handleSeekingProcess as unknown as (...args: unknown[]) => void);
         waveSurfer.on("zoom", checkWaveformFit);
         waveSurfer.on("finish", () => {
           if (loopRef.current) {
@@ -317,6 +314,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   }, [
     audioUrl,
     prevUrl,
+    mimeType,
     minimapId,
     waveColor,
     progressColor,
@@ -326,7 +324,9 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     otherProps,
     onPlay,
     onPause,
-    checkWaveformFit
+    checkWaveformFit,
+    theme.palette.divider,
+    wsprops
   ]);
 
   useEffect(() => {
@@ -431,8 +431,9 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
                 setZoom(value);
                 waveSurferRef.current?.zoom(value);
               });
-            } catch (error: any) {
-              log.info("Zoom audio failed: ", error.message);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              log.info("Zoom audio failed: ", message);
             }
           }}
         />

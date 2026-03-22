@@ -71,7 +71,6 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
         {isFavorite ? (
           <StarIcon
             fontSize={size}
-            // sx={{ color: theme.vars.palette.info.main }}
           />
         ) : (
           <StarBorderIcon fontSize={size} />

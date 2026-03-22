@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo, forwardRef } from "react";
 import { Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
@@ -13,7 +13,7 @@ interface ExternalLinkProps {
   tooltipText?: string;
 }
 
-const ExternalLink = React.forwardRef<HTMLAnchorElement, ExternalLinkProps>(
+const ExternalLink = forwardRef<HTMLAnchorElement, ExternalLinkProps>(
   ({ href, children, className, size = "small", tooltipText }, ref) => {
     const theme = useTheme();
 
@@ -63,4 +63,4 @@ const ExternalLink = React.forwardRef<HTMLAnchorElement, ExternalLinkProps>(
 );
 ExternalLink.displayName = "ExternalLink";
 
-export default ExternalLink;
+export default memo(ExternalLink);

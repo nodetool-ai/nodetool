@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Button,
@@ -16,9 +16,13 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
+import PanelHeadline from "../ui/PanelHeadline";
+import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
+import log from "loglevel";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -126,12 +130,9 @@ const styles = (theme: Theme) =>
 
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
-  const explorerStyles = styles(theme);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const { nodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const nodes = useNodes((state) => state.nodes, areNodesEqualIgnoringPosition);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setPanelVisible = useRightPanelStore((state) => state.setVisibility);
   const [filter, setFilter] = useState("");
@@ -144,7 +145,7 @@ const NodeExplorer: React.FC = () => {
       const title =
         node.data?.title?.trim() ||
         (metadata?.title ?? "") ||
-        node.data?.properties?.name ||
+        (node.data?.properties?.name as string | undefined) ||
         node.id;
 
       const subtitleParts = [
@@ -160,14 +161,12 @@ const NodeExplorer: React.FC = () => {
         metadata?.title,
         node.id
       ]
-        .filter(Boolean)
+        .filter((s): s is string => Boolean(s))
         .join(" ")
         .toLowerCase();
 
-      const metadataBadgeColor = (metadata as any)?.badge_color;
       const accentColor =
         node.data?.color ||
-        metadataBadgeColor ||
         theme.vars.palette.primary.main;
 
       return {
@@ -193,16 +192,17 @@ const NodeExplorer: React.FC = () => {
     );
   }, [nodes, getMetadata, filter, theme]);
 
+  const findNode = useNodes((state) => state.findNode);
+
   const handleNodeFocus = useCallback(
     (nodeId: string) => {
-
-      const node = nodes.find((candidate) => candidate.id === nodeId);
+      // Use findNode from store instead of depending on entire nodes array
+      const node = findNode(nodeId);
       if (!node) {
-        console.warn("[NodeExplorer] node not found", { nodeId });
+        log.warn("[NodeExplorer] node not found", { nodeId });
         return;
       }
 
-      // setSelectedNodes([node]);
       requestAnimationFrame(() => {
         window.dispatchEvent(
           new CustomEvent("nodetool:fit-node", {
@@ -211,12 +211,13 @@ const NodeExplorer: React.FC = () => {
         );
       });
     },
-    [nodes]
+    [findNode]
   );
 
   const handleNodeEdit = useCallback(
     (nodeId: string) => {
-      const node = nodes.find((candidate) => candidate.id === nodeId);
+      // Use findNode from store instead of depending on entire nodes array
+      const node = findNode(nodeId);
       if (!node) {
         return;
       }
@@ -224,29 +225,82 @@ const NodeExplorer: React.FC = () => {
       setActiveView("inspector");
       setPanelVisible(true);
     },
-    [nodes, setSelectedNodes, setActiveView, setPanelVisible]
+    [findNode, setSelectedNodes, setActiveView, setPanelVisible]
+  );
+
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "node-context-menu",
+        nodeId,
+        event.clientX,
+        event.clientY,
+        "node-list"
+      );
+    },
+    [openContextMenu]
+  );
+
+  const handleFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilter(event.target.value);
+  }, []);
+
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeFocus(nodeId);
+      }
+    },
+    [handleNodeFocus]
+  );
+
+  const handleEditButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeEdit(nodeId);
+      }
+    },
+    [handleNodeEdit]
+  );
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeContextMenu(event, nodeId);
+      }
+    },
+    [handleNodeContextMenu]
   );
 
   return (
-    <Box className="node-explorer" css={explorerStyles}>
-      <div className="explorer-header">
-        <Typography variant="h5">Node Explorer</Typography>
-        <Chip
-          size="small"
-          label={
-            filter.trim().length === 0
-              ? `${nodes.length}`
-              : `${entries.length} / ${nodes.length}`
-          }
-        />
-      </div>
+    <Box className="node-explorer" css={styles(theme)}>
+      <PanelHeadline
+        title="Node Explorer"
+        actions={
+          <Chip
+            size="small"
+            label={
+              filter.trim().length === 0
+                ? `${nodes.length}`
+                : `${entries.length} / ${nodes.length}`
+            }
+          />
+        }
+      />
       <TextField
         className="filter-input"
         size="medium"
         placeholder="Filter by name, type, or node id"
         label=""
         value={filter}
-        onChange={(event) => setFilter(event.target.value)}
+        onChange={handleFilterChange}
         variant="outlined"
         sx={{
           "& .MuiInputBase-root": {
@@ -271,12 +325,9 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeFocus(entry.node.id)}
-                onContextMenu={(event) => {
-                  //TODO: open node context menu
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
+                data-node-id={entry.node.id}
+                onClick={handleNodeClick}
+                onContextMenu={handleContextMenu}
               >
                 <div className="node-text">
                   <Typography className="node-title" variant="body1">
@@ -293,10 +344,8 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                data-node-id={entry.node.id}
+                onClick={handleEditButtonClick}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>
@@ -308,4 +357,6 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// NodeExplorer processes all nodes and should only re-render when nodes data actually changes
+export default memo(NodeExplorer);

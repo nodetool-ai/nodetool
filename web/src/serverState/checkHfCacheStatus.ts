@@ -3,6 +3,7 @@ import { BASE_URL } from "../stores/BASE_URL";
 export interface HfCacheStatusRequestItem {
   key: string;
   repo_id: string;
+  model_type?: string | null;
   path?: string | null;
   allow_patterns?: string | string[] | null;
   ignore_patterns?: string | string[] | null;

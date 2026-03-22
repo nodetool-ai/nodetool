@@ -339,7 +339,9 @@ const App: React.FC = () => {
 
       {showUpdateNotification && updateInfo && (
         <UpdateNotification
+          version={updateInfo.version}
           releaseUrl={updateInfo.releaseUrl}
+          downloaded={updateInfo.downloaded}
           onClose={() => setShowUpdateNotification(false)}
         />
       )}
