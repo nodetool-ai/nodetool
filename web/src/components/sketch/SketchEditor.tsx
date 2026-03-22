@@ -7,7 +7,15 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  forwardRef
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -29,7 +37,8 @@ import {
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_GRADIENT_SETTINGS,
   DEFAULT_CLONE_STAMP_SETTINGS,
-  mergeRgbHexIntoColor
+  mergeRgbHexIntoColor,
+  isShapeTool
 } from "./types";
 
 const styles = (theme: Theme) =>
@@ -41,6 +50,17 @@ const styles = (theme: Theme) =>
     overflow: "hidden"
   });
 
+export interface SketchEditorHandle {
+  undo: () => void;
+  redo: () => void;
+  clearLayer: () => void;
+  exportPng: () => void;
+  flipHorizontal: () => void;
+  flipVertical: () => void;
+  mergeDown: () => void;
+  flattenVisible: () => void;
+}
+
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
   onDocumentChange?: (doc: SketchDocument) => void;
@@ -48,16 +68,14 @@ export interface SketchEditorProps {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
-const SketchEditor: React.FC<SketchEditorProps> = ({
+const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
   onDocumentChange,
   onExportImage,
   onExportMask
-}) => {
+}, ref) {
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
-  const [mirrorX, setMirrorX] = useState(false);
-  const [mirrorY, setMirrorY] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -114,6 +132,10 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const resetColors = useSketchStore((s) => s.resetColors);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
+  const mirrorX = useSketchStore((s) => s.mirrorX);
+  const mirrorY = useSketchStore((s) => s.mirrorY);
+  const setMirrorX = useSketchStore((s) => s.setMirrorX);
+  const setMirrorY = useSketchStore((s) => s.setMirrorY);
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
@@ -510,6 +532,35 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     }
   }, [pushHistory, flattenVisible, updateLayerData]);
 
+  // ─── Foreground color change (syncs to active tool settings) ──────
+  const handleFgColorChange = useCallback(
+    (color: string) => {
+      setForegroundColor(color);
+      if (activeTool === "brush") {
+        setBrushSettings({ color });
+      } else if (activeTool === "pencil") {
+        setPencilSettings({ color });
+      } else if (activeTool === "fill") {
+        setFillSettings({ color });
+      } else if (isShapeTool(activeTool)) {
+        setShapeSettings({ strokeColor: color });
+      } else if (activeTool === "gradient") {
+        setGradientSettings({ startColor: color });
+      } else {
+        setBrushSettings({ color });
+      }
+    },
+    [
+      activeTool,
+      setForegroundColor,
+      setBrushSettings,
+      setPencilSettings,
+      setFillSettings,
+      setShapeSettings,
+      setGradientSettings
+    ]
+  );
+
   // ─── Zoom handlers ─────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
   const handleZoomOut = useCallback(() => setZoom(zoom / 1.3), [zoom, setZoom]);
@@ -678,14 +729,34 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     [pushHistory, setDocument, updateLayerData]
   );
 
+  // ─── Imperative handle for modal header actions ─────────────────
+  useImperativeHandle(ref, () => ({
+    undo: handleUndo,
+    redo: handleRedo,
+    clearLayer: handleClearLayer,
+    exportPng: handleExportPng,
+    flipHorizontal: handleFlipHorizontal,
+    flipVertical: handleFlipVertical,
+    mergeDown: handleMergeDown,
+    flattenVisible: handleFlattenVisible
+  }), [
+    handleUndo, handleRedo, handleClearLayer, handleExportPng,
+    handleFlipHorizontal, handleFlipVertical, handleMergeDown, handleFlattenVisible
+  ]);
+
   return (
     <Box className="sketch-editor" css={styles(theme)}>
-      {!panelsHidden && (
-        <SketchToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-        />
-      )}
+      {/* SketchToolbar is always rendered (colors must stay visible) */}
+      <SketchToolbar
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+        foregroundColor={safeForegroundColor}
+        backgroundColor={safeBackgroundColor}
+        onForegroundColorChange={handleFgColorChange}
+        onBackgroundColorChange={setBackgroundColor}
+        onSwapColors={swapColors}
+        onResetColors={resetColors}
+      />
 
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!panelsHidden && (
@@ -702,13 +773,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             adjustBrightness={adjBrightness}
             adjustContrast={adjContrast}
             adjustSaturation={adjSaturation}
-            zoom={zoom}
-            mirrorX={mirrorX}
-            mirrorY={mirrorY}
-            canUndo={canUndo()}
-            canRedo={canRedo()}
-            foregroundColor={safeForegroundColor}
-            backgroundColor={safeBackgroundColor}
             onBrushSettingsChange={setBrushSettings}
             onPencilSettingsChange={setPencilSettings}
             onEraserSettingsChange={setEraserSettings}
@@ -721,23 +785,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             onAdjustContrastChange={setAdjContrast}
             onAdjustSaturationChange={setAdjSaturation}
             onAdjustReset={handleResetAdjustments}
-            onMirrorXChange={setMirrorX}
-            onMirrorYChange={setMirrorY}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onZoomReset={handleZoomReset}
-            onClearLayer={handleClearLayer}
-            onExportPng={handleExportPng}
-            onFlipHorizontal={handleFlipHorizontal}
-            onFlipVertical={handleFlipVertical}
-            onMergeDown={handleMergeDown}
-            onFlattenVisible={handleFlattenVisible}
-            onForegroundColorChange={setForegroundColor}
-            onBackgroundColorChange={setBackgroundColor}
-            onSwapColors={swapColors}
-            onResetColors={resetColors}
           />
         )}
 
@@ -833,6 +880,6 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       />
     </Box>
   );
-};
+});
 
 export default memo(SketchEditor);

@@ -9,6 +9,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useState, useRef } from "react";
+import { sketchSliderSx, SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SIZE, SKETCH_COLORS } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -128,7 +129,7 @@ const styles = (theme: Theme) =>
     maxWidth: "180px",
     overflowY: "auto",
     "& .section-label": {
-      fontSize: "0.7rem",
+      fontSize: SKETCH_FONT.md,
       fontWeight: 600,
       textTransform: "uppercase",
       color: theme.vars.palette.grey[400]
@@ -138,10 +139,10 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "4px",
       padding: "4px 6px",
-      borderRadius: "4px",
+      borderRadius: SKETCH_SIZE.borderRadius,
       cursor: "pointer",
-      fontSize: "0.75rem",
-      minHeight: "36px",
+      fontSize: SKETCH_FONT.md,
+      minHeight: SKETCH_SIZE.layerItemHeight,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700]
       },
@@ -158,20 +159,18 @@ const styles = (theme: Theme) =>
       }
     },
     "& .layer-thumbnail": {
-      width: "28px",
-      height: "28px",
+      width: SKETCH_SIZE.layerThumbnail,
+      height: SKETCH_SIZE.layerThumbnail,
       borderRadius: "2px",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      backgroundImage:
-        "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
-      backgroundSize: "8px 8px",
+      ...SKETCH_CHECKERBOARD,
       objectFit: "contain",
       flexShrink: 0,
       imageRendering: "pixelated" as const
     },
     "& .layer-thumbnail-empty": {
-      width: "28px",
-      height: "28px",
+      width: SKETCH_SIZE.layerThumbnail,
+      height: SKETCH_SIZE.layerThumbnail,
       borderRadius: "2px",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       backgroundColor: theme.vars.palette.grey[900],
@@ -558,6 +557,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               Opacity
             </Typography>
             <Slider
+              sx={sketchSliderSx}
               size="small"
               min={0}
               max={1}
@@ -608,26 +608,36 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         collapsed={collapsedSections.canvasSize}
         onToggle={handleToggleSection}
       >
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
+        <Select
+          size="small"
+          displayEmpty
+          value=""
+          onChange={(e) => {
+            const preset = CANVAS_PRESETS.find((p) => p.label === e.target.value);
+            if (preset) onCanvasResize(preset.width, preset.height);
+          }}
+          sx={{
+            width: "100%",
+            fontSize: "0.65rem",
+            "& .MuiSelect-select": { padding: "3px 8px" }
+          }}
+          renderValue={() => {
+            const match = CANVAS_PRESETS.find(
+              (p) => p.width === canvasWidth && p.height === canvasHeight
+            );
+            return (
+              <Typography sx={{ fontSize: "0.65rem", color: match ? "grey.200" : "grey.500" }}>
+                {match ? match.label : "Presets…"}
+              </Typography>
+            );
+          }}
+        >
           {CANVAS_PRESETS.map((preset) => (
-            <Button
-              key={preset.label}
-              size="small"
-              variant={canvasWidth === preset.width && canvasHeight === preset.height ? "contained" : "outlined"}
-              onClick={() => onCanvasResize(preset.width, preset.height)}
-              sx={{
-                fontSize: "0.6rem",
-                py: "2px",
-                px: "6px",
-                minWidth: 0,
-                color: canvasWidth === preset.width && canvasHeight === preset.height ? undefined : "grey.400",
-                borderColor: "grey.600"
-              }}
-            >
-              {preset.label}
-            </Button>
+            <MenuItem key={preset.label} value={preset.label} sx={{ fontSize: "0.65rem" }}>
+              {preset.label} — {preset.width}×{preset.height}
+            </MenuItem>
           ))}
-        </Box>
+        </Select>
         <Box sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}>
           <TextField
             className="hex-input"

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
+import { sketchSliderSx, mergeHexPickerRgbPreserveAlpha as mergeColor } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -112,11 +113,6 @@ function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-function mergeHexPickerRgbPreserveAlpha(stored: string, pickerHex: string): string {
-  const { a } = parseColorToRgba(stored);
-  const { r, g, b } = parseColorToRgba(pickerHex);
-  return rgbaToCss({ r, g, b, a });
-}
 
 function getSummaryItems(
   activeTool: SketchTool,
@@ -238,6 +234,7 @@ function QuickSlider({
         </Typography>
       </Stack>
       <Slider
+        sx={sketchSliderSx}
         size="small"
         min={min}
         max={max}
@@ -612,7 +609,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             label="Color"
             color={brushSettings.color}
             onChange={(value) => {
-              const next = mergeHexPickerRgbPreserveAlpha(brushSettings.color, value);
+              const next = mergeColor(brushSettings.color, value);
               onForegroundColorChange(next);
               onBrushSettingsChange({ color: next });
             }}
@@ -683,7 +680,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             label="Color"
             color={pencilSettings.color}
             onChange={(value) => {
-              const next = mergeHexPickerRgbPreserveAlpha(pencilSettings.color, value);
+              const next = mergeColor(pencilSettings.color, value);
               onForegroundColorChange(next);
               onPencilSettingsChange({ color: next });
             }}
@@ -815,7 +812,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             label="Color"
             color={fillSettings.color}
             onChange={(value) => {
-              const next = mergeHexPickerRgbPreserveAlpha(fillSettings.color, value);
+              const next = mergeColor(fillSettings.color, value);
               onForegroundColorChange(next);
               onFillSettingsChange({ color: next });
             }}

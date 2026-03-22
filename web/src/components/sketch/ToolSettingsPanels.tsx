@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from "react";
+import { sketchSliderSx, toggleButtonSmallSx, mergeHexPickerRgbPreserveAlpha as mergeColor } from "./sketchStyles";
 import {
   Box,
   Typography,
@@ -40,15 +41,6 @@ import {
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
 
-/** Native color input returns #rrggbb; keep existing alpha from stored CSS color. */
-export function mergeHexPickerRgbPreserveAlpha(
-  stored: string,
-  pickerHex: string
-): string {
-  const { a } = parseColorToRgba(stored);
-  const { r, g, b } = parseColorToRgba(pickerHex);
-  return rgbaToCss({ r, g, b, a });
-}
 
 export function getToolSettingsLabel(tool: SketchTool): string {
   switch (tool) {
@@ -138,19 +130,18 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           }
         }}
         size="small"
-        fullWidth
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="round" sx={{ fontSize: "0.6rem", py: "2px" }}>
+        <ToggleButton value="round" sx={toggleButtonSmallSx}>
           Round
         </ToggleButton>
-        <ToggleButton value="soft" sx={{ fontSize: "0.6rem", py: "2px" }}>
+        <ToggleButton value="soft" sx={toggleButtonSmallSx}>
           Soft
         </ToggleButton>
-        <ToggleButton value="airbrush" sx={{ fontSize: "0.6rem", py: "2px" }}>
+        <ToggleButton value="airbrush" sx={toggleButtonSmallSx}>
           Air
         </ToggleButton>
-        <ToggleButton value="spray" sx={{ fontSize: "0.6rem", py: "2px" }}>
+        <ToggleButton value="spray" sx={toggleButtonSmallSx}>
           Spray
         </ToggleButton>
       </ToggleButtonGroup>
@@ -162,7 +153,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           value={colorToHex6(settings.color)}
           onChange={(e) =>
             onChange({
-              color: mergeHexPickerRgbPreserveAlpha(
+              color: mergeColor(
                 settings.color,
                 e.target.value
               )
@@ -173,6 +164,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={200}
@@ -184,6 +176,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Opacity</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
@@ -198,6 +191,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Hard</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
@@ -232,23 +226,22 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
               }
             }}
             size="small"
-            fullWidth
           >
             <ToggleButton
               value="size"
-              sx={{ fontSize: "0.6rem", py: "2px" }}
+              sx={toggleButtonSmallSx}
             >
               Size
             </ToggleButton>
             <ToggleButton
               value="opacity"
-              sx={{ fontSize: "0.6rem", py: "2px" }}
+              sx={toggleButtonSmallSx}
             >
               Opacity
             </ToggleButton>
             <ToggleButton
               value="both"
-              sx={{ fontSize: "0.6rem", py: "2px" }}
+              sx={toggleButtonSmallSx}
             >
               Both
             </ToggleButton>
@@ -261,6 +254,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           <Box className="setting-row">
             <Typography className="setting-label">Round</Typography>
             <Slider
+              sx={sketchSliderSx}
               size="small"
               min={0.1}
               max={1}
@@ -275,6 +269,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           <Box className="setting-row">
             <Typography className="setting-label">Angle</Typography>
             <Slider
+              sx={sketchSliderSx}
               size="small"
               min={0}
               max={360}
@@ -308,7 +303,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
           value={colorToHex6(settings.color)}
           onChange={(e) =>
             onChange({
-              color: mergeHexPickerRgbPreserveAlpha(
+              color: mergeColor(
                 settings.color,
                 e.target.value
               )
@@ -319,6 +314,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={10}
@@ -330,6 +326,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Opacity</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
@@ -356,6 +353,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={200}
@@ -367,6 +365,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Opacity</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
@@ -399,7 +398,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
           value={colorToHex6(settings.strokeColor)}
           onChange={(e) =>
             onChange({
-              strokeColor: mergeHexPickerRgbPreserveAlpha(
+              strokeColor: mergeColor(
                 settings.strokeColor,
                 e.target.value
               )
@@ -410,6 +409,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Width</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={50}
@@ -445,7 +445,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
                 value={colorToHex6(settings.fillColor)}
                 onChange={(e) =>
                   onChange({
-                    fillColor: mergeHexPickerRgbPreserveAlpha(
+                    fillColor: mergeColor(
                       settings.fillColor,
                       e.target.value
                     )
@@ -476,7 +476,7 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
           value={colorToHex6(settings.color)}
           onChange={(e) =>
             onChange({
-              color: mergeHexPickerRgbPreserveAlpha(
+              color: mergeColor(
                 settings.color,
                 e.target.value
               )
@@ -487,6 +487,7 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Tolerance</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={128}
@@ -512,6 +513,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={200}
@@ -523,6 +525,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Strength</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={1}
           max={20}
@@ -553,7 +556,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           value={colorToHex6(settings.startColor)}
           onChange={(e) =>
             onChange({
-              startColor: mergeHexPickerRgbPreserveAlpha(
+              startColor: mergeColor(
                 settings.startColor,
                 e.target.value
               )
@@ -566,6 +569,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           Start opacity
         </Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={100}
@@ -588,7 +592,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           value={colorToHex6(settings.endColor)}
           onChange={(e) =>
             onChange({
-              endColor: mergeHexPickerRgbPreserveAlpha(
+              endColor: mergeColor(
                 settings.endColor,
                 e.target.value
               )
@@ -601,6 +605,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           End opacity
         </Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={0}
           max={100}
@@ -624,17 +629,16 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           }
         }}
         size="small"
-        fullWidth
       >
         <ToggleButton
           value="linear"
-          sx={{ fontSize: "0.65rem", py: "2px" }}
+          sx={toggleButtonSmallSx}
         >
           Linear
         </ToggleButton>
         <ToggleButton
           value="radial"
-          sx={{ fontSize: "0.65rem", py: "2px" }}
+          sx={toggleButtonSmallSx}
         >
           Radial
         </ToggleButton>
@@ -655,6 +659,7 @@ export const CloneStampSettingsPanel = memo(
         <Box className="setting-row">
           <Typography className="setting-label">Size</Typography>
           <Slider
+            sx={sketchSliderSx}
             size="small"
             min={1}
             max={200}
@@ -668,6 +673,7 @@ export const CloneStampSettingsPanel = memo(
         <Box className="setting-row">
           <Typography className="setting-label">Opacity</Typography>
           <Slider
+            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -682,6 +688,7 @@ export const CloneStampSettingsPanel = memo(
         <Box className="setting-row">
           <Typography className="setting-label">Hardness</Typography>
           <Slider
+            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -702,17 +709,16 @@ export const CloneStampSettingsPanel = memo(
             }
           }}
           size="small"
-          fullWidth
         >
           <ToggleButton
             value="active_layer"
-            sx={{ fontSize: "0.6rem", py: "2px" }}
+            sx={toggleButtonSmallSx}
           >
             Active Layer
           </ToggleButton>
           <ToggleButton
             value="composited"
-            sx={{ fontSize: "0.6rem", py: "2px" }}
+            sx={toggleButtonSmallSx}
           >
             All Layers
           </ToggleButton>
@@ -758,6 +764,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Bright</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}
@@ -769,6 +776,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Contrast</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}
@@ -780,6 +788,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Typography className="setting-label">Satur.</Typography>
         <Slider
+          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}

@@ -9,7 +9,8 @@
 
 import React, { memo, forwardRef, useCallback, useMemo, ReactNode } from "react";
 import { IconButton, Tooltip } from "@mui/material";
-import TrashIcon from "../../icons/trash.svg?react";
+import TrashIconSvg from "../../icons/trash.svg?react";
+const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useTheme } from "@mui/material/styles";

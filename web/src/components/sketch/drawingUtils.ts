@@ -673,46 +673,57 @@ export function drawCloneStampStroke(
       return;
     }
 
-    const stampCanvas = window.document.createElement("canvas");
-    stampCanvas.width = diameter;
-    stampCanvas.height = diameter;
-    const stampCtx = stampCanvas.getContext("2d");
-    if (!stampCtx) {
+    // Build brush mask (radial gradient → alpha channel)
+    const maskCanvas = window.document.createElement("canvas");
+    maskCanvas.width = diameter;
+    maskCanvas.height = diameter;
+    const maskCtx = maskCanvas.getContext("2d");
+    if (!maskCtx) {
       return;
     }
-
-    stampCtx.drawImage(
-      sourceCanvas,
-      srcPx,
-      srcPy,
-      diameter,
-      diameter,
-      0,
-      0,
-      diameter,
-      diameter
-    );
-
-    // Apply circular mask with hardness-based falloff
-    stampCtx.save();
-    stampCtx.globalCompositeOperation = "destination-in";
-    const grad = stampCtx.createRadialGradient(
-      diameter / 2,
-      diameter / 2,
-      0,
-      diameter / 2,
-      diameter / 2,
-      diameter / 2
-    );
     const innerStop = Math.max(0, hardness);
+    const grad = maskCtx.createRadialGradient(
+      diameter / 2, diameter / 2, 0,
+      diameter / 2, diameter / 2, diameter / 2
+    );
     grad.addColorStop(0, `rgba(255,255,255,${opacity})`);
     grad.addColorStop(innerStop, `rgba(255,255,255,${opacity})`);
     grad.addColorStop(1, "rgba(255,255,255,0)");
-    stampCtx.fillStyle = grad;
-    stampCtx.fillRect(0, 0, diameter, diameter);
-    stampCtx.restore();
+    maskCtx.fillStyle = grad;
+    maskCtx.fillRect(0, 0, diameter, diameter);
 
-    ctx.drawImage(stampCanvas, px, py);
+    // Pixel-level lerp: result = dst*(1-t) + src*t  (premultiplied alpha)
+    // This correctly copies source transparency — transparent source erases destination.
+    const srcData  = srcCtx.getImageData(srcPx, srcPy, diameter, diameter).data;
+    const dstID    = ctx.getImageData(px, py, diameter, diameter);
+    const dstData  = dstID.data;
+    const maskData = maskCtx.getImageData(0, 0, diameter, diameter).data;
+
+    for (let i = 0; i < dstData.length; i += 4) {
+      const t = maskData[i + 3] / 255; // blend factor from gradient
+      if (t <= 0) continue;
+
+      const srcA = srcData[i + 3] / 255;
+      const dstA = dstData[i + 3] / 255;
+      const outA = srcA * t + dstA * (1 - t);
+
+      dstData[i + 3] = Math.round(outA * 255);
+
+      if (outA > 0) {
+        // Un-premultiply source and destination, then lerp
+        const sR = (srcData[i]     / 255) * srcA;
+        const sG = (srcData[i + 1] / 255) * srcA;
+        const sB = (srcData[i + 2] / 255) * srcA;
+        const dR = (dstData[i]     / 255) * dstA;
+        const dG = (dstData[i + 1] / 255) * dstA;
+        const dB = (dstData[i + 2] / 255) * dstA;
+        dstData[i]     = Math.round(((sR * t + dR * (1 - t)) / outA) * 255);
+        dstData[i + 1] = Math.round(((sG * t + dG * (1 - t)) / outA) * 255);
+        dstData[i + 2] = Math.round(((sB * t + dB * (1 - t)) / outA) * 255);
+      }
+    }
+
+    ctx.putImageData(dstID, px, py);
   };
 
   const dx = to.x - from.x;

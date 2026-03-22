@@ -100,6 +100,12 @@ export interface SketchStore {
   isolatedLayerId: string | null;
   toggleIsolateLayer: (layerId: string) => void;
 
+  // ─── Mirror State ─────────────────────────────────────────────────────────
+  mirrorX: boolean;
+  mirrorY: boolean;
+  setMirrorX: (v: boolean) => void;
+  setMirrorY: (v: boolean) => void;
+
   // ─── UI State ─────────────────────────────────────────────────────────────
   panelsHidden: boolean;
   togglePanelsHidden: () => void;
@@ -132,6 +138,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   colorMode: "hex" as ColorMode,
   selection: null,
   isolatedLayerId: null,
+  mirrorX: false,
+  mirrorY: false,
   panelsHidden: false,
 
   // ─── Document Actions ─────────────────────────────────────────────────
@@ -281,6 +289,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setZoom: (zoom: number) => set({ zoom: Math.max(0.1, Math.min(10, zoom)) }),
   setPan: (pan: Point) => set({ pan }),
   setIsDrawing: (isDrawing: boolean) => set({ isDrawing }),
+  setMirrorX: (v: boolean) => set({ mirrorX: v }),
+  setMirrorY: (v: boolean) => set({ mirrorY: v }),
 
   // ─── Layer Actions ────────────────────────────────────────────────────
   setActiveLayer: (layerId: string) =>
