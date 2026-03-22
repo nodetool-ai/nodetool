@@ -1,27 +1,27 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getNodeMetadata } from "@nodetool/node-sdk";
 import {
-  ShellAgentSkillNode,
-  BrowserSkillNode,
-  SQLiteSkillNode,
-  SupabaseSkillNode,
-  DocumentSkillNode,
-  DocxSkillNode,
-  EmailSkillNode,
-  FfmpegSkillNode,
-  FilesystemSkillNode,
-  GitSkillNode,
-  HtmlSkillNode,
-  HttpApiSkillNode,
-  ImageSkillNode,
-  MediaSkillNode,
-  PdfLibSkillNode,
-  PptxSkillNode,
-  SpreadsheetSkillNode,
-  VectorStoreSkillNode,
-  YtDlpDownloaderSkillNode,
-  SKILLS_NODES,
-} from "../src/nodes/skills.js";
+  ShellAgentNode,
+  BrowserAgentNode,
+  SQLiteAgentNode,
+  SupabaseAgentNode,
+  DocumentAgentNode,
+  DocxAgentNode,
+  EmailAgentNode,
+  FfmpegAgentNode,
+  FilesystemAgentNode,
+  GitAgentNode,
+  HtmlAgentNode,
+  HttpApiAgentNode,
+  ImageAgentNode,
+  MediaAgentNode,
+  PdfLibAgentNode,
+  PptxAgentNode,
+  SpreadsheetAgentNode,
+  VectorStoreAgentNode,
+  YtDlpDownloaderAgentNode,
+  TOOL_AGENT_NODES,
+} from "../src/nodes/tool-agents.js";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;
@@ -67,60 +67,60 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as Response;
 }
 
-describe("SKILLS_NODES export", () => {
-  it("exports 19 skill node classes", () => {
-    expect(SKILLS_NODES).toHaveLength(19);
+describe("TOOL_AGENT_NODES export", () => {
+  it("exports 19 tool agent node classes", () => {
+    expect(TOOL_AGENT_NODES).toHaveLength(19);
   });
 });
 
 // ── Defaults tests for all nodes ─────────────────────────────────────────
 
-describe("Skill node defaults", () => {
-  it("ShellAgentSkillNode base defaults", () => {
-    expectMetadataDefaults(ShellAgentSkillNode);
+describe("Tool agent node defaults", () => {
+  it("ShellAgentNode base defaults", () => {
+    expectMetadataDefaults(ShellAgentNode);
   });
 
-  it("BrowserSkillNode overrides timeout and max_output_chars", () => {
-    const node = new BrowserSkillNode();
+  it("BrowserAgentNode overrides timeout and max_output_chars", () => {
+    const node = new BrowserAgentNode();
     const d = node.serialize();
     expect(d.timeout_seconds).toBe(150);
     expect(d.max_output_chars).toBe(180000);
   });
 
-  it("SQLiteSkillNode has db_path and allow_mutation", () => {
-    const node = new SQLiteSkillNode();
+  it("SQLiteAgentNode has db_path and allow_mutation", () => {
+    const node = new SQLiteAgentNode();
     const d = node.serialize();
     expect(d.timeout_seconds).toBe(120);
     expect(d.db_path).toBe("memory.db");
     expect(d.allow_mutation).toBe(false);
   });
 
-  it("SupabaseSkillNode has timeout 120", () => {
-    const node = new SupabaseSkillNode();
+  it("SupabaseAgentNode has timeout 120", () => {
+    const node = new SupabaseAgentNode();
     expect(node.serialize().timeout_seconds).toBe(120);
   });
 
-  it("DocumentSkillNode defaults", () => {
-    const node = new DocumentSkillNode();
+  it("DocumentAgentNode defaults", () => {
+    const node = new DocumentAgentNode();
     const d = node.serialize();
     expect(d.timeout_seconds).toBe(120);
     expect(d.max_output_chars).toBe(150000);
   });
 
-  it("DocxSkillNode defaults", () => {
-    const node = new DocxSkillNode();
+  it("DocxAgentNode defaults", () => {
+    const node = new DocxAgentNode();
     const d = node.serialize();
     expect(d.timeout_seconds).toBe(300);
     expect(d.max_output_chars).toBe(220000);
   });
 
-  it("EmailSkillNode base defaults", () => {
-    const node = new EmailSkillNode();
+  it("EmailAgentNode base defaults", () => {
+    const node = new EmailAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("FfmpegSkillNode has audio and video", () => {
-    const node = new FfmpegSkillNode();
+  it("FfmpegAgentNode has audio and video", () => {
+    const node = new FfmpegAgentNode();
     const d = node.serialize();
     expect(d.audio).toEqual({
       type: "audio",
@@ -140,28 +140,28 @@ describe("Skill node defaults", () => {
     });
   });
 
-  it("FilesystemSkillNode base defaults", () => {
-    const node = new FilesystemSkillNode();
+  it("FilesystemAgentNode base defaults", () => {
+    const node = new FilesystemAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("GitSkillNode base defaults", () => {
-    const node = new GitSkillNode();
+  it("GitAgentNode base defaults", () => {
+    const node = new GitAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("HtmlSkillNode has max_output_chars 180000", () => {
-    const node = new HtmlSkillNode();
+  it("HtmlAgentNode has max_output_chars 180000", () => {
+    const node = new HtmlAgentNode();
     expect(node.serialize().max_output_chars).toBe(180000);
   });
 
-  it("HttpApiSkillNode base defaults", () => {
-    const node = new HttpApiSkillNode();
+  it("HttpApiAgentNode base defaults", () => {
+    const node = new HttpApiAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("ImageSkillNode has image, timeout, max_output_chars", () => {
-    const node = new ImageSkillNode();
+  it("ImageAgentNode has image, timeout, max_output_chars", () => {
+    const node = new ImageAgentNode();
     const d = node.serialize();
     expect(d.image).toEqual({
       type: "image",
@@ -174,8 +174,8 @@ describe("Skill node defaults", () => {
     expect(d.max_output_chars).toBe(120000);
   });
 
-  it("MediaSkillNode has audio and video", () => {
-    const node = new MediaSkillNode();
+  it("MediaAgentNode has audio and video", () => {
+    const node = new MediaAgentNode();
     const d = node.serialize();
     expect(d.audio).toEqual({
       type: "audio",
@@ -195,8 +195,8 @@ describe("Skill node defaults", () => {
     });
   });
 
-  it("PdfLibSkillNode has document and custom timeout", () => {
-    const node = new PdfLibSkillNode();
+  it("PdfLibAgentNode has document and custom timeout", () => {
+    const node = new PdfLibAgentNode();
     const d = node.serialize();
     expect(d.document).toEqual({
       type: "document",
@@ -209,8 +209,8 @@ describe("Skill node defaults", () => {
     expect(d.max_output_chars).toBe(220000);
   });
 
-  it("PptxSkillNode has document and custom timeout", () => {
-    const node = new PptxSkillNode();
+  it("PptxAgentNode has document and custom timeout", () => {
+    const node = new PptxAgentNode();
     const d = node.serialize();
     expect(d.document).toEqual({
       type: "document",
@@ -223,18 +223,18 @@ describe("Skill node defaults", () => {
     expect(d.max_output_chars).toBe(220000);
   });
 
-  it("SpreadsheetSkillNode base defaults", () => {
-    const node = new SpreadsheetSkillNode();
+  it("SpreadsheetAgentNode base defaults", () => {
+    const node = new SpreadsheetAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("VectorStoreSkillNode base defaults", () => {
-    const node = new VectorStoreSkillNode();
+  it("VectorStoreAgentNode base defaults", () => {
+    const node = new VectorStoreAgentNode();
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("YtDlpDownloaderSkillNode has url, output_dir, custom timeout", () => {
-    const node = new YtDlpDownloaderSkillNode();
+  it("YtDlpDownloaderAgentNode has url, output_dir, custom timeout", () => {
+    const node = new YtDlpDownloaderAgentNode();
     const d = node.serialize();
     expect(d.url).toBe("");
     expect(d.output_dir).toBe("downloads/yt-dlp");
@@ -245,27 +245,27 @@ describe("Skill node defaults", () => {
 
 // ── nodeType tests ───────────────────────────────────────────────────────
 
-describe("Skill node types", () => {
-  const expected: [string, typeof ShellAgentSkillNode][] = [
-    ["skills._shell_agent.ShellAgentSkill", ShellAgentSkillNode],
-    ["skills.browser.BrowserSkill", BrowserSkillNode],
-    ["skills.data.SQLiteSkill", SQLiteSkillNode],
-    ["skills.data.SupabaseSkill", SupabaseSkillNode],
-    ["skills.document.DocumentSkill", DocumentSkillNode],
-    ["skills.docx.DocxSkill", DocxSkillNode],
-    ["skills.email.EmailSkill", EmailSkillNode],
-    ["skills.ffmpeg.FfmpegSkill", FfmpegSkillNode],
-    ["skills.filesystem.FilesystemSkill", FilesystemSkillNode],
-    ["skills.git.GitSkill", GitSkillNode],
-    ["skills.html.HtmlSkill", HtmlSkillNode],
-    ["skills.httpapi.HttpApiSkill", HttpApiSkillNode],
-    ["skills.image.ImageSkill", ImageSkillNode],
-    ["skills.media.MediaSkill", MediaSkillNode],
-    ["skills.pdf_lib.PdfLibSkill", PdfLibSkillNode],
-    ["skills.pptx.PptxSkill", PptxSkillNode],
-    ["skills.spreadsheet.SpreadsheetSkill", SpreadsheetSkillNode],
-    ["skills.vectorstore.VectorStoreSkill", VectorStoreSkillNode],
-    ["skills.ytdlp.YtDlpDownloaderSkill", YtDlpDownloaderSkillNode],
+describe("Tool agent node types", () => {
+  const expected: [string, typeof ShellAgentNode][] = [
+    ["nodetool.agents.ShellAgent", ShellAgentNode],
+    ["nodetool.agents.BrowserAgent", BrowserAgentNode],
+    ["nodetool.agents.SQLiteAgent", SQLiteAgentNode],
+    ["nodetool.agents.SupabaseAgent", SupabaseAgentNode],
+    ["nodetool.agents.DocumentAgent", DocumentAgentNode],
+    ["nodetool.agents.DocxAgent", DocxAgentNode],
+    ["nodetool.agents.EmailAgent", EmailAgentNode],
+    ["nodetool.agents.FfmpegAgent", FfmpegAgentNode],
+    ["nodetool.agents.FilesystemAgent", FilesystemAgentNode],
+    ["nodetool.agents.GitAgent", GitAgentNode],
+    ["nodetool.agents.HtmlAgent", HtmlAgentNode],
+    ["nodetool.agents.HttpApiAgent", HttpApiAgentNode],
+    ["nodetool.agents.ImageAgent", ImageAgentNode],
+    ["nodetool.agents.MediaAgent", MediaAgentNode],
+    ["nodetool.agents.PdfLibAgent", PdfLibAgentNode],
+    ["nodetool.agents.PptxAgent", PptxAgentNode],
+    ["nodetool.agents.SpreadsheetAgent", SpreadsheetAgentNode],
+    ["nodetool.agents.VectorStoreAgent", VectorStoreAgentNode],
+    ["nodetool.agents.YtDlpDownloaderAgent", YtDlpDownloaderAgentNode],
   ];
   for (const [nodeType, NodeClass] of expected) {
     it(`${NodeClass.name} has nodeType ${nodeType}`, () => {
@@ -276,40 +276,40 @@ describe("Skill node types", () => {
 
 // ── Process error paths ──────────────────────────────────────────────────
 
-describe("SkillNode process", () => {
+describe("ToolAgentNode process", () => {
   it("throws Prompt is required when prompt is empty", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(node.process({})).rejects.toThrow("Prompt is required");
   });
 
   it("throws Prompt is required when prompt is whitespace", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(node.process({ prompt: "   " })).rejects.toThrow("Prompt is required");
   });
 
   it("throws Select a model when provider is empty", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({ prompt: "do something", model: { provider: "", id: "" } })
     ).rejects.toThrow("Select a model for this skill.");
   });
 
   it("throws Select a model when model id is empty", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({ prompt: "do something", model: { provider: "openai", id: "" } })
     ).rejects.toThrow("Select a model for this skill.");
   });
 
   it("throws no API key when key is missing for openai", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({ prompt: "do something", model: { provider: "openai", id: "gpt-4" } })
     ).rejects.toThrow("No API key found");
   });
 
   it("throws no API key when key is missing for anthropic", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({ prompt: "do something", model: { provider: "anthropic", id: "claude-3" } })
     ).rejects.toThrow("No API key found");
@@ -318,9 +318,9 @@ describe("SkillNode process", () => {
 
 // ── OpenAI direct HTTP path ──────────────────────────────────────────────
 
-describe("SkillNode OpenAI direct path", () => {
+describe("ToolAgentNode OpenAI direct path", () => {
   it("calls OpenAI and returns text", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         choices: [{ message: { content: "hello world" } }],
@@ -336,7 +336,7 @@ describe("SkillNode OpenAI direct path", () => {
   });
 
   it("returns empty string when choices are missing", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     const result = await node.process({
       prompt: "say hello",
@@ -347,7 +347,7 @@ describe("SkillNode OpenAI direct path", () => {
   });
 
   it("throws on OpenAI API error", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad" }, 400));
     await expect(
       node.process({
@@ -360,7 +360,7 @@ describe("SkillNode OpenAI direct path", () => {
 
   it("resolves key from env", async () => {
     process.env.OPENAI_API_KEY = "sk-env";
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ choices: [{ message: { content: "ok" } }] })
     );
@@ -374,9 +374,9 @@ describe("SkillNode OpenAI direct path", () => {
 
 // ── Anthropic direct HTTP path ───────────────────────────────────────────
 
-describe("SkillNode Anthropic direct path", () => {
+describe("ToolAgentNode Anthropic direct path", () => {
   it("calls Anthropic and returns text", async () => {
-    const node = new BrowserSkillNode();
+    const node = new BrowserAgentNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
         content: [
@@ -394,7 +394,7 @@ describe("SkillNode Anthropic direct path", () => {
   });
 
   it("returns empty when content is missing", async () => {
-    const node = new BrowserSkillNode();
+    const node = new BrowserAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     const result = await node.process({
       prompt: "browse",
@@ -405,7 +405,7 @@ describe("SkillNode Anthropic direct path", () => {
   });
 
   it("throws on Anthropic API error", async () => {
-    const node = new BrowserSkillNode();
+    const node = new BrowserAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad" }, 401));
     await expect(
       node.process({
@@ -419,9 +419,9 @@ describe("SkillNode Anthropic direct path", () => {
 
 // ── Ollama direct HTTP path ──────────────────────────────────────────────
 
-describe("SkillNode Ollama direct path", () => {
+describe("ToolAgentNode Ollama direct path", () => {
   it("calls Ollama and returns text (no API key needed)", async () => {
-    const node = new SQLiteSkillNode();
+    const node = new SQLiteAgentNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ message: { content: "ollama response" } })
     );
@@ -435,7 +435,7 @@ describe("SkillNode Ollama direct path", () => {
 
   it("uses custom OLLAMA_API_URL", async () => {
     process.env.OLLAMA_API_URL = "http://custom:9999";
-    const node = new SQLiteSkillNode();
+    const node = new SQLiteAgentNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ message: { content: "custom" } })
     );
@@ -447,7 +447,7 @@ describe("SkillNode Ollama direct path", () => {
   });
 
   it("returns empty when message is missing", async () => {
-    const node = new SQLiteSkillNode();
+    const node = new SQLiteAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     const result = await node.process({
       prompt: "query",
@@ -457,7 +457,7 @@ describe("SkillNode Ollama direct path", () => {
   });
 
   it("throws on Ollama API error", async () => {
-    const node = new SQLiteSkillNode();
+    const node = new SQLiteAgentNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 500));
     await expect(
       node.process({
@@ -470,9 +470,9 @@ describe("SkillNode Ollama direct path", () => {
 
 // ── Unsupported provider ─────────────────────────────────────────────────
 
-describe("SkillNode unsupported provider", () => {
+describe("ToolAgentNode unsupported provider", () => {
   it("throws unsupported provider error", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     // Ollama doesn't need API key, so we can test unsupported by using a fake provider
     // But we need to bypass the API key check - use ollama-like (no key needed) but unsupported name
     // Actually, the key check happens before callChatCompletionDirect for non-ollama providers
@@ -493,7 +493,7 @@ describe("SkillNode unsupported provider", () => {
   });
 
   it("throws unsupported provider for gemini (has key but no HTTP path)", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     // gemini is in PROVIDER_KEY_MAP so resolveApiKey will find it
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 200)); // won't be called
     await expect(
@@ -506,7 +506,7 @@ describe("SkillNode unsupported provider", () => {
   });
 
   it("throws unsupported provider for mistral", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({
         prompt: "do something",
@@ -519,9 +519,9 @@ describe("SkillNode unsupported provider", () => {
 
 // ── Runtime provider path ────────────────────────────────────────────────
 
-describe("SkillNode runtime provider path", () => {
+describe("ToolAgentNode runtime provider path", () => {
   it("uses context.getProvider when available", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     const mockProvider = {
       generateMessage: vi.fn().mockResolvedValue({ content: "from provider" }),
     };
@@ -540,7 +540,7 @@ describe("SkillNode runtime provider path", () => {
   });
 
   it("handles non-string content from provider", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     const mockProvider = {
       generateMessage: vi.fn().mockResolvedValue({ content: { key: "val" } }),
     };
@@ -558,7 +558,7 @@ describe("SkillNode runtime provider path", () => {
   });
 
   it("handles null content from provider", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     const mockProvider = {
       generateMessage: vi.fn().mockResolvedValue({ content: null }),
     };
@@ -576,7 +576,7 @@ describe("SkillNode runtime provider path", () => {
   });
 
   it("falls back to direct HTTP when provider throws", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     const context = {
       getProvider: vi.fn().mockRejectedValue(new Error("no provider")),
     };
@@ -599,7 +599,7 @@ describe("SkillNode runtime provider path", () => {
 
 describe("secretsMap handling", () => {
   it("handles _secrets as array (returns empty map)", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({
         prompt: "test",
@@ -610,7 +610,7 @@ describe("secretsMap handling", () => {
   });
 
   it("handles _secrets as null", async () => {
-    const node = new ShellAgentSkillNode();
+    const node = new ShellAgentNode();
     await expect(
       node.process({
         prompt: "test",
