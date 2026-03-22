@@ -11,6 +11,9 @@
  *
  * This provider does NOT require an ANTHROPIC_API_KEY — it uses the Claude Code
  * session which authenticates through the user's Claude subscription.
+ *
+ * Conversation history is managed via Claude sessions (resume: sessionId)
+ * rather than re-sending the full message array on each call.
  */
 
 import { BaseProvider } from "./base-provider.js";
@@ -64,6 +67,12 @@ export class ClaudeAgentProvider extends BaseProvider {
     return [];
   }
 
+  /**
+   * Maps threadId → Claude SDK session ID.
+   * Allows resuming conversations across multiple generateMessages() calls.
+   */
+  private _sessions = new Map<string, string>();
+
   constructor(_secrets: Record<string, unknown> = {}) {
     super("claude_agent");
   }
@@ -77,51 +86,40 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /**
-   * Convert the provider message array into a prompt + system prompt
-   * suitable for the Agent SDK's query() function.
+   * Extract the system prompt and the last user message from the messages array.
+   * With session-based history, only the latest user message is sent as the prompt.
    */
-  private buildPromptFromMessages(messages: Message[]): {
+  private extractPrompt(messages: Message[]): {
     systemPrompt: string;
     prompt: string;
+    threadId: string | null;
   } {
     let systemPrompt = "You are a helpful assistant.";
-    const conversationParts: string[] = [];
+    let prompt = "";
+    let threadId: string | null = null;
 
     for (const msg of messages) {
-      const text = extractText(msg.content);
+      if (msg.threadId) {
+        threadId = msg.threadId;
+      }
       if (msg.role === "system") {
-        systemPrompt = text;
-      } else if (msg.role === "user") {
-        conversationParts.push(`User: ${text}`);
-      } else if (msg.role === "assistant") {
-        conversationParts.push(`Assistant: ${text}`);
-      } else if (msg.role === "tool") {
-        conversationParts.push(
-          `Tool Result (${msg.toolCallId ?? "unknown"}): ${text}`
-        );
+        systemPrompt = extractText(msg.content);
       }
     }
 
-    // Use the last user message as the prompt; include earlier messages as context.
-    let prompt: string;
-    if (conversationParts.length > 1) {
-      const history = conversationParts.slice(0, -1).join("\n\n");
-      systemPrompt += `\n\nPrevious conversation:\n${history}`;
-      const lastPart = conversationParts[conversationParts.length - 1];
-      // Strip the "User: " prefix if present
-      prompt = lastPart.startsWith("User: ")
-        ? lastPart.slice(6)
-        : lastPart;
-    } else if (conversationParts.length === 1) {
-      const lastPart = conversationParts[0];
-      prompt = lastPart.startsWith("User: ")
-        ? lastPart.slice(6)
-        : lastPart;
-    } else {
+    // Walk backwards to find the last user message — that's our prompt.
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        prompt = extractText(messages[i].content);
+        break;
+      }
+    }
+
+    if (!prompt) {
       prompt = "Hello";
     }
 
-    return { systemPrompt, prompt };
+    return { systemPrompt, prompt, threadId };
   }
 
   /**
@@ -141,6 +139,22 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
   }
 
+  /** Look up an existing Claude session for the given threadId. */
+  getSessionId(threadId: string | null): string | undefined {
+    if (!threadId) return undefined;
+    return this._sessions.get(threadId);
+  }
+
+  /** Store the Claude session ID for a threadId. */
+  setSessionId(threadId: string, sessionId: string): void {
+    this._sessions.set(threadId, sessionId);
+  }
+
+  /** Remove a stored session (e.g. when a conversation is closed). */
+  clearSession(threadId: string): void {
+    this._sessions.delete(threadId);
+  }
+
   async *generateMessages(args: {
     messages: Message[];
     model: string;
@@ -157,13 +171,17 @@ export class ClaudeAgentProvider extends BaseProvider {
     thinkingBudget?: number;
   }): AsyncGenerator<ProviderStreamItem> {
     const queryFn = await this.getQueryFn();
-    const { systemPrompt, prompt } = this.buildPromptFromMessages(
+    const { systemPrompt, prompt, threadId } = this.extractPrompt(
       args.messages
     );
+
+    const resumeSessionId = this.getSessionId(threadId);
 
     log.debug("Claude Agent request", {
       model: args.model,
       promptLength: prompt.length,
+      threadId,
+      resuming: !!resumeSessionId,
     });
 
     const queryHandle = queryFn({
@@ -176,6 +194,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowDangerouslySkipPermissions: true,
         disallowedTools: DISALLOWED_TOOLS,
         allowedTools: [],
+        ...(resumeSessionId ? { resume: resumeSessionId } : {}),
       },
     });
 
@@ -186,6 +205,21 @@ export class ClaudeAgentProvider extends BaseProvider {
     for await (const msg of queryHandle) {
       const msgObj = msg as Record<string, unknown>;
       const msgType = msgObj.type as string;
+
+      // Capture session ID from the init event so we can resume later.
+      if (
+        msgType === "system" &&
+        msgObj.subtype === "init" &&
+        typeof msgObj.session_id === "string" &&
+        threadId
+      ) {
+        this.setSessionId(threadId, msgObj.session_id);
+        log.debug("Claude session initialized", {
+          threadId,
+          sessionId: msgObj.session_id,
+        });
+        continue;
+      }
 
       // Stream events provide incremental text updates during generation.
       if (msgType === "stream_event") {
@@ -208,7 +242,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         continue;
       }
 
-      // Full assistant message — only emit if we didn't get stream events.
+      // Full assistant message — only emit text not already streamed.
       if (msgType === "assistant") {
         const message = msgObj.message as Record<string, unknown> | undefined;
         const content = message?.content;
