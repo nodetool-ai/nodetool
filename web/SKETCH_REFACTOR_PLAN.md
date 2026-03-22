@@ -21,46 +21,46 @@ Primary files:
 
 ## Checklist
 
-- [ ] Extract focused controller hooks from `SketchEditor` for:
+- [x] Extract focused controller hooks from `SketchEditor` for:
   - store selection
   - history actions
   - layer actions
   - canvas actions
   - color actions
 
-- [ ] Reduce `SketchEditor` to orchestration and component wiring only.
+- [x] Reduce `SketchEditor` to orchestration and component wiring only.
 
-- [ ] Create shared tool/action definitions used by both:
+- [x] Create shared tool/action definitions used by both:
   - `SketchToolbar.tsx`
   - `SketchCanvasContextMenu.tsx`
 
-- [ ] Move duplicated tool metadata and quick-action behavior into shared helpers/config.
+- [x] Move duplicated tool metadata and quick-action behavior into shared helpers/config.
 
-- [ ] Split `SketchCanvas` into smaller units by concern:
+- [x] Split `SketchCanvas` into smaller units by concern:
   - compositing and redraw
   - imperative canvas methods
   - overlay and cursor rendering
   - pointer handling by tool group
 
-- [ ] Keep `SketchCanvas` behavior unchanged during the first pass.
+- [x] Keep `SketchCanvas` behavior unchanged during the first pass.
 
-- [ ] Extract reusable localStorage-backed section persistence into a shared hook for:
+- [x] Extract reusable localStorage-backed section persistence into a shared hook for:
   - toolbar collapsed sections
   - layers panel collapsed sections
 
-- [ ] Keep local UI-only state inside panels, including:
+- [x] Keep local UI-only state inside panels, including:
   - layer rename state
   - drag/drop state
   - adjustment slider state
 
-- [ ] Move shared layer mutation logic behind reusable editor/layer action adapters.
+- [x] Move shared layer mutation logic behind reusable editor/layer action adapters.
 
-- [ ] Refactor in this order to minimize regressions:
+- [x] Refactor in this order to minimize regressions:
   - extract pure helpers/config first
   - extract shared hooks/adapters next
   - simplify component bodies last
 
-- [ ] Verify existing behavior still works after refactor:
+- [x] Verify existing behavior still works after refactor:
   - tool switching
   - keyboard shortcuts
   - undo/redo
