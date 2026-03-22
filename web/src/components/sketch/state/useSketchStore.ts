@@ -558,7 +558,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       backgroundColor: state.foregroundColor
     })),
   resetColors: () =>
-    set({ foregroundColor: "#ffffff", backgroundColor: "#000000" }),
+    set({ foregroundColor: "#000000", backgroundColor: "#ffffff" }),
 
   // ─── Color Mode ─────────────────────────────────────────────────────────
   setColorMode: (mode: ColorMode) => set({ colorMode: mode }),

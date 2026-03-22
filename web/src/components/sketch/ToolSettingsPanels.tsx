@@ -146,22 +146,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         </ToggleButton>
       </ToggleButtonGroup>
       <Box className="setting-row">
-        <Typography className="setting-label">Color</Typography>
-        <input
-          type="color"
-          className="color-input"
-          value={colorToHex6(settings.color)}
-          onChange={(e) =>
-            onChange({
-              color: mergeColor(
-                settings.color,
-                e.target.value
-              )
-            })
-          }
-        />
-      </Box>
-      <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
           sx={sketchSliderSx}
@@ -295,22 +279,6 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
 }: PencilSettingsPanelProps) {
   return (
     <>
-      <Box className="setting-row">
-        <Typography className="setting-label">Color</Typography>
-        <input
-          type="color"
-          className="color-input"
-          value={colorToHex6(settings.color)}
-          onChange={(e) =>
-            onChange({
-              color: mergeColor(
-                settings.color,
-                e.target.value
-              )
-            })
-          }
-        />
-      </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
