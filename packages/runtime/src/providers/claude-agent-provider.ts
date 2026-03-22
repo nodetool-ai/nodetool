@@ -92,16 +92,11 @@ export class ClaudeAgentProvider extends BaseProvider {
   private extractPrompt(messages: Message[]): {
     systemPrompt: string;
     prompt: string;
-    threadId: string | null;
   } {
     let systemPrompt = "You are a helpful assistant.";
     let prompt = "";
-    let threadId: string | null = null;
 
     for (const msg of messages) {
-      if (msg.threadId) {
-        threadId = msg.threadId;
-      }
       if (msg.role === "system") {
         systemPrompt = extractText(msg.content);
       }
@@ -119,7 +114,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       prompt = "Hello";
     }
 
-    return { systemPrompt, prompt, threadId };
+    return { systemPrompt, prompt };
   }
 
   /**
@@ -169,11 +164,11 @@ export class ClaudeAgentProvider extends BaseProvider {
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
+    threadId?: string | null;
   }): AsyncGenerator<ProviderStreamItem> {
     const queryFn = await this.getQueryFn();
-    const { systemPrompt, prompt, threadId } = this.extractPrompt(
-      args.messages
-    );
+    const { systemPrompt, prompt } = this.extractPrompt(args.messages);
+    const threadId = args.threadId ?? null;
 
     const resumeSessionId = this.getSessionId(threadId);
 
@@ -288,6 +283,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     thinkingBudget?: number;
+    threadId?: string | null;
   }): Promise<Message> {
     const parts: string[] = [];
     for await (const item of this.generateMessages(args)) {
