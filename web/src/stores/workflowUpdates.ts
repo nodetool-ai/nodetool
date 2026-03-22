@@ -19,7 +19,7 @@ import {
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore from "./ErrorStore";
+import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -480,17 +480,18 @@ export const handleUpdate = (
       return;
     }
 
-    if (update.error) {
-      log.error("WorkflowRunner update error", update.error);
+    const normalizedNodeError = normalizeNodeError(update.error);
+    if (normalizedNodeError) {
+      log.error("WorkflowRunner update error", normalizedNodeError);
       runner.addNotification({
         type: "error",
         alert: true,
-        content: update.error
+        content: String(normalizedNodeError)
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
       setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, update.error);
+      setError(workflow.id, update.node_id, normalizedNodeError);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
