@@ -9,7 +9,8 @@ import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 import {
   DEFAULT_GRADIENT_SETTINGS,
-  DEFAULT_TOOL_SETTINGS
+  DEFAULT_TOOL_SETTINGS,
+  type SketchDocument
 } from "../types";
 
 // Reset store before each test
@@ -96,13 +97,12 @@ describe("Phase 2 New Features", () => {
 
     it("normalizes missing gradient settings when loading a document", () => {
       const doc = useSketchStore.getState().document;
+      const { gradient: _legacyOmitGradient, ...toolSettingsWithoutGradient } =
+        doc.toolSettings;
       const legacyDoc = {
         ...doc,
-        toolSettings: {
-          ...doc.toolSettings
-        }
+        toolSettings: toolSettingsWithoutGradient as SketchDocument["toolSettings"]
       };
-      delete legacyDoc.toolSettings.gradient;
 
       act(() => {
         useSketchStore.getState().setDocument(legacyDoc);
