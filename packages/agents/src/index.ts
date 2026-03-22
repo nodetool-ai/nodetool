@@ -142,3 +142,43 @@ export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
 export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
+
+// Multi-agent team system
+export {
+  // In-memory implementations
+  MessageBus,
+  TaskBoard,
+  // Edge-native implementations
+  EdgeMessageBus,
+  EdgeTaskBoard,
+  // DB-backed implementation
+  DbTaskBoard,
+  // Orchestration
+  TeamExecutor,
+  // Tools
+  createTeamTools,
+  SendMessageTool,
+  BroadcastTool,
+  CheckMessagesTool,
+  CreateTaskTool,
+  ListTasksTool,
+  ClaimTaskTool,
+  CompleteTaskTool,
+  FailTaskTool,
+  DecomposeTaskTool,
+} from "./team/index.js";
+export type {
+  AgentIdentity,
+  AgentMessage,
+  MessageType,
+  BoardTask,
+  TaskStatus,
+  TeamEvent,
+  TeamConfig,
+  TeamStrategy,
+  IMessageBus,
+  ITaskBoard,
+  TeamExecutorOptions,
+  MessageHandler,
+  BoardEventHandler,
+} from "./team/index.js";
