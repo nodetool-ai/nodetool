@@ -1249,6 +1249,7 @@ export class ProcessingContext {
           presencePenalty: params.presence_penalty as number | undefined,
           frequencyPenalty: params.frequency_penalty as number | undefined,
           audio: params.audio as Record<string, unknown> | undefined,
+          threadId: params.thread_id as string | undefined,
         })) {
           yield item;
         }
