@@ -157,6 +157,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   /**
    * Set the preview for a node.
    * The preview is stored in the previews map.
+   * When append is true, the new value is accumulated with previous values
+   * (for streaming workflows). Consecutive identical values are deduplicated
+   * to prevent duplicate items caused by stale messages or repeated emissions.
    */
   setPreview: (
     workflowId: string,
@@ -172,6 +175,16 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
           previews: { ...state.previews, [key]: preview }
         };
       } else {
+        // Consecutive deduplication: skip append if the new value is identical
+        // to the last stored value. This prevents duplicate items caused by
+        // stale messages from a previous run arriving after clearPreviews,
+        // or the same value being emitted multiple times in succession.
+        const lastItem = Array.isArray(currentPreview)
+          ? currentPreview[currentPreview.length - 1]
+          : currentPreview;
+        if (JSON.stringify(lastItem) === JSON.stringify(preview)) {
+          return state;
+        }
         let newPreview;
         if (Array.isArray(currentPreview)) {
           newPreview = [...currentPreview, preview];

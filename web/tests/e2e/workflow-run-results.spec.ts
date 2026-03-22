@@ -623,6 +623,99 @@ if (process.env.JEST_WORKER_ID) {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
       });
+
+      // -----------------------------------------------------------------------
+      // Regression test: preview node must not show duplicate items
+      // -----------------------------------------------------------------------
+      test("should not show duplicate items in preview node after running workflow multiple times", async ({
+        page,
+        request
+      }) => {
+        const workflow = await createStringPreviewWorkflow(
+          request,
+          PREVIEW_TEST_VALUE
+        );
+
+        try {
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
+
+          const canvas = page.locator(".react-flow");
+          await expect(canvas).toBeVisible();
+
+          const runButton = page.locator(".run-workflow").first();
+          if ((await runButton.count()) === 0) {
+            return;
+          }
+
+          // Wait for button to be enabled before first run
+          await page
+            .waitForFunction(
+              () => {
+                const btn =
+                  document.querySelector<HTMLButtonElement>(".run-workflow");
+                return btn !== null && !btn.disabled;
+              },
+              { timeout: 5000 }
+            )
+            .catch(() => {
+              // Timeout is acceptable – the button may already be enabled
+            });
+
+          // First run
+          await runButton.click();
+          await waitForRunComplete(page);
+
+          // Wait for preview to be populated after first run
+          await page
+            .waitForFunction(
+              (expectedText: string) => {
+                const els = document.querySelectorAll(
+                  ".preview-node-content .content"
+                );
+                return Array.from(els).some(
+                  (el) =>
+                    el.textContent && el.textContent.includes(expectedText)
+                );
+              },
+              PREVIEW_TEST_VALUE,
+              { timeout: 15000 }
+            )
+            .catch(() => {
+              // Timeout is acceptable – the test will still verify no duplicates
+              // in whatever state the preview is in after the run completes
+            });
+
+          // Second run – verify that re-running doesn't accumulate duplicate items
+          const isBtnAvailable = await runButton
+            .isVisible()
+            .catch(() => false);
+          if (isBtnAvailable) {
+            await runButton.click();
+            await waitForRunComplete(page);
+          }
+
+          // After second run, the preview should show the result exactly once,
+          // not as a list of duplicates (regression for: preview node shows duplicate items)
+          const previewContent = page.locator(".preview-node-content .content");
+          const count = await previewContent.count();
+
+          if (count > 0) {
+            // Collect all text content from preview content elements
+            const allTexts = await previewContent.allTextContents();
+            const matchingTexts = allTexts.filter(
+              (t) => t && t.includes(PREVIEW_TEST_VALUE)
+            );
+
+            // The preview value should appear exactly once (no duplicates)
+            expect(matchingTexts.length).toBe(1);
+          }
+
+          await expect(canvas).toBeVisible();
+        } finally {
+          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
+        }
+      });
     });
 
     // -----------------------------------------------------------------------

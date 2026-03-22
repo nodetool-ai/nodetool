@@ -333,6 +333,66 @@ describe("ResultsStore", () => {
       expect(stored).toHaveLength(2);
     });
 
+    it("should not append duplicate consecutive preview values to prevent duplicate items", () => {
+      // Regression test: when the same preview value is received twice in a row
+      // (e.g., due to a stale message from a previous run arriving after clearPreviews,
+      // or the backend emitting the same value multiple times), the preview should
+      // not show duplicate items.
+      const preview = "NodeToolPreviewDeduplicationTest";
+
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview, true);
+
+      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
+      // Should be the scalar value, NOT an array with duplicate entries
+      expect(Array.isArray(stored)).toBe(false);
+      expect(stored).toBe(preview);
+    });
+
+    it("should not append duplicate consecutive object preview values", () => {
+      const preview = { type: "image", data: "same-image" };
+
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview, true);
+
+      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
+      expect(Array.isArray(stored)).toBe(false);
+      expect(stored).toEqual(preview);
+    });
+
+    it("should still accumulate distinct streaming preview values", () => {
+      // Streaming workflows intentionally generate multiple different values.
+      // Those should still be accumulated as an array.
+      const preview1 = "first chunk";
+      const preview2 = "second chunk";
+      const preview3 = "third chunk";
+
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview1, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview2, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview3, true);
+
+      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
+      expect(Array.isArray(stored)).toBe(true);
+      expect(stored).toHaveLength(3);
+      expect(stored).toEqual([preview1, preview2, preview3]);
+    });
+
+    it("should allow non-consecutive identical values in streaming previews", () => {
+      // A streaming workflow can legitimately produce the same value at non-consecutive positions
+      const preview1 = "a";
+      const preview2 = "b";
+      const preview3 = "a"; // same as preview1, but not consecutive
+
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview1, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview2, true);
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview3, true);
+
+      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
+      expect(Array.isArray(stored)).toBe(true);
+      expect(stored).toHaveLength(3);
+      expect(stored).toEqual([preview1, preview2, preview3]);
+    });
+
     it("should return undefined for non-existent preview", () => {
       expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
     });
