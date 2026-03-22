@@ -12,8 +12,9 @@
  * This provider does NOT require an ANTHROPIC_API_KEY — it uses the Claude Code
  * session which authenticates through the user's Claude subscription.
  *
- * Conversation history is managed via Claude sessions (resume: sessionId)
- * rather than re-sending the full message array on each call.
+ * Tool support: when tools are provided, their schemas are injected into the
+ * system prompt and Claude is instructed to respond with a JSON tool_calls
+ * array. The provider parses this and yields ToolCall items.
  */
 
 import { BaseProvider } from "./base-provider.js";
@@ -25,6 +26,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
+  ToolCall,
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
@@ -35,7 +37,7 @@ const CLAUDE_AGENT_MODELS: LanguageModel[] = [
   { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", provider: "claude_agent" },
 ];
 
-/** Built-in Claude Code tools we disable since we only want text generation. */
+/** Built-in Claude Code tools we disable — we only want text generation. */
 const DISALLOWED_TOOLS = [
   "Bash",
   "Read",
@@ -62,6 +64,70 @@ function extractText(content: Message["content"]): string {
   return String(content ?? "");
 }
 
+/**
+ * Build a tool-calling instruction block to inject into the system prompt.
+ */
+function buildToolPrompt(tools: ProviderTool[]): string {
+  const toolDefs = tools.map((t) => ({
+    name: t.name,
+    description: t.description ?? "",
+    parameters: t.inputSchema ?? {},
+  }));
+
+  return `
+
+## Available Tools
+
+You have access to the following tools. When you need to use a tool, respond with ONLY
+a JSON object in this exact format (no markdown, no extra text before or after):
+
+{"tool_calls": [{"name": "<tool_name>", "args": {<arguments>}}]}
+
+You may call multiple tools at once by adding multiple entries to the array.
+If you don't need to use any tools, respond with normal text.
+
+Tools:
+${JSON.stringify(toolDefs, null, 2)}
+`;
+}
+
+/**
+ * Try to parse tool calls from the assistant's response text.
+ * Returns parsed tool calls and any remaining text, or null if no tool calls found.
+ */
+function parseToolCalls(
+  text: string,
+): { toolCalls: Array<{ name: string; args: Record<string, unknown> }>; remainingText: string } | null {
+  // Look for JSON with tool_calls key anywhere in the text
+  const trimmed = text.trim();
+
+  // Try direct JSON parse first (the ideal case — response is only JSON)
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
+      return { toolCalls: parsed.tool_calls, remainingText: "" };
+    }
+  } catch {
+    // not pure JSON
+  }
+
+  // Try to find JSON block in the text
+  const jsonMatch = trimmed.match(/\{[\s\S]*"tool_calls"\s*:\s*\[[\s\S]*\][\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
+        const remaining = trimmed.replace(jsonMatch[0], "").trim();
+        return { toolCalls: parsed.tool_calls, remainingText: remaining };
+      }
+    } catch {
+      // malformed JSON
+    }
+  }
+
+  return null;
+}
+
 export class ClaudeAgentProvider extends BaseProvider {
   static requiredSecrets(): string[] {
     return [];
@@ -78,7 +144,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   async hasToolSupport(_model: string): Promise<boolean> {
-    return false;
+    return true;
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
@@ -87,9 +153,12 @@ export class ClaudeAgentProvider extends BaseProvider {
 
   /**
    * Extract the system prompt and the last user message from the messages array.
-   * With session-based history, only the latest user message is sent as the prompt.
+   * When tools are provided, append tool-calling instructions to the system prompt.
    */
-  private extractPrompt(messages: Message[]): {
+  private extractPrompt(
+    messages: Message[],
+    tools?: ProviderTool[],
+  ): {
     systemPrompt: string;
     prompt: string;
   } {
@@ -100,6 +169,10 @@ export class ClaudeAgentProvider extends BaseProvider {
       if (msg.role === "system") {
         systemPrompt = extractText(msg.content);
       }
+    }
+
+    if (tools && tools.length > 0) {
+      systemPrompt += buildToolPrompt(tools);
     }
 
     // Walk backwards to find the last user message — that's our prompt.
@@ -167,7 +240,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     threadId?: string | null;
   }): AsyncGenerator<ProviderStreamItem> {
     const queryFn = await this.getQueryFn();
-    const { systemPrompt, prompt } = this.extractPrompt(args.messages);
+    const hasTools = (args.tools?.length ?? 0) > 0;
+    const { systemPrompt, prompt } = this.extractPrompt(args.messages, args.tools);
     const threadId = args.threadId ?? null;
 
     const resumeSessionId = this.getSessionId(threadId);
@@ -177,6 +251,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       promptLength: prompt.length,
       threadId,
       resuming: !!resumeSessionId,
+      tools: hasTools ? args.tools!.map((t) => t.name) : [],
     });
 
     // Unset CLAUDECODE to allow running inside a Claude Code session (e.g. when
@@ -200,9 +275,11 @@ export class ClaudeAgentProvider extends BaseProvider {
       },
     });
 
-    // Track streamed text length to compute deltas from cumulative stream events.
+    // When tools are present we buffer the full response to parse tool calls.
+    // When no tools, we stream text as before.
     let streamedTextLength = 0;
     let assistantHandled = false;
+    let fullResponseText = "";
 
     for await (const msg of queryHandle) {
       const msgObj = msg as Record<string, unknown>;
@@ -228,38 +305,44 @@ export class ClaudeAgentProvider extends BaseProvider {
         const partial = msgObj.message as Record<string, unknown> | undefined;
         const content = partial?.content;
         if (Array.isArray(content)) {
-          const fullText = content
+          const text = content
             .filter(
               (b: any) => b?.type === "text" && typeof b.text === "string"
             )
             .map((b: any) => b.text as string)
             .join("");
-          // Stream events are cumulative — emit only the new delta.
-          if (fullText.length > streamedTextLength) {
-            const delta = fullText.slice(streamedTextLength);
-            streamedTextLength = fullText.length;
-            yield { type: "chunk", content: delta, done: false } as Chunk;
+          if (text.length > streamedTextLength) {
+            const delta = text.slice(streamedTextLength);
+            streamedTextLength = text.length;
+            // Only stream if no tools — with tools we need to buffer for parsing
+            if (!hasTools) {
+              yield { type: "chunk", content: delta, done: false } as Chunk;
+            }
+            fullResponseText = text;
           }
         }
         continue;
       }
 
-      // Full assistant message — only emit text not already streamed.
+      // Full assistant message — capture final text.
       if (msgType === "assistant") {
         const message = msgObj.message as Record<string, unknown> | undefined;
         const content = message?.content;
         if (Array.isArray(content)) {
-          const fullText = content
+          const text = content
             .filter(
               (b: any) => b?.type === "text" && typeof b.text === "string"
             )
             .map((b: any) => b.text as string)
             .join("");
-          if (fullText.length > streamedTextLength) {
-            const delta = fullText.slice(streamedTextLength);
-            streamedTextLength = fullText.length;
-            yield { type: "chunk", content: delta, done: false } as Chunk;
+          if (text.length > streamedTextLength) {
+            const delta = text.slice(streamedTextLength);
+            streamedTextLength = text.length;
+            if (!hasTools) {
+              yield { type: "chunk", content: delta, done: false } as Chunk;
+            }
           }
+          fullResponseText = text;
         }
         assistantHandled = true;
         continue;
@@ -269,9 +352,40 @@ export class ClaudeAgentProvider extends BaseProvider {
       if (msgType === "result" && !assistantHandled) {
         const result = msgObj.result;
         if (typeof result === "string" && result.length > 0) {
-          yield { type: "chunk", content: result, done: false } as Chunk;
+          if (!hasTools) {
+            yield { type: "chunk", content: result, done: false } as Chunk;
+          }
+          fullResponseText = result;
         }
       }
+    }
+
+    // If tools were provided, check if the response contains tool calls.
+    if (hasTools && fullResponseText) {
+      const parsed = parseToolCalls(fullResponseText);
+      if (parsed) {
+        // Emit any remaining text before tool calls
+        if (parsed.remainingText) {
+          yield { type: "chunk", content: parsed.remainingText, done: false } as Chunk;
+        }
+        // Yield each tool call
+        let callIndex = 0;
+        for (const tc of parsed.toolCalls) {
+          const args = (tc.args && typeof tc.args === "object" && !Array.isArray(tc.args))
+            ? tc.args as Record<string, unknown>
+            : {};
+          const toolCall: ToolCall = {
+            id: `call_${Date.now()}_${callIndex++}`,
+            name: tc.name,
+            args,
+          };
+          log.debug("Tool call parsed", { name: tc.name, args });
+          yield toolCall;
+        }
+        return; // Don't emit done chunk — tool calls signal continuation
+      }
+      // No tool calls found — emit the buffered text as chunks
+      yield { type: "chunk", content: fullResponseText, done: false } as Chunk;
     }
 
     // Final done signal.
@@ -293,13 +407,21 @@ export class ClaudeAgentProvider extends BaseProvider {
     threadId?: string | null;
   }): Promise<Message> {
     const parts: string[] = [];
+    const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
       if ("type" in item && (item as Chunk).type === "chunk") {
         const chunk = item as Chunk;
         if (chunk.content) parts.push(chunk.content);
       }
+      if ("id" in item && "name" in item && "args" in item) {
+        toolCalls.push(item as ToolCall);
+      }
     }
-    return { role: "assistant", content: parts.join("") };
+    return {
+      role: "assistant",
+      content: parts.join(""),
+      ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    };
   }
 
   isContextLengthError(error: unknown): boolean {
