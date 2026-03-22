@@ -189,6 +189,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
     const isDrawingRef = useRef(false);
     const lastPointRef = useRef<Point | null>(null);
+    const lastSmoothedPointRef = useRef<Point | null>(null);
     const isPanningRef = useRef(false);
     const isSpacePanningRef = useRef(false);
     const panStartRef = useRef<Point>({ x: 0, y: 0 });
@@ -220,6 +221,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Alpha lock: snapshot of layer alpha before stroke starts
     const alphaSnapshotRef = useRef<ImageData | null>(null);
+    const strokeDirtyRectRef = useRef<{
+      minX: number;
+      minY: number;
+      maxX: number;
+      maxY: number;
+    } | null>(null);
 
     // Shift+click straight line: persists the end point of the last stroke
     const lastStrokeEndRef = useRef<Point | null>(null);
@@ -237,10 +244,44 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const blurTmpCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const blurBlurredCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const blurMaskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const blurSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const brushStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
+    const eraserStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
     useEffect(() => {
       panOffsetRef.current = pan;
     }, [pan]);
+
+    // Size the cursor overlay canvas only when the container size changes.
+    useEffect(() => {
+      const container = containerRef.current;
+      const cursorCanvas = cursorCanvasRef.current;
+      if (!container || !cursorCanvas) {
+        return;
+      }
+
+      const updateCursorCanvasSize = () => {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        if (cursorCanvas.width !== width) {
+          cursorCanvas.width = width;
+        }
+        if (cursorCanvas.height !== height) {
+          cursorCanvas.height = height;
+        }
+      };
+
+      updateCursorCanvasSize();
+
+      const resizeObserver = new ResizeObserver(() => {
+        updateCursorCanvasSize();
+      });
+      resizeObserver.observe(container);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }, []);
 
     // Track Shift, Space, and S key state for constraints, panning, size adjust
     useEffect(() => {
@@ -415,100 +456,197 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         pressure?: number
       ) => {
         const brushType = settings.brushType || "round";
-
-        // Apply pressure sensitivity
         let effectiveSize = settings.size;
         let effectiveOpacity = settings.opacity;
         if (settings.pressureSensitivity && pressure !== undefined && pressure > 0) {
           const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
-          if (settings.pressureAffects === "size" || settings.pressureAffects === "both") {
+          if (
+            settings.pressureAffects === "size" ||
+            settings.pressureAffects === "both"
+          ) {
             effectiveSize = settings.size * pressureFactor;
           }
-          if (settings.pressureAffects === "opacity" || settings.pressureAffects === "both") {
+          if (
+            settings.pressureAffects === "opacity" ||
+            settings.pressureAffects === "both"
+          ) {
             effectiveOpacity = settings.opacity * pressureFactor;
           }
         }
 
-        // Apply roundness and angle transform
-        const needsTransform = settings.roundness < 1.0;
-        if (needsTransform) {
-          ctx.save();
-          const midX = (from.x + to.x) / 2;
-          const midY = (from.y + to.y) / 2;
-          const angleRad = (settings.angle * Math.PI) / 180;
-          ctx.translate(midX, midY);
-          ctx.rotate(angleRad);
-          ctx.scale(1, settings.roundness);
-          ctx.rotate(-angleRad);
-          ctx.translate(-midX, -midY);
-        }
-
-        if (brushType === "spray") {
-          // Spray: scatter random dots within brush radius
-          ctx.save();
-          ctx.globalAlpha = effectiveOpacity;
-          ctx.fillStyle = settings.color;
-          const density = Math.max(5, Math.round(effectiveSize * 0.8));
-          const r = effectiveSize / 2;
-          for (let i = 0; i < density; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * r;
-            const px = to.x + Math.cos(angle) * dist;
-            const py = to.y + Math.sin(angle) * dist;
-            const dotSize = Math.max(1, Math.random() * 2);
-            ctx.beginPath();
-            ctx.arc(px, py, dotSize, 0, Math.PI * 2);
-            ctx.fill();
+        const markDirtyRect = (x: number, y: number, radius: number) => {
+          const pad = Math.max(2, radius + 2);
+          const next = {
+            minX: Math.floor(x - pad),
+            minY: Math.floor(y - pad),
+            maxX: Math.ceil(x + pad),
+            maxY: Math.ceil(y + pad)
+          };
+          const current = strokeDirtyRectRef.current;
+          if (!current) {
+            strokeDirtyRectRef.current = next;
+            return;
           }
-          ctx.restore();
-          if (needsTransform) {
+          current.minX = Math.min(current.minX, next.minX);
+          current.minY = Math.min(current.minY, next.minY);
+          current.maxX = Math.max(current.maxX, next.maxX);
+          current.maxY = Math.max(current.maxY, next.maxY);
+        };
+
+        const createBrushStamp = (
+          size: number,
+          hardness: number,
+          roundness: number,
+          angle: number,
+          color: string
+        ) => {
+          const feather = Math.max(4, Math.ceil(size * 0.5));
+          const diameter = Math.max(2, Math.ceil(size + feather * 2));
+          const stamp = window.document.createElement("canvas");
+          stamp.width = diameter;
+          stamp.height = diameter;
+          const stampCtx = stamp.getContext("2d");
+          if (!stampCtx) {
+            return stamp;
+          }
+          const center = diameter / 2;
+          const radius = size / 2;
+          const innerStop = Math.max(
+            0,
+            Math.min(1, hardness * 0.85 + 0.1)
+          );
+          const parsed = parseColorToRgba(color);
+
+          stampCtx.save();
+          stampCtx.translate(center, center);
+          stampCtx.rotate((angle * Math.PI) / 180);
+          stampCtx.scale(1, roundness);
+
+          if (hardness >= 0.999) {
+            stampCtx.fillStyle = color;
+            stampCtx.beginPath();
+            stampCtx.arc(0, 0, radius, 0, Math.PI * 2);
+            stampCtx.fill();
+          } else {
+            const gradient = stampCtx.createRadialGradient(
+              0,
+              0,
+              0,
+              0,
+              0,
+              radius
+            );
+            gradient.addColorStop(
+              0,
+              `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
+            );
+            gradient.addColorStop(
+              innerStop,
+              `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
+            );
+            gradient.addColorStop(
+              1,
+              `rgba(${parsed.r},${parsed.g},${parsed.b},0)`
+            );
+            stampCtx.fillStyle = gradient;
+            stampCtx.beginPath();
+            stampCtx.arc(0, 0, radius, 0, Math.PI * 2);
+            stampCtx.fill();
+          }
+          stampCtx.restore();
+          return stamp;
+        };
+
+        const getBrushStamp = (
+          size: number,
+          hardness: number,
+          roundness: number,
+          angle: number,
+          color: string
+        ) => {
+          const cacheKey = [
+            brushType,
+            size.toFixed(2),
+            hardness.toFixed(3),
+            roundness.toFixed(3),
+            angle.toFixed(2),
+            color
+          ].join("|");
+          const cached = brushStampCacheRef.current.get(cacheKey);
+          if (cached) {
+            return cached;
+          }
+          const created = createBrushStamp(
+            size,
+            hardness,
+            roundness,
+            angle,
+            color
+          );
+          brushStampCacheRef.current.set(cacheKey, created);
+          return created;
+        };
+
+        const stampBrushDab = (x: number, y: number) => {
+          if (brushType === "spray") {
+            const density = Math.max(6, Math.round(effectiveSize * 0.8));
+            const radius = effectiveSize / 2;
+            ctx.save();
+            ctx.globalAlpha = effectiveOpacity;
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = settings.color;
+            for (let i = 0; i < density; i++) {
+              const theta = Math.random() * Math.PI * 2;
+              const dist = Math.sqrt(Math.random()) * radius;
+              const dotSize = Math.max(1, effectiveSize * 0.06 * Math.random());
+              const px = x + Math.cos(theta) * dist;
+              const py = y + Math.sin(theta) * dist;
+              ctx.beginPath();
+              ctx.arc(px, py, dotSize, 0, Math.PI * 2);
+              ctx.fill();
+            }
             ctx.restore();
+            markDirtyRect(x, y, radius);
+            return;
           }
-          return;
-        }
 
-        if (brushType === "airbrush") {
-          // Airbrush: low-opacity radial dab that accumulates over time
+          const stampHardness =
+            brushType === "soft"
+              ? Math.min(settings.hardness, 0.35)
+              : brushType === "airbrush"
+                ? Math.min(settings.hardness, 0.18)
+                : settings.hardness;
+          const stamp = getBrushStamp(
+            effectiveSize,
+            stampHardness,
+            settings.roundness,
+            settings.angle,
+            settings.color
+          );
+          const stampOpacity =
+            brushType === "airbrush" ? effectiveOpacity * 0.18 : effectiveOpacity;
           ctx.save();
-          const dabOpacity = effectiveOpacity * 0.15;
-          ctx.globalAlpha = dabOpacity;
-          const r = effectiveSize / 2;
-          const grad = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, r);
-          grad.addColorStop(0, settings.color);
-          grad.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(to.x, to.y, r, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.globalAlpha = stampOpacity;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
           ctx.restore();
-          if (needsTransform) {
-            ctx.restore();
-          }
-          return;
-        }
+          markDirtyRect(x, y, effectiveSize / 2);
+        };
 
-        // Round / Soft brush — standard stroke approach
-        ctx.save();
-        ctx.globalAlpha = effectiveOpacity;
-        ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = settings.color;
-        ctx.lineWidth = effectiveSize;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        const effectiveHardness =
-          brushType === "soft"
-            ? Math.min(settings.hardness, 0.3)
-            : settings.hardness;
-        if (effectiveHardness < 1) {
-          ctx.filter = `blur(${(1 - effectiveHardness) * effectiveSize * 0.3}px)`;
-        }
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
-        ctx.restore();
-        if (needsTransform) {
-          ctx.restore();
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        const spacing =
+          brushType === "spray"
+            ? Math.max(1, effectiveSize * 0.22)
+            : brushType === "airbrush"
+              ? Math.max(0.5, effectiveSize * 0.08)
+              : Math.max(0.5, effectiveSize * 0.12);
+        const steps = Math.max(1, Math.ceil(distance / spacing));
+
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          stampBrushDab(from.x + dx * t, from.y + dy * t);
         }
       },
       []
@@ -530,17 +668,93 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           effectiveOpacity = settings.opacity * pressureFactor;
         }
 
+        const markDirtyRect = (x: number, y: number, radius: number) => {
+          const pad = Math.max(2, radius + 2);
+          const next = {
+            minX: Math.floor(x - pad),
+            minY: Math.floor(y - pad),
+            maxX: Math.ceil(x + pad),
+            maxY: Math.ceil(y + pad)
+          };
+          const current = strokeDirtyRectRef.current;
+          if (!current) {
+            strokeDirtyRectRef.current = next;
+            return;
+          }
+          current.minX = Math.min(current.minX, next.minX);
+          current.minY = Math.min(current.minY, next.minY);
+          current.maxX = Math.max(current.maxX, next.maxX);
+          current.maxY = Math.max(current.maxY, next.maxY);
+        };
+
+        const createEraserStamp = (
+          size: number,
+          hardness: number
+        ): HTMLCanvasElement => {
+          const feather = Math.max(4, Math.ceil(size * 0.5));
+          const diameter = Math.max(2, Math.ceil(size + feather * 2));
+          const stamp = window.document.createElement("canvas");
+          stamp.width = diameter;
+          stamp.height = diameter;
+          const stampCtx = stamp.getContext("2d");
+          if (!stampCtx) {
+            return stamp;
+          }
+          const center = diameter / 2;
+          const radius = size / 2;
+          const innerStop = Math.max(
+            0,
+            Math.min(1, hardness * 0.85 + 0.1)
+          );
+          const gradient = stampCtx.createRadialGradient(
+            center,
+            center,
+            0,
+            center,
+            center,
+            radius
+          );
+          gradient.addColorStop(0, "rgba(0,0,0,1)");
+          gradient.addColorStop(innerStop, "rgba(0,0,0,1)");
+          gradient.addColorStop(1, "rgba(0,0,0,0)");
+          stampCtx.fillStyle = gradient;
+          stampCtx.beginPath();
+          stampCtx.arc(center, center, radius, 0, Math.PI * 2);
+          stampCtx.fill();
+          return stamp;
+        };
+
+        const getEraserStamp = (size: number, hardness: number) => {
+          const cacheKey = `${size.toFixed(2)}|${hardness.toFixed(3)}`;
+          const cached = eraserStampCacheRef.current.get(cacheKey);
+          if (cached) {
+            return cached;
+          }
+          const created = createEraserStamp(size, hardness);
+          eraserStampCacheRef.current.set(cacheKey, created);
+          return created;
+        };
+
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        const spacing = Math.max(0.5, effectiveSize * 0.12);
+        const steps = Math.max(1, Math.ceil(distance / spacing));
+        const stamp = getEraserStamp(
+          effectiveSize,
+          Math.max(0.05, Math.min(1, settings.hardness))
+        );
+
         ctx.save();
         ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "destination-out";
-        ctx.strokeStyle = "rgba(0,0,0,1)";
-        ctx.lineWidth = effectiveSize;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          const x = from.x + dx * t;
+          const y = from.y + dy * t;
+          ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
+          markDirtyRect(x, y, effectiveSize / 2);
+        }
         ctx.restore();
       },
       []
@@ -562,53 +776,91 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           effectiveOpacity = settings.opacity * pressureFactor;
         }
 
+        const markDirtyRect = (
+          start: Point,
+          end: Point,
+          radius: number
+        ) => {
+          const pad = Math.max(2, radius + 2);
+          const next = {
+            minX: Math.floor(Math.min(start.x, end.x) - pad),
+            minY: Math.floor(Math.min(start.y, end.y) - pad),
+            maxX: Math.ceil(Math.max(start.x, end.x) + pad),
+            maxY: Math.ceil(Math.max(start.y, end.y) + pad)
+          };
+          const current = strokeDirtyRectRef.current;
+          if (!current) {
+            strokeDirtyRectRef.current = next;
+            return;
+          }
+          current.minX = Math.min(current.minX, next.minX);
+          current.minY = Math.min(current.minY, next.minY);
+          current.maxX = Math.max(current.maxX, next.maxX);
+          current.maxY = Math.max(current.maxY, next.maxY);
+        };
+
+        // Keep the smallest pencil size as a true anti-aliased 1px line.
+        if (effectiveSize <= 1.5) {
+          ctx.save();
+          ctx.globalAlpha = effectiveOpacity;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = settings.color;
+          ctx.lineWidth = 1;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.imageSmoothingEnabled = true;
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+          ctx.restore();
+          markDirtyRect(from, to, 1);
+          return;
+        }
+
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        const spacing = Math.max(0.35, effectiveSize * 0.3);
+        const steps = Math.max(1, Math.ceil(distance / spacing));
+        const radius = Math.max(0.75, effectiveSize / 2);
+
         ctx.save();
         ctx.globalAlpha = effectiveOpacity;
         ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = settings.color;
-        ctx.lineWidth = effectiveSize;
-        ctx.lineCap = "square";
-        ctx.lineJoin = "miter";
-        ctx.imageSmoothingEnabled = false;
-        ctx.beginPath();
-        ctx.moveTo(Math.round(from.x), Math.round(from.y));
-        ctx.lineTo(Math.round(to.x), Math.round(to.y));
-        ctx.stroke();
+        ctx.fillStyle = settings.color;
+        ctx.imageSmoothingEnabled = true;
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          const x = from.x + dx * t;
+          const y = from.y + dy * t;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
+        markDirtyRect(from, to, radius);
       },
       []
     );
 
     const drawBlurStroke = useCallback(
       (
-        point: Point,
+        from: Point,
+        to: Point,
         settings: BlurSettings,
         layerCanvas: HTMLCanvasElement
       ) => {
-        const ctx = layerCanvas.getContext("2d");
-        if (!ctx) {
-          return;
-        }
-        const r = Math.round(settings.size / 2);
-        // Pad the sample region by 2× the blur strength so the CSS blur
-        // filter doesn't clip at the edges (the filter kernel extends beyond
-        // the drawn region by roughly 2× its radius).
-        const pad = Math.ceil(settings.strength * 2);
-        const x = Math.round(point.x) - r - pad;
-        const y = Math.round(point.y) - r - pad;
-        const w = (r + pad) * 2;
-        const h = (r + pad) * 2;
-        // Clamp to canvas bounds
-        const sx = Math.max(0, x);
-        const sy = Math.max(0, y);
-        const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
-        const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
-        if (sw <= 0 || sh <= 0) {
+        const targetCtx = layerCanvas.getContext("2d");
+        if (!targetCtx) {
           return;
         }
 
-        // Read original pixels
-        const imgData = ctx.getImageData(sx, sy, sw, sh);
+        const sourceCanvas = blurSourceCanvasRef.current ?? layerCanvas;
+        const sourceCtx = sourceCanvas.getContext("2d");
+        if (!sourceCtx) {
+          return;
+        }
 
         // Reuse cached temp canvases instead of allocating new ones per call
         if (!blurTmpCanvasRef.current) {
@@ -624,80 +876,115 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const blurred = blurBlurredCanvasRef.current;
         const maskCanvas = blurMaskCanvasRef.current;
 
-        // Resize only when needed
-        if (tmp.width !== sw || tmp.height !== sh) {
-          tmp.width = sw;
-          tmp.height = sh;
+        const markDirtyRect = (x: number, y: number, radius: number) => {
+          const pad = Math.max(2, radius + settings.strength + 2);
+          const next = {
+            minX: Math.floor(x - pad),
+            minY: Math.floor(y - pad),
+            maxX: Math.ceil(x + pad),
+            maxY: Math.ceil(y + pad)
+          };
+          const current = strokeDirtyRectRef.current;
+          if (!current) {
+            strokeDirtyRectRef.current = next;
+            return;
+          }
+          current.minX = Math.min(current.minX, next.minX);
+          current.minY = Math.min(current.minY, next.minY);
+          current.maxX = Math.max(current.maxX, next.maxX);
+          current.maxY = Math.max(current.maxY, next.maxY);
+        };
+
+        const blurPoint = (point: Point) => {
+          const r = Math.round(settings.size / 2);
+          const pad = Math.ceil(settings.strength * 2);
+          const x = Math.round(point.x) - r - pad;
+          const y = Math.round(point.y) - r - pad;
+          const w = (r + pad) * 2;
+          const h = (r + pad) * 2;
+          const sx = Math.max(0, x);
+          const sy = Math.max(0, y);
+          const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
+          const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
+          if (sw <= 0 || sh <= 0) {
+            return;
+          }
+
+          const imgData = sourceCtx.getImageData(sx, sy, sw, sh);
+
+          if (tmp.width !== sw || tmp.height !== sh) {
+            tmp.width = sw;
+            tmp.height = sh;
+          }
+          if (blurred.width !== sw || blurred.height !== sh) {
+            blurred.width = sw;
+            blurred.height = sh;
+          }
+          if (maskCanvas.width !== sw || maskCanvas.height !== sh) {
+            maskCanvas.width = sw;
+            maskCanvas.height = sh;
+          }
+
+          const tmpCtx = tmp.getContext("2d");
+          const blurCtx = blurred.getContext("2d");
+          const maskCtx = maskCanvas.getContext("2d");
+          if (!tmpCtx || !blurCtx || !maskCtx) {
+            return;
+          }
+
+          tmpCtx.clearRect(0, 0, sw, sh);
+          tmpCtx.putImageData(imgData, 0, 0);
+
+          blurCtx.clearRect(0, 0, sw, sh);
+          blurCtx.filter = `blur(${settings.strength}px)`;
+          blurCtx.drawImage(tmp, 0, 0);
+          blurCtx.filter = "none";
+
+          const cx = Math.round(point.x) - sx;
+          const cy = Math.round(point.y) - sy;
+
+          maskCtx.clearRect(0, 0, sw, sh);
+          maskCtx.putImageData(imgData, 0, 0);
+          maskCtx.save();
+          maskCtx.beginPath();
+          maskCtx.arc(cx, cy, r, 0, Math.PI * 2);
+          maskCtx.clip();
+
+          const grad = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+          grad.addColorStop(0, "rgba(255,255,255,1)");
+          grad.addColorStop(0.7, "rgba(255,255,255,0.8)");
+          grad.addColorStop(1, "rgba(255,255,255,0)");
+
+          maskCtx.globalCompositeOperation = "source-over";
+          maskCtx.clearRect(cx - r, cy - r, r * 2, r * 2);
+          maskCtx.drawImage(blurred, 0, 0);
+          maskCtx.globalCompositeOperation = "destination-in";
+          maskCtx.fillStyle = grad;
+          maskCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+          maskCtx.restore();
+
+          targetCtx.save();
+          targetCtx.clearRect(sx, sy, sw, sh);
+          targetCtx.putImageData(imgData, sx, sy);
+          targetCtx.globalCompositeOperation = "source-over";
+          targetCtx.drawImage(maskCanvas, sx, sy);
+          targetCtx.restore();
+          markDirtyRect(point.x, point.y, r);
+        };
+
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        const spacing = Math.max(1.5, settings.size * 0.2);
+        const steps = Math.max(1, Math.ceil(distance / spacing));
+
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          blurPoint({
+            x: from.x + dx * t,
+            y: from.y + dy * t
+          });
         }
-        if (blurred.width !== sw || blurred.height !== sh) {
-          blurred.width = sw;
-          blurred.height = sh;
-        }
-        if (maskCanvas.width !== sw || maskCanvas.height !== sh) {
-          maskCanvas.width = sw;
-          maskCanvas.height = sh;
-        }
-
-        const tmpCtx = tmp.getContext("2d");
-        if (!tmpCtx) {
-          return;
-        }
-        tmpCtx.clearRect(0, 0, sw, sh);
-        tmpCtx.putImageData(imgData, 0, 0);
-
-        // Create blurred version on the second temp canvas
-        const blurCtx = blurred.getContext("2d");
-        if (!blurCtx) {
-          return;
-        }
-        blurCtx.clearRect(0, 0, sw, sh);
-        blurCtx.filter = `blur(${settings.strength}px)`;
-        blurCtx.drawImage(tmp, 0, 0);
-
-        // Blend blurred result into original using a circular gradient mask.
-        // This avoids the hard edges from clearRect.
-        const cx = Math.round(point.x) - sx;
-        const cy = Math.round(point.y) - sy;
-        const maskCtx = maskCanvas.getContext("2d");
-        if (!maskCtx) {
-          return;
-        }
-
-        // Draw original pixels first
-        maskCtx.clearRect(0, 0, sw, sh);
-        maskCtx.putImageData(imgData, 0, 0);
-
-        // Draw blurred pixels with a circular clip and radial gradient alpha
-        maskCtx.save();
-        maskCtx.beginPath();
-        maskCtx.arc(cx, cy, r, 0, Math.PI * 2);
-        maskCtx.clip();
-
-        // Use a radial gradient to soft-blend the edges
-        const grad = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        grad.addColorStop(0, "rgba(255,255,255,1)");
-        grad.addColorStop(0.7, "rgba(255,255,255,0.8)");
-        grad.addColorStop(1, "rgba(255,255,255,0)");
-
-        // Clear and draw blurred
-        maskCtx.globalCompositeOperation = "source-over";
-        maskCtx.clearRect(cx - r, cy - r, r * 2, r * 2);
-        maskCtx.drawImage(blurred, 0, 0);
-
-        // Apply radial gradient fade using destination-in
-        maskCtx.globalCompositeOperation = "destination-in";
-        maskCtx.fillStyle = grad;
-        maskCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
-        maskCtx.restore();
-
-        // Now composite: put original back, then overlay masked blur
-        ctx.save();
-        ctx.clearRect(sx, sy, sw, sh);
-        ctx.putImageData(imgData, sx, sy);
-        // Draw the soft-blurred circle on top
-        ctx.globalCompositeOperation = "source-over";
-        ctx.drawImage(maskCanvas, sx, sy);
-        ctx.restore();
       },
       []
     );
@@ -1339,11 +1626,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         isDrawingRef.current = true;
         const pt = screenToCanvas(e.clientX, e.clientY);
         lastPointRef.current = pt;
+        lastSmoothedPointRef.current = pt;
         currentPressureRef.current = e.pressure || 0.5;
         onStrokeStart();
 
         // Reset stroke stabilizer buffer for a fresh stroke
         stabilizerBufferRef.current = [];
+        strokeDirtyRectRef.current = null;
 
         // Alpha lock: snapshot original alpha channel before drawing
         if (activeLayer.alphaLock) {
@@ -1359,6 +1648,22 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           }
         } else {
           alphaSnapshotRef.current = null;
+        }
+
+        if (activeTool === "blur") {
+          const layerCanvasForBlur = getOrCreateLayerCanvas(activeLayer.id);
+          const blurSnapshot = window.document.createElement("canvas");
+          blurSnapshot.width = layerCanvasForBlur.width;
+          blurSnapshot.height = layerCanvasForBlur.height;
+          const blurSnapshotCtx = blurSnapshot.getContext("2d");
+          if (blurSnapshotCtx) {
+            blurSnapshotCtx.drawImage(layerCanvasForBlur, 0, 0);
+            blurSourceCanvasRef.current = blurSnapshot;
+          } else {
+            blurSourceCanvasRef.current = null;
+          }
+        } else {
+          blurSourceCanvasRef.current = null;
         }
 
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
@@ -1403,7 +1708,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                   current
                 );
               } else if (activeTool === "blur") {
-                drawBlurStroke(current, doc.toolSettings.blur, layerCanvas);
+                drawBlurStroke(
+                  prev,
+                  current,
+                  doc.toolSettings.blur,
+                  layerCanvas
+                );
               }
               prev = current;
             }
@@ -1432,7 +1742,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
                 pt
               );
             } else if (activeTool === "blur") {
-              drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
+              drawBlurStroke(pt, pt, doc.toolSettings.blur, layerCanvas);
             }
           }
           redraw();
@@ -1492,14 +1802,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        currentPressureRef.current = e.pressure || 0.5;
-
         if (
           activeTool === "move" &&
           moveStartRef.current &&
           moveLayerSnapshotRef.current
         ) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
           const dx = pt.x - moveStartRef.current.x;
           const dy = pt.y - moveStartRef.current.y;
           const activeLayer = doc.layers.find(
@@ -1518,22 +1826,26 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         if (isShapeTool(activeTool) && shapeStartRef.current) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
           drawOverlayShape(shapeStartRef.current, pt);
           return;
         }
 
         if (activeTool === "gradient" && gradientStartRef.current) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
           gradientEndRef.current = pt;
           drawOverlayGradient(gradientStartRef.current, pt);
           return;
         }
 
         if (activeTool === "crop" && cropStartRef.current) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
           drawOverlayCrop(cropStartRef.current, pt);
           return;
         }
 
         if (activeTool === "select" && selectStartRef.current) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
           drawOverlaySelection(selectStartRef.current, pt);
           return;
         }
@@ -1552,34 +1864,58 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           return;
         }
 
-        if (activeTool === "brush") {
-          const smoothPt = stabilizePoint(pt);
-          const smoothLast = lastPointRef.current;
-          withMirror(
-            ctx,
-            (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current),
-            smoothLast,
-            smoothPt
-          );
-        } else if (activeTool === "pencil") {
-          withMirror(
-            ctx,
-            (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current),
-            lastPointRef.current,
-            pt
-          );
-        } else if (activeTool === "eraser") {
-          withMirror(
-            ctx,
-            (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current),
-            lastPointRef.current,
-            pt
-          );
-        } else if (activeTool === "blur") {
-          drawBlurStroke(pt, doc.toolSettings.blur, layerCanvas);
-        }
+        const nativePointerEvent = e.nativeEvent as PointerEvent;
+        const coalescedEvents =
+          typeof nativePointerEvent.getCoalescedEvents === "function"
+            ? nativePointerEvent.getCoalescedEvents()
+            : [nativePointerEvent];
 
-        lastPointRef.current = pt;
+        for (const eventPoint of coalescedEvents) {
+          const pt = screenToCanvas(eventPoint.clientX, eventPoint.clientY);
+          const pressure = eventPoint.pressure || currentPressureRef.current || 0.5;
+          currentPressureRef.current = pressure;
+
+          if (activeTool === "brush") {
+            const smoothPt = stabilizePoint(pt);
+            const from = lastSmoothedPointRef.current ?? lastPointRef.current ?? smoothPt;
+            withMirror(
+              ctx,
+              (f, t, c) =>
+                drawBrushStroke(f, t, doc.toolSettings.brush, c, pressure),
+              from,
+              smoothPt
+            );
+            lastSmoothedPointRef.current = smoothPt;
+          } else if (activeTool === "pencil") {
+            withMirror(
+              ctx,
+              (f, t, c) =>
+                drawPencilStroke(f, t, doc.toolSettings.pencil, c, pressure),
+              lastPointRef.current,
+              pt
+            );
+          } else if (activeTool === "eraser") {
+            const smoothPt = stabilizePoint(pt);
+            const from = lastSmoothedPointRef.current ?? lastPointRef.current ?? smoothPt;
+            withMirror(
+              ctx,
+              (f, t, c) =>
+                drawEraserStroke(f, t, doc.toolSettings.eraser, c, pressure),
+              from,
+              smoothPt
+            );
+            lastSmoothedPointRef.current = smoothPt;
+          } else if (activeTool === "blur") {
+            drawBlurStroke(
+              lastPointRef.current,
+              pt,
+              doc.toolSettings.blur,
+              layerCanvas
+            );
+          }
+
+          lastPointRef.current = pt;
+        }
         requestRedraw();
       },
       [
@@ -1625,6 +1961,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (activeTool === "move") {
           moveStartRef.current = null;
           moveLayerSnapshotRef.current = null;
+        }
+        if (activeTool === "blur") {
+          blurSourceCanvasRef.current = null;
         }
 
         if (isShapeTool(activeTool) && shapeStartRef.current && activeLayer) {
@@ -1709,35 +2048,46 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
 
         lastPointRef.current = null;
+        lastSmoothedPointRef.current = null;
 
         // Alpha lock: restore original alpha channel after drawing.
-        // Note: iterates all pixels; for very large canvases a dirty-rect
-        // optimization could limit this to the stroke bounding box.
         if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
           if (layerCanvas) {
             const ctx = layerCanvas.getContext("2d");
             if (ctx) {
-              const currentData = ctx.getImageData(
-                0,
-                0,
-                layerCanvas.width,
-                layerCanvas.height
-              );
-              const snapshot = alphaSnapshotRef.current;
-              // Replace alpha channel of drawn pixels with original alpha
-              for (let i = 3; i < currentData.data.length; i += 4) {
-                currentData.data[i] = Math.min(
-                  currentData.data[i],
-                  snapshot.data[i]
-                );
+              const dirtyRect = strokeDirtyRectRef.current ?? {
+                minX: 0,
+                minY: 0,
+                maxX: layerCanvas.width,
+                maxY: layerCanvas.height
+              };
+              const x = Math.max(0, dirtyRect.minX);
+              const y = Math.max(0, dirtyRect.minY);
+              const width = Math.min(layerCanvas.width - x, dirtyRect.maxX - x);
+              const height = Math.min(layerCanvas.height - y, dirtyRect.maxY - y);
+              if (width > 0 && height > 0) {
+                const currentData = ctx.getImageData(x, y, width, height);
+                const snapshot = alphaSnapshotRef.current;
+                for (let yy = 0; yy < height; yy++) {
+                  for (let xx = 0; xx < width; xx++) {
+                    const localIndex = (yy * width + xx) * 4 + 3;
+                    const snapshotIndex =
+                      ((y + yy) * layerCanvas.width + (x + xx)) * 4 + 3;
+                    currentData.data[localIndex] = Math.min(
+                      currentData.data[localIndex],
+                      snapshot.data[snapshotIndex]
+                    );
+                  }
+                }
+                ctx.putImageData(currentData, x, y);
+                redraw();
               }
-              ctx.putImageData(currentData, 0, 0);
-              redraw();
             }
           }
           alphaSnapshotRef.current = null;
         }
+        strokeDirtyRectRef.current = null;
 
         if (activeLayer) {
           const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
@@ -2053,12 +2403,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         const ctx = cursorCanvas.getContext("2d");
         if (!ctx) {
           return;
-        }
-
-        const container = containerRef.current;
-        if (container) {
-          cursorCanvas.width = container.clientWidth;
-          cursorCanvas.height = container.clientHeight;
         }
 
         ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
