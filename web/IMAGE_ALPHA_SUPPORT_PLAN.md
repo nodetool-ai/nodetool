@@ -14,13 +14,16 @@ Goal: support transparent images consistently across the web app so alpha is pre
 
 ## Phase 1: Shared Visual Foundation
 
-- [ ] Decide on the common transparency treatment:
+- [x] Decide on the common transparency treatment:
   - Decision: use a subtle checkerboard-style alpha background for app-owned image preview surfaces.
   - Decision: do not add a user-facing toggle in the first pass.
   - Decision: keep the treatment visually quiet so opaque images still look normal.
-- [ ] Add a shared reusable wrapper or styling primitive for image surfaces.
-- [ ] Keep the visual treatment subtle enough to work in dark UI while still making transparency obvious.
-- [ ] Verify the shared treatment works for both `object-fit: contain` and `object-fit: cover` layouts.
+- [x] Add a shared reusable wrapper or styling primitive for image surfaces.
+  - Added `web/src/styles/AlphaSurface.ts` with `alphaSurfaceBg` (plain object) and `alphaSurfaceCss` (Emotion block).
+- [x] Keep the visual treatment subtle enough to work in dark UI while still making transparency obvious.
+  - Uses two low-contrast dark tones (`#1e1e1e` / `#2a2a2a`) with 12px tiles.
+- [x] Verify the shared treatment works for both `object-fit: contain` and `object-fit: cover` layouts.
+  - Verified: the tiled background renders independently of image sizing.
 
 ## Phase 2: Core Output And Preview Surfaces
 
