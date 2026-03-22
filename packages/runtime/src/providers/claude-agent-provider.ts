@@ -179,6 +179,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       resuming: !!resumeSessionId,
     });
 
+    // Unset CLAUDECODE to allow running inside a Claude Code session (e.g. when
+    // the nodetool server is itself launched from Claude Code).
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.CLAUDECODE;
+    delete cleanEnv.CLAUDE_CODE;
+
     const queryHandle = queryFn({
       prompt,
       options: {
@@ -189,6 +195,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowDangerouslySkipPermissions: true,
         disallowedTools: DISALLOWED_TOOLS,
         allowedTools: [],
+        env: cleanEnv,
         ...(resumeSessionId ? { resume: resumeSessionId } : {}),
       },
     });
