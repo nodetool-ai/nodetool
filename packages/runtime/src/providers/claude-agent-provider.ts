@@ -355,8 +355,9 @@ export class ClaudeAgentProvider extends BaseProvider {
       },
     });
 
+    // streamedTextLength tracks the text position within the current assistant turn.
+    // It resets when a new turn begins (after tool execution in multi-turn MCP queries).
     let streamedTextLength = 0;
-    let assistantHandled = false;
     let yieldedToolCallCount = 0;
 
     for await (const msg of queryHandle) {
@@ -375,9 +376,14 @@ export class ClaudeAgentProvider extends BaseProvider {
         continue;
       }
 
-      // Yield any new tool calls that were tracked by MCP handlers
-      while (yieldedToolCallCount < toolCallTracker.length) {
-        yield toolCallTracker[yieldedToolCallCount++];
+      // Yield any new tool calls that were tracked by MCP handlers.
+      // When tool calls appear, a new assistant turn follows — reset text position.
+      if (yieldedToolCallCount < toolCallTracker.length) {
+        while (yieldedToolCallCount < toolCallTracker.length) {
+          yield toolCallTracker[yieldedToolCallCount++];
+        }
+        // Reset for the next assistant turn's text
+        streamedTextLength = 0;
       }
 
       // Stream events provide incremental text updates
@@ -398,7 +404,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         continue;
       }
 
-      // Full assistant message
+      // Full assistant message — emit any remaining text not covered by stream events
       if (msgType === "assistant") {
         const message = msgObj.message as Record<string, unknown> | undefined;
         const content = message?.content;
@@ -413,12 +419,13 @@ export class ClaudeAgentProvider extends BaseProvider {
             yield { type: "chunk", content: delta, done: false } as Chunk;
           }
         }
-        assistantHandled = true;
+        // Reset for next turn (if multi-turn agentic query)
+        streamedTextLength = 0;
         continue;
       }
 
-      // Result event — fallback if no assistant message was received
-      if (msgType === "result" && !assistantHandled) {
+      // Result event — final text that may not have been streamed
+      if (msgType === "result") {
         const result = msgObj.result;
         if (typeof result === "string" && result.length > 0) {
           yield { type: "chunk", content: result, done: false } as Chunk;

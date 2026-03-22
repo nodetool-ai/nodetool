@@ -149,6 +149,17 @@ export class TaskPlanner {
         content: attempt > 0 ? `Retry attempt ${attempt + 1}/${this.maxRetries}...` : "Generating plan...",
       } satisfies PlanningUpdate;
 
+      // Provide onToolCall so providers with native MCP tool support
+      // (e.g. ClaudeAgentProvider) can register create_task as a real tool.
+      // The handler is a no-op — we capture the args from the yielded ToolCall.
+      const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+        if (name === "create_task") {
+          taskData = args;
+          return JSON.stringify({ status: "task_created" });
+        }
+        return JSON.stringify({ error: `Unknown tool: ${name}` });
+      };
+
       const stream = this.provider.generateMessagesTraced({
         messages: [...messages],
         model: this.model,
@@ -161,6 +172,7 @@ export class TaskPlanner {
         ],
         toolChoice: "create_task",
         threadId: this.threadId,
+        onToolCall,
       });
 
       for await (const item of stream) {

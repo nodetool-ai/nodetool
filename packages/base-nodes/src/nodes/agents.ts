@@ -200,6 +200,14 @@ export async function* streamProviderMessages(
   }
 }
 
+/**
+ * Check whether a provider supports native agentic tool execution (MCP).
+ * When true, the provider handles tool calls internally via onToolCall callback.
+ */
+function isAgenticProvider(provider: BaseProvider): boolean {
+  return (provider as unknown as Record<string, unknown>).provider === "claude_agent";
+}
+
 function parseCategory(raw: string, categories: string[]): string {
   if (categories.length === 0) return "Unknown";
 
@@ -642,7 +650,50 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   ];
 
   const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+  const provider = await context.getProvider(providerId);
   let lastAssistantText = "";
+
+  // --- Agentic provider fast-path ---
+  if (isAgenticProvider(provider) && tools.length > 0) {
+    const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+      const tool = tools.find((t) => t.name === name);
+      if (!tool || typeof tool.process !== "function") {
+        return JSON.stringify({ error: `Unknown tool: ${name}` });
+      }
+      try {
+        const result = await tool.process(context, args);
+        return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
+      }
+    };
+
+    let assistantText = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens,
+      threadId: options.threadId,
+      onToolCall,
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        assistantText += item.content ?? "";
+      }
+    }
+
+    if (assistantText) {
+      lastAssistantText = assistantText;
+      messages.push({
+        role: "assistant",
+        content: [{ type: "text", text: assistantText }],
+      });
+    }
+
+    return { text: lastAssistantText, messages };
+  }
+
+  // --- Standard multi-iteration loop ---
   let iteration = 0;
   let shouldContinue = true;
 
@@ -650,7 +701,6 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     shouldContinue = false;
     iteration++;
 
-    const provider = await context.getProvider(providerId);
     const assistantToolCalls: ToolCall[] = [];
     let assistantText = "";
 
@@ -2017,27 +2067,51 @@ export class AgentNode extends BaseNode {
       await saveThreadMessage(context, threadId, messages[messages.length - 1]);
     }
 
-    let shouldContinue = false;
-    let firstIteration = true;
     let lastTextOutput: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+    const provider = await context.getProvider(providerId);
 
-    while (firstIteration || shouldContinue) {
-      firstIteration = false;
-      shouldContinue = false;
-      log.info("AgentNode provider iteration starting", {
+    // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
+    // The provider handles the full tool-calling loop internally.
+    // We provide an onToolCall callback so tools execute natively via MCP.
+    if (isAgenticProvider(provider) && tools.length > 0) {
+      log.info("AgentNode using agentic provider path", {
         nodeId: this.__node_id ?? null,
         providerId,
         modelId,
-        threadId: threadId || null,
-        messageCount: messages.length,
+        toolCount: tools.length,
       });
-      const provider = await context.getProvider(providerId);
-      const assistantToolCalls: ToolCall[] = [];
+
+      // Build onToolCall callback that bridges into our tool set
+      const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+        const tool = tools.find((t) => t.name === name);
+        if (!tool || typeof tool.process !== "function") {
+          return JSON.stringify({ error: `Unknown tool: ${name}` });
+        }
+
+        if (isControlTool(tool)) {
+          const callArgs = args ?? {};
+          if (context.hasControlEventSupport) {
+            try {
+              const controlResult = await context.sendControlEvent(tool.targetNodeId, callArgs);
+              return JSON.stringify({ status: "completed", target_node_id: tool.targetNodeId, result: controlResult });
+            } catch (err) {
+              return JSON.stringify({ status: "error", target_node_id: tool.targetNodeId, error: err instanceof Error ? err.message : String(err) });
+            }
+          }
+          return JSON.stringify({ status: "error", error: "Control event dispatch unavailable" });
+        }
+
+        try {
+          const result = await tool.process(context, args);
+          return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+        } catch (e) {
+          return JSON.stringify({ error: String(e) });
+        }
+      };
+
       let assistantText = "";
-      let chunkCount = 0;
-      let thinkingCount = 0;
-      let audioChunkCount = 0;
+      const assistantToolCalls: ToolCall[] = [];
 
       for await (const item of streamProviderMessages(provider, {
         messages,
@@ -2046,87 +2120,35 @@ export class AgentNode extends BaseNode {
         maxTokens,
         responseFormat,
         threadId: threadId || undefined,
+        onToolCall,
       })) {
         if (isChunkItem(item)) {
-          chunkCount += 1;
           if (item.thinking) {
-            thinkingCount += 1;
-            log.debug("AgentNode received thinking chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              contentLength: (item.content ?? "").length,
-              done: Boolean(item.done),
-            });
             yield { chunk: null, thinking: item, text: null, audio: null };
-            continue;
-          }
-          if (item.content_type === "audio") {
-            audioChunkCount += 1;
-            log.debug("AgentNode received audio chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              contentLength: (item.content ?? "").length,
-              done: Boolean(item.done),
-            });
+          } else if (item.content_type === "audio") {
             yield { chunk: item, thinking: null, text: null, audio: null };
             const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
-            yield {
-              chunk: null,
-              thinking: null,
-              text: null,
-              audio: { data: new Uint8Array(audioBytes) },
-            };
+            yield { chunk: null, thinking: null, text: null, audio: { data: new Uint8Array(audioBytes) } };
           } else {
             assistantText += item.content ?? "";
-            log.debug("AgentNode received text chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              chunkLength: (item.content ?? "").length,
-              accumulatedLength: assistantText.length,
-              done: Boolean(item.done),
-            });
             yield { chunk: item, thinking: null, text: null, audio: null };
           }
-          continue;
         }
         if (isToolCallItem(item)) {
           assistantToolCalls.push(item);
-          log.info("AgentNode received tool call", {
+          log.info("AgentNode MCP tool executed", {
             nodeId: this.__node_id ?? null,
-            providerId,
-            modelId,
-            toolCallId: item.id,
             toolName: item.name,
-            argKeys: Object.keys(item.args ?? {}),
           });
         }
       }
 
-      log.info("AgentNode provider iteration completed", {
-        nodeId: this.__node_id ?? null,
-        providerId,
-        modelId,
-        chunkCount,
-        thinkingCount,
-        audioChunkCount,
-        toolCallCount: assistantToolCalls.length,
-        assistantTextLength: assistantText.length,
-      });
-
       if (assistantText) {
         lastTextOutput = assistantText;
-        log.info("AgentNode yielding final text", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId,
-          textLength: assistantText.length,
-        });
         yield { chunk: null, thinking: null, text: assistantText, audio: null };
       }
 
+      // Save messages to thread
       if (assistantText || assistantToolCalls.length > 0) {
         const assistantMessage: Message = {
           role: "assistant",
@@ -2137,101 +2159,170 @@ export class AgentNode extends BaseNode {
         await saveThreadMessage(context, threadId, assistantMessage);
       }
 
-      for (const toolCall of assistantToolCalls) {
-        const tool = tools.find((candidate) => candidate.name === toolCall.name);
-        if (!tool || typeof tool.process !== "function") {
-          log.warn("AgentNode tool call had no matching executable tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-            availableTools: tools.map((candidate) => candidate.name),
-          });
-          continue;
+      log.info("AgentNode agentic path completed", {
+        nodeId: this.__node_id ?? null,
+        textLength: assistantText.length,
+        toolCallCount: assistantToolCalls.length,
+      });
+
+    } else {
+      // --- Standard multi-iteration loop (for non-agentic providers) ---
+      let shouldContinue = false;
+      let firstIteration = true;
+
+      while (firstIteration || shouldContinue) {
+        firstIteration = false;
+        shouldContinue = false;
+        log.info("AgentNode provider iteration starting", {
+          nodeId: this.__node_id ?? null,
+          providerId,
+          modelId,
+          threadId: threadId || null,
+          messageCount: messages.length,
+        });
+        const assistantToolCalls: ToolCall[] = [];
+        let assistantText = "";
+        let chunkCount = 0;
+        let thinkingCount = 0;
+        let audioChunkCount = 0;
+
+        for await (const item of streamProviderMessages(provider, {
+          messages,
+          model: modelId,
+          tools: providerTools,
+          maxTokens,
+          responseFormat,
+          threadId: threadId || undefined,
+        })) {
+          if (isChunkItem(item)) {
+            chunkCount += 1;
+            if (item.thinking) {
+              thinkingCount += 1;
+              yield { chunk: null, thinking: item, text: null, audio: null };
+              continue;
+            }
+            if (item.content_type === "audio") {
+              audioChunkCount += 1;
+              yield { chunk: item, thinking: null, text: null, audio: null };
+              const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
+              yield {
+                chunk: null,
+                thinking: null,
+                text: null,
+                audio: { data: new Uint8Array(audioBytes) },
+              };
+            } else {
+              assistantText += item.content ?? "";
+              yield { chunk: item, thinking: null, text: null, audio: null };
+            }
+            continue;
+          }
+          if (isToolCallItem(item)) {
+            assistantToolCalls.push(item);
+            log.info("AgentNode received tool call", {
+              nodeId: this.__node_id ?? null,
+              providerId,
+              modelId,
+              toolCallId: item.id,
+              toolName: item.name,
+              argKeys: Object.keys(item.args ?? {}),
+            });
+          }
         }
 
-        let result: unknown;
+        log.info("AgentNode provider iteration completed", {
+          nodeId: this.__node_id ?? null,
+          providerId,
+          modelId,
+          chunkCount,
+          thinkingCount,
+          audioChunkCount,
+          toolCallCount: assistantToolCalls.length,
+          assistantTextLength: assistantText.length,
+        });
 
-        if (isControlTool(tool)) {
-          // Control tool: dispatch control event to the controlled node
-          // and await its output, rather than calling tool.process().
-          const callArgs = toolCall.args ?? {};
-          log.info("AgentNode dispatching control tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-            targetNodeId: tool.targetNodeId,
-            argKeys: Object.keys(callArgs),
-          });
+        if (assistantText) {
+          lastTextOutput = assistantText;
+          yield { chunk: null, thinking: null, text: assistantText, audio: null };
+        }
 
-          if (context.hasControlEventSupport) {
-            try {
-              const controlResult = await context.sendControlEvent(
-                tool.targetNodeId,
-                callArgs,
-              );
-              result = {
-                status: "completed",
-                target_node_id: tool.targetNodeId,
-                result: controlResult,
-              };
-              log.info("AgentNode control tool completed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                targetNodeId: tool.targetNodeId,
-                resultKeys: controlResult ? Object.keys(controlResult) : [],
-              });
-            } catch (err) {
-              result = {
-                status: "error",
-                target_node_id: tool.targetNodeId,
-                error: err instanceof Error ? err.message : String(err),
-              };
-              log.error("AgentNode control tool failed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                targetNodeId: tool.targetNodeId,
-                error: String(err),
-              });
-            }
-          } else {
-            result = {
-              status: "error",
-              target_node_id: tool.targetNodeId,
-              error: "Control event dispatch is not available in this execution context",
-            };
-            log.warn("AgentNode control tool dispatch unavailable", {
+        if (assistantText || assistantToolCalls.length > 0) {
+          const assistantMessage: Message = {
+            role: "assistant",
+            content: [{ type: "text", text: assistantText }],
+            toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null,
+          };
+          messages.push(assistantMessage);
+          await saveThreadMessage(context, threadId, assistantMessage);
+        }
+
+        for (const toolCall of assistantToolCalls) {
+          const tool = tools.find((candidate) => candidate.name === toolCall.name);
+          if (!tool || typeof tool.process !== "function") {
+            log.warn("AgentNode tool call had no matching executable tool", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              availableTools: tools.map((candidate) => candidate.name),
+            });
+            continue;
+          }
+
+          let result: unknown;
+
+          if (isControlTool(tool)) {
+            const callArgs = toolCall.args ?? {};
+            log.info("AgentNode dispatching control tool", {
               nodeId: this.__node_id ?? null,
               toolCallId: toolCall.id,
               toolName: toolCall.name,
               targetNodeId: tool.targetNodeId,
+              argKeys: Object.keys(callArgs),
             });
-          }
-        } else {
-          // Regular tool: execute normally
-          log.info("AgentNode executing tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-          });
-          result = await tool.process(context, toolCall.args);
-        }
 
-        const toolMessage: Message = {
-          role: "tool",
-          toolCallId: toolCall.id,
-          content: JSON.stringify(serializeToolResult(result)),
-        };
-        messages.push(toolMessage);
-        await saveThreadMessage(context, threadId, toolMessage);
-        shouldContinue = true;
-        log.info("AgentNode tool execution completed", {
-          nodeId: this.__node_id ?? null,
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          resultLength: String(toolMessage.content ?? "").length,
-        });
+            if (context.hasControlEventSupport) {
+              try {
+                const controlResult = await context.sendControlEvent(
+                  tool.targetNodeId,
+                  callArgs,
+                );
+                result = {
+                  status: "completed",
+                  target_node_id: tool.targetNodeId,
+                  result: controlResult,
+                };
+              } catch (err) {
+                result = {
+                  status: "error",
+                  target_node_id: tool.targetNodeId,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              }
+            } else {
+              result = {
+                status: "error",
+                target_node_id: tool.targetNodeId,
+                error: "Control event dispatch is not available in this execution context",
+              };
+            }
+          } else {
+            log.info("AgentNode executing tool", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+            });
+            result = await tool.process(context, toolCall.args);
+          }
+
+          const toolMessage: Message = {
+            role: "tool",
+            toolCallId: toolCall.id,
+            content: JSON.stringify(serializeToolResult(result)),
+          };
+          messages.push(toolMessage);
+          await saveThreadMessage(context, threadId, toolMessage);
+          shouldContinue = true;
+        }
       }
     }
 
