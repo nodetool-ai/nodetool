@@ -252,6 +252,7 @@ export interface StepExecutorOptions {
   maxTokenLimit?: number;
   maxIterations?: number;
   useFinishTask?: boolean;
+  threadId?: string;
 }
 
 export class StepExecutor {
@@ -278,6 +279,7 @@ export class StepExecutor {
   private inputTokensTotal = 0;
   private outputTokensTotal = 0;
   private _controlEvents: Array<{ targetNodeId: string; event: import("@nodetool/protocol").ControlEvent }> = [];
+  private threadId?: string;
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -289,6 +291,7 @@ export class StepExecutor {
     this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.useFinishTask = opts.useFinishTask ?? false;
+    this.threadId = opts.threadId;
 
     // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
@@ -796,6 +799,7 @@ export class StepExecutor {
           messages: [...this.history],
           model: this.model,
           tools: providerTools.length > 0 ? providerTools : undefined,
+          threadId: this.threadId,
         });
 
         for await (const item of stream) {

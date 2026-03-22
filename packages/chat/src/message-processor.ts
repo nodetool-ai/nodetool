@@ -91,8 +91,9 @@ export async function processChat(opts: {
   context: ProcessingContext;
   tools?: Tool[];
   callbacks?: ChatCallbacks;
+  threadId?: string;
 }): Promise<Message[]> {
-  const { userInput, messages, model, provider, context, tools = [], callbacks } = opts;
+  const { userInput, messages, model, provider, context, tools = [], callbacks, threadId } = opts;
 
   // 1. Add user message
   messages.push({ role: "user", content: userInput });
@@ -110,6 +111,7 @@ export async function processChat(opts: {
       messages: messagesToSend,
       model,
       tools: providerTools,
+      threadId,
     });
 
     // Phase 1: Stream chunks and collect tool calls

@@ -94,6 +94,7 @@ export interface AgentExecutorOptions {
   maxIterations?: number;
   outputType?: string;
   outputSchema?: Record<string, unknown> | null;
+  threadId?: string;
 }
 
 export class AgentExecutor {
@@ -105,6 +106,7 @@ export class AgentExecutor {
   private readonly maxIterations: number;
   private readonly outputType: string;
   private readonly systemPrompt: string;
+  private readonly threadId?: string;
   private history: Message[];
   private iterations = 0;
   private completed = false;
@@ -116,6 +118,7 @@ export class AgentExecutor {
     this.model = options.model;
     this.context = options.context;
     this.outputType = options.outputType ?? "string";
+    this.threadId = options.threadId;
     this.maxIterations =
       options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
 
@@ -191,6 +194,7 @@ Safety and privacy:
         messages: this.history,
         model: this.model,
         tools: providerTools,
+        threadId: this.threadId,
       });
 
       if (response.content) {

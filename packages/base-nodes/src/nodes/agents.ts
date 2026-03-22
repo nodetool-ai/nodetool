@@ -606,6 +606,7 @@ export interface AgentLoopOptions {
   contentParts?: MessageContent[];
   maxTokens?: number;
   maxIterations?: number;
+  threadId?: string;
 }
 
 export interface AgentLoopResult {
@@ -658,6 +659,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
       model: modelId,
       tools: providerTools,
       maxTokens,
+      threadId: options.threadId,
     })) {
       if (isChunkItem(item)) {
         if (!item.thinking) {
@@ -2043,6 +2045,7 @@ export class AgentNode extends BaseNode {
         tools: providerTools,
         maxTokens,
         responseFormat,
+        threadId: threadId || undefined,
       })) {
         if (isChunkItem(item)) {
           chunkCount += 1;

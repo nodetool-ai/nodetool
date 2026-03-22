@@ -78,6 +78,7 @@ export interface TaskPlannerOptions {
   outputSchema?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
   maxRetries?: number;
+  threadId?: string;
 }
 
 export class TaskPlanner {
@@ -89,6 +90,7 @@ export class TaskPlanner {
   private outputSchema: Record<string, unknown> | undefined;
   private inputs: Record<string, unknown>;
   private maxRetries: number;
+  private threadId?: string;
 
   constructor(opts: TaskPlannerOptions) {
     this.provider = opts.provider;
@@ -99,6 +101,7 @@ export class TaskPlanner {
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
+    this.threadId = opts.threadId;
   }
 
   /**
@@ -157,6 +160,7 @@ export class TaskPlanner {
           },
         ],
         toolChoice: "create_task",
+        threadId: this.threadId,
       });
 
       for await (const item of stream) {
