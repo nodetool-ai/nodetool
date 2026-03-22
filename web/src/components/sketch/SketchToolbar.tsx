@@ -48,6 +48,7 @@ import MergeIcon from "@mui/icons-material/CallMerge";
 import FlattenIcon from "@mui/icons-material/Layers";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import GradientIcon from "@mui/icons-material/Gradient";
@@ -66,6 +67,8 @@ import {
   FillSettings,
   BlurSettings,
   GradientSettings,
+  CloneStampSettings,
+  CloneStampSampling,
   ColorMode,
   DEFAULT_SWATCHES,
   isShapeTool,
@@ -348,6 +351,7 @@ export interface SketchToolbarProps {
   fillSettings: FillSettings;
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
+  cloneStampSettings: CloneStampSettings;
   zoom: number;
   mirrorX: boolean;
   mirrorY: boolean;
@@ -363,6 +367,7 @@ export interface SketchToolbarProps {
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
+  onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onMirrorXChange: (mirrorX: boolean) => void;
   onMirrorYChange: (mirrorY: boolean) => void;
   onUndo: () => void;
@@ -397,6 +402,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   fillSettings,
   blurSettings,
   gradientSettings,
+  cloneStampSettings,
   zoom,
   mirrorX,
   mirrorY,
@@ -412,6 +418,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onFillSettingsChange,
   onBlurSettingsChange,
   onGradientSettingsChange,
+  onCloneStampSettingsChange,
   onMirrorXChange,
   onMirrorYChange,
   onUndo,
@@ -679,6 +686,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         <ToggleButton value="blur" aria-label="Blur Brush">
           <Tooltip title="Blur Brush (Q)">
             <BlurOnIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="clone_stamp" aria-label="Clone Stamp">
+          <Tooltip title="Clone Stamp (S) — Alt+click to set source">
+            <ContentCopyIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
       </ToggleButtonGroup>
@@ -1341,6 +1353,55 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
             Drag on canvas to select crop area.
           </Typography>
+        )}
+
+        {activeTool === "clone_stamp" && (
+          <>
+            <Box className="setting-row">
+              <Typography className="setting-label">Size</Typography>
+              <Slider
+                size="small" min={1} max={200}
+                value={cloneStampSettings.size}
+                onChange={(_, v) => onCloneStampSettingsChange({ size: v as number })}
+              />
+              <Typography className="setting-value">{cloneStampSettings.size}</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Opacity</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={cloneStampSettings.opacity}
+                onChange={(_, v) => onCloneStampSettingsChange({ opacity: v as number })}
+              />
+              <Typography className="setting-value">{Math.round(cloneStampSettings.opacity * 100)}%</Typography>
+            </Box>
+            <Box className="setting-row">
+              <Typography className="setting-label">Hardness</Typography>
+              <Slider
+                size="small" min={0} max={1} step={0.01}
+                value={cloneStampSettings.hardness}
+                onChange={(_, v) => onCloneStampSettingsChange({ hardness: v as number })}
+              />
+              <Typography className="setting-value">{Math.round(cloneStampSettings.hardness * 100)}%</Typography>
+            </Box>
+            <ToggleButtonGroup
+              value={cloneStampSettings.sampling}
+              exclusive
+              onChange={(_, v) => { if (v) { onCloneStampSettingsChange({ sampling: v as CloneStampSampling }); } }}
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="active_layer" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                Active Layer
+              </ToggleButton>
+              <ToggleButton value="composited" sx={{ fontSize: "0.6rem", py: "2px" }}>
+                All Layers
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography sx={{ fontSize: "0.65rem", color: "grey.500", fontStyle: "italic", mt: 1 }}>
+              Alt+click to set source point
+            </Typography>
+          </>
         )}
 
         {(activeTool === "move" || activeTool === "eyedropper") && (

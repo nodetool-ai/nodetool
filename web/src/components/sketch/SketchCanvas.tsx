@@ -29,6 +29,7 @@ import {
   FillSettings,
   BlurSettings,
   GradientSettings,
+  CloneStampSettings,
   Point,
   BlendMode,
   Selection,
@@ -93,6 +94,7 @@ export interface SketchCanvasRef {
     saturation: number
   ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
+  nudgeLayer: (layerId: string, dx: number, dy: number) => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -200,6 +202,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const shiftHeldRef = useRef(false);
     const spaceHeldRef = useRef(false);
     const sKeyHeldRef = useRef(false);
+    const altHeldRef = useRef(false);
     const isSizeDraggingRef = useRef(false);
     const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
     const sizeDragInitialSize = useRef(0);
@@ -220,6 +223,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Select tool state
     const selectStartRef = useRef<Point | null>(null);
+
+    // Clone stamp state
+    const cloneSourceRef = useRef<Point | null>(null);
+    const cloneOffsetRef = useRef<Point | null>(null);
+    const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     // Alpha lock: snapshot of layer alpha before stroke starts
     const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -285,7 +293,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       };
     }, []);
 
-    // Track Shift, Space, and S key state for constraints, panning, size adjust
+    // Track Shift, Space, S, and Alt key state for constraints, panning, size adjust, center-draw
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Shift") {
@@ -296,6 +304,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         if (e.key === "s" || e.key === "S") {
           sKeyHeldRef.current = true;
+        }
+        if (e.key === "Alt") {
+          altHeldRef.current = true;
         }
       };
       const handleKeyUp = (e: KeyboardEvent) => {
@@ -311,6 +322,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (e.key === "s" || e.key === "S") {
           sKeyHeldRef.current = false;
           isSizeDraggingRef.current = false;
+        }
+        if (e.key === "Alt") {
+          altHeldRef.current = false;
         }
       };
       // Use capture phase (third arg = true) so these handlers fire BEFORE the
@@ -985,6 +999,103 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       []
     );
 
+    // ─── Clone Stamp Stroke ──────────────────────────────────────────
+
+    const drawCloneStampStroke = useCallback(
+      (
+        from: Point,
+        to: Point,
+        settings: CloneStampSettings,
+        ctx: CanvasRenderingContext2D
+      ) => {
+        const sourceCanvas = cloneSourceCanvasRef.current;
+        const offset = cloneOffsetRef.current;
+        if (!sourceCanvas || !offset) {
+          return;
+        }
+
+        const r = settings.size / 2;
+        const opacity = settings.opacity;
+        const hardness = settings.hardness;
+
+        const stampPoint = (point: Point) => {
+          // Source coordinates = paint point + offset
+          const sx = point.x + offset.x;
+          const sy = point.y + offset.y;
+
+          // Extract the source region
+          const srcCtx = sourceCanvas.getContext("2d");
+          if (!srcCtx) {
+            return;
+          }
+
+          const px = Math.round(point.x - r);
+          const py = Math.round(point.y - r);
+          const diameter = Math.ceil(settings.size);
+          const srcPx = Math.round(sx - r);
+          const srcPy = Math.round(sy - r);
+
+          // Skip if source region is completely outside the canvas
+          // (partial overlaps are handled correctly by drawImage)
+          if (
+            srcPx + diameter < 0 || srcPx >= sourceCanvas.width ||
+            srcPy + diameter < 0 || srcPy >= sourceCanvas.height
+          ) {
+            return;
+          }
+
+          // Create a temporary canvas for the stamp
+          const stampCanvas = window.document.createElement("canvas");
+          stampCanvas.width = diameter;
+          stampCanvas.height = diameter;
+          const stampCtx = stampCanvas.getContext("2d");
+          if (!stampCtx) {
+            return;
+          }
+
+          // Draw source pixels into stamp canvas
+          stampCtx.drawImage(
+            sourceCanvas,
+            srcPx, srcPy, diameter, diameter,
+            0, 0, diameter, diameter
+          );
+
+          // Apply circular mask with hardness-based falloff
+          stampCtx.save();
+          stampCtx.globalCompositeOperation = "destination-in";
+          const grad = stampCtx.createRadialGradient(
+            diameter / 2, diameter / 2, 0,
+            diameter / 2, diameter / 2, diameter / 2
+          );
+          const innerStop = Math.max(0, hardness);
+          grad.addColorStop(0, `rgba(255,255,255,${opacity})`);
+          grad.addColorStop(innerStop, `rgba(255,255,255,${opacity})`);
+          grad.addColorStop(1, "rgba(255,255,255,0)");
+          stampCtx.fillStyle = grad;
+          stampCtx.fillRect(0, 0, diameter, diameter);
+          stampCtx.restore();
+
+          // Draw stamp onto the target layer
+          ctx.drawImage(stampCanvas, px, py);
+        };
+
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        const spacing = Math.max(1.5, settings.size * 0.25);
+        const steps = Math.max(1, Math.ceil(distance / spacing));
+
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          stampPoint({
+            x: from.x + dx * t,
+            y: from.y + dy * t
+          });
+        }
+      },
+      []
+    );
+
     // ─── Gradient Drawing ─────────────────────────────────────────────
 
     const drawGradient = useCallback(
@@ -1056,6 +1167,28 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       []
     );
 
+    /**
+     * When Alt is held for rectangle/ellipse, the start point is treated as
+     * the center of the shape. Returns adjusted {start, end} pair.
+     */
+    const applyAltCenterDraw = useCallback(
+      (start: Point, end: Point, tool: SketchTool): { start: Point; end: Point } => {
+        if (!altHeldRef.current) {
+          return { start, end };
+        }
+        if (tool === "rectangle" || tool === "ellipse") {
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          return {
+            start: { x: start.x - dx, y: start.y - dy },
+            end: { x: start.x + dx, y: start.y + dy }
+          };
+        }
+        return { start, end };
+      },
+      []
+    );
+
     const drawShapeOnCtx = useCallback(
       (
         ctx: CanvasRenderingContext2D,
@@ -1064,7 +1197,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         end: Point,
         settings: ShapeSettings
       ) => {
-        const constrained = constrainEnd(start, end, tool);
+        // Apply Alt (draw from center) before constraint
+        const centered = applyAltCenterDraw(start, end, tool);
+        const constrained = constrainEnd(centered.start, centered.end, tool);
+        const s = centered.start;
         ctx.save();
         ctx.strokeStyle = settings.strokeColor;
         ctx.lineWidth = settings.strokeWidth;
@@ -1074,10 +1210,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         switch (tool) {
           case "rectangle": {
-            const x = Math.min(start.x, constrained.x);
-            const y = Math.min(start.y, constrained.y);
-            const w = Math.abs(constrained.x - start.x);
-            const h = Math.abs(constrained.y - start.y);
+            const x = Math.min(s.x, constrained.x);
+            const y = Math.min(s.y, constrained.y);
+            const w = Math.abs(constrained.x - s.x);
+            const h = Math.abs(constrained.y - s.y);
             if (settings.filled) {
               ctx.fillRect(x, y, w, h);
             }
@@ -1085,10 +1221,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             break;
           }
           case "ellipse": {
-            const cx = (start.x + constrained.x) / 2;
-            const cy = (start.y + constrained.y) / 2;
-            const rx = Math.abs(constrained.x - start.x) / 2;
-            const ry = Math.abs(constrained.y - start.y) / 2;
+            const cx = (s.x + constrained.x) / 2;
+            const cy = (s.y + constrained.y) / 2;
+            const rx = Math.abs(constrained.x - s.x) / 2;
+            const ry = Math.abs(constrained.y - s.y) / 2;
             ctx.beginPath();
             ctx.ellipse(
               cx,
@@ -1107,19 +1243,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           }
           case "line": {
             ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
+            ctx.moveTo(s.x, s.y);
             ctx.lineTo(constrained.x, constrained.y);
             ctx.stroke();
             break;
           }
           case "arrow": {
             ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
+            ctx.moveTo(s.x, s.y);
             ctx.lineTo(constrained.x, constrained.y);
             ctx.stroke();
             const angle = Math.atan2(
-              constrained.y - start.y,
-              constrained.x - start.x
+              constrained.y - s.y,
+              constrained.x - s.x
             );
             const headLen = Math.max(settings.strokeWidth * 3, 10);
             ctx.beginPath();
@@ -1139,7 +1275,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         ctx.restore();
       },
-      [constrainEnd]
+      [constrainEnd, applyAltCenterDraw]
     );
 
     // ─── Flood Fill ───────────────────────────────────────────────────
@@ -1450,6 +1586,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent) => {
+        // Clone stamp: Alt+click sets the clone source point
+        if (
+          e.button === 0 &&
+          e.altKey &&
+          activeTool === "clone_stamp"
+        ) {
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          cloneSourceRef.current = pt;
+          cloneOffsetRef.current = null; // Reset offset so next stroke recalculates
+          return;
+        }
+
         // Alt+click on a painting tool samples color (Photoshop eyedropper).
         // This check MUST come before the Alt+click pan check below so that
         // painting tools get eyedropper behavior instead of panning.
@@ -1457,6 +1605,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           e.button === 0 &&
           e.altKey &&
           isPaintingTool(activeTool) &&
+          activeTool !== "clone_stamp" &&
           onEyedropperPick
         ) {
           const displayCanvas = displayCanvasRef.current;
@@ -1580,6 +1729,88 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             const data = layerCanvas.toDataURL("image/png");
             onStrokeEnd(activeLayer.id, data);
           }
+          return;
+        }
+
+        // Clone stamp: begin painting stroke (requires source to be set via Alt+click)
+        if (activeTool === "clone_stamp") {
+          if (!cloneSourceRef.current) {
+            // No source set yet — do nothing
+            return;
+          }
+          const pt = screenToCanvas(e.clientX, e.clientY);
+          // On the first stroke after setting source, calculate the offset
+          if (!cloneOffsetRef.current) {
+            cloneOffsetRef.current = {
+              x: cloneSourceRef.current.x - pt.x,
+              y: cloneSourceRef.current.y - pt.y
+            };
+          }
+          // Snapshot the source canvas for sampling during this stroke
+          const settings = doc.toolSettings.cloneStamp;
+          if (settings.sampling === "composited") {
+            // Composite all visible layers into a temp canvas
+            const tmp = window.document.createElement("canvas");
+            tmp.width = doc.canvas.width;
+            tmp.height = doc.canvas.height;
+            const tmpCtx = tmp.getContext("2d");
+            if (tmpCtx) {
+              for (const layer of doc.layers) {
+                if (!layer.visible || layer.type === "mask") {
+                  continue;
+                }
+                const lc = layerCanvasesRef.current.get(layer.id);
+                if (lc) {
+                  tmpCtx.save();
+                  tmpCtx.globalAlpha = layer.opacity;
+                  tmpCtx.globalCompositeOperation = blendModeToComposite(
+                    layer.blendMode || "normal"
+                  );
+                  tmpCtx.drawImage(lc, 0, 0);
+                  tmpCtx.restore();
+                }
+              }
+            }
+            cloneSourceCanvasRef.current = tmp;
+          } else {
+            // Sample from active layer only
+            const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+            const snapshot = window.document.createElement("canvas");
+            snapshot.width = layerCanvas.width;
+            snapshot.height = layerCanvas.height;
+            const snapCtx = snapshot.getContext("2d");
+            if (snapCtx) {
+              snapCtx.drawImage(layerCanvas, 0, 0);
+            }
+            cloneSourceCanvasRef.current = snapshot;
+          }
+          isDrawingRef.current = true;
+          lastPointRef.current = pt;
+          lastSmoothedPointRef.current = pt;
+          currentPressureRef.current = e.pressure || 0.5;
+          onStrokeStart();
+          stabilizerBufferRef.current = [];
+          strokeDirtyRectRef.current = null;
+          // Alpha lock snapshot
+          if (activeLayer.alphaLock) {
+            const lc = getOrCreateLayerCanvas(activeLayer.id);
+            const snapCtx = lc.getContext("2d");
+            if (snapCtx) {
+              alphaSnapshotRef.current = snapCtx.getImageData(
+                0, 0, lc.width, lc.height
+              );
+            }
+          } else {
+            alphaSnapshotRef.current = null;
+          }
+          // Paint initial dot
+          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+          const ctx = layerCanvas.getContext("2d");
+          if (ctx) {
+            drawCloneStampStroke(pt, pt, doc.toolSettings.cloneStamp, ctx);
+            redraw();
+          }
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
           return;
         }
 
@@ -1761,6 +1992,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawPencilStroke,
         drawEraserStroke,
         drawBlurStroke,
+        drawCloneStampStroke,
         floodFill,
         redraw,
         withMirror,
@@ -1925,6 +2157,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               doc.toolSettings.blur,
               layerCanvas
             );
+          } else if (activeTool === "clone_stamp") {
+            drawCloneStampStroke(
+              lastPointRef.current,
+              pt,
+              doc.toolSettings.cloneStamp,
+              ctx
+            );
           }
 
           lastPointRef.current = pt;
@@ -1942,6 +2181,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         drawPencilStroke,
         drawEraserStroke,
         drawBlurStroke,
+        drawCloneStampStroke,
         drawOverlayShape,
         drawOverlayGradient,
         drawOverlayCrop,
@@ -1977,6 +2217,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         if (activeTool === "blur") {
           blurSourceCanvasRef.current = null;
+        }
+        if (activeTool === "clone_stamp") {
+          cloneSourceCanvasRef.current = null;
         }
 
         if (isShapeTool(activeTool) && shapeStartRef.current && activeLayer) {
@@ -2420,6 +2663,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.restore();
           redraw();
+        },
+        nudgeLayer: (layerId: string, dx: number, dy: number) => {
+          const canvas = layerCanvasesRef.current.get(layerId);
+          if (!canvas) {
+            return;
+          }
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            return;
+          }
+          const tmp = window.document.createElement("canvas");
+          tmp.width = canvas.width;
+          tmp.height = canvas.height;
+          const tmpCtx = tmp.getContext("2d");
+          if (!tmpCtx) {
+            return;
+          }
+          tmpCtx.drawImage(canvas, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(tmp, dx, dy);
+          redraw();
         }
       }),
       [doc, getOrCreateLayerCanvas, redraw]
@@ -2447,12 +2711,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
         ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-        // Only show brush cursor for brush/pencil/eraser/blur tools
+        // Only show brush cursor for brush/pencil/eraser/blur/clone_stamp tools
         if (
           activeTool !== "brush" &&
           activeTool !== "pencil" &&
           activeTool !== "eraser" &&
-          activeTool !== "blur"
+          activeTool !== "blur" &&
+          activeTool !== "clone_stamp"
         ) {
           return;
         }
@@ -2464,6 +2729,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           size = doc.toolSettings.pencil.size;
         } else if (activeTool === "blur") {
           size = doc.toolSettings.blur.size;
+        } else if (activeTool === "clone_stamp") {
+          size = doc.toolSettings.cloneStamp.size;
         } else {
           size = doc.toolSettings.eraser.size;
         }

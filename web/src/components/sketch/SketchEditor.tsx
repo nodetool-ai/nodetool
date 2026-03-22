@@ -26,6 +26,7 @@ import {
   DEFAULT_FILL_SETTINGS,
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_GRADIENT_SETTINGS,
+  DEFAULT_CLONE_STAMP_SETTINGS,
   mergeRgbHexIntoColor
 } from "./types";
 
@@ -75,6 +76,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   const setFillSettings = useSketchStore((s) => s.setFillSettings);
   const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
   const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
+  const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -125,7 +127,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
     shape: { ...DEFAULT_SHAPE_SETTINGS, ...document.toolSettings?.shape },
     fill: { ...DEFAULT_FILL_SETTINGS, ...document.toolSettings?.fill },
     blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
-    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient }
+    gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient },
+    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...document.toolSettings?.cloneStamp }
   };
   const safeForegroundColor = foregroundColor || "#ffffff";
   const safeBackgroundColor = backgroundColor || "#000000";
@@ -218,6 +221,8 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         setEraserSettings({ size });
       } else if (tool === "blur") {
         setBlurSettings({ size });
+      } else if (tool === "clone_stamp") {
+        setCloneStampSettings({ size });
       } else {
         setBrushSettings({ size });
       }
@@ -227,8 +232,25 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       setBrushSettings,
       setPencilSettings,
       setEraserSettings,
-      setBlurSettings
+      setBlurSettings,
+      setCloneStampSettings
     ]
+  );
+
+  // ─── Arrow key nudge for active layer ───────────────────────────
+  const handleNudgeLayer = useCallback(
+    (dx: number, dy: number) => {
+      const activeLayerId = document.activeLayerId;
+      const layer = document.layers.find((l) => l.id === activeLayerId);
+      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
+        return;
+      }
+      pushHistory("nudge layer");
+      canvasRef.current.nudgeLayer(activeLayerId, dx, dy);
+      const data = canvasRef.current.getLayerData(activeLayerId);
+      updateLayerData(activeLayerId, data);
+    },
+    [document.activeLayerId, document.layers, pushHistory, updateLayerData]
   );
 
   // ─── Undo/Redo handlers ────────────────────────────────────────────
@@ -519,9 +541,21 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           e.preventDefault();
           handleZoomReset();
         }
+        if (e.key === "1") {
+          e.preventDefault();
+          setZoom(1);
+        }
         if (e.key === "s") {
           e.preventDefault();
           handleExportPng();
+        }
+        if (e.key === "a") {
+          e.preventDefault();
+          useSketchStore.getState().selectAll();
+        }
+        if (e.key === "d") {
+          e.preventDefault();
+          useSketchStore.getState().setSelection(null);
         }
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {
@@ -633,6 +667,9 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             case "c":
               setActiveTool("crop");
               break;
+            case "s":
+              setActiveTool("clone_stamp");
+              break;
             case "m":
               setMirrorX((prev) => !prev);
               break;
@@ -676,6 +713,12 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                   store.document.toolSettings.blur.size - 5
                 );
                 setBlurSettings({ size: newSize });
+              } else if (tool === "clone_stamp") {
+                const newSize = Math.max(
+                  1,
+                  store.document.toolSettings.cloneStamp.size - 5
+                );
+                setCloneStampSettings({ size: newSize });
               }
               break;
             }
@@ -706,6 +749,12 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
                   store.document.toolSettings.blur.size + 5
                 );
                 setBlurSettings({ size: newSize });
+              } else if (tool === "clone_stamp") {
+                const newSize = Math.min(
+                  200,
+                  store.document.toolSettings.cloneStamp.size + 5
+                );
+                setCloneStampSettings({ size: newSize });
               }
               break;
             }
@@ -720,6 +769,30 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
             case "Backspace":
               handleClearLayer();
               break;
+            case "ArrowUp": {
+              e.preventDefault();
+              const amount = e.shiftKey ? 10 : 1;
+              handleNudgeLayer(0, -amount);
+              break;
+            }
+            case "ArrowDown": {
+              e.preventDefault();
+              const amount = e.shiftKey ? 10 : 1;
+              handleNudgeLayer(0, amount);
+              break;
+            }
+            case "ArrowLeft": {
+              e.preventDefault();
+              const amount = e.shiftKey ? 10 : 1;
+              handleNudgeLayer(-amount, 0);
+              break;
+            }
+            case "ArrowRight": {
+              e.preventDefault();
+              const amount = e.shiftKey ? 10 : 1;
+              handleNudgeLayer(amount, 0);
+              break;
+            }
           }
         }
       }
@@ -873,6 +946,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           fillSettings={toolSettings.fill}
           blurSettings={toolSettings.blur}
           gradientSettings={toolSettings.gradient}
+          cloneStampSettings={toolSettings.cloneStamp}
           zoom={zoom}
           mirrorX={mirrorX}
           mirrorY={mirrorY}
@@ -888,6 +962,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
           onFillSettingsChange={setFillSettings}
           onBlurSettingsChange={setBlurSettings}
           onGradientSettingsChange={setGradientSettings}
+          onCloneStampSettingsChange={setCloneStampSettings}
           onMirrorXChange={setMirrorX}
           onMirrorYChange={setMirrorY}
           onUndo={handleUndo}
@@ -975,6 +1050,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         fillSettings={toolSettings.fill}
         blurSettings={toolSettings.blur}
         gradientSettings={toolSettings.gradient}
+        cloneStampSettings={toolSettings.cloneStamp}
         foregroundColor={safeForegroundColor}
         backgroundColor={safeBackgroundColor}
         canUndo={canUndo()}
@@ -989,6 +1065,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         onFillSettingsChange={setFillSettings}
         onBlurSettingsChange={setBlurSettings}
         onGradientSettingsChange={setGradientSettings}
+        onCloneStampSettingsChange={setCloneStampSettings}
         onSwapColors={swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}

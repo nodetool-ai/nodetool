@@ -22,6 +22,7 @@ import {
   FillSettings,
   BlurSettings,
   GradientSettings,
+  CloneStampSettings,
   BlendMode,
   createDefaultDocument,
   normalizeSketchDocument,
@@ -55,6 +56,7 @@ export interface SketchStore {
   setFillSettings: (settings: Partial<FillSettings>) => void;
   setBlurSettings: (settings: Partial<BlurSettings>) => void;
   setGradientSettings: (settings: Partial<GradientSettings>) => void;
+  setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -253,6 +255,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           gradient: { ...state.document.toolSettings.gradient, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setCloneStampSettings: (settings: Partial<CloneStampSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          cloneStamp: { ...state.document.toolSettings.cloneStamp, ...settings }
         },
         metadata: {
           ...state.document.metadata,
