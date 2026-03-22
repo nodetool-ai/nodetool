@@ -11,3 +11,4 @@ export { runNodeState } from "./run-node-state.js";
 export { predictions } from "./predictions.js";
 export { runEvents } from "./run-events.js";
 export { runLeases } from "./run-leases.js";
+export { teamTasks } from "./team-tasks.js";

@@ -786,6 +786,11 @@ export { OPENAI_NODES } from "./nodes/openai.js";
 export { SEARCH_NODES } from "./nodes/search.js";
 export { SKILLS_NODES } from "./nodes/skills.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
+export {
+  TeamAgentNode,
+  TeamLeadNode,
+  TEAM_NODES,
+} from "./nodes/team.js";
 
 import { CONTROL_NODES } from "./nodes/control.js";
 import { BOOLEAN_NODES } from "./nodes/boolean.js";
@@ -859,6 +864,7 @@ import { OPENAI_NODES } from "./nodes/openai.js";
 import { SEARCH_NODES } from "./nodes/search.js";
 import { SKILLS_NODES } from "./nodes/skills.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
+import { TEAM_NODES } from "./nodes/team.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -933,6 +939,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SEARCH_NODES,
   ...SKILLS_NODES,
   ...ANTHROPIC_NODES,
+  ...TEAM_NODES,
 ];
 
 export function registerBaseNodes(registry: NodeRegistry): void {
