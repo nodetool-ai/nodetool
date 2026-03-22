@@ -30,7 +30,7 @@
 
 import React, { forwardRef, memo } from "react";
 import { Box } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 
 export interface ActionButtonGroupProps {
@@ -86,7 +86,7 @@ export interface ActionButtonGroupProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Padding inside the group (theme spacing units)
    */
