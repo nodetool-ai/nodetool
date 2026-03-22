@@ -28,6 +28,7 @@ import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -39,6 +40,7 @@ import {
   BrushSettings,
   BrushType,
   BlurSettings,
+  CloneStampSettings,
   EraserSettings,
   FillSettings,
   GradientSettings,
@@ -69,6 +71,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   { tool: "fill", label: "Fill", shortcut: "G", Icon: FormatColorFillIcon },
   { tool: "eyedropper", label: "Eyedropper", shortcut: "I", Icon: ColorizeIcon },
   { tool: "blur", label: "Blur", shortcut: "Q", Icon: BlurOnIcon },
+  { tool: "clone_stamp", label: "Clone Stamp", shortcut: "S", Icon: ContentCopyIcon },
   { tool: "line", label: "Line", shortcut: "L", Icon: HorizontalRuleIcon },
   { tool: "rectangle", label: "Rectangle", shortcut: "R", Icon: RectangleOutlinedIcon },
   { tool: "ellipse", label: "Ellipse", shortcut: "O", Icon: CircleOutlinedIcon },
@@ -83,6 +86,7 @@ const ERASER_SIZE_PRESETS = [8, 20, 48, 96];
 const SHAPE_WIDTH_PRESETS = [1, 2, 4, 8];
 const FILL_TOLERANCE_PRESETS = [0, 16, 32, 64];
 const BLUR_SIZE_PRESETS = [10, 20, 40, 60];
+const CLONE_STAMP_SIZE_PRESETS = [10, 20, 40, 80];
 const OPACITY_PRESETS = [0.25, 0.5, 0.75, 1];
 const STRENGTH_PRESETS = [2, 5, 10];
 
@@ -122,7 +126,8 @@ function getSummaryItems(
   shapeSettings: ShapeSettings,
   fillSettings: FillSettings,
   blurSettings: BlurSettings,
-  gradientSettings: GradientSettings
+  gradientSettings: GradientSettings,
+  cloneStampSettings?: CloneStampSettings
 ): string[] {
   if (activeTool === "brush") {
     return [
@@ -152,6 +157,12 @@ function getSummaryItems(
   }
   if (activeTool === "blur") {
     return [`${blurSettings.size}px`, `Strength ${blurSettings.strength}`];
+  }
+  if (activeTool === "clone_stamp" && cloneStampSettings) {
+    return [
+      `${cloneStampSettings.size}px`,
+      formatPercent(cloneStampSettings.opacity)
+    ];
   }
   if (activeTool === "gradient") {
     return [gradientSettings.type === "linear" ? "Linear" : "Radial"];
@@ -455,6 +466,7 @@ export interface SketchCanvasContextMenuProps {
   fillSettings: FillSettings;
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
+  cloneStampSettings: CloneStampSettings;
   foregroundColor: string;
   backgroundColor: string;
   canUndo: boolean;
@@ -469,6 +481,7 @@ export interface SketchCanvasContextMenuProps {
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
+  onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSwapColors: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -487,6 +500,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   fillSettings,
   blurSettings,
   gradientSettings,
+  cloneStampSettings,
   foregroundColor,
   backgroundColor,
   canUndo,
@@ -501,6 +515,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onFillSettingsChange,
   onBlurSettingsChange,
   onGradientSettingsChange,
+  onCloneStampSettingsChange,
   onSwapColors,
   onUndo,
   onRedo,
@@ -518,7 +533,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     shapeSettings,
     fillSettings,
     blurSettings,
-    gradientSettings
+    gradientSettings,
+    cloneStampSettings
   );
   const ActiveIcon = activeDefinition.Icon;
 
@@ -848,6 +864,45 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             format={(value) => String(value)}
             onSelect={(value) => onBlurSettingsChange({ strength: value })}
           />
+        </>
+      );
+    }
+
+    if (activeTool === "clone_stamp") {
+      return (
+        <>
+          <QuickSlider
+            label="Size"
+            valueLabel={`${cloneStampSettings.size}px`}
+            value={cloneStampSettings.size}
+            min={1}
+            max={200}
+            onChange={(value) => onCloneStampSettingsChange({ size: value })}
+          />
+          <PresetChipRow
+            values={CLONE_STAMP_SIZE_PRESETS}
+            selectedValue={cloneStampSettings.size}
+            format={(value) => `${value}px`}
+            onSelect={(value) => onCloneStampSettingsChange({ size: value })}
+          />
+          <QuickSlider
+            label="Opacity"
+            valueLabel={formatPercent(cloneStampSettings.opacity)}
+            value={cloneStampSettings.opacity}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(value) => onCloneStampSettingsChange({ opacity: value })}
+          />
+          <PresetChipRow
+            values={OPACITY_PRESETS}
+            selectedValue={cloneStampSettings.opacity}
+            format={formatPercent}
+            onSelect={(value) => onCloneStampSettingsChange({ opacity: value })}
+          />
+          <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", mt: 1 }}>
+            Alt+click to set clone source.
+          </Typography>
         </>
       );
     }
