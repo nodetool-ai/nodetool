@@ -39,6 +39,10 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
       setReadmeDialogOpen(true);
     }, [setReadmeDialogOpen]);
 
+    const handleCloseReadme = useCallback(() => {
+      setReadmeDialogOpen(false);
+    }, [setReadmeDialogOpen]);
+
     return (
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography
@@ -116,7 +120,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             </Button>
             <ReadmeDialog
               open={readmeDialogOpen}
-              onClose={() => setReadmeDialogOpen(false)}
+              onClose={handleCloseReadme}
               modelId={model.id}
             />
           </Box>
