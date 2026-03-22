@@ -794,12 +794,37 @@ export class StepExecutor {
       const toolCalls: ToolCall[] = [];
       let message: Message | null;
 
+      // Build onToolCall callback for providers with native MCP tool execution.
+      // When provided, the provider creates an in-process MCP server and Claude
+      // calls tools natively; the callback executes the actual tool logic.
+      const onToolCall = currentTools.length > 0
+        ? async (name: string, args: Record<string, unknown>): Promise<string> => {
+            const tool = this.tools.find((t) => t.name === name);
+            if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
+            if (tool instanceof ControlNodeTool) {
+              const event = tool.createControlEvent(args);
+              this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
+              return typeof tool.userMessage(args) === "string"
+                ? tool.userMessage(args)
+                : JSON.stringify(tool.userMessage(args));
+            }
+            try {
+              const result = await tool.process(this.context, args);
+              this.trackToolSideEffects(name, result);
+              return typeof result === "string" ? result : JSON.stringify(result ?? null);
+            } catch (e) {
+              return JSON.stringify({ error: String(e) });
+            }
+          }
+        : undefined;
+
       try {
         const stream = this.provider.generateMessagesTraced({
           messages: [...this.history],
           model: this.model,
           tools: providerTools.length > 0 ? providerTools : undefined,
           threadId: this.threadId,
+          onToolCall,
         });
 
         for await (const item of stream) {
@@ -924,76 +949,90 @@ export class StepExecutor {
             } satisfies ToolCallUpdate;
           }
 
-          // Yield log: executing tools
           const toolNamesStr = regularToolCalls.map((tc) => tc.name).join(", ");
-          yield {
-            type: "log_update",
-            node_id: this.step.id,
-            node_name: `Step: ${this.step.id}`,
-            content: `Executing tools: ${toolNamesStr}...`,
-            severity: "info",
-          } satisfies LogUpdate;
 
-          // Execute tool calls in parallel
-          const toolResults = await Promise.allSettled(
-            regularToolCalls.map(async (tc) => {
-              const tool = this.tools.find((t) => t.name === tc.name);
-              if (!tool) return { error: `Unknown tool: ${tc.name}` };
-              // Intercept ControlNodeTool: create event instead of calling process()
-              if (tool instanceof ControlNodeTool) {
-                const event = tool.createControlEvent(tc.args ?? {});
-                this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
-                return tool.userMessage(tc.args ?? {});
+          if (onToolCall) {
+            // Tools were already executed via MCP in-process — skip re-execution.
+            // The provider's onToolCall callback already ran tool.process() and
+            // fed results back to Claude during the query() call.
+            yield {
+              type: "log_update",
+              node_id: this.step.id,
+              node_name: `Step: ${this.step.id}`,
+              content: `Tools executed via MCP: ${toolNamesStr}.`,
+              severity: "info",
+            } satisfies LogUpdate;
+          } else {
+            // Standard execution path: run tools ourselves and add results to history
+            yield {
+              type: "log_update",
+              node_id: this.step.id,
+              node_name: `Step: ${this.step.id}`,
+              content: `Executing tools: ${toolNamesStr}...`,
+              severity: "info",
+            } satisfies LogUpdate;
+
+            // Execute tool calls in parallel
+            const toolResults = await Promise.allSettled(
+              regularToolCalls.map(async (tc) => {
+                const tool = this.tools.find((t) => t.name === tc.name);
+                if (!tool) return { error: `Unknown tool: ${tc.name}` };
+                // Intercept ControlNodeTool: create event instead of calling process()
+                if (tool instanceof ControlNodeTool) {
+                  const event = tool.createControlEvent(tc.args ?? {});
+                  this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
+                  return tool.userMessage(tc.args ?? {});
+                }
+                try {
+                  const result = await tool.process(this.context, tc.args ?? {});
+                  return result;
+                } catch (e) {
+                  return { error: String(e) };
+                }
+              }),
+            );
+
+            // Add tool results to history
+            for (let i = 0; i < regularToolCalls.length; i++) {
+              const tc = regularToolCalls[i];
+              const settledResult = toolResults[i];
+              let toolResult: unknown;
+
+              if (settledResult.status === "fulfilled") {
+                toolResult = settledResult.value;
+              } else {
+                toolResult = { error: `Tool execution failed: ${settledResult.reason}` };
               }
-              try {
-                const result = await tool.process(this.context, tc.args ?? {});
-                return result;
-              } catch (e) {
-                return { error: String(e) };
+
+              // Save base64 binary artifacts (images, audio) to workspace files
+              toolResult = await this.handleBinaryArtifact(toolResult);
+
+              // Track browser URLs for source lineage (from args and results)
+              if (tc.name === "browser" && tc.args?.["url"]) {
+                const url = String(tc.args["url"]);
+                if (!this.sourcesSet.has(url)) {
+                  this.sources.push(url);
+                  this.sourcesSet.add(url);
+                }
               }
-            }),
-          );
+              this.trackToolSideEffects(tc.name, toolResult);
 
-          // Add tool results to history
-          for (let i = 0; i < regularToolCalls.length; i++) {
-            const tc = regularToolCalls[i];
-            const settledResult = toolResults[i];
-            let toolResult: unknown;
-
-            if (settledResult.status === "fulfilled") {
-              toolResult = settledResult.value;
-            } else {
-              toolResult = { error: `Tool execution failed: ${settledResult.reason}` };
+              const resultStr = this.serializeToolResultForHistory(toolResult, tc.name);
+              this.history.push({
+                role: "tool",
+                toolCallId: tc.id,
+                content: resultStr,
+              });
             }
 
-            // Save base64 binary artifacts (images, audio) to workspace files
-            toolResult = await this.handleBinaryArtifact(toolResult);
-
-            // Track browser URLs for source lineage (from args and results)
-            if (tc.name === "browser" && tc.args?.["url"]) {
-              const url = String(tc.args["url"]);
-              if (!this.sourcesSet.has(url)) {
-                this.sources.push(url);
-                this.sourcesSet.add(url);
-              }
-            }
-            this.trackToolSideEffects(tc.name, toolResult);
-
-            const resultStr = this.serializeToolResultForHistory(toolResult, tc.name);
-            this.history.push({
-              role: "tool",
-              toolCallId: tc.id,
-              content: resultStr,
-            });
+            yield {
+              type: "log_update",
+              node_id: this.step.id,
+              node_name: `Step: ${this.step.id}`,
+              content: `Completed tool execution: ${toolNamesStr}.`,
+              severity: "info",
+            } satisfies LogUpdate;
           }
-
-          yield {
-            type: "log_update",
-            node_id: this.step.id,
-            node_name: `Step: ${this.step.id}`,
-            content: `Completed tool execution: ${toolNamesStr}.`,
-            severity: "info",
-          } satisfies LogUpdate;
         }
       }
 

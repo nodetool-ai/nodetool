@@ -28,6 +28,7 @@ import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
+export type { OnToolCall } from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };

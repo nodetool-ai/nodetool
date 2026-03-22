@@ -130,6 +130,8 @@ export abstract class BaseProvider {
     frequencyPenalty?: number;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /** Optional callback for native tool execution (used by providers with in-process MCP). */
+    onToolCall?: (name: string, args: Record<string, unknown>) => Promise<string>;
   }): Promise<Message>;
 
   abstract generateMessages(args: {
@@ -148,6 +150,8 @@ export abstract class BaseProvider {
     audio?: Record<string, unknown>;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /** Optional callback for native tool execution (used by providers with in-process MCP). */
+    onToolCall?: (name: string, args: Record<string, unknown>) => Promise<string>;
   }): AsyncGenerator<ProviderStreamItem>;
 
   /** Traced wrapper around generateMessage. Use this instead of calling generateMessage directly. */

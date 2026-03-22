@@ -12,9 +12,10 @@
  * This provider does NOT require an ANTHROPIC_API_KEY — it uses the Claude Code
  * session which authenticates through the user's Claude subscription.
  *
- * Tool support: when tools are provided, their schemas are injected into the
- * system prompt and Claude is instructed to respond with a JSON tool_calls
- * array. The provider parses this and yields ToolCall items.
+ * Tool support: tools are exposed as an in-process MCP server via the SDK's
+ * createSdkMcpServer() + tool() helpers. Claude calls tools natively through
+ * the MCP protocol; the provider yields ToolCall items for tracking.
+ * An onToolCall callback must be supplied for tool execution.
  */
 
 import { BaseProvider } from "./base-provider.js";
@@ -31,13 +32,15 @@ import type {
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
 
+const MCP_SERVER_NAME = "nodetool-tools";
+
 const CLAUDE_AGENT_MODELS: LanguageModel[] = [
   { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "claude_agent" },
   { id: "claude-opus-4-20250514", name: "Claude Opus 4", provider: "claude_agent" },
   { id: "claude-haiku-4-20250514", name: "Claude Haiku 4", provider: "claude_agent" },
 ];
 
-/** Built-in Claude Code tools we disable — we only want text generation. */
+/** Built-in Claude Code tools we disable — we only want text generation + our MCP tools. */
 const DISALLOWED_TOOLS = [
   "Bash",
   "Read",
@@ -65,68 +68,95 @@ function extractText(content: Message["content"]): string {
 }
 
 /**
- * Build a tool-calling instruction block to inject into the system prompt.
+ * Convert a JSON Schema property to a Zod type.
+ * Handles the common subset used by agent tools.
  */
-function buildToolPrompt(tools: ProviderTool[]): string {
-  const toolDefs = tools.map((t) => ({
-    name: t.name,
-    description: t.description ?? "",
-    parameters: t.inputSchema ?? {},
-  }));
+function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
+  const type = prop.type as string | undefined;
+  const enumValues = prop.enum as unknown[] | undefined;
 
-  return `
+  if (enumValues && Array.isArray(enumValues)) {
+    // z.enum requires string literals
+    if (enumValues.every((v) => typeof v === "string")) {
+      return z.enum(enumValues as [string, ...string[]]);
+    }
+    return z.any();
+  }
 
-## Available Tools
-
-You have access to the following tools. When you need to use a tool, respond with ONLY
-a JSON object in this exact format (no markdown, no extra text before or after):
-
-{"tool_calls": [{"name": "<tool_name>", "args": {<arguments>}}]}
-
-You may call multiple tools at once by adding multiple entries to the array.
-If you don't need to use any tools, respond with normal text.
-
-Tools:
-${JSON.stringify(toolDefs, null, 2)}
-`;
+  switch (type) {
+    case "string":
+      return z.string();
+    case "number":
+    case "integer":
+      return z.number();
+    case "boolean":
+      return z.boolean();
+    case "array": {
+      const items = prop.items as Record<string, unknown> | undefined;
+      if (items) {
+        return z.array(jsonSchemaPropertyToZod(items, z));
+      }
+      return z.array(z.any());
+    }
+    case "object": {
+      const properties = prop.properties as Record<string, Record<string, unknown>> | undefined;
+      if (properties) {
+        const shape: Record<string, unknown> = {};
+        const required = (prop.required as string[]) ?? [];
+        for (const [key, val] of Object.entries(properties)) {
+          let zodType = jsonSchemaPropertyToZod(val, z);
+          if (!required.includes(key)) {
+            zodType = zodType.optional();
+          }
+          shape[key] = zodType;
+        }
+        return z.object(shape);
+      }
+      return z.record(z.string(), z.any());
+    }
+    default:
+      return z.any();
+  }
 }
 
 /**
- * Try to parse tool calls from the assistant's response text.
- * Returns parsed tool calls and any remaining text, or null if no tool calls found.
+ * Convert a ProviderTool's JSON Schema inputSchema to a Zod raw shape
+ * suitable for the SDK's tool() function.
  */
-function parseToolCalls(
-  text: string,
-): { toolCalls: Array<{ name: string; args: Record<string, unknown> }>; remainingText: string } | null {
-  // Look for JSON with tool_calls key anywhere in the text
-  const trimmed = text.trim();
+function jsonSchemaToZodShape(
+  schema: Record<string, unknown> | undefined,
+  z: any,
+): Record<string, unknown> {
+  if (!schema) return {};
+  const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+  if (!properties) return {};
 
-  // Try direct JSON parse first (the ideal case — response is only JSON)
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (parsed && Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
-      return { toolCalls: parsed.tool_calls, remainingText: "" };
+  const required = (schema.required as string[]) ?? [];
+  const shape: Record<string, unknown> = {};
+
+  for (const [key, prop] of Object.entries(properties)) {
+    let zodType = jsonSchemaPropertyToZod(prop, z);
+    if (!required.includes(key)) {
+      zodType = zodType.optional();
     }
-  } catch {
-    // not pure JSON
+    if (typeof prop.description === "string") {
+      zodType = zodType.describe(prop.description);
+    }
+    shape[key] = zodType;
   }
 
-  // Try to find JSON block in the text
-  const jsonMatch = trimmed.match(/\{[\s\S]*"tool_calls"\s*:\s*\[[\s\S]*\][\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
-        const remaining = trimmed.replace(jsonMatch[0], "").trim();
-        return { toolCalls: parsed.tool_calls, remainingText: remaining };
-      }
-    } catch {
-      // malformed JSON
-    }
-  }
-
-  return null;
+  return shape;
 }
+
+/**
+ * Callback type for tool execution.
+ * The provider calls this when Claude invokes a tool via MCP.
+ * Returns the tool result as a string.
+ */
+export type OnToolCall = (
+  name: string,
+  args: Record<string, unknown>,
+) => Promise<string>;
 
 export class ClaudeAgentProvider extends BaseProvider {
   static requiredSecrets(): string[] {
@@ -153,15 +183,8 @@ export class ClaudeAgentProvider extends BaseProvider {
 
   /**
    * Extract the system prompt and the last user message from the messages array.
-   * When tools are provided, append tool-calling instructions to the system prompt.
    */
-  private extractPrompt(
-    messages: Message[],
-    tools?: ProviderTool[],
-  ): {
-    systemPrompt: string;
-    prompt: string;
-  } {
+  private extractPrompt(messages: Message[]): { systemPrompt: string; prompt: string } {
     let systemPrompt = "You are a helpful assistant.";
     let prompt = "";
 
@@ -169,10 +192,6 @@ export class ClaudeAgentProvider extends BaseProvider {
       if (msg.role === "system") {
         systemPrompt = extractText(msg.content);
       }
-    }
-
-    if (tools && tools.length > 0) {
-      systemPrompt += buildToolPrompt(tools);
     }
 
     // Walk backwards to find the last user message — that's our prompt.
@@ -193,16 +212,13 @@ export class ClaudeAgentProvider extends BaseProvider {
   /**
    * Dynamically import the Agent SDK. Throws a descriptive error if not installed.
    */
-  private async getQueryFn(): Promise<
-    typeof import("@anthropic-ai/claude-agent-sdk").query
-  > {
+  private async getSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
     try {
-      const sdk = await import("@anthropic-ai/claude-agent-sdk");
-      return sdk.query;
+      return await import("@anthropic-ai/claude-agent-sdk");
     } catch {
       throw new Error(
         "Claude Agent SDK (@anthropic-ai/claude-agent-sdk) is not installed or Claude Code " +
-          "is not available. Install Claude Code and run: npm install @anthropic-ai/claude-agent-sdk"
+          "is not available. Install Claude Code and run: npm install @anthropic-ai/claude-agent-sdk",
       );
     }
   }
@@ -223,6 +239,55 @@ export class ClaudeAgentProvider extends BaseProvider {
     this._sessions.delete(threadId);
   }
 
+  /**
+   * Build an in-process MCP server from ProviderTool definitions.
+   * Each tool's handler calls the onToolCall callback.
+   */
+  private buildMcpServer(
+    tools: ProviderTool[],
+    onToolCall: OnToolCall,
+    sdk: typeof import("@anthropic-ai/claude-agent-sdk"),
+    z: any,
+    toolCallTracker: ToolCall[],
+  ) {
+    const mcpTools = tools.map((t) => {
+      const zodShape = jsonSchemaToZodShape(t.inputSchema, z) as any;
+      return sdk.tool(
+        t.name,
+        t.description ?? "",
+        zodShape,
+        async (args: Record<string, unknown>) => {
+          // Track the tool call for yielding to the caller
+          const toolCall: ToolCall = {
+            id: `call_${Date.now()}_${toolCallTracker.length}`,
+            name: t.name,
+            args,
+          };
+          toolCallTracker.push(toolCall);
+          log.debug("MCP tool called", { name: t.name, args });
+
+          try {
+            const result = await onToolCall(t.name, args);
+            return { content: [{ type: "text" as const, text: result }] };
+          } catch (e) {
+            const errorMsg = `Tool execution error: ${e}`;
+            log.error("MCP tool error", { name: t.name, error: errorMsg });
+            return {
+              content: [{ type: "text" as const, text: errorMsg }],
+              isError: true,
+            };
+          }
+        },
+      );
+    });
+
+    return sdk.createSdkMcpServer({
+      name: MCP_SERVER_NAME,
+      version: "1.0.0",
+      tools: mcpTools,
+    });
+  }
+
   async *generateMessages(args: {
     messages: Message[];
     model: string;
@@ -238,13 +303,27 @@ export class ClaudeAgentProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
     threadId?: string | null;
+    /** Callback for tool execution. Required when tools are provided. */
+    onToolCall?: OnToolCall;
   }): AsyncGenerator<ProviderStreamItem> {
-    const queryFn = await this.getQueryFn();
-    const hasTools = (args.tools?.length ?? 0) > 0;
-    const { systemPrompt, prompt } = this.extractPrompt(args.messages, args.tools);
+    const sdk = await this.getSdk();
+    const hasTools = (args.tools?.length ?? 0) > 0 && !!args.onToolCall;
+    const { systemPrompt, prompt } = this.extractPrompt(args.messages);
     const threadId = args.threadId ?? null;
-
     const resumeSessionId = this.getSessionId(threadId);
+
+    // Track tool calls made during this query (populated by MCP handlers)
+    const toolCallTracker: ToolCall[] = [];
+
+    // Build MCP server if tools + callback provided
+    let mcpServer: ReturnType<typeof sdk.createSdkMcpServer> | undefined;
+    let allowedTools: string[] = [];
+
+    if (hasTools && args.tools && args.onToolCall) {
+      const { z } = await import("zod");
+      mcpServer = this.buildMcpServer(args.tools, args.onToolCall, sdk, z, toolCallTracker);
+      allowedTools = args.tools.map((t) => `mcp__${MCP_SERVER_NAME}__${t.name}`);
+    }
 
     log.debug("Claude Agent request", {
       model: args.model,
@@ -252,40 +331,39 @@ export class ClaudeAgentProvider extends BaseProvider {
       threadId,
       resuming: !!resumeSessionId,
       tools: hasTools ? args.tools!.map((t) => t.name) : [],
+      mcpEnabled: !!mcpServer,
     });
 
-    // Unset CLAUDECODE to allow running inside a Claude Code session (e.g. when
-    // the nodetool server is itself launched from Claude Code).
+    // Unset CLAUDECODE to allow running inside a Claude Code session
     const cleanEnv = { ...process.env };
     delete cleanEnv.CLAUDECODE;
     delete cleanEnv.CLAUDE_CODE;
 
-    const queryHandle = queryFn({
+    const queryHandle = sdk.query({
       prompt,
       options: {
         model: args.model,
         systemPrompt,
-        maxTurns: 1,
+        maxTurns: hasTools ? 10 : 1,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         disallowedTools: DISALLOWED_TOOLS,
-        allowedTools: [],
+        allowedTools,
         env: cleanEnv,
+        ...(mcpServer ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } } : {}),
         ...(resumeSessionId ? { resume: resumeSessionId } : {}),
       },
     });
 
-    // When tools are present we buffer the full response to parse tool calls.
-    // When no tools, we stream text as before.
     let streamedTextLength = 0;
     let assistantHandled = false;
-    let fullResponseText = "";
+    let yieldedToolCallCount = 0;
 
     for await (const msg of queryHandle) {
       const msgObj = msg as Record<string, unknown>;
       const msgType = msgObj.type as string;
 
-      // Capture session ID from the init event so we can resume later.
+      // Capture session ID from the init event
       if (
         msgType === "system" &&
         msgObj.subtype === "init" &&
@@ -293,102 +371,67 @@ export class ClaudeAgentProvider extends BaseProvider {
         threadId
       ) {
         this.setSessionId(threadId, msgObj.session_id);
-        log.debug("Claude session initialized", {
-          threadId,
-          sessionId: msgObj.session_id,
-        });
+        log.debug("Claude session initialized", { threadId, sessionId: msgObj.session_id });
         continue;
       }
 
-      // Stream events provide incremental text updates during generation.
+      // Yield any new tool calls that were tracked by MCP handlers
+      while (yieldedToolCallCount < toolCallTracker.length) {
+        yield toolCallTracker[yieldedToolCallCount++];
+      }
+
+      // Stream events provide incremental text updates
       if (msgType === "stream_event") {
         const partial = msgObj.message as Record<string, unknown> | undefined;
         const content = partial?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter(
-              (b: any) => b?.type === "text" && typeof b.text === "string"
-            )
+            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
             const delta = text.slice(streamedTextLength);
             streamedTextLength = text.length;
-            // Only stream if no tools — with tools we need to buffer for parsing
-            if (!hasTools) {
-              yield { type: "chunk", content: delta, done: false } as Chunk;
-            }
-            fullResponseText = text;
+            yield { type: "chunk", content: delta, done: false } as Chunk;
           }
         }
         continue;
       }
 
-      // Full assistant message — capture final text.
+      // Full assistant message
       if (msgType === "assistant") {
         const message = msgObj.message as Record<string, unknown> | undefined;
         const content = message?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter(
-              (b: any) => b?.type === "text" && typeof b.text === "string"
-            )
+            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
             const delta = text.slice(streamedTextLength);
             streamedTextLength = text.length;
-            if (!hasTools) {
-              yield { type: "chunk", content: delta, done: false } as Chunk;
-            }
+            yield { type: "chunk", content: delta, done: false } as Chunk;
           }
-          fullResponseText = text;
         }
         assistantHandled = true;
         continue;
       }
 
-      // Result event — fallback if no assistant message was received.
+      // Result event — fallback if no assistant message was received
       if (msgType === "result" && !assistantHandled) {
         const result = msgObj.result;
         if (typeof result === "string" && result.length > 0) {
-          if (!hasTools) {
-            yield { type: "chunk", content: result, done: false } as Chunk;
-          }
-          fullResponseText = result;
+          yield { type: "chunk", content: result, done: false } as Chunk;
         }
       }
     }
 
-    // If tools were provided, check if the response contains tool calls.
-    if (hasTools && fullResponseText) {
-      const parsed = parseToolCalls(fullResponseText);
-      if (parsed) {
-        // Emit any remaining text before tool calls
-        if (parsed.remainingText) {
-          yield { type: "chunk", content: parsed.remainingText, done: false } as Chunk;
-        }
-        // Yield each tool call
-        let callIndex = 0;
-        for (const tc of parsed.toolCalls) {
-          const args = (tc.args && typeof tc.args === "object" && !Array.isArray(tc.args))
-            ? tc.args as Record<string, unknown>
-            : {};
-          const toolCall: ToolCall = {
-            id: `call_${Date.now()}_${callIndex++}`,
-            name: tc.name,
-            args,
-          };
-          log.debug("Tool call parsed", { name: tc.name, args });
-          yield toolCall;
-        }
-        return; // Don't emit done chunk — tool calls signal continuation
-      }
-      // No tool calls found — emit the buffered text as chunks
-      yield { type: "chunk", content: fullResponseText, done: false } as Chunk;
+    // Yield any remaining tool calls
+    while (yieldedToolCallCount < toolCallTracker.length) {
+      yield toolCallTracker[yieldedToolCallCount++];
     }
 
-    // Final done signal.
+    // Final done signal
     yield { type: "chunk", content: "", done: true } as Chunk;
   }
 
@@ -405,6 +448,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     frequencyPenalty?: number;
     thinkingBudget?: number;
     threadId?: string | null;
+    onToolCall?: OnToolCall;
   }): Promise<Message> {
     const parts: string[] = [];
     const toolCalls: ToolCall[] = [];
