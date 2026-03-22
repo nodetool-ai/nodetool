@@ -19,3 +19,7 @@
 ## 2024-05-24 - Zustand useNodes array filtering edge cases
 **Learning:** Using `useNodes((state) => ({ edges: state.edges }), shallow)` to subscribe to the full edges array in a Node component, and then performing `.filter()` to find connected edges later, still causes the Node component to re-render on *any* edge change in the graph because the `state.edges` reference changes.
 **Action:** Create a custom selector hook with `useMemo` that performs the filtering internally and explicitly deep-checks the filtered array items (`lastResult.every((edge, i) => edge === newResult[i])`) to return a perfectly stable array reference when the filtered items haven't changed.
+
+## 2024-05-25 - React Array Deduplication Complexity
+**Learning:** Deduplicating arrays inside React state setters using `reduce` and `findIndex` (e.g., `acc.findIndex(item => item.id === current.id) === -1`) creates an O(N²) time complexity bottleneck. As the array grows (like a stream of real-time notifications or logs), each new item requires a full scan of the accumulator, which can block the main thread and cause UI stuttering during high-frequency updates.
+**Action:** Always use an O(N) approach for array deduplication, such as maintaining a `Set` of unique identifiers (e.g., `seenIds = new Set()`) and a single `for...of` loop to build the new array.

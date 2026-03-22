@@ -189,3 +189,7 @@ Verify by checking the React Profiler during node drag operations with multiple 
 - Ran `cd web && pnpm typecheck`: Passed.
 - Ran `cd web && pnpm lint`: Passed.
 - Ran `make test-web`: Verified core tests pass.
+
+## Alert Deduplication (web/src/components/node_editor/Alert.tsx)
+- Replaced the O(N²) `Array.prototype.reduce` and `Array.prototype.findIndex` logic for deduplicating notifications with an O(N) `Set`-based implementation.
+- This ensures the `setVisibleNotifications` state updater remains linear and performant, preventing UI stutters during high-volume alert streaming.
