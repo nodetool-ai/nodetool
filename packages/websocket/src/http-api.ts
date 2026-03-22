@@ -2,7 +2,6 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
-import os from "node:os";
 import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {

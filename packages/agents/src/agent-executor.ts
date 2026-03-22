@@ -97,6 +97,11 @@ export interface AgentExecutorOptions {
   threadId?: string;
 }
 
+interface FinishTaskArgs {
+  result?: unknown;
+  metadata?: Record<string, unknown>;
+}
+
 export class AgentExecutor {
   private readonly provider: BaseProvider;
   private readonly model: string;
@@ -283,11 +288,12 @@ Safety and privacy:
   private async *executeAgentic(
     providerTools: ProviderTool[]
   ): AsyncGenerator<Chunk | ToolCall> {
-    let finishTaskArgs: Record<string, unknown> | null = null;
+    const finishTaskState: { args: FinishTaskArgs | null } = { args: null };
+    const getFinishTaskArgs = (): FinishTaskArgs | null => finishTaskState.args;
 
     const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
       if (name === "finish_task") {
-        finishTaskArgs = args;
+        finishTaskState.args = args as FinishTaskArgs;
         return JSON.stringify({ status: "finished" });
       }
       const tool = this.tools.find((t) => t.name === name);
@@ -320,10 +326,11 @@ Safety and privacy:
     }
 
     // Check if finish_task was called via MCP
-    if (finishTaskArgs) {
+    const initialFinishTaskArgs = getFinishTaskArgs();
+    if (initialFinishTaskArgs) {
       this.completed = true;
-      this._result = finishTaskArgs.result ?? null;
-      this._metadata = (finishTaskArgs.metadata as Record<string, unknown>) ?? null;
+      this._result = initialFinishTaskArgs.result ?? null;
+      this._metadata = initialFinishTaskArgs.metadata ?? null;
       return;
     }
 
@@ -334,7 +341,7 @@ Safety and privacy:
       { role: "user", content: `Now call finish_task with the final result and metadata. The result type should be '${this.outputType}'.` },
     ];
 
-    finishTaskArgs = null;
+    finishTaskState.args = null;
     const nudgeResponse = await this.provider.generateMessageTraced({
       messages: nudgeMessages,
       model: this.model,
@@ -352,10 +359,11 @@ Safety and privacy:
       }
     }
 
-    if (finishTaskArgs) {
+    const nudgedFinishTaskArgs = getFinishTaskArgs();
+    if (nudgedFinishTaskArgs) {
       this.completed = true;
-      this._result = finishTaskArgs.result ?? null;
-      this._metadata = (finishTaskArgs.metadata as Record<string, unknown>) ?? null;
+      this._result = nudgedFinishTaskArgs.result ?? null;
+      this._metadata = nudgedFinishTaskArgs.metadata ?? null;
     } else {
       this.completed = true;
       this._result = String(response.content ?? "Task incomplete");
