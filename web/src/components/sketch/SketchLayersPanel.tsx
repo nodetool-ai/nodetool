@@ -35,31 +35,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
 import LayerItem from "./LayerItem";
-
-// ─── Collapsible section persistence for right panel ──────────────────────
-const COLLAPSED_SECTIONS_KEY = "nodetool-sketch-layers-panel-collapsed";
+import { useCollapsedSections } from "./useCollapsedSections";
 
 type PanelSectionKey = "canvasSize" | "shortcuts";
-
-function loadCollapsedSections(): Record<PanelSectionKey, boolean> {
-  try {
-    const stored = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
-    if (stored) {
-      return JSON.parse(stored) as Record<PanelSectionKey, boolean>;
-    }
-  } catch {
-    // localStorage parse failed, use defaults
-  }
-  return { canvasSize: true, shortcuts: true };
-}
-
-function saveCollapsedSections(state: Record<PanelSectionKey, boolean>): void {
-  try {
-    localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(state));
-  } catch {
-    // localStorage write failed, ignore
-  }
-}
 
 // ─── Collapsible PanelSection component ───────────────────────────────────
 
@@ -272,17 +250,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const dragSourceIndex = useRef<number | null>(null);
 
   // ─── Collapsible section state (persisted in localStorage) ────────
-  const [collapsedSections, setCollapsedSections] = useState<Record<PanelSectionKey, boolean>>(
-    loadCollapsedSections
+  const [collapsedSections, handleToggleSection] = useCollapsedSections<PanelSectionKey>(
+    "nodetool-sketch-layers-panel-collapsed",
+    { canvasSize: true, shortcuts: true }
   );
-
-  const handleToggleSection = useCallback((key: PanelSectionKey) => {
-    setCollapsedSections((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      saveCollapsedSections(next);
-      return next;
-    });
-  }, []);
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));

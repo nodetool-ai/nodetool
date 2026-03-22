@@ -14,6 +14,36 @@ export { default as SketchLayersPanel } from "./SketchLayersPanel";
 
 export { useSketchStore } from "./state";
 
+export {
+  useSketchStoreSelectors,
+  useHistoryActions,
+  useLayerActions,
+  useCanvasActions,
+  useColorActions
+} from "./hooks";
+
+export {
+  useCompositing,
+  useCanvasImperativeHandle,
+  useOverlayRenderer,
+  usePointerHandlers
+} from "./sketchCanvasHooks";
+
+export { useCollapsedSections } from "./useCollapsedSections";
+
+export {
+  ALL_TOOL_DEFINITIONS,
+  PAINTING_TOOLS,
+  SHAPE_TOOLS,
+  CONTEXT_MENU_TOOLS,
+  getToolDefinition
+} from "./toolDefinitions";
+
+export type {
+  ToolDefinition,
+  ToolIconComponent
+} from "./toolDefinitions";
+
 export type {
   SketchDocument,
   SketchTool,

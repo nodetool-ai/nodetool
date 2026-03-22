@@ -3,6 +3,8 @@
  *
  * Narrow vertical icon toolbar for tool selection only.
  * All tool settings, colors, actions, and view controls live in SketchToolTopBar.
+ *
+ * Uses shared PAINTING_TOOLS and SHAPE_TOOLS definitions from toolDefinitions.ts.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -17,23 +19,8 @@ import {
   ToggleButton,
   Divider
 } from "@mui/material";
-import BrushIcon from "@mui/icons-material/Brush";
-import CreateIcon from "@mui/icons-material/Create";
-import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
-import ColorizeIcon from "@mui/icons-material/Colorize";
-import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
-import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
-import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
-import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
-import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
-import OpenWithIcon from "@mui/icons-material/OpenWith";
-import BlurOnIcon from "@mui/icons-material/BlurOn";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import GradientIcon from "@mui/icons-material/Gradient";
-import CropIcon from "@mui/icons-material/Crop";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import TuneIcon from "@mui/icons-material/Tune";
 import { SketchTool } from "./types";
+import { PAINTING_TOOLS, SHAPE_TOOLS, type ToolDefinition } from "./toolDefinitions";
 
 const styles = (theme: Theme) =>
   css({
@@ -60,6 +47,24 @@ const styles = (theme: Theme) =>
       minHeight: "32px"
     }
   });
+
+function renderToolButton(def: ToolDefinition) {
+  const { tool, label, shortcut, Icon } = def;
+  const tooltipText = shortcut ? `${label} (${shortcut})` : label;
+  // Special tooltip for clone stamp
+  const tooltip =
+    tool === "clone_stamp"
+      ? `Clone Stamp (S) — Alt+click to set source`
+      : tooltipText;
+
+  return (
+    <ToggleButton key={tool} value={tool} aria-label={label}>
+      <Tooltip title={tooltip} placement="right">
+        <Icon fontSize="small" />
+      </Tooltip>
+    </ToggleButton>
+  );
+}
 
 export interface SketchToolbarProps {
   activeTool: SketchTool;
@@ -90,51 +95,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         size="small"
         className="tool-group"
       >
-        <ToggleButton value="move" aria-label="Move">
-          <Tooltip title="Move (V)" placement="right">
-            <OpenWithIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="select" aria-label="Select">
-          <Tooltip title="Select" placement="right">
-            <SelectAllIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="brush" aria-label="Brush">
-          <Tooltip title="Brush (B)" placement="right">
-            <BrushIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="pencil" aria-label="Pencil">
-          <Tooltip title="Pencil (P)" placement="right">
-            <CreateIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="eraser" aria-label="Eraser">
-          <Tooltip title="Eraser (E)" placement="right">
-            <AutoFixNormalIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="fill" aria-label="Fill">
-          <Tooltip title="Fill (G)" placement="right">
-            <FormatColorFillIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="eyedropper" aria-label="Eyedropper">
-          <Tooltip title="Eyedropper (I)" placement="right">
-            <ColorizeIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="blur" aria-label="Blur Brush">
-          <Tooltip title="Blur Brush (Q)" placement="right">
-            <BlurOnIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="clone_stamp" aria-label="Clone Stamp">
-          <Tooltip title="Clone Stamp (S) — Alt+click to set source" placement="right">
-            <ContentCopyIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
+        {PAINTING_TOOLS.map(renderToolButton)}
       </ToggleButtonGroup>
 
       <Divider flexItem />
@@ -146,41 +107,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         size="small"
         className="tool-group"
       >
-        <ToggleButton value="line" aria-label="Line">
-          <Tooltip title="Line (L)" placement="right">
-            <HorizontalRuleIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="rectangle" aria-label="Rectangle">
-          <Tooltip title="Rectangle (R)" placement="right">
-            <RectangleOutlinedIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="ellipse" aria-label="Ellipse">
-          <Tooltip title="Ellipse (O)" placement="right">
-            <CircleOutlinedIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="arrow" aria-label="Arrow">
-          <Tooltip title="Arrow (A)" placement="right">
-            <ArrowRightAltIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="gradient" aria-label="Gradient">
-          <Tooltip title="Gradient (T)" placement="right">
-            <GradientIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="crop" aria-label="Crop">
-          <Tooltip title="Crop (C)" placement="right">
-            <CropIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="adjust" aria-label="Adjustments">
-          <Tooltip title="Adjustments (J)" placement="right">
-            <TuneIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
+        {SHAPE_TOOLS.map(renderToolButton)}
       </ToggleButtonGroup>
     </Box>
   );
