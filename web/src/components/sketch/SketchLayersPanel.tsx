@@ -24,8 +24,6 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -33,12 +31,10 @@ import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
-import FilterNoneIcon from "@mui/icons-material/FilterNone";
-import InputIcon from "@mui/icons-material/Input";
-import OutputIcon from "@mui/icons-material/Output";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
+import LayerItem from "./LayerItem";
 
 // ─── Collapsible section persistence for right panel ──────────────────────
 const COLLAPSED_SECTIONS_KEY = "nodetool-sketch-layers-panel-collapsed";
@@ -323,6 +319,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     [editName, onRenameLayer]
   );
 
+  const handleEditNameChange = useCallback((value: string) => {
+    setEditName(value);
+  }, []);
+
+  const handleCancelRename = useCallback(() => {
+    setEditingLayerId(null);
+  }, []);
+
   // ─── Drag-and-drop layer reordering ─────────────────────────────
   const handleDragStart = useCallback(
     (realIdx: number) => {
@@ -514,147 +518,32 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
         {[...layers].reverse().map((layer, reverseIdx) => {
           const realIdx = layers.length - 1 - reverseIdx;
-          const isActive = layer.id === activeLayerId;
-          const isMask = layer.id === maskLayerId;
-          const isIsolated = layer.id === isolatedLayerId;
-          const isDragOver = dragOverIndex === realIdx;
-
           return (
-            <Box key={layer.id}>
-              <Box
-                className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}${isIsolated ? " isolated" : ""}`}
-                draggable
-                onDragStart={() => handleDragStart(realIdx)}
-                onDragOver={(e) => handleDragOver(e, realIdx)}
-                onDragLeave={handleDragLeave}
-                onDrop={() => handleDrop(realIdx)}
-                onDragEnd={handleDragEnd}
-                onClick={() => onSelectLayer(layer.id)}
-                sx={isDragOver ? {
-                  borderTop: "2px solid",
-                  borderTopColor: "primary.main"
-                } : undefined}
-              >
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleVisibility(layer.id);
-                  }}
-                  sx={{ padding: "2px" }}
-                >
-                  {layer.visible ? (
-                    <VisibilityIcon sx={{ fontSize: "14px" }} />
-                  ) : (
-                    <VisibilityOffIcon sx={{ fontSize: "14px" }} />
-                  )}
-                </IconButton>
-
-                <Tooltip title={isIsolated ? "Show all layers" : "Solo this layer"} placement="top">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleIsolateLayer(layer.id);
-                    }}
-                    sx={{
-                      padding: "2px",
-                      color: isIsolated ? "warning.main" : undefined,
-                      opacity: isIsolated ? 1 : 0.4,
-                      "&:hover": { opacity: 1 }
-                    }}
-                  >
-                    <FilterNoneIcon sx={{ fontSize: "12px" }} />
-                  </IconButton>
-                </Tooltip>
-
-                {/* Layer thumbnail preview */}
-                {layer.data ? (
-                  <img
-                    className="layer-thumbnail"
-                    src={layer.data}
-                    alt={layer.name}
-                    draggable={false}
-                  />
-                ) : (
-                  <Box className="layer-thumbnail-empty" />
-                )}
-
-                {editingLayerId === layer.id ? (
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onBlur={() => handleFinishRename(layer.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleFinishRename(layer.id);
-                      }
-                      if (e.key === "Escape") {
-                        setEditingLayerId(null);
-                      }
-                    }}
-                    autoFocus
-                    style={{
-                      flex: 1,
-                      background: "transparent",
-                      border: "none",
-                      color: "inherit",
-                      fontSize: "inherit",
-                      outline: "none",
-                      padding: "0 2px"
-                    }}
-                  />
-                ) : (
-                  <Typography
-                    className="layer-name"
-                    onDoubleClick={() =>
-                      handleStartRename(layer.id, layer.name)
-                    }
-                  >
-                    {layer.name}
-                    {isMask && " 🎭"}
-                    {layer.alphaLock && " 🔒"}
-                  </Typography>
-                )}
-
-                <Box sx={{ display: "flex", gap: 0, ml: "auto" }}>
-                  <Tooltip title={layer.exposedAsInput ? "Remove input handle" : "Expose as input"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleExposedInput(layer.id);
-                      }}
-                      sx={{
-                        padding: "1px",
-                        color: layer.exposedAsInput ? "info.main" : "grey.600",
-                        opacity: layer.exposedAsInput ? 1 : 0.5,
-                        "&:hover": { opacity: 1 }
-                      }}
-                    >
-                      <InputIcon sx={{ fontSize: "11px" }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={layer.exposedAsOutput ? "Remove output handle" : "Expose as output"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleExposedOutput(layer.id);
-                      }}
-                      sx={{
-                        padding: "1px",
-                        color: layer.exposedAsOutput ? "success.main" : "grey.600",
-                        opacity: layer.exposedAsOutput ? 1 : 0.5,
-                        "&:hover": { opacity: 1 }
-                      }}
-                    >
-                      <OutputIcon sx={{ fontSize: "11px" }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-            </Box>
+            <LayerItem
+              key={layer.id}
+              layer={layer}
+              realIdx={realIdx}
+              isActive={layer.id === activeLayerId}
+              isMask={layer.id === maskLayerId}
+              isIsolated={layer.id === isolatedLayerId}
+              isDragOver={dragOverIndex === realIdx}
+              editingLayerId={editingLayerId}
+              editName={editName}
+              onSelectLayer={onSelectLayer}
+              onToggleVisibility={onToggleVisibility}
+              onToggleIsolateLayer={onToggleIsolateLayer}
+              onToggleExposedInput={onToggleExposedInput}
+              onToggleExposedOutput={onToggleExposedOutput}
+              onStartRename={handleStartRename}
+              onFinishRename={handleFinishRename}
+              onEditNameChange={handleEditNameChange}
+              onCancelRename={handleCancelRename}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+            />
           );
         })}
       </Box>
