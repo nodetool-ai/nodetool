@@ -13,7 +13,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -73,7 +73,7 @@ export interface SettingsButtonProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Tab index for keyboard navigation
    * @default 0
