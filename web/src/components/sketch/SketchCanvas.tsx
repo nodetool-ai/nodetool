@@ -438,6 +438,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.restore();
       }
+
+      // Draw a subtle border around the canvas to show its boundaries
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, displayCanvas.width - 1, displayCanvas.height - 1);
+      ctx.restore();
     }, [doc.layers, isolatedLayerId]);
 
     /**
@@ -1371,13 +1378,46 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       }
     }, []);
 
+    const drawSelectionOverlay = useCallback(() => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay || !selection) {
+        return;
+      }
+      // Don't draw persistent selection while actively dragging a new one
+      if (selectStartRef.current) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      const { x, y, width, height } = selection;
+      ctx.save();
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+      ctx.strokeRect(x, y, width, height);
+      ctx.strokeStyle = "#000000";
+      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+      ctx.strokeRect(x, y, width, height);
+      ctx.restore();
+    }, [selection]);
+
+    // Redraw selection overlay when selection changes
+    useEffect(() => {
+      drawSelectionOverlay();
+    }, [drawSelectionOverlay]);
+
     useEffect(() => {
       if (activeTool !== "gradient") {
         gradientStartRef.current = null;
         gradientEndRef.current = null;
         clearOverlay();
+        // Preserve selection overlay when switching tools
+        drawSelectionOverlay();
       }
-    }, [activeTool, clearOverlay]);
+    }, [activeTool, clearOverlay, drawSelectionOverlay]);
 
     const drawOverlayShape = useCallback(
       (start: Point, end: Point) => {
@@ -1478,37 +1518,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       },
       []
     );
-
-    const drawSelectionOverlay = useCallback(() => {
-      const overlay = overlayCanvasRef.current;
-      if (!overlay || !selection) {
-        return;
-      }
-      // Don't draw persistent selection while actively dragging a new one
-      if (selectStartRef.current) {
-        return;
-      }
-      const ctx = overlay.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-      const { x, y, width, height } = selection;
-      ctx.save();
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
-      ctx.strokeRect(x, y, width, height);
-      ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
-      ctx.strokeRect(x, y, width, height);
-      ctx.restore();
-    }, [selection]);
-
-    // Redraw selection overlay when selection changes
-    useEffect(() => {
-      drawSelectionOverlay();
-    }, [drawSelectionOverlay]);
 
     // ─── Coordinate Transform ─────────────────────────────────────────
 
@@ -2233,6 +2242,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             if (ctx) {
               ctx.drawImage(overlay, 0, 0);
               clearOverlay();
+              drawSelectionOverlay();
               redraw();
             }
           }
@@ -2251,6 +2261,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           if (ctx) {
             drawGradient(ctx, start, end, doc.toolSettings.gradient);
             clearOverlay();
+            drawSelectionOverlay();
             redraw();
           }
           gradientStartRef.current = null;
@@ -2271,6 +2282,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           const w = x2 - x1;
           const h = y2 - y1;
           clearOverlay();
+          drawSelectionOverlay();
           cropStartRef.current = null;
           if (w > 1 && h > 1 && onCropComplete) {
             onCropComplete(x1, y1, w, h);
@@ -2349,9 +2361,16 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         strokeDirtyRectRef.current = null;
 
         if (activeLayer) {
-          const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
-          const data = layerCanvas ? layerCanvas.toDataURL("image/png") : null;
-          onStrokeEnd(activeLayer.id, data);
+          // Defer the expensive toDataURL encoding to the next frame so the
+          // current frame can finish without stutter.
+          const layerId = activeLayer.id;
+          requestAnimationFrame(() => {
+            const layerCanvas = layerCanvasesRef.current.get(layerId);
+            const data = layerCanvas
+              ? layerCanvas.toDataURL("image/png")
+              : null;
+            onStrokeEnd(layerId, data);
+          });
         }
       },
       [
@@ -2363,6 +2382,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onCropComplete,
         getOrCreateLayerCanvas,
         clearOverlay,
+        drawSelectionOverlay,
         redraw,
         screenToCanvas,
         drawGradient,

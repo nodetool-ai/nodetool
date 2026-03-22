@@ -230,6 +230,10 @@
 - [x] **Color swatch hold-to-drag** — press and hold on a swatch, drag over others to preview colors in real-time, release to confirm
 - [x] **Expose layer input/output** — per-layer "Expose Input" / "Expose Output" toggle buttons in layers panel; creates dynamic input/output handles on SketchNode using layer names; fixed composite output always present
 - [x] **Cleaner SketchNode UI** — improved hover state with border highlight, edit overlay with "Edit Sketch" label, handle labels for exposed layers, rounded corners on content area
+- [x] **Canvas border** — subtle white semi-transparent outline drawn after layer compositing to clearly show canvas boundaries at any zoom level
+- [x] **Layer thumbnail transparency** — layer preview thumbnails now show a checkerboard pattern for transparent areas instead of solid black (CSS `repeating-conic-gradient`)
+- [x] **Selection persists across tools** — marching ants selection overlay remains visible when switching to non-select tools and after shape/gradient/crop operations complete
+- [x] **Deferred toDataURL for performance** — layer PNG encoding after each stroke is now deferred to the next animation frame via `requestAnimationFrame`, eliminating the small stutter after drawing
 
 #### Sketch command palette (canvas context menu)
 
