@@ -20,10 +20,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Typography,
-  Divider,
-  Checkbox,
-  FormControlLabel,
-  Switch
+  Divider
 } from "@mui/material";
 import BrushIcon from "@mui/icons-material/Brush";
 import CreateIcon from "@mui/icons-material/Create";
@@ -60,7 +57,6 @@ import Button from "@mui/material/Button";
 import {
   SketchTool,
   BrushSettings,
-  BrushType,
   PencilSettings,
   EraserSettings,
   ShapeSettings,
@@ -68,25 +64,21 @@ import {
   BlurSettings,
   GradientSettings,
   CloneStampSettings,
-  CloneStampSampling,
   ColorMode,
   DEFAULT_SWATCHES,
   isShapeTool,
   hexToRgb,
-  rgbToHex,
   rgbToHsl,
   hslToRgb,
   parseColorToRgba,
   rgbaToCss,
   colorToHex6
 } from "./types";
-
-/** Native color input returns #rrggbb; keep existing alpha from stored CSS color. */
-function mergeHexPickerRgbPreserveAlpha(stored: string, pickerHex: string): string {
-  const { a } = parseColorToRgba(stored);
-  const { r, g, b } = parseColorToRgba(pickerHex);
-  return rgbaToCss({ r, g, b, a });
-}
+import {
+  ToolSettingsPanel,
+  getToolSettingsLabel,
+  mergeHexPickerRgbPreserveAlpha
+} from "./ToolSettingsPanels";
 
 // ─── Collapsible section persistence ──────────────────────────────────────
 
@@ -324,23 +316,6 @@ const styles = (theme: Theme) =>
       }
     }
   });
-
-function getToolSettingsLabel(tool: SketchTool): string {
-  switch (tool) {
-    case "brush": return "Brush";
-    case "pencil": return "Pencil";
-    case "eraser": return "Eraser";
-    case "fill": return "Fill";
-    case "blur": return "Blur Brush";
-    case "gradient": return "Gradient";
-    case "crop": return "Crop";
-    case "line":
-    case "rectangle":
-    case "ellipse":
-    case "arrow": return "Shape";
-    default: return "Settings";
-  }
-}
 
 export interface SketchToolbarProps {
   activeTool: SketchTool;
@@ -945,472 +920,25 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         collapsed={collapsedSections.toolSettings}
         onToggle={handleToggleSection}
       >
-        {activeTool === "brush" && (
-          <>
-            <ToggleButtonGroup
-              value={brushSettings.brushType || "round"}
-              exclusive
-              onChange={(_, v) => { if (v) { onBrushSettingsChange({ brushType: v as BrushType }); } }}
-              size="small"
-              fullWidth
-              sx={{ mb: "4px" }}
-            >
-              <ToggleButton value="round" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                Round
-              </ToggleButton>
-              <ToggleButton value="soft" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                Soft
-              </ToggleButton>
-              <ToggleButton value="airbrush" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                Air
-              </ToggleButton>
-              <ToggleButton value="spray" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                Spray
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Box className="setting-row">
-              <Typography className="setting-label">Color</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(brushSettings.color)}
-                onChange={(e) =>
-                  onBrushSettingsChange({
-                    color: mergeHexPickerRgbPreserveAlpha(
-                      brushSettings.color,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Size</Typography>
-              <Slider
-                size="small" min={1} max={200}
-                value={brushSettings.size}
-                onChange={(_, v) => onBrushSettingsChange({ size: v as number })}
-              />
-              <Typography className="setting-value">{brushSettings.size}</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={brushSettings.opacity}
-                onChange={(_, v) => onBrushSettingsChange({ opacity: v as number })}
-              />
-              <Typography className="setting-value">
-                {Math.round(brushSettings.opacity * 100)}%
-              </Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Hard</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={brushSettings.hardness}
-                onChange={(_, v) => onBrushSettingsChange({ hardness: v as number })}
-              />
-              <Typography className="setting-value">
-                {Math.round(brushSettings.hardness * 100)}%
-              </Typography>
-            </Box>
-            <Box className="setting-row" sx={{ alignItems: "center" }}>
-              <Typography className="setting-label">Pressure</Typography>
-              <Switch
-                size="small"
-                checked={brushSettings.pressureSensitivity ?? true}
-                onChange={(_, checked) => onBrushSettingsChange({ pressureSensitivity: checked })}
-              />
-            </Box>
-            {brushSettings.pressureSensitivity !== false && (
-              <Box sx={{ mb: "4px" }}>
-                <ToggleButtonGroup
-                  value={brushSettings.pressureAffects || "both"}
-                  exclusive
-                  onChange={(_, v) => { if (v) { onBrushSettingsChange({ pressureAffects: v as "size" | "opacity" | "both" }); } }}
-                  size="small"
-                  fullWidth
-                >
-                  <ToggleButton value="size" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                    Size
-                  </ToggleButton>
-                  <ToggleButton value="opacity" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                    Opacity
-                  </ToggleButton>
-                  <ToggleButton value="both" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                    Both
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-            )}
-            {(brushSettings.brushType === "round" || brushSettings.brushType === "soft") && (
-              <>
-                <Box className="setting-row">
-                  <Typography className="setting-label">Round</Typography>
-                  <Slider
-                    size="small" min={0.1} max={1} step={0.01}
-                    value={brushSettings.roundness ?? 1.0}
-                    onChange={(_, v) => onBrushSettingsChange({ roundness: v as number })}
-                  />
-                  <Typography className="setting-value">
-                    {Math.round((brushSettings.roundness ?? 1.0) * 100)}%
-                  </Typography>
-                </Box>
-                <Box className="setting-row">
-                  <Typography className="setting-label">Angle</Typography>
-                  <Slider
-                    size="small" min={0} max={360} step={1}
-                    value={brushSettings.angle ?? 0}
-                    onChange={(_, v) => onBrushSettingsChange({ angle: v as number })}
-                  />
-                  <Typography className="setting-value">
-                    {brushSettings.angle ?? 0}°
-                  </Typography>
-                </Box>
-              </>
-            )}
-          </>
-        )}
-
-        {activeTool === "pencil" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Color</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(pencilSettings.color)}
-                onChange={(e) =>
-                  onPencilSettingsChange({
-                    color: mergeHexPickerRgbPreserveAlpha(
-                      pencilSettings.color,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Size</Typography>
-              <Slider
-                size="small" min={1} max={10}
-                value={pencilSettings.size}
-                onChange={(_, v) => onPencilSettingsChange({ size: v as number })}
-              />
-              <Typography className="setting-value">{pencilSettings.size}</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={pencilSettings.opacity}
-                onChange={(_, v) => onPencilSettingsChange({ opacity: v as number })}
-              />
-              <Typography className="setting-value">
-                {Math.round(pencilSettings.opacity * 100)}%
-              </Typography>
-            </Box>
-          </>
-        )}
-
-        {activeTool === "eraser" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Size</Typography>
-              <Slider
-                size="small" min={1} max={200}
-                value={eraserSettings.size}
-                onChange={(_, v) => onEraserSettingsChange({ size: v as number })}
-              />
-              <Typography className="setting-value">{eraserSettings.size}</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={eraserSettings.opacity}
-                onChange={(_, v) => onEraserSettingsChange({ opacity: v as number })}
-              />
-              <Typography className="setting-value">
-                {Math.round(eraserSettings.opacity * 100)}%
-              </Typography>
-            </Box>
-          </>
-        )}
-
-        {isShapeTool(activeTool) && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Stroke</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(shapeSettings.strokeColor)}
-                onChange={(e) =>
-                  onShapeSettingsChange({
-                    strokeColor: mergeHexPickerRgbPreserveAlpha(
-                      shapeSettings.strokeColor,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Width</Typography>
-              <Slider
-                size="small" min={1} max={50}
-                value={shapeSettings.strokeWidth}
-                onChange={(_, v) => onShapeSettingsChange({ strokeWidth: v as number })}
-              />
-              <Typography className="setting-value">{shapeSettings.strokeWidth}</Typography>
-            </Box>
-            {(activeTool === "rectangle" || activeTool === "ellipse") && (
-              <>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={shapeSettings.filled}
-                      onChange={(e) => onShapeSettingsChange({ filled: e.target.checked })}
-                    />
-                  }
-                  label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
-                />
-                {shapeSettings.filled && (
-                  <Box className="setting-row">
-                    <Typography className="setting-label">Fill</Typography>
-                    <input
-                      type="color"
-                      className="color-input"
-                      value={colorToHex6(shapeSettings.fillColor)}
-                      onChange={(e) =>
-                        onShapeSettingsChange({
-                          fillColor: mergeHexPickerRgbPreserveAlpha(
-                            shapeSettings.fillColor,
-                            e.target.value
-                          )
-                        })
-                      }
-                    />
-                  </Box>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        {activeTool === "fill" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Color</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(fillSettings.color)}
-                onChange={(e) =>
-                  onFillSettingsChange({
-                    color: mergeHexPickerRgbPreserveAlpha(
-                      fillSettings.color,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Tolerance</Typography>
-              <Slider
-                size="small" min={0} max={128}
-                value={fillSettings.tolerance}
-                onChange={(_, v) => onFillSettingsChange({ tolerance: v as number })}
-              />
-              <Typography className="setting-value">{fillSettings.tolerance}</Typography>
-            </Box>
-          </>
-        )}
-
-        {activeTool === "blur" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Size</Typography>
-              <Slider
-                size="small" min={1} max={200}
-                value={blurSettings.size}
-                onChange={(_, v) => onBlurSettingsChange({ size: v as number })}
-              />
-              <Typography className="setting-value">{blurSettings.size}</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Strength</Typography>
-              <Slider
-                size="small" min={1} max={20}
-                value={blurSettings.strength}
-                onChange={(_, v) => onBlurSettingsChange({ strength: v as number })}
-              />
-              <Typography className="setting-value">{blurSettings.strength}</Typography>
-            </Box>
-          </>
-        )}
-
-        {activeTool === "gradient" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Start</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(gradientSettings.startColor)}
-                onChange={(e) =>
-                  onGradientSettingsChange({
-                    startColor: mergeHexPickerRgbPreserveAlpha(
-                      gradientSettings.startColor,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ px: "4px", mb: "4px" }}>
-              <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
-                Start opacity
-              </Typography>
-              <Slider
-                size="small"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(
-                  parseColorToRgba(gradientSettings.startColor).a * 100
-                )}
-                onChange={(_, v) => {
-                  const a = (v as number) / 100;
-                  const { r, g, b } = parseColorToRgba(
-                    gradientSettings.startColor
-                  );
-                  onGradientSettingsChange({
-                    startColor: rgbaToCss({ r, g, b, a })
-                  });
-                }}
-              />
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">End</Typography>
-              <input
-                type="color"
-                className="color-input"
-                value={colorToHex6(gradientSettings.endColor)}
-                onChange={(e) =>
-                  onGradientSettingsChange({
-                    endColor: mergeHexPickerRgbPreserveAlpha(
-                      gradientSettings.endColor,
-                      e.target.value
-                    )
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ px: "4px", mb: "4px" }}>
-              <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
-                End opacity
-              </Typography>
-              <Slider
-                size="small"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(
-                  parseColorToRgba(gradientSettings.endColor).a * 100
-                )}
-                onChange={(_, v) => {
-                  const a = (v as number) / 100;
-                  const { r, g, b } = parseColorToRgba(
-                    gradientSettings.endColor
-                  );
-                  onGradientSettingsChange({
-                    endColor: rgbaToCss({ r, g, b, a })
-                  });
-                }}
-              />
-            </Box>
-            <ToggleButtonGroup
-              value={gradientSettings.type}
-              exclusive
-              onChange={(_, v) => { if (v) { onGradientSettingsChange({ type: v }); } }}
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="linear" sx={{ fontSize: "0.65rem", py: "2px" }}>
-                Linear
-              </ToggleButton>
-              <ToggleButton value="radial" sx={{ fontSize: "0.65rem", py: "2px" }}>
-                Radial
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </>
-        )}
-
-        {activeTool === "crop" && (
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
-            Drag on canvas to select crop area.
-          </Typography>
-        )}
-
-        {activeTool === "clone_stamp" && (
-          <>
-            <Box className="setting-row">
-              <Typography className="setting-label">Size</Typography>
-              <Slider
-                size="small" min={1} max={200}
-                value={cloneStampSettings.size}
-                onChange={(_, v) => onCloneStampSettingsChange({ size: v as number })}
-              />
-              <Typography className="setting-value">{cloneStampSettings.size}</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={cloneStampSettings.opacity}
-                onChange={(_, v) => onCloneStampSettingsChange({ opacity: v as number })}
-              />
-              <Typography className="setting-value">{Math.round(cloneStampSettings.opacity * 100)}%</Typography>
-            </Box>
-            <Box className="setting-row">
-              <Typography className="setting-label">Hardness</Typography>
-              <Slider
-                size="small" min={0} max={1} step={0.01}
-                value={cloneStampSettings.hardness}
-                onChange={(_, v) => onCloneStampSettingsChange({ hardness: v as number })}
-              />
-              <Typography className="setting-value">{Math.round(cloneStampSettings.hardness * 100)}%</Typography>
-            </Box>
-            <ToggleButtonGroup
-              value={cloneStampSettings.sampling}
-              exclusive
-              onChange={(_, v) => { if (v) { onCloneStampSettingsChange({ sampling: v as CloneStampSampling }); } }}
-              size="small"
-              fullWidth
-            >
-              <ToggleButton value="active_layer" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                Active Layer
-              </ToggleButton>
-              <ToggleButton value="composited" sx={{ fontSize: "0.6rem", py: "2px" }}>
-                All Layers
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Typography sx={{ fontSize: "0.65rem", color: "grey.500", fontStyle: "italic", mt: 1 }}>
-              Alt+click to set source point
-            </Typography>
-          </>
-        )}
-
-        {(activeTool === "move" || activeTool === "eyedropper") && (
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}>
-            No settings for this tool.
-          </Typography>
-        )}
+        <ToolSettingsPanel
+          activeTool={activeTool}
+          brushSettings={brushSettings}
+          pencilSettings={pencilSettings}
+          eraserSettings={eraserSettings}
+          shapeSettings={shapeSettings}
+          fillSettings={fillSettings}
+          blurSettings={blurSettings}
+          gradientSettings={gradientSettings}
+          cloneStampSettings={cloneStampSettings}
+          onBrushSettingsChange={onBrushSettingsChange}
+          onPencilSettingsChange={onPencilSettingsChange}
+          onEraserSettingsChange={onEraserSettingsChange}
+          onShapeSettingsChange={onShapeSettingsChange}
+          onFillSettingsChange={onFillSettingsChange}
+          onBlurSettingsChange={onBlurSettingsChange}
+          onGradientSettingsChange={onGradientSettingsChange}
+          onCloneStampSettingsChange={onCloneStampSettingsChange}
+        />
       </ToolbarSection>
 
       <Divider />
