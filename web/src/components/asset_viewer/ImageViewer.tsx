@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
 import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface ImageViewerProps {
   asset?: Asset;
@@ -181,7 +182,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     height: "100%",
     width: "100%",
     top: "0",
-    display: "block" as const
+    display: "block" as const,
+    ...alphaSurfaceBg
   }), []);
 
   const imageStyle = useMemo(() => ({
