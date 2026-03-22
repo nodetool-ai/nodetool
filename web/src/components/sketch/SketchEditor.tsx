@@ -935,7 +935,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
   );
 
   return (
-    <Box css={styles(theme)}>
+    <Box className="sketch-editor" css={styles(theme)}>
       {!panelsHidden && (
         <SketchToolbar
           activeTool={activeTool}
@@ -988,9 +988,13 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
         />
       )}
 
-      <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <Box
+        className="sketch-editor__canvas-region"
+        sx={{ flex: 1, position: "relative", overflow: "hidden" }}
+      >
         <SketchCanvas
           ref={canvasRef}
+          className="sketch-editor__canvas"
           document={document}
           activeTool={activeTool}
           zoom={zoom}
@@ -1040,6 +1044,7 @@ const SketchEditor: React.FC<SketchEditorProps> = ({
       )}
 
       <SketchCanvasContextMenu
+        className="sketch-editor__context-menu"
         open={contextMenu !== null}
         position={contextMenu}
         activeTool={activeTool}

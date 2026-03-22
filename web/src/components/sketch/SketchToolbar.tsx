@@ -638,9 +638,11 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   );
 
   return (
-    <Box css={styles(theme)}>
+    <Box className="sketch-toolbar" css={styles(theme)}>
       {/* ── Tools (always visible, not collapsible) ───────────────── */}
-      <Typography className="section-label">Tools</Typography>
+      <Typography className="section-label sketch-toolbar__section-label">
+        Tools
+      </Typography>
       <ToggleButtonGroup
         value={activeTool}
         exclusive

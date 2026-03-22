@@ -456,6 +456,8 @@ function ToolGridButton({
 }
 
 export interface SketchCanvasContextMenuProps {
+  /** Applied to the menu paper (e.g. `sketch-editor__context-menu`). */
+  className?: string;
   open: boolean;
   position: { x: number; y: number } | null;
   activeTool: SketchTool;
@@ -489,7 +491,10 @@ export interface SketchCanvasContextMenuProps {
   onExportPng: () => void;
 }
 
+const CONTEXT_MENU_HEADER_HEIGHT_PX = 52;
+
 const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
+  className: paperClassName,
   open,
   position,
   activeTool,
@@ -583,7 +588,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           onClick={onSwapColors}
           aria-label="Swap foreground and background colors"
           sx={{
-            mt: -1,
+            mt: 0,
             border: "1px solid",
             borderColor: theme.vars.palette.grey[700],
             backgroundColor: surfaceSoft,
@@ -993,8 +998,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
       disableRestoreFocus
       slotProps={{
         paper: {
+          className: ["sketch-context-menu", paperClassName].filter(Boolean).join(" "),
           sx: {
-            width: 760,
+            width: 620,
             maxWidth: "calc(100vw - 24px)",
             borderRadius: "12px",
             backgroundImage: "none",
@@ -1006,91 +1012,154 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         }
       }}
     >
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "180px minmax(0, 1fr) 220px",
-          gap: 1.25,
-          alignItems: "stretch",
-          "& > *:not(:last-child)": {
-            position: "relative",
-            "&::after": {
-              content: '""',
-              position: "absolute",
-              top: 4,
-              right: -10,
-              bottom: 4,
-              width: "1px",
-              backgroundColor: theme.vars.palette.grey[800]
-            }
-          }
-        }}
-      >
+      <Box className="sketch-context-menu__root" sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
         <Box
+          className="sketch-context-menu__header"
           sx={{
-            minWidth: 0,
+            flex: "0 0 auto",
+            height: CONTEXT_MENU_HEADER_HEIGHT_PX,
+            minHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
+            maxHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 1,
+            px: 1.25,
+            py: 0,
             borderRadius: "8px",
             border: "1px solid",
             borderColor: alpha(theme.palette.primary.main, 0.28),
             backgroundColor: alpha(theme.palette.primary.main, 0.1),
-            px: 1.35,
-            py: 1.15
+            overflow: "hidden"
           }}
         >
-          <Stack spacing={1}>
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.9 }}>
-                <Box
-                  sx={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "7px",
-                    display: "grid",
-                    placeItems: "center",
-                    backgroundColor: alpha(theme.palette.primary.main, 0.18),
-                    color: "primary.light"
-                  }}
-                >
-                  <ActiveIcon fontSize="small" />
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: "0.92rem",
-                    fontWeight: 700,
-                    color: "text.primary"
-                  }}
-                >
-                  {activeDefinition.label}
-                </Typography>
-              </Stack>
-              <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                {summaryItems.map((item) => (
-                  <Box
-                    key={item}
-                    sx={{
-                      px: 0.8,
-                      py: 0.26,
-                      borderRadius: "999px",
-                      backgroundColor: theme.vars.palette.grey[800],
-                      fontSize: "0.66rem",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      color: "text.secondary"
-                    }}
-                  >
-                    {item}
-                  </Box>
-                ))}
-              </Stack>
+          <Box
+            className="sketch-context-menu__header-tool-icon"
+            sx={{
+              flex: "0 0 auto",
+              width: 34,
+              height: 34,
+              borderRadius: "7px",
+              display: "grid",
+              placeItems: "center",
+              backgroundColor: alpha(theme.palette.primary.main, 0.18),
+              color: "primary.light"
+            }}
+          >
+            <ActiveIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <Typography
+            className="sketch-context-menu__header-tool-label"
+            component="span"
+            sx={{
+              flex: "0 0 auto",
+              fontSize: "0.92rem",
+              fontWeight: 700,
+              color: "text.primary",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {activeDefinition.label}
+          </Typography>
+          {activeDefinition.shortcut ? (
+            <Box
+              className="sketch-context-menu__header-shortcut"
+              sx={{
+                flex: "0 0 auto",
+                px: 0.65,
+                py: 0.2,
+                borderRadius: "6px",
+                border: "1px solid",
+                borderColor: theme.vars.palette.grey[600],
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                lineHeight: 1.2,
+                color: "text.secondary",
+                fontVariantNumeric: "tabular-nums"
+              }}
+            >
+              {activeDefinition.shortcut}
             </Box>
-
-            <Divider />
-
-            <Box>{renderColorContext()}</Box>
+          ) : null}
+          <Stack
+            className="sketch-context-menu__header-summary"
+            direction="row"
+            spacing={0.65}
+            useFlexGap
+            sx={{
+              flex: "1 1 auto",
+              minWidth: 0,
+              alignItems: "center",
+              flexWrap: "nowrap",
+              overflowX: "auto",
+              overflowY: "hidden",
+              py: 0.25,
+              "&::-webkit-scrollbar": { height: 4 },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: theme.vars.palette.grey[700],
+                borderRadius: 2
+              }
+            }}
+          >
+            {summaryItems.map((item) => (
+              <Box
+                key={item}
+                component="span"
+                sx={{
+                  flex: "0 0 auto",
+                  px: 0.75,
+                  py: 0.2,
+                  borderRadius: "999px",
+                  backgroundColor: theme.vars.palette.grey[800],
+                  fontSize: "0.66rem",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  color: "text.secondary",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {item}
+              </Box>
+            ))}
           </Stack>
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ borderColor: alpha(theme.palette.primary.main, 0.22), my: 0.75 }}
+          />
+          <Box
+            className="sketch-context-menu__header-colors"
+            sx={{ flex: "0 0 auto", display: "flex", alignItems: "center" }}
+          >
+            {renderColorContext()}
+          </Box>
         </Box>
 
         <Box
+          className="sketch-context-menu__body"
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) 220px",
+            gap: 1.25,
+            alignItems: "stretch",
+            minWidth: 0,
+            "& > *:first-of-type": {
+              position: "relative",
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                top: 4,
+                right: -10,
+                bottom: 4,
+                width: "1px",
+                backgroundColor: theme.vars.palette.grey[800]
+              }
+            }
+          }}
+        >
+        <Box
+          className="sketch-context-menu__quick"
           sx={{
             minWidth: 0,
             minHeight: 360,
@@ -1107,8 +1176,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           {renderQuickControls()}
         </Box>
 
-        <Stack spacing={1.1} sx={{ minWidth: 0 }}>
+        <Stack className="sketch-context-menu__sidebar" spacing={1.1} sx={{ minWidth: 0 }}>
           <Box
+            className="sketch-context-menu__tools"
             sx={{
               borderRadius: "8px",
               border: "1px solid",
@@ -1120,6 +1190,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           >
             <SectionLabel>Tools</SectionLabel>
             <Box
+              className="sketch-context-menu__tools-grid"
               sx={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -1142,6 +1213,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           </Box>
 
           <Box
+            className="sketch-context-menu__canvas-actions"
             sx={{
               borderRadius: "8px",
               border: "1px solid",
@@ -1236,6 +1308,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             </Stack>
           </Box>
         </Stack>
+        </Box>
       </Box>
     </Popover>
   );

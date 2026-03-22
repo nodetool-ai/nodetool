@@ -89,7 +89,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
   }
 
   return ReactDOM.createPortal(
-    <Box css={styles(theme)} onKeyDown={handleKeyDown} tabIndex={-1}>
+    <Box
+      className="sketch-modal"
+      css={styles(theme)}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+    >
       <Box className="sketch-modal-header">
         <Typography
           variant="body2"

@@ -122,6 +122,8 @@ export interface SketchCanvasProps {
   onEyedropperPick?: (color: string) => void;
   selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
+  /** Merged onto the root container (e.g. for layout hooks / E2E). */
+  className?: string;
 }
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
@@ -182,7 +184,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onCropComplete,
       onEyedropperPick,
       selection,
-      onSelectionChange
+      onSelectionChange,
+      className: rootClassName
     } = props;
 
     const theme = useTheme();
@@ -2817,6 +2820,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     return (
       <div
         ref={containerRef}
+        className={rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"}
         css={styles(theme)}
         style={{ cursor: cursorStyle }}
         onPointerDown={handlePointerDown}
@@ -2829,6 +2833,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       >
         <canvas
           ref={displayCanvasRef}
+          className="sketch-canvas__display"
           width={doc.canvas.width}
           height={doc.canvas.height}
           style={canvasStyle}
@@ -2836,14 +2841,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         {/* Overlay canvas for shape/gradient/crop preview */}
         <canvas
           ref={overlayCanvasRef}
+          className="sketch-canvas__overlay"
           width={doc.canvas.width}
           height={doc.canvas.height}
           style={{ ...canvasStyle, pointerEvents: "none" }}
         />
         {/* Cursor canvas for brush size preview */}
-        <canvas ref={cursorCanvasRef} className="cursor-overlay" />
+        <canvas
+          ref={cursorCanvasRef}
+          className="sketch-canvas__cursor cursor-overlay"
+        />
         {/* Canvas info bar */}
         <Box
+          className="sketch-canvas__info-bar"
           sx={{
             position: "absolute",
             bottom: 8,

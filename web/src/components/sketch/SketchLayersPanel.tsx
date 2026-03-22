@@ -361,8 +361,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const activeLayer = layers.find((l) => l.id === activeLayerId);
 
   return (
-    <Box css={styles(theme)}>
-      <Typography className="section-label">Layers</Typography>
+    <Box className="sketch-layers-panel" css={styles(theme)}>
+      <Typography className="section-label sketch-layers-panel__title">
+        Layers
+      </Typography>
 
       {/* Add layer with color presets */}
       <Box className="layer-actions" sx={{ gap: "3px !important" }}>
