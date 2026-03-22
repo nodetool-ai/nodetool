@@ -29,13 +29,20 @@ Goal: support transparent images consistently across the web app so alpha is pre
 
 ## Phase 2: Core Output And Preview Surfaces
 
-- [ ] Update `web/src/components/node/ImageView.tsx` to render on the shared transparency-aware surface.
-- [ ] Update `web/src/components/node/PreviewNode/PreviewNode.tsx` to ensure node previews do not visually flatten transparent content.
-- [ ] Update `web/src/components/node/ResultOverlay.tsx` to use the same behavior as node previews.
-- [ ] Verify `web/src/components/node/OutputRenderer.tsx` routes image outputs through alpha-aware renderers consistently.
-- [ ] Verify `web/src/components/node/output/ChunkRenderer.tsx` image chunks inherit the same rendering behavior.
-- [ ] Update `web/src/components/node/ThreadMessageList.tsx` so image messages do not bypass the shared image preview path.
-- [ ] Verify `web/src/components/chat/message/MessageContentRenderer.tsx` still renders images through the shared image preview path.
+- [x] Update `web/src/components/node/ImageView.tsx` to render on the shared transparency-aware surface.
+  - Applied `alphaSurfaceBg` to the container style with matching `borderRadius` and `overflow: hidden` so the checkerboard is visible through transparent regions and clipped at corners.
+- [x] Update `web/src/components/node/PreviewNode/PreviewNode.tsx` to ensure node previews do not visually flatten transparent content.
+  - Verified: PreviewNode renders via `OutputRenderer` → `ImageView`. The content area has `backgroundColor: "transparent"`, so the alpha surface on `ImageView` shows through with no changes needed.
+- [x] Update `web/src/components/node/ResultOverlay.tsx` to use the same behavior as node previews.
+  - Verified: ResultOverlay renders via `OutputRenderer` → `ImageView`. The overlay content area has no opaque background, so the alpha surface on `ImageView` shows through with no changes needed.
+- [x] Verify `web/src/components/node/OutputRenderer.tsx` routes image outputs through alpha-aware renderers consistently.
+  - Verified: `type === "image"` routes to `ImageView` for single images and data arrays. Array-of-image objects route to `AssetGrid` (phase 4). All paths use `ImageView` as the leaf renderer.
+- [x] Verify `web/src/components/node/output/ChunkRenderer.tsx` image chunks inherit the same rendering behavior.
+  - Verified: `content_type === "image"` renders `<ImageView source={chunk.content} />`, inheriting the alpha surface.
+- [x] Update `web/src/components/node/ThreadMessageList.tsx` so image messages do not bypass the shared image preview path.
+  - Replaced raw `<img>` tag with `<ImageView source={c.image?.uri} />` so image messages render through the shared alpha-aware surface.
+- [x] Verify `web/src/components/chat/message/MessageContentRenderer.tsx` still renders images through the shared image preview path.
+  - Verified: `type === "image_url"` already renders `<ImageView source={imageSource} />`, no changes needed.
 
 ## Phase 3: Property Input Previews
 
