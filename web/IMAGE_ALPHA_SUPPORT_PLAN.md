@@ -9,7 +9,6 @@ Goal: support transparent images consistently across the web app so alpha is pre
 - [ ] Property editors for single and multiple images preview alpha correctly.
 - [ ] Asset browser thumbnails and fullscreen viewer preserve and communicate transparency.
 - [ ] Compare flows show transparent regions correctly for both images.
-- [ ] Image editing keeps alpha intact on load, preview, and save.
 - [ ] Upload and frontend preview pipelines do not accidentally flatten or mislabel alpha-capable assets.
 
 ## Phase 1: Shared Visual Foundation
@@ -21,6 +20,9 @@ Goal: support transparent images consistently across the web app so alpha is pre
 - [ ] Add a shared reusable wrapper or styling primitive for image surfaces.
 - [ ] Keep the visual treatment subtle enough to work in dark UI while still making transparency obvious.
 - [ ] Verify the shared treatment works for both `object-fit: contain` and `object-fit: cover` layouts.
+- [ ] Keep layout changes minimal in the first pass:
+  - no extra padding unless a specific surface truly needs it
+  - do not change existing sizing or fit behavior unless a surface is too misleading without it
 
 ## Phase 2: Core Output And Preview Surfaces
 
@@ -37,7 +39,6 @@ Goal: support transparent images consistently across the web app so alpha is pre
 - [ ] Update `web/src/components/properties/ImageProperty.tsx` single-image preview behavior through the shared alpha-aware surface.
 - [ ] Update `web/src/components/properties/PropertyDropzone.tsx` to show transparent images clearly during property editing.
 - [ ] Update `web/src/components/properties/ImageListProperty.tsx` multi-image tiles so transparency is visible and not misleading.
-- [ ] Update `ImageListProperty` thumbnails to prefer `contain` in the first pass so transparent margins and edges remain visible.
 - [ ] Confirm drag-drop, picker, and replace flows still behave correctly after preview changes.
 
 ## Phase 4: Asset Browser And Fullscreen Viewer
@@ -51,7 +52,7 @@ Goal: support transparent images consistently across the web app so alpha is pre
 ## Phase 5: Grid And Comparison Views
 
 - [ ] Update `web/src/components/node/PreviewImageGrid.tsx` tile backgrounds for transparent images.
-- [ ] Keep dense gallery-style grids on `cover` in the first pass to avoid layout churn, but render them on the shared alpha-aware surface.
+- [ ] Keep existing fit behavior in dense gallery-style grids in the first pass to avoid layout churn, but render them on the shared alpha-aware surface.
 - [ ] Update `web/src/components/widgets/ImageComparer.tsx` so both compared layers are shown over a transparency-aware surface.
 - [ ] Verify `web/src/components/node/output/ImageComparisonRenderer.tsx` inherits the updated comparer behavior.
 - [ ] Verify `web/src/components/node/CompareImagesNode/CompareImagesNode.tsx` matches the updated compare behavior on-canvas.
@@ -76,24 +77,15 @@ Goal: support transparent images consistently across the web app so alpha is pre
 - [x] Conclusion:
   - frontend preview work is still needed everywhere
   - flat JPEG thumbnails are acceptable for now
-  - the first pass should make full-size previews, property previews, compare views, and editor surfaces alpha-aware without requiring backend thumbnail changes
+  - the first pass should make full-size previews, property previews, and compare views alpha-aware without requiring backend thumbnail changes
 
-## Phase 7: Image Editor
-
-- [ ] Update `web/src/components/node/image_editor/ImageEditorCanvas.tsx` so the editor canvas previews transparency clearly.
-- [ ] Update `web/src/components/node/image_editor/canvasUtils.ts` to avoid misleading opaque background assumptions in image display helpers.
-- [ ] Verify erase, draw, shape, fill, crop, and text operations behave correctly with transparent areas.
-- [ ] Verify canvas export helpers still default to alpha-preserving formats where appropriate.
-- [ ] Confirm saving edited transparent images preserves alpha end-to-end.
-
-## Phase 8: Secondary Surfaces
+## Phase 7: Secondary Surfaces
 
 - [ ] Review markdown-rendered images for alpha visibility in chat or documentation-style views.
-- [ ] Review workflow thumbnails and cards for transparent image readability.
-- [ ] Review small asset info panels and node info previews for consistency.
+- [ ] Review small asset info panels for consistency.
 - [ ] Review composer or attachment previews for transparent images if those surfaces are user-facing.
 
-## Testing Checklist
+## Manual Testing Checklist
 
 - [ ] Test with transparent PNG containing soft shadows.
 - [ ] Test with transparent PNG containing large empty margins.
@@ -105,25 +97,33 @@ Goal: support transparent images consistently across the web app so alpha is pre
 - [ ] Test multi-image property previews.
 - [ ] Test asset grid thumbnails and fullscreen viewer.
 - [ ] Test compare mode with two transparent images.
-- [ ] Test image editor load, erase, and save with transparency.
 - [ ] Test clipboard copy for transparent images in Electron.
 
 ## Decisions
 
 - [x] Transparency treatment:
-      Use a subtle checkerboard-style alpha background on app-owned image preview surfaces. This gives a clear signal without making the UI feel noisy.
+  Use a subtle checkerboard-style alpha background on app-owned image preview surfaces. This gives a clear signal without making the UI feel noisy.
 
 - [x] Scope for first pass:
-      Apply the alpha-aware treatment to real image preview surfaces in the app, not every incidental or decorative image. No user-facing toggle in the first run.
+  Apply the alpha-aware treatment to real image preview surfaces in the app, not every incidental or decorative image. No user-facing toggle in the first run.
 
 - [x] Layout behavior:
-      Keep existing fit behavior where density matters, and only change it where transparency readability is more important:
-  - single-image previews, viewer, compare, and editor: prefer `contain`
-  - dense asset/grid thumbnails: keep `cover` for now
-  - property image lists: switch to `contain` so transparent edges are not hidden
+  Prefer minimal layout change in the first pass. Keep existing `contain` / `cover` behavior unless a specific surface proves too misleading without a fit change. Avoid adding extra padding unless it is truly needed for readability.
 
 - [x] Reuse strategy:
-      Do not build a large global abstraction. Use one small shared alpha-surface primitive or styling helper, then keep per-surface layout behavior local and understandable.
+  Do not build a large global abstraction. Use one small shared alpha-surface primitive or styling helper, then keep per-surface layout behavior local and understandable.
 
 - [x] Backend dependency:
-      Assume the TypeScript backend path. Flat JPEG thumbnails are acceptable in the first pass. Do not scope work around `nodetool-core`, and do not require backend thumbnail changes for the initial rollout.
+  Assume the TypeScript backend path. Flat JPEG thumbnails are acceptable in the first pass. Do not scope work around `nodetool-core`, and do not require backend thumbnail changes for the initial rollout.
+
+- [x] Out of scope:
+  Exclude the current `ImageEditor` work from this plan because that area will be replaced soon.
+
+## Future Suggestions
+
+- [ ] If some surfaces still feel ambiguous after the first pass, selectively allow fit changes on those specific components instead of changing fit behavior globally.
+- [ ] If small previews remain hard to read, consider a slightly stronger checkerboard contrast for tiny thumbnail surfaces only.
+- [ ] If users want more control later, consider an optional transparency toggle in fullscreen viewers rather than across the whole app.
+- [ ] When the replacement image editor work starts, carry over the same alpha-surface treatment there for consistency.
+- [ ] If the TypeScript backend later adds real thumbnail generation, prefer an alpha-preserving format for image thumbnails where useful.
+- [ ] If markdown or other secondary surfaces become important, apply the same shared alpha-surface styling there rather than creating one-off implementations.
