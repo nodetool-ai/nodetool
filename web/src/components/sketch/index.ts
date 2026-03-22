@@ -9,6 +9,7 @@ export { default as SketchEditor } from "./SketchEditor";
 export { default as SketchModal } from "./SketchModal";
 export { default as SketchCanvas } from "./SketchCanvas";
 export { default as SketchToolbar } from "./SketchToolbar";
+export { default as SketchToolTopBar } from "./SketchToolTopBar";
 export { default as SketchLayersPanel } from "./SketchLayersPanel";
 
 export { useSketchStore } from "./state";

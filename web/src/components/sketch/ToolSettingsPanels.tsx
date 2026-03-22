@@ -14,7 +14,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Button
 } from "@mui/material";
 import {
   SketchTool,
@@ -35,6 +36,9 @@ import {
 } from "./types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+/** Reusable no-op function to avoid allocations in optional prop fallbacks. */
+const noop = () => {};
 
 /** Native color input returns #rrggbb; keep existing alpha from stored CSS color. */
 export function mergeHexPickerRgbPreserveAlpha(
@@ -62,6 +66,8 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Gradient";
     case "crop":
       return "Crop";
+    case "adjust":
+      return "Adjustments";
     case "line":
     case "rectangle":
     case "ellipse":
@@ -726,6 +732,74 @@ export const CloneStampSettingsPanel = memo(
   }
 );
 
+// ─── AdjustmentsSettingsPanel ─────────────────────────────────────────────
+
+interface AdjustmentsSettingsPanelProps {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  onBrightnessChange: (value: number) => void;
+  onContrastChange: (value: number) => void;
+  onSaturationChange: (value: number) => void;
+  onReset: () => void;
+}
+
+export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
+  brightness,
+  contrast,
+  saturation,
+  onBrightnessChange,
+  onContrastChange,
+  onSaturationChange,
+  onReset
+}: AdjustmentsSettingsPanelProps) {
+  return (
+    <>
+      <Box className="setting-row">
+        <Typography className="setting-label">Bright</Typography>
+        <Slider
+          size="small"
+          min={-100}
+          max={100}
+          value={brightness}
+          onChange={(_, v) => onBrightnessChange(v as number)}
+        />
+        <Typography className="setting-value">{brightness}</Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Contrast</Typography>
+        <Slider
+          size="small"
+          min={-100}
+          max={100}
+          value={contrast}
+          onChange={(_, v) => onContrastChange(v as number)}
+        />
+        <Typography className="setting-value">{contrast}</Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Satur.</Typography>
+        <Slider
+          size="small"
+          min={-100}
+          max={100}
+          value={saturation}
+          onChange={(_, v) => onSaturationChange(v as number)}
+        />
+        <Typography className="setting-value">{saturation}</Typography>
+      </Box>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={onReset}
+        sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px" }}
+      >
+        Reset
+      </Button>
+    </>
+  );
+});
+
 // ─── NoSettingsMessage ────────────────────────────────────────────────────
 
 export const NoSettingsMessage = memo(function NoSettingsMessage() {
@@ -762,6 +836,9 @@ export interface ToolSettingsPanelProps {
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
   cloneStampSettings: CloneStampSettings;
+  adjustBrightness?: number;
+  adjustContrast?: number;
+  adjustSaturation?: number;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onPencilSettingsChange: (settings: Partial<PencilSettings>) => void;
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
@@ -772,6 +849,10 @@ export interface ToolSettingsPanelProps {
   onCloneStampSettingsChange: (
     settings: Partial<CloneStampSettings>
   ) => void;
+  onAdjustBrightnessChange?: (value: number) => void;
+  onAdjustContrastChange?: (value: number) => void;
+  onAdjustSaturationChange?: (value: number) => void;
+  onAdjustReset?: () => void;
 }
 
 export const ToolSettingsPanel = memo(function ToolSettingsPanel({
@@ -784,6 +865,9 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   blurSettings,
   gradientSettings,
   cloneStampSettings,
+  adjustBrightness,
+  adjustContrast,
+  adjustSaturation,
   onBrushSettingsChange,
   onPencilSettingsChange,
   onEraserSettingsChange,
@@ -791,7 +875,11 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onFillSettingsChange,
   onBlurSettingsChange,
   onGradientSettingsChange,
-  onCloneStampSettingsChange
+  onCloneStampSettingsChange,
+  onAdjustBrightnessChange,
+  onAdjustContrastChange,
+  onAdjustSaturationChange,
+  onAdjustReset
 }: ToolSettingsPanelProps) {
   if (activeTool === "brush") {
     return (
@@ -861,8 +949,21 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
       />
     );
   }
-  if (activeTool === "move" || activeTool === "eyedropper") {
+  if (activeTool === "move" || activeTool === "eyedropper" || activeTool === "select") {
     return <NoSettingsMessage />;
+  }
+  if (activeTool === "adjust") {
+    return (
+      <AdjustmentsSettingsPanel
+        brightness={adjustBrightness ?? 0}
+        contrast={adjustContrast ?? 0}
+        saturation={adjustSaturation ?? 0}
+        onBrightnessChange={onAdjustBrightnessChange ?? noop}
+        onContrastChange={onAdjustContrastChange ?? noop}
+        onSaturationChange={onAdjustSaturationChange ?? noop}
+        onReset={onAdjustReset ?? noop}
+      />
+    );
   }
   return null;
 });

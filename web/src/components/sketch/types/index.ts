@@ -58,7 +58,8 @@ export type SketchTool =
   | "blur"
   | "gradient"
   | "crop"
-  | "clone_stamp";
+  | "clone_stamp"
+  | "adjust";
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
