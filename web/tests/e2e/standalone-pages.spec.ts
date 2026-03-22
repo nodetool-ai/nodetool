@@ -32,6 +32,7 @@ if (process.env.JEST_WORKER_ID) {
             name: `test-miniapp-${Date.now()}`,
             description: "miniapp test",
             access: "private",
+            graph: { nodes: [], edges: [] },
           },
         });
         const workflow = await createRes.json();
@@ -73,6 +74,7 @@ if (process.env.JEST_WORKER_ID) {
             name: `test-standalone-miniapp-${Date.now()}`,
             description: "",
             access: "private",
+            graph: { nodes: [], edges: [] },
           },
         });
         const workflow = await createRes.json();

@@ -35,7 +35,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should create a workflow via API", async ({ request }) => {
         const name = `test-create-${Date.now()}`;
         const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "E2E test workflow", access: "private" },
+          data: { name, description: "E2E test workflow", access: "private", graph: { nodes: [], edges: [] } },
         });
         expect(res.status()).toBe(200);
 
@@ -54,7 +54,7 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         const name = `test-list-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "", access: "private" },
+          data: { name, description: "", access: "private", graph: { nodes: [], edges: [] } },
         });
         const workflow = await createRes.json();
         createdWorkflowIds.push(workflow.id);
@@ -74,7 +74,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should get a single workflow by ID", async ({ request }) => {
         const name = `test-get-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "get test", access: "private" },
+          data: { name, description: "get test", access: "private", graph: { nodes: [], edges: [] } },
         });
         const workflow = await createRes.json();
         createdWorkflowIds.push(workflow.id);
@@ -98,6 +98,7 @@ if (process.env.JEST_WORKER_ID) {
             name: `test-update-${Date.now()}`,
             description: "",
             access: "private",
+            graph: { nodes: [], edges: [] },
           },
         });
         const workflow = await createRes.json();
@@ -122,6 +123,7 @@ if (process.env.JEST_WORKER_ID) {
             name: `test-delete-${Date.now()}`,
             description: "",
             access: "private",
+            graph: { nodes: [], edges: [] },
           },
         });
         const workflow = await createRes.json();
@@ -166,7 +168,7 @@ if (process.env.JEST_WORKER_ID) {
         // Create a workflow first
         const name = `test-open-${Date.now()}`;
         const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "", access: "private" },
+          data: { name, description: "", access: "private", graph: { nodes: [], edges: [] } },
         });
         const workflow = await res.json();
         createdWorkflowIds.push(workflow.id);
@@ -190,7 +192,7 @@ if (process.env.JEST_WORKER_ID) {
         // Create a workflow
         const name = `test-graph-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "", access: "private" },
+          data: { name, description: "", access: "private", graph: { nodes: [], edges: [] } },
         });
         const workflow = await createRes.json();
         createdWorkflowIds.push(workflow.id);
@@ -222,7 +224,7 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         const name = `test-nav-${Date.now()}`;
         const createRes = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: { name, description: "", access: "private" },
+          data: { name, description: "", access: "private", graph: { nodes: [], edges: [] } },
         });
         const workflow = await createRes.json();
         createdWorkflowIds.push(workflow.id);
@@ -249,6 +251,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `test-version-${Date.now()}`,
           description: "",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await createRes.json();

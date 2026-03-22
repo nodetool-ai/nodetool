@@ -23,6 +23,7 @@ if (process.env.JEST_WORKER_ID) {
         name,
         description: "E2E context menu test workflow",
         access: "private",
+        graph: { nodes: [], edges: [] },
       },
     });
     const workflow = await createRes.json();
@@ -77,6 +78,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-pane-ctx-${Date.now()}`,
           description: "Pane context menu test",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();
@@ -728,6 +730,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-edge-ctx-${Date.now()}`,
           description: "Edge context menu test",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await createRes.json();
@@ -893,6 +896,7 @@ if (process.env.JEST_WORKER_ID) {
           name: workflowName,
           description: "Workflow context menu test",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();

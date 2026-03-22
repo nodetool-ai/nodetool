@@ -37,6 +37,7 @@ if (process.env.JEST_WORKER_ID) {
           name: `e2e-nodemenu-${Date.now()}`,
           description: "E2E node menu test workflow",
           access: "private",
+          graph: { nodes: [], edges: [] },
         },
       });
       const workflow = await res.json();
