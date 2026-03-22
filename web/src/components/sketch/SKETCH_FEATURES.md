@@ -1,12 +1,11 @@
 # Sketch Editor — Comprehensive Feature Checklist
 
-> **Status**: Phase 1 complete, Phase 2 nearing completion  
-> **Last updated**: 2026-03-21
+> **Status**: Phase 1 complete
+> **Last updated**: 2026-03-22
 
-**How to read this doc:** **Remaining work** first → **Defaults** & **Keyboard shortcuts** → **Architecture** → **Recommended follow-ups** (backlog, Krita, tips) → **Appendices** (shipped Phase 1 & 2) → **Stretch goals** last.
+## Remaining work
 
-Feature target / product spec: <https://mexes1978.github.io/manual-comfysketchpro/>  
-Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob/main/js/comfysketch.js>
+### Phase 2 — in progress
 
 ## Core Drawing Engine Priorities
 
@@ -22,37 +21,44 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 [ ] add first-class support for `reference`-style image-backed layers with source, crop, transform, and IO metadata.
 [ ] improve the round cursor drawing preview: always show correct size and rotation, etc.
 [ ] improve performance: there is a small stutter every time after drawing a stroke
+[ ] show transparency in layer previews - currently black instead of grid
+[ ] show a border around the canvas
+[ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
 
 ---
-
-## Remaining work
-
-### Phase 2 — in progress
 
 > Goal: strong base for common sketch / mask workflows.
 
 #### Drawing tools — gaps
 
 - [ ] Implement true `1px` anti-aliased pencil mode with consistent visual weight at any zoom level.
-- [ ] Add shape drawing from center with modifier keys: `Alt` draws from center, `Shift+Alt` draws from center with square/circle constraints.
-- [ ] Define clone stamp sampling mode: `active layer only` vs `composited image`.
-- [ ] Implement clone stamp source picking with `Alt+click` or equivalent chord.
-- [ ] Implement clone stamp offset tracking between source point and paint point.
-- [ ] Implement clone stamp stroke rendering that copies pixels through the normal brush pipeline.
+- [x] Add shape drawing from center with modifier keys: `Alt` draws from center, `Shift+Alt` draws from center with square/circle constraints.
+- [x] Define clone stamp sampling mode: `active layer only` vs `composited image`.
+- [x] Implement clone stamp source picking with `Alt+click` or equivalent chord.
+- [x] Implement clone stamp offset tracking between source point and paint point.
+- [x] Implement clone stamp stroke rendering that copies pixels through the normal brush pipeline.
 - [ ] Implement healing brush with sampled texture transfer plus simple luminance/color blending.
 - [ ] Decide healing brush scope for v1 and document the exact behavior in the tool spec.
-- [ ] Selection tools rectangle select; lasso and magic wand with Photoshop-style options
+- [ ] add Delete key to delete layer content and respect selected tool selection when deleting
 
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
-- [ ] **Layers** add buttons for expose as input / output per layer. create dynamic handles for node.
 - [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
 - [x] **Improve Moving Tool** moving layer out of canvas bounds should not crop it
+
+#### Selection Tool
+
+- [ ] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
+- [ ] Selection tools: add lasso and magic wand with Photoshop-style options.
+- [ ] Selection should stil be visible with other tools selected
+- [ ] Deselect with CTRL+D, allow to move selection, allow to add to and subtract from selection
 
 #### Color system
 
 #### Layers
 
+- [ ] **Layers** add buttons for expose as input / output per layer. create dynamic handles for node.
+- [ ] **Adjustment layers** (or equivalent non-destructive stack) — global per-layer adjustments without baking until flatten/export; pairs well with iterative AI and large canvases.
 - [ ] Group / folder layers
 
 #### Canvas & view
@@ -76,7 +82,19 @@ Reference implementation: <https://github.com/Mexes1978/comfyui-comfysketch/blob
 - [ ] Advanced brush system — **pressure, tilt, velocity dynamics** (extends Phase 2 brush types)
 - [ ] replace ImageEditor.tsx to use the new SketchEditor instead - ImageEditor can then be deleted
 
+### Portable sketch documents
+
+- [ ] **Export project file** — versioned bundle (JSON document + embedded layer images, or single zip); usable for backup, templates, and handoff between machines
+- [ ] **Import / open project** — restore full layer stack from exported file
+- [ ] **Resilience** — optional explicit backup (e.g. `localStorage` snapshot or “Download project”) beyond node autoserialize
+
+### Compositing: clipping groups & adjustment layers
+
+- [ ] **Clipping masks / clipping groups** — upper layers only affect pixels inside the base layer’s alpha (non-destructive silhouette painting)
+
 ### SAM: Segment Anything (layers from segmentation)
+
+> **Plan:** [\_plans/feat-sam.md](_plans/feat-sam.md) — phasing, backend options, UI flow, open questions.
 
 > Needs a **segmentation backend** (Python job, preferably local model, or Replicate / FAL / HF). Sketch UI runs prompts and turns results into document layers.
 
