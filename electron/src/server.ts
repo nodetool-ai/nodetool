@@ -1,8 +1,6 @@
-import { spawn, ChildProcess } from "child_process";
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getNodePath,
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
@@ -512,13 +510,7 @@ async function startServer(): Promise<void> {
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);
 
-  // Use the conda env's Node.js binary to run the TS backend server
-  const nodeExecutable = getNodePath();
-  const args = [
-    backendEntryPoint,
-  ];
-
-  logMessage(`Starting backend server with command: ${nodeExecutable} ${args.join(" ")}`);
+  logMessage(`Starting backend server via utilityProcess.fork: ${backendEntryPoint}`);
   logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
 
@@ -541,8 +533,7 @@ async function startServer(): Promise<void> {
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
-    command: nodeExecutable,
-    args,
+    modulePath: backendEntryPoint,
     env: backendEnv,
     cwd: path.dirname(backendEntryPoint),
     pidFilePath: PID_FILE_PATH,
