@@ -9,11 +9,13 @@ import { useEffect } from "react";
 import { useSketchStore } from "./state";
 import type {
   SketchTool,
+  ShapeToolType,
   BrushSettings,
   PencilSettings,
   EraserSettings,
   BlurSettings,
-  CloneStampSettings
+  CloneStampSettings,
+  ShapeSettings
 } from "./types";
 
 export interface UseEditorKeyboardShortcutsParams {
@@ -33,6 +35,7 @@ export interface UseEditorKeyboardShortcutsParams {
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
+  setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setBlurSettings: (settings: Partial<BlurSettings>) => void;
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
   swapColors: () => void;
@@ -197,18 +200,20 @@ export function useEditorKeyboardShortcuts(
             case "g":
               params.setActiveTool("fill");
               break;
+            case "u":
+              params.setActiveTool("shape");
+              break;
             case "l":
-              params.setActiveTool("line");
-              break;
             case "r":
-              params.setActiveTool("rectangle");
-              break;
             case "o":
-              params.setActiveTool("ellipse");
+            case "a": {
+              const shapeTypeMap: Record<string, ShapeToolType> = {
+                l: "line", r: "rectangle", o: "ellipse", a: "arrow"
+              };
+              params.setActiveTool("shape");
+              params.setShapeSettings({ shapeType: shapeTypeMap[e.key] });
               break;
-            case "a":
-              params.setActiveTool("arrow");
-              break;
+            }
             case "q":
               params.setActiveTool("blur");
               break;

@@ -58,6 +58,13 @@ export function useCanvasImperativeHandle({
         }
         return result;
       },
+      trimLayerToBounds: (layerId: string) => {
+        const result = runtime.trimLayerToBounds(layerId);
+        if (result !== null) {
+          redraw();
+        }
+        return result;
+      },
       snapshotLayerCanvas: (layerId: string) => {
         return runtime.snapshotLayerCanvas(layerId);
       },

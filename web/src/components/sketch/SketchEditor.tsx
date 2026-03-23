@@ -177,6 +177,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setBrushSettings: store.setBrushSettings,
     setPencilSettings: store.setPencilSettings,
     setEraserSettings: store.setEraserSettings,
+    setShapeSettings: store.setShapeSettings,
     setBlurSettings: store.setBlurSettings,
     setCloneStampSettings: store.setCloneStampSettings,
     swapColors: store.swapColors,
@@ -349,6 +350,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onRenameLayer={layerActions.handleRenameLayer}
           onMergeDown={layerActions.handleMergeDown}
           onFlattenVisible={layerActions.handleFlattenVisible}
+          onTrimLayerToBounds={canvasActions.handleTrimLayerToBounds}
           canvasWidth={store.document.canvas.width}
           canvasHeight={store.document.canvas.height}
           onCanvasResize={canvasActions.handleCanvasResize}

@@ -15,7 +15,7 @@ import {
 } from "../painting";
 
 export class ShapeTool implements ToolHandler {
-  readonly toolId = "line" as const; // placeholder – covers all shape tools
+  readonly toolId = "shape" as const;
 
   private shapeStart: Point | null = null;
 

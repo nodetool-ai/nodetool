@@ -300,6 +300,39 @@ export function useCanvasActions({
     link.click();
   }, [canvasRef]);
 
+  const handleTrimLayerToBounds = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const layer = document.layers.find((entry) => entry.id === activeLayerId);
+    if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
+      return;
+    }
+
+    pushHistory("trim layer");
+    const trimmed = canvasRef.current.trimLayerToBounds(activeLayerId);
+    if (!trimmed) {
+      return;
+    }
+
+    setLayerContentBounds(activeLayerId, trimmed.bounds);
+    updateLayerData(activeLayerId, trimmed.data);
+
+    if (onExportImage) {
+      onExportImage(canvasRef.current.flattenToDataUrl());
+    }
+    if (onExportMask) {
+      onExportMask(canvasRef.current.getMaskDataUrl());
+    }
+  }, [
+    document.activeLayerId,
+    document.layers,
+    pushHistory,
+    setLayerContentBounds,
+    updateLayerData,
+    onExportImage,
+    onExportMask,
+    canvasRef
+  ]);
+
   // ─── Canvas resize ─────────────────────────────────────────────
   const handleCanvasResize = useCallback(
     (width: number, height: number) => {
@@ -465,6 +498,7 @@ export function useCanvasActions({
     handleClearLayer,
     handleFillLayerWithColor,
     handleNudgeLayer,
+    handleTrimLayerToBounds,
     handleExportPng,
     handleCanvasResize,
     handleZoomIn,

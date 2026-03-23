@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import {
   SketchTool,
+  ShapeToolType,
   BrushSettings,
   BrushType,
   PencilSettings,
@@ -30,7 +31,6 @@ import {
   GradientSettings,
   CloneStampSettings,
   CloneStampSampling,
-  isShapeTool,
   parseColorToRgba,
   rgbaToCss,
   colorToHex6
@@ -60,10 +60,7 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Crop";
     case "adjust":
       return "Adjustments";
-    case "line":
-    case "rectangle":
-    case "ellipse":
-    case "arrow":
+    case "shape":
       return "Shape";
     default:
       return "Settings";
@@ -89,7 +86,6 @@ interface EraserSettingsPanelProps {
 
 interface ShapeSettingsPanelProps {
   settings: ShapeSettings;
-  activeTool: SketchTool;
   onChange: (settings: Partial<ShapeSettings>) => void;
 }
 
@@ -351,13 +347,37 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
 
 // ─── ShapeSettingsPanel ───────────────────────────────────────────────────
 
+const SHAPE_TYPES: { value: ShapeToolType; label: string }[] = [
+  { value: "line", label: "Line" },
+  { value: "rectangle", label: "Rect" },
+  { value: "ellipse", label: "Ellipse" },
+  { value: "arrow", label: "Arrow" }
+];
+
 export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
   settings,
-  activeTool,
   onChange
 }: ShapeSettingsPanelProps) {
+  const canFill = settings.shapeType === "rectangle" || settings.shapeType === "ellipse";
   return (
     <>
+      <ToggleButtonGroup
+        value={settings.shapeType ?? "rectangle"}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            onChange({ shapeType: v as ShapeToolType });
+          }
+        }}
+        size="small"
+        sx={{ mb: "4px" }}
+      >
+        {SHAPE_TYPES.map(({ value, label }) => (
+          <ToggleButton key={value} value={value} sx={toggleButtonSmallSx}>
+            {label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
       <Box className="setting-row">
         <Typography className="setting-label">Stroke</Typography>
         <input
@@ -388,7 +408,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
           {settings.strokeWidth}
         </Typography>
       </Box>
-      {(activeTool === "rectangle" || activeTool === "ellipse") && (
+      {canFill && (
         <>
           <FormControlLabel
             control={
@@ -864,11 +884,10 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
       />
     );
   }
-  if (isShapeTool(activeTool)) {
+  if (activeTool === "shape") {
     return (
       <ShapeSettingsPanel
         settings={shapeSettings}
-        activeTool={activeTool}
         onChange={onShapeSettingsChange}
       />
     );

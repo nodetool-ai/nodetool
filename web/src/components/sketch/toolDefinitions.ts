@@ -15,10 +15,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import ColorizeIcon from "@mui/icons-material/Colorize";
-import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
-import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
-import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
-import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
+import CategoryIcon from "@mui/icons-material/Category";
 import BlurOnIcon from "@mui/icons-material/BlurOn";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
@@ -53,10 +50,7 @@ export const PAINTING_TOOLS: ToolDefinition[] = [
 ];
 
 export const SHAPE_TOOLS: ToolDefinition[] = [
-  { tool: "line", label: "Line", shortcut: "L", Icon: HorizontalRuleIcon, group: "shape" },
-  { tool: "rectangle", label: "Rectangle", shortcut: "R", Icon: RectangleOutlinedIcon, group: "shape" },
-  { tool: "ellipse", label: "Ellipse", shortcut: "O", Icon: CircleOutlinedIcon, group: "shape" },
-  { tool: "arrow", label: "Arrow", shortcut: "A", Icon: ArrowRightAltIcon, group: "shape" },
+  { tool: "shape", label: "Shape", shortcut: "U", Icon: CategoryIcon, group: "shape" },
   { tool: "gradient", label: "Gradient", shortcut: "T", Icon: GradientIcon, group: "shape" },
   { tool: "crop", label: "Crop", shortcut: "C", Icon: CropIcon, group: "shape" },
   { tool: "adjust", label: "Adjustments", shortcut: "J", Icon: TuneIcon, group: "shape" }

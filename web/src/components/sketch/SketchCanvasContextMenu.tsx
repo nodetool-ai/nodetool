@@ -711,36 +711,58 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
       );
     }
 
-    if (isShapeTool(activeTool)) {
+    if (activeTool === "shape") {
+      const canFill = shapeSettings.shapeType === "rectangle" || shapeSettings.shapeType === "ellipse";
       return (
         <>
+          <ToggleButtonGroup
+            value={shapeSettings.shapeType ?? "rectangle"}
+            exclusive
+            size="small"
+            fullWidth
+            onChange={(_, value) => {
+              if (value) {
+                onShapeSettingsChange({ shapeType: value });
+              }
+            }}
+            sx={{ mb: 1.4 }}
+          >
+            <ToggleButton value="line">Line</ToggleButton>
+            <ToggleButton value="rectangle">Rect</ToggleButton>
+            <ToggleButton value="ellipse">Ellipse</ToggleButton>
+            <ToggleButton value="arrow">Arrow</ToggleButton>
+          </ToggleButtonGroup>
           <Stack direction="row" spacing={1.2} sx={{ mb: 1.4 }}>
             <ColorSetting
               label="Stroke"
               color={shapeSettings.strokeColor}
               onChange={(value) => onShapeSettingsChange({ strokeColor: value })}
             />
-            <ColorSetting
-              label="Fill"
-              color={shapeSettings.fillColor}
-              onChange={(value) => onShapeSettingsChange({ fillColor: value })}
-            />
+            {canFill && (
+              <ColorSetting
+                label="Fill"
+                color={shapeSettings.fillColor}
+                onChange={(value) => onShapeSettingsChange({ fillColor: value })}
+              />
+            )}
           </Stack>
-          <ToggleButtonGroup
-            value={shapeSettings.filled ? "filled" : "outline"}
-            exclusive
-            size="small"
-            fullWidth
-            onChange={(_, value) => {
-              if (value) {
-                onShapeSettingsChange({ filled: value === "filled" });
-              }
-            }}
-            sx={{ mb: 1.8 }}
-          >
-            <ToggleButton value="outline">Outline</ToggleButton>
-            <ToggleButton value="filled">Filled</ToggleButton>
-          </ToggleButtonGroup>
+          {canFill && (
+            <ToggleButtonGroup
+              value={shapeSettings.filled ? "filled" : "outline"}
+              exclusive
+              size="small"
+              fullWidth
+              onChange={(_, value) => {
+                if (value) {
+                  onShapeSettingsChange({ filled: value === "filled" });
+                }
+              }}
+              sx={{ mb: 1.8 }}
+            >
+              <ToggleButton value="outline">Outline</ToggleButton>
+              <ToggleButton value="filled">Filled</ToggleButton>
+            </ToggleButtonGroup>
+          )}
           <QuickSlider
             label="Stroke"
             valueLabel={`${shapeSettings.strokeWidth}px`}

@@ -9,7 +9,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useState, useRef } from "react";
-import { sketchSliderSx, SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SIZE, SKETCH_COLORS } from "./sketchStyles";
+import { sketchSliderSx, SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SIZE } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -32,6 +32,7 @@ import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
+import FitScreenIcon from "@mui/icons-material/FitScreen";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
@@ -212,6 +213,7 @@ export interface SketchLayersPanelProps {
   onRenameLayer: (layerId: string, name: string) => void;
   onMergeDown: () => void;
   onFlattenVisible: () => void;
+  onTrimLayerToBounds: () => void;
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;
@@ -238,6 +240,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onRenameLayer,
   onMergeDown,
   onFlattenVisible,
+  onTrimLayerToBounds,
   canvasWidth,
   canvasHeight,
   onCanvasResize
@@ -475,6 +478,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <CallMergeIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Trim Active Layer To Bounds">
+          <IconButton
+            size="small"
+            onClick={onTrimLayerToBounds}
+            disabled={!activeLayer || activeLayer.locked}
+          >
+            <FitScreenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Flatten Visible">
           <IconButton size="small" onClick={onFlattenVisible}>
             <LayersIcon fontSize="small" />
@@ -585,7 +597,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           value=""
           onChange={(e) => {
             const preset = CANVAS_PRESETS.find((p) => p.label === e.target.value);
-            if (preset) onCanvasResize(preset.width, preset.height);
+            if (preset) {
+              onCanvasResize(preset.width, preset.height);
+            }
           }}
           sx={{
             width: "100%",

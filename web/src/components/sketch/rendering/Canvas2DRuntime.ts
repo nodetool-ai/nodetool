@@ -547,6 +547,112 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx.drawImage(tmp, dx, dy);
   }
 
+  trimLayerToBounds(
+    layerId: string
+  ): { data: string; bounds: LayerContentBounds } | null {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return null;
+    }
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      return null;
+    }
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const imageData = ctx.getImageData(0, 0, width, height).data;
+
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < height; y += 1) {
+      const rowOffset = y * width * 4;
+      for (let x = 0; x < width; x += 1) {
+        if (imageData[rowOffset + x * 4 + 3] === 0) {
+          continue;
+        }
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    const currentBounds = getCanvasRasterBounds(canvas) ?? {
+      x: 0,
+      y: 0,
+      width,
+      height
+    };
+
+    if (maxX < minX || maxY < minY) {
+      const emptyBounds = {
+        x: currentBounds.x,
+        y: currentBounds.y,
+        width: 1,
+        height: 1
+      };
+      canvas.width = 1;
+      canvas.height = 1;
+      const emptyCtx = canvas.getContext("2d");
+      emptyCtx?.clearRect(0, 0, 1, 1);
+      setCanvasRasterBounds(canvas, emptyBounds);
+      return {
+        data: serializeLayerData(null, emptyBounds),
+        bounds: emptyBounds
+      };
+    }
+
+    const trimmedWidth = maxX - minX + 1;
+    const trimmedHeight = maxY - minY + 1;
+    const trimmedBounds = {
+      x: currentBounds.x + minX,
+      y: currentBounds.y + minY,
+      width: trimmedWidth,
+      height: trimmedHeight
+    };
+
+    if (
+      minX === 0 &&
+      minY === 0 &&
+      trimmedWidth === width &&
+      trimmedHeight === height
+    ) {
+      setCanvasRasterBounds(canvas, trimmedBounds);
+      return {
+        data: serializeLayerData(canvas.toDataURL("image/png"), trimmedBounds),
+        bounds: trimmedBounds
+      };
+    }
+
+    const trimmedCanvas = window.document.createElement("canvas");
+    trimmedCanvas.width = trimmedWidth;
+    trimmedCanvas.height = trimmedHeight;
+    const trimmedCtx = trimmedCanvas.getContext("2d");
+    if (!trimmedCtx) {
+      return null;
+    }
+    trimmedCtx.drawImage(canvas, -minX, -minY);
+
+    canvas.width = trimmedWidth;
+    canvas.height = trimmedHeight;
+    const targetCtx = canvas.getContext("2d");
+    if (!targetCtx) {
+      return null;
+    }
+    targetCtx.clearRect(0, 0, trimmedWidth, trimmedHeight);
+    targetCtx.drawImage(trimmedCanvas, 0, 0);
+    setCanvasRasterBounds(canvas, trimmedBounds);
+
+    return {
+      data: serializeLayerData(canvas.toDataURL("image/png"), trimmedBounds),
+      bounds: trimmedBounds
+    };
+  }
+
   mergeLayerDown(
     upperLayerId: string,
     lowerLayerId: string,

@@ -231,6 +231,38 @@ describe("Canvas2DRuntime", () => {
       expect(() => runtime.nudgeLayer("layer1", 5, 5)).not.toThrow();
     });
 
+    it("trimLayerToBounds shrinks raster and preserves document placement", () => {
+      const canvas = runtime.getOrCreateLayerCanvas("layer1", 16, 12);
+      setCanvasRasterBounds(canvas, { x: 20, y: 30, width: 16, height: 12 });
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+
+      ctx.fillStyle = "#ff0000";
+      ctx.fillRect(4, 3, 5, 4);
+
+      const trimmed = runtime.trimLayerToBounds("layer1");
+      expect(trimmed).not.toBeNull();
+
+      const trimmedCanvas = runtime.getLayerCanvas("layer1");
+      expect(trimmedCanvas).toBeDefined();
+      expect(trimmedCanvas!.width).toBe(5);
+      expect(trimmedCanvas!.height).toBe(4);
+      expect(getCanvasRasterBounds(trimmedCanvas)).toEqual({
+        x: 24,
+        y: 33,
+        width: 5,
+        height: 4
+      });
+      expect(trimmed?.bounds).toEqual({
+        x: 24,
+        y: 33,
+        width: 5,
+        height: 4
+      });
+    });
+
     it("cropLayers updates canvas dimensions", () => {
       runtime.getOrCreateLayerCanvas("layer1", 64, 64);
       runtime.getOrCreateLayerCanvas("layer2", 64, 64);

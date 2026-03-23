@@ -81,10 +81,7 @@ export type SketchTool =
   | "eraser"
   | "eyedropper"
   | "fill"
-  | "line"
-  | "rectangle"
-  | "ellipse"
-  | "arrow"
+  | "shape"
   | "blur"
   | "gradient"
   | "crop"
@@ -120,6 +117,7 @@ export interface EraserSettings {
 }
 
 export interface ShapeSettings {
+  shapeType: ShapeToolType;
   strokeColor: string;
   strokeWidth: number;
   fillColor: string;
@@ -334,6 +332,7 @@ export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
 };
 
 export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
+  shapeType: "rectangle",
   strokeColor: "#ffffff",
   strokeWidth: 2,
   fillColor: "#ffffff",
@@ -522,9 +521,9 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
   };
 }
 
-/** Check if a tool is a shape tool */
-export function isShapeTool(tool: SketchTool): tool is ShapeToolType {
-  return tool === "line" || tool === "rectangle" || tool === "ellipse" || tool === "arrow";
+/** Check if a tool is the unified shape tool */
+export function isShapeTool(tool: SketchTool): boolean {
+  return tool === "shape";
 }
 
 /** Check if a tool is a painting tool (supports Alt+click eyedropper) */

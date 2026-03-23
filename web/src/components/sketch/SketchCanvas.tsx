@@ -64,6 +64,9 @@ export interface SketchCanvasRef {
   getLayerData: (layerId: string) => string | null;
   setLayerData: (layerId: string, data: string | null) => void;
   reconcileLayerToDocumentSpace: (layerId: string) => string | null;
+  trimLayerToBounds: (
+    layerId: string
+  ) => { data: string; bounds: LayerContentBounds } | null;
   snapshotLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
   restoreLayerCanvas: (layerId: string, source: HTMLCanvasElement) => void;
   flattenToDataUrl: () => string;

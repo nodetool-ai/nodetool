@@ -9,6 +9,7 @@
 import type {
   Point,
   BlendMode,
+  ShapeToolType,
   BrushSettings,
   BrushType,
   PencilSettings,
@@ -17,8 +18,7 @@ import type {
   FillSettings,
   BlurSettings,
   GradientSettings,
-  CloneStampSettings,
-  SketchTool
+  CloneStampSettings
 } from "./types";
 import { parseColorToRgba } from "./types";
 
@@ -1122,7 +1122,7 @@ export function drawGradient(
 export function constrainEnd(
   start: Point,
   end: Point,
-  tool: SketchTool,
+  tool: ShapeToolType,
   shiftHeld: boolean
 ): Point {
   if (!shiftHeld) {
@@ -1158,7 +1158,7 @@ export function constrainEnd(
 export function applyAltCenterDraw(
   start: Point,
   end: Point,
-  tool: SketchTool,
+  tool: ShapeToolType,
   altHeld: boolean
 ): { start: Point; end: Point } {
   if (!altHeld) {
@@ -1177,7 +1177,7 @@ export function applyAltCenterDraw(
 
 export function drawShapeOnCtx(
   ctx: CanvasRenderingContext2D,
-  tool: SketchTool,
+  tool: ShapeToolType,
   start: Point,
   end: Point,
   settings: ShapeSettings,

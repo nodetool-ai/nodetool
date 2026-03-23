@@ -123,6 +123,14 @@ export interface SketchRuntime {
   /** Translate layer pixel content by (dx, dy). */
   nudgeLayer(layerId: string, dx: number, dy: number): void;
 
+  /**
+   * Shrink a layer raster to its non-transparent pixel bounds while preserving
+   * its document-space placement via updated raster bounds metadata.
+   */
+  trimLayerToBounds(
+    layerId: string
+  ): { data: string; bounds: LayerContentBounds } | null;
+
   /** Merge the upper layer into the lower layer and return the merged data URL. */
   mergeLayerDown(
     upperLayerId: string,

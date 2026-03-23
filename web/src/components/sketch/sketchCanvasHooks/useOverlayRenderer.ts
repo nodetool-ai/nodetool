@@ -153,9 +153,9 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      drawShapeOnCtxUtil(ctx, activeTool, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
+      drawShapeOnCtxUtil(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
     },
-    [activeTool, doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
+    [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
   );
 
   const drawOverlayGradient = useCallback(

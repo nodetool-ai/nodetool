@@ -679,6 +679,16 @@ export class WebGPURuntime implements SketchRuntime {
     this.markLayerDirty(layerId);
   }
 
+  trimLayerToBounds(
+    layerId: string
+  ): { data: string; bounds: LayerContentBounds } | null {
+    const result = this.cpuRuntime.trimLayerToBounds(layerId);
+    if (result) {
+      this.markLayerDirty(layerId);
+    }
+    return result;
+  }
+
   mergeLayerDown(
     upperLayerId: string,
     lowerLayerId: string,
