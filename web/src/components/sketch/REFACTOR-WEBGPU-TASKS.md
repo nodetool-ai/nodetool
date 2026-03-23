@@ -65,7 +65,7 @@ Phase 4 is not a request for more local fixes to `brush`, `pencil`, `eraser`, or
 
 `WebGPU` remains the renderer for committed document content, but live interaction state is allowed to stay on `2D` if that keeps behavior correct and the performance is already good. Cursor, selection, shape preview, and live stroke preview should stay unified under one preview model. Correctness, shared architecture, and transformed-layer semantics matter more here than maximizing the amount of code that happens to run on `WebGPU`.
 
-While doing this, lightly introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
+While doing this, introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
 
 - [ ] define one shared transform-aware paint/stroke session model
 - [ ] keep persistent transformed layers as the target model
