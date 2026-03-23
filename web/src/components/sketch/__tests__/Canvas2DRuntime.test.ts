@@ -235,6 +235,31 @@ describe("Canvas2DRuntime", () => {
       ).toBeNull();
     });
 
+    it("reconcileLayerToDocumentSpace preserves moved layer pixels", () => {
+      const doc = makeDoc();
+      const layerId = doc.layers[0].id;
+      doc.layers[0].transform = { x: 10, y: 12 };
+
+      const layerCanvas = runtime.getOrCreateLayerCanvas(layerId, 16, 16);
+      const sourceCtx = layerCanvas.getContext("2d");
+      expect(sourceCtx).not.toBeNull();
+      sourceCtx!.fillStyle = "#ff0000";
+      sourceCtx!.fillRect(0, 0, 4, 4);
+
+      runtime.reconcileLayerToDocumentSpace(layerId, doc);
+
+      const reconciledCanvas = runtime.getLayerCanvas(layerId);
+      expect(reconciledCanvas).toBeDefined();
+      expect(reconciledCanvas!.width).toBe(doc.canvas.width);
+      expect(reconciledCanvas!.height).toBe(doc.canvas.height);
+
+      const reconciledCtx = reconciledCanvas!.getContext("2d");
+      expect(reconciledCtx).not.toBeNull();
+      const movedPixel = reconciledCtx!.getImageData(11, 13, 1, 1).data;
+      expect(movedPixel[0]).toBeGreaterThan(0);
+      expect(movedPixel[3]).toBeGreaterThan(0);
+    });
+
     it("applyAdjustments does not throw when active layer is missing", () => {
       const doc = makeDoc();
       doc.activeLayerId = "nonexistent";

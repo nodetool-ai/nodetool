@@ -554,18 +554,29 @@ export class Canvas2DRuntime implements SketchRuntime {
       return canvas.toDataURL("image/png");
     }
 
+    const source = window.document.createElement("canvas");
+    source.width = canvas.width;
+    source.height = canvas.height;
+    const sourceCtx = source.getContext("2d");
+
     const temp = window.document.createElement("canvas");
     temp.width = doc.canvas.width;
     temp.height = doc.canvas.height;
     const tempCtx = temp.getContext("2d");
-    canvas.width = doc.canvas.width;
-    canvas.height = doc.canvas.height;
-    const ctx = canvas.getContext("2d");
-    if (!tempCtx || !ctx) {
+
+    if (!sourceCtx || !tempCtx) {
       return canvas.toDataURL("image/png");
     }
 
-    tempCtx.drawImage(canvas, tx, ty);
+    sourceCtx.drawImage(canvas, 0, 0);
+    canvas.width = doc.canvas.width;
+    canvas.height = doc.canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return canvas.toDataURL("image/png");
+    }
+
+    tempCtx.drawImage(source, tx, ty);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(temp, 0, 0);
     return canvas.toDataURL("image/png");
