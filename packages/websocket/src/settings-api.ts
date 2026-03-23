@@ -11,6 +11,8 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { Secret } from "@nodetool/models";
+import { clearProviderCache } from "@nodetool/runtime";
+import { clearSecretCache } from "@nodetool/security";
 interface SettingsHandlerOptions {
   userIdHeader?: string;
 }
@@ -233,11 +235,18 @@ async function handleUpdateSettings(request: Request, userId: string): Promise<R
   }
 
   // Save secrets to DB (skip "****" placeholder values)
+  let secretsChanged = false;
   if (body.secrets) {
     for (const [key, value] of Object.entries(body.secrets)) {
       if (typeof value === "string" && value.split("").every((c) => c === "*")) continue;
       await Secret.upsert({ userId, key, value: String(value ?? ""), description: `Secret for ${key}` });
+      clearSecretCache(userId, key);
+      secretsChanged = true;
     }
+  }
+
+  if (secretsChanged) {
+    clearProviderCache();
   }
 
   return jsonResponse({ message: "Settings updated successfully" });

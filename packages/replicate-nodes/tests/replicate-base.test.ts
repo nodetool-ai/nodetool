@@ -27,9 +27,9 @@ afterEach(() => {
 /* ================================================================== */
 
 describe("getReplicateApiKey", () => {
-  it("returns key from _secrets.REPLICATE_API_TOKEN", () => {
+  it("returns key from secrets.REPLICATE_API_TOKEN", () => {
     const key = getReplicateApiKey({
-      _secrets: { REPLICATE_API_TOKEN: "secret-from-secrets" },
+      REPLICATE_API_TOKEN: "secret-from-secrets",
     });
     expect(key).toBe("secret-from-secrets");
   });
@@ -40,10 +40,10 @@ describe("getReplicateApiKey", () => {
     expect(key).toBe("secret-from-env");
   });
 
-  it("prefers _secrets over process.env", () => {
+  it("prefers secrets over process.env", () => {
     process.env.REPLICATE_API_TOKEN = "env-key";
     const key = getReplicateApiKey({
-      _secrets: { REPLICATE_API_TOKEN: "secrets-key" },
+      REPLICATE_API_TOKEN: "secrets-key",
     });
     expect(key).toBe("secrets-key");
   });
@@ -54,9 +54,9 @@ describe("getReplicateApiKey", () => {
     );
   });
 
-  it("throws when _secrets.REPLICATE_API_TOKEN is empty string", () => {
+  it("throws when secrets.REPLICATE_API_TOKEN is empty string", () => {
     expect(() =>
-      getReplicateApiKey({ _secrets: { REPLICATE_API_TOKEN: "" } })
+      getReplicateApiKey({ REPLICATE_API_TOKEN: "" })
     ).toThrow("REPLICATE_API_TOKEN is not configured");
   });
 });

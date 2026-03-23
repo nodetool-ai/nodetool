@@ -7,8 +7,12 @@ class NodeA extends BaseNode {
   static readonly nodeType = "test.NodeA";
   static readonly title = "Node A";
   static readonly description = "";
-  async process(inputs: Record<string, unknown>) {
-    return { out: inputs.in };
+
+  @prop({ type: "any", default: null })
+  declare in: any;
+
+  async process() {
+    return { out: this.in };
   }
 }
 
@@ -20,8 +24,11 @@ class NodeB extends BaseNode {
   @prop({ type: "int", default: 2 })
   declare factor: number;
 
-  async process(inputs: Record<string, unknown>) {
-    return { result: (inputs.value as number) * this.factor };
+  @prop({ type: "any", default: null })
+  declare value: any;
+
+  async process() {
+    return { result: (this.value as number) * this.factor };
   }
 }
 
@@ -76,7 +83,7 @@ describe("NodeRegistry", () => {
   it("register() throws for node without nodeType", () => {
     class BadNode extends BaseNode {
       static readonly nodeType = "";
-      async process(_inputs: Record<string, unknown>) { return {}; }
+      async process() { return {}; }
     }
     expect(() => registry.register(BadNode)).toThrow(
       "Cannot register node class without nodeType"

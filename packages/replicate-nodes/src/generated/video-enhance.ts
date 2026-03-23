@@ -33,17 +33,17 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Video file to upscale" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const targetFps = Number(inputs.target_fps ?? this.target_fps ?? 30);
-    const targetResolution = String(inputs.target_resolution ?? this.target_resolution ?? "1080p");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const targetFps = Number(this.target_fps ?? 30);
+    const targetResolution = String(this.target_resolution ?? "1080p");
 
     const args: Record<string, unknown> = {
       "target_fps": targetFps,
       "target_resolution": targetResolution,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;

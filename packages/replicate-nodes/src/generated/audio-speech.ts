@@ -51,17 +51,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "Rachel", values: ["Rachel", "Drew", "Clyde", "Paul", "Aria", "Domi", "Dave", "Roger", "Fin", "Sarah", "James", "Jane", "Juniper", "Arabella", "Hope", "Bradford", "Reginald", "Gaming", "Austin", "Kuon", "Blondie", "Priyanka", "Alexandra", "Monika", "Mark", "Grimblewood"], description: "Voice choice for speech generation" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "en");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const languageCode = String(this.language_code ?? "en");
+    const nextText = String(this.next_text ?? "");
+    const previousText = String(this.previous_text ?? "");
+    const prompt = String(this.prompt ?? "");
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const speed = Number(this.speed ?? 1);
+    const stability = Number(this.stability ?? 0.5);
+    const style = Number(this.style ?? 0);
+    const voice = String(this.voice ?? "Rachel");
 
     const args: Record<string, unknown> = {
       "language_code": languageCode,
@@ -118,17 +118,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "Rachel", values: ["Rachel", "Drew", "Clyde", "Paul", "Aria", "Domi", "Dave", "Roger", "Fin", "Sarah", "James", "Jane", "Juniper", "Arabella", "Hope", "Bradford", "Reginald", "Gaming", "Austin", "Kuon", "Blondie", "Priyanka", "Alexandra", "Monika", "Mark", "Grimblewood"], description: "Voice choice for speech generation" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "en");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const languageCode = String(this.language_code ?? "en");
+    const nextText = String(this.next_text ?? "");
+    const previousText = String(this.previous_text ?? "");
+    const prompt = String(this.prompt ?? "");
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const speed = Number(this.speed ?? 1);
+    const stability = Number(this.stability ?? 0.5);
+    const style = Number(this.style ?? 0);
+    const voice = String(this.voice ?? "Rachel");
 
     const args: Record<string, unknown> = {
       "language_code": languageCode,
@@ -185,17 +185,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "Rachel", values: ["Rachel", "Drew", "Clyde", "Paul", "Aria", "Domi", "Dave", "Roger", "Fin", "Sarah", "James", "Jane", "Juniper", "Arabella", "Hope", "Bradford", "Reginald", "Gaming", "Austin", "Kuon", "Blondie", "Priyanka", "Alexandra", "Monika", "Mark", "Grimblewood"], description: "Voice choice for speech generation" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "en");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const languageCode = String(this.language_code ?? "en");
+    const nextText = String(this.next_text ?? "");
+    const previousText = String(this.previous_text ?? "");
+    const prompt = String(this.prompt ?? "");
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const speed = Number(this.speed ?? 1);
+    const stability = Number(this.stability ?? 0.5);
+    const style = Number(this.style ?? 0);
+    const voice = String(this.voice ?? "Rachel");
 
     const args: Record<string, unknown> = {
       "language_code": languageCode,
@@ -252,17 +252,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "Rachel", values: ["Rachel", "Drew", "Clyde", "Paul", "Aria", "Domi", "Dave", "Roger", "Fin", "Sarah", "James", "Jane", "Juniper", "Arabella", "Hope", "Bradford", "Reginald", "Gaming", "Austin", "Kuon", "Blondie", "Priyanka", "Alexandra", "Monika", "Mark", "Grimblewood"], description: "Voice choice for speech generation" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "en");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const languageCode = String(this.language_code ?? "en");
+    const nextText = String(this.next_text ?? "");
+    const previousText = String(this.previous_text ?? "");
+    const prompt = String(this.prompt ?? "");
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const speed = Number(this.speed ?? 1);
+    const stability = Number(this.stability ?? 0.5);
+    const style = Number(this.style ?? 0);
+    const voice = String(this.voice ?? "Rachel");
 
     const args: Record<string, unknown> = {
       "language_code": languageCode,
@@ -304,12 +304,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Description of the music you want to generate" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const forceInstrumental = Boolean(inputs.force_instrumental ?? this.force_instrumental ?? true);
-    const musicLengthMs = Number(inputs.music_length_ms ?? this.music_length_ms ?? 10000);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3_standard");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const forceInstrumental = Boolean(this.force_instrumental ?? true);
+    const musicLengthMs = Number(this.music_length_ms ?? 10000);
+    const outputFormat = String(this.output_format ?? "mp3_standard");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "force_instrumental": forceInstrumental,
@@ -355,15 +355,15 @@ replicate, ai`;
   @prop({ type: "str", default: "Ashley", description: "The voice to use. Use a preset voice name (e.g. 'Ashley', 'Dennis', 'Alex') or a custom cloned voice ID." })
   declare voice_id: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 48000);
-    const speakingRate = Number(inputs.speaking_rate ?? this.speaking_rate ?? 0);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const text = String(inputs.text ?? this.text ?? "");
-    const textNormalization = String(inputs.text_normalization ?? this.text_normalization ?? "auto");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Ashley");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const sampleRate = String(this.sample_rate ?? 48000);
+    const speakingRate = Number(this.speaking_rate ?? 0);
+    const temperature = Number(this.temperature ?? 1);
+    const text = String(this.text ?? "");
+    const textNormalization = String(this.text_normalization ?? "auto");
+    const voiceId = String(this.voice_id ?? "Ashley");
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -412,15 +412,15 @@ replicate, ai`;
   @prop({ type: "str", default: "Ashley", description: "The voice to use. Use a preset voice name (e.g. 'Ashley', 'Dennis', 'Alex') or a custom cloned voice ID." })
   declare voice_id: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 48000);
-    const speakingRate = Number(inputs.speaking_rate ?? this.speaking_rate ?? 0);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const text = String(inputs.text ?? this.text ?? "");
-    const textNormalization = String(inputs.text_normalization ?? this.text_normalization ?? "auto");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Ashley");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const sampleRate = String(this.sample_rate ?? 48000);
+    const speakingRate = Number(this.speaking_rate ?? 0);
+    const temperature = Number(this.temperature ?? 1);
+    const text = String(this.text ?? "");
+    const textNormalization = String(this.text_normalization ?? "auto");
+    const voiceId = String(this.voice_id ?? "Ashley");
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -457,11 +457,11 @@ replicate, ai`;
   @prop({ type: "enum", default: "af_bella", values: ["af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "bf_alice", "bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis", "ff_siwis", "hf_alpha", "hf_beta", "hm_omega", "hm_psi", "if_sara", "im_nicola", "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo", "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi", "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang"], description: "Voice to use for synthesis" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voice = String(inputs.voice ?? this.voice ?? "af_bella");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const text = String(this.text ?? "");
+    const voice = String(this.voice ?? "af_bella");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -497,11 +497,11 @@ replicate, ai`;
   @prop({ type: "str", default: "Hi there, I'm your new voice clone. Try your best to upload quality audio", description: "Text to synthesize" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cleanupVoice = Boolean(inputs.cleanup_voice ?? this.cleanup_voice ?? false);
-    const language = String(inputs.language ?? this.language ?? "en");
-    const text = String(inputs.text ?? this.text ?? "Hi there, I'm your new voice clone. Try your best to upload quality audio");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cleanupVoice = Boolean(this.cleanup_voice ?? false);
+    const language = String(this.language ?? "en");
+    const text = String(this.text ?? "Hi there, I'm your new voice clone. Try your best to upload quality audio");
 
     const args: Record<string, unknown> = {
       "cleanup_voice": cleanupVoice,
@@ -509,7 +509,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const speakerRef = (inputs.speaker ?? this.speaker) as Record<string, unknown> | undefined;
+    const speakerRef = this.speaker as Record<string, unknown> | undefined;
     if (isRefSet(speakerRef)) {
       const speakerUrl = await assetToUrl(speakerRef!, apiKey);
       if (speakerUrl) args["speaker"] = speakerUrl;
@@ -549,14 +549,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "tara", values: ["tara", "dan", "josh", "emma"], description: "Voice to use" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 1200);
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.6);
-    const text = String(inputs.text ?? this.text ?? "");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const voice = String(inputs.voice ?? this.voice ?? "tara");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxNewTokens = Number(this.max_new_tokens ?? 1200);
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.1);
+    const temperature = Number(this.temperature ?? 0.6);
+    const text = String(this.text ?? "");
+    const topP = Number(this.top_p ?? 0.95);
+    const voice = String(this.voice ?? "tara");
 
     const args: Record<string, unknown> = {
       "max_new_tokens": maxNewTokens,
@@ -592,11 +592,11 @@ replicate, ai`;
   @prop({ type: "str", default: "Hello from Sesame.", description: "Text to convert to speech" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxAudioLengthMs = Number(inputs.max_audio_length_ms ?? this.max_audio_length_ms ?? 10000);
-    const speaker = String(inputs.speaker ?? this.speaker ?? 0);
-    const text = String(inputs.text ?? this.text ?? "Hello from Sesame.");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxAudioLengthMs = Number(this.max_audio_length_ms ?? 10000);
+    const speaker = String(this.speaker ?? 0);
+    const text = String(this.text ?? "Hello from Sesame.");
 
     const args: Record<string, unknown> = {
       "max_audio_length_ms": maxAudioLengthMs,
@@ -626,10 +626,10 @@ replicate, ai`;
   @prop({ type: "str", default: "Hey, how are you doing today?", description: "Text for audio generation" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const description = String(inputs.description ?? this.description ?? "A female speaker with a slightly low-pitched voice delivers her words quite expressively, in a very confined sounding environment with clear audio quality. She speaks very fast.");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Hey, how are you doing today?");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const description = String(this.description ?? "A female speaker with a slightly low-pitched voice delivers her words quite expressively, in a very confined sounding environment with clear audio quality. She speaks very fast.");
+    const prompt = String(this.prompt ?? "Hey, how are you doing today?");
 
     const args: Record<string, unknown> = {
       "description": description,
@@ -697,22 +697,22 @@ replicate, ai`;
   @prop({ type: "enum", default: "base.en", values: ["base.en", "small.en", "medium.en"], description: "If orig_transcript is not provided above, choose a WhisperX model for generating the transcript. Inaccurate transcription may lead to error TTS or speech editing. You can modify the generated transcript and provide it directly to orig_transcript above" })
   declare whisperx_model: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cutOffSec = Number(inputs.cut_off_sec ?? this.cut_off_sec ?? 3.01);
-    const kvcache = String(inputs.kvcache ?? this.kvcache ?? 1);
-    const leftMargin = Number(inputs.left_margin ?? this.left_margin ?? 0.08);
-    const origTranscript = String(inputs.orig_transcript ?? this.orig_transcript ?? "");
-    const rightMargin = Number(inputs.right_margin ?? this.right_margin ?? 0.08);
-    const sampleBatchSize = Number(inputs.sample_batch_size ?? this.sample_batch_size ?? 4);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stopRepetition = Number(inputs.stop_repetition ?? this.stop_repetition ?? 3);
-    const targetTranscript = String(inputs.target_transcript ?? this.target_transcript ?? "");
-    const task = String(inputs.task ?? this.task ?? "zero-shot text-to-speech");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
-    const voicecraftModel = String(inputs.voicecraft_model ?? this.voicecraft_model ?? "giga330M_TTSEnhanced.pth");
-    const whisperxModel = String(inputs.whisperx_model ?? this.whisperx_model ?? "base.en");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cutOffSec = Number(this.cut_off_sec ?? 3.01);
+    const kvcache = String(this.kvcache ?? 1);
+    const leftMargin = Number(this.left_margin ?? 0.08);
+    const origTranscript = String(this.orig_transcript ?? "");
+    const rightMargin = Number(this.right_margin ?? 0.08);
+    const sampleBatchSize = Number(this.sample_batch_size ?? 4);
+    const seed = Number(this.seed ?? -1);
+    const stopRepetition = Number(this.stop_repetition ?? 3);
+    const targetTranscript = String(this.target_transcript ?? "");
+    const task = String(this.task ?? "zero-shot text-to-speech");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 0.9);
+    const voicecraftModel = String(this.voicecraft_model ?? "giga330M_TTSEnhanced.pth");
+    const whisperxModel = String(this.whisperx_model ?? "base.en");
 
     const args: Record<string, unknown> = {
       "cut_off_sec": cutOffSec,
@@ -731,7 +731,7 @@ replicate, ai`;
       "whisperx_model": whisperxModel,
     };
 
-    const origAudioRef = (inputs.orig_audio ?? this.orig_audio) as Record<string, unknown> | undefined;
+    const origAudioRef = this.orig_audio as Record<string, unknown> | undefined;
     if (isRefSet(origAudioRef)) {
       const origAudioUrl = await assetToUrl(origAudioRef!, apiKey);
       if (origAudioUrl) args["orig_audio"] = origAudioUrl;
@@ -765,11 +765,11 @@ replicate, ai`;
   @prop({ type: "str", default: "Did you ever hear a folk tale about a giant turtle?", description: "Input text" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const language = String(inputs.language ?? this.language ?? "EN_NEWEST");
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const text = String(inputs.text ?? this.text ?? "Did you ever hear a folk tale about a giant turtle?");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const language = String(this.language ?? "EN_NEWEST");
+    const speed = Number(this.speed ?? 1);
+    const text = String(this.text ?? "Did you ever hear a folk tale about a giant turtle?");
 
     const args: Record<string, unknown> = {
       "language": language,
@@ -777,7 +777,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -817,13 +817,13 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Speed of the generated audio" })
   declare speed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const customSplitWords = String(inputs.custom_split_words ?? this.custom_split_words ?? "");
-    const genText = String(inputs.gen_text ?? this.gen_text ?? "");
-    const refText = String(inputs.ref_text ?? this.ref_text ?? "");
-    const removeSilence = Boolean(inputs.remove_silence ?? this.remove_silence ?? true);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const customSplitWords = String(this.custom_split_words ?? "");
+    const genText = String(this.gen_text ?? "");
+    const refText = String(this.ref_text ?? "");
+    const removeSilence = Boolean(this.remove_silence ?? true);
+    const speed = Number(this.speed ?? 1);
 
     const args: Record<string, unknown> = {
       "custom_split_words": customSplitWords,
@@ -833,7 +833,7 @@ replicate, ai`;
       "speed": speed,
     };
 
-    const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
+    const refAudioRef = this.ref_audio as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
       const refAudioUrl = await assetToUrl(refAudioRef!, apiKey);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
@@ -870,12 +870,12 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Automatically remove silences?" })
   declare remove_silence: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const customSplitWords = String(inputs.custom_split_words ?? this.custom_split_words ?? "");
-    const genText = String(inputs.gen_text ?? this.gen_text ?? "");
-    const refText = String(inputs.ref_text ?? this.ref_text ?? "");
-    const removeSilence = Boolean(inputs.remove_silence ?? this.remove_silence ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const customSplitWords = String(this.custom_split_words ?? "");
+    const genText = String(this.gen_text ?? "");
+    const refText = String(this.ref_text ?? "");
+    const removeSilence = Boolean(this.remove_silence ?? true);
 
     const args: Record<string, unknown> = {
       "custom_split_words": customSplitWords,
@@ -884,7 +884,7 @@ replicate, ai`;
       "remove_silence": removeSilence,
     };
 
-    const refAudioRef = (inputs.ref_audio ?? this.ref_audio) as Record<string, unknown> | undefined;
+    const refAudioRef = this.ref_audio as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
       const refAudioUrl = await assetToUrl(refAudioRef!, apiKey);
       if (refAudioUrl) args["ref_audio"] = refAudioUrl;
@@ -930,15 +930,15 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Natural language description of desired voice (only for 'voice_design' mode). Example: 'A warm, friendly female voice with a slight British accent'" })
   declare voice_description: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const language = String(inputs.language ?? this.language ?? "auto");
-    const mode = String(inputs.mode ?? this.mode ?? "custom_voice");
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
-    const speaker = String(inputs.speaker ?? this.speaker ?? "Serena");
-    const styleInstruction = String(inputs.style_instruction ?? this.style_instruction ?? "");
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceDescription = String(inputs.voice_description ?? this.voice_description ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const language = String(this.language ?? "auto");
+    const mode = String(this.mode ?? "custom_voice");
+    const referenceText = String(this.reference_text ?? "");
+    const speaker = String(this.speaker ?? "Serena");
+    const styleInstruction = String(this.style_instruction ?? "");
+    const text = String(this.text ?? "");
+    const voiceDescription = String(this.voice_description ?? "");
 
     const args: Record<string, unknown> = {
       "language": language,
@@ -950,7 +950,7 @@ replicate, ai`;
       "voice_description": voiceDescription,
     };
 
-    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -990,13 +990,13 @@ replicate, ai`;
   @prop({ type: "float", default: 0.8, description: "Temperature" })
   declare temperature: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cfgWeight = Number(inputs.cfg_weight ?? this.cfg_weight ?? 0.5);
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? 0);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cfgWeight = Number(this.cfg_weight ?? 0.5);
+    const exaggeration = Number(this.exaggeration ?? 0.5);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? 0);
+    const temperature = Number(this.temperature ?? 0.8);
 
     const args: Record<string, unknown> = {
       "cfg_weight": cfgWeight,
@@ -1006,7 +1006,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
+    const audioPromptRef = this.audio_prompt as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
       const audioPromptUrl = await assetToUrl(audioPromptRef!, apiKey);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
@@ -1049,14 +1049,14 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text to synthesize into speech (maximum 300 characters)" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cfgWeight = Number(inputs.cfg_weight ?? this.cfg_weight ?? 0.5);
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
-    const language = String(inputs.language ?? this.language ?? "en");
-    const seed = Number(inputs.seed ?? this.seed ?? 0);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cfgWeight = Number(this.cfg_weight ?? 0.5);
+    const exaggeration = Number(this.exaggeration ?? 0.5);
+    const language = String(this.language ?? "en");
+    const seed = Number(this.seed ?? 0);
+    const temperature = Number(this.temperature ?? 0.8);
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "cfg_weight": cfgWeight,
@@ -1067,7 +1067,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -1110,15 +1110,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "Luna", values: ["Luna", "Ember", "Hem", "Aurora", "Cliff", "Josh", "William (Whispering)", "Orion", "Ken"], description: "Choose a predefined voice" })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const customVoice = String(inputs.custom_voice ?? this.custom_voice ?? "");
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
-    const pitch = String(inputs.pitch ?? this.pitch ?? "medium");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
-    const voice = String(inputs.voice ?? this.voice ?? "Luna");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const customVoice = String(this.custom_voice ?? "");
+    const exaggeration = Number(this.exaggeration ?? 0.5);
+    const pitch = String(this.pitch ?? "medium");
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 0.8);
+    const voice = String(this.voice ?? "Luna");
 
     const args: Record<string, unknown> = {
       "custom_voice": customVoice,
@@ -1170,15 +1170,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "Andy", values: ["Aaron", "Abigail", "Anaya", "Andy", "Archer", "Brian", "Chloe", "Dylan", "Emmanuel", "Ethan", "Evelyn", "Gavin", "Gordon", "Ivan", "Laura", "Lucy", "Madison", "Marisol", "Meera", "Walter"], description: "Pre-made voice to use for synthesis. Ignored if reference_audio is provided." })
   declare voice: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.2);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
-    const text = String(inputs.text ?? this.text ?? "");
-    const topK = Number(inputs.top_k ?? this.top_k ?? 1000);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
-    const voice = String(inputs.voice ?? this.voice ?? "Andy");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.2);
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 0.8);
+    const text = String(this.text ?? "");
+    const topK = Number(this.top_k ?? 1000);
+    const topP = Number(this.top_p ?? 0.95);
+    const voice = String(this.voice ?? "Andy");
 
     const args: Record<string, unknown> = {
       "repetition_penalty": repetitionPenalty,
@@ -1190,7 +1190,7 @@ replicate, ai`;
       "voice": voice,
     };
 
-    const referenceAudioRef = (inputs.reference_audio ?? this.reference_audio) as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToUrl(referenceAudioRef!, apiKey);
       if (referenceAudioUrl) args["reference_audio"] = referenceAudioUrl;
@@ -1251,21 +1251,21 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Relative loudness. 1.0 is default MiniMax gain. Range 0–10." })
   declare volume: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 128000);
-    const channel = String(inputs.channel ?? this.channel ?? "mono");
-    const emotion = String(inputs.emotion ?? this.emotion ?? "auto");
-    const englishNormalization = Boolean(inputs.english_normalization ?? this.english_normalization ?? false);
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "None");
-    const pitch = Number(inputs.pitch ?? this.pitch ?? 0);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 32000);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const subtitleEnable = Boolean(inputs.subtitle_enable ?? this.subtitle_enable ?? false);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Wise_Woman");
-    const volume = Number(inputs.volume ?? this.volume ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 128000);
+    const channel = String(this.channel ?? "mono");
+    const emotion = String(this.emotion ?? "auto");
+    const englishNormalization = Boolean(this.english_normalization ?? false);
+    const languageBoost = String(this.language_boost ?? "None");
+    const pitch = Number(this.pitch ?? 0);
+    const sampleRate = String(this.sample_rate ?? 32000);
+    const speed = Number(this.speed ?? 1);
+    const subtitleEnable = Boolean(this.subtitle_enable ?? false);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "Wise_Woman");
+    const volume = Number(this.volume ?? 1);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1338,21 +1338,21 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Relative loudness. 1.0 is default MiniMax gain. Range 0–10." })
   declare volume: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 128000);
-    const channel = String(inputs.channel ?? this.channel ?? "mono");
-    const emotion = String(inputs.emotion ?? this.emotion ?? "auto");
-    const englishNormalization = Boolean(inputs.english_normalization ?? this.english_normalization ?? false);
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "None");
-    const pitch = Number(inputs.pitch ?? this.pitch ?? 0);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 32000);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const subtitleEnable = Boolean(inputs.subtitle_enable ?? this.subtitle_enable ?? false);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Wise_Woman");
-    const volume = Number(inputs.volume ?? this.volume ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 128000);
+    const channel = String(this.channel ?? "mono");
+    const emotion = String(this.emotion ?? "auto");
+    const englishNormalization = Boolean(this.english_normalization ?? false);
+    const languageBoost = String(this.language_boost ?? "None");
+    const pitch = Number(this.pitch ?? 0);
+    const sampleRate = String(this.sample_rate ?? 32000);
+    const speed = Number(this.speed ?? 1);
+    const subtitleEnable = Boolean(this.subtitle_enable ?? false);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "Wise_Woman");
+    const volume = Number(this.volume ?? 1);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1425,21 +1425,21 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Relative loudness. 1.0 is default MiniMax gain. Range 0–10." })
   declare volume: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 128000);
-    const channel = String(inputs.channel ?? this.channel ?? "mono");
-    const emotion = String(inputs.emotion ?? this.emotion ?? "auto");
-    const englishNormalization = Boolean(inputs.english_normalization ?? this.english_normalization ?? false);
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "None");
-    const pitch = Number(inputs.pitch ?? this.pitch ?? 0);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 32000);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const subtitleEnable = Boolean(inputs.subtitle_enable ?? this.subtitle_enable ?? false);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Wise_Woman");
-    const volume = Number(inputs.volume ?? this.volume ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 128000);
+    const channel = String(this.channel ?? "mono");
+    const emotion = String(this.emotion ?? "auto");
+    const englishNormalization = Boolean(this.english_normalization ?? false);
+    const languageBoost = String(this.language_boost ?? "None");
+    const pitch = Number(this.pitch ?? 0);
+    const sampleRate = String(this.sample_rate ?? 32000);
+    const speed = Number(this.speed ?? 1);
+    const subtitleEnable = Boolean(this.subtitle_enable ?? false);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "Wise_Woman");
+    const volume = Number(this.volume ?? 1);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1512,21 +1512,21 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Relative loudness. 1.0 is default MiniMax gain. Range 0–10." })
   declare volume: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 128000);
-    const channel = String(inputs.channel ?? this.channel ?? "mono");
-    const emotion = String(inputs.emotion ?? this.emotion ?? "auto");
-    const englishNormalization = Boolean(inputs.english_normalization ?? this.english_normalization ?? false);
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "None");
-    const pitch = Number(inputs.pitch ?? this.pitch ?? 0);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 32000);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const subtitleEnable = Boolean(inputs.subtitle_enable ?? this.subtitle_enable ?? false);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Wise_Woman");
-    const volume = Number(inputs.volume ?? this.volume ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 128000);
+    const channel = String(this.channel ?? "mono");
+    const emotion = String(this.emotion ?? "auto");
+    const englishNormalization = Boolean(this.english_normalization ?? false);
+    const languageBoost = String(this.language_boost ?? "None");
+    const pitch = Number(this.pitch ?? 0);
+    const sampleRate = String(this.sample_rate ?? 32000);
+    const speed = Number(this.speed ?? 1);
+    const subtitleEnable = Boolean(this.subtitle_enable ?? false);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "Wise_Woman");
+    const volume = Number(this.volume ?? 1);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1599,21 +1599,21 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Relative loudness. 1.0 is default MiniMax gain. Range 0–10." })
   declare volume: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 128000);
-    const channel = String(inputs.channel ?? this.channel ?? "mono");
-    const emotion = String(inputs.emotion ?? this.emotion ?? "auto");
-    const englishNormalization = Boolean(inputs.english_normalization ?? this.english_normalization ?? false);
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "None");
-    const pitch = Number(inputs.pitch ?? this.pitch ?? 0);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 32000);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const subtitleEnable = Boolean(inputs.subtitle_enable ?? this.subtitle_enable ?? false);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "Wise_Woman");
-    const volume = Number(inputs.volume ?? this.volume ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 128000);
+    const channel = String(this.channel ?? "mono");
+    const emotion = String(this.emotion ?? "auto");
+    const englishNormalization = Boolean(this.english_normalization ?? false);
+    const languageBoost = String(this.language_boost ?? "None");
+    const pitch = Number(this.pitch ?? 0);
+    const sampleRate = String(this.sample_rate ?? 32000);
+    const speed = Number(this.speed ?? 1);
+    const subtitleEnable = Boolean(this.subtitle_enable ?? false);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "Wise_Woman");
+    const volume = Number(this.volume ?? 1);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1662,12 +1662,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Voice file to clone. Must be MP3, M4A, or WAV format, 10s to 5min duration, and less than 20MB." })
   declare voice_file: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const accuracy = Number(inputs.accuracy ?? this.accuracy ?? 0.7);
-    const model = String(inputs.model ?? this.model ?? "speech-02-turbo");
-    const needNoiseReduction = Boolean(inputs.need_noise_reduction ?? this.need_noise_reduction ?? false);
-    const needVolumeNormalization = Boolean(inputs.need_volume_normalization ?? this.need_volume_normalization ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const accuracy = Number(this.accuracy ?? 0.7);
+    const model = String(this.model ?? "speech-02-turbo");
+    const needNoiseReduction = Boolean(this.need_noise_reduction ?? false);
+    const needVolumeNormalization = Boolean(this.need_volume_normalization ?? false);
 
     const args: Record<string, unknown> = {
       "accuracy": accuracy,
@@ -1676,7 +1676,7 @@ replicate, ai`;
       "need_volume_normalization": needVolumeNormalization,
     };
 
-    const voiceFileRef = (inputs.voice_file ?? this.voice_file) as Record<string, unknown> | undefined;
+    const voiceFileRef = this.voice_file as Record<string, unknown> | undefined;
     if (isRefSet(voiceFileRef)) {
       const voiceFileUrl = await assetToUrl(voiceFileRef!, apiKey);
       if (voiceFileUrl) args["voice_file"] = voiceFileUrl;
@@ -1713,13 +1713,13 @@ replicate, ai`;
   @prop({ type: "enum", default: 44100, values: ["16000", "24000", "32000", "44100"], description: "Sample rate for the generated music" })
   declare sample_rate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? 256000);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? 44100);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioFormat = String(this.audio_format ?? "mp3");
+    const bitrate = String(this.bitrate ?? 256000);
+    const lyrics = String(this.lyrics ?? "");
+    const prompt = String(this.prompt ?? "");
+    const sampleRate = String(this.sample_rate ?? 44100);
 
     const args: Record<string, unknown> = {
       "audio_format": audioFormat,
@@ -1760,13 +1760,13 @@ replicate, ai`;
   @prop({ type: "int", default: 8, description: "Number of diffusion steps (higher = better quality but slower)" })
   declare steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
-    const duration = Number(inputs.duration ?? this.duration ?? 190);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 8);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cfgScale = Number(this.cfg_scale ?? 1);
+    const duration = Number(this.duration ?? 190);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 8);
 
     const args: Record<string, unknown> = {
       "cfg_scale": cfgScale,
@@ -1834,22 +1834,22 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text prompts to guide music generation, e.g., 'epic,cinematic'" })
   declare tags: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const duration = Number(inputs.duration ?? this.duration ?? 60);
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 0);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const minGuidanceScale = Number(inputs.min_guidance_scale ?? this.min_guidance_scale ?? 3);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 60);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 0);
-    const tags = String(inputs.tags ?? this.tags ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const duration = Number(this.duration ?? 60);
+    const granularityScale = Number(this.granularity_scale ?? 10);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 0);
+    const lyrics = String(this.lyrics ?? "");
+    const minGuidanceScale = Number(this.min_guidance_scale ?? 3);
+    const numberOfSteps = Number(this.number_of_steps ?? 60);
+    const scheduler = String(this.scheduler ?? "euler");
+    const seed = Number(this.seed ?? -1);
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 0);
+    const tags = String(this.tags ?? "");
 
     const args: Record<string, unknown> = {
       "duration": duration,
@@ -1920,20 +1920,20 @@ replicate, ai`;
   @prop({ type: "int", default: 3, description: "Number of variations to generate" })
   declare variations: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const decodingStepsStage_1 = Number(inputs.decoding_steps_stage_1 ?? this.decoding_steps_stage_1 ?? 20);
-    const decodingStepsStage_2 = Number(inputs.decoding_steps_stage_2 ?? this.decoding_steps_stage_2 ?? 10);
-    const decodingStepsStage_3 = Number(inputs.decoding_steps_stage_3 ?? this.decoding_steps_stage_3 ?? 10);
-    const decodingStepsStage_4 = Number(inputs.decoding_steps_stage_4 ?? this.decoding_steps_stage_4 ?? 10);
-    const maxCfg = Number(inputs.max_cfg ?? this.max_cfg ?? 10);
-    const minCfg = Number(inputs.min_cfg ?? this.min_cfg ?? 1);
-    const model = String(inputs.model ?? this.model ?? "facebook/magnet-small-10secs");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "80s electronic track with melodic synthesizers, catchy beat and groovy bass");
-    const spanScore = String(inputs.span_score ?? this.span_score ?? "prod-stride1");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 3);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
-    const variations = Number(inputs.variations ?? this.variations ?? 3);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const decodingStepsStage_1 = Number(this.decoding_steps_stage_1 ?? 20);
+    const decodingStepsStage_2 = Number(this.decoding_steps_stage_2 ?? 10);
+    const decodingStepsStage_3 = Number(this.decoding_steps_stage_3 ?? 10);
+    const decodingStepsStage_4 = Number(this.decoding_steps_stage_4 ?? 10);
+    const maxCfg = Number(this.max_cfg ?? 10);
+    const minCfg = Number(this.min_cfg ?? 1);
+    const model = String(this.model ?? "facebook/magnet-small-10secs");
+    const prompt = String(this.prompt ?? "80s electronic track with melodic synthesizers, catchy beat and groovy bass");
+    const spanScore = String(this.span_score ?? "prod-stride1");
+    const temperature = Number(this.temperature ?? 3);
+    const topP = Number(this.top_p ?? 0.9);
+    const variations = Number(this.variations ?? 3);
 
     const args: Record<string, unknown> = {
       "decoding_steps_stage_1": decodingStepsStage_1,
@@ -2020,25 +2020,25 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Reduces sampling to tokens with cumulative probability of p. When set to  '0' (default), top_k sampling is used." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioEnd = Number(inputs.audio_end ?? this.audio_end ?? 0);
-    const audioStart = Number(inputs.audio_start ?? this.audio_start ?? 0);
-    const bpm = Number(inputs.bpm ?? this.bpm ?? 0);
-    const chromaCoefficient = Number(inputs.chroma_coefficient ?? this.chroma_coefficient ?? 1);
-    const classifierFreeGuidance = Number(inputs.classifier_free_guidance ?? this.classifier_free_guidance ?? 3);
-    const continuation = Boolean(inputs.continuation ?? this.continuation ?? false);
-    const duration = Number(inputs.duration ?? this.duration ?? 8);
-    const multiBandDiffusion = Boolean(inputs.multi_band_diffusion ?? this.multi_band_diffusion ?? false);
-    const normalizationStrategy = String(inputs.normalization_strategy ?? this.normalization_strategy ?? "loudness");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const textChords = String(inputs.text_chords ?? this.text_chords ?? "");
-    const timeSig = String(inputs.time_sig ?? this.time_sig ?? "");
-    const topK = Number(inputs.top_k ?? this.top_k ?? 250);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioEnd = Number(this.audio_end ?? 0);
+    const audioStart = Number(this.audio_start ?? 0);
+    const bpm = Number(this.bpm ?? 0);
+    const chromaCoefficient = Number(this.chroma_coefficient ?? 1);
+    const classifierFreeGuidance = Number(this.classifier_free_guidance ?? 3);
+    const continuation = Boolean(this.continuation ?? false);
+    const duration = Number(this.duration ?? 8);
+    const multiBandDiffusion = Boolean(this.multi_band_diffusion ?? false);
+    const normalizationStrategy = String(this.normalization_strategy ?? "loudness");
+    const outputFormat = String(this.output_format ?? "wav");
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 1);
+    const textChords = String(this.text_chords ?? "");
+    const timeSig = String(this.time_sig ?? "");
+    const topK = Number(this.top_k ?? 250);
+    const topP = Number(this.top_p ?? 0);
 
     const args: Record<string, unknown> = {
       "audio_end": audioEnd,
@@ -2060,7 +2060,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
+    const audioChordsRef = this.audio_chords as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
       const audioChordsUrl = await assetToUrl(audioChordsRef!, apiKey);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
@@ -2127,22 +2127,22 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Reduces sampling to tokens with cumulative probability of p. When set to  '0' (default), top_k sampling is used." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const beatSyncThreshold = Number(inputs.beat_sync_threshold ?? this.beat_sync_threshold ?? 0);
-    const chromaCoefficient = Number(inputs.chroma_coefficient ?? this.chroma_coefficient ?? 1);
-    const classifierFreeGuidance = Number(inputs.classifier_free_guidance ?? this.classifier_free_guidance ?? 3);
-    const largeChordVoca = Boolean(inputs.large_chord_voca ?? this.large_chord_voca ?? true);
-    const modelVersion = String(inputs.model_version ?? this.model_version ?? "stereo-chord");
-    const multiBandDiffusion = Boolean(inputs.multi_band_diffusion ?? this.multi_band_diffusion ?? false);
-    const normalizationStrategy = String(inputs.normalization_strategy ?? this.normalization_strategy ?? "loudness");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const returnInstrumental = Boolean(inputs.return_instrumental ?? this.return_instrumental ?? false);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 250);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const beatSyncThreshold = Number(this.beat_sync_threshold ?? 0);
+    const chromaCoefficient = Number(this.chroma_coefficient ?? 1);
+    const classifierFreeGuidance = Number(this.classifier_free_guidance ?? 3);
+    const largeChordVoca = Boolean(this.large_chord_voca ?? true);
+    const modelVersion = String(this.model_version ?? "stereo-chord");
+    const multiBandDiffusion = Boolean(this.multi_band_diffusion ?? false);
+    const normalizationStrategy = String(this.normalization_strategy ?? "loudness");
+    const outputFormat = String(this.output_format ?? "wav");
+    const prompt = String(this.prompt ?? "");
+    const returnInstrumental = Boolean(this.return_instrumental ?? false);
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 1);
+    const topK = Number(this.top_k ?? 250);
+    const topP = Number(this.top_p ?? 0);
 
     const args: Record<string, unknown> = {
       "beat_sync_threshold": beatSyncThreshold,
@@ -2161,7 +2161,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const musicInputRef = (inputs.music_input ?? this.music_input) as Record<string, unknown> | undefined;
+    const musicInputRef = this.music_input as Record<string, unknown> | undefined;
     if (isRefSet(musicInputRef)) {
       const musicInputUrl = await assetToUrl(musicInputRef!, apiKey);
       if (musicInputUrl) args["music_input"] = musicInputUrl;
@@ -2240,26 +2240,26 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Reduces sampling to tokens with cumulative probability of p. When set to  '0' (default), top_k sampling is used." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioEnd = Number(inputs.audio_end ?? this.audio_end ?? 0);
-    const audioStart = Number(inputs.audio_start ?? this.audio_start ?? 0);
-    const bpm = Number(inputs.bpm ?? this.bpm ?? 0);
-    const chromaCoefficient = Number(inputs.chroma_coefficient ?? this.chroma_coefficient ?? 1);
-    const classifierFreeGuidance = Number(inputs.classifier_free_guidance ?? this.classifier_free_guidance ?? 3);
-    const continuation = Boolean(inputs.continuation ?? this.continuation ?? false);
-    const duration = Number(inputs.duration ?? this.duration ?? 8);
-    const modelVersion = String(inputs.model_version ?? this.model_version ?? "stereo-chord-large");
-    const multiBandDiffusion = Boolean(inputs.multi_band_diffusion ?? this.multi_band_diffusion ?? false);
-    const normalizationStrategy = String(inputs.normalization_strategy ?? this.normalization_strategy ?? "loudness");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const textChords = String(inputs.text_chords ?? this.text_chords ?? "");
-    const timeSig = String(inputs.time_sig ?? this.time_sig ?? "4/4");
-    const topK = Number(inputs.top_k ?? this.top_k ?? 250);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioEnd = Number(this.audio_end ?? 0);
+    const audioStart = Number(this.audio_start ?? 0);
+    const bpm = Number(this.bpm ?? 0);
+    const chromaCoefficient = Number(this.chroma_coefficient ?? 1);
+    const classifierFreeGuidance = Number(this.classifier_free_guidance ?? 3);
+    const continuation = Boolean(this.continuation ?? false);
+    const duration = Number(this.duration ?? 8);
+    const modelVersion = String(this.model_version ?? "stereo-chord-large");
+    const multiBandDiffusion = Boolean(this.multi_band_diffusion ?? false);
+    const normalizationStrategy = String(this.normalization_strategy ?? "loudness");
+    const outputFormat = String(this.output_format ?? "wav");
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 1);
+    const textChords = String(this.text_chords ?? "");
+    const timeSig = String(this.time_sig ?? "4/4");
+    const topK = Number(this.top_k ?? 250);
+    const topP = Number(this.top_p ?? 0);
 
     const args: Record<string, unknown> = {
       "audio_end": audioEnd,
@@ -2282,7 +2282,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioChordsRef = (inputs.audio_chords ?? this.audio_chords) as Record<string, unknown> | undefined;
+    const audioChordsRef = this.audio_chords as Record<string, unknown> | undefined;
     if (isRefSet(audioChordsRef)) {
       const audioChordsUrl = await assetToUrl(audioChordsRef!, apiKey);
       if (audioChordsUrl) args["audio_chords"] = audioChordsUrl;
@@ -2337,19 +2337,19 @@ replicate, ai`;
   @prop({ type: "int", default: 4, description: "Number of variations to generate" })
   declare variations: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const bpm = Number(inputs.bpm ?? this.bpm ?? 140);
-    const classifierFreeGuidance = Number(inputs.classifier_free_guidance ?? this.classifier_free_guidance ?? 3);
-    const maxDuration = Number(inputs.max_duration ?? this.max_duration ?? 8);
-    const modelVersion = String(inputs.model_version ?? this.model_version ?? "medium");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 250);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0);
-    const variations = Number(inputs.variations ?? this.variations ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const bpm = Number(this.bpm ?? 140);
+    const classifierFreeGuidance = Number(this.classifier_free_guidance ?? 3);
+    const maxDuration = Number(this.max_duration ?? 8);
+    const modelVersion = String(this.model_version ?? "medium");
+    const outputFormat = String(this.output_format ?? "wav");
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const temperature = Number(this.temperature ?? 1);
+    const topK = Number(this.top_k ?? 250);
+    const topP = Number(this.top_p ?? 0);
+    const variations = Number(this.variations ?? 4);
 
     const args: Record<string, unknown> = {
       "bpm": bpm,
@@ -2402,15 +2402,15 @@ replicate, ai`;
   @prop({ type: "int", default: 50, description: "Number of sampling steps" })
   declare steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7);
-    const modelVersion = String(inputs.model_version ?? this.model_version ?? "base");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "low quality, gentle");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "The song is an epic blend of space-rock, rock, and post-rock genres.");
-    const saveSpectrogram = Boolean(inputs.save_spectrogram ?? this.save_spectrogram ?? false);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 50);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const guidanceScale = Number(this.guidance_scale ?? 7);
+    const modelVersion = String(this.model_version ?? "base");
+    const negativePrompt = String(this.negative_prompt ?? "low quality, gentle");
+    const prompt = String(this.prompt ?? "The song is an epic blend of space-rock, rock, and post-rock genres.");
+    const saveSpectrogram = Boolean(this.save_spectrogram ?? false);
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 50);
 
     const args: Record<string, unknown> = {
       "guidance_scale": guidanceScale,
@@ -2471,18 +2471,18 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "Controls diversity of word choice. Higher values include more unusual options. Most users shouldn't need to adjust this parameter." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const audioPromptText = String(inputs.audio_prompt_text ?? this.audio_prompt_text ?? "");
-    const cfgFilterTopK = Number(inputs.cfg_filter_top_k ?? this.cfg_filter_top_k ?? 45);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 3);
-    const maxAudioPromptSeconds = Number(inputs.max_audio_prompt_seconds ?? this.max_audio_prompt_seconds ?? 10);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 3072);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const speedFactor = Number(inputs.speed_factor ?? this.speed_factor ?? 1);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1.8);
-    const text = String(inputs.text ?? this.text ?? "");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const audioPromptText = String(this.audio_prompt_text ?? "");
+    const cfgFilterTopK = Number(this.cfg_filter_top_k ?? 45);
+    const cfgScale = Number(this.cfg_scale ?? 3);
+    const maxAudioPromptSeconds = Number(this.max_audio_prompt_seconds ?? 10);
+    const maxNewTokens = Number(this.max_new_tokens ?? 3072);
+    const seed = Number(this.seed ?? -1);
+    const speedFactor = Number(this.speed_factor ?? 1);
+    const temperature = Number(this.temperature ?? 1.8);
+    const text = String(this.text ?? "");
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "audio_prompt_text": audioPromptText,
@@ -2497,7 +2497,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioPromptRef = (inputs.audio_prompt ?? this.audio_prompt) as Record<string, unknown> | undefined;
+    const audioPromptRef = this.audio_prompt as Record<string, unknown> | undefined;
     if (isRefSet(audioPromptRef)) {
       const audioPromptUrl = await assetToUrl(audioPromptRef!, apiKey);
       if (audioPromptUrl) args["audio_prompt"] = audioPromptUrl;
@@ -2537,13 +2537,13 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video file (supports various formats)" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const caption = String(inputs.caption ?? this.caption ?? "");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 5);
-    const cot = String(inputs.cot ?? this.cot ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 24);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const caption = String(this.caption ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 5);
+    const cot = String(this.cot ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 24);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "caption": caption,
@@ -2553,7 +2553,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;

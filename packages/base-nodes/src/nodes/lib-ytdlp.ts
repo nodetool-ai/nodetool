@@ -145,8 +145,8 @@ export class YtDlpDownloadLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "").trim();
     if (!url) {
       throw new Error("URL cannot be empty");
     }
@@ -154,14 +154,14 @@ export class YtDlpDownloadLibNode extends BaseNode {
       throw new Error(`Invalid URL format: ${url}`);
     }
 
-    const mode = String(inputs.mode ?? this.mode ?? "video").toLowerCase();
-    const timeoutMs = Math.max(1000, Number(inputs.timeout ?? this.timeout ?? 600) * 1000);
-    const formatSelector = String(inputs.format_selector ?? this.format_selector ?? "best");
-    const container = String(inputs.container ?? this.container ?? "auto");
-    const subtitles = Boolean(inputs.subtitles ?? this.subtitles ?? false);
-    const thumbnail = Boolean(inputs.thumbnail ?? this.thumbnail ?? false);
-    const overwrite = Boolean(inputs.overwrite ?? this.overwrite ?? false);
-    const rateLimitKbps = Number(inputs.rate_limit_kbps ?? this.rate_limit_kbps ?? 0);
+    const mode = String(this.mode ?? "video").toLowerCase();
+    const timeoutMs = Math.max(1000, Number(this.timeout ?? 600) * 1000);
+    const formatSelector = String(this.format_selector ?? "best");
+    const container = String(this.container ?? "auto");
+    const subtitles = Boolean(this.subtitles ?? false);
+    const thumbnail = Boolean(this.thumbnail ?? false);
+    const overwrite = Boolean(this.overwrite ?? false);
+    const rateLimitKbps = Number(this.rate_limit_kbps ?? 0);
 
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ytdlp-"));
 

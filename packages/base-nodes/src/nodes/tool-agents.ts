@@ -157,15 +157,13 @@ async function getAssetBytes(
 }
 
 /**
- * Collect all asset refs from known input fields.
- * Checks both dynamic `inputs` (from edges) and static `self` properties (from node config).
+ * Collect all asset refs from known fields on the node instance.
  */
-function collectAssets(inputs: Record<string, unknown>, self?: Record<string, unknown>): AssetRef[] {
+function collectAssets(self: Record<string, unknown>): AssetRef[] {
   const assets: AssetRef[] = [];
   const assetFields = ["image", "audio", "video", "document", "images", "audios", "videos", "documents"];
   for (const field of assetFields) {
-    // Prefer edge input, fall back to static node property
-    const val = inputs[field] ?? (self ? self[field] : undefined);
+    const val = self[field];
     if (!val) continue;
     if (Array.isArray(val)) {
       for (const item of val) {
@@ -328,14 +326,12 @@ class ToolAgentNode extends BaseNode {
   }
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const props = this.serialize();
-    const prompt = String(inputs.prompt ?? props.prompt ?? "").trim();
+    const prompt = String((this as any).prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
-    const model = (inputs.model ?? props.model ?? {}) as Record<string, unknown>;
+    const model = ((this as any).model ?? {}) as Record<string, unknown>;
     const providerId = String(model.provider || "").toLowerCase();
     const modelId = String(model.id || "");
     if (!providerId || !modelId) {
@@ -352,7 +348,7 @@ class ToolAgentNode extends BaseNode {
 
     // Collect multimodal asset inputs
     const self = this as unknown as Record<string, unknown>;
-    const assets = collectAssets(inputs, self);
+    const assets = collectAssets(self);
     const assetParts = await buildAssetContentParts(assets, context, "image");
 
     // Copy asset files into workspace so the agent can access them via bash

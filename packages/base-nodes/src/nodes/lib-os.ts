@@ -71,7 +71,7 @@ export class WorkspaceDirectoryLibNode extends BaseNode {
   };
   
 
-  async process(_inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     return { output: context?.workspaceDir ?? "" };
   }
 }
@@ -85,7 +85,7 @@ export class OpenWorkspaceDirectoryLibNode extends BaseNode {
   };
   
 
-  async process(_inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const dir = context?.workspaceDir;
     if (!dir) return {};
     await openPath(dir);
@@ -107,8 +107,8 @@ export class FileExistsLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const p = String(this.path ?? "");
     if (!p) throw new Error("'path' field cannot be empty");
     return { output: existsSync(expandUser(p)) };
   }
@@ -139,11 +139,11 @@ export class ListFilesLibNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = expandUser(String(inputs.folder ?? this.folder ?? "~"));
-    const pattern = String(inputs.pattern ?? this.pattern ?? "*");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = expandUser(String(this.folder ?? "~"));
+    const pattern = String(this.pattern ?? "*");
     const includeSubdirectories = Boolean(
-      inputs.include_subdirectories ?? this.include_subdirectories ?? false
+      this.include_subdirectories ?? false
     );
 
     if (!folder) throw new Error("directory cannot be empty");
@@ -173,9 +173,9 @@ export class CopyFileLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const src = expandUser(String(inputs.source_path ?? this.source_path ?? ""));
-    const dst = expandUser(String(inputs.destination_path ?? this.destination_path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const src = expandUser(String(this.source_path ?? ""));
+    const dst = expandUser(String(this.destination_path ?? ""));
     if (!src) throw new Error("'source_path' field cannot be empty");
     if (!dst) throw new Error("'destination_path' field cannot be empty");
 
@@ -186,7 +186,7 @@ export class CopyFileLibNode extends BaseNode {
     } else {
       await fs.copyFile(src, dst);
     }
-    return { output: String(inputs.destination_path ?? this.destination_path ?? "") };
+    return { output: String(this.destination_path ?? "") };
   }
 }
 
@@ -204,9 +204,9 @@ export class MoveFileLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const src = expandUser(String(inputs.source_path ?? this.source_path ?? ""));
-    const dst = expandUser(String(inputs.destination_path ?? this.destination_path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const src = expandUser(String(this.source_path ?? ""));
+    const dst = expandUser(String(this.destination_path ?? ""));
     await fs.mkdir(path.dirname(dst), { recursive: true });
     await fs.rename(src, dst);
     return {};
@@ -227,10 +227,10 @@ export class CreateDirectoryLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
-    await fs.mkdir(p, { recursive: Boolean(inputs.exist_ok ?? this.exist_ok ?? true) });
+    await fs.mkdir(p, { recursive: Boolean(this.exist_ok ?? true) });
     return {};
   }
 }
@@ -249,8 +249,8 @@ export class GetFileSizeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
     const stat = await fs.stat(p);
     return { output: stat.size };
@@ -258,9 +258,8 @@ export class GetFileSizeLibNode extends BaseNode {
 }
 
 abstract class FileTimeBase extends BaseNode {
-  protected async getTime(inputs: Record<string, unknown>, kind: "atime" | "ctime" | "mtime") {
-    const props = this.serialize();
-    const p = expandUser(String(inputs.path ?? props.path ?? ""));
+  protected async getTime(kind: "atime" | "ctime" | "mtime") {
+    const p = expandUser(String((this as any).path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
     const stat = await fs.stat(p);
     const d = kind === "atime" ? stat.atime : kind === "ctime" ? stat.ctime : stat.mtime;
@@ -280,7 +279,7 @@ export class CreatedTimeLibNode extends FileTimeBase {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> { return this.getTime(inputs, "ctime"); }
+  async process(): Promise<Record<string, unknown>> { return this.getTime("ctime"); }
 }
 
 export class ModifiedTimeLibNode extends FileTimeBase {
@@ -295,7 +294,7 @@ export class ModifiedTimeLibNode extends FileTimeBase {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> { return this.getTime(inputs, "mtime"); }
+  async process(): Promise<Record<string, unknown>> { return this.getTime("mtime"); }
 }
 
 export class AccessedTimeLibNode extends FileTimeBase {
@@ -310,7 +309,7 @@ export class AccessedTimeLibNode extends FileTimeBase {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> { return this.getTime(inputs, "atime"); }
+  async process(): Promise<Record<string, unknown>> { return this.getTime("atime"); }
 }
 
 abstract class PathBoolNode extends BaseNode {
@@ -318,8 +317,8 @@ abstract class PathBoolNode extends BaseNode {
   declare path: any;
 
 
-  protected readPath(inputs: Record<string, unknown>): string {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  protected readPath(): string {
+    const p = expandUser(String(this.path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
     return p;
   }
@@ -335,8 +334,8 @@ export class IsFileLibNode extends PathBoolNode {
   @prop({ type: "str", default: "", title: "Path", description: "Path to check" })
   declare path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = this.readPath(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const p = this.readPath();
     try {
       return { output: (await fs.stat(p)).isFile() };
     } catch {
@@ -355,8 +354,8 @@ export class IsDirectoryLibNode extends PathBoolNode {
   @prop({ type: "str", default: "", title: "Path", description: "Path to check" })
   declare path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = this.readPath(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const p = this.readPath();
     try {
       return { output: (await fs.stat(p)).isDirectory() };
     } catch {
@@ -375,8 +374,8 @@ export class FileExtensionLibNode extends PathBoolNode {
   @prop({ type: "str", default: "", title: "Path", description: "Path to file" })
   declare path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: path.extname(this.readPath(inputs)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: path.extname(this.readPath()) };
   }
 }
 
@@ -390,8 +389,8 @@ export class FileNameLibNode extends PathBoolNode {
   @prop({ type: "str", default: "", title: "Path", description: "Path to file" })
   declare path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: path.basename(this.readPath(inputs)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: path.basename(this.readPath()) };
   }
 }
 
@@ -405,8 +404,8 @@ export class GetDirectoryLibNode extends PathBoolNode {
   @prop({ type: "str", default: "", title: "Path", description: "Path to file" })
   declare path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: path.dirname(this.readPath(inputs)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: path.dirname(this.readPath()) };
   }
 }
 
@@ -430,10 +429,10 @@ export class FileNameMatchLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const filename = String(inputs.filename ?? this.filename ?? "");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "*");
-    const caseSensitive = Boolean(inputs.case_sensitive ?? this.case_sensitive ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const filename = String(this.filename ?? "");
+    const pattern = String(this.pattern ?? "*");
+    const caseSensitive = Boolean(this.case_sensitive ?? true);
     return { output: wildcardToRegExp(pattern, caseSensitive).test(caseSensitive ? filename : filename.toLowerCase()) };
   }
 }
@@ -458,12 +457,12 @@ export class FilterFileNamesLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const filenames = Array.isArray(inputs.filenames ?? this.filenames)
-      ? ((inputs.filenames ?? this.filenames ?? []) as unknown[]).map(String)
+  async process(): Promise<Record<string, unknown>> {
+    const filenames = Array.isArray(this.filenames)
+      ? ((this.filenames ?? []) as unknown[]).map(String)
       : [];
-    const pattern = String(inputs.pattern ?? this.pattern ?? "*");
-    const caseSensitive = Boolean(inputs.case_sensitive ?? this.case_sensitive ?? true);
+    const pattern = String(this.pattern ?? "*");
+    const caseSensitive = Boolean(this.case_sensitive ?? true);
     const rx = wildcardToRegExp(pattern, caseSensitive);
     const output = filenames.filter((name) => rx.test(caseSensitive ? name : name.toLowerCase()));
     return { output };
@@ -487,11 +486,11 @@ export class BasenameLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     if (p.trim() === "") throw new Error("path is empty");
     const basename = path.basename(p);
-    if (inputs.remove_extension ?? this.remove_extension ?? false) {
+    if (this.remove_extension ?? false) {
       return { output: path.parse(basename).name };
     }
     return { output: basename };
@@ -511,8 +510,8 @@ export class DirnameLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: path.dirname(expandUser(String(inputs.path ?? this.path ?? ""))) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: path.dirname(expandUser(String(this.path ?? ""))) };
   }
 }
 
@@ -529,9 +528,9 @@ export class JoinPathsLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const parts = Array.isArray(inputs.paths ?? this.paths)
-      ? ((inputs.paths ?? this.paths ?? []) as unknown[]).map(String)
+  async process(): Promise<Record<string, unknown>> {
+    const parts = Array.isArray(this.paths)
+      ? ((this.paths ?? []) as unknown[]).map(String)
       : [];
     if (parts.length === 0) throw new Error("paths cannot be empty");
     return { output: path.join(...parts) };
@@ -551,8 +550,8 @@ export class NormalizePathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const p = String(this.path ?? "");
     if (!p) throw new Error("path cannot be empty");
     return { output: path.normalize(p) };
   }
@@ -571,8 +570,8 @@ export class GetPathInfoLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const p = String(this.path ?? "");
     const abs = path.resolve(p);
     let stat: Awaited<ReturnType<typeof fs.lstat>> | null = null;
     try { stat = await fs.lstat(p); } catch { /* stat stays null if path doesn't exist */ }
@@ -604,8 +603,8 @@ export class AbsolutePathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     if (!p) throw new Error("path cannot be empty");
     return { output: path.resolve(p) };
   }
@@ -624,8 +623,8 @@ export class SplitPathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     return { dirname: path.dirname(p), basename: path.basename(p) };
   }
 }
@@ -643,8 +642,8 @@ export class SplitExtensionLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = expandUser(String(this.path ?? ""));
     const parsed = path.parse(p);
     return { root: path.join(parsed.dir, parsed.name), extension: parsed.ext };
   }
@@ -666,9 +665,9 @@ export class RelativePathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const target = expandUser(String(inputs.target_path ?? this.target_path ?? ""));
-    const start = expandUser(String(inputs.start_path ?? this.start_path ?? "."));
+  async process(): Promise<Record<string, unknown>> {
+    const target = expandUser(String(this.target_path ?? ""));
+    const start = expandUser(String(this.start_path ?? "."));
     if (!target) throw new Error("target_path cannot be empty");
     return { output: path.relative(start, target) };
   }
@@ -687,8 +686,8 @@ export class PathToStringLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const filePath = String(inputs.file_path ?? this.file_path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const filePath = String(this.file_path ?? "");
     if (!filePath) throw new Error("file_path cannot be empty");
     return { output: filePath };
   }
@@ -713,9 +712,9 @@ export class ShowNotificationLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const title = String(inputs.title ?? this.title ?? "");
-    const message = String(inputs.message ?? this.message ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const title = String(this.title ?? "");
+    const message = String(this.message ?? "");
     if (!title) throw new Error("title cannot be empty");
     if (!message) throw new Error("message cannot be empty");
     return {};

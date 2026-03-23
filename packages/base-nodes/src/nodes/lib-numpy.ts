@@ -163,9 +163,9 @@ export class AddArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 0);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x + y));
   }
 }
@@ -188,9 +188,9 @@ export class SubtractArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 0);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x - y));
   }
 }
@@ -213,9 +213,9 @@ export class MultiplyArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 0);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x * y));
   }
 }
@@ -238,9 +238,9 @@ export class DivideArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 1);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x / y));
   }
 }
@@ -263,9 +263,9 @@ export class ModulusArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 1);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x % y));
   }
 }
@@ -295,8 +295,8 @@ export class AbsArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return convertOutput(elementwiseUnary(arr, Math.abs));
   }
 }
@@ -316,8 +316,8 @@ export class SineArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.angle_rad ?? this.angle_rad ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.angle_rad ?? 0);
     return convertOutput(elementwiseUnary(arr, Math.sin));
   }
 }
@@ -337,8 +337,8 @@ export class CosineArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.angle_rad ?? this.angle_rad ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.angle_rad ?? 0);
     return convertOutput(elementwiseUnary(arr, Math.cos));
   }
 }
@@ -364,8 +364,8 @@ export class ExpArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return convertOutput(elementwiseUnary(arr, Math.exp));
   }
 }
@@ -391,8 +391,8 @@ export class LogArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return convertOutput(elementwiseUnary(arr, Math.log));
   }
 }
@@ -419,8 +419,8 @@ export class SqrtArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return convertOutput(elementwiseUnary(arr, Math.sqrt));
   }
 }
@@ -443,9 +443,9 @@ export class PowerArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const base = asNdArray(inputs.base ?? this.base ?? 1);
-    const exp = asNdArray(inputs.exponent ?? this.exponent ?? 2);
+  async process(): Promise<Record<string, unknown>> {
+    const base = asNdArray(this.base ?? 1);
+    const exp = asNdArray(this.exponent ?? 2);
     return convertOutput(elementwiseBinary(base, exp, Math.pow));
   }
 }
@@ -478,9 +478,9 @@ export class SumArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) => vals.reduce((a, b) => a + b, 0));
     return convertOutput(res);
   }
@@ -510,9 +510,9 @@ export class MeanArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) =>
       vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
     );
@@ -544,9 +544,9 @@ export class MinArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) => Math.min(...vals));
     return convertOutput(res);
   }
@@ -576,9 +576,9 @@ export class MaxArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) => Math.max(...vals));
     return convertOutput(res);
   }
@@ -608,9 +608,9 @@ export class ArgMinArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) => {
       let minIdx = 0;
       for (let i = 1; i < vals.length; i++) {
@@ -646,9 +646,9 @@ export class ArgMaxArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const axis = Number(this.axis ?? 0);
     const res = reduceAlongAxis(arr, axis, (vals) => {
       let maxIdx = 0;
       for (let i = 1; i < vals.length; i++) {
@@ -697,12 +697,12 @@ export class SliceArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const stop = Number(inputs.stop ?? this.stop ?? 0);
-    const step = Number(inputs.step ?? this.step ?? 1);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const start = Number(this.start ?? 0);
+    const stop = Number(this.stop ?? 0);
+    const step = Number(this.step ?? 1);
+    const axis = Number(this.axis ?? 0);
 
     const ndim = arr.shape.length;
     if (ndim === 0) return { output: { data: [], shape: [] } };
@@ -768,10 +768,10 @@ export class IndexArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const indicesStr = String(inputs.indices ?? this.indices ?? "");
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const indicesStr = String(this.indices ?? "");
+    const axis = Number(this.axis ?? 0);
 
     const indices = indicesStr.split(",").filter((s) => s.trim()).map((s) => parseInt(s.trim(), 10));
     if (indices.length === 0) return { output: { data: [], shape: [0] } };
@@ -820,8 +820,8 @@ export class TransposeArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     const ndim = arr.shape.length;
 
     if (ndim <= 1) return { output: { data: [...arr.data], shape: [...arr.shape] } };
@@ -895,9 +895,9 @@ export class MatMulNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a);
-    const b = asNdArray(inputs.b ?? this.b);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a);
+    const b = asNdArray(this.b);
 
     if (a.shape.length !== 2 || b.shape.length !== 2) {
       throw new Error("MatMul requires 2D arrays");
@@ -939,9 +939,9 @@ export class StackNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rawArrays = (inputs.arrays ?? this.arrays ?? []) as unknown[];
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const rawArrays = (this.arrays ?? []) as unknown[];
+    const axis = Number(this.axis ?? 0);
     if (rawArrays.length === 0) return { output: { data: [], shape: [0] } };
 
     const arrays = rawArrays.map(asNdArray);
@@ -992,10 +992,10 @@ export class SplitArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const numSplits = Number(inputs.num_splits ?? this.num_splits ?? 1);
-    const axis = Number(inputs.axis ?? this.axis ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const numSplits = Number(this.num_splits ?? 1);
+    const axis = Number(this.axis ?? 0);
 
     const ndim = arr.shape.length;
     const clampedAxis = ((axis % ndim) + ndim) % ndim;
@@ -1060,9 +1060,9 @@ export class Reshape1DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const numElements = Number(inputs.num_elements ?? this.num_elements ?? arr.data.length);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const numElements = Number(this.num_elements ?? arr.data.length);
     const n = numElements || arr.data.length;
     return { output: { data: arr.data.slice(0, n), shape: [n] } };
   }
@@ -1095,10 +1095,10 @@ export class Reshape2DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const rows = Number(inputs.num_rows ?? this.num_rows ?? 0);
-    const cols = Number(inputs.num_cols ?? this.num_cols ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const rows = Number(this.num_rows ?? 0);
+    const cols = Number(this.num_cols ?? 0);
     return { output: { data: [...arr.data], shape: [rows, cols] } };
   }
 }
@@ -1133,11 +1133,11 @@ export class Reshape3DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const rows = Number(inputs.num_rows ?? this.num_rows ?? 0);
-    const cols = Number(inputs.num_cols ?? this.num_cols ?? 0);
-    const depths = Number(inputs.num_depths ?? this.num_depths ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const rows = Number(this.num_rows ?? 0);
+    const cols = Number(this.num_cols ?? 0);
+    const depths = Number(this.num_depths ?? 0);
     return { output: { data: [...arr.data], shape: [rows, cols, depths] } };
   }
 }
@@ -1175,12 +1175,12 @@ export class Reshape4DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const rows = Number(inputs.num_rows ?? this.num_rows ?? 0);
-    const cols = Number(inputs.num_cols ?? this.num_cols ?? 0);
-    const depths = Number(inputs.num_depths ?? this.num_depths ?? 0);
-    const channels = Number(inputs.num_channels ?? this.num_channels ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const rows = Number(this.num_rows ?? 0);
+    const cols = Number(this.num_cols ?? 0);
+    const depths = Number(this.num_depths ?? 0);
+    const channels = Number(this.num_channels ?? 0);
     return { output: { data: [...arr.data], shape: [rows, cols, depths, channels] } };
   }
 }
@@ -1203,8 +1203,8 @@ export class ListToArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? []) as unknown[];
     const flat = flattenNestedList(values);
     const shape = inferShape(values);
     return { output: { data: flat, shape } };
@@ -1252,8 +1252,8 @@ export class ArrayToListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return { output: toNestedList(arr.data, arr.shape, 0, 0).value };
   }
 }
@@ -1295,8 +1295,8 @@ export class ScalarToArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = Number(inputs.value ?? this.value ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const value = Number(this.value ?? 0);
     return { output: { data: [value], shape: [1] } };
   }
 }
@@ -1322,8 +1322,8 @@ export class ArrayToScalarNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     return { output: arr.data[0] ?? 0 };
   }
 }
@@ -1349,8 +1349,8 @@ export class ConvertToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     if (arr.data.length === 0) throw new Error("The input array is not connected.");
 
     const ndim = arr.shape.length;
@@ -1413,9 +1413,9 @@ export class ConvertToAudioNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const sampleRate = Number(inputs.sample_rate ?? this.sample_rate ?? 44100);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
+    const sampleRate = Number(this.sample_rate ?? 44100);
     const samples = new Float32Array(arr.data);
     const wav = encodeWav(samples, sampleRate);
     return { output: audioRefFromWav(wav) };
@@ -1442,8 +1442,8 @@ export class ConvertToArrayNumpyNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as Record<string, unknown>;
 
     let rawData: Uint8Array | null = null;
     if (image.data && typeof image.data === "string") {
@@ -1514,11 +1514,10 @@ export class SaveArrayNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
-    const nameTemplate = String(inputs.name ?? this.name ?? "array.json");
+    const arr = asNdArray(this.values);
+    const nameTemplate = String(this.name ?? "array.json");
 
     const now = new Date();
     const filename = nameTemplate
@@ -1563,9 +1562,9 @@ export class BinaryOperationNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asNdArray(inputs.a ?? this.a ?? 0);
-    const b = asNdArray(inputs.b ?? this.b ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asNdArray(this.a ?? 0);
+    const b = asNdArray(this.b ?? 0);
     return convertOutput(elementwiseBinary(a, b, (x, y) => x + y));
   }
 }
@@ -1602,8 +1601,8 @@ export class PlotArrayNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const arr = asNdArray(inputs.values ?? this.values);
+  async process(): Promise<Record<string, unknown>> {
+    const arr = asNdArray(this.values);
     if (arr.data.length === 0) throw new Error("Empty array");
 
     const ndim = arr.shape.length;

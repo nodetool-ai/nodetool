@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,25 +18,24 @@ export class ACEStepPromptToAudio extends FalNode {
   static readonly description = `ACE-Step generates music from text prompts with high-quality audio synthesis.
 audio, generation, music, ace-step, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
-
-  @prop({ type: "str", default: "", description: "Prompt to control the style of the generated audio. This will be used to generate tags and lyrics." })
-  declare prompt: any;
-
-  @prop({ type: "float", default: 60, description: "The duration of the generated audio in seconds." })
-  declare duration: any;
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
 
+  @prop({ type: "float", default: 60, description: "The duration of the generated audio in seconds." })
+  declare duration: any;
+
+  @prop({ type: "str", default: "", description: "Prompt to control the style of the generated audio. This will be used to generate tags and lyrics." })
+  declare prompt: any;
+
   @prop({ type: "float", default: 3, description: "Minimum guidance scale for the generation after the decay." })
   declare minimum_guidance_scale: any;
 
-  @prop({ type: "enum", default: "euler", values: ["euler", "heun"], description: "Scheduler to use for the generation process." })
-  declare scheduler: any;
-
   @prop({ type: "float", default: 5, description: "Tag guidance scale for the generation." })
   declare tag_guidance_scale: any;
+
+  @prop({ type: "enum", default: "euler", values: ["euler", "heun"], description: "Scheduler to use for the generation process." })
+  declare scheduler: any;
 
   @prop({ type: "float", default: 15, description: "Guidance scale for the generation." })
   declare guidance_scale: any;
@@ -61,30 +61,30 @@ audio, generation, music, ace-step, text-to-audio`;
   @prop({ type: "int", default: 10, description: "Granularity scale for the generation process. Higher values can reduce artifacts." })
   declare granularity_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 60);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 27);
-    const minimumGuidanceScale = Number(inputs.minimum_guidance_scale ?? this.minimum_guidance_scale ?? 3);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 5);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const instrumental = Boolean(inputs.instrumental ?? this.instrumental ?? false);
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 1.5);
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numberOfSteps = Number(this.number_of_steps ?? 27);
+    const duration = Number(this.duration ?? 60);
+    const prompt = String(this.prompt ?? "");
+    const minimumGuidanceScale = Number(this.minimum_guidance_scale ?? 3);
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 5);
+    const scheduler = String(this.scheduler ?? "euler");
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const instrumental = Boolean(this.instrumental ?? false);
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 1.5);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const seed = String(this.seed ?? "");
+    const granularityScale = Number(this.granularity_scale ?? 10);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "duration": duration,
       "number_of_steps": numberOfSteps,
+      "duration": duration,
+      "prompt": prompt,
       "minimum_guidance_scale": minimumGuidanceScale,
-      "scheduler": scheduler,
       "tag_guidance_scale": tagGuidanceScale,
+      "scheduler": scheduler,
       "guidance_scale": guidanceScale,
       "guidance_type": guidanceType,
       "instrumental": instrumental,
@@ -107,7 +107,6 @@ export class ACEStep extends FalNode {
   static readonly description = `ACE-Step generates music with lyrics from text using advanced audio synthesis.
 audio, generation, music, lyrics, ace-step, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -151,22 +150,22 @@ audio, generation, music, lyrics, ace-step, text-to-audio`;
   @prop({ type: "int", default: 10, description: "Granularity scale for the generation process. Higher values can reduce artifacts." })
   declare granularity_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 27);
-    const duration = Number(inputs.duration ?? this.duration ?? 60);
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const minimumGuidanceScale = Number(inputs.minimum_guidance_scale ?? this.minimum_guidance_scale ?? 3);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 5);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 1.5);
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numberOfSteps = Number(this.number_of_steps ?? 27);
+    const duration = Number(this.duration ?? 60);
+    const tags = String(this.tags ?? "");
+    const minimumGuidanceScale = Number(this.minimum_guidance_scale ?? 3);
+    const lyrics = String(this.lyrics ?? "");
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 5);
+    const scheduler = String(this.scheduler ?? "euler");
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 1.5);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const seed = String(this.seed ?? "");
+    const granularityScale = Number(this.granularity_scale ?? 10);
 
     const args: Record<string, unknown> = {
       "number_of_steps": numberOfSteps,
@@ -197,7 +196,6 @@ export class CSM1B extends FalNode {
   static readonly description = `CSM (Conversational Speech Model) generates natural conversational speech from text.
 audio, speech, tts, conversational, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "list[Turn]", default: [], description: "The text to generate an audio from." })
   declare scene: any;
@@ -205,10 +203,10 @@ audio, speech, tts, conversational, text-to-speech`;
   @prop({ type: "list[Speaker]", default: [], description: "The context to generate an audio from." })
   declare context: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const scene = String(inputs.scene ?? this.scene ?? []);
-    const context = String(inputs.context ?? this.context ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const scene = String(this.scene ?? []);
+    const context = String(this.context ?? []);
 
     const args: Record<string, unknown> = {
       "scene": scene,
@@ -227,16 +225,15 @@ export class DiffRhythm extends FalNode {
   static readonly description = `DiffRhythm generates rhythmic music and beats using diffusion models.
 audio, generation, rhythm, beats, music, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the song from. Must have two sections. Sections start with either [chorus] or a [verse]." })
   declare lyrics: any;
 
-  @prop({ type: "audio", default: "", description: "The URL of the reference audio to use for the music generation." })
-  declare reference_audio: any;
-
   @prop({ type: "float", default: 4, description: "The CFG strength to use for the music generation." })
   declare cfg_strength: any;
+
+  @prop({ type: "audio", default: "", description: "The URL of the reference audio to use for the music generation." })
+  declare reference_audio: any;
 
   @prop({ type: "enum", default: "95s", values: ["95s", "285s"], description: "The duration of the music to generate." })
   declare music_duration: any;
@@ -250,14 +247,14 @@ audio, generation, rhythm, beats, music, text-to-audio`;
   @prop({ type: "str", default: "", description: "The style prompt to use for the music generation." })
   declare style_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const cfgStrength = Number(inputs.cfg_strength ?? this.cfg_strength ?? 4);
-    const musicDuration = String(inputs.music_duration ?? this.music_duration ?? "95s");
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 32);
-    const stylePrompt = String(inputs.style_prompt ?? this.style_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const lyrics = String(this.lyrics ?? "");
+    const cfgStrength = Number(this.cfg_strength ?? 4);
+    const musicDuration = String(this.music_duration ?? "95s");
+    const scheduler = String(this.scheduler ?? "euler");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 32);
+    const stylePrompt = String(this.style_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "lyrics": lyrics,
@@ -268,7 +265,7 @@ audio, generation, rhythm, beats, music, text-to-audio`;
       "style_prompt": stylePrompt,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToFalUrl(apiKey, referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio_url"] = referenceAudioUrl;
@@ -286,22 +283,21 @@ export class ElevenLabsTTSMultilingualV2 extends FalNode {
   static readonly description = `ElevenLabs Multilingual TTS v2 generates natural speech in multiple languages.
 audio, tts, speech, multilingual, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
-  @prop({ type: "str", default: "", description: "The text to convert to speech" })
-  declare text: any;
+  @prop({ type: "float", default: 1, description: "Speech speed (0.7-1.2). Values below 1.0 slow down the speech, above 1.0 speed it up. Extreme values may affect quality." })
+  declare speed: any;
 
   @prop({ type: "str", default: "", description: "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation." })
   declare next_text: any;
 
-  @prop({ type: "float", default: 0.5, description: "Voice stability (0-1)" })
-  declare stability: any;
+  @prop({ type: "str", default: "", description: "The text to convert to speech" })
+  declare text: any;
 
   @prop({ type: "float", default: 0, description: "Style exaggeration (0-1)" })
   declare style: any;
 
-  @prop({ type: "float", default: 1, description: "Speech speed (0.7-1.2). Values below 1.0 slow down the speech, above 1.0 speed it up. Extreme values may affect quality." })
-  declare speed: any;
+  @prop({ type: "float", default: 0.5, description: "Voice stability (0-1)" })
+  declare stability: any;
 
   @prop({ type: "bool", default: false, description: "Whether to return timestamps for each word in the generated speech" })
   declare timestamps: any;
@@ -321,26 +317,26 @@ audio, tts, speech, multilingual, elevenlabs, text-to-speech`;
   @prop({ type: "str", default: "", description: "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation." })
   declare previous_text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const timestamps = Boolean(inputs.timestamps ?? this.timestamps ?? false);
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "");
-    const applyTextNormalization = String(inputs.apply_text_normalization ?? this.apply_text_normalization ?? "auto");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const nextText = String(this.next_text ?? "");
+    const text = String(this.text ?? "");
+    const style = Number(this.style ?? 0);
+    const stability = Number(this.stability ?? 0.5);
+    const timestamps = Boolean(this.timestamps ?? false);
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const voice = String(this.voice ?? "Rachel");
+    const languageCode = String(this.language_code ?? "");
+    const applyTextNormalization = String(this.apply_text_normalization ?? "auto");
+    const previousText = String(this.previous_text ?? "");
 
     const args: Record<string, unknown> = {
-      "text": text,
-      "next_text": nextText,
-      "stability": stability,
-      "style": style,
       "speed": speed,
+      "next_text": nextText,
+      "text": text,
+      "style": style,
+      "stability": stability,
       "timestamps": timestamps,
       "similarity_boost": similarityBoost,
       "voice": voice,
@@ -361,7 +357,6 @@ export class ElevenLabsTextToDialogueV3 extends FalNode {
   static readonly description = `ElevenLabs Text to Dialogue v3 generates conversational dialogue with multiple speakers.
 audio, dialogue, conversation, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range for the voice. Higher values can result in a monotonous voice with limited emotion. Must be one of 0.0, 0.5, 1.0, else it will be rounded to the nearest value." })
   declare stability: any;
@@ -381,14 +376,14 @@ audio, dialogue, conversation, elevenlabs, text-to-speech`;
   @prop({ type: "list[PronunciationDictionaryLocator]", default: [], description: "A list of pronunciation dictionary locators (id, version_id) to be applied to the text. They will be applied in order. You may have up to 3 locators per request" })
   declare pronunciation_dictionary_locators: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const stability = String(inputs.stability ?? this.stability ?? "");
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? []);
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const useSpeakerBoost = String(inputs.use_speaker_boost ?? this.use_speaker_boost ?? "");
-    const pronunciationDictionaryLocators = String(inputs.pronunciation_dictionary_locators ?? this.pronunciation_dictionary_locators ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const stability = String(this.stability ?? "");
+    const field_inputs = String(this.inputs ?? []);
+    const languageCode = String(this.language_code ?? "");
+    const seed = String(this.seed ?? "");
+    const useSpeakerBoost = String(this.use_speaker_boost ?? "");
+    const pronunciationDictionaryLocators = String(this.pronunciation_dictionary_locators ?? []);
 
     const args: Record<string, unknown> = {
       "stability": stability,
@@ -411,7 +406,6 @@ export class ElevenLabsSoundEffectsV2 extends FalNode {
   static readonly description = `ElevenLabs Sound Effects v2 generates custom sound effects from text descriptions.
 audio, sound-effects, sfx, elevenlabs, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text describing the sound effect to generate" })
   declare text: any;
@@ -428,13 +422,13 @@ audio, sound-effects, sfx, elevenlabs, text-to-audio`;
   @prop({ type: "str", default: "", description: "Duration in seconds (0.5-22). If None, optimal duration will be determined from prompt." })
   declare duration_seconds: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const loop = Boolean(inputs.loop ?? this.loop ?? false);
-    const promptInfluence = Number(inputs.prompt_influence ?? this.prompt_influence ?? 0.3);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3_44100_128");
-    const durationSeconds = String(inputs.duration_seconds ?? this.duration_seconds ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const loop = Boolean(this.loop ?? false);
+    const promptInfluence = Number(this.prompt_influence ?? 0.3);
+    const outputFormat = String(this.output_format ?? "mp3_44100_128");
+    const durationSeconds = String(this.duration_seconds ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -456,7 +450,6 @@ export class ElevenLabsTTSV3 extends FalNode {
   static readonly description = `ElevenLabs TTS v3 generates high-quality natural speech with advanced voice control.
 audio, tts, speech, elevenlabs, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to convert to speech" })
   declare text: any;
@@ -476,14 +469,14 @@ audio, tts, speech, elevenlabs, text-to-speech`;
   @prop({ type: "bool", default: false, description: "Whether to return timestamps for each word in the generated speech" })
   declare timestamps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "");
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const applyTextNormalization = String(inputs.apply_text_normalization ?? this.apply_text_normalization ?? "auto");
-    const timestamps = Boolean(inputs.timestamps ?? this.timestamps ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voice = String(this.voice ?? "Rachel");
+    const languageCode = String(this.language_code ?? "");
+    const stability = Number(this.stability ?? 0.5);
+    const applyTextNormalization = String(this.apply_text_normalization ?? "auto");
+    const timestamps = Boolean(this.timestamps ?? false);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -506,7 +499,6 @@ export class ElevenLabsMusic extends FalNode {
   static readonly description = `ElevenLabs Music generates custom music compositions from text descriptions.
 audio, music, generation, elevenlabs, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the music to generate" })
   declare prompt: any;
@@ -526,14 +518,14 @@ audio, music, generation, elevenlabs, text-to-audio`;
   @prop({ type: "bool", default: false, description: "If true, guarantees that the generated song will be instrumental. If false, the song may or may not be instrumental depending on the prompt. Can only be used with prompt." })
   declare force_instrumental: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const compositionPlan = String(inputs.composition_plan ?? this.composition_plan ?? "");
-    const musicLengthMs = String(inputs.music_length_ms ?? this.music_length_ms ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3_44100_128");
-    const respectSectionsDurations = Boolean(inputs.respect_sections_durations ?? this.respect_sections_durations ?? true);
-    const forceInstrumental = Boolean(inputs.force_instrumental ?? this.force_instrumental ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const compositionPlan = String(this.composition_plan ?? "");
+    const musicLengthMs = String(this.music_length_ms ?? "");
+    const outputFormat = String(this.output_format ?? "mp3_44100_128");
+    const respectSectionsDurations = Boolean(this.respect_sections_durations ?? true);
+    const forceInstrumental = Boolean(this.force_instrumental ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -556,7 +548,6 @@ export class F5TTS extends FalNode {
   static readonly description = `F5 TTS generates natural speech with fast inference and high quality.
 audio, tts, speech, fast, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The reference text to be used for TTS. If not provided, an ASR (Automatic Speech Recognition) model will be used to generate the reference text." })
   declare ref_text: any;
@@ -573,12 +564,12 @@ audio, tts, speech, fast, text-to-speech`;
   @prop({ type: "audio", default: "", description: "The URL of the reference audio file." })
   declare ref_audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const refText = String(inputs.ref_text ?? this.ref_text ?? "");
-    const removeSilence = Boolean(inputs.remove_silence ?? this.remove_silence ?? true);
-    const genText = String(inputs.gen_text ?? this.gen_text ?? "");
-    const modelType = String(inputs.model_type ?? this.model_type ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const refText = String(this.ref_text ?? "");
+    const removeSilence = Boolean(this.remove_silence ?? true);
+    const genText = String(this.gen_text ?? "");
+    const modelType = String(this.model_type ?? "");
 
     const args: Record<string, unknown> = {
       "ref_text": refText,
@@ -587,7 +578,7 @@ audio, tts, speech, fast, text-to-speech`;
       "model_type": modelType,
     };
 
-    const refAudioRef = inputs.ref_audio as Record<string, unknown> | undefined;
+    const refAudioRef = this.ref_audio as Record<string, unknown> | undefined;
     if (isRefSet(refAudioRef)) {
       const refAudioUrl = await assetToFalUrl(apiKey, refAudioRef!);
       if (refAudioUrl) args["ref_audio_url"] = refAudioUrl;
@@ -605,7 +596,6 @@ export class Kokoro extends FalNode {
   static readonly description = `Kokoro generates expressive and emotional speech with advanced prosody control.
 audio, tts, speech, expressive, emotional, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -616,11 +606,11 @@ audio, tts, speech, expressive, emotional, text-to-speech`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "af_heart");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "af_heart");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -640,7 +630,6 @@ export class StableAudio extends FalNode {
   static readonly description = `Stable Audio generates high-quality audio from text with consistent results.
 audio, generation, stable, music, text-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate audio from" })
   declare prompt: any;
@@ -654,12 +643,12 @@ audio, generation, stable, music, text-to-audio`;
   @prop({ type: "int", default: 0, description: "The start point of the audio clip to generate" })
   declare seconds_start: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const steps = Number(inputs.steps ?? this.steps ?? 100);
-    const secondsTotal = Number(inputs.seconds_total ?? this.seconds_total ?? 30);
-    const secondsStart = Number(inputs.seconds_start ?? this.seconds_start ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const steps = Number(this.steps ?? 100);
+    const secondsTotal = Number(this.seconds_total ?? 30);
+    const secondsStart = Number(this.seconds_start ?? 0);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -680,7 +669,6 @@ export class XTTS extends FalNode {
   static readonly description = `XTTS generates expressive speech with voice cloning capabilities.
 audio, tts, speech, voice-cloning, expressive, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt you would like to convert to speech." })
   declare prompt: any;
@@ -709,16 +697,16 @@ audio, tts, speech, voice-cloning, expressive, text-to-speech`;
   @prop({ type: "int", default: 60, description: "The maximum length of the reference. Defaults to 60." })
   declare max_ref_length: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 5);
-    const language = String(inputs.language ?? this.language ?? "English");
-    const gptCondLen = Number(inputs.gpt_cond_len ?? this.gpt_cond_len ?? 30);
-    const gptCondChunkLen = Number(inputs.gpt_cond_chunk_len ?? this.gpt_cond_chunk_len ?? 4);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.75);
-    const sampleRate = Number(inputs.sample_rate ?? this.sample_rate ?? 24000);
-    const maxRefLength = Number(inputs.max_ref_length ?? this.max_ref_length ?? 60);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const repetitionPenalty = Number(this.repetition_penalty ?? 5);
+    const language = String(this.language ?? "English");
+    const gptCondLen = Number(this.gpt_cond_len ?? 30);
+    const gptCondChunkLen = Number(this.gpt_cond_chunk_len ?? 4);
+    const temperature = Number(this.temperature ?? 0.75);
+    const sampleRate = Number(this.sample_rate ?? 24000);
+    const maxRefLength = Number(this.max_ref_length ?? 60);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -731,7 +719,7 @@ audio, tts, speech, voice-cloning, expressive, text-to-speech`;
       "max_ref_length": maxRefLength,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -749,7 +737,6 @@ export class MinimaxMusicV2 extends FalNode {
   static readonly description = `Minimax Music
 audio, generation, text-to-audio, tts, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the music, specifying style, mood, and scenario. 10-300 characters." })
   declare prompt: any;
@@ -760,11 +747,11 @@ audio, generation, text-to-audio, tts, professional`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const lyricsPrompt = String(inputs.lyrics_prompt ?? this.lyrics_prompt ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const lyricsPrompt = String(this.lyrics_prompt ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -784,7 +771,6 @@ export class BeatovenSoundEffectGeneration extends FalNode {
   static readonly description = `Sound Effect Generation
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Describe the sound effect you want to generate" })
   declare prompt: any;
@@ -804,14 +790,14 @@ audio, generation, text-to-audio, tts`;
   @prop({ type: "float", default: 16, description: "Creativity level - higher values allow more creative interpretation of the prompt" })
   declare creativity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 5);
-    const refinement = Number(inputs.refinement ?? this.refinement ?? 40);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const creativity = Number(inputs.creativity ?? this.creativity ?? 16);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = Number(this.duration ?? 5);
+    const refinement = Number(this.refinement ?? 40);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const creativity = Number(this.creativity ?? 16);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -834,7 +820,6 @@ export class BeatovenMusicGeneration extends FalNode {
   static readonly description = `Music Generation
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Describe the music you want to generate" })
   declare prompt: any;
@@ -854,14 +839,14 @@ audio, generation, text-to-audio, tts`;
   @prop({ type: "float", default: 16, description: "Creativity level - higher values allow more creative interpretation of the prompt" })
   declare creativity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 90);
-    const refinement = Number(inputs.refinement ?? this.refinement ?? 100);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const creativity = Number(inputs.creativity ?? this.creativity ?? 16);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = Number(this.duration ?? 90);
+    const refinement = Number(this.refinement ?? 100);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const creativity = Number(this.creativity ?? 16);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -884,7 +869,6 @@ export class MinimaxMusicV15 extends FalNode {
   static readonly description = `MiniMax (Hailuo AI) Music v1.5
 audio, generation, text-to-audio, tts, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Lyrics, supports [intro][verse][chorus][bridge][outro] sections. 10-600 characters." })
   declare prompt: any;
@@ -895,11 +879,11 @@ audio, generation, text-to-audio, tts, professional`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const lyricsPrompt = String(inputs.lyrics_prompt ?? this.lyrics_prompt ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const lyricsPrompt = String(this.lyrics_prompt ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -919,7 +903,6 @@ export class StableAudio25TextToAudio extends FalNode {
   static readonly description = `Stable Audio 2.5
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate audio from" })
   declare prompt: any;
@@ -930,31 +913,31 @@ audio, generation, text-to-audio, tts`;
   @prop({ type: "int", default: 190, description: "The duration of the audio clip to generate" })
   declare seconds_total: any;
 
+  @prop({ type: "str", default: "" })
+  declare seed: any;
+
   @prop({ type: "int", default: 8, description: "The number of steps to denoise the audio for" })
   declare num_inference_steps: any;
 
   @prop({ type: "int", default: 1, description: "How strictly the diffusion process adheres to the prompt text (higher values make your audio closer to your prompt)." })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "" })
-  declare seed: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const secondsTotal = Number(inputs.seconds_total ?? this.seconds_total ?? 190);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 8);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 1);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const secondsTotal = Number(this.seconds_total ?? 190);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 8);
+    const guidanceScale = Number(this.guidance_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "sync_mode": syncMode,
       "seconds_total": secondsTotal,
+      "seed": seed,
       "num_inference_steps": numInferenceSteps,
       "guidance_scale": guidanceScale,
-      "seed": seed,
     };
     removeNulls(args);
 
@@ -969,7 +952,6 @@ export class SonautoV2Inpaint extends FalNode {
   static readonly description = `Sonauto V2
 audio, generation, text-to-audio, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The lyrics sung in the generated song. An empty string will generate an instrumental track." })
   declare lyrics_prompt: any;
@@ -1004,18 +986,18 @@ audio, generation, text-to-audio, tts`;
   @prop({ type: "str", default: "", description: "The seed to use for generation. Will pick a random seed if not provided. Repeating a request with identical parameters (must use lyrics and tags, not prompt) and the same seed will generate the same song." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const lyricsPrompt = String(inputs.lyrics_prompt ?? this.lyrics_prompt ?? "");
-    const tags = String(inputs.tags ?? this.tags ?? []);
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 2);
-    const outputBitRate = String(inputs.output_bit_rate ?? this.output_bit_rate ?? "");
-    const numSongs = Number(inputs.num_songs ?? this.num_songs ?? 1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const selectionCrop = Boolean(inputs.selection_crop ?? this.selection_crop ?? false);
-    const sections = String(inputs.sections ?? this.sections ?? []);
-    const balanceStrength = Number(inputs.balance_strength ?? this.balance_strength ?? 0.7);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const lyricsPrompt = String(this.lyrics_prompt ?? "");
+    const tags = String(this.tags ?? []);
+    const promptStrength = Number(this.prompt_strength ?? 2);
+    const outputBitRate = String(this.output_bit_rate ?? "");
+    const numSongs = Number(this.num_songs ?? 1);
+    const outputFormat = String(this.output_format ?? "wav");
+    const selectionCrop = Boolean(this.selection_crop ?? false);
+    const sections = String(this.sections ?? []);
+    const balanceStrength = Number(this.balance_strength ?? 0.7);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "lyrics_prompt": lyricsPrompt,
@@ -1030,7 +1012,7 @@ audio, generation, text-to-audio, tts`;
       "seed": seed,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1048,7 +1030,6 @@ export class SonautoV2TextToMusic extends FalNode {
   static readonly description = `Create full songs in any style
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the track you want to generate. This prompt will be used to automatically generate the tags and lyrics unless you manually set them. For example, if you set prompt and tags, then the prompt will be used to generate only the lyrics." })
   declare prompt: any;
@@ -1080,18 +1061,18 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "", description: "The seed to use for generation. Will pick a random seed if not provided. Repeating a request with identical parameters (must use lyrics and tags, not prompt) and the same seed will generate the same song." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const lyricsPrompt = String(inputs.lyrics_prompt ?? this.lyrics_prompt ?? "");
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 2);
-    const outputBitRate = String(inputs.output_bit_rate ?? this.output_bit_rate ?? "");
-    const numSongs = Number(inputs.num_songs ?? this.num_songs ?? 1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const bpm = String(inputs.bpm ?? this.bpm ?? "auto");
-    const balanceStrength = Number(inputs.balance_strength ?? this.balance_strength ?? 0.7);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const lyricsPrompt = String(this.lyrics_prompt ?? "");
+    const tags = String(this.tags ?? "");
+    const promptStrength = Number(this.prompt_strength ?? 2);
+    const outputBitRate = String(this.output_bit_rate ?? "");
+    const numSongs = Number(this.num_songs ?? 1);
+    const outputFormat = String(this.output_format ?? "wav");
+    const bpm = String(this.bpm ?? "auto");
+    const balanceStrength = Number(this.balance_strength ?? 0.7);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1118,7 +1099,6 @@ export class Lyria2 extends FalNode {
   static readonly description = `Lyria 2 is Google's latest music generation model, you can generate any type of music with this model.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the music you want to generate" })
   declare prompt: any;
@@ -1129,11 +1109,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "low quality", description: "A description of what to exclude from the generated audio" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1153,7 +1133,6 @@ export class CassetteaiSoundEffectsGenerator extends FalNode {
   static readonly description = `Create stunningly realistic sound effects in seconds - CassetteAI's Sound Effects Model generates high-quality SFX up to 30 seconds long in just 1 second of processing time
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate SFX." })
   declare prompt: any;
@@ -1161,10 +1140,10 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "int", default: 0, description: "The duration of the generated SFX in seconds." })
   declare duration: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = Number(this.duration ?? 0);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1183,7 +1162,6 @@ export class CassetteaiMusicGenerator extends FalNode {
   static readonly description = `CassetteAI's model generates a 30-second sample in under 2 seconds and a full 3-minute track in under 10 seconds. At 44.1 kHz stereo audio, expect a level of professional consistency with no breaks, no squeaks, and no random interruptions in your creations.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate music from." })
   declare prompt: any;
@@ -1191,10 +1169,10 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "int", default: 0, description: "The duration of the generated music in seconds." })
   declare duration: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = Number(this.duration ?? 0);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1213,7 +1191,6 @@ export class KokoroHindi extends FalNode {
   static readonly description = `A fast and expressive Hindi text-to-speech model with clear pronunciation and accurate intonation.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1224,11 +1201,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1248,7 +1225,6 @@ export class KokoroBritishEnglish extends FalNode {
   static readonly description = `A high-quality British English text-to-speech model offering natural and expressive voice synthesis.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1259,11 +1235,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1283,7 +1259,6 @@ export class KokoroAmericanEnglish extends FalNode {
   static readonly description = `Kokoro is a lightweight text-to-speech model that delivers comparable quality to larger models while being significantly faster and more cost-efficient.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1294,11 +1269,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "af_heart");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "af_heart");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1318,7 +1293,6 @@ export class Zonos extends FalNode {
   static readonly description = `Clone voice of any person and speak anything in their voice using zonos' voice cloning.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The content generated using cloned voice." })
   declare prompt: any;
@@ -1326,15 +1300,15 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "audio", default: "", description: "The reference audio." })
   declare reference_audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToFalUrl(apiKey, referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio_url"] = referenceAudioUrl;
@@ -1352,7 +1326,6 @@ export class KokoroItalian extends FalNode {
   static readonly description = `A high-quality Italian text-to-speech model delivering smooth and expressive speech synthesis.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1363,11 +1336,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1387,7 +1360,6 @@ export class KokoroBrazilianPortuguese extends FalNode {
   static readonly description = `A natural and expressive Brazilian Portuguese text-to-speech model optimized for clarity and fluency.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1398,11 +1370,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1422,7 +1394,6 @@ export class KokoroFrench extends FalNode {
   static readonly description = `An expressive and natural French text-to-speech model for both European and Canadian French.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1433,11 +1404,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1457,7 +1428,6 @@ export class KokoroJapanese extends FalNode {
   static readonly description = `A fast and natural-sounding Japanese text-to-speech model optimized for smooth pronunciation.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1468,11 +1438,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1492,7 +1462,6 @@ export class KokoroMandarinChinese extends FalNode {
   static readonly description = `A highly efficient Mandarin Chinese text-to-speech model that captures natural tones and prosody.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1503,11 +1472,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1527,7 +1496,6 @@ export class KokoroSpanish extends FalNode {
   static readonly description = `A natural-sounding Spanish text-to-speech model optimized for Latin American and European Spanish.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1, description: "Speed of the generated audio. Default is 1.0." })
   declare speed: any;
@@ -1538,11 +1506,11 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const voice = String(this.voice ?? "");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "speed": speed,
@@ -1562,7 +1530,6 @@ export class Yue extends FalNode {
   static readonly description = `YuE is a groundbreaking series of open-source foundation models designed for music generation, specifically for transforming lyrics into full songs.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from. Must have two sections. Sections start with either [chorus] or a [verse]." })
   declare lyrics: any;
@@ -1570,10 +1537,10 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "", description: "The genres (separated by a space ' ') to guide the music generation." })
   declare genres: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const genres = String(inputs.genres ?? this.genres ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const lyrics = String(this.lyrics ?? "");
+    const genres = String(this.genres ?? "");
 
     const args: Record<string, unknown> = {
       "lyrics": lyrics,
@@ -1592,7 +1559,6 @@ export class MmaudioV2TextToAudio extends FalNode {
   static readonly description = `MMAudio generates synchronized audio given text inputs. It can generate sounds described by a prompt.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the audio for." })
   declare prompt: any;
@@ -1606,7 +1572,7 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "float", default: 4.5, description: "The strength of Classifier Free Guidance." })
   declare cfg_strength: any;
 
-  @prop({ type: "int", default: -1, description: "The seed for the random number generator" })
+  @prop({ type: "str", default: "", description: "The seed for the random number generator" })
   declare seed: any;
 
   @prop({ type: "bool", default: false, description: "Whether to mask away the clip." })
@@ -1615,15 +1581,15 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "str", default: "", description: "The negative prompt to generate the audio for." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 25);
-    const duration = Number(inputs.duration ?? this.duration ?? 8);
-    const cfgStrength = Number(inputs.cfg_strength ?? this.cfg_strength ?? 4.5);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const maskAwayClip = Boolean(inputs.mask_away_clip ?? this.mask_away_clip ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const numSteps = Number(this.num_steps ?? 25);
+    const duration = Number(this.duration ?? 8);
+    const cfgStrength = Number(this.cfg_strength ?? 4.5);
+    const seed = String(this.seed ?? "");
+    const maskAwayClip = Boolean(this.mask_away_clip ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1647,7 +1613,6 @@ export class MinimaxMusic extends FalNode {
   static readonly description = `Generate music from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality, diverse musical compositions.
 audio, generation, text-to-audio, sound`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment. Maximum 600 characters." })
   declare prompt: any;
@@ -1655,15 +1620,15 @@ audio, generation, text-to-audio, sound`;
   @prop({ type: "audio", default: "", description: "Reference song, should contain music and vocals. Must be a .wav or .mp3 file longer than 15 seconds." })
   declare reference_audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const referenceAudioRef = inputs.reference_audio as Record<string, unknown> | undefined;
+    const referenceAudioRef = this.reference_audio as Record<string, unknown> | undefined;
     if (isRefSet(referenceAudioRef)) {
       const referenceAudioUrl = await assetToFalUrl(apiKey, referenceAudioRef!);
       if (referenceAudioUrl) args["reference_audio_url"] = referenceAudioUrl;

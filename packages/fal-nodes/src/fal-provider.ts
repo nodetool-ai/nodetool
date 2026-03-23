@@ -160,11 +160,11 @@ export class FalProvider {
   totalRequests = 0;
   totalImages = 0;
 
-  constructor(apiKeyOrInputs: string | Record<string, unknown>) {
-    if (typeof apiKeyOrInputs === "string") {
-      this.apiKey = apiKeyOrInputs;
+  constructor(apiKeyOrSecrets: string | Record<string, string>) {
+    if (typeof apiKeyOrSecrets === "string") {
+      this.apiKey = apiKeyOrSecrets;
     } else {
-      this.apiKey = getFalApiKey(apiKeyOrInputs);
+      this.apiKey = getFalApiKey(apiKeyOrSecrets);
     }
   }
 

@@ -30,10 +30,10 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "A JSON-formatted list of strings to encode." })
   declare text_batch: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const textBatch = String(inputs.text_batch ?? this.text_batch ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const textBatch = String(this.text_batch ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -59,9 +59,9 @@ replicate, ai`;
   @prop({ type: "str", default: "Snowflake is the Data Cloud!", description: "Prompt to generate a vector embedding for" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Snowflake is the Data Cloud!");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "Snowflake is the Data Cloud!");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -86,9 +86,9 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Input Sentence list - Each sentence should be split by a newline" })
   declare sentences: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const sentences = String(inputs.sentences ?? this.sentences ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const sentences = String(this.sentences ?? "");
 
     const args: Record<string, unknown> = {
       "sentences": sentences,
@@ -125,12 +125,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])" })
   declare texts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 32);
-    const convertToNumpy = Boolean(inputs.convert_to_numpy ?? this.convert_to_numpy ?? false);
-    const normalizeEmbeddings = Boolean(inputs.normalize_embeddings ?? this.normalize_embeddings ?? true);
-    const texts = String(inputs.texts ?? this.texts ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const batchSize = Number(this.batch_size ?? 32);
+    const convertToNumpy = Boolean(this.convert_to_numpy ?? false);
+    const normalizeEmbeddings = Boolean(this.normalize_embeddings ?? true);
+    const texts = String(this.texts ?? "");
 
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
@@ -139,7 +139,7 @@ replicate, ai`;
       "texts": texts,
     };
 
-    const pathRef = (inputs.path ?? this.path) as Record<string, unknown> | undefined;
+    const pathRef = this.path as Record<string, unknown> | undefined;
     if (isRefSet(pathRef)) {
       const pathUrl = await assetToUrl(pathRef!, apiKey);
       if (pathUrl) args["path"] = pathUrl;
@@ -164,9 +164,9 @@ replicate, ai`;
   @prop({ type: "list[str]", default: [], description: "A list of texts to embed." })
   declare texts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const texts = String(inputs.texts ?? this.texts ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const texts = String(this.texts ?? []);
 
     const args: Record<string, unknown> = {
       "texts": texts,
@@ -197,11 +197,11 @@ replicate, ai`;
   @prop({ type: "str", default: "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]", description: "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])" })
   declare texts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 32);
-    const normalizeEmbeddings = Boolean(inputs.normalize_embeddings ?? this.normalize_embeddings ?? true);
-    const texts = String(inputs.texts ?? this.texts ?? "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const batchSize = Number(this.batch_size ?? 32);
+    const normalizeEmbeddings = Boolean(this.normalize_embeddings ?? true);
+    const texts = String(this.texts ?? "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]");
 
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
@@ -237,11 +237,11 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text content to embed (up to 8192 tokens). If both text and image provided, text embedding will be first in returned list." })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const embeddingDim = Number(inputs.embedding_dim ?? this.embedding_dim ?? 64);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "base64");
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const embeddingDim = Number(this.embedding_dim ?? 64);
+    const outputFormat = String(this.output_format ?? "base64");
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "embedding_dim": embeddingDim,
@@ -249,7 +249,7 @@ replicate, ai`;
       "text": text,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -274,9 +274,9 @@ replicate, ai`;
   @prop({ type: "list[str]", default: [], description: "Texts to embed" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const text = String(this.text ?? []);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -310,12 +310,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "The task description." })
   declare task: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const document = String(inputs.document ?? this.document ?? "");
-    const normalize = Boolean(inputs.normalize ?? this.normalize ?? false);
-    const query = String(inputs.query ?? this.query ?? "");
-    const task = String(inputs.task ?? this.task ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const document = String(this.document ?? "");
+    const normalize = Boolean(this.normalize ?? false);
+    const query = String(this.query ?? "");
+    const task = String(this.task ?? "");
 
     const args: Record<string, unknown> = {
       "document": document,
@@ -343,9 +343,9 @@ replicate, ai`;
   @prop({ type: "str", default: "a\nb", description: "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://" })
   declare inputs: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? "a\nb");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const field_inputs = String(this.inputs ?? "a\nb");
 
     const args: Record<string, unknown> = {
       "inputs": field_inputs,
@@ -376,17 +376,17 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "text that you want to embed. Provide a string here instead of a text file to input if you'd like." })
   declare text_input: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const modality = String(inputs.modality ?? this.modality ?? "vision");
-    const textInput = String(inputs.text_input ?? this.text_input ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const modality = String(this.modality ?? "vision");
+    const textInput = String(this.text_input ?? "");
 
     const args: Record<string, unknown> = {
       "modality": modality,
       "text_input": textInput,
     };
 
-    const inputRef = (inputs.input ?? this.input) as Record<string, unknown> | undefined;
+    const inputRef = this.input as Record<string, unknown> | undefined;
     if (isRefSet(inputRef)) {
       const inputUrl = await assetToUrl(inputRef!, apiKey);
       if (inputUrl) args["input"] = inputUrl;
@@ -414,15 +414,15 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Input text" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -447,9 +447,9 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Text string to embed" })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -477,10 +477,10 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "List of prompts, separated by prompt_separator. Maximum 100 prompts per prediction." })
   declare prompts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const promptSeparator = String(inputs.prompt_separator ?? this.prompt_separator ?? "\n\n");
-    const prompts = String(inputs.prompts ?? this.prompts ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const promptSeparator = String(this.prompt_separator ?? "\n\n");
+    const prompts = String(this.prompts ?? "");
 
     const args: Record<string, unknown> = {
       "prompt_separator": promptSeparator,
@@ -515,12 +515,12 @@ replicate, ai`;
   @prop({ type: "str", default: "[]", description: "A serialized JSON array of strings you wish to generate *retreival* embeddings for. (note, that you should keep this list short to avoid Replicate response size limitations). Use this to embed short text queries intended for comparison against document text. A vector will be returned corresponding to each line of text in the input array (in order of input). This endpoint will automatically format your query strings for retrieval, you do not need to preprocess them." })
   declare query_texts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const batchtokenMax = Number(inputs.batchtoken_max ?? this.batchtoken_max ?? 200);
-    const normalize = Boolean(inputs.normalize ?? this.normalize ?? true);
-    const precision = String(inputs.precision ?? this.precision ?? "full");
-    const queryTexts = String(inputs.query_texts ?? this.query_texts ?? "[]");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const batchtokenMax = Number(this.batchtoken_max ?? 200);
+    const normalize = Boolean(this.normalize ?? true);
+    const precision = String(this.precision ?? "full");
+    const queryTexts = String(this.query_texts ?? "[]");
 
     const args: Record<string, unknown> = {
       "batchtoken_max": batchtokenMax,

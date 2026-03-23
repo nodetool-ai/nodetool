@@ -18,8 +18,8 @@ class PropsNode extends BaseNode {
   @prop({ type: "float", default: 0.7 })
   declare scale: number;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: inputs.prompt ?? this.prompt };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.prompt };
   }
 }
 

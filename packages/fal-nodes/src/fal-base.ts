@@ -9,9 +9,9 @@ import { createFalClient, type FalClient } from "@fal-ai/client";
 // API Key extraction
 // ---------------------------------------------------------------------------
 
-export function getFalApiKey(inputs: Record<string, unknown>): string {
+export function getFalApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.FAL_API_KEY ||
+    secrets?.FAL_API_KEY ||
     process.env.FAL_API_KEY ||
     "";
   if (!key) throw new Error("FAL_API_KEY is not configured");

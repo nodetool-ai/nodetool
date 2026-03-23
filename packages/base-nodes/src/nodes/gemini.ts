@@ -3,9 +3,9 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-function getGeminiApiKey(inputs: Record<string, unknown>): string {
+function getGeminiApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.GEMINI_API_KEY ||
+    secrets.GEMINI_API_KEY ||
     process.env.GEMINI_API_KEY ||
     "";
   if (!key) throw new Error("GEMINI_API_KEY is not configured");
@@ -66,10 +66,10 @@ export class GroundedSearchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const query = String(inputs.query ?? this.query ?? "");
-    const model = String(inputs.model ?? this.model ?? "gemini-2.0-flash");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const query = String(this.query ?? "");
+    const model = String(this.model ?? "gemini-2.0-flash");
 
     if (!query) throw new Error("Search query is required");
 
@@ -162,10 +162,10 @@ export class EmbeddingNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const input = String(inputs.input ?? this.input ?? "");
-    const model = String(inputs.model ?? this.model ?? "text-embedding-004");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const input = String(this.input ?? "");
+    const model = String(this.model ?? "text-embedding-004");
 
     if (!input) throw new Error("Input text is required for embedding generation");
 
@@ -234,11 +234,11 @@ export class ImageGenerationNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const model = String(inputs.model ?? this.model ?? "imagen-3.0-generate-002");
-    const image = (inputs.image ?? this.image ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const model = String(this.model ?? "imagen-3.0-generate-002");
+    const image = (this.image ?? {}) as Record<string, unknown>;
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");
 
@@ -371,12 +371,12 @@ export class TextToVideoGeminiNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const model = String(inputs.model ?? this.model ?? "veo-3.1-generate-preview");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const model = String(this.model ?? "veo-3.1-generate-preview");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     if (!prompt) throw new Error("Video generation prompt is required");
 
@@ -450,13 +450,13 @@ export class ImageToVideoGeminiNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const image = (inputs.image ?? this.image ?? {}) as Record<string, unknown>;
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Animate this image");
-    const model = String(inputs.model ?? this.model ?? "veo-3.1-generate-preview");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const image = (this.image ?? {}) as Record<string, unknown>;
+    const prompt = String(this.prompt ?? "Animate this image");
+    const model = String(this.model ?? "veo-3.1-generate-preview");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     if (!isRefSet(image)) throw new Error("Input image is required");
 
@@ -605,12 +605,12 @@ export class TextToSpeechGeminiNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const model = String(inputs.model ?? this.model ?? "gemini-2.5-pro-preview-tts");
-    const voiceName = String(inputs.voice_name ?? this.voice_name ?? "kore").toLowerCase();
-    const stylePrompt = String(inputs.style_prompt ?? this.style_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const model = String(this.model ?? "gemini-2.5-pro-preview-tts");
+    const voiceName = String(this.voice_name ?? "kore").toLowerCase();
+    const stylePrompt = String(this.style_prompt ?? "");
 
     if (!text) throw new Error("The input text cannot be empty.");
 
@@ -712,12 +712,12 @@ export class TranscribeGeminiNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(inputs);
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const model = String(inputs.model ?? this.model ?? "gemini-2.5-flash");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getGeminiApiKey(this._secrets);
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const model = String(this.model ?? "gemini-2.5-flash");
     const prompt = String(
-      inputs.prompt ??
+      this.prompt ??
         this.prompt ??
         "Transcribe the following audio accurately. Return only the transcription text without any additional commentary."
     );

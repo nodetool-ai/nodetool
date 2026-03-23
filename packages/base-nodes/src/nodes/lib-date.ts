@@ -240,9 +240,9 @@ export class ParseDateLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = String(inputs.date_string ?? this.date_string ?? "");
-    const format = String(inputs.input_format ?? this.input_format ?? "%Y-%m-%d") as DateFormat;
+  async process(): Promise<Record<string, unknown>> {
+    const value = String(this.date_string ?? "");
+    const format = String(this.input_format ?? "%Y-%m-%d") as DateFormat;
     return { output: toDateValue(parseDateByFormat(value, format)) };
   }
 }
@@ -275,9 +275,9 @@ export class ParseDateTimeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = String(inputs.datetime_string ?? this.datetime_string ?? "");
-    const format = String(inputs.input_format ?? this.input_format ?? "%Y-%m-%d") as DateFormat;
+  async process(): Promise<Record<string, unknown>> {
+    const value = String(this.datetime_string ?? "");
+    const format = String(this.input_format ?? "%Y-%m-%d") as DateFormat;
     return { output: toDateTimeValue(parseDateByFormat(value, format)) };
   }
 }
@@ -317,11 +317,11 @@ export class AddTimeDeltaLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const base = toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()));
-    const days = Number(inputs.days ?? this.days ?? 0);
-    const hours = Number(inputs.hours ?? this.hours ?? 0);
-    const minutes = Number(inputs.minutes ?? this.minutes ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const base = toDate(this.input_datetime ?? toDateTimeValue(new Date()));
+    const days = Number(this.days ?? 0);
+    const hours = Number(this.hours ?? 0);
+    const minutes = Number(this.minutes ?? 0);
     const out = new Date(base.getTime() + ((days * 24 + hours) * 60 + minutes) * 60 * 1000);
     return { output: toDateTimeValue(out) };
   }
@@ -371,9 +371,9 @@ export class DateDifferenceLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const start = toDate(inputs.start_date ?? this.start_date ?? toDateTimeValue(new Date()));
-    const end = toDate(inputs.end_date ?? this.end_date ?? toDateTimeValue(new Date()));
+  async process(): Promise<Record<string, unknown>> {
+    const start = toDate(this.start_date ?? toDateTimeValue(new Date()));
+    const end = toDate(this.end_date ?? toDateTimeValue(new Date()));
     const totalSeconds = Math.trunc((end.getTime() - start.getTime()) / 1000);
     const days = Math.floor(totalSeconds / 86400);
     const rem = totalSeconds - days * 86400;
@@ -423,9 +423,9 @@ export class FormatDateTimeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()));
-    const format = String(inputs.output_format ?? this.output_format ?? "%B %d, %Y") as DateFormat;
+  async process(): Promise<Record<string, unknown>> {
+    const value = toDate(this.input_datetime ?? toDateTimeValue(new Date()));
+    const format = String(this.output_format ?? "%B %d, %Y") as DateFormat;
     return { output: formatDate(value, format) };
   }
 }
@@ -459,9 +459,9 @@ export class GetWeekdayLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()));
-    const asName = Boolean(inputs.as_name ?? this.as_name ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const value = toDate(this.input_datetime ?? toDateTimeValue(new Date()));
+    const asName = Boolean(this.as_name ?? true);
     return { output: asName ? value.toLocaleDateString("en-US", { weekday: "long" }) : (value.getDay() + 6) % 7 };
   }
 }
@@ -509,10 +509,10 @@ export class DateRangeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const start = toDate(inputs.start_date ?? this.start_date ?? toDateTimeValue(new Date()));
-    const end = toDate(inputs.end_date ?? this.end_date ?? toDateTimeValue(new Date()));
-    const stepDays = Number(inputs.step_days ?? this.step_days ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const start = toDate(this.start_date ?? toDateTimeValue(new Date()));
+    const end = toDate(this.end_date ?? toDateTimeValue(new Date()));
+    const stepDays = Number(this.step_days ?? 1);
     const output: DateTimeValue[] = [];
 
     for (let current = new Date(start); current <= end; current = new Date(current.getTime() + stepDays * 86400000)) {
@@ -582,11 +582,11 @@ export class IsDateInRangeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const check = toDate(inputs.check_date ?? this.check_date ?? toDateTimeValue(new Date())).getTime();
-    const start = toDate(inputs.start_date ?? this.start_date ?? toDateTimeValue(new Date())).getTime();
-    const end = toDate(inputs.end_date ?? this.end_date ?? toDateTimeValue(new Date())).getTime();
-    const inclusive = Boolean(inputs.inclusive ?? this.inclusive ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const check = toDate(this.check_date ?? toDateTimeValue(new Date())).getTime();
+    const start = toDate(this.start_date ?? toDateTimeValue(new Date())).getTime();
+    const end = toDate(this.end_date ?? toDateTimeValue(new Date())).getTime();
+    const inclusive = Boolean(this.inclusive ?? true);
     return { output: inclusive ? start <= check && check <= end : start < check && check < end };
   }
 }
@@ -619,8 +619,8 @@ export class GetQuarterLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()));
+  async process(): Promise<Record<string, unknown>> {
+    const value = toDate(this.input_datetime ?? toDateTimeValue(new Date()));
     const quarter = Math.floor(value.getMonth() / 3) + 1;
     const quarterStart = new Date(value.getFullYear(), (quarter - 1) * 3, 1, 0, 0, 0, 0);
     const quarterEnd =
@@ -656,8 +656,8 @@ export class DateToDatetimeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const base = toDate(inputs.input_date ?? this.input_date ?? toDateValue(new Date()));
+  async process(): Promise<Record<string, unknown>> {
+    const base = toDate(this.input_date ?? toDateValue(new Date()));
     base.setHours(0, 0, 0, 0);
     return { output: toDateTimeValue(base) };
   }
@@ -689,9 +689,9 @@ export class DatetimeToDateLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {
-      output: toDateValue(toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()))),
+      output: toDateValue(toDate(this.input_datetime ?? toDateTimeValue(new Date()))),
     };
   }
 }
@@ -724,10 +724,10 @@ export class RelativeTimeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const amount = Number(inputs.amount ?? this.amount ?? 1);
-    const unit = String(inputs.unit ?? this.unit ?? "days") as TimeUnit;
-    const direction = String(inputs.direction ?? this.direction ?? "future") as TimeDirection;
+  async process(): Promise<Record<string, unknown>> {
+    const amount = Number(this.amount ?? 1);
+    const unit = String(this.unit ?? "days") as TimeUnit;
+    const direction = String(this.direction ?? "future") as TimeDirection;
     const sign = direction === "past" ? -1 : 1;
     const current = new Date();
 
@@ -813,11 +813,11 @@ export class BoundaryTimeLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dt = toDate(inputs.input_datetime ?? this.input_datetime ?? toDateTimeValue(new Date()));
-    const period = String(inputs.period ?? this.period ?? "day") as PeriodType;
-    const boundary = String(inputs.boundary ?? this.boundary ?? "start") as BoundaryType;
-    const startMonday = Boolean(inputs.start_monday ?? this.start_monday ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const dt = toDate(this.input_datetime ?? toDateTimeValue(new Date()));
+    const period = String(this.period ?? "day") as PeriodType;
+    const boundary = String(this.boundary ?? "start") as BoundaryType;
+    const startMonday = Boolean(this.start_monday ?? true);
 
     const out = new Date(dt);
     if (period === "day") {

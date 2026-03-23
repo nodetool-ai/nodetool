@@ -59,22 +59,19 @@ async function runCommand(cmd: string, args: string[], stdin: string, timeoutMs:
 }
 
 abstract class PandocBaseLibNode extends BaseNode {
-  protected formats(inputs: Record<string, unknown>): { input: string; output: string } {
-    const props = this.serialize();
-    const input = String(inputs.input_format ?? props.input_format ?? "markdown").toLowerCase();
-    const output = String(inputs.output_format ?? props.output_format ?? "plain").toLowerCase();
+  protected formats(): { input: string; output: string } {
+    const input = String((this as any).input_format ?? "markdown").toLowerCase();
+    const output = String((this as any).output_format ?? "plain").toLowerCase();
     return { input, output };
   }
 
-  protected extraArgs(inputs: Record<string, unknown>): string[] {
-    const props = this.serialize();
-    const raw = inputs.extra_args ?? props.extra_args ?? [];
+  protected extraArgs(): string[] {
+    const raw = (this as any).extra_args ?? [];
     return Array.isArray(raw) ? raw.map(String) : [];
   }
 
-  protected timeoutMs(inputs: Record<string, unknown>): number {
-    const props = this.serialize();
-    const sec = Number(inputs.timeout ?? props.timeout ?? 120);
+  protected timeoutMs(): number {
+    const sec = Number((this as any).timeout ?? 120);
     return Math.max(1, Math.trunc(sec * 1000));
   }
 }
@@ -169,11 +166,11 @@ export class ConvertTextPandocLibNode extends PandocBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const content = String(inputs.content ?? this.content ?? "");
-    const { input, output } = this.formats(inputs);
-    const args = ["-f", input, "-t", output, ...this.extraArgs(inputs)];
-    const result = await runCommand("pandoc", args, content, this.timeoutMs(inputs));
+  async process(): Promise<Record<string, unknown>> {
+    const content = String(this.content ?? "");
+    const { input, output } = this.formats();
+    const args = ["-f", input, "-t", output, ...this.extraArgs()];
+    const result = await runCommand("pandoc", args, content, this.timeoutMs());
     if (result.exitCode !== 0) {
       throw new Error(`pandoc failed: ${result.stderr || `exit ${result.exitCode}`}`);
     }
@@ -274,8 +271,8 @@ export class ConvertFilePandocLibNode extends PandocBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const inPath = pathFromInput(inputs.input_path ?? this.input_path);
+  async process(): Promise<Record<string, unknown>> {
+    const inPath = pathFromInput(this.input_path);
     if (!inPath) {
       throw new Error("Input path is not set");
     }
@@ -285,9 +282,9 @@ export class ConvertFilePandocLibNode extends PandocBaseLibNode {
       throw new Error(`Input file not found: ${inPath}`);
     }
 
-    const { input, output } = this.formats(inputs);
-    const args = [inPath, "-f", input, "-t", output, ...this.extraArgs(inputs)];
-    const result = await runCommand("pandoc", args, "", this.timeoutMs(inputs));
+    const { input, output } = this.formats();
+    const args = [inPath, "-f", input, "-t", output, ...this.extraArgs()];
+    const result = await runCommand("pandoc", args, "", this.timeoutMs());
     if (result.exitCode !== 0) {
       throw new Error(`pandoc failed: ${result.stderr || `exit ${result.exitCode}`}`);
     }

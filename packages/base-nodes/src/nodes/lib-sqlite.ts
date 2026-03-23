@@ -84,15 +84,15 @@ export class CreateTableLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "flashcards");
-    const columnsInput = (inputs.columns ?? this.columns ?? { columns: [] }) as {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const tableName = String(this.table_name ?? "flashcards");
+    const columnsInput = (this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string; data_type: string }>;
     };
     const columns = columnsInput.columns ?? [];
-    const addPrimaryKey = inputs.add_primary_key ?? this.add_primary_key ?? true;
-    const ifNotExists = inputs.if_not_exists ?? this.if_not_exists ?? true;
+    const addPrimaryKey = this.add_primary_key ?? true;
+    const ifNotExists = this.if_not_exists ?? true;
 
     const dbPath = resolveDbPath(context, databaseName);
     const db = new Database(dbPath);
@@ -156,10 +156,10 @@ export class InsertLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "flashcards");
-    const data = (inputs.data ?? this.data ?? {}) as Record<string, unknown>;
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const tableName = String(this.table_name ?? "flashcards");
+    const data = (this.data ?? {}) as Record<string, unknown>;
 
     const dbPath = resolveDbPath(context, databaseName);
     const db = new Database(dbPath);
@@ -218,16 +218,16 @@ export class QueryLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "flashcards");
-    const where = String(inputs.where ?? this.where ?? "");
-    const columnsInput = (inputs.columns ?? this.columns ?? { columns: [] }) as {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const tableName = String(this.table_name ?? "flashcards");
+    const where = String(this.where ?? "");
+    const columnsInput = (this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string }>;
     };
     const cols = columnsInput.columns ?? [];
-    const orderBy = String(inputs.order_by ?? this.order_by ?? "");
-    const limit = Number(inputs.limit ?? this.limit ?? 0);
+    const orderBy = String(this.order_by ?? "");
+    const limit = Number(this.limit ?? 0);
 
     const dbPath = resolveDbPath(context, databaseName);
 
@@ -290,11 +290,11 @@ export class UpdateLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "flashcards");
-    const data = (inputs.data ?? this.data ?? {}) as Record<string, unknown>;
-    const where = String(inputs.where ?? this.where ?? "");
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const tableName = String(this.table_name ?? "flashcards");
+    const data = (this.data ?? {}) as Record<string, unknown>;
+    const where = String(this.where ?? "");
 
     const dbPath = resolveDbPath(context, databaseName);
     const db = new Database(dbPath);
@@ -343,10 +343,10 @@ export class DeleteLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "flashcards");
-    const where = String(inputs.where ?? this.where ?? "");
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const tableName = String(this.table_name ?? "flashcards");
+    const where = String(this.where ?? "");
 
     if (!where) {
       throw new Error("WHERE clause is required for DELETE operations to prevent accidental data loss");
@@ -392,10 +392,10 @@ export class ExecuteSQLLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
-    const sqlStr = String(inputs.sql ?? this.sql ?? "");
-    const parameters = (inputs.parameters ?? this.parameters ?? []) as unknown[];
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
+    const sqlStr = String(this.sql ?? "");
+    const parameters = (this.parameters ?? []) as unknown[];
 
     const dbPath = resolveDbPath(context, databaseName);
     const db = new Database(dbPath);
@@ -441,8 +441,8 @@ export class GetDatabasePathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const databaseName = String(inputs.database_name ?? this.database_name ?? "memory.db");
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const databaseName = String(this.database_name ?? "memory.db");
     const dbPath = resolveDbPath(context, databaseName);
     return { output: dbPath };
   }

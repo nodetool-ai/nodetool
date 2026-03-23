@@ -85,12 +85,12 @@ export class FetchRSSFeedLibNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const url = String(this.url ?? "");
     const res = await fetch(url);
     const xml = await res.text();
     for (const item of parseFeedItems(xml)) {
@@ -113,8 +113,8 @@ export class ExtractFeedMetadataLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
     const res = await fetch(url);
     const xml = await res.text();
 

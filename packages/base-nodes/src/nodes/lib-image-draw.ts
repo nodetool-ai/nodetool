@@ -21,13 +21,13 @@ function createDrawNode(desc: Desc): NodeClass {
     static readonly basicFields = desc.basicFields;
     static readonly metadataOutputTypes = desc.outputs;
 
-    async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
+    async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
 
       if (t === "lib.pillow.draw.Background") {
-        const width = Number(inputs.width ?? (this as unknown as Record<string, unknown>).width ?? 512);
-        const height = Number(inputs.height ?? (this as unknown as Record<string, unknown>).height ?? 512);
-        const colorVal = inputs.color ?? (this as unknown as Record<string, unknown>).color ?? "#FFFFFF";
+        const width = Number((this as any).width ?? 512);
+        const height = Number((this as any).height ?? 512);
+        const colorVal = (this as any).color ?? "#FFFFFF";
         const color = colorVal && typeof colorVal === "object" && "value" in (colorVal as object)
           ? String((colorVal as Record<string, unknown>).value)
           : String(colorVal as string);
@@ -39,7 +39,7 @@ function createDrawNode(desc: Desc): NodeClass {
         return { output: { data: buf.toString("base64") } };
       }
 
-      const baseObj = pickImage(inputs, (this as unknown as { serialize(): Record<string, unknown> }).serialize());
+      const baseObj = pickImage(this.serialize(), (this as unknown as { serialize(): Record<string, unknown> }).serialize());
       const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
@@ -48,9 +48,9 @@ function createDrawNode(desc: Desc): NodeClass {
       let img = sharp(baseBytes, { failOn: "none" });
 
       if (t === "lib.pillow.__init__.Blend") {
-        const other = await decodeImage(inputs.image2 ?? (this as unknown as Record<string, unknown>).image2, context);
+        const other = await decodeImage((this as any).image2, context);
         if (other) {
-          const alpha = Number(inputs.alpha ?? (this as unknown as Record<string, unknown>).alpha ?? 0.5);
+          const alpha = Number((this as any).alpha ?? 0.5);
           const adjusted = await sharp(other)
             .ensureAlpha(Math.max(0, Math.min(1, alpha)))
             .png()
@@ -65,9 +65,9 @@ function createDrawNode(desc: Desc): NodeClass {
 
       if (t === "lib.pillow.__init__.Composite") {
         const fg = await decodeImage(
-          inputs.foreground ??
+          (this as any).foreground ??
           (this as unknown as Record<string, unknown>).foreground ??
-          inputs.image1 ??
+          (this as any).image1 ??
           (this as unknown as Record<string, unknown>).image1,
           context
         );
@@ -95,7 +95,7 @@ function createDrawNode(desc: Desc): NodeClass {
             .toBuffer()
         );
       } else if (t.includes(".draw.RenderText")) {
-        const text = String(inputs.text ?? (this as unknown as Record<string, unknown>).text ?? "");
+        const text = String((this as any).text ?? "");
         if (text) {
           const svg = `<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="40" font-size="32" fill="white">${text
             .replaceAll("&", "&amp;")

@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,6 @@ export class ElevenlabsVoiceChanger extends FalNode {
   static readonly description = `ElevenLabs Voice Changer transforms voice characteristics in audio with AI-powered voice conversion.
 audio, voice-change, elevenlabs, transformation, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "Rachel", description: "The voice to use for speech generation" })
   declare voice: any;
@@ -34,12 +34,12 @@ audio, voice-change, elevenlabs, transformation, audio-to-audio`;
   @prop({ type: "audio", default: "", description: "The input audio file" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
-    const removeBackgroundNoise = Boolean(inputs.remove_background_noise ?? this.remove_background_noise ?? false);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3_44100_128");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const voice = String(this.voice ?? "Rachel");
+    const removeBackgroundNoise = Boolean(this.remove_background_noise ?? false);
+    const seed = Number(this.seed ?? -1);
+    const outputFormat = String(this.output_format ?? "mp3_44100_128");
 
     const args: Record<string, unknown> = {
       "voice": voice,
@@ -48,7 +48,7 @@ audio, voice-change, elevenlabs, transformation, audio-to-audio`;
       "output_format": outputFormat,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -66,7 +66,6 @@ export class NovaSr extends FalNode {
   static readonly description = `Nova SR enhances audio quality through super-resolution processing for clearer and richer sound.
 audio, enhancement, super-resolution, quality, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -80,11 +79,11 @@ audio, enhancement, super-resolution, quality, audio-to-audio`;
   @prop({ type: "enum", default: "mp3", values: ["mp3", "aac", "m4a", "ogg", "opus", "flac", "wav"], description: "The format for the output audio." })
   declare audio_format: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? "192k");
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const bitrate = String(this.bitrate ?? "192k");
+    const audioFormat = String(this.audio_format ?? "mp3");
 
     const args: Record<string, unknown> = {
       "sync_mode": syncMode,
@@ -92,7 +91,7 @@ audio, enhancement, super-resolution, quality, audio-to-audio`;
       "audio_format": audioFormat,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -110,7 +109,6 @@ export class Deepfilternet3 extends FalNode {
   static readonly description = `DeepFilterNet3 removes noise and improves audio quality with advanced deep learning filtering.
 audio, noise-reduction, filtering, cleaning, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -124,11 +122,11 @@ audio, noise-reduction, filtering, cleaning, audio-to-audio`;
   @prop({ type: "enum", default: "mp3", values: ["mp3", "aac", "m4a", "ogg", "opus", "flac", "wav"], description: "The format for the output audio." })
   declare audio_format: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const bitrate = String(inputs.bitrate ?? this.bitrate ?? "192k");
-    const audioFormat = String(inputs.audio_format ?? this.audio_format ?? "mp3");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const bitrate = String(this.bitrate ?? "192k");
+    const audioFormat = String(this.audio_format ?? "mp3");
 
     const args: Record<string, unknown> = {
       "sync_mode": syncMode,
@@ -136,7 +134,7 @@ audio, noise-reduction, filtering, cleaning, audio-to-audio`;
       "audio_format": audioFormat,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -144,7 +142,7 @@ audio, noise-reduction, filtering, cleaning, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/deepfilternet3", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -154,7 +152,6 @@ export class SamAudioSeparate extends FalNode {
   static readonly description = `SAM Audio Separate isolates and extracts different audio sources from mixed recordings.
 audio, separation, source-extraction, isolation, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the sound to isolate." })
   declare prompt: any;
@@ -180,15 +177,15 @@ audio, separation, source-extraction, isolation, audio-to-audio`;
   @prop({ type: "int", default: 1, description: "Number of candidates to generate and rank. Higher improves quality but increases latency and cost." })
   declare reranking_candidates: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const chunkOverlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 5);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "balanced");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const maxChunkDuration = Number(inputs.max_chunk_duration ?? this.max_chunk_duration ?? 60);
-    const predictSpans = Boolean(inputs.predict_spans ?? this.predict_spans ?? false);
-    const rerankingCandidates = Number(inputs.reranking_candidates ?? this.reranking_candidates ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const chunkOverlap = Number(this.chunk_overlap ?? 5);
+    const acceleration = String(this.acceleration ?? "balanced");
+    const outputFormat = String(this.output_format ?? "wav");
+    const maxChunkDuration = Number(this.max_chunk_duration ?? 60);
+    const predictSpans = Boolean(this.predict_spans ?? false);
+    const rerankingCandidates = Number(this.reranking_candidates ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -200,7 +197,7 @@ audio, separation, source-extraction, isolation, audio-to-audio`;
       "reranking_candidates": rerankingCandidates,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -208,7 +205,7 @@ audio, separation, source-extraction, isolation, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/separate", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -218,7 +215,6 @@ export class SamAudioSpanSeparate extends FalNode {
   static readonly description = `SAM Audio Span Separate isolates audio sources across time spans with precise temporal control.
 audio, separation, temporal, span, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the sound to isolate. Optional but recommended - helps the model identify what type of sound to extract from the span." })
   declare prompt: any;
@@ -226,11 +222,11 @@ audio, separation, temporal, span, audio-to-audio`;
   @prop({ type: "float", default: 5, description: "Overlap duration (in seconds) between chunks for crossfade blending." })
   declare chunk_overlap: any;
 
-  @prop({ type: "list[AudioTimeSpan]", default: [], description: "Time spans where the target sound occurs which should be isolated." })
-  declare spans: any;
-
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "quality"], description: "The acceleration level to use." })
   declare acceleration: any;
+
+  @prop({ type: "list[AudioTimeSpan]", default: [], description: "Time spans where the target sound occurs which should be isolated." })
+  declare spans: any;
 
   @prop({ type: "bool", default: false, description: "Use sound activity detection to rank reranking candidates based on how well each candidate's non-silent regions match the provided spans. Enables effective reranking even without a text prompt (span-only separation). Requires reranking_candidates > 1." })
   declare use_sound_activity_ranking: any;
@@ -238,11 +234,11 @@ audio, separation, temporal, span, audio-to-audio`;
   @prop({ type: "enum", default: "wav", values: ["wav", "mp3"], description: "Output audio format." })
   declare output_format: any;
 
-  @prop({ type: "float", default: 60, description: "Maximum audio duration (in seconds) to process in a single pass. Longer audio will be chunked with overlap and blended." })
-  declare max_chunk_duration: any;
-
   @prop({ type: "bool", default: false, description: "Trim output audio to only include the specified span time range. If False, returns the full audio length with the target sound isolated throughout." })
   declare trim_to_span: any;
+
+  @prop({ type: "float", default: 60, description: "Maximum audio duration (in seconds) to process in a single pass. Longer audio will be chunked with overlap and blended." })
+  declare max_chunk_duration: any;
 
   @prop({ type: "audio", default: "", description: "URL of the audio file to process." })
   declare audio: any;
@@ -250,31 +246,31 @@ audio, separation, temporal, span, audio-to-audio`;
   @prop({ type: "int", default: 1, description: "Number of candidates to generate and rank. Higher improves quality but increases latency and cost. Requires text prompt; ignored for span-only separation." })
   declare reranking_candidates: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const chunkOverlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 5);
-    const spans = String(inputs.spans ?? this.spans ?? []);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "balanced");
-    const useSoundActivityRanking = Boolean(inputs.use_sound_activity_ranking ?? this.use_sound_activity_ranking ?? false);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const maxChunkDuration = Number(inputs.max_chunk_duration ?? this.max_chunk_duration ?? 60);
-    const trimToSpan = Boolean(inputs.trim_to_span ?? this.trim_to_span ?? false);
-    const rerankingCandidates = Number(inputs.reranking_candidates ?? this.reranking_candidates ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const chunkOverlap = Number(this.chunk_overlap ?? 5);
+    const acceleration = String(this.acceleration ?? "balanced");
+    const spans = String(this.spans ?? []);
+    const useSoundActivityRanking = Boolean(this.use_sound_activity_ranking ?? false);
+    const outputFormat = String(this.output_format ?? "wav");
+    const trimToSpan = Boolean(this.trim_to_span ?? false);
+    const maxChunkDuration = Number(this.max_chunk_duration ?? 60);
+    const rerankingCandidates = Number(this.reranking_candidates ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "chunk_overlap": chunkOverlap,
-      "spans": spans,
       "acceleration": acceleration,
+      "spans": spans,
       "use_sound_activity_ranking": useSoundActivityRanking,
       "output_format": outputFormat,
-      "max_chunk_duration": maxChunkDuration,
       "trim_to_span": trimToSpan,
+      "max_chunk_duration": maxChunkDuration,
       "reranking_candidates": rerankingCandidates,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -282,7 +278,7 @@ audio, separation, temporal, span, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/span-separate", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -292,7 +288,6 @@ export class Demucs extends FalNode {
   static readonly description = `Demucs separates music into vocals, drums, bass, and other instruments with high quality.
 audio, music-separation, stems, demucs, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Length in seconds of each segment for processing. Smaller values use less memory but may reduce quality. Default is model-specific." })
   declare segment_length: any;
@@ -315,14 +310,14 @@ audio, music-separation, stems, demucs, audio-to-audio`;
   @prop({ type: "int", default: 1, description: "Number of random shifts for equivariant stabilization. Higher values improve quality but increase processing time." })
   declare shifts: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const segmentLength = String(inputs.segment_length ?? this.segment_length ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3");
-    const stems = String(inputs.stems ?? this.stems ?? "");
-    const overlap = Number(inputs.overlap ?? this.overlap ?? 0.25);
-    const model = String(inputs.model ?? this.model ?? "htdemucs_6s");
-    const shifts = Number(inputs.shifts ?? this.shifts ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const segmentLength = String(this.segment_length ?? "");
+    const outputFormat = String(this.output_format ?? "mp3");
+    const stems = String(this.stems ?? "");
+    const overlap = Number(this.overlap ?? 0.25);
+    const model = String(this.model ?? "htdemucs_6s");
+    const shifts = Number(this.shifts ?? 1);
 
     const args: Record<string, unknown> = {
       "segment_length": segmentLength,
@@ -333,7 +328,7 @@ audio, music-separation, stems, demucs, audio-to-audio`;
       "shifts": shifts,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -341,7 +336,7 @@ audio, music-separation, stems, demucs, audio-to-audio`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/demucs", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -351,53 +346,52 @@ export class StableAudio25AudioToAudio extends FalNode {
   static readonly description = `Stable Audio 2.5 transforms and modifies audio with AI-powered processing and effects.
 audio, transformation, stable-audio, 2.5, audio-to-audio`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the audio generation" })
   declare prompt: any;
 
-  @prop({ type: "float", default: 0.8, description: "Sometimes referred to as denoising, this parameter controls how much influence the 'audio_url' parameter has on the generated audio. A value of 0 would yield audio that is identical to the input. A value of 1 would be as if you passed in no audio at all." })
-  declare strength: any;
-
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
 
-  @prop({ type: "int", default: 1, description: "How strictly the diffusion process adheres to the prompt text (higher values make your audio closer to your prompt). " })
-  declare guidance_scale: any;
-
-  @prop({ type: "str", default: "" })
-  declare seed: any;
+  @prop({ type: "float", default: 0.8, description: "Sometimes referred to as denoising, this parameter controls how much influence the 'audio_url' parameter has on the generated audio. A value of 0 would yield audio that is identical to the input. A value of 1 would be as if you passed in no audio at all." })
+  declare strength: any;
 
   @prop({ type: "audio", default: "", description: "The audio clip to transform" })
   declare audio: any;
 
+  @prop({ type: "str", default: "" })
+  declare seed: any;
+
   @prop({ type: "int", default: 8, description: "The number of steps to denoise the audio for" })
   declare num_inference_steps: any;
+
+  @prop({ type: "int", default: 1, description: "How strictly the diffusion process adheres to the prompt text (higher values make your audio closer to your prompt). " })
+  declare guidance_scale: any;
 
   @prop({ type: "str", default: "", description: "The duration of the audio clip to generate. If not provided, it will be set to the duration of the input audio." })
   declare total_seconds: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const strength = Number(inputs.strength ?? this.strength ?? 0.8);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 1);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 8);
-    const totalSeconds = String(inputs.total_seconds ?? this.total_seconds ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const strength = Number(this.strength ?? 0.8);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 8);
+    const guidanceScale = Number(this.guidance_scale ?? 1);
+    const totalSeconds = String(this.total_seconds ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "strength": strength,
       "sync_mode": syncMode,
-      "guidance_scale": guidanceScale,
+      "strength": strength,
       "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "guidance_scale": guidanceScale,
       "total_seconds": totalSeconds,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -415,7 +409,6 @@ export class FfmpegApiMergeAudios extends FalNode {
   static readonly description = `FFmpeg API Merge Audios combines multiple audio files into a single output.
 audio, processing, audio-to-audio, merging, ffmpeg`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "list[audio]", default: [], description: "List of audio URLs to merge in order. The 0th stream of the audio will be considered as the merge candidate." })
   declare audio_urls: any;
@@ -423,15 +416,15 @@ audio, processing, audio-to-audio, merging, ffmpeg`;
   @prop({ type: "str", default: "", description: "Output format of the combined audio. If not used, will be determined automatically using FFMPEG. Formatted as codec_sample_rate_bitrate." })
   declare output_format: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const outputFormat = String(this.output_format ?? "");
 
     const args: Record<string, unknown> = {
       "output_format": outputFormat,
     };
 
-    const audioUrlsList = inputs.audio_urls as Record<string, unknown>[] | undefined;
+    const audioUrlsList = this.audio_urls as Record<string, unknown>[] | undefined;
     if (audioUrlsList?.length) {
       const audioUrlsUrls: string[] = [];
       for (const ref of audioUrlsList) {
@@ -452,17 +445,16 @@ export class KlingVideoCreateVoice extends FalNode {
   static readonly description = `Create Voices to be used with Kling 2.6 Voice Control
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "video", default: "", description: "URL of the voice audio file. Supports .mp3/.wav audio or .mp4/.mov video. Duration must be 5-30 seconds with clean, single-voice audio." })
   declare voice_url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const voiceUrlRef = inputs.voice_url as Record<string, unknown> | undefined;
+    const voiceUrlRef = this.voice_url as Record<string, unknown> | undefined;
     if (isRefSet(voiceUrlRef)) {
       const voiceUrlUrl = await assetToFalUrl(apiKey, voiceUrlRef!);
       if (voiceUrlUrl) args["voice_url"] = voiceUrlUrl;
@@ -470,7 +462,7 @@ audio, processing, audio-to-audio, transformation`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/kling-video/create-voice", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -480,7 +472,6 @@ export class AudioUnderstanding extends FalNode {
   static readonly description = `A audio understanding model to analyze audio content and answer questions about what's happening in the audio based on user prompts.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The question or prompt about the audio content." })
   declare prompt: any;
@@ -491,17 +482,17 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "audio", default: "", description: "URL of the audio file to analyze" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const detailedAnalysis = Boolean(inputs.detailed_analysis ?? this.detailed_analysis ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const detailedAnalysis = Boolean(this.detailed_analysis ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "detailed_analysis": detailedAnalysis,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -509,7 +500,7 @@ audio, processing, audio-to-audio, transformation`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/audio-understanding", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -519,13 +510,12 @@ export class StableAudio25Inpaint extends FalNode {
   static readonly description = `Generate high quality music and sound effects using Stable Audio 2.5 from StabilityAI
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the audio generation" })
   declare prompt: any;
 
-  @prop({ type: "int", default: 8, description: "The number of steps to denoise the audio for" })
-  declare num_inference_steps: any;
+  @prop({ type: "int", default: 1, description: "How strictly the diffusion process adheres to the prompt text (higher values make your audio closer to your prompt). " })
+  declare guidance_scale: any;
 
   @prop({ type: "int", default: 190, description: "The end point of the audio mask" })
   declare mask_end: any;
@@ -539,8 +529,8 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "str", default: "" })
   declare seed: any;
 
-  @prop({ type: "int", default: 1, description: "How strictly the diffusion process adheres to the prompt text (higher values make your audio closer to your prompt). " })
-  declare guidance_scale: any;
+  @prop({ type: "int", default: 8, description: "The number of steps to denoise the audio for" })
+  declare num_inference_steps: any;
 
   @prop({ type: "audio", default: "", description: "The audio clip to inpaint" })
   declare audio: any;
@@ -548,29 +538,29 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "int", default: 30, description: "The start point of the audio mask" })
   declare mask_start: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 8);
-    const maskEnd = Number(inputs.mask_end ?? this.mask_end ?? 190);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const secondsTotal = String(inputs.seconds_total ?? this.seconds_total ?? 190);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 1);
-    const maskStart = Number(inputs.mask_start ?? this.mask_start ?? 30);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const guidanceScale = Number(this.guidance_scale ?? 1);
+    const maskEnd = Number(this.mask_end ?? 190);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const secondsTotal = String(this.seconds_total ?? 190);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 8);
+    const maskStart = Number(this.mask_start ?? 30);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "num_inference_steps": numInferenceSteps,
+      "guidance_scale": guidanceScale,
       "mask_end": maskEnd,
       "sync_mode": syncMode,
       "seconds_total": secondsTotal,
       "seed": seed,
-      "guidance_scale": guidanceScale,
+      "num_inference_steps": numInferenceSteps,
       "mask_start": maskStart,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -588,7 +578,6 @@ export class SonautoV2Extend extends FalNode {
   static readonly description = `Extend an existing song
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "A description of the track you want to generate. This prompt will be used to automatically generate the tags and lyrics unless you manually set them. For example, if you set prompt and tags, then the prompt will be used to generate only the lyrics." })
   declare prompt: any;
@@ -629,20 +618,20 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "str", default: "", description: "Duration in seconds to extend the song. If not provided, will attempt to automatically determine." })
   declare extend_duration: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const lyricsPrompt = String(inputs.lyrics_prompt ?? this.lyrics_prompt ?? "");
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 1.8);
-    const outputBitRate = String(inputs.output_bit_rate ?? this.output_bit_rate ?? "");
-    const numSongs = Number(inputs.num_songs ?? this.num_songs ?? 1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const side = String(inputs.side ?? this.side ?? "");
-    const balanceStrength = Number(inputs.balance_strength ?? this.balance_strength ?? 0.7);
-    const cropDuration = Number(inputs.crop_duration ?? this.crop_duration ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const extendDuration = String(inputs.extend_duration ?? this.extend_duration ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const lyricsPrompt = String(this.lyrics_prompt ?? "");
+    const tags = String(this.tags ?? "");
+    const promptStrength = Number(this.prompt_strength ?? 1.8);
+    const outputBitRate = String(this.output_bit_rate ?? "");
+    const numSongs = Number(this.num_songs ?? 1);
+    const outputFormat = String(this.output_format ?? "wav");
+    const side = String(this.side ?? "");
+    const balanceStrength = Number(this.balance_strength ?? 0.7);
+    const cropDuration = Number(this.crop_duration ?? 0);
+    const seed = String(this.seed ?? "");
+    const extendDuration = String(this.extend_duration ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -659,7 +648,7 @@ audio, processing, audio-to-audio, transformation`;
       "extend_duration": extendDuration,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -677,7 +666,6 @@ export class AceStepAudioOutpaint extends FalNode {
   static readonly description = `Extend the beginning or end of provided audio with lyrics and/or style using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -727,23 +715,23 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "int", default: 10, description: "Granularity scale for the generation process. Higher values can reduce artifacts." })
   declare granularity_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 27);
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const minimumGuidanceScale = Number(inputs.minimum_guidance_scale ?? this.minimum_guidance_scale ?? 3);
-    const extendAfterDuration = Number(inputs.extend_after_duration ?? this.extend_after_duration ?? 30);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 5);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const extendBeforeDuration = Number(inputs.extend_before_duration ?? this.extend_before_duration ?? 0);
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 1.5);
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numberOfSteps = Number(this.number_of_steps ?? 27);
+    const tags = String(this.tags ?? "");
+    const minimumGuidanceScale = Number(this.minimum_guidance_scale ?? 3);
+    const extendAfterDuration = Number(this.extend_after_duration ?? 30);
+    const lyrics = String(this.lyrics ?? "");
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 5);
+    const scheduler = String(this.scheduler ?? "euler");
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const extendBeforeDuration = Number(this.extend_before_duration ?? 0);
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 1.5);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const seed = String(this.seed ?? "");
+    const granularityScale = Number(this.granularity_scale ?? 10);
 
     const args: Record<string, unknown> = {
       "number_of_steps": numberOfSteps,
@@ -763,7 +751,7 @@ audio, processing, audio-to-audio, transformation`;
       "granularity_scale": granularityScale,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -781,7 +769,6 @@ export class AceStepAudioInpaint extends FalNode {
   static readonly description = `Modify a portion of provided audio with lyrics and/or style using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -807,14 +794,14 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "enum", default: "euler", values: ["euler", "heun"], description: "Scheduler to use for the generation process." })
   declare scheduler: any;
 
-  @prop({ type: "float", default: 15, description: "Guidance scale for the generation." })
-  declare guidance_scale: any;
+  @prop({ type: "float", default: 30, description: "end time in seconds for the inpainting process." })
+  declare end_time: any;
 
   @prop({ type: "enum", default: "apg", values: ["cfg", "apg", "cfg_star"], description: "Type of CFG to use for the generation process." })
   declare guidance_type: any;
 
-  @prop({ type: "float", default: 30, description: "end time in seconds for the inpainting process." })
-  declare end_time: any;
+  @prop({ type: "float", default: 15, description: "Guidance scale for the generation." })
+  declare guidance_scale: any;
 
   @prop({ type: "float", default: 1.5, description: "Lyric guidance scale for the generation." })
   declare lyric_guidance_scale: any;
@@ -840,26 +827,26 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "int", default: 10, description: "Granularity scale for the generation process. Higher values can reduce artifacts." })
   declare granularity_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 27);
-    const startTime = Number(inputs.start_time ?? this.start_time ?? 0);
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const minimumGuidanceScale = Number(inputs.minimum_guidance_scale ?? this.minimum_guidance_scale ?? 3);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const endTimeRelativeTo = String(inputs.end_time_relative_to ?? this.end_time_relative_to ?? "start");
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 5);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const endTime = Number(inputs.end_time ?? this.end_time ?? 30);
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 1.5);
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const variance = Number(inputs.variance ?? this.variance ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const startTimeRelativeTo = String(inputs.start_time_relative_to ?? this.start_time_relative_to ?? "start");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numberOfSteps = Number(this.number_of_steps ?? 27);
+    const startTime = Number(this.start_time ?? 0);
+    const tags = String(this.tags ?? "");
+    const minimumGuidanceScale = Number(this.minimum_guidance_scale ?? 3);
+    const lyrics = String(this.lyrics ?? "");
+    const endTimeRelativeTo = String(this.end_time_relative_to ?? "start");
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 5);
+    const scheduler = String(this.scheduler ?? "euler");
+    const endTime = Number(this.end_time ?? 30);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 1.5);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const variance = Number(this.variance ?? 0.5);
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const startTimeRelativeTo = String(this.start_time_relative_to ?? "start");
+    const seed = String(this.seed ?? "");
+    const granularityScale = Number(this.granularity_scale ?? 10);
 
     const args: Record<string, unknown> = {
       "number_of_steps": numberOfSteps,
@@ -870,9 +857,9 @@ audio, processing, audio-to-audio, transformation`;
       "end_time_relative_to": endTimeRelativeTo,
       "tag_guidance_scale": tagGuidanceScale,
       "scheduler": scheduler,
-      "guidance_scale": guidanceScale,
-      "guidance_type": guidanceType,
       "end_time": endTime,
+      "guidance_type": guidanceType,
+      "guidance_scale": guidanceScale,
       "lyric_guidance_scale": lyricGuidanceScale,
       "guidance_interval": guidanceInterval,
       "variance": variance,
@@ -882,7 +869,7 @@ audio, processing, audio-to-audio, transformation`;
       "granularity_scale": granularityScale,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -900,7 +887,6 @@ export class AceStepAudioToAudio extends FalNode {
   static readonly description = `Generate music from a lyrics and example audio using ACE-Step
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "int", default: 27, description: "Number of steps to generate the audio." })
   declare number_of_steps: any;
@@ -932,11 +918,11 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "float", default: 1.5, description: "Lyric guidance scale for the generation." })
   declare lyric_guidance_scale: any;
 
-  @prop({ type: "enum", default: "remix", values: ["lyrics", "remix"], description: "Whether to edit the lyrics only or remix the audio." })
-  declare edit_mode: any;
-
   @prop({ type: "float", default: 0.5, description: "Guidance interval for the generation. 0.5 means only apply guidance in the middle steps (0.25 * infer_steps to 0.75 * infer_steps)" })
   declare guidance_interval: any;
+
+  @prop({ type: "enum", default: "remix", values: ["lyrics", "remix"], description: "Whether to edit the lyrics only or remix the audio." })
+  declare edit_mode: any;
 
   @prop({ type: "float", default: 0, description: "Guidance interval decay for the generation. Guidance scale will decay from guidance_scale to min_guidance_scale in the interval. 0.0 means no decay." })
   declare guidance_interval_decay: any;
@@ -956,25 +942,25 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "str", default: "", description: "Original seed of the audio file." })
   declare original_seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 27);
-    const tags = String(inputs.tags ?? this.tags ?? "");
-    const minimumGuidanceScale = Number(inputs.minimum_guidance_scale ?? this.minimum_guidance_scale ?? 3);
-    const lyrics = String(inputs.lyrics ?? this.lyrics ?? "");
-    const tagGuidanceScale = Number(inputs.tag_guidance_scale ?? this.tag_guidance_scale ?? 5);
-    const originalLyrics = String(inputs.original_lyrics ?? this.original_lyrics ?? "");
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "euler");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const guidanceType = String(inputs.guidance_type ?? this.guidance_type ?? "apg");
-    const lyricGuidanceScale = Number(inputs.lyric_guidance_scale ?? this.lyric_guidance_scale ?? 1.5);
-    const editMode = String(inputs.edit_mode ?? this.edit_mode ?? "remix");
-    const guidanceInterval = Number(inputs.guidance_interval ?? this.guidance_interval ?? 0.5);
-    const guidanceIntervalDecay = Number(inputs.guidance_interval_decay ?? this.guidance_interval_decay ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const granularityScale = Number(inputs.granularity_scale ?? this.granularity_scale ?? 10);
-    const originalTags = String(inputs.original_tags ?? this.original_tags ?? "");
-    const originalSeed = String(inputs.original_seed ?? this.original_seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numberOfSteps = Number(this.number_of_steps ?? 27);
+    const tags = String(this.tags ?? "");
+    const minimumGuidanceScale = Number(this.minimum_guidance_scale ?? 3);
+    const lyrics = String(this.lyrics ?? "");
+    const tagGuidanceScale = Number(this.tag_guidance_scale ?? 5);
+    const originalLyrics = String(this.original_lyrics ?? "");
+    const scheduler = String(this.scheduler ?? "euler");
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const guidanceType = String(this.guidance_type ?? "apg");
+    const lyricGuidanceScale = Number(this.lyric_guidance_scale ?? 1.5);
+    const guidanceInterval = Number(this.guidance_interval ?? 0.5);
+    const editMode = String(this.edit_mode ?? "remix");
+    const guidanceIntervalDecay = Number(this.guidance_interval_decay ?? 0);
+    const seed = String(this.seed ?? "");
+    const granularityScale = Number(this.granularity_scale ?? 10);
+    const originalTags = String(this.original_tags ?? "");
+    const originalSeed = String(this.original_seed ?? "");
 
     const args: Record<string, unknown> = {
       "number_of_steps": numberOfSteps,
@@ -987,8 +973,8 @@ audio, processing, audio-to-audio, transformation`;
       "guidance_scale": guidanceScale,
       "guidance_type": guidanceType,
       "lyric_guidance_scale": lyricGuidanceScale,
-      "edit_mode": editMode,
       "guidance_interval": guidanceInterval,
+      "edit_mode": editMode,
       "guidance_interval_decay": guidanceIntervalDecay,
       "seed": seed,
       "granularity_scale": granularityScale,
@@ -996,7 +982,7 @@ audio, processing, audio-to-audio, transformation`;
       "original_seed": originalSeed,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1014,14 +1000,13 @@ export class DiaTtsVoiceClone extends FalNode {
   static readonly description = `Clone dialog voices from a sample audio and generate dialogs from text prompts using the Dia TTS which leverages advanced AI techniques to create high-quality text-to-speech.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech." })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1039,7 +1024,6 @@ export class ElevenlabsAudioIsolation extends FalNode {
   static readonly description = `Isolate audio tracks using ElevenLabs advanced audio isolation technology.
 audio, processing, audio-to-audio, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "video", default: "", description: "Video file to use for audio isolation. Either 'audio_url' or 'video_url' must be provided." })
   declare video: any;
@@ -1047,18 +1031,18 @@ audio, processing, audio-to-audio, transformation`;
   @prop({ type: "audio", default: "", description: "URL of the audio file to isolate voice from" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;

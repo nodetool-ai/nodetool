@@ -3,9 +3,9 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
-function getApiKey(inputs: Record<string, unknown>): string {
+function getApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.OPENAI_API_KEY ||
+    secrets.OPENAI_API_KEY ||
     process.env.OPENAI_API_KEY ||
     "";
   if (!key) throw new Error("OPENAI_API_KEY is not configured");
@@ -49,11 +49,11 @@ export class EmbeddingNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const text = String(inputs.input ?? "");
-    const model = String(inputs.model ?? "text-embedding-3-small");
-    const chunkSize = Number(inputs.chunk_size ?? 4096);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const text = String(this.input ?? "");
+    const model = String(this.model ?? "text-embedding-3-small");
+    const chunkSize = Number(this.chunk_size ?? 4096);
 
     // Chunk input text
     const chunks: string[] = [];
@@ -109,9 +109,9 @@ export class WebSearchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const query = String(inputs.query ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const query = String(this.query ?? "");
     if (!query) throw new Error("Search query cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
@@ -176,10 +176,10 @@ export class ModerationNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const text = String(inputs.input ?? "");
-    const model = String(inputs.model ?? "omni-moderation-latest");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const text = String(this.input ?? "");
+    const model = String(this.model ?? "omni-moderation-latest");
     if (!text) throw new Error("Input text cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/moderations`, {
@@ -254,15 +254,15 @@ export class CreateImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(inputs.model ?? "gpt-image-1");
-    const size = String(inputs.size ?? "1024x1024");
-    const quality = String(inputs.quality ?? "high");
-    const background = String(inputs.background ?? "auto");
+    const model = String(this.model ?? "gpt-image-1");
+    const size = String(this.size ?? "1024x1024");
+    const quality = String(this.quality ?? "high");
+    const background = String(this.background ?? "auto");
 
     const res = await fetch(`${OPENAI_API_BASE}/images/generations`, {
       method: "POST",
@@ -353,19 +353,19 @@ export class EditImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Edit prompt cannot be empty");
 
-    const image = inputs.image as Record<string, unknown> | undefined;
+    const image = this.image as Record<string, unknown> | undefined;
     if (!image || (!image.data && !image.uri)) {
       throw new Error("Input image is required");
     }
 
-    const model = String(inputs.model ?? "gpt-image-1");
-    const size = String(inputs.size ?? "1024x1024");
-    const quality = String(inputs.quality ?? "high");
+    const model = String(this.model ?? "gpt-image-1");
+    const size = String(this.size ?? "1024x1024");
+    const quality = String(this.quality ?? "high");
 
     // Build multipart form data
     const formData = new FormData();
@@ -380,7 +380,7 @@ export class EditImageNode extends BaseNode {
     formData.append("image", imageBlob, "image.png");
 
     // Optional mask
-    const mask = inputs.mask as Record<string, unknown> | undefined;
+    const mask = this.mask as Record<string, unknown> | undefined;
     if (mask && (mask.data || mask.uri)) {
       const maskBlob = await refToBlob(mask);
       formData.append("mask", maskBlob, "mask.png");
@@ -482,12 +482,12 @@ export class TextToSpeechNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const text = String(inputs.input ?? "");
-    const model = String(inputs.model ?? "tts-1");
-    const voice = String(inputs.voice ?? "alloy");
-    const speed = Number(inputs.speed ?? 1.0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const text = String(this.input ?? "");
+    const model = String(this.model ?? "tts-1");
+    const voice = String(this.voice ?? "alloy");
+    const speed = Number(this.speed ?? 1.0);
 
     const res = await fetch(`${OPENAI_API_BASE}/audio/speech`, {
       method: "POST",
@@ -535,13 +535,13 @@ export class TranslateNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const audio = inputs.audio as Record<string, unknown> | undefined;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const audio = this.audio as Record<string, unknown> | undefined;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
-    const temperature = Number(inputs.temperature ?? 0.0);
+    const temperature = Number(this.temperature ?? 0.0);
 
     const audioBlob = await refToBlob(audio);
     const formData = new FormData();
@@ -679,18 +679,18 @@ export class TranscribeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const audio = inputs.audio as Record<string, unknown> | undefined;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const audio = this.audio as Record<string, unknown> | undefined;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
 
-    const model = String(inputs.model ?? "whisper-1");
-    const language = String(inputs.language ?? "auto_detect");
-    const timestamps = Boolean(inputs.timestamps ?? false);
-    const promptText = String(inputs.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? 0);
+    const model = String(this.model ?? "whisper-1");
+    const language = String(this.language ?? "auto_detect");
+    const timestamps = Boolean(this.timestamps ?? false);
+    const promptText = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0);
 
     const isNewModel = model === "gpt-4o-transcribe" || model === "gpt-4o-mini-transcribe";
 
@@ -829,13 +829,13 @@ export class RealtimeAgentNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const system = String(inputs.system ?? this.system ?? "");
-    const voice = String(inputs.voice ?? this.voice ?? "alloy");
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const model = String(inputs.model ?? this.model ?? "gpt-4o-mini-realtime-preview");
-    const chunk = (inputs.chunk ?? this.chunk ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const system = String(this.system ?? "");
+    const voice = String(this.voice ?? "alloy");
+    const speed = Number(this.speed ?? 1);
+    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
+    const chunk = (this.chunk ?? {}) as Record<string, unknown>;
 
     let userText = "";
     if (typeof chunk.content === "string" && chunk.content) {
@@ -865,10 +865,10 @@ export class RealtimeAgentNode extends BaseNode {
       headers: authHeaders(apiKey),
       body: JSON.stringify({
         model: model.replace("-realtime-preview", ""),
-        temperature: Number(inputs.temperature ?? this.temperature ?? 0.8),
+        temperature: Number(this.temperature ?? 0.8),
         messages: [
           ...(system ? [{ role: "system", content: system }] : []),
-          { role: "user", content: userText || String(inputs.prompt ?? "") || "" },
+          { role: "user", content: userText || String((this as any).prompt ?? "") || "" },
         ],
       }),
     });
@@ -944,9 +944,9 @@ export class RealtimeTranscriptionNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const chunk = (inputs.chunk ?? inputs.audio ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const chunk = ((this as any).chunk ?? (this as any).audio ?? {}) as Record<string, unknown>;
     const content =
       typeof chunk.content === "string"
         ? chunk.content
@@ -961,10 +961,10 @@ export class RealtimeTranscriptionNode extends BaseNode {
     formData.append("file", new Blob([Buffer.from(content, "base64")]), "audio.wav");
     formData.append(
       "model",
-      String((inputs.model as Record<string, unknown> | undefined)?.id ?? inputs.model ?? "gpt-4o-mini-transcribe")
+      String((this.model as Record<string, unknown> | undefined)?.id ?? this.model ?? "gpt-4o-mini-transcribe")
     );
-    if (inputs.system ?? this.system) {
-      formData.append("prompt", String(inputs.system ?? this.system ?? ""));
+    if (this.system) {
+      formData.append("prompt", String(this.system ?? ""));
     }
 
     const res = await fetch(`${OPENAI_API_BASE}/audio/transcriptions`, {

@@ -109,8 +109,8 @@ export class AmplitudeToDBNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tensor = (inputs.tensor ?? this.tensor ?? { data: [] }) as { data: number[] | number[][] };
+  async process(): Promise<Record<string, unknown>> {
+    const tensor = (this.tensor ?? { data: [] }) as { data: number[] | number[][] };
     const data = tensor.data;
 
     const convert = (arr: number[]): number[] =>
@@ -148,8 +148,8 @@ export class DBToAmplitudeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tensor = (inputs.tensor ?? this.tensor ?? { data: [] }) as { data: number[] | number[][] };
+  async process(): Promise<Record<string, unknown>> {
+    const tensor = (this.tensor ?? { data: [] }) as { data: number[] | number[][] };
     const data = tensor.data;
 
     const convert = (arr: number[]): number[] =>
@@ -187,8 +187,8 @@ export class DBToPowerNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tensor = (inputs.tensor ?? this.tensor ?? { data: [] }) as { data: number[] | number[][] };
+  async process(): Promise<Record<string, unknown>> {
+    const tensor = (this.tensor ?? { data: [] }) as { data: number[] | number[][] };
     const data = tensor.data;
 
     const convert = (arr: number[]): number[] =>
@@ -226,8 +226,8 @@ export class PowerToDBNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tensor = (inputs.tensor ?? this.tensor ?? { data: [] }) as { data: number[] | number[][] };
+  async process(): Promise<Record<string, unknown>> {
+    const tensor = (this.tensor ?? { data: [] }) as { data: number[] | number[][] };
     const data = tensor.data;
 
     const convert = (arr: number[]): number[] =>
@@ -268,8 +268,8 @@ export class PlotSpectrogramNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tensor = (inputs.tensor ?? this.tensor ?? { data: [] }) as { data: number[][] };
+  async process(): Promise<Record<string, unknown>> {
+    const tensor = (this.tensor ?? { data: [] }) as { data: number[][] };
     const spec = tensor.data;
 
     if (!spec.length || !spec[0]?.length) {
@@ -385,9 +385,9 @@ export class GainNode_ extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const gainDb = Number(inputs.gain_db ?? this.gain_db ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const gainDb = Number(this.gain_db ?? 0);
 
     if (!audio.data) return { output: audio };
 
@@ -431,11 +431,11 @@ export class DelayNode_ extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const delaySec = Number(inputs.delay_seconds ?? this.delay_seconds ?? 0.5);
-    const feedback = Number(inputs.feedback ?? this.feedback ?? 0.3);
-    const mix = Number(inputs.mix ?? this.mix ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const delaySec = Number(this.delay_seconds ?? 0.5);
+    const feedback = Number(this.feedback ?? 0.3);
+    const mix = Number(this.mix ?? 0.5);
 
     if (!audio.data) return { output: audio };
 
@@ -497,9 +497,9 @@ export class HighPassFilterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(inputs.cutoff_frequency_hz ?? this.cutoff_frequency_hz ?? 80);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const cutoff = Number(this.cutoff_frequency_hz ?? 80);
 
     if (!audio.data) return { output: audio };
 
@@ -538,9 +538,9 @@ export class LowPassFilterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(inputs.cutoff_frequency_hz ?? this.cutoff_frequency_hz ?? 5000);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
 
     if (!audio.data) return { output: audio };
 
@@ -582,10 +582,10 @@ export class HighShelfFilterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(inputs.cutoff_frequency_hz ?? this.cutoff_frequency_hz ?? 5000);
-    const gainDb = Number(inputs.gain_db ?? this.gain_db ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
+    const gainDb = Number(this.gain_db ?? 0);
 
     if (!audio.data) return { output: audio };
 
@@ -628,10 +628,10 @@ export class LowShelfFilterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(inputs.cutoff_frequency_hz ?? this.cutoff_frequency_hz ?? 200);
-    const gainDb = Number(inputs.gain_db ?? this.gain_db ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const cutoff = Number(this.cutoff_frequency_hz ?? 200);
+    const gainDb = Number(this.gain_db ?? 0);
 
     if (!audio.data) return { output: audio };
 
@@ -674,10 +674,10 @@ export class PeakFilterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(inputs.cutoff_frequency_hz ?? this.cutoff_frequency_hz ?? 1000);
-    const q = Number(inputs.q_factor ?? this.q_factor ?? 1.0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const cutoff = Number(this.cutoff_frequency_hz ?? 1000);
+    const q = Number(this.q_factor ?? 1.0);
 
     if (!audio.data) return { output: audio };
 

@@ -263,7 +263,7 @@ export interface UnifiedWebSocketRunnerOptions {
   defaultProvider?: string;
   resolveExecutor: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor;
   resolveNodeType?: NodeTypeResolver;
-  resolveProvider?: (providerId: string) => Promise<BaseProvider>;
+  resolveProvider?: (providerId: string, userId: string) => Promise<BaseProvider>;
   /** Resolve server-side Tool instances by name (for tool execution in chat). */
   resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
@@ -1019,7 +1019,7 @@ export class UnifiedWebSocketRunner {
       if (pm) chatHistory.push(pm);
     }
 
-    const provider = await this.resolveProvider(providerId);
+    const provider = await this.resolveProvider(providerId, userId);
 
     // Build provider-format tool schemas from raw tool data, filtering out entries with no name
     const rawTools = Array.isArray(data.tools) ? data.tools : [];
@@ -1742,7 +1742,7 @@ export class UnifiedWebSocketRunner {
     const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
 
-    const provider = await this.resolveProvider!(providerId);
+    const provider = await this.resolveProvider!(providerId, userId);
 
     // Extract objective from content
     const objective = this.extractTextContent(data.content, "Complete the requested task");
@@ -2101,7 +2101,7 @@ export class UnifiedWebSocketRunner {
       })
       .filter((t) => t.name.length > 0);
 
-    const provider = await this.resolveProvider(providerId);
+    const provider = await this.resolveProvider(providerId, this.userId ?? "1");
     for await (const item of provider.generateMessagesTraced({ messages, model, tools: tools.length > 0 ? tools : undefined })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {

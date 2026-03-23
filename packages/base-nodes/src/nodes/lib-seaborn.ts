@@ -74,13 +74,11 @@ export class ChartRendererLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const config = (inputs.chart_config ?? this.chart_config ?? {}) as Record<string, unknown>;
-    const width = Number(inputs.width ?? this.width ?? 640);
-    const height = Number(inputs.height ?? this.height ?? 480);
-    const dataRef = (inputs.data ?? this.data ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const config = (this.chart_config ?? {}) as Record<string, unknown>;
+    const width = Number(this.width ?? 640);
+    const height = Number(this.height ?? 480);
+    const dataRef = (this.data ?? {}) as Record<string, unknown>;
 
     const columns = (dataRef.columns ?? []) as Array<Record<string, unknown>>;
     const rows = (dataRef.data ?? []) as unknown[][];

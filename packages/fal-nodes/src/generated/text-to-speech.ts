@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,6 @@ export class Qwen3TtsTextToSpeech17B extends FalNode {
   static readonly description = `Qwen-3 TTS 1.7B generates natural-sounding speech from text using the large 1.7-billion parameter model.
 audio, tts, qwen, 1.7b, text-to-speech, speech-synthesis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech. This prompt will be ignored if a speaker embedding is provided." })
   declare prompt: any;
@@ -64,23 +64,23 @@ audio, tts, qwen, 1.7b, text-to-speech, speech-synthesis`;
   @prop({ type: "str", default: 1, description: "Top-p for sub-talker sampling." })
   declare subtalker_top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const speakerVoiceEmbeddingFileUrl = String(inputs.speaker_voice_embedding_file_url ?? this.speaker_voice_embedding_file_url ?? "");
-    const topP = String(inputs.top_p ?? this.top_p ?? 1);
-    const repetitionPenalty = String(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.05);
-    const topK = String(inputs.top_k ?? this.top_k ?? 50);
-    const subtalkerTemperature = String(inputs.subtalker_temperature ?? this.subtalker_temperature ?? 0.9);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
-    const temperature = String(inputs.temperature ?? this.temperature ?? 0.9);
-    const text = String(inputs.text ?? this.text ?? "");
-    const subtalkerTopK = String(inputs.subtalker_top_k ?? this.subtalker_top_k ?? 50);
-    const language = String(inputs.language ?? this.language ?? "Auto");
-    const maxNewTokens = String(inputs.max_new_tokens ?? this.max_new_tokens ?? 200);
-    const subtalkerDosample = String(inputs.subtalker_dosample ?? this.subtalker_dosample ?? true);
-    const subtalkerTopP = String(inputs.subtalker_top_p ?? this.subtalker_top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const speakerVoiceEmbeddingFileUrl = String(this.speaker_voice_embedding_file_url ?? "");
+    const topP = String(this.top_p ?? 1);
+    const repetitionPenalty = String(this.repetition_penalty ?? 1.05);
+    const topK = String(this.top_k ?? 50);
+    const subtalkerTemperature = String(this.subtalker_temperature ?? 0.9);
+    const voice = String(this.voice ?? "");
+    const referenceText = String(this.reference_text ?? "");
+    const temperature = String(this.temperature ?? 0.9);
+    const text = String(this.text ?? "");
+    const subtalkerTopK = String(this.subtalker_top_k ?? 50);
+    const language = String(this.language ?? "Auto");
+    const maxNewTokens = String(this.max_new_tokens ?? 200);
+    const subtalkerDosample = String(this.subtalker_dosample ?? true);
+    const subtalkerTopP = String(this.subtalker_top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -112,7 +112,6 @@ export class Qwen3TtsTextToSpeech06B extends FalNode {
   static readonly description = `Qwen-3 TTS 0.6B generates speech from text efficiently using the compact 600-million parameter model.
 audio, tts, qwen, 0.6b, efficient, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech. This prompt will be ignored if a speaker embedding is provided." })
   declare prompt: any;
@@ -159,23 +158,23 @@ audio, tts, qwen, 0.6b, efficient, text-to-speech`;
   @prop({ type: "str", default: 1, description: "Top-p for sub-talker sampling." })
   declare subtalker_top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const speakerVoiceEmbeddingFileUrl = String(inputs.speaker_voice_embedding_file_url ?? this.speaker_voice_embedding_file_url ?? "");
-    const topP = String(inputs.top_p ?? this.top_p ?? 1);
-    const repetitionPenalty = String(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.05);
-    const topK = String(inputs.top_k ?? this.top_k ?? 50);
-    const subtalkerTemperature = String(inputs.subtalker_temperature ?? this.subtalker_temperature ?? 0.9);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
-    const temperature = String(inputs.temperature ?? this.temperature ?? 0.9);
-    const text = String(inputs.text ?? this.text ?? "");
-    const subtalkerTopK = String(inputs.subtalker_top_k ?? this.subtalker_top_k ?? 50);
-    const language = String(inputs.language ?? this.language ?? "Auto");
-    const maxNewTokens = String(inputs.max_new_tokens ?? this.max_new_tokens ?? 200);
-    const subtalkerDosample = String(inputs.subtalker_dosample ?? this.subtalker_dosample ?? true);
-    const subtalkerTopP = String(inputs.subtalker_top_p ?? this.subtalker_top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const speakerVoiceEmbeddingFileUrl = String(this.speaker_voice_embedding_file_url ?? "");
+    const topP = String(this.top_p ?? 1);
+    const repetitionPenalty = String(this.repetition_penalty ?? 1.05);
+    const topK = String(this.top_k ?? 50);
+    const subtalkerTemperature = String(this.subtalker_temperature ?? 0.9);
+    const voice = String(this.voice ?? "");
+    const referenceText = String(this.reference_text ?? "");
+    const temperature = String(this.temperature ?? 0.9);
+    const text = String(this.text ?? "");
+    const subtalkerTopK = String(this.subtalker_top_k ?? 50);
+    const language = String(this.language ?? "Auto");
+    const maxNewTokens = String(this.max_new_tokens ?? 200);
+    const subtalkerDosample = String(this.subtalker_dosample ?? true);
+    const subtalkerTopP = String(this.subtalker_top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -207,10 +206,9 @@ export class Qwen3TtsVoiceDesign17B extends FalNode {
   static readonly description = `Qwen-3 TTS Voice Design 1.7B creates custom voice characteristics for personalized speech synthesis.
 audio, tts, qwen, voice-design, custom, 1.7b`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
-  @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech." })
-  declare prompt: any;
+  @prop({ type: "str", default: "", description: "The text to be converted to speech." })
+  declare text: any;
 
   @prop({ type: "str", default: 50, description: "Top-k for sub-talker sampling." })
   declare subtalker_top_k: any;
@@ -218,17 +216,17 @@ audio, tts, qwen, voice-design, custom, 1.7b`;
   @prop({ type: "str", default: 1, description: "Top-p sampling parameter." })
   declare top_p: any;
 
-  @prop({ type: "enum", default: "Auto", values: ["Auto", "English", "Chinese", "Spanish", "French", "German", "Italian", "Japanese", "Korean", "Portuguese", "Russian"], description: "The language of the voice to be designed." })
-  declare language: any;
+  @prop({ type: "str", default: 1.05, description: "Penalty to reduce repeated tokens/codes." })
+  declare repetition_penalty: any;
 
   @prop({ type: "str", default: 200, description: "Maximum number of new codec tokens to generate." })
   declare max_new_tokens: any;
 
-  @prop({ type: "str", default: 1.05, description: "Penalty to reduce repeated tokens/codes." })
-  declare repetition_penalty: any;
+  @prop({ type: "enum", default: "Auto", values: ["Auto", "English", "Chinese", "Spanish", "French", "German", "Italian", "Japanese", "Korean", "Portuguese", "Russian"], description: "The language of the voice to be designed." })
+  declare language: any;
 
-  @prop({ type: "str", default: "", description: "The text to be converted to speech." })
-  declare text: any;
+  @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech." })
+  declare prompt: any;
 
   @prop({ type: "str", default: 50, description: "Top-k sampling parameter." })
   declare top_k: any;
@@ -245,29 +243,29 @@ audio, tts, qwen, voice-design, custom, 1.7b`;
   @prop({ type: "str", default: 0.9, description: "Sampling temperature; higher => more random." })
   declare temperature: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const subtalkerTopK = String(inputs.subtalker_top_k ?? this.subtalker_top_k ?? 50);
-    const topP = String(inputs.top_p ?? this.top_p ?? 1);
-    const language = String(inputs.language ?? this.language ?? "Auto");
-    const maxNewTokens = String(inputs.max_new_tokens ?? this.max_new_tokens ?? 200);
-    const repetitionPenalty = String(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.05);
-    const text = String(inputs.text ?? this.text ?? "");
-    const topK = String(inputs.top_k ?? this.top_k ?? 50);
-    const subtalkerDosample = String(inputs.subtalker_dosample ?? this.subtalker_dosample ?? true);
-    const subtalkerTemperature = String(inputs.subtalker_temperature ?? this.subtalker_temperature ?? 0.9);
-    const subtalkerTopP = String(inputs.subtalker_top_p ?? this.subtalker_top_p ?? 1);
-    const temperature = String(inputs.temperature ?? this.temperature ?? 0.9);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const subtalkerTopK = String(this.subtalker_top_k ?? 50);
+    const topP = String(this.top_p ?? 1);
+    const repetitionPenalty = String(this.repetition_penalty ?? 1.05);
+    const maxNewTokens = String(this.max_new_tokens ?? 200);
+    const language = String(this.language ?? "Auto");
+    const prompt = String(this.prompt ?? "");
+    const topK = String(this.top_k ?? 50);
+    const subtalkerDosample = String(this.subtalker_dosample ?? true);
+    const subtalkerTemperature = String(this.subtalker_temperature ?? 0.9);
+    const subtalkerTopP = String(this.subtalker_top_p ?? 1);
+    const temperature = String(this.temperature ?? 0.9);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
+      "text": text,
       "subtalker_top_k": subtalkerTopK,
       "top_p": topP,
-      "language": language,
-      "max_new_tokens": maxNewTokens,
       "repetition_penalty": repetitionPenalty,
-      "text": text,
+      "max_new_tokens": maxNewTokens,
+      "language": language,
+      "prompt": prompt,
       "top_k": topK,
       "subtalker_dosample": subtalkerDosample,
       "subtalker_temperature": subtalkerTemperature,
@@ -287,7 +285,6 @@ export class Vibevoice05B extends FalNode {
   static readonly description = `VibeVoice 0.5B generates expressive and emotive speech from text with natural vocal characteristics.
 audio, tts, vibevoice, 0.5b, expressive, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech." })
   declare script: any;
@@ -301,12 +298,12 @@ audio, tts, vibevoice, 0.5b, expressive, text-to-speech`;
   @prop({ type: "float", default: 1.3, description: "CFG (Classifier-Free Guidance) scale for generation. Higher values increase adherence to text." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const script = String(inputs.script ?? this.script ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const speaker = String(inputs.speaker ?? this.speaker ?? "");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1.3);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const script = String(this.script ?? "");
+    const seed = String(this.seed ?? "");
+    const speaker = String(this.speaker ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 1.3);
 
     const args: Record<string, unknown> = {
       "script": script,
@@ -327,10 +324,9 @@ export class Maya extends FalNode {
   static readonly description = `Maya generates high-quality natural speech from text with advanced voice synthesis capabilities.
 audio, tts, maya, high-quality, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
-  @prop({ type: "str", default: "", description: "Description of the voice/character. Includes attributes like age, accent, pitch, timbre, pacing, tone, and intensity. See examples for format." })
-  declare prompt: any;
+  @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
+  declare text: any;
 
   @prop({ type: "float", default: 1.1, description: "Penalty for repeating tokens. Higher values reduce repetition artifacts." })
   declare repetition_penalty: any;
@@ -338,41 +334,41 @@ audio, tts, maya, high-quality, text-to-speech`;
   @prop({ type: "float", default: 0.9, description: "Nucleus sampling parameter. Controls diversity of token selection." })
   declare top_p: any;
 
-  @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
-  declare text: any;
+  @prop({ type: "str", default: "", description: "Description of the voice/character. Includes attributes like age, accent, pitch, timbre, pacing, tone, and intensity. See examples for format." })
+  declare prompt: any;
 
   @prop({ type: "enum", default: "wav", values: ["wav", "mp3"], description: "Output audio format for the generated speech" })
   declare output_format: any;
 
-  @prop({ type: "enum", default: "48 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate. 48 kHz provides higher quality audio, 24 kHz is faster." })
-  declare sample_rate: any;
+  @prop({ type: "int", default: 2000, description: "Maximum number of SNAC tokens to generate (7 tokens per frame). Controls maximum audio length." })
+  declare max_tokens: any;
 
   @prop({ type: "float", default: 0.4, description: "Sampling temperature. Lower values (0.2-0.5) produce more stable/consistent audio. Higher values add variation." })
   declare temperature: any;
 
-  @prop({ type: "int", default: 2000, description: "Maximum number of SNAC tokens to generate (7 tokens per frame). Controls maximum audio length." })
-  declare max_tokens: any;
+  @prop({ type: "enum", default: "48 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate. 48 kHz provides higher quality audio, 24 kHz is faster." })
+  declare sample_rate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
-    const text = String(inputs.text ?? this.text ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? "48 kHz");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.4);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2000);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.1);
+    const topP = Number(this.top_p ?? 0.9);
+    const prompt = String(this.prompt ?? "");
+    const outputFormat = String(this.output_format ?? "wav");
+    const maxTokens = Number(this.max_tokens ?? 2000);
+    const temperature = Number(this.temperature ?? 0.4);
+    const sampleRate = String(this.sample_rate ?? "48 kHz");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
+      "text": text,
       "repetition_penalty": repetitionPenalty,
       "top_p": topP,
-      "text": text,
+      "prompt": prompt,
       "output_format": outputFormat,
-      "sample_rate": sampleRate,
-      "temperature": temperature,
       "max_tokens": maxTokens,
+      "temperature": temperature,
+      "sample_rate": sampleRate,
     };
     removeNulls(args);
 
@@ -387,7 +383,6 @@ export class MinimaxSpeech26Hd extends FalNode {
   static readonly description = `Minimax Speech 2.6 HD generates high-definition speech from text with superior audio quality.
 audio, tts, minimax, 2.6, hd, high-quality`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech. Paragraph breaks should be marked with newline characters. **NOTE**: You can customize speech pauses by adding markers in the form '<#x#>', where 'x' is the pause duration in seconds. Valid range: '[0.01, 99.99]', up to two decimal places. Pause markers must be placed between speakable text segments and cannot be used consecutively." })
   declare prompt: any;
@@ -410,15 +405,15 @@ audio, tts, minimax, 2.6, hd, high-quality`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const normalizationSetting = String(inputs.normalization_setting ?? this.normalization_setting ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const normalizationSetting = String(this.normalization_setting ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -442,7 +437,6 @@ export class MinimaxSpeech26Turbo extends FalNode {
   static readonly description = `Minimax Speech 2.6 Turbo generates speech from text with optimized speed and good quality.
 audio, tts, minimax, 2.6, turbo, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech. Paragraph breaks should be marked with newline characters. **NOTE**: You can customize speech pauses by adding markers in the form '<#x#>', where 'x' is the pause duration in seconds. Valid range: '[0.01, 99.99]', up to two decimal places. Pause markers must be placed between speakable text segments and cannot be used consecutively." })
   declare prompt: any;
@@ -465,15 +459,15 @@ audio, tts, minimax, 2.6, turbo, fast`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const normalizationSetting = String(inputs.normalization_setting ?? this.normalization_setting ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const normalizationSetting = String(this.normalization_setting ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -497,7 +491,6 @@ export class MayaBatch extends FalNode {
   static readonly description = `Maya Batch TTS generates high-quality speech in batch mode for efficient processing.
 speech, synthesis, text-to-speech, tts, batch, maya`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "float", default: 1.1, description: "Repetition penalty for all generations." })
   declare repetition_penalty: any;
@@ -514,25 +507,25 @@ speech, synthesis, text-to-speech, tts, batch, maya`;
   @prop({ type: "list[str]", default: [], description: "List of voice descriptions for each text. Must match the length of texts list. Each describes the voice/character attributes." })
   declare prompts: any;
 
-  @prop({ type: "enum", default: "48 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate for all generations. 48 kHz provides higher quality, 24 kHz is faster." })
-  declare sample_rate: any;
+  @prop({ type: "int", default: 2000, description: "Maximum SNAC tokens per generation." })
+  declare max_tokens: any;
 
   @prop({ type: "float", default: 0.4, description: "Sampling temperature for all generations." })
   declare temperature: any;
 
-  @prop({ type: "int", default: 2000, description: "Maximum SNAC tokens per generation." })
-  declare max_tokens: any;
+  @prop({ type: "enum", default: "48 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate for all generations. 48 kHz provides higher quality, 24 kHz is faster." })
+  declare sample_rate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const texts = String(inputs.texts ?? this.texts ?? []);
-    const prompts = String(inputs.prompts ?? this.prompts ?? []);
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? "48 kHz");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.4);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2000);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.1);
+    const topP = Number(this.top_p ?? 0.9);
+    const outputFormat = String(this.output_format ?? "wav");
+    const texts = String(this.texts ?? []);
+    const prompts = String(this.prompts ?? []);
+    const maxTokens = Number(this.max_tokens ?? 2000);
+    const temperature = Number(this.temperature ?? 0.4);
+    const sampleRate = String(this.sample_rate ?? "48 kHz");
 
     const args: Record<string, unknown> = {
       "repetition_penalty": repetitionPenalty,
@@ -540,14 +533,14 @@ speech, synthesis, text-to-speech, tts, batch, maya`;
       "output_format": outputFormat,
       "texts": texts,
       "prompts": prompts,
-      "sample_rate": sampleRate,
-      "temperature": temperature,
       "max_tokens": maxTokens,
+      "temperature": temperature,
+      "sample_rate": sampleRate,
     };
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/maya/batch", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -557,10 +550,9 @@ export class MayaStream extends FalNode {
   static readonly description = `Maya Stream TTS generates high-quality speech in streaming mode for real-time applications.
 speech, synthesis, text-to-speech, tts, streaming, maya`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
-  @prop({ type: "str", default: "", description: "Description of the voice/character. Includes attributes like age, accent, pitch, timbre, pacing, tone, and intensity. See examples for format." })
-  declare prompt: any;
+  @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
+  declare text: any;
 
   @prop({ type: "float", default: 1.1, description: "Penalty for repeating tokens. Higher values reduce repetition artifacts." })
   declare repetition_penalty: any;
@@ -568,46 +560,46 @@ speech, synthesis, text-to-speech, tts, streaming, maya`;
   @prop({ type: "float", default: 0.9, description: "Nucleus sampling parameter. Controls diversity of token selection." })
   declare top_p: any;
 
-  @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
-  declare text: any;
+  @prop({ type: "str", default: "", description: "Description of the voice/character. Includes attributes like age, accent, pitch, timbre, pacing, tone, and intensity. See examples for format." })
+  declare prompt: any;
 
   @prop({ type: "enum", default: "mp3", values: ["mp3", "wav", "pcm"], description: "Output audio format. 'mp3' for browser-playable audio, 'wav' for uncompressed audio, 'pcm' for raw PCM (lowest latency, requires client-side decoding)." })
   declare output_format: any;
 
-  @prop({ type: "enum", default: "24 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate. 48 kHz uses upsampling for higher quality audio, 24 kHz is native SNAC output (faster, lower latency)." })
-  declare sample_rate: any;
+  @prop({ type: "int", default: 2000, description: "Maximum number of SNAC tokens to generate (7 tokens per frame). Controls maximum audio length." })
+  declare max_tokens: any;
 
   @prop({ type: "float", default: 0.4, description: "Sampling temperature. Lower values (0.2-0.5) produce more stable/consistent audio. Higher values add variation." })
   declare temperature: any;
 
-  @prop({ type: "int", default: 2000, description: "Maximum number of SNAC tokens to generate (7 tokens per frame). Controls maximum audio length." })
-  declare max_tokens: any;
+  @prop({ type: "enum", default: "24 kHz", values: ["48 kHz", "24 kHz"], description: "Output audio sample rate. 48 kHz uses upsampling for higher quality audio, 24 kHz is native SNAC output (faster, lower latency)." })
+  declare sample_rate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
-    const text = String(inputs.text ?? this.text ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3");
-    const sampleRate = String(inputs.sample_rate ?? this.sample_rate ?? "24 kHz");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.4);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2000);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.1);
+    const topP = Number(this.top_p ?? 0.9);
+    const prompt = String(this.prompt ?? "");
+    const outputFormat = String(this.output_format ?? "mp3");
+    const maxTokens = Number(this.max_tokens ?? 2000);
+    const temperature = Number(this.temperature ?? 0.4);
+    const sampleRate = String(this.sample_rate ?? "24 kHz");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
+      "text": text,
       "repetition_penalty": repetitionPenalty,
       "top_p": topP,
-      "text": text,
+      "prompt": prompt,
       "output_format": outputFormat,
-      "sample_rate": sampleRate,
-      "temperature": temperature,
       "max_tokens": maxTokens,
+      "temperature": temperature,
+      "sample_rate": sampleRate,
     };
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/maya/stream", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return { output: res };
   }
 }
 
@@ -617,7 +609,6 @@ export class IndexTts2TextToSpeech extends FalNode {
   static readonly description = `Index TTS 2 generates natural-sounding speech from text with advanced neural synthesis.
 speech, synthesis, text-to-speech, tts, neural`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The speech prompt to generate" })
   declare prompt: any;
@@ -640,13 +631,13 @@ speech, synthesis, text-to-speech, tts, neural`;
   @prop({ type: "bool", default: false, description: "Whether to use the 'prompt' to calculate emotional strengths, if enabled it will overwrite the 'emotional_strengths' values. If 'emotion_prompt' is provided, it will be used to instead of 'prompt' to extract the emotional style." })
   declare should_use_prompt_for_emotion: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const emotionalStrengths = String(inputs.emotional_strengths ?? this.emotional_strengths ?? "");
-    const strength = Number(inputs.strength ?? this.strength ?? 1);
-    const emotionPrompt = String(inputs.emotion_prompt ?? this.emotion_prompt ?? "");
-    const shouldUsePromptForEmotion = Boolean(inputs.should_use_prompt_for_emotion ?? this.should_use_prompt_for_emotion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const emotionalStrengths = String(this.emotional_strengths ?? "");
+    const strength = Number(this.strength ?? 1);
+    const emotionPrompt = String(this.emotion_prompt ?? "");
+    const shouldUsePromptForEmotion = Boolean(this.should_use_prompt_for_emotion ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -656,13 +647,13 @@ speech, synthesis, text-to-speech, tts, neural`;
       "should_use_prompt_for_emotion": shouldUsePromptForEmotion,
     };
 
-    const emotionalAudioRef = inputs.emotional_audio as Record<string, unknown> | undefined;
+    const emotionalAudioRef = this.emotional_audio as Record<string, unknown> | undefined;
     if (isRefSet(emotionalAudioRef)) {
       const emotionalAudioUrl = await assetToFalUrl(apiKey, emotionalAudioRef!);
       if (emotionalAudioUrl) args["emotional_audio_url"] = emotionalAudioUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -680,7 +671,6 @@ export class KlingVideoV1Tts extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the Kling TTS model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech" })
   declare text: any;
@@ -691,11 +681,11 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 1, description: "Rate of speech" })
   declare voice_speed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "genshin_vindi2");
-    const voiceSpeed = Number(inputs.voice_speed ?? this.voice_speed ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voiceId = String(this.voice_id ?? "genshin_vindi2");
+    const voiceSpeed = Number(this.voice_speed ?? 1);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -715,12 +705,11 @@ export class ChatterboxTextToSpeechMultilingual extends FalNode {
   static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech (maximum 300 characters). Supports 23 languages including English, French, German, Spanish, Italian, Portuguese, Hindi, Arabic, Chinese, Japanese, Korean, and more." })
   declare text: any;
 
-  @prop({ type: "enum", default: "", values: ["english", "arabic", "danish", "german", "greek", "spanish", "finnish", "french", "hebrew", "hindi", "italian", "japanese", "korean", "malay", "dutch", "norwegian", "polish", "portuguese", "russian", "swedish", "swahili", "turkish", "chinese"], description: "If using a custom audio URL, specify the language of the audio here. Ignored if voice is not a custom url." })
+  @prop({ type: "str", default: "", description: "If using a custom audio URL, specify the language of the audio here. Ignored if voice is not a custom url." })
   declare custom_audio_language: any;
 
   @prop({ type: "float", default: 0.5, description: "Controls speech expressiveness and emotional intensity (0.25-2.0). 0.5 is neutral, higher values increase expressiveness. Extreme values may be unstable." })
@@ -732,21 +721,21 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 0.8, description: "Controls randomness and variation in generation (0.05-5.0). Higher values create more varied speech patterns." })
   declare temperature: any;
 
-  @prop({ type: "int", default: -1, description: "Random seed for reproducible results. Set to 0 for random generation, or provide a specific number for consistent outputs." })
+  @prop({ type: "str", default: "", description: "Random seed for reproducible results. Set to 0 for random generation, or provide a specific number for consistent outputs." })
   declare seed: any;
 
   @prop({ type: "float", default: 0.5, description: "Configuration/pace weight controlling generation guidance (0.0-1.0). Use 0.0 for language transfer to mitigate accent inheritance." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const customAudioLanguage = String(inputs.custom_audio_language ?? this.custom_audio_language ?? "");
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
-    const voice = String(inputs.voice ?? this.voice ?? "english");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const customAudioLanguage = String(this.custom_audio_language ?? "");
+    const exaggeration = Number(this.exaggeration ?? 0.5);
+    const voice = String(this.voice ?? "english");
+    const temperature = Number(this.temperature ?? 0.8);
+    const seed = String(this.seed ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -770,7 +759,6 @@ export class Vibevoice7b extends FalNode {
   static readonly description = `Generate long, expressive multi-voice speech using Microsoft's powerful TTS
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues." })
   declare script: any;
@@ -784,12 +772,12 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 1.3, description: "CFG (Classifier-Free Guidance) scale for generation. Higher values increase adherence to text." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const script = String(inputs.script ?? this.script ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const speakers = String(inputs.speakers ?? this.speakers ?? []);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1.3);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const script = String(this.script ?? "");
+    const seed = String(this.seed ?? "");
+    const speakers = String(this.speakers ?? []);
+    const cfgScale = Number(this.cfg_scale ?? 1.3);
 
     const args: Record<string, unknown> = {
       "script": script,
@@ -810,7 +798,6 @@ export class Vibevoice extends FalNode {
   static readonly description = `Generate long, expressive multi-voice speech using Microsoft's powerful TTS
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues." })
   declare script: any;
@@ -824,12 +811,12 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 1.3, description: "CFG (Classifier-Free Guidance) scale for generation. Higher values increase adherence to text." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const script = String(inputs.script ?? this.script ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const speakers = String(inputs.speakers ?? this.speakers ?? []);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1.3);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const script = String(this.script ?? "");
+    const seed = String(this.seed ?? "");
+    const speakers = String(this.speakers ?? []);
+    const cfgScale = Number(this.cfg_scale ?? 1.3);
 
     const args: Record<string, unknown> = {
       "script": script,
@@ -850,7 +837,6 @@ export class MinimaxPreviewSpeech25Hd extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the MiniMax Speech-02 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -870,14 +856,14 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -900,7 +886,6 @@ export class MinimaxPreviewSpeech25Turbo extends FalNode {
   static readonly description = `Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -920,14 +905,14 @@ speech, synthesis, text-to-speech, tts, fast`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -950,22 +935,21 @@ export class MinimaxVoiceDesign extends FalNode {
   static readonly description = `Design a personalized voice from a text description, and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
-
-  @prop({ type: "str", default: "", description: "Text for audio preview. Limited to 500 characters. A fee of $30 per 1M characters will be charged for the generation of the preview audio." })
-  declare preview_text: any;
 
   @prop({ type: "str", default: "", description: "Voice description prompt for generating a personalized voice" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const previewText = String(inputs.preview_text ?? this.preview_text ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  @prop({ type: "str", default: "", description: "Text for audio preview. Limited to 500 characters. A fee of $30 per 1M characters will be charged for the generation of the preview audio." })
+  declare preview_text: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const previewText = String(this.preview_text ?? "");
 
     const args: Record<string, unknown> = {
-      "preview_text": previewText,
       "prompt": prompt,
+      "preview_text": previewText,
     };
     removeNulls(args);
 
@@ -980,7 +964,6 @@ export class ResembleAiChatterboxhdTextToSpeech extends FalNode {
   static readonly description = `Generate expressive, natural speech with Resemble AI's Chatterbox. Features unique emotion control, instant voice cloning from short audio, and built-in watermarking.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "My name is Maximus Decimus Meridius, commander of the Armies of the North, General of the Felix Legions and loyal servant to the true emperor, Marcus Aurelius. Father to a murdered son, husband to a murdered wife. And I will have my vengeance, in this life or the next.", description: "Text to synthesize into speech." })
   declare text: any;
@@ -1006,15 +989,15 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 0.5, description: "Classifier-free guidance scale (CFG) controls the conditioning factor. Range typically 0.2 to 1.0. For expressive or dramatic speech, try lower cfg values (e.g. ~0.3) and increase exaggeration to around 0.7 or higher. If the reference speaker has a fast speaking style, lowering cfg to around 0.3 can improve pacing." })
   declare cfg: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "My name is Maximus Decimus Meridius, commander of the Armies of the North, General of the Felix Legions and loyal servant to the true emperor, Marcus Aurelius. Father to a murdered son, husband to a murdered wife. And I will have my vengeance, in this life or the next.");
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.5);
-    const highQualityAudio = Boolean(inputs.high_quality_audio ?? this.high_quality_audio ?? false);
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.8);
-    const seed = Number(inputs.seed ?? this.seed ?? 0);
-    const cfg = Number(inputs.cfg ?? this.cfg ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "My name is Maximus Decimus Meridius, commander of the Armies of the North, General of the Felix Legions and loyal servant to the true emperor, Marcus Aurelius. Father to a murdered son, husband to a murdered wife. And I will have my vengeance, in this life or the next.");
+    const exaggeration = Number(this.exaggeration ?? 0.5);
+    const highQualityAudio = Boolean(this.high_quality_audio ?? false);
+    const voice = String(this.voice ?? "");
+    const temperature = Number(this.temperature ?? 0.8);
+    const seed = Number(this.seed ?? 0);
+    const cfg = Number(this.cfg ?? 0.5);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1026,7 +1009,7 @@ speech, synthesis, text-to-speech, tts`;
       "cfg": cfg,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1044,7 +1027,6 @@ export class ChatterboxTextToSpeech extends FalNode {
   static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech. You can additionally add the following emotive tags: <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>" })
   declare text: any;
@@ -1055,32 +1037,32 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "audio", default: "", description: "Optional URL to an audio file to use as a reference for the generated speech. If provided, the model will try to match the style and tone of the reference audio." })
   declare audio: any;
 
+  @prop({ type: "str", default: "", description: "Useful to control the reproducibility of the generated audio. Assuming all other properties didn't change, a fixed seed should always generate the exact same audio file. Set to 0 for random seed.." })
+  declare seed: any;
+
   @prop({ type: "float", default: 0.7, description: "Temperature for generation (higher = more creative)." })
   declare temperature: any;
-
-  @prop({ type: "int", default: -1, description: "Useful to control the reproducibility of the generated audio. Assuming all other properties didn't change, a fixed seed should always generate the exact same audio file. Set to 0 for random seed.." })
-  declare seed: any;
 
   @prop({ type: "float", default: 0.5 })
   declare cfg: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const exaggeration = Number(inputs.exaggeration ?? this.exaggeration ?? 0.25);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const cfg = Number(inputs.cfg ?? this.cfg ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const exaggeration = Number(this.exaggeration ?? 0.25);
+    const seed = String(this.seed ?? "");
+    const temperature = Number(this.temperature ?? 0.7);
+    const cfg = Number(this.cfg ?? 0.5);
 
     const args: Record<string, unknown> = {
       "text": text,
       "exaggeration": exaggeration,
-      "temperature": temperature,
       "seed": seed,
+      "temperature": temperature,
       "cfg": cfg,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1098,7 +1080,6 @@ export class MinimaxVoiceClone extends FalNode {
   static readonly description = `Clone a voice from a sample audio and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "enum", default: "speech-02-hd", values: ["speech-02-hd", "speech-02-turbo", "speech-01-hd", "speech-01-turbo"], description: "TTS model to use for preview. Options: speech-02-hd, speech-02-turbo, speech-01-hd, speech-01-turbo" })
   declare model: any;
@@ -1118,13 +1099,13 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "bool", default: false, description: "Enable volume normalization for the cloned voice" })
   declare need_volume_normalization: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const model = String(inputs.model ?? this.model ?? "speech-02-hd");
-    const text = String(inputs.text ?? this.text ?? "Hello, this is a preview of your cloned voice! I hope you like it!");
-    const accuracy = String(inputs.accuracy ?? this.accuracy ?? "");
-    const noiseReduction = Boolean(inputs.noise_reduction ?? this.noise_reduction ?? false);
-    const needVolumeNormalization = Boolean(inputs.need_volume_normalization ?? this.need_volume_normalization ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const model = String(this.model ?? "speech-02-hd");
+    const text = String(this.text ?? "Hello, this is a preview of your cloned voice! I hope you like it!");
+    const accuracy = String(this.accuracy ?? "");
+    const noiseReduction = Boolean(this.noise_reduction ?? false);
+    const needVolumeNormalization = Boolean(this.need_volume_normalization ?? false);
 
     const args: Record<string, unknown> = {
       "model": model,
@@ -1134,7 +1115,7 @@ speech, synthesis, text-to-speech, tts`;
       "need_volume_normalization": needVolumeNormalization,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1152,7 +1133,6 @@ export class MinimaxSpeech02Turbo extends FalNode {
   static readonly description = `Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -1172,14 +1152,14 @@ speech, synthesis, text-to-speech, tts, fast`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1202,7 +1182,6 @@ export class MinimaxSpeech02Hd extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the MiniMax Speech-02 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -1222,14 +1201,14 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "str", default: "", description: "Audio configuration settings" })
   declare audio_setting: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voiceSetting = String(inputs.voice_setting ?? this.voice_setting ?? "");
-    const languageBoost = String(inputs.language_boost ?? this.language_boost ?? "");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "hex");
-    const pronunciationDict = String(inputs.pronunciation_dict ?? this.pronunciation_dict ?? "");
-    const audioSetting = String(inputs.audio_setting ?? this.audio_setting ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voiceSetting = String(this.voice_setting ?? "");
+    const languageBoost = String(this.language_boost ?? "");
+    const outputFormat = String(this.output_format ?? "hex");
+    const pronunciationDict = String(this.pronunciation_dict ?? "");
+    const audioSetting = String(this.audio_setting ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1252,14 +1231,13 @@ export class DiaTts extends FalNode {
   static readonly description = `Dia directly generates realistic dialogue from transcripts. Audio conditioning enables emotion control. Produces natural nonverbals like laughter and throat clearing.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech." })
   declare text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1277,7 +1255,6 @@ export class OrpheusTts extends FalNode {
   static readonly description = `Orpheus TTS is a state-of-the-art, Llama-based Speech-LLM designed for high-quality, empathetic text-to-speech generation. This model has been finetuned to deliver human-level speech synthesis, achieving exceptional clarity, expressiveness, and real-time performances.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech. You can additionally add the following emotive tags: <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>" })
   declare text: any;
@@ -1291,12 +1268,12 @@ speech, synthesis, text-to-speech, tts`;
   @prop({ type: "float", default: 0.7, description: "Temperature for generation (higher = more creative)." })
   declare temperature: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const voice = String(inputs.voice ?? this.voice ?? "tara");
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1.2);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "");
+    const voice = String(this.voice ?? "tara");
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1.2);
+    const temperature = Number(this.temperature ?? 0.7);
 
     const args: Record<string, unknown> = {
       "text": text,
@@ -1317,22 +1294,21 @@ export class ElevenlabsTtsTurboV25 extends FalNode {
   static readonly description = `Generate high-speed text-to-speech audio using ElevenLabs TTS Turbo v2.5.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
 
-  @prop({ type: "str", default: "", description: "The text to convert to speech" })
-  declare text: any;
+  @prop({ type: "float", default: 1, description: "Speech speed (0.7-1.2). Values below 1.0 slow down the speech, above 1.0 speed it up. Extreme values may affect quality." })
+  declare speed: any;
 
   @prop({ type: "str", default: "", description: "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation." })
   declare next_text: any;
 
-  @prop({ type: "float", default: 0.5, description: "Voice stability (0-1)" })
-  declare stability: any;
+  @prop({ type: "str", default: "", description: "The text to convert to speech" })
+  declare text: any;
 
   @prop({ type: "float", default: 0, description: "Style exaggeration (0-1)" })
   declare style: any;
 
-  @prop({ type: "float", default: 1, description: "Speech speed (0.7-1.2). Values below 1.0 slow down the speech, above 1.0 speed it up. Extreme values may affect quality." })
-  declare speed: any;
+  @prop({ type: "float", default: 0.5, description: "Voice stability (0-1)" })
+  declare stability: any;
 
   @prop({ type: "bool", default: false, description: "Whether to return timestamps for each word in the generated speech" })
   declare timestamps: any;
@@ -1352,26 +1328,26 @@ speech, synthesis, text-to-speech, tts, fast`;
   @prop({ type: "str", default: "", description: "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation." })
   declare previous_text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "");
-    const nextText = String(inputs.next_text ?? this.next_text ?? "");
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
-    const style = Number(inputs.style ?? this.style ?? 0);
-    const speed = Number(inputs.speed ?? this.speed ?? 1);
-    const timestamps = Boolean(inputs.timestamps ?? this.timestamps ?? false);
-    const similarityBoost = Number(inputs.similarity_boost ?? this.similarity_boost ?? 0.75);
-    const voice = String(inputs.voice ?? this.voice ?? "Rachel");
-    const languageCode = String(inputs.language_code ?? this.language_code ?? "");
-    const applyTextNormalization = String(inputs.apply_text_normalization ?? this.apply_text_normalization ?? "auto");
-    const previousText = String(inputs.previous_text ?? this.previous_text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const speed = Number(this.speed ?? 1);
+    const nextText = String(this.next_text ?? "");
+    const text = String(this.text ?? "");
+    const style = Number(this.style ?? 0);
+    const stability = Number(this.stability ?? 0.5);
+    const timestamps = Boolean(this.timestamps ?? false);
+    const similarityBoost = Number(this.similarity_boost ?? 0.75);
+    const voice = String(this.voice ?? "Rachel");
+    const languageCode = String(this.language_code ?? "");
+    const applyTextNormalization = String(this.apply_text_normalization ?? "auto");
+    const previousText = String(this.previous_text ?? "");
 
     const args: Record<string, unknown> = {
-      "text": text,
-      "next_text": nextText,
-      "stability": stability,
-      "style": style,
       "speed": speed,
+      "next_text": nextText,
+      "text": text,
+      "style": style,
+      "stability": stability,
       "timestamps": timestamps,
       "similarity_boost": similarityBoost,
       "voice": voice,

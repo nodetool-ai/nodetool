@@ -21,10 +21,10 @@ function createFilterNode(desc: Desc): NodeClass {
     static readonly basicFields = desc.basicFields;
     static readonly metadataOutputTypes = desc.outputs;
 
-    async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
+    async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
 
-      const baseObj = pickImage(inputs, this.serialize());
+      const baseObj = pickImage(this.serialize(), this.serialize());
       const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
@@ -34,7 +34,7 @@ function createFilterNode(desc: Desc): NodeClass {
 
       // Solarize — raw pixel manipulation (NOT sharp.threshold!)
       if (t.endsWith(".Solarize")) {
-        const threshold = Number(inputs.threshold ?? (this as unknown as Record<string, unknown>).threshold ?? 128);
+        const threshold = Number((this as any).threshold ?? 128);
         const { data: raw, info } = await img.raw().toBuffer({ resolveWithObject: true });
         for (let i = 0; i < raw.length; i++) {
           if (raw[i] > threshold) raw[i] = 255 - raw[i];
@@ -46,7 +46,7 @@ function createFilterNode(desc: Desc): NodeClass {
 
       // Posterize — raw pixel manipulation (NOT palette quantization!)
       if (t.endsWith(".Posterize")) {
-        const bits = Math.max(1, Math.min(8, Math.round(Number(inputs.bits ?? (this as unknown as Record<string, unknown>).bits ?? 4))));
+        const bits = Math.max(1, Math.min(8, Math.round(Number((this as any).bits ?? 4))));
         const mask = 0xFF << (8 - bits);
         const { data: raw, info } = await img.raw().toBuffer({ resolveWithObject: true });
         for (let i = 0; i < raw.length; i++) {
@@ -59,7 +59,7 @@ function createFilterNode(desc: Desc): NodeClass {
 
       // Pipeline-based nodes
       if (t.endsWith(".Blur")) {
-        const radius = Number(inputs.radius ?? (this as unknown as Record<string, unknown>).radius ?? 2);
+        const radius = Number((this as any).radius ?? 2);
         img = img.blur(Math.max(0.3, radius));
       } else if (t.endsWith(".Invert")) {
         img = img.negate();
@@ -72,13 +72,13 @@ function createFilterNode(desc: Desc): NodeClass {
       } else if (t.endsWith(".Smooth")) {
         img = img.median(3);
       } else if (t.endsWith(".GetChannel")) {
-        const channel = String(inputs.channel ?? (this as unknown as Record<string, unknown>).channel ?? "red").toLowerCase();
+        const channel = String((this as any).channel ?? "red").toLowerCase();
         const idx = channel === "green" ? 1 : channel === "blue" ? 2 : 0;
         img = img.extractChannel(idx);
       } else if (t.endsWith(".Expand")) {
-        const border = Number(inputs.border ?? (this as unknown as Record<string, unknown>).border ?? 10);
+        const border = Number((this as any).border ?? 10);
         const color = String(
-          inputs.fill_color ?? inputs.color ??
+          (this as any).fill_color ?? (this as any).color ??
           (this as unknown as Record<string, unknown>).fill_color ??
           (this as unknown as Record<string, unknown>).color ??
           "black"

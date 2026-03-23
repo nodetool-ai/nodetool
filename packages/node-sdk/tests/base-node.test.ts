@@ -14,8 +14,8 @@ class ConcreteNode extends BaseNode {
   @prop({ type: "str", default: "hello" })
   declare y: string;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { out: inputs.x };
+  async process(): Promise<Record<string, unknown>> {
+    return { out: this.x };
   }
 }
 
@@ -53,7 +53,7 @@ describe("BaseNode", () => {
       async initialize() { calls.push("initialize"); }
       async preProcess() { calls.push("preProcess"); }
       async finalize() { calls.push("finalize"); }
-      async process(_inputs: Record<string, unknown>) {
+      async process() {
         calls.push("process");
         return {};
       }
@@ -71,8 +71,8 @@ describe("BaseNode", () => {
     class StreamNode extends BaseNode {
       static readonly nodeType = "test.Stream";
       static readonly isStreamingOutput = true;
-      async process(_inputs: Record<string, unknown>) { return {}; }
-      async *genProcess(_inputs: Record<string, unknown>) {
+      async process() { return {}; }
+      async *genProcess() {
         yield { value: 1 };
         yield { value: 2 };
       }

@@ -378,15 +378,13 @@ export class STFTNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -452,18 +450,16 @@ export class MelSpectrogramNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
-    const nMels = Number(inputs.n_mels ?? this.n_mels ?? 128);
-    const fmin = Number(inputs.fmin ?? this.fmin ?? 0);
-    const fmax = Number(inputs.fmax ?? this.fmax ?? 8000);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
+    const nMels = Number(this.n_mels ?? 128);
+    const fmin = Number(this.fmin ?? 0);
+    const fmax = Number(this.fmax ?? 8000);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -531,18 +527,16 @@ export class MFCCNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nMfcc = Number(inputs.n_mfcc ?? this.n_mfcc ?? 13);
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
-    const fmin = Number(inputs.fmin ?? this.fmin ?? 0);
-    const fmax = Number(inputs.fmax ?? this.fmax ?? 8000);
+    const nMfcc = Number(this.n_mfcc ?? 13);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
+    const fmin = Number(this.fmin ?? 0);
+    const fmax = Number(this.fmax ?? 8000);
     const nMels = 128;
 
     if (!audio.data) return { output: { data: [] } };
@@ -603,15 +597,13 @@ export class ChromaSTFTNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -683,15 +675,13 @@ export class SpectralCentroidNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -747,15 +737,13 @@ export class SpectralContrastNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const nFft = Number(inputs.n_fft ?? this.n_fft ?? 2048);
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
+    const nFft = Number(this.n_fft ?? 2048);
+    const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -856,12 +844,10 @@ export class GriffinLimNode extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const magSpec = (_inputs.magnitude_spectrogram ?? this.magnitude_spectrogram ?? {}) as Record<string, unknown>;
-    const nIter = Number(_inputs.n_iter ?? this.n_iter ?? 32);
-    const hopLength = Number(_inputs.hop_length ?? this.hop_length ?? 512);
+  async process(): Promise<Record<string, unknown>> {
+    const magSpec = (this.magnitude_spectrogram ?? {}) as Record<string, unknown>;
+    const nIter = Number(this.n_iter ?? 32);
+    const hopLength = Number(this.hop_length ?? 512);
 
     const data = magSpec.data;
     if (!data || !Array.isArray(data) || (data as unknown[]).length === 0) {
@@ -905,14 +891,12 @@ export class DetectOnsetsNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const hopLength = Number(inputs.hop_length ?? this.hop_length ?? 512);
+    const hopLength = Number(this.hop_length ?? 512);
 
     if (!audio.data) return { output: { data: [] } };
 
@@ -999,18 +983,16 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<
       string,
       unknown
     >;
-    const onsetsInput = (inputs.onsets ?? this.onsets ?? {
+    const onsetsInput = (this.onsets ?? {
       data: [],
     }) as { data: number[] };
     const minSegLen = Number(
-      inputs.min_segment_length ?? this.min_segment_length ?? 0.1
+      this.min_segment_length ?? 0.1
     );
 
     if (!audio.data) return { output: [] };
@@ -1067,22 +1049,20 @@ export class SaveAudioSegmentsNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const { promises: fs } = await import("node:fs");
     const path = await import("node:path");
 
-    const segments = (inputs.segments ?? this.segments ?? []) as Record<
+    const segments = (this.segments ?? []) as Record<
       string,
       unknown
     >[];
-    const folder = (inputs.output_folder ?? this.output_folder ?? {}) as {
+    const folder = (this.output_folder ?? {}) as {
       uri?: string;
       path?: string;
     };
     const prefix = String(
-      inputs.name_prefix ?? this.name_prefix ?? "segment"
+      this.name_prefix ?? "segment"
     );
 
     let folderPath = folder.path || folder.uri || "";

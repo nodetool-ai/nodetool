@@ -5,14 +5,29 @@ import {
   getProvider,
   clearProviderCache,
   listRegisteredProviderIds,
+  setSecretResolver,
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
+
+class SecretAwareFakeProvider extends FakeProvider {
+  receivedOptions: Record<string, unknown>;
+
+  constructor(options: Record<string, unknown> = {}) {
+    super();
+    this.receivedOptions = options;
+  }
+}
 
 // We need to clear state between tests. The registry is module-level.
 // We'll use unique IDs per test to avoid cross-contamination.
 
 describe("provider-registry", () => {
   const uniqueId = () => `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  beforeEach(() => {
+    clearProviderCache();
+    setSecretResolver((_key, _userId) => undefined);
+  });
 
   it("registerProvider and getRegisteredProvider", () => {
     const id = uniqueId();
@@ -66,5 +81,20 @@ describe("provider-registry", () => {
     registerProvider(id, FakeProvider as any);
     const ids = listRegisteredProviderIds();
     expect(ids).toContain(id);
+  });
+
+  it("scopes provider cache and secret resolution by user id", async () => {
+    const id = uniqueId();
+    registerProvider(id, SecretAwareFakeProvider as any, { TEST_SECRET: undefined });
+    setSecretResolver((key, userId) => `${key}-${userId}`);
+
+    const provider1 = await getProvider(id, "user-1") as SecretAwareFakeProvider;
+    const provider2 = await getProvider(id, "user-2") as SecretAwareFakeProvider;
+
+    expect(provider1).toBeInstanceOf(SecretAwareFakeProvider);
+    expect(provider2).toBeInstanceOf(SecretAwareFakeProvider);
+    expect(provider1).not.toBe(provider2);
+    expect(provider1.receivedOptions.TEST_SECRET).toBe("TEST_SECRET-user-1");
+    expect(provider2.receivedOptions.TEST_SECRET).toBe("TEST_SECRET-user-2");
   });
 });

@@ -182,7 +182,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const prompt = String(inputs.prompt ?? this.prompt ?? "");`,
+      `const prompt = String(this.prompt ?? "");`,
     );
   });
 
@@ -194,7 +194,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 28);`,
+      `const numSteps = Number(this.num_steps ?? 28);`,
     );
   });
 
@@ -206,7 +206,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);`,
+      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`,
     );
   });
 
@@ -223,7 +223,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const imageSize = String(inputs.image_size ?? this.image_size ?? "landscape_4_3");`,
+      `const imageSize = String(this.image_size ?? "landscape_4_3");`,
     );
   });
 
@@ -558,7 +558,7 @@ describe("NodeGenerator.generate() — bool field in process()", () => {
     });
     const code = gen.generate(spec, "text_to_image");
     expect(code).toContain(
-      `const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);`,
+      `const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);`,
     );
   });
 

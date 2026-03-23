@@ -188,9 +188,9 @@ export class GenerateUUID3Node extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const namespace = String(inputs.namespace ?? this.namespace ?? "dns");
-    const name = String(inputs.name ?? this.name ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const namespace = String(this.namespace ?? this.namespace ?? "dns");
+    const name = String(this.name ?? this.name ?? "");
     return { output: generateNameBasedUuid(namespace, name, 3) };
   }
 }
@@ -213,9 +213,9 @@ export class GenerateUUID5Node extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const namespace = String(inputs.namespace ?? this.namespace ?? "dns");
-    const name = String(inputs.name ?? this.name ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const namespace = String(this.namespace ?? this.namespace ?? "dns");
+    const name = String(this.name ?? this.name ?? "");
     return { output: generateNameBasedUuid(namespace, name, 5) };
   }
 }
@@ -235,8 +235,8 @@ export class ParseUUIDNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const uuidInput = String(inputs.uuid_string ?? this.uuid_string ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const uuidInput = String(this.uuid_string ?? this.uuid_string ?? "");
     try {
       const uuid = normalizeUuid(uuidInput);
       const hex = uuid.replaceAll("-", "");
@@ -286,9 +286,9 @@ export class FormatUUIDNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const uuidInput = String(inputs.uuid_string ?? this.uuid_string ?? "");
-    const format = String(inputs.format ?? this.format ?? "standard") as UUIDFormat;
+  async process(): Promise<Record<string, unknown>> {
+    const uuidInput = String(this.uuid_string ?? this.uuid_string ?? "");
+    const format = String(this.format ?? this.format ?? "standard") as UUIDFormat;
     const uuid = normalizeUuid(uuidInput);
     const hex = uuid.replaceAll("-", "");
 
@@ -316,8 +316,8 @@ export class IsValidUUIDNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const uuidInput = String(inputs.uuid_string ?? this.uuid_string ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const uuidInput = String(this.uuid_string ?? this.uuid_string ?? "");
     try {
       normalizeUuid(uuidInput);
       return { output: true };

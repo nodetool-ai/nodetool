@@ -49,8 +49,8 @@ afterEach(() => {
 /* ================================================================== */
 
 describe("getFalApiKey", () => {
-  it("returns key from _secrets.FAL_API_KEY", () => {
-    const key = getFalApiKey({ _secrets: { FAL_API_KEY: "secret-from-secrets" } });
+  it("returns key from secrets.FAL_API_KEY", () => {
+    const key = getFalApiKey({ FAL_API_KEY: "secret-from-secrets" });
     expect(key).toBe("secret-from-secrets");
   });
 
@@ -60,9 +60,9 @@ describe("getFalApiKey", () => {
     expect(key).toBe("secret-from-env");
   });
 
-  it("prefers _secrets over process.env", () => {
+  it("prefers secrets over process.env", () => {
     process.env.FAL_API_KEY = "env-key";
-    const key = getFalApiKey({ _secrets: { FAL_API_KEY: "secrets-key" } });
+    const key = getFalApiKey({ FAL_API_KEY: "secrets-key" });
     expect(key).toBe("secrets-key");
   });
 
@@ -70,8 +70,8 @@ describe("getFalApiKey", () => {
     expect(() => getFalApiKey({})).toThrow("FAL_API_KEY is not configured");
   });
 
-  it("throws when _secrets.FAL_API_KEY is empty string", () => {
-    expect(() => getFalApiKey({ _secrets: { FAL_API_KEY: "" } })).toThrow(
+  it("throws when secrets.FAL_API_KEY is empty string", () => {
+    expect(() => getFalApiKey({ FAL_API_KEY: "" })).toThrow(
       "FAL_API_KEY is not configured"
     );
   });

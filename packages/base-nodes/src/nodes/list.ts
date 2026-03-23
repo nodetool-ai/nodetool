@@ -31,8 +31,8 @@ export class LengthNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
     return { output: Array.isArray(values) ? values.length : 0 };
   }
 }
@@ -57,10 +57,10 @@ export class ListRangeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const stop = Number(inputs.stop ?? this.stop ?? 0);
-    const step = Number(inputs.step ?? this.step ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const start = Number(this.start ?? this.start ?? 0);
+    const stop = Number(this.stop ?? this.stop ?? 0);
+    const step = Number(this.step ?? this.step ?? 1);
 
     if (step === 0) {
       throw new Error("step must not be 0");
@@ -102,16 +102,14 @@ export class GenerateSequenceNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const stop = Number(inputs.stop ?? this.stop ?? 0);
-    const step = Number(inputs.step ?? this.step ?? 1);
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const start = Number(this.start ?? this.start ?? 0);
+    const stop = Number(this.stop ?? this.stop ?? 0);
+    const step = Number(this.step ?? this.step ?? 1);
 
     if (step === 0) {
       throw new Error("step must not be 0");
@@ -152,11 +150,11 @@ export class SliceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const stop = Number(inputs.stop ?? this.stop ?? 0);
-    const step = Number(inputs.step ?? this.step ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
+    const start = Number(this.start ?? this.start ?? 0);
+    const stop = Number(this.stop ?? this.stop ?? 0);
+    const step = Number(this.step ?? this.step ?? 1);
 
     if (step === 0) {
       throw new Error("slice step cannot be zero");
@@ -207,9 +205,9 @@ export class SelectElementsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
-    const indices = toArray(inputs.indices ?? this.indices ?? []).map((x) =>
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
+    const indices = toArray(this.indices ?? this.indices ?? []).map((x) =>
       Number(x)
     );
 
@@ -239,9 +237,9 @@ export class GetElementNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
-    const index = Number(inputs.index ?? this.index ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
+    const index = Number(this.index ?? this.index ?? 0);
 
     if (!Array.isArray(values)) {
       throw new Error("values must be a list");
@@ -268,9 +266,9 @@ export class AppendNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
-    const value = inputs.value ?? this.value ?? null;
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
+    const value = this.value ?? this.value ?? null;
     const list = Array.isArray(values) ? [...values] : [values];
     list.push(value);
     return { output: list };
@@ -294,9 +292,9 @@ export class ExtendNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
-    const other = toArray(inputs.other_values ?? this.other_values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
+    const other = toArray(this.other_values ?? this.other_values ?? []);
     return { output: [...values, ...other] };
   }
 }
@@ -315,8 +313,8 @@ export class DedupeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     return { output: [...new Set(values)] };
   }
 }
@@ -335,8 +333,8 @@ export class ReverseNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     return { output: [...values].reverse() };
   }
 }
@@ -355,8 +353,8 @@ export class RandomizeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const shuffled = [...toArray(inputs.values ?? this.values ?? [])];
+  async process(): Promise<Record<string, unknown>> {
+    const shuffled = [...toArray(this.values ?? this.values ?? [])];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -385,9 +383,9 @@ export class SortNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = [...toArray(inputs.values ?? this.values ?? [])];
-    const order = String(inputs.order ?? this.order ?? "ascending");
+  async process(): Promise<Record<string, unknown>> {
+    const values = [...toArray(this.values ?? this.values ?? [])];
+    const order = String(this.order ?? this.order ?? "ascending");
     values.sort();
     if (order === "descending") {
       values.reverse();
@@ -413,9 +411,9 @@ export class IntersectionNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const list1 = new Set(toArray(inputs.list1 ?? this.list1 ?? []));
-    const list2 = new Set(toArray(inputs.list2 ?? this.list2 ?? []));
+  async process(): Promise<Record<string, unknown>> {
+    const list1 = new Set(toArray(this.list1 ?? this.list1 ?? []));
+    const list2 = new Set(toArray(this.list2 ?? this.list2 ?? []));
     return { output: [...list1].filter((x) => list2.has(x)) };
   }
 }
@@ -437,9 +435,9 @@ export class UnionNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const list1 = toArray(inputs.list1 ?? this.list1 ?? []);
-    const list2 = toArray(inputs.list2 ?? this.list2 ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const list1 = toArray(this.list1 ?? this.list1 ?? []);
+    const list2 = toArray(this.list2 ?? this.list2 ?? []);
     return { output: [...new Set([...list1, ...list2])] };
   }
 }
@@ -461,9 +459,9 @@ export class DifferenceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const list1 = toArray(inputs.list1 ?? this.list1 ?? []);
-    const list2 = new Set(toArray(inputs.list2 ?? this.list2 ?? []));
+  async process(): Promise<Record<string, unknown>> {
+    const list1 = toArray(this.list1 ?? this.list1 ?? []);
+    const list2 = new Set(toArray(this.list2 ?? this.list2 ?? []));
     return { output: list1.filter((x) => !list2.has(x)) };
   }
 }
@@ -485,9 +483,9 @@ export class ChunkNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
+    const chunkSize = Number(this.chunk_size ?? this.chunk_size ?? 1);
 
     if (chunkSize <= 0) {
       throw new Error("chunk_size must be > 0");
@@ -515,8 +513,8 @@ export class SumNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     if (values.length === 0) {
       throw new Error("Cannot sum empty list");
     }
@@ -541,8 +539,8 @@ export class AverageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     if (values.length === 0) {
       throw new Error("Cannot average empty list");
     }
@@ -567,8 +565,8 @@ export class MinimumNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     if (values.length === 0) {
       throw new Error("Cannot find minimum of empty list");
     }
@@ -593,8 +591,8 @@ export class MaximumNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     if (values.length === 0) {
       throw new Error("Cannot find maximum of empty list");
     }
@@ -619,8 +617,8 @@ export class ProductNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = toArray(inputs.values ?? this.values ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const values = toArray(this.values ?? this.values ?? []);
     if (values.length === 0) {
       throw new Error("Cannot calculate product of empty list");
     }
@@ -667,9 +665,9 @@ export class FlattenNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = inputs.values ?? this.values ?? [];
-    const maxDepth = Number(inputs.max_depth ?? this.max_depth ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const values = this.values ?? this.values ?? [];
+    const maxDepth = Number(this.max_depth ?? this.max_depth ?? -1);
 
     if (!Array.isArray(values)) {
       throw new Error("Input must be a list");
@@ -695,11 +693,11 @@ export class SaveListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = Array.isArray(inputs.values ?? this.values)
-      ? ((inputs.values ?? this.values) as unknown[])
+  async process(): Promise<Record<string, unknown>> {
+    const values = Array.isArray(this.values ?? this.values)
+      ? ((this.values ?? this.values) as unknown[])
       : [];
-    const name = String(inputs.name ?? this.name ?? "text.txt");
+    const name = String(this.name ?? this.name ?? "text.txt");
     const content = values.map((v) => String(v)).join("\n");
     await fs.writeFile(name, content, "utf-8");
     return { output: name };

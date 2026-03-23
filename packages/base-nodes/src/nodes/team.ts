@@ -94,10 +94,9 @@ export class TeamAgentNode extends BaseNode {
 
   /**
    * Called by the kernel for each control event from TeamLead.
-   * The control event properties are merged into inputs.
+   * The control event properties are merged onto `this` via assign().
    */
   async process(
-    inputs: Record<string, unknown>,
     _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     // The actual LLM work is done by TeamExecutor — this node acts as
@@ -114,7 +113,7 @@ export class TeamAgentNode extends BaseNode {
     //   __agent_message__: true — inter-agent message
     //   message: AgentMessage
 
-    const result = inputs.__agent_response__ ?? inputs.response ?? "";
+    const result = (this as any).__agent_response__ ?? (this as any).response ?? "";
     return { result: String(result) };
   }
 
@@ -194,10 +193,9 @@ export class TeamLeadNode extends BaseNode {
   declare max_concurrency: any;
 
   async *genProcess(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const objective = String(inputs.objective ?? this.objective ?? "");
+    const objective = String(this.objective ?? "");
     if (!objective) throw new Error("Objective is required");
     if (!context) throw new Error("Processing context is required");
 
@@ -206,7 +204,7 @@ export class TeamLeadNode extends BaseNode {
     // about each controlled node — including their properties.
     // Fallback: agents can be provided directly for programmatic use.
     const agents: AgentIdentity[] = [];
-    const controlContext = inputs._control_context as Record<string, Record<string, unknown>> | undefined;
+    const controlContext = this.getDynamic<Record<string, Record<string, unknown>>>("_control_context");
 
     if (controlContext) {
       // Extract agent identities from controlled Agent nodes
@@ -231,7 +229,7 @@ export class TeamLeadNode extends BaseNode {
 
     // Fallback: agents provided inline (programmatic use without kernel)
     if (agents.length === 0) {
-      const rawAgents = (inputs.agents ?? []) as Array<Record<string, unknown>>;
+      const rawAgents = (this.getDynamic<Array<Record<string, unknown>>>("agents") ?? []);
       for (const a of rawAgents) {
         agents.push({
           id: String(a.id ?? a.name ?? `agent_${agents.length}`),
@@ -252,13 +250,13 @@ export class TeamLeadNode extends BaseNode {
     }
 
     const strategy = String(
-      inputs.strategy ?? this.strategy ?? "coordinator"
+      this.strategy ?? "coordinator"
     ) as TeamStrategy;
     const maxIterations = Number(
-      inputs.max_iterations ?? this.max_iterations ?? 50
+      this.max_iterations ?? 50
     );
     const maxConcurrency = Number(
-      inputs.max_concurrency ?? this.max_concurrency ?? 3
+      this.max_concurrency ?? 3
     );
 
     // Task board: always DB-backed, keyed by this node's ID as team_id.
@@ -327,11 +325,10 @@ export class TeamLeadNode extends BaseNode {
   }
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     let lastOutput: Record<string, unknown> = {};
-    for await (const item of this.genProcess(inputs, context)) {
+    for await (const item of this.genProcess(context)) {
       lastOutput = item;
     }
     return lastOutput;

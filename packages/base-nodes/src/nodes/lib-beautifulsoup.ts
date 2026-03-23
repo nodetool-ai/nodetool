@@ -18,8 +18,8 @@ export class BaseUrlLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
     if (!url) {
       throw new Error("URL must not be empty");
     }
@@ -48,9 +48,9 @@ export class ExtractLinksLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
-    const baseUrl = String(inputs.base_url ?? this.base_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? "");
+    const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
     const rows: string[][] = [];
 
@@ -95,9 +95,9 @@ export class ExtractImagesLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
-    const baseUrl = String(inputs.base_url ?? this.base_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? "");
+    const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
     const images: Array<{ uri: string; type: string }> = [];
 
@@ -129,9 +129,9 @@ export class ExtractAudioLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
-    const baseUrl = String(inputs.base_url ?? this.base_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? "");
+    const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
     const audioList: Array<{ uri: string; type: string }> = [];
 
@@ -165,9 +165,9 @@ export class ExtractVideosLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
-    const baseUrl = String(inputs.base_url ?? this.base_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? "");
+    const baseUrl = String(this.base_url ?? "");
     const $ = cheerio.load(html);
     const videos: Array<{ uri: string; type: string }> = [];
 
@@ -199,8 +199,8 @@ export class ExtractMetadataLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? "");
     const $ = cheerio.load(html);
 
     const title = $("title").first().text() || null;
@@ -230,10 +230,10 @@ export class HTMLToTextLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.text ?? "");
     const preserveLinebreaks = Boolean(
-      inputs.preserve_linebreaks ?? this.preserve_linebreaks ?? true
+      this.preserve_linebreaks ?? true
     );
 
     const text = convert(html, {
@@ -259,9 +259,9 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const htmlContent = String(
-      inputs.html_content ?? this.html_content ?? ""
+      this.html_content ?? ""
     );
 
     const dom = new JSDOM(htmlContent);

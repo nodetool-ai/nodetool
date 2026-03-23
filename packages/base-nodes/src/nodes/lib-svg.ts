@@ -76,8 +76,8 @@ export class RectLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "rect", attributes: { x: String(inputs.x ?? this.x ?? 0), y: String(inputs.y ?? this.y ?? 0), width: String(inputs.width ?? this.width ?? 100), height: String(inputs.height ?? this.height ?? 100), fill: asColor(inputs.fill ?? this.fill, "#000000"), stroke: asColor(inputs.stroke ?? this.stroke, "none"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "rect", attributes: { x: String(this.x ?? 0), y: String(this.y ?? 0), width: String(this.width ?? 100), height: String(this.height ?? 100), fill: asColor(this.fill, "#000000"), stroke: asColor(this.stroke, "none"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -115,8 +115,8 @@ export class CircleLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "circle", attributes: { cx: String(inputs.cx ?? this.cx ?? 0), cy: String(inputs.cy ?? this.cy ?? 0), r: String(inputs.radius ?? this.radius ?? 50), fill: asColor(inputs.fill ?? this.fill, "#000000"), stroke: asColor(inputs.stroke ?? this.stroke, "none"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "circle", attributes: { cx: String(this.cx ?? 0), cy: String(this.cy ?? 0), r: String(this.radius ?? 50), fill: asColor(this.fill, "#000000"), stroke: asColor(this.stroke, "none"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -157,8 +157,8 @@ export class EllipseLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "ellipse", attributes: { cx: String(inputs.cx ?? this.cx ?? 0), cy: String(inputs.cy ?? this.cy ?? 0), rx: String(inputs.rx ?? this.rx ?? 100), ry: String(inputs.ry ?? this.ry ?? 50), fill: asColor(inputs.fill ?? this.fill, "#000000"), stroke: asColor(inputs.stroke ?? this.stroke, "none"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "ellipse", attributes: { cx: String(this.cx ?? 0), cy: String(this.cy ?? 0), rx: String(this.rx ?? 100), ry: String(this.ry ?? 50), fill: asColor(this.fill, "#000000"), stroke: asColor(this.stroke, "none"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -193,8 +193,8 @@ export class LineLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "line", attributes: { x1: String(inputs.x1 ?? this.x1 ?? 0), y1: String(inputs.y1 ?? this.y1 ?? 0), x2: String(inputs.x2 ?? this.x2 ?? 100), y2: String(inputs.y2 ?? this.y2 ?? 100), stroke: asColor(inputs.stroke ?? this.stroke, "#000000"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "line", attributes: { x1: String(this.x1 ?? 0), y1: String(this.y1 ?? 0), x2: String(this.x2 ?? 100), y2: String(this.y2 ?? 100), stroke: asColor(this.stroke, "#000000"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -226,8 +226,8 @@ export class PolygonLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "polygon", attributes: { points: String(inputs.points ?? this.points ?? ""), fill: asColor(inputs.fill ?? this.fill, "#000000"), stroke: asColor(inputs.stroke ?? this.stroke, "none"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "polygon", attributes: { points: String(this.points ?? ""), fill: asColor(this.fill, "#000000"), stroke: asColor(this.stroke, "none"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -259,8 +259,8 @@ export class PathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "path", attributes: { d: String(inputs.path_data ?? this.path_data ?? ""), fill: asColor(inputs.fill ?? this.fill, "#000000"), stroke: asColor(inputs.stroke ?? this.stroke, "none"), "stroke-width": String(inputs.stroke_width ?? this.stroke_width ?? 1) } } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "path", attributes: { d: String(this.path_data ?? ""), fill: asColor(this.fill, "#000000"), stroke: asColor(this.stroke, "none"), "stroke-width": String(this.stroke_width ?? 1) } } };
   }
 }
 
@@ -302,8 +302,8 @@ export class TextLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "text", attributes: { x: String(inputs.x ?? this.x ?? 0), y: String(inputs.y ?? this.y ?? 0), "font-family": String(inputs.font_family ?? this.font_family ?? "Arial"), "font-size": String(inputs.font_size ?? this.font_size ?? 16), fill: asColor(inputs.fill ?? this.fill, "#000000"), "text-anchor": String(inputs.text_anchor ?? this.text_anchor ?? "start") }, content: String(inputs.text ?? this.text ?? "") } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "text", attributes: { x: String(this.x ?? 0), y: String(this.y ?? 0), "font-family": String(this.font_family ?? "Arial"), "font-size": String(this.font_size ?? 16), fill: asColor(this.fill, "#000000"), "text-anchor": String(this.text_anchor ?? "start") }, content: String(this.text ?? "") } };
   }
 }
 
@@ -320,8 +320,8 @@ export class GaussianBlurLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { name: "filter", attributes: { id: "filter_gaussian_blur" }, children: [{ name: "feGaussianBlur", attributes: { stdDeviation: String(inputs.std_deviation ?? this.std_deviation ?? 3) } }] } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: { name: "filter", attributes: { id: "filter_gaussian_blur" }, children: [{ name: "feGaussianBlur", attributes: { stdDeviation: String(this.std_deviation ?? 3) } }] } };
   }
 }
 
@@ -350,15 +350,15 @@ export class DropShadowLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {
       output: {
         name: "filter",
         attributes: { id: "filter_drop_shadow" },
         children: [
-          { name: "feGaussianBlur", attributes: { in: "SourceAlpha", stdDeviation: String(inputs.std_deviation ?? this.std_deviation ?? 3) } },
-          { name: "feOffset", attributes: { dx: String(inputs.dx ?? this.dx ?? 2), dy: String(inputs.dy ?? this.dy ?? 2) } },
-          { name: "feFlood", attributes: { "flood-color": asColor(inputs.color ?? this.color, "#000000") } },
+          { name: "feGaussianBlur", attributes: { in: "SourceAlpha", stdDeviation: String(this.std_deviation ?? 3) } },
+          { name: "feOffset", attributes: { dx: String(this.dx ?? 2), dy: String(this.dy ?? 2) } },
+          { name: "feFlood", attributes: { "flood-color": asColor(this.color, "#000000") } },
           { name: "feComposite", attributes: { operator: "in", in2: "SourceAlpha" } },
           { name: "feMerge", children: [{ name: "feMergeNode" }, { name: "feMergeNode", attributes: { in: "SourceGraphic" } }] },
         ],
@@ -389,11 +389,11 @@ export class DocumentLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const content = normalizeContent(inputs.content ?? this.content ?? []);
-    const width = Number(inputs.width ?? this.width ?? 800);
-    const height = Number(inputs.height ?? this.height ?? 600);
-    const viewBox = String(inputs.viewBox ?? this.viewBox ?? "0 0 800 600");
+  async process(): Promise<Record<string, unknown>> {
+    const content = normalizeContent(this.content ?? []);
+    const width = Number(this.width ?? 800);
+    const height = Number(this.height ?? 600);
+    const viewBox = String(this.viewBox ?? "0 0 800 600");
     const doc = svgDocument(content, width, height, viewBox);
     return { output: { data: Buffer.from(doc, "utf-8").toString("base64") } };
   }
@@ -424,11 +424,11 @@ export class SVGToImageLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const content = normalizeContent(inputs.content ?? this.content ?? []);
-    const width = Number(inputs.width ?? this.width ?? 800);
-    const height = Number(inputs.height ?? this.height ?? 600);
-    const viewBox = String(inputs.viewBox ?? this.viewBox ?? "0 0 800 600");
+  async process(): Promise<Record<string, unknown>> {
+    const content = normalizeContent(this.content ?? []);
+    const width = Number(this.width ?? 800);
+    const height = Number(this.height ?? 600);
+    const viewBox = String(this.viewBox ?? "0 0 800 600");
     const doc = svgDocument(content, width, height, viewBox);
     return { output: { data: Buffer.from(doc, "utf-8").toString("base64"), mimeType: "image/svg+xml", width, height } };
   }
@@ -474,26 +474,26 @@ export class GradientLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const gradientType = String(inputs.gradient_type ?? this.gradient_type ?? "linearGradient");
+  async process(): Promise<Record<string, unknown>> {
+    const gradientType = String(this.gradient_type ?? "linearGradient");
     const attrs: Record<string, string> = { id: `gradient_${gradientType}` };
     if (gradientType === "linearGradient") {
-      attrs.x1 = `${String(inputs.x1 ?? this.x1 ?? 0)}%`;
-      attrs.y1 = `${String(inputs.y1 ?? this.y1 ?? 0)}%`;
-      attrs.x2 = `${String(inputs.x2 ?? this.x2 ?? 100)}%`;
-      attrs.y2 = `${String(inputs.y2 ?? this.y2 ?? 100)}%`;
+      attrs.x1 = `${String(this.x1 ?? 0)}%`;
+      attrs.y1 = `${String(this.y1 ?? 0)}%`;
+      attrs.x2 = `${String(this.x2 ?? 100)}%`;
+      attrs.y2 = `${String(this.y2 ?? 100)}%`;
     } else {
-      attrs.cx = `${String(inputs.x1 ?? this.x1 ?? 0)}%`;
-      attrs.cy = `${String(inputs.y1 ?? this.y1 ?? 0)}%`;
-      attrs.r = `${String(inputs.x2 ?? this.x2 ?? 100)}%`;
+      attrs.cx = `${String(this.x1 ?? 0)}%`;
+      attrs.cy = `${String(this.y1 ?? 0)}%`;
+      attrs.r = `${String(this.x2 ?? 100)}%`;
     }
     return {
       output: {
         name: gradientType,
         attributes: attrs,
         children: [
-          { name: "stop", attributes: { offset: "0%", style: `stop-color:${asColor(inputs.color1 ?? this.color1, "#000000")};stop-opacity:1` } },
-          { name: "stop", attributes: { offset: "100%", style: `stop-color:${asColor(inputs.color2 ?? this.color2, "#FFFFFF")};stop-opacity:1` } },
+          { name: "stop", attributes: { offset: "0%", style: `stop-color:${asColor(this.color1, "#000000")};stop-opacity:1` } },
+          { name: "stop", attributes: { offset: "100%", style: `stop-color:${asColor(this.color2, "#FFFFFF")};stop-opacity:1` } },
         ],
       },
     };
@@ -534,17 +534,17 @@ export class TransformLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const content = { ...((inputs.content ?? this.content ?? {}) as SvgElementLike) };
+  async process(): Promise<Record<string, unknown>> {
+    const content = { ...((this.content ?? {}) as SvgElementLike) };
     if (!content || typeof content !== "object" || !("name" in content)) {
       return { output: { name: "g", attributes: {}, children: [] } };
     }
     const transforms: string[] = [];
-    const tx = Number(inputs.translate_x ?? this.translate_x ?? 0);
-    const ty = Number(inputs.translate_y ?? this.translate_y ?? 0);
-    const rotate = Number(inputs.rotate ?? this.rotate ?? 0);
-    const sx = Number(inputs.scale_x ?? this.scale_x ?? 1);
-    const sy = Number(inputs.scale_y ?? this.scale_y ?? 1);
+    const tx = Number(this.translate_x ?? 0);
+    const ty = Number(this.translate_y ?? 0);
+    const rotate = Number(this.rotate ?? 0);
+    const sx = Number(this.scale_x ?? 1);
+    const sy = Number(this.scale_y ?? 1);
     if (tx !== 0 || ty !== 0) transforms.push(`translate(${tx},${ty})`);
     if (rotate !== 0) transforms.push(`rotate(${rotate})`);
     if (sx !== 1 || sy !== 1) transforms.push(`scale(${sx},${sy})`);
@@ -584,9 +584,9 @@ export class ClipPathLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const clipContent = (inputs.clip_content ?? this.clip_content ?? {}) as SvgElementLike;
-    const content = { ...((inputs.content ?? this.content ?? {}) as SvgElementLike) };
+  async process(): Promise<Record<string, unknown>> {
+    const clipContent = (this.clip_content ?? {}) as SvgElementLike;
+    const content = { ...((this.content ?? {}) as SvgElementLike) };
     if (!clipContent || !content || !clipContent.name || !content.name) {
       return { output: { name: "g", attributes: {}, children: [] } };
     }

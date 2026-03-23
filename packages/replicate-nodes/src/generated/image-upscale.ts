@@ -33,17 +33,17 @@ replicate, ai`;
   @prop({ type: "float", default: 4, description: "Factor to scale image by" })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const faceEnhance = Boolean(inputs.face_enhance ?? this.face_enhance ?? false);
-    const scale = Number(inputs.scale ?? this.scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const faceEnhance = Boolean(this.face_enhance ?? false);
+    const scale = Number(this.scale ?? 4);
 
     const args: Record<string, unknown> = {
       "face_enhance": faceEnhance,
       "scale": scale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -74,17 +74,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "v1.4", values: ["v1.2", "v1.3", "v1.4", "RestoreFormer"], description: "GFPGAN version. v1.3: better quality. v1.4: more details and better identity." })
   declare version: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const scale = Number(inputs.scale ?? this.scale ?? 2);
-    const version = String(inputs.version ?? this.version ?? "v1.4");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const scale = Number(this.scale ?? 2);
+    const version = String(this.version ?? "v1.4");
 
     const args: Record<string, unknown> = {
       "scale": scale,
       "version": version,
     };
 
-    const imgRef = (inputs.img ?? this.img) as Record<string, unknown> | undefined;
+    const imgRef = this.img as Record<string, unknown> | undefined;
     if (isRefSet(imgRef)) {
       const imgUrl = await assetToUrl(imgRef!, apiKey);
       if (imgUrl) args["img"] = imgUrl;
@@ -172,28 +172,28 @@ replicate, ai`;
   @prop({ type: "enum", default: 112, values: ["16", "32", "48", "64", "80", "96", "112", "128", "144", "160", "176", "192", "208", "224", "240", "256"], description: "Fractality, set lower tile width for a high Fractality" })
   declare tiling_width: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const creativity = Number(inputs.creativity ?? this.creativity ?? 0.35);
-    const customSdModel = String(inputs.custom_sd_model ?? this.custom_sd_model ?? "");
-    const downscaling = Boolean(inputs.downscaling ?? this.downscaling ?? false);
-    const downscalingResolution = Number(inputs.downscaling_resolution ?? this.downscaling_resolution ?? 768);
-    const dynamic = Number(inputs.dynamic ?? this.dynamic ?? 6);
-    const handfix = String(inputs.handfix ?? this.handfix ?? "disabled");
-    const loraLinks = String(inputs.lora_links ?? this.lora_links ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "(worst quality, low quality, normal quality:2) JuggernautNegative-neg");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 18);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "png");
-    const pattern = Boolean(inputs.pattern ?? this.pattern ?? false);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "masterpiece, best quality, highres, <lora:more_details:0.5> <lora:SDXLrender_v2.0:1>");
-    const resemblance = Number(inputs.resemblance ?? this.resemblance ?? 0.6);
-    const scaleFactor = Number(inputs.scale_factor ?? this.scale_factor ?? 2);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "DPM++ 3M SDE Karras");
-    const sdModel = String(inputs.sd_model ?? this.sd_model ?? "juggernaut_reborn.safetensors [338b85bc4f]");
-    const seed = Number(inputs.seed ?? this.seed ?? 1337);
-    const sharpen = Number(inputs.sharpen ?? this.sharpen ?? 0);
-    const tilingHeight = String(inputs.tiling_height ?? this.tiling_height ?? 144);
-    const tilingWidth = String(inputs.tiling_width ?? this.tiling_width ?? 112);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const creativity = Number(this.creativity ?? 0.35);
+    const customSdModel = String(this.custom_sd_model ?? "");
+    const downscaling = Boolean(this.downscaling ?? false);
+    const downscalingResolution = Number(this.downscaling_resolution ?? 768);
+    const dynamic = Number(this.dynamic ?? 6);
+    const handfix = String(this.handfix ?? "disabled");
+    const loraLinks = String(this.lora_links ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "(worst quality, low quality, normal quality:2) JuggernautNegative-neg");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 18);
+    const outputFormat = String(this.output_format ?? "png");
+    const pattern = Boolean(this.pattern ?? false);
+    const prompt = String(this.prompt ?? "masterpiece, best quality, highres, <lora:more_details:0.5> <lora:SDXLrender_v2.0:1>");
+    const resemblance = Number(this.resemblance ?? 0.6);
+    const scaleFactor = Number(this.scale_factor ?? 2);
+    const scheduler = String(this.scheduler ?? "DPM++ 3M SDE Karras");
+    const sdModel = String(this.sd_model ?? "juggernaut_reborn.safetensors [338b85bc4f]");
+    const seed = Number(this.seed ?? 1337);
+    const sharpen = Number(this.sharpen ?? 0);
+    const tilingHeight = String(this.tiling_height ?? 144);
+    const tilingWidth = String(this.tiling_width ?? 112);
 
     const args: Record<string, unknown> = {
       "creativity": creativity,
@@ -218,13 +218,13 @@ replicate, ai`;
       "tiling_width": tilingWidth,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
@@ -285,19 +285,19 @@ replicate, ai`;
   @prop({ type: "int", default: 20, description: "Steps" })
   declare steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const creativity = Number(inputs.creativity ?? this.creativity ?? 0.25);
-    const guessMode = Boolean(inputs.guess_mode ?? this.guess_mode ?? false);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7);
-    const hdr = Number(inputs.hdr ?? this.hdr ?? 0);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resemblance = Number(inputs.resemblance ?? this.resemblance ?? 0.75);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "original");
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "DDIM");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 20);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const creativity = Number(this.creativity ?? 0.25);
+    const guessMode = Boolean(this.guess_mode ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 7);
+    const hdr = Number(this.hdr ?? 0);
+    const negativePrompt = String(this.negative_prompt ?? "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant");
+    const prompt = String(this.prompt ?? "");
+    const resemblance = Number(this.resemblance ?? 0.75);
+    const resolution = String(this.resolution ?? "original");
+    const scheduler = String(this.scheduler ?? "DDIM");
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 20);
 
     const args: Record<string, unknown> = {
       "creativity": creativity,
@@ -313,13 +313,13 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
@@ -347,15 +347,15 @@ replicate, ai`;
   @prop({ type: "enum", default: 4, values: ["2", "4", "8"], description: "Choose up-scaling factor" })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const scale = String(inputs.scale ?? this.scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const scale = String(this.scale ?? 4);
 
     const args: Record<string, unknown> = {
       "scale": scale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -422,22 +422,22 @@ replicate, ai`;
   @prop({ type: "int", default: 8, description: "Steps" })
   declare steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const creativity = Number(inputs.creativity ?? this.creativity ?? 0.35);
-    const format = String(inputs.format ?? this.format ?? "jpg");
-    const guessMode = Boolean(inputs.guess_mode ?? this.guess_mode ?? false);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
-    const hdr = Number(inputs.hdr ?? this.hdr ?? 0);
-    const loraDetailsStrength = Number(inputs.lora_details_strength ?? this.lora_details_strength ?? 1);
-    const loraSharpnessStrength = Number(inputs.lora_sharpness_strength ?? this.lora_sharpness_strength ?? 1.25);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resemblance = Number(inputs.resemblance ?? this.resemblance ?? 0.85);
-    const resolution = String(inputs.resolution ?? this.resolution ?? 2560);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "DDIM");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 8);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const creativity = Number(this.creativity ?? 0.35);
+    const format = String(this.format ?? "jpg");
+    const guessMode = Boolean(this.guess_mode ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 0);
+    const hdr = Number(this.hdr ?? 0);
+    const loraDetailsStrength = Number(this.lora_details_strength ?? 1);
+    const loraSharpnessStrength = Number(this.lora_sharpness_strength ?? 1.25);
+    const negativePrompt = String(this.negative_prompt ?? "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant");
+    const prompt = String(this.prompt ?? "");
+    const resemblance = Number(this.resemblance ?? 0.85);
+    const resolution = String(this.resolution ?? 2560);
+    const scheduler = String(this.scheduler ?? "DDIM");
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 8);
 
     const args: Record<string, unknown> = {
       "creativity": creativity,
@@ -456,7 +456,7 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -550,31 +550,31 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use ControlNet Tile" })
   declare use_controlnet_tile: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cfg = Number(inputs.cfg ?? this.cfg ?? 8);
-    const controlnetStrength = Number(inputs.controlnet_strength ?? this.controlnet_strength ?? 1);
-    const denoise = Number(inputs.denoise ?? this.denoise ?? 0.2);
-    const forceUniformTiles = Boolean(inputs.force_uniform_tiles ?? this.force_uniform_tiles ?? true);
-    const maskBlur = Number(inputs.mask_blur ?? this.mask_blur ?? 8);
-    const modeType = String(inputs.mode_type ?? this.mode_type ?? "Linear");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const positivePrompt = String(inputs.positive_prompt ?? this.positive_prompt ?? "Hey! Have a nice day :D");
-    const samplerName = String(inputs.sampler_name ?? this.sampler_name ?? "euler");
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "normal");
-    const seamFixDenoise = Number(inputs.seam_fix_denoise ?? this.seam_fix_denoise ?? 1);
-    const seamFixMaskBlur = Number(inputs.seam_fix_mask_blur ?? this.seam_fix_mask_blur ?? 8);
-    const seamFixMode = String(inputs.seam_fix_mode ?? this.seam_fix_mode ?? "None");
-    const seamFixPadding = Number(inputs.seam_fix_padding ?? this.seam_fix_padding ?? 16);
-    const seamFixWidth = Number(inputs.seam_fix_width ?? this.seam_fix_width ?? 64);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 20);
-    const tileHeight = Number(inputs.tile_height ?? this.tile_height ?? 512);
-    const tilePadding = Number(inputs.tile_padding ?? this.tile_padding ?? 32);
-    const tileWidth = Number(inputs.tile_width ?? this.tile_width ?? 512);
-    const upscaleBy = Number(inputs.upscale_by ?? this.upscale_by ?? 2);
-    const upscaler = String(inputs.upscaler ?? this.upscaler ?? "4x-UltraSharp");
-    const useControlnetTile = Boolean(inputs.use_controlnet_tile ?? this.use_controlnet_tile ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cfg = Number(this.cfg ?? 8);
+    const controlnetStrength = Number(this.controlnet_strength ?? 1);
+    const denoise = Number(this.denoise ?? 0.2);
+    const forceUniformTiles = Boolean(this.force_uniform_tiles ?? true);
+    const maskBlur = Number(this.mask_blur ?? 8);
+    const modeType = String(this.mode_type ?? "Linear");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const positivePrompt = String(this.positive_prompt ?? "Hey! Have a nice day :D");
+    const samplerName = String(this.sampler_name ?? "euler");
+    const scheduler = String(this.scheduler ?? "normal");
+    const seamFixDenoise = Number(this.seam_fix_denoise ?? 1);
+    const seamFixMaskBlur = Number(this.seam_fix_mask_blur ?? 8);
+    const seamFixMode = String(this.seam_fix_mode ?? "None");
+    const seamFixPadding = Number(this.seam_fix_padding ?? 16);
+    const seamFixWidth = Number(this.seam_fix_width ?? 64);
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 20);
+    const tileHeight = Number(this.tile_height ?? 512);
+    const tilePadding = Number(this.tile_padding ?? 32);
+    const tileWidth = Number(this.tile_width ?? 512);
+    const upscaleBy = Number(this.upscale_by ?? 2);
+    const upscaler = String(this.upscaler ?? "4x-UltraSharp");
+    const useControlnetTile = Boolean(this.use_controlnet_tile ?? true);
 
     const args: Record<string, unknown> = {
       "cfg": cfg,
@@ -602,7 +602,7 @@ replicate, ai`;
       "use_controlnet_tile": useControlnetTile,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -636,11 +636,11 @@ replicate, ai`;
   @prop({ type: "enum", default: "Real-World Image Super-Resolution-Large", values: ["Real-World Image Super-Resolution-Large", "Real-World Image Super-Resolution-Medium", "Grayscale Image Denoising", "Color Image Denoising", "JPEG Compression Artifact Reduction"], description: "Choose a task" })
   declare task_type: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const jpeg = Number(inputs.jpeg ?? this.jpeg ?? 40);
-    const noise = String(inputs.noise ?? this.noise ?? 15);
-    const taskType = String(inputs.task_type ?? this.task_type ?? "Real-World Image Super-Resolution-Large");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const jpeg = Number(this.jpeg ?? 40);
+    const noise = String(this.noise ?? 15);
+    const taskType = String(this.task_type ?? "Real-World Image Super-Resolution-Large");
 
     const args: Record<string, unknown> = {
       "jpeg": jpeg,
@@ -648,7 +648,7 @@ replicate, ai`;
       "task_type": taskType,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -676,15 +676,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "real_sr", values: ["classical_sr", "real_sr", "compressed_sr"], description: "Choose a task" })
   declare task: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const task = String(inputs.task ?? this.task ?? "real_sr");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const task = String(this.task ?? "real_sr");
 
     const args: Record<string, unknown> = {
       "task": task,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -715,17 +715,17 @@ replicate, ai`;
   @prop({ type: "float", default: 4, description: "Factor to scale image by" })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const faceEnhance = Boolean(inputs.face_enhance ?? this.face_enhance ?? true);
-    const scale = Number(inputs.scale ?? this.scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const faceEnhance = Boolean(this.face_enhance ?? true);
+    const scale = Number(this.scale ?? 4);
 
     const args: Record<string, unknown> = {
       "face_enhance": faceEnhance,
       "scale": scale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -765,13 +765,13 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Synchronous response mode" })
   declare sync: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const desiredIncrease = String(inputs.desired_increase ?? this.desired_increase ?? 2);
-    const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
-    const preserveAlpha = Boolean(inputs.preserve_alpha ?? this.preserve_alpha ?? true);
-    const sync = Boolean(inputs.sync ?? this.sync ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const desiredIncrease = String(this.desired_increase ?? 2);
+    const imageUrl = String(this.image_url ?? "");
+    const preserveAlpha = Boolean(this.preserve_alpha ?? true);
+    const sync = Boolean(this.sync ?? true);
 
     const args: Record<string, unknown> = {
       "content_moderation": contentModeration,
@@ -781,7 +781,7 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -809,15 +809,15 @@ replicate, ai`;
   @prop({ type: "enum", default: 4, values: ["2", "4", "8"], description: "Upscaling factor" })
   declare upscale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const upscale = String(inputs.upscale ?? this.upscale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const upscale = String(this.upscale ?? 4);
 
     const args: Record<string, unknown> = {
       "upscale": upscale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -848,17 +848,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "x2", values: ["x2", "x4"], description: "Factor by which to upscale the image" })
   declare upscale_factor: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const compressionQuality = Number(inputs.compression_quality ?? this.compression_quality ?? 80);
-    const upscaleFactor = String(inputs.upscale_factor ?? this.upscale_factor ?? "x2");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const compressionQuality = Number(this.compression_quality ?? 80);
+    const upscaleFactor = String(this.upscale_factor ?? "x2");
 
     const args: Record<string, unknown> = {
       "compression_quality": compressionQuality,
       "upscale_factor": upscaleFactor,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -925,22 +925,22 @@ replicate, ai`;
   @prop({ type: "int", default: 16, description: "The batch size for multiple denoising paths" })
   declare view_batch_size: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const autoPrompt = Boolean(inputs.auto_prompt ?? this.auto_prompt ?? false);
-    const cosineScale_1 = Number(inputs.cosine_scale_1 ?? this.cosine_scale_1 ?? 3);
-    const cosineScale_2 = Number(inputs.cosine_scale_2 ?? this.cosine_scale_2 ?? 1);
-    const cosineScale_3 = Number(inputs.cosine_scale_3 ?? this.cosine_scale_3 ?? 1);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 8.5);
-    const multiDecoder = Boolean(inputs.multi_decoder ?? this.multi_decoder ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, ugly, duplicate, poorly drawn, deformed, mosaic");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A high resolution photo");
-    const scale = String(inputs.scale ?? this.scale ?? 2);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const sigma = Number(inputs.sigma ?? this.sigma ?? 0.8);
-    const stride = Number(inputs.stride ?? this.stride ?? 64);
-    const viewBatchSize = Number(inputs.view_batch_size ?? this.view_batch_size ?? 16);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const autoPrompt = Boolean(this.auto_prompt ?? false);
+    const cosineScale_1 = Number(this.cosine_scale_1 ?? 3);
+    const cosineScale_2 = Number(this.cosine_scale_2 ?? 1);
+    const cosineScale_3 = Number(this.cosine_scale_3 ?? 1);
+    const guidanceScale = Number(this.guidance_scale ?? 8.5);
+    const multiDecoder = Boolean(this.multi_decoder ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, ugly, duplicate, poorly drawn, deformed, mosaic");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const prompt = String(this.prompt ?? "A high resolution photo");
+    const scale = String(this.scale ?? 2);
+    const seed = Number(this.seed ?? -1);
+    const sigma = Number(this.sigma ?? 0.8);
+    const stride = Number(this.stride ?? 64);
+    const viewBatchSize = Number(this.view_batch_size ?? 16);
 
     const args: Record<string, unknown> = {
       "auto_prompt": autoPrompt,
@@ -959,7 +959,7 @@ replicate, ai`;
       "view_batch_size": viewBatchSize,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1005,15 +1005,15 @@ replicate, ai`;
   @prop({ type: "int", default: 2, description: "Upsample Scale" })
   declare upsample_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const conditioningScale = Number(inputs.conditioning_scale ?? this.conditioning_scale ?? 1.1);
-    const denoiseSteps = Number(inputs.denoise_steps ?? this.denoise_steps ?? 20);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);
-    const nPrompt = String(inputs.n_prompt ?? this.n_prompt ?? "dotted, noise, blur, lowres, oversmooth, longbody, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Frog, clean, high-resolution, 8k, best quality, masterpiece");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const upsampleScale = Number(inputs.upsample_scale ?? this.upsample_scale ?? 2);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const conditioningScale = Number(this.conditioning_scale ?? 1.1);
+    const denoiseSteps = Number(this.denoise_steps ?? 20);
+    const guidanceScale = Number(this.guidance_scale ?? 7.5);
+    const nPrompt = String(this.n_prompt ?? "dotted, noise, blur, lowres, oversmooth, longbody, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality");
+    const prompt = String(this.prompt ?? "Frog, clean, high-resolution, 8k, best quality, masterpiece");
+    const seed = Number(this.seed ?? -1);
+    const upsampleScale = Number(this.upsample_scale ?? 2);
 
     const args: Record<string, unknown> = {
       "conditioning_scale": conditioningScale,
@@ -1025,7 +1025,7 @@ replicate, ai`;
       "upsample_scale": upsampleScale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1056,17 +1056,17 @@ replicate, ai`;
   @prop({ type: "enum", default: 4, values: ["1", "2", "4"], description: "Factor to scale image by" })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A white cat");
-    const scale = String(inputs.scale ?? this.scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "A white cat");
+    const scale = String(this.scale ?? 4);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "scale": scale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1097,17 +1097,17 @@ replicate, ai`;
   @prop({ type: "float", default: 4, description: "Factor to scale image by" })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const faceEnhance = Boolean(inputs.face_enhance ?? this.face_enhance ?? false);
-    const scale = Number(inputs.scale ?? this.scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const faceEnhance = Boolean(this.face_enhance ?? false);
+    const scale = Number(this.scale ?? 4);
 
     const args: Record<string, unknown> = {
       "face_enhance": faceEnhance,
       "scale": scale,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1132,12 +1132,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Image to upscale" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1162,12 +1162,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Image to upscale" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1213,15 +1213,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "None", values: ["None", "2x", "4x", "6x"], description: "How much to upscale the image" })
   declare upscale_factor: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const enhanceModel = String(inputs.enhance_model ?? this.enhance_model ?? "Standard V2");
-    const faceEnhancement = Boolean(inputs.face_enhancement ?? this.face_enhancement ?? false);
-    const faceEnhancementCreativity = Number(inputs.face_enhancement_creativity ?? this.face_enhancement_creativity ?? 0);
-    const faceEnhancementStrength = Number(inputs.face_enhancement_strength ?? this.face_enhancement_strength ?? 0.8);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
-    const subjectDetection = String(inputs.subject_detection ?? this.subject_detection ?? "None");
-    const upscaleFactor = String(inputs.upscale_factor ?? this.upscale_factor ?? "None");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const enhanceModel = String(this.enhance_model ?? "Standard V2");
+    const faceEnhancement = Boolean(this.face_enhancement ?? false);
+    const faceEnhancementCreativity = Number(this.face_enhancement_creativity ?? 0);
+    const faceEnhancementStrength = Number(this.face_enhancement_strength ?? 0.8);
+    const outputFormat = String(this.output_format ?? "jpg");
+    const subjectDetection = String(this.subject_detection ?? "None");
+    const upscaleFactor = String(this.upscale_factor ?? "None");
 
     const args: Record<string, unknown> = {
       "enhance_model": enhanceModel,
@@ -1233,7 +1233,7 @@ replicate, ai`;
       "upscale_factor": upscaleFactor,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1258,12 +1258,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Low-resolution input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1294,17 +1294,17 @@ replicate, ai`;
   @prop({ type: "enum", default: 4, values: ["2", "4", "8", "16", "32"], description: "The factor by which to upscale the image (2, 4, 8, 16, or 32)." })
   declare scale_factor: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxBatchSize = Number(inputs.max_batch_size ?? this.max_batch_size ?? 1);
-    const scaleFactor = String(inputs.scale_factor ?? this.scale_factor ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxBatchSize = Number(this.max_batch_size ?? 1);
+    const scaleFactor = String(this.scale_factor ?? 4);
 
     const args: Record<string, unknown> = {
       "max_batch_size": maxBatchSize,
       "scale_factor": scaleFactor,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1338,11 +1338,11 @@ replicate, ai`;
   @prop({ type: "int", default: 80, description: "The image compression quality (for lossy formats like JPEG and WebP). 100 = best quality, 0 = lowest quality." })
   declare output_quality: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxBatchSize = Number(inputs.max_batch_size ?? this.max_batch_size ?? 8);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
-    const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxBatchSize = Number(this.max_batch_size ?? 8);
+    const outputFormat = String(this.output_format ?? "webp");
+    const outputQuality = Number(this.output_quality ?? 80);
 
     const args: Record<string, unknown> = {
       "max_batch_size": maxBatchSize,
@@ -1350,7 +1350,7 @@ replicate, ai`;
       "output_quality": outputQuality,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1378,15 +1378,15 @@ replicate, ai`;
   @prop({ type: "enum", default: 4, values: ["2", "4"], description: "Upscaling factor (2x or 4x)" })
   declare scale_factor: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const scaleFactor = String(inputs.scale_factor ?? this.scale_factor ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const scaleFactor = String(this.scale_factor ?? 4);
 
     const args: Record<string, unknown> = {
       "scale_factor": scaleFactor,
     };
 
-    const inputFileRef = (inputs.input_file ?? this.input_file) as Record<string, unknown> | undefined;
+    const inputFileRef = this.input_file as Record<string, unknown> | undefined;
     if (isRefSet(inputFileRef)) {
       const inputFileUrl = await assetToUrl(inputFileRef!, apiKey);
       if (inputFileUrl) args["input_file"] = inputFileUrl;
@@ -1483,32 +1483,32 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Use latent image guidance for enhancement. This can help in achieving more accurate and contextually relevant enhancements." })
   declare use_guidance: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const backgroundUpsampler = String(inputs.background_upsampler ?? this.background_upsampler ?? "RealESRGAN");
-    const backgroundUpsamplerTile = Number(inputs.background_upsampler_tile ?? this.background_upsampler_tile ?? 400);
-    const backgroundUpsamplerTileStride = Number(inputs.background_upsampler_tile_stride ?? this.background_upsampler_tile_stride ?? 400);
-    const colorFixType = String(inputs.color_fix_type ?? this.color_fix_type ?? "wavelet");
-    const disablePreprocessModel = Boolean(inputs.disable_preprocess_model ?? this.disable_preprocess_model ?? false);
-    const faceDetectionModel = String(inputs.face_detection_model ?? this.face_detection_model ?? "retinaface_resnet50");
-    const guidanceRepeat = Number(inputs.guidance_repeat ?? this.guidance_repeat ?? 5);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
-    const guidanceSpace = String(inputs.guidance_space ?? this.guidance_space ?? "latent");
-    const guidanceTimeStart = Number(inputs.guidance_time_start ?? this.guidance_time_start ?? 1001);
-    const guidanceTimeStop = Number(inputs.guidance_time_stop ?? this.guidance_time_stop ?? -1);
-    const hasAligned = Boolean(inputs.has_aligned ?? this.has_aligned ?? false);
-    const onlyCenterFace = Boolean(inputs.only_center_face ?? this.only_center_face ?? false);
-    const reloadRestorationModel = Boolean(inputs.reload_restoration_model ?? this.reload_restoration_model ?? false);
-    const repeatTimes = Number(inputs.repeat_times ?? this.repeat_times ?? 1);
-    const restorationModelType = String(inputs.restoration_model_type ?? this.restoration_model_type ?? "general_scenes");
-    const seed = Number(inputs.seed ?? this.seed ?? 231);
-    const steps = Number(inputs.steps ?? this.steps ?? 50);
-    const superResolutionFactor = Number(inputs.super_resolution_factor ?? this.super_resolution_factor ?? 4);
-    const tileSize = Number(inputs.tile_size ?? this.tile_size ?? 512);
-    const tileStride = Number(inputs.tile_stride ?? this.tile_stride ?? 256);
-    const tiled = Boolean(inputs.tiled ?? this.tiled ?? false);
-    const upscalingModelType = String(inputs.upscaling_model_type ?? this.upscaling_model_type ?? "general_scenes");
-    const useGuidance = Boolean(inputs.use_guidance ?? this.use_guidance ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const backgroundUpsampler = String(this.background_upsampler ?? "RealESRGAN");
+    const backgroundUpsamplerTile = Number(this.background_upsampler_tile ?? 400);
+    const backgroundUpsamplerTileStride = Number(this.background_upsampler_tile_stride ?? 400);
+    const colorFixType = String(this.color_fix_type ?? "wavelet");
+    const disablePreprocessModel = Boolean(this.disable_preprocess_model ?? false);
+    const faceDetectionModel = String(this.face_detection_model ?? "retinaface_resnet50");
+    const guidanceRepeat = Number(this.guidance_repeat ?? 5);
+    const guidanceScale = Number(this.guidance_scale ?? 0);
+    const guidanceSpace = String(this.guidance_space ?? "latent");
+    const guidanceTimeStart = Number(this.guidance_time_start ?? 1001);
+    const guidanceTimeStop = Number(this.guidance_time_stop ?? -1);
+    const hasAligned = Boolean(this.has_aligned ?? false);
+    const onlyCenterFace = Boolean(this.only_center_face ?? false);
+    const reloadRestorationModel = Boolean(this.reload_restoration_model ?? false);
+    const repeatTimes = Number(this.repeat_times ?? 1);
+    const restorationModelType = String(this.restoration_model_type ?? "general_scenes");
+    const seed = Number(this.seed ?? 231);
+    const steps = Number(this.steps ?? 50);
+    const superResolutionFactor = Number(this.super_resolution_factor ?? 4);
+    const tileSize = Number(this.tile_size ?? 512);
+    const tileStride = Number(this.tile_stride ?? 256);
+    const tiled = Boolean(this.tiled ?? false);
+    const upscalingModelType = String(this.upscaling_model_type ?? "general_scenes");
+    const useGuidance = Boolean(this.use_guidance ?? false);
 
     const args: Record<string, unknown> = {
       "background_upsampler": backgroundUpsampler,
@@ -1537,7 +1537,7 @@ replicate, ai`;
       "use_guidance": useGuidance,
     };
 
-    const inputRef = (inputs.input ?? this.input) as Record<string, unknown> | undefined;
+    const inputRef = this.input as Record<string, unknown> | undefined;
     if (isRefSet(inputRef)) {
       const inputUrl = await assetToUrl(inputRef!, apiKey);
       if (inputUrl) args["input"] = inputUrl;
@@ -1571,11 +1571,11 @@ replicate, ai`;
   @prop({ type: "int", default: 12345, description: "Random seed. Leave blank to randomize the seed." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const choppingSize = String(inputs.chopping_size ?? this.chopping_size ?? 128);
-    const numSteps = String(inputs.num_steps ?? this.num_steps ?? 1);
-    const seed = Number(inputs.seed ?? this.seed ?? 12345);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const choppingSize = String(this.chopping_size ?? 128);
+    const numSteps = String(this.num_steps ?? 1);
+    const seed = Number(this.seed ?? 12345);
 
     const args: Record<string, unknown> = {
       "chopping_size": choppingSize,
@@ -1583,7 +1583,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const inPathRef = (inputs.in_path ?? this.in_path) as Record<string, unknown> | undefined;
+    const inPathRef = this.in_path as Record<string, unknown> | undefined;
     if (isRefSet(inPathRef)) {
       const inPathUrl = await assetToUrl(inPathRef!, apiKey);
       if (inPathUrl) args["in_path"] = inPathUrl;

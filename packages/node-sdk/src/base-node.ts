@@ -54,8 +54,9 @@ type BaseNodeKey =
  *
  * Usage:
  * ```ts
- * async process(inputs: NodeProps<this>): Promise<{ output: ImageRef }> {
- *   const prompt = inputs.prompt ?? this.prompt; // typed
+ * async process(): Promise<{ output: ImageRef }> {
+ *   // Properties are assigned before process() is called
+ *   const prompt = this.prompt; // typed via @prop
  * }
  * ```
  */
@@ -103,24 +104,30 @@ export abstract class BaseNode {
   assign(properties: Record<string, unknown>): void {
     const ctor = this.constructor as typeof BaseNode;
     const declared = ctor.getDeclaredProperties();
-    const defaults: Record<string, unknown> = {};
 
-    for (const prop of declared) {
-      if (Object.prototype.hasOwnProperty.call(prop.options, "default")) {
-        defaults[prop.name] = prop.options.default;
-      }
-    }
-
-    const merged = { ...defaults, ...properties };
     if (Object.prototype.hasOwnProperty.call(properties, "__node_id")) {
       this.__node_id = String(properties.__node_id ?? "");
     }
     if (Object.prototype.hasOwnProperty.call(properties, "__node_name")) {
       this.__node_name = String(properties.__node_name ?? "");
     }
-    for (const { name } of declared) {
-      if (Object.prototype.hasOwnProperty.call(merged, name)) {
-        (this as any)[name] = merged[name];
+    const declaredNames = new Set(declared.map((p) => p.name));
+    for (const { name, options } of declared) {
+      if (Object.prototype.hasOwnProperty.call(properties, name)) {
+        // Explicit value provided — use it
+        (this as any)[name] = properties[name];
+      } else if ((this as any)[name] === undefined && Object.prototype.hasOwnProperty.call(options, "default")) {
+        // No value on instance yet and a default exists — apply it
+        (this as any)[name] = options.default;
+      }
+    }
+    // For dynamic nodes, store undeclared properties in dynamicProps
+    if (ctor.isDynamic) {
+      const skip = new Set(["__node_id", "__node_name", "_secrets"]);
+      for (const [key, value] of Object.entries(properties)) {
+        if (!declaredNames.has(key) && !skip.has(key)) {
+          this.dynamicProps.set(key, value);
+        }
       }
     }
   }
@@ -153,15 +160,13 @@ export abstract class BaseNode {
   async finalize(): Promise<void> {}
 
   abstract process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>>;
 
   async *genProcess(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    yield await this.process(inputs, context);
+    yield await this.process(context);
   }
 
   /**
@@ -207,12 +212,26 @@ export abstract class BaseNode {
     return { ...inputs, _secrets: { ...secrets, ...((inputs._secrets as Record<string, string>) ?? {}) } };
   }
 
+  /** Get resolved secrets (available during process()). */
+  get _secrets(): Record<string, string> {
+    return this.getDynamic<Record<string, string>>("_secrets") ?? {};
+  }
+
   toExecutor(): NodeExecutor {
     const executor: NodeExecutor = {
-      process: async (inputs: Record<string, unknown>, context?: ProcessingContext) =>
-        this.process(await this._injectSecrets(inputs, context), context),
+      process: async (inputs: Record<string, unknown>, context?: ProcessingContext) => {
+        const merged = await this._injectSecrets(inputs, context);
+        const { _secrets, ...props } = merged;
+        if (_secrets) this.setDynamic("_secrets", _secrets);
+        this.assign(props);
+        return this.process(context);
+      },
       genProcess: async function* (this: BaseNode, inputs: Record<string, unknown>, context?: ProcessingContext) {
-        yield* this.genProcess(await this._injectSecrets(inputs, context), context);
+        const merged = await this._injectSecrets(inputs, context);
+        const { _secrets, ...props } = merged;
+        if (_secrets) this.setDynamic("_secrets", _secrets);
+        this.assign(props);
+        yield* this.genProcess(context);
       }.bind(this) as NodeExecutor["genProcess"],
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),

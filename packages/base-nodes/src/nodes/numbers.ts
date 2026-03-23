@@ -49,20 +49,11 @@ export class FilterNumberNode extends BaseNode {
     this._compareValue = Number(this.compare_value ?? 0);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("filter_type" in inputs) {
-      this._filterType = String(inputs.filter_type) as FilterNumberType;
-      return {};
-    }
-    if ("compare_value" in inputs) {
-      this._compareValue = Number(inputs.compare_value);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._filterType = String(this.filter_type ?? "greater_than") as FilterNumberType;
+    this._compareValue = Number(this.compare_value ?? 0);
 
-    const num = inputs.value;
+    const num = this.value;
     if (typeof num !== "number" || !Number.isFinite(num)) {
       return {};
     }
@@ -136,24 +127,12 @@ export class FilterNumberRangeNode extends BaseNode {
     this._inclusive = Boolean(this.inclusive ?? true);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("min_value" in inputs) {
-      this._minValue = Number(inputs.min_value);
-      return {};
-    }
-    if ("max_value" in inputs) {
-      this._maxValue = Number(inputs.max_value);
-      return {};
-    }
-    if ("inclusive" in inputs) {
-      this._inclusive = Boolean(inputs.inclusive);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._minValue = Number(this.min_value ?? 0);
+    this._maxValue = Number(this.max_value ?? 0);
+    this._inclusive = Boolean(this.inclusive ?? true);
 
-    const num = inputs.value;
+    const num = this.value;
     if (typeof num !== "number" || !Number.isFinite(num)) {
       return {};
     }

@@ -23,10 +23,10 @@ export class ConditionalSwitchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const condition = Boolean(inputs.condition ?? this.condition ?? false);
-    const ifTrue = inputs.if_true ?? this.if_true ?? null;
-    const ifFalse = inputs.if_false ?? this.if_false ?? null;
+  async process(): Promise<Record<string, unknown>> {
+    const condition = Boolean(this.condition ?? this.condition ?? false);
+    const ifTrue = this.if_true ?? this.if_true ?? null;
+    const ifFalse = this.if_false ?? this.if_false ?? null;
 
     return { output: condition ? ifTrue : ifFalse };
   }
@@ -58,11 +58,11 @@ export class LogicalOperatorNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = Boolean(inputs.a ?? this.a ?? false);
-    const b = Boolean(inputs.b ?? this.b ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const a = Boolean(this.a ?? this.a ?? false);
+    const b = Boolean(this.b ?? this.b ?? false);
     const operation = String(
-      inputs.operation ?? this.operation ?? "and"
+      this.operation ?? this.operation ?? "and"
     ) as LogicalOperator;
 
     switch (operation) {
@@ -96,8 +96,8 @@ export class NotNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: !(inputs.value ?? this.value ?? false) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: !(this.value ?? this.value ?? false) };
   }
 }
 
@@ -128,11 +128,11 @@ export class CompareNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = Number(inputs.a ?? this.a ?? 0);
-    const b = Number(inputs.b ?? this.b ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const a = Number(this.a ?? this.a ?? 0);
+    const b = Number(this.b ?? this.b ?? 0);
     const comparison = String(
-      inputs.comparison ?? this.comparison ?? "=="
+      this.comparison ?? this.comparison ?? "=="
     ) as ComparisonOperator;
 
     switch (comparison) {
@@ -168,8 +168,8 @@ export class IsNoneNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = inputs.value ?? this.value;
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.value ?? this.value;
     return { output: value === null || value === undefined };
   }
 }
@@ -191,9 +191,9 @@ export class IsInNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = inputs.value ?? this.value;
-    const options = (inputs.options ?? this.options ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.value ?? this.value;
+    const options = (this.options ?? this.options ?? []) as unknown[];
     return { output: Array.isArray(options) ? options.includes(value) : false };
   }
 }
@@ -212,8 +212,8 @@ export class AllNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
     return { output: values.every((v) => Boolean(v)) };
   }
 }
@@ -232,8 +232,8 @@ export class SomeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? this.values ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? this.values ?? []) as unknown[];
     return { output: values.some((v) => Boolean(v)) };
   }
 }

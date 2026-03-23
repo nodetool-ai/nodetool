@@ -50,9 +50,9 @@ export class CollectionNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const name = String(inputs.name ?? this.name ?? "");
-    const embeddingModel = (inputs.embedding_model ?? this.embedding_model ?? { repo_id: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const name = String(this.name ?? this.name ?? "");
+    const embeddingModel = (this.embedding_model ?? this.embedding_model ?? { repo_id: "" }) as {
       repo_id: string;
     };
 
@@ -91,8 +91,8 @@ export class CountNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
@@ -134,16 +134,16 @@ export class GetDocumentsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const ids = (inputs.ids ?? this.ids ?? []) as string[];
-    const limit = Number(inputs.limit ?? this.limit ?? 100);
-    const offset = Number(inputs.offset ?? this.offset ?? 0);
+    const ids = (this.ids ?? this.ids ?? []) as string[];
+    const limit = Number(this.limit ?? this.limit ?? 100);
+    const offset = Number(this.offset ?? this.offset ?? 0);
 
     const collection = await getCollection(name);
     const result = await collection.get({
@@ -180,14 +180,14 @@ export class PeekNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const limit = Number(inputs.limit ?? this.limit ?? 100);
+    const limit = Number(this.limit ?? this.limit ?? 100);
 
     const collection = await getCollection(name);
     const result = await collection.peek({ limit });
@@ -225,20 +225,20 @@ export class IndexImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const image = (inputs.image ?? this.image ?? {}) as Record<string, unknown>;
-    const indexId = String(inputs.index_id ?? this.index_id ?? "");
-    const metadataRaw = (inputs.metadata ?? this.metadata ?? {}) as Record<
+    const image = (this.image ?? this.image ?? {}) as Record<string, unknown>;
+    const indexId = String(this.index_id ?? this.index_id ?? "");
+    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
       string,
       unknown
     >;
-    const doUpsert = Boolean(inputs.upsert ?? this.upsert ?? false);
+    const doUpsert = Boolean(this.upsert ?? this.upsert ?? false);
 
     // Resolve document ID: prefer explicit index_id, then document_id field on image ref
     const resolvedId =
@@ -319,16 +319,16 @@ export class IndexEmbeddingNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const embeddingRaw = inputs.embedding ?? this.embedding;
-    const indexId = inputs.index_id ?? this.index_id ?? "";
-    const metadataRaw = inputs.metadata ?? this.metadata ?? {};
+    const embeddingRaw = this.embedding ?? this.embedding;
+    const indexId = this.index_id ?? this.index_id ?? "";
+    const metadataRaw = this.metadata ?? this.metadata ?? {};
 
     // embeddingRaw may be a flat number[] (single embedding) or number[][] (batch)
     // or an NPArray-like object with a `data` field
@@ -446,18 +446,18 @@ export class IndexTextChunkNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const documentId = String(inputs.document_id ?? this.document_id ?? "");
+    const documentId = String(this.document_id ?? this.document_id ?? "");
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
-    const text = String(inputs.text ?? this.text ?? "");
-    const metadataRaw = (inputs.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
+    const text = String(this.text ?? this.text ?? "");
+    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
 
     const collection = await getCollection(name);
     await collection.add({
@@ -510,21 +510,21 @@ export class IndexAggregatedTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const document = String(inputs.document ?? this.document ?? "");
-    const documentId = String(inputs.document_id ?? this.document_id ?? "");
-    const metadataRaw = (inputs.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
-    const textChunksRaw = (inputs.text_chunks ?? this.text_chunks ?? []) as (
+    const document = String(this.document ?? this.document ?? "");
+    const documentId = String(this.document_id ?? this.document_id ?? "");
+    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<string, unknown>;
+    const textChunksRaw = (this.text_chunks ?? this.text_chunks ?? []) as (
       | string
       | { text: string }
     )[];
-    const aggregation = String(inputs.aggregation ?? this.aggregation ?? "mean") as AggregationMethod;
+    const aggregation = String(this.aggregation ?? this.aggregation ?? "mean") as AggregationMethod;
 
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
     if (!document.trim()) throw new Error("The document cannot be empty");
@@ -626,17 +626,17 @@ export class IndexStringNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const documentId = String(inputs.document_id ?? this.document_id ?? "");
+    const documentId = String(this.document_id ?? this.document_id ?? "");
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
-    const text = String(inputs.text ?? this.text ?? "");
+    const text = String(this.text ?? this.text ?? "");
 
     const collection = await getCollection(name);
     await collection.add({
@@ -684,18 +684,18 @@ export class QueryImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const image = (inputs.image ?? this.image ?? {}) as Record<string, unknown>;
+    const image = (this.image ?? this.image ?? {}) as Record<string, unknown>;
     const uri = String(image.uri ?? image.asset_id ?? "");
     if (!uri) throw new Error("Image is not connected (no uri or asset_id)");
 
-    const nResults = Number(inputs.n_results ?? this.n_results ?? 1);
+    const nResults = Number(this.n_results ?? this.n_results ?? 1);
 
     const collection = await getCollection(name);
     const result = await collection.query({
@@ -759,15 +759,15 @@ export class QueryTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const text = String(inputs.text ?? this.text ?? "");
-    const nResults = Number(inputs.n_results ?? this.n_results ?? 1);
+    const text = String(this.text ?? this.text ?? "");
+    const nResults = Number(this.n_results ?? this.n_results ?? 1);
 
     const collection = await getCollection(name);
     const result = await collection.query({
@@ -840,9 +840,9 @@ export class RemoveOverlapNode extends BaseNode {
     return 0;
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const documents = (inputs.documents ?? this.documents ?? []) as string[];
-    const minOverlapWords = Number(inputs.min_overlap_words ?? this.min_overlap_words ?? 2);
+  async process(): Promise<Record<string, unknown>> {
+    const documents = (this.documents ?? this.documents ?? []) as string[];
+    const minOverlapWords = Number(this.min_overlap_words ?? this.min_overlap_words ?? 2);
 
     if (documents.length === 0) {
       return { output: { documents: [] } };
@@ -922,19 +922,19 @@ export class HybridSearchNode extends BaseNode {
     return { $contains: queryTokens[0] };
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const collectionInput = (inputs.collection ?? this.collection ?? { name: "" }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const collectionInput = (this.collection ?? this.collection ?? { name: "" }) as {
       name: string;
     };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const text = String(inputs.text ?? this.text ?? "");
+    const text = String(this.text ?? this.text ?? "");
     if (!text.trim()) throw new Error("Search text cannot be empty");
 
-    const nResults = Number(inputs.n_results ?? this.n_results ?? 5);
-    const kConstant = Number(inputs.k_constant ?? this.k_constant ?? 60.0);
-    const minKeywordLength = Number(inputs.min_keyword_length ?? this.min_keyword_length ?? 3);
+    const nResults = Number(this.n_results ?? this.n_results ?? 5);
+    const kConstant = Number(this.k_constant ?? this.k_constant ?? 60.0);
+    const minKeywordLength = Number(this.min_keyword_length ?? this.min_keyword_length ?? 3);
 
     const collection = await getCollection(name);
 

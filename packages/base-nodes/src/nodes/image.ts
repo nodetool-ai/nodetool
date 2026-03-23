@@ -86,10 +86,9 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
 }
 
 function getModelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = (inputs.model ?? props.model ?? {}) as Record<string, unknown>;
+  const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -161,8 +160,8 @@ export class LoadImageFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     const meta = await metadataFor(data);
     return {
@@ -213,8 +212,8 @@ export class LoadImageFolderNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile()) continue;
@@ -265,12 +264,12 @@ export class SaveImageFileImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const filename = dateName(String(inputs.filename ?? this.filename ?? "image.png"));
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const filename = dateName(String(this.filename ?? "image.png"));
     const p = filePath(path.resolve(folder, filename));
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, imageBytes(inputs.image ?? this.image));
+    await fs.writeFile(p, imageBytes(this.image));
     return { output: p };
   }
 }
@@ -301,10 +300,10 @@ export class LoadImageAssetsNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const loader = new LoadImageFolderNode();
-    loader.assign({ folder: inputs.folder ?? this.folder ?? "." });
-    for await (const item of loader.genProcess({})) {
+    loader.assign({ folder: this.folder ?? "." });
+    for await (const item of loader.genProcess()) {
       yield item;
     }
   }
@@ -342,12 +341,12 @@ export class SaveImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const name = dateName(String(inputs.name ?? this.name ?? "image.png"));
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const name = dateName(String(this.name ?? "image.png"));
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = imageBytes(inputs.image ?? this.image);
+    const bytes = imageBytes(this.image);
     await fs.writeFile(full, bytes);
     return { output: imageRef(bytes, { uri: `file://${full}` }) };
   }
@@ -377,8 +376,8 @@ export class GetMetadataNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image);
     const meta = await metadataFor(bytes);
     return {
@@ -413,8 +412,8 @@ export class BatchToListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const batch = inputs.batch ?? this.batch ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const batch = this.batch ?? [];
     if (Array.isArray(batch)) return { output: batch };
     return { output: [batch] };
   }
@@ -432,13 +431,14 @@ export class ImagesToListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const explicit = Array.isArray(inputs.images)
-      ? inputs.images as unknown[]
+  async process(): Promise<Record<string, unknown>> {
+    const images = this.getDynamic("images");
+    const explicit = Array.isArray(images)
+      ? images as unknown[]
       : [];
     const out = [...explicit];
-    const a = inputs.image_a;
-    const b = inputs.image_b;
+    const a = this.getDynamic("image_a");
+    const b = this.getDynamic("image_b");
     if (a) out.push(a);
     if (b) out.push(b);
     return { output: out };
@@ -446,11 +446,11 @@ export class ImagesToListNode extends BaseNode {
 }
 
 abstract class TransformImageNode extends BaseNode {
-  protected transformMeta(inputs: Record<string, unknown>): Record<string, unknown> {
-    const image = (inputs.image ?? {}) as ImageRefLike;
+  protected transformMeta(): Record<string, unknown> {
+    const image = ((this as any).image ?? {}) as ImageRefLike;
     return {
-      width: Number(inputs.width ?? image.width ?? 0) || null,
-      height: Number(inputs.height ?? image.height ?? 0) || null,
+      width: Number((this as any).width ?? image.width ?? 0) || null,
+      height: Number((this as any).height ?? image.height ?? 0) || null,
     };
   }
 }
@@ -487,11 +487,11 @@ export class PasteNode extends TransformImageNode {
   @prop({ type: "int", default: 0, title: "Top", description: "The top coordinate.", min: 0, max: 4096 })
   declare top: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
-    const paste = (inputs.paste ?? this.paste ?? {}) as ImageRefLike;
-    const left = Math.max(0, Number(inputs.left ?? this.left ?? 0));
-    const top = Math.max(0, Number(inputs.top ?? this.top ?? 0));
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const paste = (this.paste ?? {}) as ImageRefLike;
+    const left = Math.max(0, Number(this.left ?? 0));
+    const top = Math.max(0, Number(this.top ?? 0));
     const baseBytes = await imageBytesAsync(image);
     const overlayBytes = await imageBytesAsync(paste);
 
@@ -499,7 +499,7 @@ export class PasteNode extends TransformImageNode {
       return {
         output: imageRef(baseBytes, {
           uri: image.uri ?? "",
-          ...this.transformMeta(inputs),
+          ...this.transformMeta(),
         }),
       };
     }
@@ -521,7 +521,7 @@ export class PasteNode extends TransformImageNode {
       return {
         output: imageRef(baseBytes, {
           uri: image.uri ?? "",
-          ...this.transformMeta(inputs),
+          ...this.transformMeta(),
         }),
       };
     }
@@ -548,11 +548,11 @@ export class ScaleNode extends TransformImageNode {
   @prop({ type: "float", default: 1, title: "Scale", description: "The scale factor.", min: 0, max: 10 })
   declare scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
-    const requestedScale = Number(inputs.scale ?? this.scale ?? 0);
-    const targetWidth = Number(inputs.width ?? 0);
-    const targetHeight = Number(inputs.height ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const requestedScale = Number(this.scale ?? 0);
+    const targetWidth = 0;
+    const targetHeight = 0;
     const scale =
       requestedScale > 0
         ? requestedScale
@@ -614,10 +614,10 @@ export class ResizeNode extends TransformImageNode {
   @prop({ type: "int", default: 512, title: "Height", description: "The target height.", min: 0, max: 4096 })
   declare height: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
-    const width = Number(inputs.width ?? this.width ?? image.width ?? 0) || null;
-    const height = Number(inputs.height ?? this.height ?? image.height ?? 0) || null;
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const width = Number(this.width ?? image.width ?? 0) || null;
+    const height = Number(this.height ?? image.height ?? 0) || null;
     const output = (await transformImage(image, (instance) =>
       instance.resize(width ?? undefined, height ?? undefined)
     )) as Record<string, unknown>;
@@ -660,15 +660,15 @@ export class CropNode extends TransformImageNode {
   @prop({ type: "int", default: 512, title: "Bottom", description: "The bottom coordinate.", min: 0, max: 4096 })
   declare bottom: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
-    const left = Math.max(0, Number(inputs.left ?? this.left ?? 0));
-    const top = Math.max(0, Number(inputs.top ?? this.top ?? 0));
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const left = Math.max(0, Number(this.left ?? 0));
+    const top = Math.max(0, Number(this.top ?? 0));
     const right = Number(
-      inputs.right ?? this.right ?? inputs.width ?? image.width ?? 0
+      this.right ?? image.width ?? 0
     );
     const bottom = Number(
-      inputs.bottom ?? this.bottom ?? inputs.height ?? image.height ?? 0
+      this.bottom ?? image.height ?? 0
     );
     const width = Math.max(1, right - left);
     const height = Math.max(1, bottom - top);
@@ -708,10 +708,10 @@ export class FitNode extends TransformImageNode {
   @prop({ type: "int", default: 512, title: "Height", description: "Height to fit to.", min: 1, max: 4096 })
   declare height: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
-    const width = Math.max(1, Number(inputs.width ?? this.width ?? image.width ?? 512));
-    const height = Math.max(1, Number(inputs.height ?? this.height ?? image.height ?? 512));
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const width = Math.max(1, Number(this.width ?? image.width ?? 512));
+    const height = Math.max(1, Number(this.height ?? image.height ?? 512));
     const output = (await transformImage(image, (instance) =>
       instance.resize(width, height, { fit: "cover", position: "centre" })
     )) as Record<string, unknown>;
@@ -782,13 +782,12 @@ export class TextToImageNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const width = Number(inputs.width ?? this.width ?? 512);
-    const height = Number(inputs.height ?? this.height ?? 512);
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const prompt = String(this.prompt ?? "");
+    const width = Number(this.width ?? 512);
+    const height = Number(this.height ?? 512);
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const output = (await context.runProviderPrediction({
         provider: providerId,
@@ -798,8 +797,8 @@ export class TextToImageNode extends BaseNode {
           prompt,
           width,
           height,
-          negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
-          quality: inputs.quality,
+          negative_prompt: this.negative_prompt,
+          quality: (this as any).quality,
         },
       })) as Uint8Array;
       const meta = await metadataFor(output);
@@ -893,12 +892,11 @@ export class ImageToImageNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+    const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image);
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const output = (await context.runProviderPrediction({
         provider: providerId,
@@ -906,11 +904,11 @@ export class ImageToImageNode extends BaseNode {
         model: modelId,
         params: {
           image: bytes,
-          prompt: String(inputs.prompt ?? this.prompt ?? ""),
-          negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
-          target_width: inputs.target_width ?? this.target_width,
-          target_height: inputs.target_height ?? this.target_height,
-          quality: inputs.quality,
+          prompt: String(this.prompt ?? ""),
+          negative_prompt: this.negative_prompt,
+          target_width: this.target_width,
+          target_height: this.target_height,
+          quality: (this as any).quality,
         },
       })) as Uint8Array;
       const meta = await metadataFor(output);

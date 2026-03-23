@@ -113,10 +113,9 @@ function getCategories(value: unknown): string[] {
 }
 
 function getModelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = ((inputs.model ?? props.model ?? {}) as LanguageModelLike) ?? {};
+  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -986,12 +985,11 @@ export class SummarizerNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const maxSentences = Number(inputs.max_sentences ?? 3);
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const text = asText(this.text ?? this.text ?? "");
+    const maxSentences = Number((this as any).max_sentences ?? 3);
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const result = await generateProviderMessage(provider, {
@@ -1029,13 +1027,13 @@ export class CreateThreadNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const requested = String(inputs.thread_id ?? this.thread_id ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const requested = String(this.thread_id ?? this.thread_id ?? "").trim();
     if (requested) {
       if (!THREAD_STORE.has(requested)) {
         THREAD_STORE.set(requested, {
           id: requested,
-          title: String(inputs.title ?? this.title ?? "Agent Conversation"),
+          title: String(this.title ?? this.title ?? "Agent Conversation"),
           messages: [],
         });
       }
@@ -1045,7 +1043,7 @@ export class CreateThreadNode extends BaseNode {
     const id = makeThreadId();
     THREAD_STORE.set(id, {
       id,
-      title: String(inputs.title ?? this.title ?? "Agent Conversation"),
+      title: String(this.title ?? this.title ?? "Agent Conversation"),
       messages: [],
     });
     return { thread_id: id };
@@ -1203,16 +1201,15 @@ export class ExtractorNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const text = asText(this.text ?? this.text ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? 1024),
+        maxTokens: Number((this as any).max_tokens ?? 1024),
         responseFormat: { type: "json_object" },
         messages: [
           { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
@@ -1385,21 +1382,20 @@ export class ClassifierNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const categories = getCategories(inputs.categories ?? this.categories);
+    const text = asText(this.text ?? this.text ?? "");
+    const categories = getCategories(this.categories ?? this.categories);
     if (categories.length < 2) {
       throw new Error("At least 2 categories are required");
     }
 
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? 256),
+        maxTokens: Number((this as any).max_tokens ?? 256),
         responseFormat: {
           type: "json_schema",
           json_schema: {
@@ -1972,11 +1968,8 @@ export class AgentNode extends BaseNode {
 
 
 
-  async *genProcess(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const { providerId, modelId } = getModelConfig(this.serialize());
     log.info("AgentNode starting", {
       nodeId: this.__node_id ?? null,
       providerId,
@@ -1984,14 +1977,14 @@ export class AgentNode extends BaseNode {
       hasContext: Boolean(context),
       hasGetProvider: Boolean(context && typeof context.getProvider === "function"),
       propKeys: Object.keys(this.serialize()),
-      inputKeys: Object.keys(inputs),
+      inputKeys: Object.keys(this.serialize()),
     });
     if (!providerId || !modelId) {
       log.error("AgentNode missing model selection", {
         nodeId: this.__node_id ?? null,
         providerId,
         modelId,
-        modelInput: inputs.model ?? null,
+        modelInput: this.model ?? null,
         modelProp: this.model ?? null,
       });
       throw new Error("Select a model");
@@ -2005,22 +1998,22 @@ export class AgentNode extends BaseNode {
       throw new Error("Processing context is required");
     }
 
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const system = asText(inputs.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const image = inputs.image ?? this.image;
-    const audio = inputs.audio ?? this.audio;
-    const historyInput = inputs.history ?? this.history;
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const image = this.image ?? this.image;
+    const audio = this.audio ?? this.audio;
+    const historyInput = this.history ?? this.history;
     const history = Array.isArray(historyInput)
       ? historyInput.map((item) => normalizeMessage(item)).filter((item): item is Message => item !== null)
       : [];
-    const threadId = String(inputs.thread_id ?? this.thread_id ?? "").trim();
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const tools: ToolLike[] = normalizeTools(inputs.tools ?? this.tools);
+    const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
+    const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
+    const tools: ToolLike[] = normalizeTools(this.tools ?? this.tools);
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
     // call controlled nodes as tools.
-    const controlContext = inputs._control_context;
+    const controlContext = (this as any)._control_context;
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       tools.push(...controlTools);
@@ -2375,14 +2368,13 @@ export class AgentNode extends BaseNode {
   }
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     let lastText = "";
     let lastAudio: Record<string, unknown> | null = null;
     let structuredResult: Record<string, unknown> | null = null;
 
-    for await (const item of this.genProcess(inputs, context)) {
+    for await (const item of this.genProcess(context)) {
       if (
         "chunk" in item ||
         "thinking" in item ||
@@ -2557,16 +2549,15 @@ export class ResearchAgentNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const query = asText(inputs.query ?? inputs.prompt ?? this.objective ?? "");
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const query = asText((this as any).query ?? (this as any).prompt ?? this.objective ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 2048),
+        maxTokens: Number(this.max_tokens ?? this.max_tokens ?? 2048),
         responseFormat: {
           type: "json_schema",
           json_schema: {

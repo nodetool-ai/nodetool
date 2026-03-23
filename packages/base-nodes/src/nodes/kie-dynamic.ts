@@ -159,16 +159,16 @@ export class KieAINode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const modelInfo = String(inputs.model_info ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const modelInfo = String(this.model_info ?? "").trim();
     if (!modelInfo) throw new Error("model_info is empty. Paste kie.ai API documentation.");
-    const apiKey = getApiKey(inputs);
+    const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
     // Build input params from dynamic properties
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
-      const val = inputs[p.name];
+      const val = (this as any)[p.name];
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${p.name}`);
         continue;

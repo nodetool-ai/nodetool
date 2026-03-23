@@ -142,10 +142,10 @@ export class BitcrushNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const bitDepth = Number(inputs.bit_depth ?? this.bit_depth ?? 8);
-    const srrFactor = Number(inputs.sample_rate_reduction ?? this.sample_rate_reduction ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const bitDepth = Number(this.bit_depth ?? 8);
+    const srrFactor = Number(this.sample_rate_reduction ?? 1);
 
     if (!audio.data) return { output: audio };
 
@@ -199,12 +199,12 @@ export class CompressNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(inputs.threshold ?? this.threshold ?? -20);
-    const ratio = Number(inputs.ratio ?? this.ratio ?? 4);
-    const attackMs = Number(inputs.attack ?? this.attack ?? 5);
-    const releaseMs = Number(inputs.release ?? this.release ?? 50);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const thresholdDb = Number(this.threshold ?? -20);
+    const ratio = Number(this.ratio ?? 4);
+    const attackMs = Number(this.attack ?? 5);
+    const releaseMs = Number(this.release ?? 50);
 
     if (!audio.data) return { output: audio };
 
@@ -265,9 +265,9 @@ export class DistortionNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const driveDb = Number(inputs.drive_db ?? this.drive_db ?? 25);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const driveDb = Number(this.drive_db ?? 25);
 
     if (!audio.data) return { output: audio };
 
@@ -314,10 +314,10 @@ export class LimiterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(inputs.threshold_db ?? this.threshold_db ?? -2);
-    const releaseMs = Number(inputs.release_ms ?? this.release_ms ?? 250);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const thresholdDb = Number(this.threshold_db ?? -2);
+    const releaseMs = Number(this.release_ms ?? 250);
 
     if (!audio.data) return { output: audio };
 
@@ -381,12 +381,12 @@ export class ReverbNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const roomScale = Number(inputs.room_scale ?? this.room_scale ?? 0.5);
-    const damping = Number(inputs.damping ?? this.damping ?? 0.5);
-    const wetLevel = Number(inputs.wet_level ?? this.wet_level ?? 0.15);
-    const dryLevel = Number(inputs.dry_level ?? this.dry_level ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const roomScale = Number(this.room_scale ?? 0.5);
+    const damping = Number(this.damping ?? 0.5);
+    const wetLevel = Number(this.wet_level ?? 0.15);
+    const dryLevel = Number(this.dry_level ?? 0.5);
 
     if (!audio.data) return { output: audio };
 
@@ -485,9 +485,9 @@ export class PitchShiftNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const semitones = Number(inputs.semitones ?? this.semitones ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const semitones = Number(this.semitones ?? 0);
 
     if (!audio.data) return { output: audio };
     if (semitones === 0) {
@@ -587,9 +587,9 @@ export class TimeStretchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const rate = Number(inputs.rate ?? this.rate ?? 1.0);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const rate = Number(this.rate ?? 1.0);
 
     if (!audio.data) return { output: audio };
     if (rate === 1.0) {
@@ -689,11 +689,11 @@ export class NoiseGateNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (_inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const thresholdDb = Number(_inputs.threshold_db ?? this.threshold_db ?? -50);
-    const attackMs = Math.max(0.1, Number(_inputs.attack_ms ?? this.attack_ms ?? 1));
-    const releaseMs = Math.max(1, Number(_inputs.release_ms ?? this.release_ms ?? 100));
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const thresholdDb = Number(this.threshold_db ?? -50);
+    const attackMs = Math.max(0.1, Number(this.attack_ms ?? 1));
+    const releaseMs = Math.max(1, Number(this.release_ms ?? 100));
 
     if (!audio.data) return { output: audio };
 
@@ -764,13 +764,13 @@ export class PhaserNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audio = (_inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
-    const rateHz = Number(_inputs.rate_hz ?? this.rate_hz ?? 1);
-    const depth = Number(_inputs.depth ?? this.depth ?? 0.5);
-    const centreFreqHz = Number(_inputs.centre_frequency_hz ?? this.centre_frequency_hz ?? 1300);
-    const feedback = Number(_inputs.feedback ?? this.feedback ?? 0);
-    const mix = Number(_inputs.mix ?? this.mix ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
+    const rateHz = Number(this.rate_hz ?? 1);
+    const depth = Number(this.depth ?? 0.5);
+    const centreFreqHz = Number(this.centre_frequency_hz ?? 1300);
+    const feedback = Number(this.feedback ?? 0);
+    const mix = Number(this.mix ?? 0.5);
 
     if (!audio.data) return { output: audio };
 

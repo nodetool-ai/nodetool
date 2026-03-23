@@ -55,8 +55,8 @@ abstract class HTTPBaseLibNode extends BaseNode {
 
 
 
-  protected readUrl(inputs: Record<string, unknown>): string {
-    return String(inputs.url ?? this.url ?? "");
+  protected readUrl(): string {
+    return String(this.url ?? "");
   }
 }
 
@@ -72,8 +72,8 @@ export class GetRequestLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs));
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl());
     const text = await res.text();
     return { output: text };
   }
@@ -99,9 +99,9 @@ export class PostRequestLibNode extends HTTPBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = String(inputs.data ?? this.data ?? "");
-    const res = await fetchResponse(this.readUrl(inputs), { method: "POST", body: data });
+  async process(): Promise<Record<string, unknown>> {
+    const data = String(this.data ?? "");
+    const res = await fetchResponse(this.readUrl(), { method: "POST", body: data });
     return { output: await res.text() };
   }
 }
@@ -126,9 +126,9 @@ export class PutRequestLibNode extends HTTPBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = String(inputs.data ?? this.data ?? "");
-    const res = await fetchResponse(this.readUrl(inputs), { method: "PUT", body: data });
+  async process(): Promise<Record<string, unknown>> {
+    const data = String(this.data ?? "");
+    const res = await fetchResponse(this.readUrl(), { method: "PUT", body: data });
     return { output: await res.text() };
   }
 }
@@ -145,8 +145,8 @@ export class DeleteRequestLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), { method: "DELETE" });
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), { method: "DELETE" });
     return { output: await res.text() };
   }
 }
@@ -162,8 +162,8 @@ export class HeadRequestLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), { method: "HEAD", redirect: "follow" });
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), { method: "HEAD", redirect: "follow" });
     const out: Record<string, string> = {};
     res.headers.forEach((v, k) => {
       out[k] = v;
@@ -192,8 +192,8 @@ export class FetchPageLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
     try {
       const res = await fetchResponse(url);
       return { html: await res.text(), success: true, error_message: null };
@@ -225,11 +225,11 @@ export class ImageDownloaderLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const images = Array.isArray(inputs.images ?? this.images)
-      ? ((inputs.images ?? this.images ?? []) as unknown[]).map(String)
+  async process(): Promise<Record<string, unknown>> {
+    const images = Array.isArray(this.images)
+      ? ((this.images ?? []) as unknown[]).map(String)
       : [];
-    const baseUrl = String(inputs.base_url ?? this.base_url ?? "");
+    const baseUrl = String(this.base_url ?? "");
     const urls = images.map((u) => new URL(u, baseUrl || undefined).toString());
 
     const downloaded: Record<string, unknown>[] = [];
@@ -267,8 +267,8 @@ export class GetRequestBinaryLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs));
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl());
     return { output: base64FromBytes(new Uint8Array(await res.arrayBuffer())) };
   }
 }
@@ -285,8 +285,8 @@ export class GetRequestDocumentLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = this.readUrl(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const url = this.readUrl();
     const res = await fetchResponse(url);
     const bytes = new Uint8Array(await res.arrayBuffer());
     return { output: documentRefFromBytes(bytes, url) };
@@ -313,10 +313,10 @@ export class PostRequestBinaryLibNode extends HTTPBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = inputs.data ?? this.data ?? "";
+  async process(): Promise<Record<string, unknown>> {
+    const data = this.data ?? "";
     const body = typeof data === "string" ? data : JSON.stringify(data);
-    const res = await fetchResponse(this.readUrl(inputs), { method: "POST", body });
+    const res = await fetchResponse(this.readUrl(), { method: "POST", body });
     const bytes = new Uint8Array(await res.arrayBuffer());
     return { output: base64FromBytes(bytes) };
   }
@@ -360,11 +360,11 @@ export class DownloadDataframeLibNode extends HTTPBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = this.readUrl(inputs);
-    const fileFormat = String(inputs.file_format ?? this.file_format ?? "csv");
-    const delimiter = String(inputs.delimiter ?? this.delimiter ?? ",");
-    const columnsObj = (inputs.columns ?? this.columns ?? { columns: [] }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const url = this.readUrl();
+    const fileFormat = String(this.file_format ?? "csv");
+    const delimiter = String(this.delimiter ?? ",");
+    const columnsObj = (this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string; data_type: string }>;
     };
     const targetColumns = columnsObj.columns ?? [];
@@ -443,9 +443,9 @@ export class FilterValidURLsLibNode extends HTTPBaseLibNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const urls = Array.isArray(inputs.urls ?? this.urls)
-      ? ((inputs.urls ?? this.urls ?? []) as unknown[]).map(String)
+  async process(): Promise<Record<string, unknown>> {
+    const urls = Array.isArray(this.urls)
+      ? ((this.urls ?? []) as unknown[]).map(String)
       : [];
 
     const valid: string[] = [];
@@ -486,11 +486,11 @@ export class DownloadFilesLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const urls = Array.isArray(inputs.urls ?? this.urls)
-      ? ((inputs.urls ?? this.urls ?? []) as unknown[]).map(String)
+  async process(): Promise<Record<string, unknown>> {
+    const urls = Array.isArray(this.urls)
+      ? ((this.urls ?? []) as unknown[]).map(String)
       : [];
-    const outputFolder = String(inputs.output_folder ?? this.output_folder ?? "downloads");
+    const outputFolder = String(this.output_folder ?? "downloads");
     const expandedFolder = outputFolder.startsWith("~/")
       ? path.join(process.env.HOME ?? "", outputFolder.slice(2))
       : outputFolder;
@@ -539,8 +539,8 @@ abstract class JSONRequestBaseLibNode extends HTTPBaseLibNode {
 
 
 
-  protected payload(inputs: Record<string, unknown>): Record<string, unknown> {
-    const data = inputs.data ?? this.data ?? {};
+  protected payload(): Record<string, unknown> {
+    const data = this.data ?? {};
     return data && typeof data === "object" && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
@@ -564,11 +564,11 @@ export class JSONPostRequestLibNode extends JSONRequestBaseLibNode {
   @prop({ type: "dict", default: {}, title: "Data", description: "The JSON data to send in the POST request." })
   declare data: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), {
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(this.payload(inputs)),
+      body: JSON.stringify(this.payload()),
     });
     return { output: (await res.json()) as Record<string, unknown> };
   }
@@ -591,11 +591,11 @@ export class JSONPutRequestLibNode extends JSONRequestBaseLibNode {
   @prop({ type: "dict", default: {}, title: "Data", description: "The JSON data to send in the PUT request." })
   declare data: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), {
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(this.payload(inputs)),
+      body: JSON.stringify(this.payload()),
     });
     return { output: (await res.json()) as Record<string, unknown> };
   }
@@ -618,11 +618,11 @@ export class JSONPatchRequestLibNode extends JSONRequestBaseLibNode {
   @prop({ type: "dict", default: {}, title: "Data", description: "The JSON data to send in the PATCH request." })
   declare data: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), {
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(this.payload(inputs)),
+      body: JSON.stringify(this.payload()),
     });
     return { output: (await res.json()) as Record<string, unknown> };
   }
@@ -639,8 +639,8 @@ export class JSONGetRequestLibNode extends HTTPBaseLibNode {
   @prop({ type: "str", default: "", title: "Url", description: "The URL to make the request to." })
   declare url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const res = await fetchResponse(this.readUrl(inputs), {
+  async process(): Promise<Record<string, unknown>> {
+    const res = await fetchResponse(this.readUrl(), {
       headers: { Accept: "application/json" },
     });
     return { output: (await res.json()) as Record<string, unknown> };

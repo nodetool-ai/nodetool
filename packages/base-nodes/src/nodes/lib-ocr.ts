@@ -86,14 +86,12 @@ export class PaddleOCRLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as {
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as {
       uri?: string;
       data?: string | null;
     };
-    const language = String(inputs.language ?? this.language ?? "en") as OCRLanguage;
+    const language = String(this.language ?? "en") as OCRLanguage;
 
     const Tesseract = await import("tesseract.js");
     const createWorker = Tesseract.createWorker;
