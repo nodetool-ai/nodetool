@@ -46,7 +46,7 @@ export class SelectTool implements ToolHandler {
     return true;
   }
 
-  onMove(ctx: ToolContext, event: ToolPointerEvent): void {
+  onMove(ctx: ToolContext, event: ToolPointerEvent, _coalescedPoints?: ToolPointerEvent[]): void {
     const pt = event.point;
 
     if (
@@ -71,7 +71,7 @@ export class SelectTool implements ToolHandler {
     }
   }
 
-  onUp(ctx: ToolContext): void {
+  onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
     // Finalize selection movement
     if (this.isMovingSelection) {
       this.isMovingSelection = false;

@@ -86,6 +86,14 @@ export class PaintSession {
     }
 
     this.layer = activeLayer;
+
+    // Reconcile layer transform before painting so offset is always zero
+    const tx = activeLayer.transform?.x ?? 0;
+    const ty = activeLayer.transform?.y ?? 0;
+    if ((tx !== 0 || ty !== 0) && ctx.onLayerReconcile) {
+      ctx.onLayerReconcile(activeLayer.id);
+    }
+
     this.mapper = new CoordinateMapper({
       layerTransform: { x: 0, y: 0 } // After reconcile, offset is always 0
     });
@@ -165,7 +173,7 @@ export class PaintSession {
 
     // For direct mode, notify runtime that layer pixels changed
     if (this.engine.bufferMode === "direct") {
-      this.invalidateRuntimeLayer(activeLayer.id);
+      ctx.invalidateLayer?.(activeLayer.id);
     }
     ctx.redraw();
 
@@ -235,7 +243,7 @@ export class PaintSession {
 
     // For direct mode, notify runtime that layer pixels changed
     if (this.engine.bufferMode === "direct") {
-      this.invalidateRuntimeLayer(this.layer.id);
+      ctx.invalidateLayer?.(this.layer.id);
     }
 
     // ── Dirty-rect compositing ──────────────────────────────────────
@@ -293,6 +301,8 @@ export class PaintSession {
         layerCtx.restore();
       }
       ctx.activeStrokeRef.current = null;
+      // Notify runtime that layer pixels changed after merge
+      ctx.invalidateLayer?.(this.layer.id);
     }
 
     // ── Alpha-lock: restore original alpha channel ──────────────────
@@ -437,11 +447,4 @@ export class PaintSession {
     }
   }
 
-  /** Notify the runtime that a layer's CPU-side pixels have changed. */
-  private invalidateRuntimeLayer(layerId: string): void {
-    // The ToolContext redraw methods already handle runtime invalidation
-    // for WebGPU. For Canvas2DRuntime this is a no-op since compositing
-    // reads directly from the layer canvas. This hook exists so we can
-    // add explicit invalidateLayer() calls if needed in the future.
-  }
 }

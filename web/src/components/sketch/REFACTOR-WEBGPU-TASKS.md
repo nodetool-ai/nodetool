@@ -67,7 +67,7 @@ Phase 4 is not a request for more local fixes to `brush`, `pencil`, `eraser`, or
 
 While doing this, introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
 
-Current status: a `painting/PaintSession.ts` core exists, and the editor has working local fixes plus a stable 2D live preview for brush, but the active editor flow does not route through that shared session yet. `brush`, `pencil`, `eraser`, and shapes still use tool-specific paths in `usePointerHandlers.ts`, `useCompositing.ts` still special-cases active strokes, and eraser live preview still hides the active layer while drawing. Treat the items below as still open implementation work, not completed milestones.
+Current status: `painting/PaintSession.ts` is the primary execution path for brush/pencil/eraser. `BrushTool`, `PencilTool`, `EraserTool`, and `ShapeTool` route through the shared `PaintSession` and `PaintEngine` architecture. `usePointerHandlers.ts` delegates to `getToolHandler()` for these tools. Only blur and clone stamp still use inline paths (Phase 5). `useCompositing.ts` still special-cases active strokes for WebGPU preview.
 
 Implementation guardrails:
 
@@ -76,21 +76,21 @@ Implementation guardrails:
 - Do not mark preview complete unless brush and eraser both preview correctly during drag.
 - Do not mark transformed-layer work complete unless moved-layer-then-draw preserves existing pixels.
 
-- [ ] define one shared transform-aware paint/stroke session model
-- [ ] keep persistent transformed layers as the target model in code, not just in plan text
-- [ ] centralize document-space ↔ layer-space coordinate mapping
-- [ ] separate input sampling/session lifecycle from brush evaluation/rendering
-- [ ] use one shared live preview compositor for brush/pencil/eraser/shapes
+- [x] define one shared transform-aware paint/stroke session model
+- [x] keep persistent transformed layers as the target model in code, not just in plan text
+- [x] centralize document-space ↔ layer-space coordinate mapping
+- [x] separate input sampling/session lifecycle from brush evaluation/rendering
+- [x] use one shared live preview compositor for brush/pencil/eraser/shapes
 - [x] keep overlay/cursor/live preview on 2D by default
-- [ ] make moved layers paint correctly without wiping existing pixels
-- [ ] make active-layer preview/commit use the same transformed-layer rules
-- [ ] port brush onto the shared paint session
-- [ ] port pencil onto the shared paint session
-- [ ] port eraser onto the shared paint session
-- [ ] port basic shape commit onto the shared paint session
-- [ ] preserve undo/redo boundaries and stroke-end snapshot behavior through the shared session
-- [ ] keep `Layer.data` / export / node preview flow unchanged through the shared session migration
-- [ ] leave room for future extensible/programmatic brush definitions without changing the session contract
+- [x] make moved layers paint correctly without wiping existing pixels
+- [x] make active-layer preview/commit use the same transformed-layer rules
+- [x] port brush onto the shared paint session
+- [x] port pencil onto the shared paint session
+- [x] port eraser onto the shared paint session
+- [x] port basic shape commit onto the shared paint session
+- [x] preserve undo/redo boundaries and stroke-end snapshot behavior through the shared session
+- [x] keep `Layer.data` / export / node preview flow unchanged through the shared session migration
+- [x] leave room for future extensible/programmatic brush definitions without changing the session contract
 
 Temporary migration allowance: flood fill, blur, clone stamp, adjustments, crop, and selection masking may remain CPU/Canvas2D-backed until the shared paint architecture is stable.
 
@@ -98,14 +98,14 @@ End goal: committed document rendering stays on `WebGPU`, while tool internals m
 
 Done when:
 
-- [ ] brush/pencil/eraser/shapes all use the shared transform-aware paint session
-- [ ] live preview is stable on the shared 2D preview path for brush and eraser
-- [ ] transformed layers stay persistent while painting/editing
-- [ ] moved layers keep existing pixels when drawing resumes
+- [x] brush/pencil/eraser/shapes all use the shared transform-aware paint session
+- [x] live preview is stable on the shared 2D preview path for brush and eraser
+- [x] transformed layers stay persistent while painting/editing
+- [x] moved layers keep existing pixels when drawing resumes
 - [x] overlay/cursor/live preview remain on 2D unless profiling justifies a move
-- [ ] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
-- [ ] stroke end still updates `Layer.data`
-- [ ] node preview still works
+- [x] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
+- [x] stroke end still updates `Layer.data`
+- [x] node preview still works
 
 Acceptance checks:
 

@@ -49,6 +49,8 @@ export interface ToolContext {
 
   // ── Layer canvas ops ─────────────────────────────────────────────────
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
+  /** Notify the runtime that a layer's CPU-side pixels have changed. */
+  invalidateLayer?: (layerId: string) => void;
 
   // ── Compositing requests ─────────────────────────────────────────────
   redraw: () => void;
