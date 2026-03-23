@@ -23,7 +23,6 @@ import type { Point, Layer } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
 import { CoordinateMapper } from "./CoordinateMapper";
-import type { ActiveStrokeInfo } from "../rendering";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
