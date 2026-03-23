@@ -7,24 +7,60 @@
 
 ### Phase 2 — in progress
 
+## Core Layer Plan
+
+> Goal: make layer movement and transforms lossless, serializable, and non-destructive while keeping the document canvas fixed.
+
+[ ] **Phase 1 — foundation:** introduce transform-aware layers with translate-first transform state, per-layer content bounds, and compatible history / serialization; render and export from layer pixels + transform instead of assuming every layer is a document-aligned raster.
+[ ] add `Layer.transform` and `contentBounds` to the document model with backward-compatible defaults
+[ ] persist transform-aware layer data through normalize / serialize / deserialize / history snapshots
+[ ] render layers through transform-aware compositing in editor preview
+[ ] apply transform-aware rendering to flatten/export paths
+[ ] make move and nudge update layer transform state instead of rewriting pixels
+
+[ ] **Phase 2 — non-destructive editing pipeline:** keep transform edits separate from pixel edits, add reconciliation utilities that rasterize only when a paint operation truly requires it, and make undo/redo + invalidation aware of transform-only changes.
+[ ] define transform-only vs pixel-edit transaction types and paint-space rules for layer-local vs reconciled editing
+[ ] add reconciliation / rasterize-on-demand path for painting into transformed layers
+[ ] make undo/redo preserve transform-only edits correctly
+[ ] update invalidation and redraw flow for transform-only changes
+[ ] add regression tests for move, nudge, paint-after-move, and roundtrip serialization
+
+[ ] **Phase 3 — stretch goals:** extend the transform model to full matrices for scale / rotate / free transform, add live non-destructive transform sessions with commit/cancel, and build higher-level workflows like trim-to-bounds and richer selection/layer transforms.
+[ ] extend the translate-first transform model to a matrix-compatible structure
+[ ] add live transform preview with commit / cancel flow
+[ ] support scale / rotate / free transform on the shared layer model
+[ ] add trim-to-bounds and richer selection/layer transform workflows
+
 ## Core Drawing Engine Priorities
 
-[ ] keep one shared stroke pipeline for brush, pencil, eraser, blur, and shape preview/commit flow.
-[ ] centralize coordinate conversions between screen, viewport, canvas, layer-local, and selection space.
-[ ] track dirty rects and per-layer content bounds as first-class engine data.
-[ ] cache composited previews and invalidate them explicitly on layer, visibility, blend, mask, isolate, and canvas-size changes.
-[ ] separate transient preview state from committed document pixel state.
-[ ] treat each logical edit as one transaction with one history commit.
-[ ] extract tool engines from `SketchCanvas` into focused modules with shared constraints and utilities.
-[ ] keep render math, hit testing, sampling, and compositing logic reusable outside React component wiring.
-[ ] make brush sampling, interpolation, spacing, and pressure mapping explicit and deterministic.
-[ ] add first-class support for `reference`-style image-backed layers with source, crop, transform, and IO metadata.
-[ ] improve the round cursor drawing preview: always show correct size and rotation, etc.
-[x] improve performance: defer toDataURL encoding to next frame to eliminate stutter after each stroke
+[x] improve performance: defer `toDataURL` encoding to next frame to eliminate stutter after each stroke
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
+[ ] centralize coordinate conversions between screen, viewport, canvas, layer-local, and selection space.
+[ ] track dirty rects and per-layer content bounds as first-class engine data.
+[ ] separate transient preview state from committed document pixel state.
+[ ] treat each logical edit as one transaction with one history commit.
+[ ] keep render math, hit testing, and compositing logic reusable outside React component wiring.
+[ ] share stroke infrastructure where tool behavior truly overlaps, instead of forcing every tool through one identical pipeline.
+[ ] make brush sampling, interpolation, spacing, and pressure mapping explicit and deterministic.
+[ ] add composited-preview caching and explicit invalidation only after the transform-aware layer model is stable.
+[ ] extract remaining tool engines from `SketchCanvas` into focused modules with shared constraints and utilities. [mostly done]
+
+## Later / Product Tasks
+
+[ ] add first-class support for `reference`-style image-backed layers with source, crop, transform, and IO metadata.
+[ ] improve the round cursor drawing preview: always show correct size and rotation of draw tools, etc. currently too big.
 [ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
 [ ] ##Rename Editor and Node## rename to "Image Editor" instead of "Sketch Input"
+
+## Risks / Notes
+
+- do not over-commit to a single universal stroke pipeline if shape tools and paint tools need different internals.
+- preview caching is valuable, but adding it before the new layer model settles will cause churn.
+- immediate priority: transform state, content bounds, coordinate spaces, and history semantics.
+- do not break existing simple raster-layer workflows while introducing transform-aware layers.
+- keep the default case cheap: ordinary document-aligned raster layers should not pay a large complexity or performance cost.
+- keep the document canvas fixed for this effort; allow off-canvas layer content, but clip only at render/export boundaries.
 
 ---
 
@@ -68,6 +104,8 @@
 - [ ] Group / folder layers
 
 #### Canvas & view
+
+- [ ] make the canvas resizable from all borders and edges: drag to resize, show width/height while dragging, modifier keys for scaling from center
 
 #### UI & interaction
 
