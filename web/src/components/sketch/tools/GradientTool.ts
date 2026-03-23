@@ -24,7 +24,7 @@ export class GradientTool implements ToolHandler {
     return true;
   }
 
-  onMove(ctx: ToolContext, event: ToolPointerEvent): void {
+  onMove(ctx: ToolContext, event: ToolPointerEvent, _coalescedPoints?: ToolPointerEvent[]): void {
     if (!this.gradientStart) {
       return;
     }
@@ -32,7 +32,7 @@ export class GradientTool implements ToolHandler {
     ctx.drawOverlayGradient(this.gradientStart, event.point);
   }
 
-  onUp(ctx: ToolContext): void {
+  onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
     if (!this.gradientStart) {
       return;
     }

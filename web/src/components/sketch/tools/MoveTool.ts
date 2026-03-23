@@ -70,7 +70,7 @@ export class MoveTool implements ToolHandler {
     return true;
   }
 
-  onMove(ctx: ToolContext, event: ToolPointerEvent): void {
+  onMove(ctx: ToolContext, event: ToolPointerEvent, _coalescedPoints?: ToolPointerEvent[]): void {
     if (!this.moveStart) {
       return;
     }
@@ -87,7 +87,7 @@ export class MoveTool implements ToolHandler {
     }
   }
 
-  onUp(ctx: ToolContext): void {
+  onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
     this.moveStart = null;
     this.moveLayerStartTransform = { x: 0, y: 0 };
 
