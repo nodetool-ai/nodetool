@@ -10,7 +10,7 @@
  */
 
 import { getToolHandler } from "../tools";
-import type { ToolHandler, ToolContext, ToolPointerEvent } from "../tools";
+import type { ToolContext, ToolPointerEvent } from "../tools";
 import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
@@ -310,6 +310,9 @@ describe("ShapeTool", () => {
     canvas.width = 64;
     canvas.height = 64;
     canvasMap.set(layerId, canvas);
+    const overlayCanvas = window.document.createElement("canvas");
+    overlayCanvas.width = 64;
+    overlayCanvas.height = 64;
     const baseDoc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({
       activeTool: "rectangle",
@@ -325,6 +328,7 @@ describe("ShapeTool", () => {
           }
         ]
       },
+      overlayCanvasRef: { current: overlayCanvas },
       layerCanvasesRef: { current: canvasMap },
       getOrCreateLayerCanvas: jest.fn((requestedLayerId: string) => {
         const found = canvasMap.get(requestedLayerId);
@@ -345,6 +349,7 @@ describe("ShapeTool", () => {
 
     try {
       tool.onDown(ctx, makePointerEvent());
+      tool.onUp(ctx, makePointerEvent());
 
       expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
         x: -16,
@@ -439,9 +444,26 @@ describe("BlurTool", () => {
   it("returns true on pointer down for active layer", () => {
     const tool = new BlurTool();
     const ctx = makeToolContext({ activeTool: "blur" });
-    const result = tool.onDown(ctx, makePointerEvent());
-    expect(result).toBe(true);
-    expect(ctx.onStrokeStart).toHaveBeenCalled();
+    const fakeCtx = {
+      getImageData: jest.fn((x: number, y: number, width: number, height: number) =>
+        new ImageData(Math.max(1, width), Math.max(1, height))
+      ),
+      putImageData: jest.fn(),
+      drawImage: jest.fn(),
+      restore: jest.fn()
+    } as unknown as CanvasRenderingContext2D;
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((((contextId: string) =>
+        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+    try {
+      const result = tool.onDown(ctx, makePointerEvent());
+      expect(result).toBe(true);
+      expect(ctx.onStrokeStart).toHaveBeenCalled();
+    } finally {
+      getContextSpy.mockRestore();
+    }
   });
 });
 
