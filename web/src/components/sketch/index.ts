@@ -32,6 +32,9 @@ export {
 export { Canvas2DRuntime, WebGPURuntime, isWebGPUAvailable, createRuntime } from "./rendering";
 export type { SketchRuntime, ActiveStrokeInfo, DirtyRect, WebGPUInitResult } from "./rendering";
 
+export { getToolHandler } from "./tools";
+export type { ToolHandler, ToolContext, ToolPointerEvent } from "./tools";
+
 export { useCollapsedSections } from "./useCollapsedSections";
 
 export {
