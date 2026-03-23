@@ -1,14 +1,13 @@
 /**
  * ShapeTool – handles line, rectangle, ellipse, and arrow tools.
  *
- * Extracted from usePointerHandlers:
- *   handlePointerDown (~line 922-930)
- *   handlePointerMove (~line 1174-1178)
- *   handlePointerUp   (~line 1415-1428)
+ * Uses the 2D overlay for live preview (shared preview model) and
+ * commits through transform-aware rules via CoordinateMapper.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import type { Point } from "../types";
+import { CoordinateMapper } from "../painting";
 
 export class ShapeTool implements ToolHandler {
   readonly toolId = "line" as const; // placeholder – covers all shape tools
@@ -44,7 +43,18 @@ export class ShapeTool implements ToolHandler {
       const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
       const layerCtx = layerCanvas.getContext("2d");
       if (layerCtx) {
-        layerCtx.drawImage(overlayCanvas, 0, 0);
+        // Use CoordinateMapper for transform-aware commit.
+        // The layer offset is applied so the overlay content lands
+        // at the correct position in layer-local space.
+        const mapper = new CoordinateMapper({
+          layerTransform: activeLayer.transform ?? { x: 0, y: 0 }
+        });
+        if (mapper.hasOffset) {
+          const off = mapper.offset;
+          layerCtx.drawImage(overlayCanvas, -off.x, -off.y);
+        } else {
+          layerCtx.drawImage(overlayCanvas, 0, 0);
+        }
         ctx.clearOverlay();
         ctx.drawSelectionOverlay();
         ctx.redraw();
