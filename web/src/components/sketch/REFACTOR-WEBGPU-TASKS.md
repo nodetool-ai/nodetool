@@ -67,22 +67,30 @@ Phase 4 is not a request for more local fixes to `brush`, `pencil`, `eraser`, or
 
 While doing this, introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
 
-- [x] define one shared transform-aware paint/stroke session model
-- [x] keep persistent transformed layers as the target model
-- [x] centralize document-space ↔ layer-space coordinate mapping
-- [x] separate input sampling/session lifecycle from brush evaluation/rendering
-- [x] use one shared live preview compositor for brush/pencil/eraser/shapes
+Current status: a `painting/PaintSession.ts` core exists, and the editor has working local fixes plus a stable 2D live preview for brush, but the active editor flow does not route through that shared session yet. `brush`, `pencil`, `eraser`, and shapes still use tool-specific paths in `usePointerHandlers.ts`, `useCompositing.ts` still special-cases active strokes, and eraser live preview still hides the active layer while drawing. Treat the items below as still open implementation work, not completed milestones.
+
+Implementation guardrails:
+
+- `PaintSession` must become the primary execution path for brush/pencil/eraser/basic shape commit in the live editor, not just parallel scaffolding.
+- Do not mark a tool complete while its main logic still lives in `usePointerHandlers.ts`.
+- Do not mark preview complete unless brush and eraser both preview correctly during drag.
+- Do not mark transformed-layer work complete unless moved-layer-then-draw preserves existing pixels.
+
+- [ ] define one shared transform-aware paint/stroke session model
+- [ ] keep persistent transformed layers as the target model in code, not just in plan text
+- [ ] centralize document-space ↔ layer-space coordinate mapping
+- [ ] separate input sampling/session lifecycle from brush evaluation/rendering
+- [ ] use one shared live preview compositor for brush/pencil/eraser/shapes
 - [x] keep overlay/cursor/live preview on 2D by default
-- [ ] only reconsider moving overlay/cursor/live preview off 2D if profiling shows a real bottleneck
-- [x] make moved layers paint correctly without wiping existing pixels
-- [x] make active-layer preview/commit use the same transformed-layer rules
-- [x] port brush onto the shared paint session
-- [x] port pencil onto the shared paint session
-- [x] port eraser onto the shared paint session
-- [x] port basic shape commit onto the shared paint session
-- [x] preserve undo/redo boundaries and stroke-end snapshot behavior
-- [x] keep `Layer.data` / export / node preview flow unchanged
-- [x] leave room for future extensible/programmatic brush definitions without changing the session contract
+- [ ] make moved layers paint correctly without wiping existing pixels
+- [ ] make active-layer preview/commit use the same transformed-layer rules
+- [ ] port brush onto the shared paint session
+- [ ] port pencil onto the shared paint session
+- [ ] port eraser onto the shared paint session
+- [ ] port basic shape commit onto the shared paint session
+- [ ] preserve undo/redo boundaries and stroke-end snapshot behavior through the shared session
+- [ ] keep `Layer.data` / export / node preview flow unchanged through the shared session migration
+- [ ] leave room for future extensible/programmatic brush definitions without changing the session contract
 
 Temporary migration allowance: flood fill, blur, clone stamp, adjustments, crop, and selection masking may remain CPU/Canvas2D-backed until the shared paint architecture is stable.
 
@@ -90,30 +98,43 @@ End goal: committed document rendering stays on `WebGPU`, while tool internals m
 
 Done when:
 
-- [x] brush/pencil/eraser/shapes all use the shared transform-aware paint session
-- [x] live preview is stable on the shared 2D preview path
-- [x] transformed layers stay persistent while painting/editing
-- [x] moved layers keep existing pixels when drawing resumes
+- [ ] brush/pencil/eraser/shapes all use the shared transform-aware paint session
+- [ ] live preview is stable on the shared 2D preview path for brush and eraser
+- [ ] transformed layers stay persistent while painting/editing
+- [ ] moved layers keep existing pixels when drawing resumes
 - [x] overlay/cursor/live preview remain on 2D unless profiling justifies a move
-- [x] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
-- [x] stroke end still updates `Layer.data`
-- [x] node preview still works
+- [ ] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
+- [ ] stroke end still updates `Layer.data`
+- [ ] node preview still works
 
-## Phase 5: Hard tools
+Acceptance checks:
 
-- [ ] port or isolate flood fill
-- [ ] port or isolate clone stamp
-- [ ] port or isolate blur
-- [ ] port or isolate adjustments
-- [ ] rework alpha-lock and dirty-region behavior
-- [ ] rework eyedropper, move auto-pick, clone-stamp sampling
-- [ ] transform-aware reconciliation
-- [ ] remove remaining Canvas2D runtime dependency from normal use
+- Brush preview visible during drag.
+- Eraser preview visible during drag without hiding the active layer.
+- Moving a layer and drawing again does not wipe preexisting content.
+- Main paint flow no longer depends on tool-specific execution in `usePointerHandlers.ts`.
+
+## Phase 5: Hard Tools And Explicit Exceptions
+
+- [ ] keep flood fill as an explicit CPU-backed helper unless profiling later proves otherwise
+- [ ] keep clone stamp as an explicit CPU-backed helper unless profiling later proves otherwise
+- [ ] target blur as an explicit GPU-backed tool
+- [ ] target adjustments as explicit GPU-backed tools
+- [ ] route flood fill / clone stamp through the shared transform-aware session boundaries where needed
+- [ ] route blur / adjustments through the shared transform-aware session boundaries where needed
+- [ ] rework alpha-lock and dirty-region behavior for the shared session and remaining helpers
+- [ ] rework eyedropper, move auto-pick, and clone-stamp sampling for transformed layers
+- [ ] finish transform-aware reconciliation rules for remaining hard tools
+- [ ] remove hidden ad hoc Canvas2D dependencies from normal editing flow
+- [ ] document remaining CPU helpers as intentional exceptions
 
 Done when:
 
-- [ ] shipped tools work without old runtime
-- [ ] leftover CPU helpers small and explicit
+- [ ] blur and adjustments work as explicit GPU-backed tools
+- [ ] flood fill and clone stamp work as explicit documented CPU-helper paths
+- [ ] shipped tools work through the shared architecture or explicit documented CPU-helper paths
+- [ ] remaining CPU helpers are small, explicit, and justified
+- [ ] normal editing no longer relies on implicit legacy-runtime behavior
 
 ## Phase 6: Cleanup
 
