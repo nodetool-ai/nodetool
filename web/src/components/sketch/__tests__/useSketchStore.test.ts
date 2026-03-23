@@ -222,6 +222,29 @@ describe("useSketchStore", () => {
       });
       expect(useSketchStore.getState().document.layers[0].data).toBeNull();
     });
+
+    it("updates layer transform", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().setLayerTransform(layerId, { x: 12, y: -8 });
+      });
+      expect(useSketchStore.getState().document.layers[0].transform).toEqual({
+        x: 12,
+        y: -8
+      });
+    });
+
+    it("translates a layer relative to its current transform", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().setLayerTransform(layerId, { x: 3, y: 4 });
+        useSketchStore.getState().translateLayer(layerId, 5, -2);
+      });
+      expect(useSketchStore.getState().document.layers[0].transform).toEqual({
+        x: 8,
+        y: 2
+      });
+    });
   });
 
   describe("document actions", () => {
@@ -258,6 +281,18 @@ describe("useSketchStore", () => {
       });
       expect(useSketchStore.getState().history).toHaveLength(1);
       expect(useSketchStore.getState().historyIndex).toBe(0);
+    });
+
+    it("stores transform-aware layer metadata in history snapshots", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().setLayerTransform(layerId, { x: 7, y: 9 });
+        useSketchStore.getState().pushHistory("move");
+      });
+      expect(useSketchStore.getState().history[0].layerStructure[0]?.transform).toEqual({
+        x: 7,
+        y: 9
+      });
     });
 
     it("canUndo returns false when no history", () => {

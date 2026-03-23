@@ -19,7 +19,8 @@ import type {
   SketchDocument,
   SketchTool,
   Point,
-  Selection
+  Selection,
+  LayerTransform
 } from "./types";
 import {
   useCompositing,
@@ -111,6 +112,7 @@ export interface SketchCanvasProps {
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
@@ -145,6 +147,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onPanChange,
       onStrokeStart,
       onStrokeEnd,
+      onLayerTransformChange,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
@@ -240,6 +243,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onPanChange,
       onStrokeStart,
       onStrokeEnd,
+      onLayerTransformChange,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,

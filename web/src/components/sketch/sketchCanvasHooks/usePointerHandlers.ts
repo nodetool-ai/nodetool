@@ -12,6 +12,7 @@ import type {
   SketchTool,
   Point,
   Selection,
+  LayerTransform,
   BrushSettings,
   PencilSettings,
   EraserSettings,
@@ -65,6 +66,7 @@ export interface UsePointerHandlersParams {
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
+  onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
@@ -117,6 +119,7 @@ export function usePointerHandlers({
   onPanChange,
   onStrokeStart,
   onStrokeEnd,
+  onLayerTransformChange,
   onBrushSizeChange,
   onContextMenu,
   onCropComplete,
@@ -143,7 +146,7 @@ export function usePointerHandlers({
   // Tool-specific state
   const shapeStartRef = useRef<Point | null>(null);
   const moveStartRef = useRef<Point | null>(null);
-  const moveLayerSnapshotRef = useRef<HTMLCanvasElement | null>(null);
+  const moveLayerStartTransformRef = useRef<LayerTransform>({ x: 0, y: 0 });
   const gradientStartRef = useRef<Point | null>(null);
   const gradientEndRef = useRef<Point | null>(null);
   const cropStartRef = useRef<Point | null>(null);
@@ -525,8 +528,17 @@ export function usePointerHandlers({
             if (!ctx) {
               continue;
             }
-            if (px >= 0 && px < layerCanvas.width && py >= 0 && py < layerCanvas.height) {
-              const pixel = ctx.getImageData(px, py, 1, 1).data;
+            const tx = layer.transform?.x ?? 0;
+            const ty = layer.transform?.y ?? 0;
+            const localX = px - tx;
+            const localY = py - ty;
+            if (
+              localX >= 0 &&
+              localX < layerCanvas.width &&
+              localY >= 0 &&
+              localY < layerCanvas.height
+            ) {
+              const pixel = ctx.getImageData(localX, localY, 1, 1).data;
               if (pixel[3] > 0) {
                 // Found a non-transparent pixel — switch to this layer
                 onAutoPickLayer(layer.id);
@@ -537,20 +549,12 @@ export function usePointerHandlers({
         }
 
         moveStartRef.current = pt;
+        moveLayerStartTransformRef.current = {
+          x: activeLayer.transform?.x ?? 0,
+          y: activeLayer.transform?.y ?? 0
+        };
         isDrawingRef.current = true;
         onStrokeStart();
-        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        // Use 4x the canvas max dimension as padding so the user can move
-        // the layer far outside the canvas bounds without cropping content.
-        const pad = Math.max(layerCanvas.width, layerCanvas.height) * 4;
-        const snapshot = window.document.createElement("canvas");
-        snapshot.width = layerCanvas.width + pad * 2;
-        snapshot.height = layerCanvas.height + pad * 2;
-        const snapCtx = snapshot.getContext("2d");
-        if (snapCtx) {
-          snapCtx.drawImage(layerCanvas, pad, pad);
-        }
-        moveLayerSnapshotRef.current = snapshot;
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
       }
@@ -616,7 +620,7 @@ export function usePointerHandlers({
                 tmpCtx.globalCompositeOperation = blendModeToComposite(
                   layer.blendMode || "normal"
                 );
-                tmpCtx.drawImage(lc, 0, 0);
+                tmpCtx.drawImage(lc, layer.transform?.x ?? 0, layer.transform?.y ?? 0);
                 tmpCtx.restore();
               }
             }
@@ -832,7 +836,8 @@ export function usePointerHandlers({
       onSelectionChange,
       containerRef,
       displayCanvasRef,
-      layerCanvasesRef
+      layerCanvasesRef,
+      onAutoPickLayer
     ]
   );
 
@@ -867,28 +872,17 @@ export function usePointerHandlers({
 
       if (
         activeTool === "move" &&
-        moveStartRef.current &&
-        moveLayerSnapshotRef.current
+        moveStartRef.current
       ) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         const dx = pt.x - moveStartRef.current.x;
         const dy = pt.y - moveStartRef.current.y;
         const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-        if (activeLayer) {
-          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-          const ctx = layerCanvas.getContext("2d");
-          if (ctx) {
-            const pad = (moveLayerSnapshotRef.current.width - layerCanvas.width) / 2;
-            ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
-            ctx.drawImage(
-              moveLayerSnapshotRef.current,
-              pad - dx, pad - dy,
-              layerCanvas.width, layerCanvas.height,
-              0, 0,
-              layerCanvas.width, layerCanvas.height
-            );
-            requestRedraw();
-          }
+        if (activeLayer && onLayerTransformChange) {
+          onLayerTransformChange(activeLayer.id, {
+            x: Math.round(moveLayerStartTransformRef.current.x + dx),
+            y: Math.round(moveLayerStartTransformRef.current.y + dy)
+          });
         }
         return;
       }
@@ -1022,7 +1016,9 @@ export function usePointerHandlers({
       withMirror,
       stabilizePoint,
       drawOverlaySelection,
-      onSelectionChange
+      selection,
+      onSelectionChange,
+      onLayerTransformChange
     ]
   );
 
@@ -1049,7 +1045,7 @@ export function usePointerHandlers({
 
       if (activeTool === "move") {
         moveStartRef.current = null;
-        moveLayerSnapshotRef.current = null;
+        moveLayerStartTransformRef.current = { x: 0, y: 0 };
       }
       if (activeTool === "blur") {
         blurSourceCanvasRef.current = null;

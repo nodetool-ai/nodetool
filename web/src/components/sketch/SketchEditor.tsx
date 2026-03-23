@@ -116,6 +116,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     zoom: store.zoom,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
+    translateLayer: store.translateLayer,
     setDocument: store.setDocument,
     setZoom: store.setZoom,
     setPan: store.setPan,
@@ -306,6 +307,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onPanChange={store.setPan}
             onStrokeStart={canvasActions.handleStrokeStart}
             onStrokeEnd={canvasActions.handleStrokeEnd}
+            onLayerTransformChange={store.setLayerTransform}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}
             onCropComplete={canvasActions.handleCropComplete}

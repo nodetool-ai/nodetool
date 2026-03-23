@@ -100,7 +100,7 @@ export async function flattenDocument(
       doc.canvas.width,
       doc.canvas.height
     );
-    ctx.drawImage(layerCanvas, 0, 0);
+    ctx.drawImage(layerCanvas, layer.transform?.x ?? 0, layer.transform?.y ?? 0);
   }
   ctx.globalAlpha = 1;
 
@@ -121,7 +121,21 @@ export async function exportMask(
     return null;
   }
 
-  return dataUrlToCanvas(maskLayer.data, doc.canvas.width, doc.canvas.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = doc.canvas.width;
+  canvas.height = doc.canvas.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Failed to get canvas context");
+  }
+
+  const maskCanvas = await dataUrlToCanvas(
+    maskLayer.data,
+    doc.canvas.width,
+    doc.canvas.height
+  );
+  ctx.drawImage(maskCanvas, maskLayer.transform?.x ?? 0, maskLayer.transform?.y ?? 0);
+  return canvas;
 }
 
 /**

@@ -5,7 +5,7 @@
  * This is the public API surface that SketchEditor hooks call.
  */
 
-import { useImperativeHandle, type Ref } from "react";
+import { useCallback, useImperativeHandle, type Ref } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { SketchDocument } from "../types";
 import { blendModeToComposite } from "../drawingUtils";
@@ -29,6 +29,35 @@ export function useCanvasImperativeHandle({
   getOrCreateLayerCanvas,
   redraw
 }: UseCanvasImperativeHandleParams): void {
+  const drawLayerToContext = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      layerId: string,
+      includeOpacity = true
+    ) => {
+      const layer = doc.layers.find((item) => item.id === layerId);
+      const layerCanvas = layerCanvasesRef.current.get(layerId);
+      if (!layer || !layerCanvas) {
+        return;
+      }
+
+      ctx.save();
+      if (includeOpacity) {
+        ctx.globalAlpha = layer.opacity;
+        ctx.globalCompositeOperation = blendModeToComposite(
+          layer.blendMode || "normal"
+        );
+      }
+      ctx.drawImage(
+        layerCanvas,
+        layer.transform?.x ?? 0,
+        layer.transform?.y ?? 0
+      );
+      ctx.restore();
+    },
+    [doc.layers, layerCanvasesRef]
+  );
+
   useImperativeHandle(
     ref,
     () => ({
@@ -95,16 +124,7 @@ export function useCanvasImperativeHandle({
           if (!layer.visible || layer.type === "mask") {
             continue;
           }
-          const layerCanvas = layerCanvasesRef.current.get(layer.id);
-          if (layerCanvas) {
-            ctx.save();
-            ctx.globalAlpha = layer.opacity;
-            ctx.globalCompositeOperation = blendModeToComposite(
-              layer.blendMode || "normal"
-            );
-            ctx.drawImage(layerCanvas, 0, 0);
-            ctx.restore();
-          }
+          drawLayerToContext(ctx, layer.id);
         }
         return canvas.toDataURL("image/png");
       },
@@ -112,8 +132,15 @@ export function useCanvasImperativeHandle({
         if (!doc.maskLayerId) {
           return null;
         }
-        const canvas = layerCanvasesRef.current.get(doc.maskLayerId);
-        return canvas ? canvas.toDataURL("image/png") : null;
+        const canvas = window.document.createElement("canvas");
+        canvas.width = doc.canvas.width;
+        canvas.height = doc.canvas.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return null;
+        }
+        drawLayerToContext(ctx, doc.maskLayerId, false);
+        return canvas.toDataURL("image/png");
       },
       clearLayer: (layerId: string) => {
         const canvas = layerCanvasesRef.current.get(layerId);
@@ -172,9 +199,8 @@ export function useCanvasImperativeHandle({
         redraw();
       },
       mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => {
-        const upperCanvas = layerCanvasesRef.current.get(upperLayerId);
         const lowerCanvas = layerCanvasesRef.current.get(lowerLayerId);
-        if (!upperCanvas || !lowerCanvas) {
+        if (!lowerCanvas) {
           return;
         }
         const lowerCtx = lowerCanvas.getContext("2d");
@@ -182,15 +208,22 @@ export function useCanvasImperativeHandle({
           return;
         }
         const upperLayer = doc.layers.find((l) => l.id === upperLayerId);
-        if (upperLayer) {
-          lowerCtx.save();
-          lowerCtx.globalAlpha = upperLayer.opacity;
-          lowerCtx.globalCompositeOperation = blendModeToComposite(
-            upperLayer.blendMode || "normal"
-          );
-          lowerCtx.drawImage(upperCanvas, 0, 0);
-          lowerCtx.restore();
+        const lowerLayer = doc.layers.find((l) => l.id === lowerLayerId);
+        const mergedCanvas = window.document.createElement("canvas");
+        mergedCanvas.width = doc.canvas.width;
+        mergedCanvas.height = doc.canvas.height;
+        const mergedCtx = mergedCanvas.getContext("2d");
+        if (!mergedCtx) {
+          return;
         }
+        if (lowerLayer) {
+          drawLayerToContext(mergedCtx, lowerLayerId);
+        }
+        if (upperLayer) {
+          drawLayerToContext(mergedCtx, upperLayerId);
+        }
+        lowerCtx.clearRect(0, 0, lowerCanvas.width, lowerCanvas.height);
+        lowerCtx.drawImage(mergedCanvas, 0, 0);
         layerCanvasesRef.current.delete(upperLayerId);
         redraw();
         return lowerCanvas.toDataURL("image/png");
@@ -209,16 +242,7 @@ export function useCanvasImperativeHandle({
           if (!layer.visible) {
             continue;
           }
-          const layerCanvas = layerCanvasesRef.current.get(layer.id);
-          if (layerCanvas) {
-            ctx.save();
-            ctx.globalAlpha = layer.opacity;
-            ctx.globalCompositeOperation = blendModeToComposite(
-              layer.blendMode || "normal"
-            );
-            ctx.drawImage(layerCanvas, 0, 0);
-            ctx.restore();
-          }
+          drawLayerToContext(ctx, layer.id);
         }
         return canvas.toDataURL("image/png");
       },
@@ -326,6 +350,14 @@ export function useCanvasImperativeHandle({
         redraw();
       }
     }),
-    [doc, getOrCreateLayerCanvas, redraw, layerCanvasesRef, displayCanvasRef, overlayCanvasRef]
+    [
+      doc,
+      getOrCreateLayerCanvas,
+      redraw,
+      layerCanvasesRef,
+      displayCanvasRef,
+      overlayCanvasRef,
+      drawLayerToContext
+    ]
   );
 }

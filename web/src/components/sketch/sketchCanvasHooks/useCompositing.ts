@@ -154,17 +154,7 @@ export function useCompositing({
         ctx.globalCompositeOperation = blendModeToComposite(
           layer.blendMode || "normal"
         );
-        if (useClip) {
-          // Draw only the dirty region from the layer
-          const pad = 2;
-          const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
-          const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
-          const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
-          const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
-          ctx.drawImage(layerCanvas, rx, ry, rw, rh, rx, ry, rw, rh);
-        } else {
-          ctx.drawImage(layerCanvas, 0, 0);
-        }
+        ctx.drawImage(layerCanvas, layer.transform?.x ?? 0, layer.transform?.y ?? 0);
         ctx.restore();
       }
 

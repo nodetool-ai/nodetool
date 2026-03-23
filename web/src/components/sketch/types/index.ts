@@ -7,7 +7,7 @@
 
 // ─── Document Format Version ──────────────────────────────────────────────────
 
-export const SKETCH_FORMAT_VERSION = 1;
+export const SKETCH_FORMAT_VERSION = 2;
 
 // ─── Primitive Types ──────────────────────────────────────────────────────────
 
@@ -35,6 +35,18 @@ export type ColorMode = "hex" | "rgb" | "hsl";
 // ─── Selection ────────────────────────────────────────────────────────────────
 
 export interface Selection {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface LayerTransform {
+  x: number;
+  y: number;
+}
+
+export interface LayerContentBounds {
   x: number;
   y: number;
   width: number;
@@ -176,6 +188,10 @@ export interface Layer {
   blendMode: BlendMode;
   /** Base64-encoded PNG data for the layer content */
   data: string | null;
+  /** Layer placement in document space. */
+  transform: LayerTransform;
+  /** Pixel bounds in layer-local space. */
+  contentBounds: LayerContentBounds;
   /** When true, this layer creates a dynamic input handle on the SketchNode */
   exposedAsInput?: boolean;
   /** When true, this layer creates a dynamic output handle on the SketchNode */
@@ -256,6 +272,8 @@ export interface LayerStructureSnapshot {
   locked: boolean;
   alphaLock: boolean;
   blendMode: BlendMode;
+  transform: LayerTransform;
+  contentBounds: LayerContentBounds;
 }
 
 export interface HistoryEntry {
@@ -356,7 +374,9 @@ export function generateLayerId(): string {
 
 export function createDefaultLayer(
   name: string,
-  type: LayerType = "raster"
+  type: LayerType = "raster",
+  canvasWidth = 0,
+  canvasHeight = 0
 ): Layer {
   return {
     id: generateLayerId(),
@@ -367,7 +387,14 @@ export function createDefaultLayer(
     locked: false,
     alphaLock: false,
     blendMode: "normal",
-    data: null
+    data: null,
+    transform: { x: 0, y: 0 },
+    contentBounds: {
+      x: 0,
+      y: 0,
+      width: canvasWidth,
+      height: canvasHeight
+    }
   };
 }
 
@@ -375,7 +402,7 @@ export function createDefaultDocument(
   width = 512,
   height = 512
 ): SketchDocument {
-  const baseLayer = createDefaultLayer("Background", "raster");
+  const baseLayer = createDefaultLayer("Background", "raster", width, height);
   const now = new Date().toISOString();
 
   return {
@@ -415,7 +442,17 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         locked: layer.locked ?? false,
         alphaLock: layer.alphaLock ?? false,
         blendMode: layer.blendMode ?? "normal",
-        data: layer.data ?? null
+        data: layer.data ?? null,
+        transform: {
+          x: layer.transform?.x ?? 0,
+          y: layer.transform?.y ?? 0
+        },
+        contentBounds: {
+          x: layer.contentBounds?.x ?? 0,
+          y: layer.contentBounds?.y ?? 0,
+          width: layer.contentBounds?.width ?? (doc.canvas?.width ?? baseDocument.canvas.width),
+          height: layer.contentBounds?.height ?? (doc.canvas?.height ?? baseDocument.canvas.height)
+        }
       }))
     : baseDocument.layers;
 
@@ -649,9 +686,13 @@ export function rgbToHsv(r: number, g: number, b: number): { h: number; s: numbe
   const d = max - min;
   let h = 0;
   if (d !== 0) {
-    if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
-    else if (max === gn) h = ((bn - rn) / d + 2) / 6;
-    else h = ((rn - gn) / d + 4) / 6;
+    if (max === rn) {
+      h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+    } else if (max === gn) {
+      h = ((bn - rn) / d + 2) / 6;
+    } else {
+      h = ((rn - gn) / d + 4) / 6;
+    }
   }
   return { h: Math.round(h * 360), s: max === 0 ? 0 : d / max, v: max };
 }

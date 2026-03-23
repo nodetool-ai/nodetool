@@ -17,6 +17,7 @@ export interface UseCanvasActionsParams {
   zoom: number;
   pushHistory: (label: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
+  translateLayer: (layerId: string, dx: number, dy: number) => void;
   setDocument: (doc: SketchDocument) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
@@ -32,6 +33,7 @@ export function useCanvasActions({
   zoom,
   pushHistory,
   updateLayerData,
+  translateLayer,
   setDocument,
   setZoom,
   setPan,
@@ -115,11 +117,25 @@ export function useCanvasActions({
         return;
       }
       pushHistory("nudge layer");
-      canvasRef.current.nudgeLayer(activeLayerId, dx, dy);
-      const data = canvasRef.current.getLayerData(activeLayerId);
-      updateLayerData(activeLayerId, data);
+      translateLayer(activeLayerId, dx, dy);
+      if (canvasRef.current) {
+        if (onExportImage) {
+          onExportImage(canvasRef.current.flattenToDataUrl());
+        }
+        if (onExportMask) {
+          onExportMask(canvasRef.current.getMaskDataUrl());
+        }
+      }
     },
-    [document.activeLayerId, document.layers, pushHistory, updateLayerData, canvasRef]
+    [
+      document.activeLayerId,
+      document.layers,
+      pushHistory,
+      translateLayer,
+      onExportImage,
+      onExportMask,
+      canvasRef
+    ]
   );
 
   // ─── Export PNG download ───────────────────────────────────────────

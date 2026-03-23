@@ -3,6 +3,12 @@
 > **Status**: Phase 1 complete
 > **Last updated**: 2026-03-23
 
+## General Note
+
+- early development, all code can be changed and refactored when needed
+- no backward compatibility or strict feature preservation needed - but ask if in doubt
+- only run sketch related tests, not full tests
+
 ## Remaining work
 
 ### Phase 2 — in progress

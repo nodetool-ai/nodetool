@@ -26,6 +26,7 @@ import {
   GradientSettings,
   CloneStampSettings,
   BlendMode,
+  LayerTransform,
   createDefaultDocument,
   normalizeSketchDocument,
   createDefaultLayer,
@@ -74,6 +75,8 @@ export interface SketchStore {
   setLayerBlendMode: (layerId: string, blendMode: BlendMode) => void;
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
+  setLayerTransform: (layerId: string, transform: LayerTransform) => void;
+  translateLayer: (layerId: string, dx: number, dy: number) => void;
   setMaskLayer: (layerId: string | null) => void;
   toggleAlphaLock: (layerId: string) => void;
   toggleLayerExposedInput: (layerId: string) => void;
@@ -320,9 +323,12 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     })),
 
   addLayer: (name?: string, type: "raster" | "mask" = "raster") => {
+    const { width, height } = get().document.canvas;
     const layer = createDefaultLayer(
       name || `Layer ${get().document.layers.length + 1}`,
-      type
+      type,
+      width,
+      height
     );
     set((state) => ({
       document: {
@@ -460,6 +466,42 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       }
     })),
 
+  setLayerTransform: (layerId: string, transform: LayerTransform) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, transform } : l
+        ),
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  translateLayer: (layerId: string, dx: number, dy: number) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId
+            ? {
+                ...l,
+                transform: {
+                  x: l.transform.x + dx,
+                  y: l.transform.y + dy
+                }
+              }
+            : l
+        ),
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
   setMaskLayer: (layerId: string | null) =>
     set((state) => {
       // If setting a mask layer, update its type; if unsetting, revert type
@@ -522,15 +564,28 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       if (idx <= 0) {
         return state; // Can't merge first layer or not found
       }
-      const upper = layers[idx];
       const lower = layers[idx - 1];
       if (lower.locked) {
         return state; // Don't merge into locked layer
       }
-      // Merge upper layer data into lower layer (actual compositing
-      // happens on the canvas side — store just marks the merge by
-      // removing the upper layer).
-      const newLayers = layers.filter((l) => l.id !== layerId);
+      // Canvas-side compositing rebases the merged pixels into document space,
+      // so the surviving lower layer resets back to identity transform.
+      const newLayers = layers
+        .filter((l) => l.id !== layerId)
+        .map((l) =>
+          l.id === lower.id
+            ? {
+                ...l,
+                transform: { x: 0, y: 0 },
+                contentBounds: {
+                  x: 0,
+                  y: 0,
+                  width: state.document.canvas.width,
+                  height: state.document.canvas.height
+                }
+              }
+            : l
+        );
       const newActiveId = activeLayerId === layerId ? lower.id : activeLayerId;
       const newMaskId = maskLayerId === layerId ? null : maskLayerId;
       return {
@@ -555,7 +610,12 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       }
       // Keep only one layer — actual pixel compositing is done on the
       // canvas side before calling this action
-      const flatLayer = createDefaultLayer("Flattened", "raster");
+      const flatLayer = createDefaultLayer(
+        "Flattened",
+        "raster",
+        state.document.canvas.width,
+        state.document.canvas.height
+      );
       return {
         document: {
           ...state.document,
@@ -671,7 +731,9 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         opacity: l.opacity,
         locked: l.locked,
         alphaLock: l.alphaLock,
-        blendMode: l.blendMode
+        blendMode: l.blendMode,
+        transform: l.transform,
+        contentBounds: l.contentBounds
       })
     );
     const entry: HistoryEntry = {

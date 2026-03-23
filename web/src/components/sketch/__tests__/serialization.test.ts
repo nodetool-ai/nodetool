@@ -94,5 +94,38 @@ describe("Sketch Serialization", () => {
         type: "linear"
       });
     });
+
+    it("migrates missing transform-aware layer fields", () => {
+      const doc = createDefaultDocument(320, 240);
+      const parsed = JSON.parse(serializeDocument(doc));
+      delete parsed.layers[0].transform;
+      delete parsed.layers[0].contentBounds;
+
+      const restored = deserializeDocument(JSON.stringify(parsed));
+
+      expect(restored?.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(restored?.layers[0].contentBounds).toEqual({
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 240
+      });
+    });
+
+    it("round-trips transform-aware layer fields", () => {
+      const doc = createDefaultDocument(512, 512);
+      doc.layers[0].transform = { x: 24, y: -12 };
+      doc.layers[0].contentBounds = { x: 10, y: 20, width: 200, height: 180 };
+
+      const restored = deserializeDocument(serializeDocument(doc));
+
+      expect(restored?.layers[0].transform).toEqual({ x: 24, y: -12 });
+      expect(restored?.layers[0].contentBounds).toEqual({
+        x: 10,
+        y: 20,
+        width: 200,
+        height: 180
+      });
+    });
   });
 });
