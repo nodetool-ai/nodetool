@@ -1308,7 +1308,10 @@ export function usePointerHandlers({
 
       const hasSelectionClip = clipSelectionForOffset(ctx, currentOffset);
 
-      for (const eventPoint of eventPoints) {
+      const pointsToProcess =
+        activeTool === "blur" ? [eventPoints[eventPoints.length - 1]] : eventPoints;
+
+      for (const eventPoint of pointsToProcess) {
         const pt = eventPoint.point;
         if (
           !paintStrokeHasMovedRef.current &&
