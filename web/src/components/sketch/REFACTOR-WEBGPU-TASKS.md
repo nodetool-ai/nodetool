@@ -17,47 +17,47 @@
 
 ## Phase 1: Runtime seam
 
-- [ ] add `rendering/` under sketch
-- [ ] define minimal runtime API: redraw, dirty redraw, layer lookup, snapshot, flatten, mask export
-- [ ] refactor `SketchCanvas.tsx` to use the runtime seam
-- [ ] keep `SketchCanvasRef` working for `useCanvasActions.ts` and node export
-- [ ] hide existing Canvas2D behind one legacy implementation
+- [x] add `rendering/` under sketch
+- [x] define minimal runtime API: redraw, dirty redraw, layer lookup, snapshot, flatten, mask export
+- [x] refactor `SketchCanvas.tsx` to use the runtime seam
+- [x] keep `SketchCanvasRef` working for `useCanvasActions.ts` and node export
+- [x] hide existing Canvas2D behind one legacy implementation
 
 Done when:
 
-- [ ] drawing/export behavior unchanged
-- [ ] Canvas2D code no longer spread across the canvas component
+- [x] drawing/export behavior unchanged
+- [x] Canvas2D code no longer spread across the canvas component
 
 ## Phase 2: WebGPU compositing
 
-- [ ] init WebGPU, configure presentation surface
-- [ ] runtime-owned layer textures/resources
-- [ ] checkerboard background
-- [ ] layer compositing with opacity and blend modes
-- [ ] dirty/full redraw scheduling
-- [ ] upload/readback helpers
-- [ ] upload dirty regions from legacy raster path
+- [x] init WebGPU, configure presentation surface
+- [x] runtime-owned layer textures/resources
+- [x] checkerboard background
+- [x] layer compositing with opacity and blend modes
+- [x] dirty/full redraw scheduling
+- [x] upload/readback helpers
+- [x] upload dirty regions from legacy raster path
 
 Done when:
 
-- [ ] editor display rendered by WebGPU
-- [ ] layer order, isolate, opacity, blend modes match current
-- [ ] flatten/mask export still work
+- [x] editor display rendered by WebGPU
+- [x] layer order, isolate, opacity, blend modes match current
+- [x] flatten/mask export still work
 
 ## Phase 3: Tool/runtime split
 
-- [ ] extract tool routing from `usePointerHandlers.ts`
-- [ ] define tool ops: stroke, erase, shape, gradient, color pick, flood fill
-- [ ] stop calling Canvas2D utils directly from pointer flow
-- [ ] legacy drawing behind helper adapters
-- [ ] runtime requests for hit testing and sampling
-- [ ] selection/pan/zoom/modifiers unchanged
+- [x] extract tool routing from `usePointerHandlers.ts`
+- [x] define tool ops: stroke, erase, shape, gradient, color pick, flood fill
+- [x] stop calling Canvas2D utils directly from pointer flow
+- [x] legacy drawing behind helper adapters
+- [x] runtime requests for hit testing and sampling
+- [x] selection/pan/zoom/modifiers unchanged
 
 Done when:
 
-- [ ] pointer handler is orchestration, not renderer code
-- [ ] one tool replaceable without rewriting the whole pipeline
-- [ ] history/autosave unchanged
+- [x] pointer handler is orchestration, not renderer code
+- [x] one tool replaceable without rewriting the whole pipeline
+- [x] history/autosave unchanged
 
 ## Phase 4: Common paint tools on WebGPU
 

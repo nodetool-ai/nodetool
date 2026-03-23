@@ -182,6 +182,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       displayCanvasRef,
       overlayCanvasRef,
       layerCanvasesRef,
+      runtime,
+      backend,
       getOrCreateLayerCanvas,
       redraw,
       redrawDirty,
@@ -273,10 +275,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     useCanvasImperativeHandle({
       ref,
       doc,
-      layerCanvasesRef,
+      runtime,
       displayCanvasRef,
       overlayCanvasRef,
-      getOrCreateLayerCanvas,
       redraw
     });
 
@@ -357,6 +358,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             {doc.canvas.width} × {doc.canvas.height}
           </span>
           <span>{Math.round(zoom * 100)}%</span>
+          <span style={{ textTransform: "uppercase", fontSize: "0.6rem", opacity: 0.7 }}>
+            {backend}
+          </span>
         </Box>
       </div>
     );
