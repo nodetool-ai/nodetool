@@ -279,6 +279,8 @@ export interface LayerStructureSnapshot {
 export interface HistoryEntry {
   /** Snapshot of layers data (pixel data URLs keyed by layer ID) */
   layerSnapshots: Record<string, string | null>;
+  /** Optional in-memory canvas snapshots keyed by layer ID for fast undo/redo. */
+  layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>;
   /** Snapshot of layer structure (order + metadata) */
   layerStructure: LayerStructureSnapshot[];
   /** Active layer ID at the time of the snapshot */

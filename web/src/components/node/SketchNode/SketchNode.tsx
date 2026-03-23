@@ -181,6 +181,7 @@ const imageTypeMetadata = {
 const DYNAMIC_HANDLE_START_TOP = 100;
 const DYNAMIC_HANDLE_SPACING = 40;
 const DYNAMIC_OUTPUT_START_TOP = 140;
+const NODE_SYNC_DEBOUNCE_MS = 200;
 
 const outputImageTypeMetadata = {
   type: "image",
@@ -207,6 +208,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(null);
   const documentRef = useRef<SketchDocument | null>(null);
   const inputImageLoadedRef = useRef<string | null>(null);
+  const pendingDocumentSyncRef = useRef<SketchDocument | null>(null);
+  const pendingNodePropsRef = useRef<Record<string, unknown>>({});
+  const nodeSyncTimeoutRef = useRef<number | null>(null);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
 
   // Watch for upstream input_image results
@@ -215,6 +219,46 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
+
+  const flushPendingNodeSync = useCallback(() => {
+    if (nodeSyncTimeoutRef.current !== null) {
+      clearTimeout(nodeSyncTimeoutRef.current);
+      nodeSyncTimeoutRef.current = null;
+    }
+
+    const pendingProps = { ...pendingNodePropsRef.current };
+    pendingNodePropsRef.current = {};
+
+    if (pendingDocumentSyncRef.current) {
+      pendingProps.sketch_data = serializeDocument(pendingDocumentSyncRef.current);
+      pendingDocumentSyncRef.current = null;
+    }
+
+    if (Object.keys(pendingProps).length === 0) {
+      return;
+    }
+
+    updateNodeProperties(props.id, pendingProps);
+  }, [props.id, updateNodeProperties]);
+
+  const schedulePendingNodeSync = useCallback(() => {
+    if (nodeSyncTimeoutRef.current !== null) {
+      clearTimeout(nodeSyncTimeoutRef.current);
+    }
+
+    nodeSyncTimeoutRef.current = window.setTimeout(() => {
+      nodeSyncTimeoutRef.current = null;
+      flushPendingNodeSync();
+    }, NODE_SYNC_DEBOUNCE_MS);
+  }, [flushPendingNodeSync]);
+
+  useEffect(() => {
+    return () => {
+      if (nodeSyncTimeoutRef.current !== null) {
+        clearTimeout(nodeSyncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Parse sketch document from node properties
   const sketchDoc = useMemo((): SketchDocument => {
@@ -382,37 +426,46 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   }, [sketchDoc]);
 
   const handleCloseEditor = useCallback(() => {
+    flushPendingNodeSync();
     setIsModalOpen(false);
-  }, []);
+  }, [flushPendingNodeSync]);
 
   const handleDocumentChange = useCallback(
     (doc: SketchDocument) => {
       documentRef.current = doc;
-      const serialized = serializeDocument(doc);
-      updateNodeProperties(props.id, { sketch_data: serialized });
+      pendingDocumentSyncRef.current = doc;
+      schedulePendingNodeSync();
     },
-    [props.id, updateNodeProperties]
+    [schedulePendingNodeSync]
   );
 
   // ─── Export callbacks for real-time output updates during editing ──
   const handleExportImage = useCallback(
     (dataUrl: string) => {
-      updateNodeProperties(props.id, {
-        image: { type: "image", uri: dataUrl, asset_id: null, data: null }
-      });
+      pendingNodePropsRef.current.image = {
+        type: "image",
+        uri: dataUrl,
+        asset_id: null,
+        data: null
+      };
+      schedulePendingNodeSync();
     },
-    [props.id, updateNodeProperties]
+    [schedulePendingNodeSync]
   );
 
   const handleExportMask = useCallback(
     (dataUrl: string | null) => {
       if (dataUrl) {
-        updateNodeProperties(props.id, {
-          mask: { type: "image", uri: dataUrl, asset_id: null, data: null }
-        });
+        pendingNodePropsRef.current.mask = {
+          type: "image",
+          uri: dataUrl,
+          asset_id: null,
+          data: null
+        };
+        schedulePendingNodeSync();
       }
     },
-    [props.id, updateNodeProperties]
+    [schedulePendingNodeSync]
   );
 
   return (

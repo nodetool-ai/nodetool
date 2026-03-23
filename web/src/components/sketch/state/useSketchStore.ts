@@ -133,7 +133,10 @@ export interface SketchStore {
   resizeCanvas: (width: number, height: number) => void;
 
   // ─── History Actions ──────────────────────────────────────────────────────
-  pushHistory: (action: string) => void;
+  pushHistory: (
+    action: string,
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>
+  ) => void;
   undo: () => HistoryEntry | null;
   redo: () => HistoryEntry | null;
   canUndo: () => boolean;
@@ -734,7 +737,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     })),
 
   // ─── History Actions ──────────────────────────────────────────────────
-  pushHistory: (action: string) => {
+  pushHistory: (action: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>) => {
     const state = get();
     const snapshot: Record<string, string | null> = {};
     for (const layer of state.document.layers) {
@@ -756,6 +759,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     );
     const entry: HistoryEntry = {
       layerSnapshots: snapshot,
+      layerCanvasSnapshots,
       layerStructure,
       activeLayerId: state.document.activeLayerId,
       maskLayerId: state.document.maskLayerId,

@@ -56,6 +56,7 @@ export interface SketchEditorHandle {
   mergeDown: () => void;
   flattenVisible: () => void;
   discardToInitial: () => void;
+  flushPendingChanges: () => void;
 }
 
 export interface SketchEditorProps {
@@ -233,6 +234,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       flipVertical: layerActions.handleFlipVertical,
       mergeDown: layerActions.handleMergeDown,
       flattenVisible: layerActions.handleFlattenVisible,
+      flushPendingChanges: canvasActions.flushPendingCanvasSync,
       discardToInitial: () => {
         const doc = initialDocumentRef.current;
         if (!doc) { return; }

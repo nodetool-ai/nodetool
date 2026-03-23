@@ -15,7 +15,10 @@ export interface UseCanvasActionsParams {
   document: SketchDocument;
   activeTool: SketchTool;
   zoom: number;
-  pushHistory: (label: string) => void;
+  pushHistory: (
+    label: string,
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>
+  ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
   setLayerTransform: (layerId: string, transform: Point) => void;
@@ -53,22 +56,17 @@ export function useCanvasActions({
     data: string | null;
   }
 
-  interface WindowWithIdleCallback extends Window {
-    requestIdleCallback?: (
-      callback: IdleRequestCallback,
-      options?: IdleRequestOptions
-    ) => number;
-    cancelIdleCallback?: (handle: number) => void;
+  interface PendingExportSync {
+    image: boolean;
+    mask: boolean;
   }
 
   const pendingStrokeFinalizeRef = useRef<Map<string, PendingStrokeFinalize>>(new Map());
-  const strokeFinalizeTimeoutRef = useRef<number | null>(null);
-  const strokeFinalizeIdleRef = useRef<number | null>(null);
+  const pendingExportSyncRef = useRef<PendingExportSync>({ image: false, mask: false });
 
   const flushPendingStrokeFinalization = useCallback(() => {
     const pendingEntries = Array.from(pendingStrokeFinalizeRef.current.entries());
     pendingStrokeFinalizeRef.current.clear();
-    strokeFinalizeTimeoutRef.current = null;
 
     if (pendingEntries.length === 0) {
       return;
@@ -82,51 +80,47 @@ export function useCanvasActions({
       updateLayerData(layerId, nextData);
     }
 
+  }, [canvasRef, updateLayerData]);
+
+  const flushPendingExportSync = useCallback(() => {
+    const pending = pendingExportSyncRef.current;
+    pendingExportSyncRef.current = { image: false, mask: false };
+
+    if (!pending.image && !pending.mask) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
     if (!canvas) {
       return;
     }
 
-    if (onExportImage) {
+    if (pending.image && onExportImage) {
       onExportImage(canvas.flattenToDataUrl());
     }
-    if (onExportMask) {
+    if (pending.mask && onExportMask) {
       onExportMask(canvas.getMaskDataUrl());
     }
-  }, [canvasRef, updateLayerData, onExportImage, onExportMask]);
+  }, [canvasRef, onExportImage, onExportMask]);
 
-  const schedulePendingStrokeFinalization = useCallback(() => {
-    const idleWindow = window as WindowWithIdleCallback;
-    if (strokeFinalizeIdleRef.current !== null && idleWindow.cancelIdleCallback) {
-      idleWindow.cancelIdleCallback(strokeFinalizeIdleRef.current);
-      strokeFinalizeIdleRef.current = null;
-    }
-    if (strokeFinalizeTimeoutRef.current !== null) {
-      clearTimeout(strokeFinalizeTimeoutRef.current);
-      strokeFinalizeTimeoutRef.current = null;
-    }
-
-    if (idleWindow.requestIdleCallback) {
-      strokeFinalizeIdleRef.current = idleWindow.requestIdleCallback(
-        () => {
-          strokeFinalizeIdleRef.current = null;
-          flushPendingStrokeFinalization();
-        },
-        { timeout: 150 }
-      );
-      return;
-    }
-
-    strokeFinalizeTimeoutRef.current = window.setTimeout(() => {
-      strokeFinalizeTimeoutRef.current = null;
-      flushPendingStrokeFinalization();
-    }, 0);
-  }, [flushPendingStrokeFinalization]);
+  const flushPendingCanvasSync = useCallback(() => {
+    flushPendingStrokeFinalization();
+    flushPendingExportSync();
+  }, [flushPendingStrokeFinalization, flushPendingExportSync]);
 
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
-    flushPendingStrokeFinalization();
-    pushHistory(`${activeTool} stroke`);
-  }, [flushPendingStrokeFinalization, pushHistory, activeTool]);
+    const activeLayerId = document.activeLayerId;
+    const activeLayerSnapshot =
+      activeLayerId && canvasRef.current
+        ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
+        : null;
+
+    pushHistory(
+      `${activeTool} stroke`,
+      activeLayerId ? { [activeLayerId]: activeLayerSnapshot } : undefined
+    );
+  }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
     (layerId: string, data: string | null) => {
@@ -134,22 +128,15 @@ export function useCanvasActions({
         hasSnapshot: data !== null,
         data
       });
-      schedulePendingStrokeFinalization();
+      if (onExportImage) {
+        pendingExportSyncRef.current.image = true;
+      }
+      if (onExportMask) {
+        pendingExportSyncRef.current.mask = true;
+      }
     },
-    [schedulePendingStrokeFinalization]
+    [onExportImage, onExportMask]
   );
-
-  useEffect(() => {
-    return () => {
-      const idleWindow = window as WindowWithIdleCallback;
-      if (strokeFinalizeIdleRef.current !== null && idleWindow.cancelIdleCallback) {
-        idleWindow.cancelIdleCallback(strokeFinalizeIdleRef.current);
-      }
-      if (strokeFinalizeTimeoutRef.current !== null) {
-        clearTimeout(strokeFinalizeTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const handleReconcileLayer = useCallback(
     (layerId: string) => {
@@ -439,6 +426,7 @@ export function useCanvasActions({
   return {
     handleStrokeStart,
     handleStrokeEnd,
+    flushPendingCanvasSync,
     handleClearLayer,
     handleFillLayerWithColor,
     handleNudgeLayer,

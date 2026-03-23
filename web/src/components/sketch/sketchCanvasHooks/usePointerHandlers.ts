@@ -1196,7 +1196,10 @@ export function usePointerHandlers({
               : null) ??
             smoothPt;
           withMirror(ctx, (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, pressure), from, smoothPt);
-          lastSmoothedPointRef.current = pt;
+          lastSmoothedPointRef.current = {
+            x: smoothPt.x + currentOffset.x,
+            y: smoothPt.y + currentOffset.y
+          };
         } else if (activeTool === "pencil") {
           const from = lastPointRef.current
             ? {
@@ -1222,7 +1225,10 @@ export function usePointerHandlers({
               : null) ??
             smoothPt;
           withMirror(ctx, (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, pressure), from, smoothPt);
-          lastSmoothedPointRef.current = pt;
+          lastSmoothedPointRef.current = {
+            x: smoothPt.x + currentOffset.x,
+            y: smoothPt.y + currentOffset.y
+          };
         } else if (activeTool === "blur") {
           const from = lastPointRef.current
             ? {

@@ -103,14 +103,19 @@ const SketchModal: React.FC<SketchModalProps> = ({
     if (!open) { setConfirmDiscard(false); }
   }, [open]);
 
+  const handleRequestClose = useCallback(() => {
+    editorRef.current?.flushPendingChanges();
+    onClose();
+  }, [onClose]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
         if (confirmDiscard) { setConfirmDiscard(false); }
-        else { onClose(); }
+        else { handleRequestClose(); }
       }
     },
-    [onClose, confirmDiscard]
+    [handleRequestClose, confirmDiscard]
   );
 
   if (!open) {
@@ -244,7 +249,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 </IconButton>
               </Tooltip>
               <Tooltip title="Close (Esc)">
-                <IconButton size="small" onClick={onClose}>
+                <IconButton size="small" onClick={handleRequestClose}>
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

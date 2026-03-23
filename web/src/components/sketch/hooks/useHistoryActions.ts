@@ -23,7 +23,12 @@ export function useHistoryActions({
     const entry = undo();
     if (entry && canvasRef.current) {
       for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-        canvasRef.current.setLayerData(layerId, data);
+        const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
+        if (canvasSnapshot) {
+          canvasRef.current.restoreLayerCanvas(layerId, canvasSnapshot);
+        } else {
+          canvasRef.current.setLayerData(layerId, data);
+        }
       }
     }
   }, [undo, canvasRef]);
@@ -32,7 +37,12 @@ export function useHistoryActions({
     const entry = redo();
     if (entry && canvasRef.current) {
       for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-        canvasRef.current.setLayerData(layerId, data);
+        const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
+        if (canvasSnapshot) {
+          canvasRef.current.restoreLayerCanvas(layerId, canvasSnapshot);
+        } else {
+          canvasRef.current.setLayerData(layerId, data);
+        }
       }
     }
   }, [redo, canvasRef]);
