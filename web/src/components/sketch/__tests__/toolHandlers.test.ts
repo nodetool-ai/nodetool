@@ -433,22 +433,8 @@ describe("EraserTool", () => {
   it("creates destination-out stroke buffer on pointer down", () => {
     const tool = new EraserTool();
     const ctx = makeToolContext({ activeTool: "eraser" });
-    const result = tool.onDown(ctx, makePointerEvent());
-    expect(result).toBe(true);
-    expect(ctx.activeStrokeRef.current).not.toBeNull();
-    expect(ctx.activeStrokeRef.current?.compositeOp).toBe("destination-out");
-  });
-});
-
-describe("BlurTool", () => {
-  it("returns true on pointer down for active layer", () => {
-    const tool = new BlurTool();
-    const ctx = makeToolContext({ activeTool: "blur" });
     const fakeCtx = {
-      getImageData: jest.fn((x: number, y: number, width: number, height: number) =>
-        new ImageData(Math.max(1, width), Math.max(1, height))
-      ),
-      putImageData: jest.fn(),
+      clearRect: jest.fn(),
       drawImage: jest.fn(),
       restore: jest.fn()
     } as unknown as CanvasRenderingContext2D;
@@ -460,9 +446,61 @@ describe("BlurTool", () => {
     try {
       const result = tool.onDown(ctx, makePointerEvent());
       expect(result).toBe(true);
+      expect(ctx.activeStrokeRef.current).not.toBeNull();
+      expect(ctx.activeStrokeRef.current?.compositeOp).toBe("destination-out");
+    } finally {
+      getContextSpy.mockRestore();
+    }
+  });
+});
+
+describe("BlurTool", () => {
+  it("returns true on pointer down for active layer", () => {
+    const tool = new BlurTool();
+    const ctx = makeToolContext({ activeTool: "blur" });
+    class MockImageData {
+      data: Uint8ClampedArray;
+      width: number;
+      height: number;
+
+      constructor(
+        dataOrWidth: Uint8ClampedArray | number,
+        width?: number,
+        height?: number
+      ) {
+        if (typeof dataOrWidth === "number") {
+          this.width = dataOrWidth;
+          this.height = width ?? 0;
+          this.data = new Uint8ClampedArray(this.width * this.height * 4);
+          return;
+        }
+        this.data = dataOrWidth;
+        this.width = width ?? 0;
+        this.height = height ?? 0;
+      }
+    }
+    const originalImageData = globalThis.ImageData;
+    const fakeCtx = {
+      getImageData: jest.fn((x: number, y: number, width: number, height: number) =>
+        new MockImageData(Math.max(1, width), Math.max(1, height))
+      ),
+      putImageData: jest.fn(),
+      drawImage: jest.fn(),
+      restore: jest.fn()
+    } as unknown as CanvasRenderingContext2D;
+    globalThis.ImageData = MockImageData as unknown as typeof ImageData;
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((((contextId: string) =>
+        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+    try {
+      const result = tool.onDown(ctx, makePointerEvent());
+      expect(result).toBe(true);
       expect(ctx.onStrokeStart).toHaveBeenCalled();
     } finally {
       getContextSpy.mockRestore();
+      globalThis.ImageData = originalImageData;
     }
   });
 });
