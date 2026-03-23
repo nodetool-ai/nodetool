@@ -31,6 +31,7 @@ export interface UseCompositingResult {
   redrawRequestRef: React.MutableRefObject<number | null>;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
+  redrawDirty: (x: number, y: number, w: number, h: number) => void;
   requestRedraw: () => void;
   /** Schedule a partial redraw over only the changed region (faster for large canvases). */
   requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
@@ -46,7 +47,11 @@ export function useCompositing({
   const redrawRequestRef = useRef<number | null>(null);
   /** Pending dirty rect. Null means full redraw. */
   const pendingDirtyRef = useRef<DirtyRect | null>(null);
-  const isFullRedrawRef = useRef(true);
+  const isFullRedrawRef = useRef(false);
+  const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
+  const layerHydrationSignature = doc.layers
+    .map((layer) => `${layer.id}:${layer.data ?? ""}`)
+    .join("|");
 
   // ─── Layer Canvas Management ────────────────────────────────────────
 
@@ -63,41 +68,6 @@ export function useCompositing({
     },
     [doc.canvas.width, doc.canvas.height]
   );
-
-  // ─── Initialize layer canvases from document data ───────────────────
-
-  useEffect(() => {
-    const layerIds = new Set(doc.layers.map((l) => l.id));
-    for (const [id] of layerCanvasesRef.current) {
-      if (!layerIds.has(id)) {
-        layerCanvasesRef.current.delete(id);
-      }
-    }
-
-    for (const layer of doc.layers) {
-      const canvas = getOrCreateLayerCanvas(layer.id);
-      if (
-        canvas.width !== doc.canvas.width ||
-        canvas.height !== doc.canvas.height
-      ) {
-        canvas.width = doc.canvas.width;
-        canvas.height = doc.canvas.height;
-      }
-      if (layer.data) {
-        const img = new Image();
-        img.onload = () => {
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            redraw();
-          }
-        };
-        img.src = layer.data;
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.layers.length, doc.layers.map((l) => l.id).join(","), doc.canvas.width, doc.canvas.height]);
 
   // ─── Compositing helpers ────────────────────────────────────────────
 
@@ -174,11 +144,49 @@ export function useCompositing({
     [doc.layers, isolatedLayerId]
   );
 
+  const mergePendingDirtyRect = useCallback(
+    (x: number, y: number, w: number, h: number) => {
+      const next: DirtyRect = { x, y, w, h };
+      const prev = pendingDirtyRef.current;
+      if (!prev) {
+        pendingDirtyRef.current = next;
+        return next;
+      }
+
+      const minX = Math.min(prev.x, next.x);
+      const minY = Math.min(prev.y, next.y);
+      const maxX = Math.max(prev.x + prev.w, next.x + next.w);
+      const maxY = Math.max(prev.y + prev.h, next.y + next.h);
+      const merged = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+      pendingDirtyRef.current = merged;
+      return merged;
+    },
+    []
+  );
+
   // ─── Full redraw ───────────────────────────────────────────────────
 
   const redraw = useCallback(() => {
     compositeToDisplay(null);
   }, [compositeToDisplay]);
+
+  const redrawDirty = useCallback(
+    (x: number, y: number, w: number, h: number) => {
+      if (w <= 0 || h <= 0) {
+        compositeToDisplay(null);
+        return;
+      }
+
+      if (redrawRequestRef.current !== null) {
+        cancelAnimationFrame(redrawRequestRef.current);
+        redrawRequestRef.current = null;
+      }
+      pendingDirtyRef.current = null;
+      isFullRedrawRef.current = false;
+      compositeToDisplay({ x, y, w, h });
+    },
+    [compositeToDisplay]
+  );
 
   /**
    * Batched redraw using requestAnimationFrame.
@@ -193,7 +201,7 @@ export function useCompositing({
     if (redrawRequestRef.current === null) {
       redrawRequestRef.current = requestAnimationFrame(() => {
         redrawRequestRef.current = null;
-        isFullRedrawRef.current = true;
+        isFullRedrawRef.current = false;
         pendingDirtyRef.current = null;
         redraw();
       });
@@ -211,21 +219,11 @@ export function useCompositing({
   const requestDirtyRedraw = useCallback(
     (x: number, y: number, w: number, h: number) => {
       // A full redraw covers the entire canvas, so dirty tracking is unnecessary
-      if (isFullRedrawRef.current) {
+      if (isFullRedrawRef.current && redrawRequestRef.current !== null) {
         return;
       }
 
-      const prev = pendingDirtyRef.current;
-      if (prev) {
-        // Merge bounding boxes
-        const minX = Math.min(prev.x, x);
-        const minY = Math.min(prev.y, y);
-        const maxX = Math.max(prev.x + prev.w, x + w);
-        const maxY = Math.max(prev.y + prev.h, y + h);
-        pendingDirtyRef.current = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-      } else {
-        pendingDirtyRef.current = { x, y, w, h };
-      }
+      mergePendingDirtyRect(x, y, w, h);
 
       if (redrawRequestRef.current === null) {
         redrawRequestRef.current = requestAnimationFrame(() => {
@@ -243,12 +241,65 @@ export function useCompositing({
         });
       }
     },
-    [compositeToDisplay]
+    [mergePendingDirtyRect, compositeToDisplay]
   );
 
+  // ─── Initialize layer canvases from document data ───────────────────
+
   useEffect(() => {
-    redraw();
-  }, [redraw, doc.layers]);
+    const layerIds = new Set(doc.layers.map((l) => l.id));
+    for (const [id] of layerCanvasesRef.current) {
+      if (!layerIds.has(id)) {
+        layerCanvasesRef.current.delete(id);
+        hydratedLayerStateRef.current.delete(id);
+      }
+    }
+
+    for (const layer of doc.layers) {
+      const canvas = getOrCreateLayerCanvas(layer.id);
+      if (canvas.width !== doc.canvas.width || canvas.height !== doc.canvas.height) {
+        canvas.width = doc.canvas.width;
+        canvas.height = doc.canvas.height;
+      }
+      const hydrationKey = layer.data ?? "";
+      if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
+        continue;
+      }
+      hydratedLayerStateRef.current.set(layer.id, hydrationKey);
+
+      if (layer.data) {
+        const img = new Image();
+        img.onload = () => {
+          if (hydratedLayerStateRef.current.get(layer.id) !== hydrationKey) {
+            return;
+          }
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            requestRedraw();
+          }
+        };
+        img.src = layer.data;
+      } else {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          requestRedraw();
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    layerHydrationSignature,
+    doc.canvas.width,
+    doc.canvas.height,
+    requestRedraw
+  ]);
+
+  useEffect(() => {
+    requestRedraw();
+  }, [requestRedraw, doc.layers]);
 
   // Cleanup rAF on unmount
   useEffect(() => {
@@ -266,6 +317,7 @@ export function useCompositing({
     redrawRequestRef,
     getOrCreateLayerCanvas,
     redraw,
+    redrawDirty,
     requestRedraw,
     requestDirtyRedraw
   };

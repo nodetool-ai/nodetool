@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { SketchDocument, SketchTool, Point } from "../types";
+import type { SketchDocument, SketchTool, Point, LayerContentBounds } from "../types";
 import { useSketchStore } from "../state";
 
 export interface UseCanvasActionsParams {
@@ -18,6 +18,11 @@ export interface UseCanvasActionsParams {
   pushHistory: (label: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
+  setLayerTransform: (layerId: string, transform: Point) => void;
+  setLayerContentBounds: (
+    layerId: string,
+    contentBounds: LayerContentBounds
+  ) => void;
   setDocument: (doc: SketchDocument) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
@@ -34,6 +39,8 @@ export function useCanvasActions({
   pushHistory,
   updateLayerData,
   translateLayer,
+  setLayerTransform,
+  setLayerContentBounds,
   setDocument,
   setZoom,
   setPan,
@@ -41,24 +48,141 @@ export function useCanvasActions({
   onExportImage,
   onExportMask
 }: UseCanvasActionsParams) {
+  interface PendingStrokeFinalize {
+    hasSnapshot: boolean;
+    data: string | null;
+  }
+
+  interface WindowWithIdleCallback extends Window {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions
+    ) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  }
+
+  const pendingStrokeFinalizeRef = useRef<Map<string, PendingStrokeFinalize>>(new Map());
+  const strokeFinalizeTimeoutRef = useRef<number | null>(null);
+  const strokeFinalizeIdleRef = useRef<number | null>(null);
+
+  const flushPendingStrokeFinalization = useCallback(() => {
+    const pendingEntries = Array.from(pendingStrokeFinalizeRef.current.entries());
+    pendingStrokeFinalizeRef.current.clear();
+    strokeFinalizeTimeoutRef.current = null;
+
+    if (pendingEntries.length === 0) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    for (const [layerId, pending] of pendingEntries) {
+      const nextData = pending.hasSnapshot
+        ? pending.data
+        : canvas?.getLayerData(layerId) ?? null;
+      updateLayerData(layerId, nextData);
+    }
+
+    if (!canvas) {
+      return;
+    }
+
+    if (onExportImage) {
+      onExportImage(canvas.flattenToDataUrl());
+    }
+    if (onExportMask) {
+      onExportMask(canvas.getMaskDataUrl());
+    }
+  }, [canvasRef, updateLayerData, onExportImage, onExportMask]);
+
+  const schedulePendingStrokeFinalization = useCallback(() => {
+    const idleWindow = window as WindowWithIdleCallback;
+    if (strokeFinalizeIdleRef.current !== null && idleWindow.cancelIdleCallback) {
+      idleWindow.cancelIdleCallback(strokeFinalizeIdleRef.current);
+      strokeFinalizeIdleRef.current = null;
+    }
+    if (strokeFinalizeTimeoutRef.current !== null) {
+      clearTimeout(strokeFinalizeTimeoutRef.current);
+      strokeFinalizeTimeoutRef.current = null;
+    }
+
+    if (idleWindow.requestIdleCallback) {
+      strokeFinalizeIdleRef.current = idleWindow.requestIdleCallback(
+        () => {
+          strokeFinalizeIdleRef.current = null;
+          flushPendingStrokeFinalization();
+        },
+        { timeout: 150 }
+      );
+      return;
+    }
+
+    strokeFinalizeTimeoutRef.current = window.setTimeout(() => {
+      strokeFinalizeTimeoutRef.current = null;
+      flushPendingStrokeFinalization();
+    }, 0);
+  }, [flushPendingStrokeFinalization]);
+
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
+    flushPendingStrokeFinalization();
     pushHistory(`${activeTool} stroke`);
-  }, [pushHistory, activeTool]);
+  }, [flushPendingStrokeFinalization, pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
     (layerId: string, data: string | null) => {
-      updateLayerData(layerId, data);
-      if (canvasRef.current) {
-        if (onExportImage) {
-          onExportImage(canvasRef.current.flattenToDataUrl());
-        }
-        if (onExportMask) {
-          onExportMask(canvasRef.current.getMaskDataUrl());
-        }
-      }
+      pendingStrokeFinalizeRef.current.set(layerId, {
+        hasSnapshot: data !== null,
+        data
+      });
+      schedulePendingStrokeFinalization();
     },
-    [updateLayerData, onExportImage, onExportMask, canvasRef]
+    [schedulePendingStrokeFinalization]
+  );
+
+  useEffect(() => {
+    return () => {
+      const idleWindow = window as WindowWithIdleCallback;
+      if (strokeFinalizeIdleRef.current !== null && idleWindow.cancelIdleCallback) {
+        idleWindow.cancelIdleCallback(strokeFinalizeIdleRef.current);
+      }
+      if (strokeFinalizeTimeoutRef.current !== null) {
+        clearTimeout(strokeFinalizeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleReconcileLayer = useCallback(
+    (layerId: string) => {
+      const layer = document.layers.find((entry) => entry.id === layerId);
+      if (!layer || !canvasRef.current) {
+        return;
+      }
+
+      const tx = layer.transform?.x ?? 0;
+      const ty = layer.transform?.y ?? 0;
+      if (tx === 0 && ty === 0) {
+        return;
+      }
+
+      const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
+      setLayerTransform(layerId, { x: 0, y: 0 });
+      setLayerContentBounds(layerId, {
+        x: 0,
+        y: 0,
+        width: document.canvas.width,
+        height: document.canvas.height
+      });
+      updateLayerData(layerId, data);
+    },
+    [
+      document.layers,
+      document.canvas.width,
+      document.canvas.height,
+      canvasRef,
+      setLayerTransform,
+      setLayerContentBounds,
+      updateLayerData
+    ]
   );
 
   // ─── Clear active layer (or selection area) ────────────────────────
@@ -70,6 +194,7 @@ export function useCanvasActions({
     const sel = useSketchStore.getState().selection;
     if (sel && sel.width > 0 && sel.height > 0) {
       pushHistory("clear selection");
+      handleReconcileLayer(activeLayerId);
       canvasRef.current.clearLayerRect(
         activeLayerId,
         sel.x,
@@ -81,10 +206,17 @@ export function useCanvasActions({
       updateLayerData(activeLayerId, data);
     } else {
       pushHistory("clear layer");
+      handleReconcileLayer(activeLayerId);
       canvasRef.current.clearLayer(activeLayerId);
       updateLayerData(activeLayerId, null);
     }
-  }, [document.activeLayerId, pushHistory, updateLayerData, canvasRef]);
+  }, [
+    document.activeLayerId,
+    pushHistory,
+    updateLayerData,
+    canvasRef,
+    handleReconcileLayer
+  ]);
 
   // ─── Fill layer with color (respects selection) ─────────────────
   const handleFillLayerWithColor = useCallback(
@@ -97,15 +229,24 @@ export function useCanvasActions({
       const sel = useSketchStore.getState().selection;
       if (sel && sel.width > 0 && sel.height > 0) {
         pushHistory("fill selection");
+        handleReconcileLayer(activeLayerId);
         canvasRef.current.fillLayerRect(activeLayerId, sel.x, sel.y, sel.width, sel.height, color);
       } else {
         pushHistory("fill layer");
+        handleReconcileLayer(activeLayerId);
         canvasRef.current.fillLayerWithColor(activeLayerId, color);
       }
       const data = canvasRef.current.getLayerData(activeLayerId);
       updateLayerData(activeLayerId, data);
     },
-    [document.activeLayerId, document.layers, pushHistory, updateLayerData, canvasRef]
+    [
+      document.activeLayerId,
+      document.layers,
+      pushHistory,
+      updateLayerData,
+      canvasRef,
+      handleReconcileLayer
+    ]
   );
 
   // ─── Arrow key nudge for active layer ───────────────────────────
@@ -177,6 +318,9 @@ export function useCanvasActions({
         return;
       }
       pushHistory("crop");
+      for (const layer of document.layers) {
+        handleReconcileLayer(layer.id);
+      }
       canvasRef.current.cropCanvas(x, y, width, height);
       const state = useSketchStore.getState();
       setDocument({
@@ -196,7 +340,7 @@ export function useCanvasActions({
         updateLayerData(layer.id, data);
       }
     },
-    [pushHistory, setDocument, updateLayerData, canvasRef]
+    [pushHistory, setDocument, updateLayerData, canvasRef, document.layers, handleReconcileLayer]
   );
 
   // ─── Context menu ──────────────────────────────────────────────
@@ -237,8 +381,9 @@ export function useCanvasActions({
         return;
       }
       if (adjustmentBaseRef.current === null) {
-        adjustmentBaseRef.current = canvasRef.current.snapshotLayerCanvas(layerId);
         pushHistory("adjustments");
+        handleReconcileLayer(layerId);
+        adjustmentBaseRef.current = canvasRef.current.snapshotLayerCanvas(layerId);
       }
       if (adjustmentBaseRef.current) {
         canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
@@ -247,7 +392,13 @@ export function useCanvasActions({
       const data = canvasRef.current.getLayerData(layerId);
       updateLayerData(layerId, data);
     },
-    [pushHistory, document.activeLayerId, updateLayerData, canvasRef]
+    [
+      pushHistory,
+      document.activeLayerId,
+      updateLayerData,
+      canvasRef,
+      handleReconcileLayer
+    ]
   );
 
   const handleResetAdjustments = useCallback(() => {
@@ -300,6 +451,7 @@ export function useCanvasActions({
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,
+    handleReconcileLayer,
     adjBrightness,
     adjContrast,
     adjSaturation,

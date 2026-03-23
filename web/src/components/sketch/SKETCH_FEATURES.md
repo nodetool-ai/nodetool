@@ -237,6 +237,7 @@
 - [x] Add `S` for clone stamp.
 - [ ] Add `J` for healing brush / spot heal.
 - [ ] Add `Shift + 0–9` to set brush flow.
+- [ ] add freehand drawing with https://github.com/steveruizok/perfect-freehand
 
 ### Erasing & Filling
 

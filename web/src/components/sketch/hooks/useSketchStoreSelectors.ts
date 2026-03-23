@@ -45,6 +45,7 @@ export function useSketchStoreSelectors() {
   const renameLayer = useSketchStore((s) => s.renameLayer);
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setLayerTransform = useSketchStore((s) => s.setLayerTransform);
+  const setLayerContentBounds = useSketchStore((s) => s.setLayerContentBounds);
   const translateLayer = useSketchStore((s) => s.translateLayer);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
   const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
@@ -122,6 +123,7 @@ export function useSketchStoreSelectors() {
     renameLayer,
     updateLayerData,
     setLayerTransform,
+    setLayerContentBounds,
     translateLayer,
     setMaskLayer,
     toggleAlphaLock,

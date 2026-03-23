@@ -71,6 +71,12 @@ export function useCanvasImperativeHandle({
         if (!ctx) {
           return;
         }
+        const desiredWidth = Math.max(1, doc.canvas.width);
+        const desiredHeight = Math.max(1, doc.canvas.height);
+        if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+          canvas.width = desiredWidth;
+          canvas.height = desiredHeight;
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (data) {
           const img = new Image();
@@ -82,6 +88,36 @@ export function useCanvasImperativeHandle({
         } else {
           redraw();
         }
+      },
+      reconcileLayerToDocumentSpace: (layerId: string) => {
+        const layer = doc.layers.find((item) => item.id === layerId);
+        const canvas = layerCanvasesRef.current.get(layerId);
+        if (!layer || !canvas) {
+          return null;
+        }
+
+        const tx = layer.transform?.x ?? 0;
+        const ty = layer.transform?.y ?? 0;
+        if (tx === 0 && ty === 0) {
+          return canvas.toDataURL("image/png");
+        }
+
+        const temp = window.document.createElement("canvas");
+        temp.width = doc.canvas.width;
+        temp.height = doc.canvas.height;
+        const tempCtx = temp.getContext("2d");
+        canvas.width = doc.canvas.width;
+        canvas.height = doc.canvas.height;
+        const ctx = canvas.getContext("2d");
+        if (!tempCtx || !ctx) {
+          return canvas.toDataURL("image/png");
+        }
+
+        tempCtx.drawImage(canvas, tx, ty);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(temp, 0, 0);
+        redraw();
+        return canvas.toDataURL("image/png");
       },
       snapshotLayerCanvas: (layerId: string) => {
         const source = layerCanvasesRef.current.get(layerId);
@@ -102,6 +138,10 @@ export function useCanvasImperativeHandle({
         source: HTMLCanvasElement
       ) => {
         const canvas = getOrCreateLayerCanvas(layerId);
+        if (canvas.width !== source.width || canvas.height !== source.height) {
+          canvas.width = source.width;
+          canvas.height = source.height;
+        }
         const ctx = canvas.getContext("2d");
         if (!ctx) {
           return;

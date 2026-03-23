@@ -76,6 +76,10 @@ export interface SketchStore {
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setLayerTransform: (layerId: string, transform: LayerTransform) => void;
+  setLayerContentBounds: (
+    layerId: string,
+    contentBounds: Layer["contentBounds"]
+  ) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
   setMaskLayer: (layerId: string | null) => void;
   toggleAlphaLock: (layerId: string) => void;
@@ -472,6 +476,20 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         layers: state.document.layers.map((l) =>
           l.id === layerId ? { ...l, transform } : l
+        ),
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setLayerContentBounds: (layerId: string, contentBounds: Layer["contentBounds"]) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === layerId ? { ...l, contentBounds } : l
         ),
         metadata: {
           ...state.document.metadata,

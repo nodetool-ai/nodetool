@@ -20,7 +20,8 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform
+  LayerTransform,
+  LayerContentBounds
 } from "./types";
 import {
   useCompositing,
@@ -60,6 +61,7 @@ const styles = (theme: Theme) =>
 export interface SketchCanvasRef {
   getLayerData: (layerId: string) => string | null;
   setLayerData: (layerId: string, data: string | null) => void;
+  reconcileLayerToDocumentSpace: (layerId: string) => string | null;
   snapshotLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
   restoreLayerCanvas: (layerId: string, source: HTMLCanvasElement) => void;
   flattenToDataUrl: () => string;
@@ -113,6 +115,11 @@ export interface SketchCanvasProps {
   onStrokeStart: () => void;
   onStrokeEnd: (layerId: string, data: string | null) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
+  onLayerContentBoundsChange?: (
+    layerId: string,
+    contentBounds: LayerContentBounds
+  ) => void;
+  onLayerReconcile?: (layerId: string) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
@@ -148,6 +155,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeStart,
       onStrokeEnd,
       onLayerTransformChange,
+      onLayerContentBoundsChange,
+      onLayerReconcile,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
@@ -173,6 +182,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       layerCanvasesRef,
       getOrCreateLayerCanvas,
       redraw,
+      redrawDirty,
       requestRedraw,
       requestDirtyRedraw
     } = useCompositing({ doc, isolatedLayerId });
@@ -230,6 +240,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       mousePositionRef,
       getOrCreateLayerCanvas,
       redraw,
+      redrawDirty,
       requestRedraw,
       requestDirtyRedraw,
       clearOverlay: overlay.clearOverlay,
@@ -244,6 +255,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeStart,
       onStrokeEnd,
       onLayerTransformChange,
+      onLayerContentBoundsChange,
+      onLayerReconcile,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,

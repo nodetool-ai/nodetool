@@ -100,6 +100,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setLayerBlendMode: store.setLayerBlendMode,
     renameLayer: store.renameLayer,
     updateLayerData: store.updateLayerData,
+    setLayerTransform: store.setLayerTransform,
+    setLayerContentBounds: store.setLayerContentBounds,
     setMaskLayer: store.setMaskLayer,
     toggleAlphaLock: store.toggleAlphaLock,
     toggleLayerExposedInput: store.toggleLayerExposedInput,
@@ -117,6 +119,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
     translateLayer: store.translateLayer,
+    setLayerTransform: store.setLayerTransform,
+    setLayerContentBounds: store.setLayerContentBounds,
     setDocument: store.setDocument,
     setZoom: store.setZoom,
     setPan: store.setPan,
@@ -308,6 +312,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onStrokeStart={canvasActions.handleStrokeStart}
             onStrokeEnd={canvasActions.handleStrokeEnd}
             onLayerTransformChange={store.setLayerTransform}
+            onLayerReconcile={canvasActions.handleReconcileLayer}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}
             onCropComplete={canvasActions.handleCropComplete}
