@@ -29,6 +29,9 @@ export {
   usePointerHandlers
 } from "./sketchCanvasHooks";
 
+export { Canvas2DRuntime } from "./rendering";
+export type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./rendering";
+
 export { useCollapsedSections } from "./useCollapsedSections";
 
 export {

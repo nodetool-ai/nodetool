@@ -182,6 +182,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       displayCanvasRef,
       overlayCanvasRef,
       layerCanvasesRef,
+      runtime,
       getOrCreateLayerCanvas,
       redraw,
       redrawDirty,
@@ -273,10 +274,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     useCanvasImperativeHandle({
       ref,
       doc,
-      layerCanvasesRef,
+      runtime,
       displayCanvasRef,
       overlayCanvasRef,
-      getOrCreateLayerCanvas,
       redraw
     });
 
