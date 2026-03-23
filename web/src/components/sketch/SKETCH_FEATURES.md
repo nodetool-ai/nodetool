@@ -316,10 +316,11 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [ ] **Touch / tablet**: pinch-zoom, two-finger pan; optional palm rejection
 - [ ] **Export options**: PNG with alpha vs opaque flatten; optional JPEG for previews
 - [ ] **Rulers + draggable guides**
+- [ ] **Support PSD file format** https://github.com/Agamnentzar/ag-psd
 
 ### Krita-inspired candidates
 
-- [x] **Stroke stabilizer / lazy smoothing** — moving-average smoothing (window=4) for brush strokes
+- [ ] **Add / improve Stroke stabilizer / lazy smoothing** — moving-average smoothing (window=4) for brush strokes: make smoothing adjustable
 - [ ] **Rotate canvas (view only)**
 - [ ] **Wrap-around / tiling mode**
 - [x] **Alpha lock** — painting only affects existing opaque pixels; lock transparency indicator in layers panel

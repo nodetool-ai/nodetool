@@ -24,6 +24,40 @@ function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
   return { ...base, ...overrides };
 }
 
+function mockCanvas2DContext() {
+  const fakeContext = {
+    clearRect: jest.fn(),
+    drawImage: jest.fn(),
+    fillRect: jest.fn(),
+    beginPath: jest.fn(),
+    rect: jest.fn(),
+    clip: jest.fn(),
+    save: jest.fn(),
+    restore: jest.fn(),
+    translate: jest.fn(),
+    scale: jest.fn(),
+    globalAlpha: 1,
+    globalCompositeOperation: "source-over",
+    fillStyle: "#000"
+  } as unknown as CanvasRenderingContext2D;
+
+  const getContextSpy = jest
+    .spyOn(HTMLCanvasElement.prototype, "getContext")
+    .mockImplementation((((contextId: string) =>
+      contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+  const toDataUrlSpy = jest
+    .spyOn(HTMLCanvasElement.prototype, "toDataURL")
+    .mockReturnValue("data:image/png;base64,stub");
+
+  return {
+    restore: () => {
+      getContextSpy.mockRestore();
+      toDataUrlSpy.mockRestore();
+    }
+  };
+}
+
 describe("Canvas2DRuntime", () => {
   let runtime: Canvas2DRuntime;
 
@@ -239,6 +273,42 @@ describe("Canvas2DRuntime", () => {
       expect(result).toBeUndefined();
     });
 
+    it("mergeLayerDown returns serialized document-space layer data", () => {
+      const doc = makeDoc();
+      const lower = doc.layers[0];
+      const upper = { ...lower, id: "upper", name: "Upper", transform: { x: 6, y: 4 } };
+      doc.layers = [lower, upper];
+
+      const mockedCanvas = mockCanvas2DContext();
+      try {
+        runtime.getOrCreateLayerCanvas(lower.id, 64, 64);
+        runtime.getOrCreateLayerCanvas(upper.id, 32, 32);
+
+        const mergedData = runtime.mergeLayerDown(upper.id, lower.id, doc);
+        expect(mergedData).toBeTruthy();
+
+        runtime.setLayerData("merged_copy", mergedData ?? null, {
+          x: -10,
+          y: -10,
+          width: 8,
+          height: 8
+        });
+
+        const mergedCanvas = runtime.getLayerCanvas("merged_copy");
+        expect(mergedCanvas).toBeDefined();
+        expect(mergedCanvas!.width).toBe(doc.canvas.width);
+        expect(mergedCanvas!.height).toBe(doc.canvas.height);
+        expect(getCanvasRasterBounds(mergedCanvas)).toEqual({
+          x: 0,
+          y: 0,
+          width: doc.canvas.width,
+          height: doc.canvas.height
+        });
+      } finally {
+        mockedCanvas.restore();
+      }
+    });
+
     it("reconcileLayerToDocumentSpace returns null for unknown layer", () => {
       const doc = makeDoc();
       expect(
@@ -273,6 +343,40 @@ describe("Canvas2DRuntime", () => {
       const movedPixel = reconciledCtx!.getImageData(11, 13, 1, 1).data;
       expect(movedPixel[0]).toBeGreaterThan(0);
       expect(movedPixel[3]).toBeGreaterThan(0);
+    });
+
+    it("reconcileLayerToDocumentSpace returns serialized document-space data", () => {
+      const doc = makeDoc();
+      const layerId = doc.layers[0].id;
+      doc.layers[0].transform = { x: 8, y: 9 };
+
+      const mockedCanvas = mockCanvas2DContext();
+      try {
+        runtime.getOrCreateLayerCanvas(layerId, 24, 20);
+
+        const reconciledData = runtime.reconcileLayerToDocumentSpace(layerId, doc);
+        expect(reconciledData).toBeTruthy();
+
+        runtime.setLayerData("reconciled_copy", reconciledData, {
+          x: -2,
+          y: -2,
+          width: 4,
+          height: 4
+        });
+
+        const canvas = runtime.getLayerCanvas("reconciled_copy");
+        expect(canvas).toBeDefined();
+        expect(canvas!.width).toBe(doc.canvas.width);
+        expect(canvas!.height).toBe(doc.canvas.height);
+        expect(getCanvasRasterBounds(canvas)).toEqual({
+          x: 0,
+          y: 0,
+          width: doc.canvas.width,
+          height: doc.canvas.height
+        });
+      } finally {
+        mockedCanvas.restore();
+      }
     });
 
     it("applyAdjustments does not throw when active layer is missing", () => {
@@ -479,6 +583,36 @@ describe("Canvas2DRuntime", () => {
         width: 32,
         height: 24
       });
+    });
+  });
+
+  describe("flattenVisible", () => {
+    it("returns serialized document-space layer data", () => {
+      const doc = makeDoc();
+      const mockedCanvas = mockCanvas2DContext();
+      try {
+        const flatData = runtime.flattenVisible(doc);
+
+        runtime.setLayerData("flat_copy", flatData, {
+          x: -4,
+          y: -4,
+          width: 8,
+          height: 8
+        });
+
+        const canvas = runtime.getLayerCanvas("flat_copy");
+        expect(canvas).toBeDefined();
+        expect(canvas!.width).toBe(doc.canvas.width);
+        expect(canvas!.height).toBe(doc.canvas.height);
+        expect(getCanvasRasterBounds(canvas)).toEqual({
+          x: 0,
+          y: 0,
+          width: doc.canvas.width,
+          height: doc.canvas.height
+        });
+      } finally {
+        mockedCanvas.restore();
+      }
     });
   });
 

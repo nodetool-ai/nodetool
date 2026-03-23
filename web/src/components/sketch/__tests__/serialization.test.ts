@@ -4,10 +4,27 @@
 
 import {
   serializeDocument,
-  deserializeDocument
+  deserializeDocument,
+  flattenDocument,
+  exportMask
 } from "../serialization";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 import type { SketchDocument } from "../types";
+
+const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
+
+function encodeLayerData(
+  image: string,
+  bounds: { x: number; y: number; width: number; height: number }
+): string {
+  return `${SERIALIZED_LAYER_DATA_PREFIX}${window.btoa(
+    JSON.stringify({
+      version: 1,
+      image,
+      bounds
+    })
+  )}`;
+}
 
 describe("Sketch Serialization", () => {
   describe("serializeDocument", () => {
@@ -126,6 +143,122 @@ describe("Sketch Serialization", () => {
         width: 200,
         height: 180
       });
+    });
+  });
+
+  describe("bounds-aware layer payloads", () => {
+    it("flattenDocument draws serialized layer data using raster bounds plus transform", async () => {
+      const doc = createDefaultDocument(64, 64);
+      doc.layers[0].data = encodeLayerData("data:image/png;base64,stub", {
+        x: -3,
+        y: 4,
+        width: 20,
+        height: 10
+      });
+      doc.layers[0].transform = { x: 7, y: 8 };
+
+      const drawImage = jest.fn();
+      const fillRect = jest.fn();
+      const getContextSpy = jest
+        .spyOn(HTMLCanvasElement.prototype, "getContext")
+        .mockImplementation((((contextId: string) =>
+          contextId === "2d"
+            ? ({
+                drawImage,
+                fillRect,
+                clearRect: jest.fn(),
+                globalAlpha: 1,
+                fillStyle: "#000"
+              } as unknown as CanvasRenderingContext2D)
+            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+      class MockImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        naturalWidth = 20;
+        naturalHeight = 10;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      }
+
+      const originalImage = global.Image;
+      // @ts-expect-error test-only image mock
+      global.Image = MockImage;
+
+      try {
+        await flattenDocument(doc);
+        const canvasDraws = drawImage.mock.calls.filter(
+          ([source]) => source instanceof HTMLCanvasElement
+        );
+        expect(canvasDraws).toContainEqual([
+          expect.any(HTMLCanvasElement),
+          4,
+          12
+        ]);
+      } finally {
+        global.Image = originalImage;
+        getContextSpy.mockRestore();
+      }
+    });
+
+    it("exportMask draws serialized mask data using raster bounds plus transform", async () => {
+      const doc = createDefaultDocument(64, 64);
+      const maskLayer = createDefaultLayer("Mask", "mask", 64, 64);
+      maskLayer.data = encodeLayerData("data:image/png;base64,stub", {
+        x: 5,
+        y: -2,
+        width: 16,
+        height: 12
+      });
+      maskLayer.transform = { x: 9, y: 3 };
+      doc.layers.push(maskLayer);
+      doc.maskLayerId = maskLayer.id;
+
+      const drawImage = jest.fn();
+      const getContextSpy = jest
+        .spyOn(HTMLCanvasElement.prototype, "getContext")
+        .mockImplementation((((contextId: string) =>
+          contextId === "2d"
+            ? ({
+                drawImage,
+                fillRect: jest.fn(),
+                clearRect: jest.fn(),
+                globalAlpha: 1,
+                fillStyle: "#000"
+              } as unknown as CanvasRenderingContext2D)
+            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+      class MockImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        naturalWidth = 16;
+        naturalHeight = 12;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      }
+
+      const originalImage = global.Image;
+      // @ts-expect-error test-only image mock
+      global.Image = MockImage;
+
+      try {
+        await exportMask(doc);
+        const canvasDraws = drawImage.mock.calls.filter(
+          ([source]) => source instanceof HTMLCanvasElement
+        );
+        expect(canvasDraws).toContainEqual([
+          expect.any(HTMLCanvasElement),
+          14,
+          1
+        ]);
+      } finally {
+        global.Image = originalImage;
+        getContextSpy.mockRestore();
+      }
     });
   });
 });

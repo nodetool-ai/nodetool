@@ -356,7 +356,12 @@ export class Canvas2DRuntime implements SketchRuntime {
       }
       this.drawLayerToContext(ctx, doc, layer.id);
     }
-    return canvas.toDataURL("image/png");
+    return serializeLayerData(canvas.toDataURL("image/png"), {
+      x: 0,
+      y: 0,
+      width: doc.canvas.width,
+      height: doc.canvas.height
+    });
   }
 
   // ─── Layer operations ────────────────────────────────────────────────
@@ -575,8 +580,19 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
     lowerCtx.clearRect(0, 0, lowerCanvas.width, lowerCanvas.height);
     lowerCtx.drawImage(mergedCanvas, 0, 0);
+    setCanvasRasterBounds(lowerCanvas, {
+      x: 0,
+      y: 0,
+      width: doc.canvas.width,
+      height: doc.canvas.height
+    });
     this.layerCanvases.delete(upperLayerId);
-    return lowerCanvas.toDataURL("image/png");
+    return serializeLayerData(lowerCanvas.toDataURL("image/png"), {
+      x: 0,
+      y: 0,
+      width: doc.canvas.width,
+      height: doc.canvas.height
+    });
   }
 
   cropLayers(
@@ -659,7 +675,12 @@ export class Canvas2DRuntime implements SketchRuntime {
         width: canvas.width,
         height: canvas.height
       });
-      return canvas.toDataURL("image/png");
+      return serializeLayerData(canvas.toDataURL("image/png"), {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height
+      });
     }
 
     const source = window.document.createElement("canvas");
@@ -673,7 +694,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     const tempCtx = temp.getContext("2d");
 
     if (!sourceCtx || !tempCtx) {
-      return canvas.toDataURL("image/png");
+      return serializeLayerData(canvas.toDataURL("image/png"), {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height
+      });
     }
 
     sourceCtx.drawImage(canvas, 0, 0);
@@ -681,7 +707,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     canvas.height = doc.canvas.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      return canvas.toDataURL("image/png");
+      return serializeLayerData(canvas.toDataURL("image/png"), {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height
+      });
     }
 
     tempCtx.drawImage(source, tx, ty);
@@ -693,7 +724,12 @@ export class Canvas2DRuntime implements SketchRuntime {
       width: doc.canvas.width,
       height: doc.canvas.height
     });
-    return canvas.toDataURL("image/png");
+    return serializeLayerData(canvas.toDataURL("image/png"), {
+      x: 0,
+      y: 0,
+      width: doc.canvas.width,
+      height: doc.canvas.height
+    });
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────

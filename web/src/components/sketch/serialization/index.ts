@@ -10,6 +10,62 @@ import {
   normalizeSketchDocument
 } from "../types";
 
+const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
+
+type LayerRasterBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type SerializedLayerData = {
+  version: 1;
+  image: string | null;
+  bounds: LayerRasterBounds;
+};
+
+function getDefaultBounds(width: number, height: number): LayerRasterBounds {
+  return { x: 0, y: 0, width, height };
+}
+
+function serializeLayerData(
+  image: string | null,
+  bounds: LayerRasterBounds
+): string {
+  const payload: SerializedLayerData = {
+    version: 1,
+    image,
+    bounds
+  };
+  return `${SERIALIZED_LAYER_DATA_PREFIX}${window.btoa(JSON.stringify(payload))}`;
+}
+
+function deserializeLayerData(
+  data: string,
+  fallbackWidth: number,
+  fallbackHeight: number
+): {
+  image: string | null;
+  bounds: LayerRasterBounds;
+} {
+  const fallbackBounds = getDefaultBounds(fallbackWidth, fallbackHeight);
+  if (!data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
+    return { image: data, bounds: fallbackBounds };
+  }
+  try {
+    const decoded = JSON.parse(
+      window.atob(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
+    ) as SerializedLayerData;
+    return {
+      image: decoded.image ?? null,
+      bounds: decoded.bounds ?? fallbackBounds
+    };
+  } catch {
+    return { image: data, bounds: fallbackBounds };
+  }
+}
+
 /**
  * Serialize a SketchDocument to a JSON string
  */
@@ -70,6 +126,34 @@ export function dataUrlToCanvas(
   });
 }
 
+async function layerDataToCanvas(
+  data: string,
+  fallbackWidth: number,
+  fallbackHeight: number
+): Promise<{
+  canvas: HTMLCanvasElement;
+  bounds: LayerRasterBounds;
+}> {
+  const decoded = deserializeLayerData(data, fallbackWidth, fallbackHeight);
+  const canvas = decoded.image
+    ? await dataUrlToCanvas(
+        decoded.image,
+        decoded.bounds.width,
+        decoded.bounds.height
+      )
+    : document.createElement("canvas");
+
+  if (!decoded.image) {
+    canvas.width = decoded.bounds.width;
+    canvas.height = decoded.bounds.height;
+  }
+
+  return {
+    canvas,
+    bounds: decoded.bounds
+  };
+}
+
 /**
  * Flatten all visible raster layers into a single canvas.
  * Mask layers are excluded from the flattened image.
@@ -95,12 +179,16 @@ export async function flattenDocument(
       continue;
     }
     ctx.globalAlpha = layer.opacity;
-    const layerCanvas = await dataUrlToCanvas(
+    const { canvas: layerCanvas, bounds } = await layerDataToCanvas(
       layer.data,
       doc.canvas.width,
       doc.canvas.height
     );
-    ctx.drawImage(layerCanvas, layer.transform?.x ?? 0, layer.transform?.y ?? 0);
+    ctx.drawImage(
+      layerCanvas,
+      (layer.transform?.x ?? 0) + bounds.x,
+      (layer.transform?.y ?? 0) + bounds.y
+    );
   }
   ctx.globalAlpha = 1;
 
@@ -129,12 +217,16 @@ export async function exportMask(
     throw new Error("Failed to get canvas context");
   }
 
-  const maskCanvas = await dataUrlToCanvas(
+  const { canvas: maskCanvas, bounds } = await layerDataToCanvas(
     maskLayer.data,
     doc.canvas.width,
     doc.canvas.height
   );
-  ctx.drawImage(maskCanvas, maskLayer.transform?.x ?? 0, maskLayer.transform?.y ?? 0);
+  ctx.drawImage(
+    maskCanvas,
+    (maskLayer.transform?.x ?? 0) + bounds.x,
+    (maskLayer.transform?.y ?? 0) + bounds.y
+  );
   return canvas;
 }
 
@@ -190,7 +282,14 @@ export function loadImageToLayerData(
       const x = (canvasWidth - scaledWidth) / 2;
       const y = (canvasHeight - scaledHeight) / 2;
       ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-      resolve(canvas.toDataURL("image/png"));
+      resolve(
+        serializeLayerData(canvas.toDataURL("image/png"), {
+          x: 0,
+          y: 0,
+          width: canvasWidth,
+          height: canvasHeight
+        })
+      );
     };
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = imageUrl;
@@ -228,7 +327,12 @@ export function loadImageWithDimensions(
       }
       ctx.drawImage(img, 0, 0);
       resolve({
-        data: canvas.toDataURL("image/png"),
+        data: serializeLayerData(canvas.toDataURL("image/png"), {
+          x: 0,
+          y: 0,
+          width: img.naturalWidth,
+          height: img.naturalHeight
+        }),
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight
       });
