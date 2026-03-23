@@ -17,8 +17,6 @@ export class Flux2ProTextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -41,9 +39,6 @@ export class Flux2ProTextToImageNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -59,7 +54,7 @@ export class Flux2ProTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -78,8 +73,6 @@ export class Flux2ProImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
   declare prompt: any;
@@ -104,9 +97,6 @@ export class Flux2ProImageToImageNode extends BaseNode {
   "2K"
 ] })
   declare resolution: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -131,7 +121,7 @@ export class Flux2ProImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -150,8 +140,6 @@ export class Flux2FlexTextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -174,9 +162,6 @@ export class Flux2FlexTextToImageNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -192,7 +177,7 @@ export class Flux2FlexTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -211,8 +196,6 @@ export class Flux2FlexImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
   declare prompt: any;
@@ -238,9 +221,6 @@ export class Flux2FlexImageToImageNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -264,7 +244,7 @@ export class Flux2FlexImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -283,8 +263,6 @@ export class Seedream45TextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -304,9 +282,6 @@ export class Seedream45TextToImageNode extends BaseNode {
 ] })
   declare quality: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -322,7 +297,7 @@ export class Seedream45TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -341,8 +316,6 @@ export class Seedream45EditNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
   declare prompt: any;
@@ -365,9 +338,6 @@ export class Seedream45EditNode extends BaseNode {
 ] })
   declare quality: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -385,7 +355,7 @@ export class Seedream45EditNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -404,8 +374,6 @@ export class ZImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -419,9 +387,6 @@ export class ZImageNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -433,7 +398,7 @@ export class ZImageNode extends BaseNode {
     const seed = Number((this as any).seed ?? -1);
     if (seed >= 0) params.seed = seed;
     const result = await kieExecuteTask(apiKey, "z-image/turbo", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -452,8 +417,6 @@ export class NanoBananaNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -473,9 +436,6 @@ export class NanoBananaNode extends BaseNode {
 ] })
   declare image_size: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -490,7 +450,7 @@ export class NanoBananaNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -509,8 +469,6 @@ export class NanoBananaProNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -534,9 +492,6 @@ export class NanoBananaProNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -551,7 +506,7 @@ export class NanoBananaProNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -570,8 +525,6 @@ export class FluxKontextNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -591,9 +544,6 @@ export class FluxKontextNode extends BaseNode {
 ] })
   declare mode: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -611,7 +561,7 @@ export class FluxKontextNode extends BaseNode {
     };
     if (input_urls.length > 0) params.input_urls = input_urls;
     const result = await kieExecuteTask(apiKey, "flux-kontext/text-to-image", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -630,8 +580,6 @@ export class GrokImagineTextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -644,9 +592,6 @@ export class GrokImagineTextToImageNode extends BaseNode {
   "3:4"
 ] })
   declare aspect_ratio: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -662,7 +607,7 @@ export class GrokImagineTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -681,8 +626,6 @@ export class GrokImagineUpscaleNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -692,9 +635,6 @@ export class GrokImagineUpscaleNode extends BaseNode {
   "metadata": null
 }, title: "Image", description: "The image to upscale. Must be an image previously generated by a Kie.ai node." })
   declare image: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -709,7 +649,7 @@ export class GrokImagineUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -728,8 +668,6 @@ export class QwenTextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -742,9 +680,6 @@ export class QwenTextToImageNode extends BaseNode {
   "3:4"
 ] })
   declare aspect_ratio: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -761,7 +696,7 @@ export class QwenTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -780,8 +715,6 @@ export class QwenImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
   declare prompt: any;
@@ -804,9 +737,6 @@ export class QwenImageToImageNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -824,7 +754,7 @@ export class QwenImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -843,8 +773,6 @@ export class TopazImageUpscaleNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -861,9 +789,6 @@ export class TopazImageUpscaleNode extends BaseNode {
 ] })
   declare upscale_factor: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const imageUrl = await uploadImageInput(apiKey, this.image);
@@ -878,7 +803,7 @@ export class TopazImageUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -897,8 +822,6 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -908,9 +831,6 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
   "metadata": null
 }, title: "Image", description: "The image to remove the background from." })
   declare image: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -922,7 +842,7 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -941,8 +861,6 @@ export class IdeogramCharacterNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description for the character image." })
   declare prompt: any;
@@ -983,9 +901,6 @@ export class IdeogramCharacterNode extends BaseNode {
   @prop({ type: "int", default: 0, title: "Seed", description: "Random seed for generation.", min: 0 })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1006,7 +921,7 @@ export class IdeogramCharacterNode extends BaseNode {
     if (characterDescription) params.character_description = characterDescription;
     if (input_urls.length > 0) params.input_urls = input_urls;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-character", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1025,8 +940,6 @@ export class IdeogramCharacterEditNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description for the masked area." })
   declare prompt: any;
@@ -1072,9 +985,6 @@ export class IdeogramCharacterEditNode extends BaseNode {
   @prop({ type: "int", default: 0, title: "Seed", description: "Random seed for generation.", min: 0 })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1099,7 +1009,7 @@ export class IdeogramCharacterEditNode extends BaseNode {
     }
     if (ref_urls.length > 0) params.reference_image_urls = ref_urls;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-character-edit", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1118,8 +1028,6 @@ export class IdeogramCharacterRemixNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description for remixing." })
   declare prompt: any;
@@ -1176,9 +1084,6 @@ export class IdeogramCharacterRemixNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Reference Mask Urls", description: "URL(s) to masks for references (comma-separated)." })
   declare reference_mask_urls: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1201,7 +1106,7 @@ export class IdeogramCharacterRemixNode extends BaseNode {
     }
     if (ref_urls.length > 0) params.reference_image_urls = ref_urls;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-character-remix", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1220,8 +1125,6 @@ export class IdeogramV3ReframeNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -1260,9 +1163,6 @@ export class IdeogramV3ReframeNode extends BaseNode {
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const imageUrl = await uploadImageInput(apiKey, this.image);
@@ -1277,7 +1177,7 @@ export class IdeogramV3ReframeNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1296,8 +1196,6 @@ export class RecraftCrispUpscaleNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -1307,9 +1205,6 @@ export class RecraftCrispUpscaleNode extends BaseNode {
   "metadata": null
 }, title: "Image", description: "The image to upscale." })
   declare image: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -1321,7 +1216,7 @@ export class RecraftCrispUpscaleNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1340,8 +1235,6 @@ export class Imagen4FastNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1358,9 +1251,6 @@ export class Imagen4FastNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1375,7 +1265,7 @@ export class Imagen4FastNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1394,8 +1284,6 @@ export class Imagen4UltraNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1415,9 +1303,6 @@ export class Imagen4UltraNode extends BaseNode {
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1432,7 +1317,7 @@ export class Imagen4UltraNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1451,8 +1336,6 @@ export class Imagen4Node extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1472,9 +1355,6 @@ export class Imagen4Node extends BaseNode {
   @prop({ type: "int", default: 0, title: "Seed", description: "RNG seed." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1489,7 +1369,7 @@ export class Imagen4Node extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1508,8 +1388,6 @@ export class NanoBananaEditNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description of the changes to make." })
   declare prompt: any;
@@ -1532,9 +1410,6 @@ export class NanoBananaEditNode extends BaseNode {
 ] })
   declare image_size: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1548,7 +1423,7 @@ export class NanoBananaEditNode extends BaseNode {
       params.mask_url = await uploadImageInput(apiKey, (this as any).mask);
     }
     const result = await kieExecuteTask(apiKey, "nano-banana/edit", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1567,8 +1442,6 @@ export class GPTImage4oTextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1586,9 +1459,6 @@ export class GPTImage4oTextToImageNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Is Enhance", description: "Enable prompt enhancement for more refined effects." })
   declare is_enhance: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1604,7 +1474,7 @@ export class GPTImage4oTextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1623,8 +1493,6 @@ export class GPTImage4oImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
   declare prompt: any;
@@ -1641,9 +1509,6 @@ export class GPTImage4oImageToImageNode extends BaseNode {
 
   @prop({ type: "int", default: 1, title: "N Variants", description: "Number of image variants to generate (1, 2, or 4).", min: 1, max: 4 })
   declare n_variants: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -1667,7 +1532,7 @@ export class GPTImage4oImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1686,8 +1551,6 @@ export class GPTImage15TextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1705,9 +1568,6 @@ export class GPTImage15TextToImageNode extends BaseNode {
 ] })
   declare quality: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1723,7 +1583,7 @@ export class GPTImage15TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1742,8 +1602,6 @@ export class GPTImage15ImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to edit the image." })
   declare prompt: any;
@@ -1763,9 +1621,6 @@ export class GPTImage15ImageToImageNode extends BaseNode {
   "high"
 ] })
   declare quality: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -1789,7 +1644,7 @@ export class GPTImage15ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1808,8 +1663,6 @@ export class IdeogramV3TextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1848,9 +1701,6 @@ export class IdeogramV3TextToImageNode extends BaseNode {
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1864,7 +1714,7 @@ export class IdeogramV3TextToImageNode extends BaseNode {
     const negativePrompt = String(this.negative_prompt ?? "");
     if (negativePrompt) params.negative_prompt = negativePrompt;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-text-to-image", params, 1500, 200);
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1883,8 +1733,6 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
   declare prompt: any;
@@ -1935,9 +1783,6 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1957,7 +1802,7 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -1976,8 +1821,6 @@ export class Seedream40TextToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing the image to generate." })
   declare prompt: any;
@@ -1997,9 +1840,6 @@ export class Seedream40TextToImageNode extends BaseNode {
 ] })
   declare quality: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -2015,7 +1855,7 @@ export class Seedream40TextToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 
@@ -2034,8 +1874,6 @@ export class Seedream40ImageToImageNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Prompt", description: "The text prompt describing how to transform the image." })
   declare prompt: any;
@@ -2064,9 +1902,6 @@ export class Seedream40ImageToImageNode extends BaseNode {
 ] })
   declare quality: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -2084,7 +1919,7 @@ export class Seedream40ImageToImageNode extends BaseNode {
       1500,
       200
     );
-    return { output: { data: result.data } };
+    return { output: { type: "image", data: result.data } };
   }
 }
 

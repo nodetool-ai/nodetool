@@ -133,40 +133,38 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare text_normalization: any;
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getElevenLabsApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getElevenLabsApiKey(this._secrets);
 
-    const voice = String(inputs.voice ?? this.voice ?? "Aria");
+    const voice = String(this.voice ?? this.voice ?? "Aria");
     const voiceId = VOICE_ID_MAP[voice];
     if (!voiceId) throw new Error(`Unknown voice: ${voice}`);
 
-    const text = String(inputs.text ?? this.text ?? "");
+    const text = String(this.text ?? this.text ?? "");
     if (!text) throw new Error("Text is required");
 
     const modelId = String(
-      inputs.model_id ?? this.model_id ?? "eleven_monolingual_v1"
+      this.model_id ?? this.model_id ?? "eleven_monolingual_v1"
     );
     const languageCode = String(
-      inputs.language_code ?? this.language_code ?? "none"
+      this.language_code ?? this.language_code ?? "none"
     );
-    const stability = Number(inputs.stability ?? this.stability ?? 0.5);
+    const stability = Number(this.stability ?? this.stability ?? 0.5);
     const similarityBoost = Number(
-      inputs.similarity_boost ?? this.similarity_boost ?? 0.75
+      this.similarity_boost ?? this.similarity_boost ?? 0.75
     );
-    const styleVal = Number(inputs.style ?? this.style ?? 0.0);
+    const styleVal = Number(this.style ?? this.style ?? 0.0);
     const useSpeakerBoost = Boolean(
-      inputs.use_speaker_boost ?? this.use_speaker_boost ?? false
+      this.use_speaker_boost ?? this.use_speaker_boost ?? false
     );
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+    const seed = Number(this.seed ?? this.seed ?? -1);
     const optimizeStreamingLatency = Number(
-      inputs.optimize_streaming_latency ??
+      this.optimize_streaming_latency ??
         this.optimize_streaming_latency ??
         2
     );
     const textNormalization = String(
-      inputs.text_normalization ?? this.text_normalization ?? "auto"
+      this.text_normalization ?? this.text_normalization ?? "auto"
     );
 
     // Build payload matching the Python implementation

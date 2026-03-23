@@ -151,13 +151,9 @@ export class KieAINode extends BaseNode {
           static readonly supportsDynamicOutputs = true;
   
   @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Model Info", description: "Paste the full API documentation from the kie.ai model page." })
   declare model_info: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const modelInfo = String(this.model_info ?? "").trim();

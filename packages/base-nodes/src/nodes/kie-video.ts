@@ -24,8 +24,6 @@ export class KlingTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -48,9 +46,6 @@ export class KlingTextToVideoNode extends BaseNode {
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random seed." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -68,7 +63,7 @@ export class KlingTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -87,8 +82,6 @@ export class KlingImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text prompt to guide the video generation." })
   declare prompt: any;
@@ -126,9 +119,6 @@ export class KlingImageToVideoNode extends BaseNode {
   @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds." })
   declare duration: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
@@ -148,7 +138,7 @@ export class KlingImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -167,8 +157,6 @@ export class KlingAIAvatarStandardNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -197,9 +185,6 @@ export class KlingAIAvatarStandardNode extends BaseNode {
 ] })
   declare mode: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -216,7 +201,7 @@ export class KlingAIAvatarStandardNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -235,8 +220,6 @@ export class KlingAIAvatarProNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -265,9 +248,6 @@ export class KlingAIAvatarProNode extends BaseNode {
 ] })
   declare mode: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -284,7 +264,7 @@ export class KlingAIAvatarProNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -303,8 +283,6 @@ export class GrokImagineTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -322,9 +300,6 @@ export class GrokImagineTextToVideoNode extends BaseNode {
 ] })
   declare duration: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -340,7 +315,7 @@ export class GrokImagineTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -359,8 +334,6 @@ export class GrokImagineImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the animation." })
   declare prompt: any;
@@ -381,9 +354,6 @@ export class GrokImagineImageToVideoNode extends BaseNode {
 ] })
   declare duration: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -398,7 +368,7 @@ export class GrokImagineImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -417,8 +387,6 @@ export class SeedanceV1LiteTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "16:9", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "1:1",
@@ -447,9 +415,6 @@ export class SeedanceV1LiteTextToVideoNode extends BaseNode {
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -468,7 +433,7 @@ export class SeedanceV1LiteTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -487,8 +452,6 @@ export class SeedanceV1ProTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "16:9", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "1:1",
@@ -518,9 +481,6 @@ export class SeedanceV1ProTextToVideoNode extends BaseNode {
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -538,7 +498,7 @@ export class SeedanceV1ProTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -557,8 +517,6 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "16:9", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "1:1",
@@ -614,9 +572,6 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
   "metadata": null
 }, title: "Image3", description: "Third source image (optional)." })
   declare image3: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -639,7 +594,7 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -658,8 +613,6 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "16:9", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "1:1",
@@ -716,9 +669,6 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
 }, title: "Image3", description: "Third source image (optional)." })
   declare image3: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
@@ -740,7 +690,7 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -759,8 +709,6 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "16:9", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "1:1",
@@ -814,9 +762,6 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
 }, title: "Image3", description: "Third source image (optional)." })
   declare image3: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
@@ -837,7 +782,7 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -856,8 +801,6 @@ export class HailuoTextToVideoProNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -873,9 +816,6 @@ export class HailuoTextToVideoProNode extends BaseNode {
   "1080P"
 ] })
   declare resolution: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -893,7 +833,7 @@ export class HailuoTextToVideoProNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -912,8 +852,6 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -929,9 +867,6 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
   "1080P"
 ] })
   declare resolution: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -949,7 +884,7 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -968,8 +903,6 @@ export class HailuoImageToVideoProNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -994,9 +927,6 @@ export class HailuoImageToVideoProNode extends BaseNode {
   "1080P"
 ] })
   declare resolution: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -1018,7 +948,7 @@ export class HailuoImageToVideoProNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1037,8 +967,6 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -1064,9 +992,6 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -1087,7 +1012,7 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1106,8 +1031,6 @@ export class Kling25TurboTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -1131,9 +1054,6 @@ export class Kling25TurboTextToVideoNode extends BaseNode {
   @prop({ type: "float", default: 0.5, title: "Cfg Scale", description: "The CFG scale for prompt adherence. Lower values allow more creativity.", min: 0, max: 1 })
   declare cfg_scale: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1151,7 +1071,7 @@ export class Kling25TurboTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1170,8 +1090,6 @@ export class Kling25TurboImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Text description to guide the video generation." })
   declare prompt: any;
@@ -1206,9 +1124,6 @@ export class Kling25TurboImageToVideoNode extends BaseNode {
   @prop({ type: "float", default: 0.5, title: "Cfg Scale", description: "The CFG scale for prompt adherence. Lower values allow more creativity.", min: 0, max: 1 })
   declare cfg_scale: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -1226,7 +1141,7 @@ export class Kling25TurboImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1245,8 +1160,6 @@ export class Sora2ProTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "landscape", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "landscape",
@@ -1267,9 +1180,6 @@ export class Sora2ProTextToVideoNode extends BaseNode {
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1285,7 +1195,7 @@ export class Sora2ProTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1304,8 +1214,6 @@ export class Sora2ProImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "landscape", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "landscape",
@@ -1335,9 +1243,6 @@ export class Sora2ProImageToVideoNode extends BaseNode {
 }, title: "Image", description: "The source image to animate." })
   declare image: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -1353,7 +1258,7 @@ export class Sora2ProImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1372,8 +1277,6 @@ export class Sora2ProStoryboardNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "landscape", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "landscape",
@@ -1405,9 +1308,6 @@ export class Sora2ProStoryboardNode extends BaseNode {
   @prop({ type: "list[image]", default: [], title: "Images", description: "The images to use for the video generation." })
   declare images: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String((this as any).prompt ?? "");
@@ -1424,7 +1324,7 @@ export class Sora2ProStoryboardNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1443,8 +1343,6 @@ export class Sora2TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "landscape", title: "Aspect Ratio", description: "The aspect ratio of the generated video.", values: [
   "landscape",
@@ -1465,9 +1363,6 @@ export class Sora2TextToVideoNode extends BaseNode {
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1483,7 +1378,7 @@ export class Sora2TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1502,8 +1397,6 @@ export class WanMultiShotTextToVideoProNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -1532,9 +1425,6 @@ export class WanMultiShotTextToVideoProNode extends BaseNode {
   @prop({ type: "bool", default: true, title: "Remove Watermark", description: "Whether to remove the watermark from the video." })
   declare remove_watermark: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1552,7 +1442,7 @@ export class WanMultiShotTextToVideoProNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1571,8 +1461,6 @@ export class Wan26TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -1588,9 +1476,6 @@ export class Wan26TextToVideoNode extends BaseNode {
   "720p"
 ] })
   declare resolution: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -1608,7 +1493,7 @@ export class Wan26TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1627,8 +1512,6 @@ export class Wan26ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -1672,9 +1555,6 @@ export class Wan26ImageToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image1);
@@ -1690,7 +1570,7 @@ export class Wan26ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1709,8 +1589,6 @@ export class Wan26VideoToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the changes." })
   declare prompt: any;
@@ -1760,9 +1638,6 @@ export class Wan26VideoToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const video_url = await uploadVideoInput(apiKey, this.video1);
@@ -1777,7 +1652,7 @@ export class Wan26VideoToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1796,8 +1671,6 @@ export class TopazVideoUpscaleNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "video", default: {
   "type": "video",
@@ -1819,9 +1692,6 @@ export class TopazVideoUpscaleNode extends BaseNode {
   @prop({ type: "bool", default: true, title: "Denoise", description: "Apply denoising to reduce artifacts." })
   declare denoise: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const video_url = await uploadVideoInput(apiKey, this.video);
@@ -1835,7 +1705,7 @@ export class TopazVideoUpscaleNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1854,9 +1724,6 @@ export class InfinitalkV1Node extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Optional text guide for the video generation." })
   declare prompt: any;
@@ -1895,7 +1762,7 @@ export class InfinitalkV1Node extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1914,8 +1781,6 @@ export class Veo31TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "veo3_fast", title: "Model", description: "The model to use for video generation.", values: [
   "veo3",
@@ -1935,9 +1800,6 @@ export class Veo31TextToVideoNode extends BaseNode {
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -1955,7 +1817,7 @@ export class Veo31TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -1974,8 +1836,6 @@ export class RunwayGen3AlphaTextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -2007,9 +1867,6 @@ export class RunwayGen3AlphaTextToVideoNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
   declare call_back_url: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -2027,7 +1884,7 @@ export class RunwayGen3AlphaTextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2046,8 +1903,6 @@ export class RunwayGen3AlphaImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -2079,9 +1934,6 @@ export class RunwayGen3AlphaImageToVideoNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
   declare call_back_url: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -2099,7 +1951,7 @@ export class RunwayGen3AlphaImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2118,8 +1970,6 @@ export class RunwayGen3AlphaExtendVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Video Url", description: "The source video URL to extend." })
   declare video_url: any;
@@ -2145,9 +1995,6 @@ export class RunwayGen3AlphaExtendVideoNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
   declare call_back_url: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const video_url = await uploadVideoInput(apiKey, (this as any).video);
@@ -2164,7 +2011,7 @@ export class RunwayGen3AlphaExtendVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2183,8 +2030,6 @@ export class RunwayAlephVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -2214,9 +2059,6 @@ export class RunwayAlephVideoNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Call Back Url", description: "Optional callback URL to receive task completion updates." })
   declare call_back_url: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const payload: Record<string, unknown> = {
@@ -2230,7 +2072,7 @@ export class RunwayAlephVideoNode extends BaseNode {
       payload.image_url = await uploadImageInput(apiKey, (this as any).image);
     }
     const result = await kieExecuteTask(apiKey, "runway/aleph-video", payload, 8000, 450);
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2249,8 +2091,6 @@ export class LumaModifyVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "video", default: {
   "type": "video",
@@ -2279,9 +2119,6 @@ export class LumaModifyVideoNode extends BaseNode {
 ] })
   declare duration: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const video_url = await uploadVideoInput(apiKey, this.video);
@@ -2297,7 +2134,7 @@ export class LumaModifyVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2316,8 +2153,6 @@ export class Veo31ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "veo3_fast", title: "Model", description: "The model to use for video generation.", values: [
   "veo3",
@@ -2355,9 +2190,6 @@ export class Veo31ImageToVideoNode extends BaseNode {
 }, title: "Image2", description: "Second source image (optional). If provided, serves as the video's last frame." })
   declare image2: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image1);
@@ -2375,7 +2207,7 @@ export class Veo31ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2394,8 +2226,6 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "enum", default: "veo3_fast", title: "Model", description: "The model to use for video generation.", values: [
   "veo3",
@@ -2442,9 +2272,6 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
 }, title: "Image3", description: "Third reference image (optional)." })
   declare image3: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const rawImages = [this.image1, this.image2, this.image3].filter((img) => isRefSet(img));
@@ -2466,7 +2293,7 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2485,8 +2312,6 @@ export class KlingMotionControlNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "The cartoon character is dancing.", title: "Prompt", description: "A text description of the desired output. Maximum 2500 characters." })
   declare prompt: any;
@@ -2523,9 +2348,6 @@ export class KlingMotionControlNode extends BaseNode {
 ] })
   declare mode: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -2541,7 +2363,7 @@ export class KlingMotionControlNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2560,8 +2382,6 @@ export class Kling21TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -2591,9 +2411,6 @@ export class Kling21TextToVideoNode extends BaseNode {
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducible results. Use -1 for random seed." })
   declare seed: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -2611,7 +2428,7 @@ export class Kling21TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2630,8 +2447,6 @@ export class Kling21ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "Text prompt to guide the video generation." })
   declare prompt: any;
@@ -2675,9 +2490,6 @@ export class Kling21ImageToVideoNode extends BaseNode {
 ] })
   declare mode: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image1);
@@ -2694,7 +2506,7 @@ export class Kling21ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2713,8 +2525,6 @@ export class Wan25TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -2738,9 +2548,6 @@ export class Wan25TextToVideoNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -2757,7 +2564,7 @@ export class Wan25TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2776,8 +2583,6 @@ export class Wan25ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -2821,9 +2626,6 @@ export class Wan25ImageToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image1);
@@ -2839,7 +2641,7 @@ export class Wan25ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2858,8 +2660,6 @@ export class WanAnimateNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "The character is moving naturally with realistic expressions.", title: "Prompt", description: "The text prompt describing the character animation." })
   declare prompt: any;
@@ -2885,9 +2685,6 @@ export class WanAnimateNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -2903,7 +2700,7 @@ export class WanAnimateNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2922,8 +2719,6 @@ export class WanSpeechToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "image", default: {
   "type": "image",
@@ -2949,9 +2744,6 @@ export class WanSpeechToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -2967,7 +2759,7 @@ export class WanSpeechToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -2986,8 +2778,6 @@ export class Wan22TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -3010,9 +2800,6 @@ export class Wan22TextToVideoNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -3029,7 +2816,7 @@ export class Wan22TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -3048,8 +2835,6 @@ export class Wan22ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -3074,9 +2859,6 @@ export class Wan22ImageToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -3092,7 +2874,7 @@ export class Wan22ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -3111,8 +2893,6 @@ export class Hailuo02TextToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -3136,9 +2916,6 @@ export class Hailuo02TextToVideoNode extends BaseNode {
 ] })
   declare aspect_ratio: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
@@ -3154,7 +2931,7 @@ export class Hailuo02TextToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -3173,8 +2950,6 @@ export class Hailuo02ImageToVideoNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "A cinematic video with smooth motion, natural lighting, and high detail.", title: "Prompt", description: "The text prompt describing the video." })
   declare prompt: any;
@@ -3200,9 +2975,6 @@ export class Hailuo02ImageToVideoNode extends BaseNode {
 ] })
   declare resolution: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const image_url = await uploadImageInput(apiKey, this.image);
@@ -3218,7 +2990,7 @@ export class Hailuo02ImageToVideoNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 
@@ -3237,9 +3009,6 @@ export class Sora2WatermarkRemoverNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "video", default: {
   "type": "video",
@@ -3262,7 +3031,7 @@ export class Sora2WatermarkRemoverNode extends BaseNode {
       8000,
       450
     );
-    return { output: { data: result.data } };
+    return { output: { type: "video", data: result.data } };
   }
 }
 

@@ -158,6 +158,7 @@ sec("DATA_FOR_SEO_LOGIN", "DataForSEO", "DataForSEO login for accessing DataForS
 sec("DATA_FOR_SEO_PASSWORD", "DataForSEO", "DataForSEO password for accessing DataForSEO's API");
 sec("TRACELOOP_API_KEY", "Observability", "Traceloop API key for OpenLLMetry trace export");
 sec("KIE_API_KEY", "KIE", "KIE API key for accessing kie.ai");
+s("KIE_TIMEOUT_SECONDS", "KIE", "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)");
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation");
 sec("GITHUB_CLIENT_ID", "GitHub", "GitHub OAuth App Client ID for OAuth PKCE authentication flow");

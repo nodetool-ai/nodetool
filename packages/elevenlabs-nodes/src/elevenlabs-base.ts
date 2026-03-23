@@ -1,6 +1,6 @@
-export function getElevenLabsApiKey(inputs: Record<string, unknown>): string {
+export function getElevenLabsApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.ELEVENLABS_API_KEY ||
+    secrets?.ELEVENLABS_API_KEY ||
     process.env.ELEVENLABS_API_KEY ||
     "";
   if (!key) throw new Error("ELEVENLABS_API_KEY is not configured");
