@@ -162,28 +162,28 @@ const SketchModal: React.FC<SketchModalProps> = ({
               selected={!mirrorX && !mirrorY}
             >
               {!mirrorX && !mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={mirrorX || mirrorY}>Off</ListItemText>
+              <ListItemText inset={!(!mirrorX && !mirrorY)}>Off</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => { setMirrorX(true); setMirrorY(false); setSymmetryAnchorEl(null); }}
               selected={mirrorX && !mirrorY}
             >
               {mirrorX && !mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!mirrorX || mirrorY}>Horizontal (M)</ListItemText>
+              <ListItemText inset={!(mirrorX && !mirrorY)}>Horizontal (M)</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => { setMirrorX(false); setMirrorY(true); setSymmetryAnchorEl(null); }}
               selected={!mirrorX && mirrorY}
             >
               {!mirrorX && mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={mirrorX || !mirrorY}>Vertical (⇧M)</ListItemText>
+              <ListItemText inset={!(!mirrorX && mirrorY)}>Vertical (⇧M)</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => { setMirrorX(true); setMirrorY(true); setSymmetryAnchorEl(null); }}
               selected={mirrorX && mirrorY}
             >
               {mirrorX && mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!mirrorX || !mirrorY}>Dual Axis</ListItemText>
+              <ListItemText inset={!(mirrorX && mirrorY)}>Dual Axis</ListItemText>
             </MenuItem>
           </Menu>
 

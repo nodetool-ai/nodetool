@@ -603,9 +603,9 @@ export function usePointerHandlers({
           !shiftHeldRef.current &&
           !altHeldRef.current &&
           pt.x >= selection.x &&
-          pt.x <= selection.x + selection.width &&
+          pt.x < selection.x + selection.width &&
           pt.y >= selection.y &&
-          pt.y <= selection.y + selection.height
+          pt.y < selection.y + selection.height
         ) {
           isMovingSelectionRef.current = true;
           moveSelectionOriginRef.current = pt;
@@ -617,8 +617,8 @@ export function usePointerHandlers({
         // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
         selectStartRef.current = pt;
         isDrawingRef.current = true;
-        if (!shiftHeldRef.current && !altHeldRef.current && onSelectionChange) {
-          onSelectionChange(null);
+        if (!shiftHeldRef.current && !altHeldRef.current) {
+          onSelectionChange?.(null);
         }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
@@ -1051,7 +1051,9 @@ export function usePointerHandlers({
             // We approximate this by clipping the existing selection to exclude the new rect.
             // Since we only support rectangular selections, we clip the existing rect:
             // If the new rect fully covers the selection, deselect.
-            // Otherwise keep the existing selection but clamp it.
+            // NOTE: Partial subtraction is not supported because we only
+            // support rectangular selections. A full non-rectangular
+            // selection system would be needed for true subtract.
             const sx1 = selection.x;
             const sy1 = selection.y;
             const sx2 = selection.x + selection.width;
@@ -1060,11 +1062,10 @@ export function usePointerHandlers({
             const ny1 = newRect.y;
             const nx2 = newRect.x + newRect.width;
             const ny2 = newRect.y + newRect.height;
-            // If new rect fully contains existing selection, deselect
             if (nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2) {
               onSelectionChange(null);
             } else {
-              // Keep existing selection (true subtraction needs non-rectangular regions)
+              // Partial overlap: keep existing selection unchanged
               onSelectionChange(selection);
             }
           } else {
