@@ -22,6 +22,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
+import NodeOutput from "../NodeOutput";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
@@ -393,17 +394,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [props.id, updateNodeProperties]
   );
 
-  const handleSave = useCallback(
-    (_doc: SketchDocument) => {
-      const currentDoc = documentRef.current;
-      if (currentDoc) {
-        const serialized = serializeDocument(currentDoc);
-        updateNodeProperties(props.id, { sketch_data: serialized });
-      }
-    },
-    [props.id, updateNodeProperties]
-  );
-
   // ─── Export callbacks for real-time output updates during editing ──
   const handleExportImage = useCallback(
     (dataUrl: string) => {
@@ -477,34 +467,24 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         {/* Output handles */}
         <div className="output-handles">
           <div className="handle-popup output-image" style={{ position: "absolute", right: 0, top: "60px" }}>
-            <HandleTooltip
-              typeMetadata={outputImageTypeMetadata}
-              paramName="image"
-              handlePosition="right"
-            >
-              <Handle
-                type="source"
-                id="image"
-                position={Position.Right}
-                isConnectable={true}
-                className={Slugify("image")}
-              />
-            </HandleTooltip>
+            <NodeOutput
+              id={props.id}
+              output={{
+                name: "image",
+                type: outputImageTypeMetadata,
+                stream: false
+              }}
+            />
           </div>
           <div className="handle-popup output-mask" style={{ position: "absolute", right: 0, top: "100px" }}>
-            <HandleTooltip
-              typeMetadata={outputImageTypeMetadata}
-              paramName="mask"
-              handlePosition="right"
-            >
-              <Handle
-                type="source"
-                id="mask"
-                position={Position.Right}
-                isConnectable={true}
-                className={Slugify("image")}
-              />
-            </HandleTooltip>
+            <NodeOutput
+              id={props.id}
+              output={{
+                name: "mask",
+                type: outputImageTypeMetadata,
+                stream: false
+              }}
+            />
           </div>
 
           {/* Dynamic output handles for exposed layers */}
@@ -514,19 +494,14 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               className="handle-popup"
               style={{ position: "absolute", right: 0, top: `${DYNAMIC_OUTPUT_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
             >
-              <HandleTooltip
-                typeMetadata={outputImageTypeMetadata}
-                paramName={`layer_out_${layer.name}`}
-                handlePosition="right"
-              >
-                <Handle
-                  type="source"
-                  id={`layer_out_${layer.name}`}
-                  position={Position.Right}
-                  isConnectable={true}
-                  className={Slugify("image")}
-                />
-              </HandleTooltip>
+              <NodeOutput
+                id={props.id}
+                output={{
+                  name: `layer_out_${layer.name}`,
+                  type: outputImageTypeMetadata,
+                  stream: false
+                }}
+              />
               <span className="handle-label right">{layer.name}</span>
             </div>
           ))}
@@ -570,7 +545,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         title="Sketch Editor"
         initialDocument={editorDocument || sketchDoc}
         onClose={handleCloseEditor}
-        onSave={handleSave}
         onDocumentChange={handleDocumentChange}
         onExportImage={handleExportImage}
         onExportMask={handleExportMask}

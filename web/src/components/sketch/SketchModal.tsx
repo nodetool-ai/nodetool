@@ -7,7 +7,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -84,6 +84,10 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const setMirrorY = useSketchStore((s) => s.setMirrorY);
   const canUndo = useSketchStore((s) => s.canUndo);
   const canRedo = useSketchStore((s) => s.canRedo);
+
+  useEffect(() => {
+    if (!open) { setConfirmDiscard(false); }
+  }, [open]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -176,7 +180,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               <Typography variant="caption" sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
                 Discard changes?
               </Typography>
-              <IconButton size="small" color="error" onClick={onClose}>
+              <IconButton size="small" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
                 <TrashIcon width={16} height={16} />
               </IconButton>
               <IconButton size="small" onClick={() => setConfirmDiscard(false)}>

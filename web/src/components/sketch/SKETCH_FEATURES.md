@@ -24,6 +24,7 @@
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
 [ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
+[ ] ##Rename Editor and Node## rename to "Image Editor" instead of "Sketch Input"
 
 ---
 
@@ -44,14 +45,19 @@
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
 - [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
-- [x] **Improve Moving Tool** moving layer out of canvas bounds should not crop it
+- [ ] **Improve Moving Tool** moving layer out of canvas bounds should not crop it, even after ending moving. currently moving out of canvas loses that part of the layer!
+- [ ] **Symmetry** make as one icon that opens select with options: - OFF - Vertical - Horizontal - Dual Axis - Diagonal - Wave - Circle - Spiral - Parallel - Radial - Mandala
+  - radial + mandala option for ray amount from 2-12
+  - the icon should show if symmetry is active or OFF
 
 #### Selection Tool
 
 - [ ] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
 - [ ] Selection tools: add lasso and magic wand with Photoshop-style options.
 - [x] Selection should still be visible with other tools selected — overlay persists across tool switches and after shape/gradient/crop operations
-- [ ] Deselect with CTRL+D, allow to move selection, allow to add to and subtract from selection
+- [ ] Deselect with CTRL+D
+- [ ] allow to move selection
+- [ ] allow to add to and subtract from selection with modifier keys SHIFT is add, ALT is remove
 
 #### Color system
 

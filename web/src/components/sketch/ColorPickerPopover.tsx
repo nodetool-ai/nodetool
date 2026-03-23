@@ -38,6 +38,7 @@ const HUE_HEIGHT = 12;
 interface ColorPickerPopoverProps {
   anchorEl: HTMLElement | null;
   color: string;
+  initialColor: string;
   onColorChange: (color: string) => void;
   onClose: () => void;
 }
@@ -45,15 +46,12 @@ interface ColorPickerPopoverProps {
 const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   anchorEl,
   color,
+  initialColor,
   onColorChange,
   onClose
 }) => {
   const open = Boolean(anchorEl);
   const [mode, setMode] = useState<ColorMode>("hex");
-
-  // Capture the color when the picker opens so we can revert on discard
-  const initialColorRef = useRef(color);
-  const prevOpenRef = useRef(false);
 
   // Parse current color
   const { r, g, b, a } = parseColorToRgba(color);
@@ -63,22 +61,22 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
   // Local hue state — prevents hue jump when dragging in desaturated areas
   const [localHue, setLocalHue] = useState<number>(hsv.h);
+  const prevOpenRef = useRef(false);
 
-  // On open: snapshot the initial color and sync hue
+  // Sync hue when picker opens (don't do it on every color change)
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      initialColorRef.current = color;
       setLocalHue(rgbToHsv(r, g, b).h);
     }
     prevOpenRef.current = open;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Discard: revert to the color at open time, then close
+  // Discard: revert to the color captured at open time, then close
   const handleDiscard = useCallback(() => {
-    onColorChange(initialColorRef.current);
+    onColorChange(initialColor);
     onClose();
-  }, [onColorChange, onClose]);
+  }, [initialColor, onColorChange, onClose]);
 
   const svBoxRef = useRef<HTMLDivElement>(null);
   const draggingSv = useRef(false);
@@ -325,23 +323,43 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         </Box>
       )}
 
-      {/* Close button */}
-      <Button
-        size="small"
-        variant="contained"
-        onClick={onClose}
-        sx={{
-          fontSize: "0.65rem",
-          py: "2px",
-          minHeight: "24px",
-          bgcolor: "grey.700",
-          color: "grey.100",
-          "&:hover": { bgcolor: "grey.600" },
-          boxShadow: "none"
-        }}
-      >
-        OK
-      </Button>
+      {/* Confirm / Discard */}
+      <Box sx={{ display: "flex", gap: "4px" }}>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={handleDiscard}
+          sx={{
+            flex: 1,
+            fontSize: "0.65rem",
+            py: "2px",
+            minHeight: "24px",
+            bgcolor: "grey.800",
+            color: "grey.400",
+            "&:hover": { bgcolor: "grey.700" },
+            boxShadow: "none"
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={onClose}
+          sx={{
+            flex: 1,
+            fontSize: "0.65rem",
+            py: "2px",
+            minHeight: "24px",
+            bgcolor: "grey.700",
+            color: "grey.100",
+            "&:hover": { bgcolor: "grey.600" },
+            boxShadow: "none"
+          }}
+        >
+          OK
+        </Button>
+      </Box>
 
     </Popover>
   );

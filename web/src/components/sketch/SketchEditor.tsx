@@ -56,6 +56,7 @@ export interface SketchEditorHandle {
   flipVertical: () => void;
   mergeDown: () => void;
   flattenVisible: () => void;
+  discardToInitial: () => void;
 }
 
 export interface SketchEditorProps {
@@ -75,6 +76,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const canvasRef = useRef<SketchCanvasRef>(null);
   const [mirrorX, setMirrorX] = useState(false);
   const [mirrorY, setMirrorY] = useState(false);
+  // Snapshot of the document as it was when the editor first loaded
+  const initialDocumentRef = useRef(initialDocument);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const store = useSketchStoreSelectors();
@@ -227,9 +230,19 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       flipHorizontal: layerActions.handleFlipHorizontal,
       flipVertical: layerActions.handleFlipVertical,
       mergeDown: layerActions.handleMergeDown,
-      flattenVisible: layerActions.handleFlattenVisible
+      flattenVisible: layerActions.handleFlattenVisible,
+      discardToInitial: () => {
+        const doc = initialDocumentRef.current;
+        if (!doc) { return; }
+        store.setDocument(doc);
+        if (canvasRef.current) {
+          for (const layer of doc.layers) {
+            canvasRef.current.setLayerData(layer.id, layer.data ?? null);
+          }
+        }
+      }
     }),
-    [handleUndo, handleRedo, canvasActions, layerActions]
+    [handleUndo, handleRedo, canvasActions, layerActions, store]
   );
 
   return (

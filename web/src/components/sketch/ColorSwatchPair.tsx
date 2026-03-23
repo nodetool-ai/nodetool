@@ -37,16 +37,20 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
 }) => {
   const [fgAnchor, setFgAnchor] = useState<HTMLElement | null>(null);
   const [bgAnchor, setBgAnchor] = useState<HTMLElement | null>(null);
+  const [fgInitialColor, setFgInitialColor] = useState(foregroundColor);
+  const [bgInitialColor, setBgInitialColor] = useState(backgroundColor);
 
   const fgHex6 = colorToHex6(foregroundColor);
   const bgHex6 = colorToHex6(backgroundColor);
 
   const handleFgClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setFgInitialColor(foregroundColor);
     setFgAnchor(e.currentTarget);
-  }, []);
+  }, [foregroundColor]);
   const handleBgClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setBgInitialColor(backgroundColor);
     setBgAnchor(e.currentTarget);
-  }, []);
+  }, [backgroundColor]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%", alignItems: "center" }}>
@@ -116,12 +120,14 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
       <ColorPickerPopover
         anchorEl={fgAnchor}
         color={foregroundColor}
+        initialColor={fgInitialColor}
         onColorChange={onForegroundColorChange}
         onClose={() => setFgAnchor(null)}
       />
       <ColorPickerPopover
         anchorEl={bgAnchor}
         color={backgroundColor}
+        initialColor={bgInitialColor}
         onColorChange={onBackgroundColorChange}
         onClose={() => setBgAnchor(null)}
       />
