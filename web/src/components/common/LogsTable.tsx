@@ -288,19 +288,27 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
   const timeTooltip = data.showTimestampColumn ? "" : formatTime(r.timestamp);
   const isExpanded = data.expandedKeys.has(rowKey);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
     event.stopPropagation();
-  };
+  }, []);
 
-  const handleClose = (event: React.MouseEvent) => {
+  const handleClose = useCallback((event: React.MouseEvent) => {
       setAnchorEl(null);
       event.stopPropagation();
-  };
+  }, []);
+
+  const handlePopoverClose = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
 
   const handleRowClick = useCallback(() => {
     toggleExpand(rowKey, index);
   }, [toggleExpand, rowKey, index]);
+
+  const handleActionsClick = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+  }, []);
 
   const open = Boolean(anchorEl);
   
@@ -327,7 +335,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
         {data.showTimestampColumn && (
           <div className="cell timestamp">{formatTime(r.timestamp)}</div>
         )}
-        <div className="cell actions" onClick={(e) => e.stopPropagation()}>
+        <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton
             value={r.content}
             tooltip="Copy log to clipboard"
@@ -349,7 +357,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
               <Popover
                 open={open}
                 anchorEl={anchorEl}
-                onClose={() => setAnchorEl(null)}
+                onClose={handlePopoverClose}
                 anchorOrigin={{
                   vertical: "bottom",
                   horizontal: "left",
