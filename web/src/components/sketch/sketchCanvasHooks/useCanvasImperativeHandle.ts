@@ -38,11 +38,12 @@ export function useCanvasImperativeHandle({
         return runtime.getLayerData(layerId);
       },
       setLayerData: (layerId: string, data: string | null) => {
+        const layer = doc.layers.find((entry) => entry.id === layerId);
         runtime.setLayerData(
           layerId,
           data,
-          doc.canvas.width,
-          doc.canvas.height,
+          Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width),
+          Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height),
           () => redraw()
         );
       },

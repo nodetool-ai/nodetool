@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { SketchDocument, SketchTool, Point, LayerContentBounds } from "../types";
 import { useSketchStore } from "../state";
+import { getLayerCompositeOffset } from "../painting";
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -178,14 +179,21 @@ export function useCanvasActions({
     if (!activeLayerId || !canvasRef.current) {
       return;
     }
+    const layer = document.layers.find((entry) => entry.id === activeLayerId);
+    if (!layer) {
+      return;
+    }
     const sel = useSketchStore.getState().selection;
     if (sel && sel.width > 0 && sel.height > 0) {
       pushHistory("clear selection");
-      handleReconcileLayer(activeLayerId);
+      const offset = getLayerCompositeOffset(layer, {
+        width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
+        height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
+      });
       canvasRef.current.clearLayerRect(
         activeLayerId,
-        sel.x,
-        sel.y,
+        sel.x - offset.x,
+        sel.y - offset.y,
         sel.width,
         sel.height
       );
@@ -193,16 +201,17 @@ export function useCanvasActions({
       updateLayerData(activeLayerId, data);
     } else {
       pushHistory("clear layer");
-      handleReconcileLayer(activeLayerId);
       canvasRef.current.clearLayer(activeLayerId);
       updateLayerData(activeLayerId, null);
     }
   }, [
     document.activeLayerId,
+    document.layers,
+    document.canvas.width,
+    document.canvas.height,
     pushHistory,
     updateLayerData,
-    canvasRef,
-    handleReconcileLayer
+    canvasRef
   ]);
 
   // ─── Fill layer with color (respects selection) ─────────────────
@@ -216,11 +225,20 @@ export function useCanvasActions({
       const sel = useSketchStore.getState().selection;
       if (sel && sel.width > 0 && sel.height > 0) {
         pushHistory("fill selection");
-        handleReconcileLayer(activeLayerId);
-        canvasRef.current.fillLayerRect(activeLayerId, sel.x, sel.y, sel.width, sel.height, color);
+        const offset = getLayerCompositeOffset(layer, {
+          width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
+          height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
+        });
+        canvasRef.current.fillLayerRect(
+          activeLayerId,
+          sel.x - offset.x,
+          sel.y - offset.y,
+          sel.width,
+          sel.height,
+          color
+        );
       } else {
         pushHistory("fill layer");
-        handleReconcileLayer(activeLayerId);
         canvasRef.current.fillLayerWithColor(activeLayerId, color);
       }
       const data = canvasRef.current.getLayerData(activeLayerId);
@@ -229,10 +247,11 @@ export function useCanvasActions({
     [
       document.activeLayerId,
       document.layers,
+      document.canvas.width,
+      document.canvas.height,
       pushHistory,
       updateLayerData,
-      canvasRef,
-      handleReconcileLayer
+      canvasRef
     ]
   );
 
@@ -369,7 +388,6 @@ export function useCanvasActions({
       }
       if (adjustmentBaseRef.current === null) {
         pushHistory("adjustments");
-        handleReconcileLayer(layerId);
         adjustmentBaseRef.current = canvasRef.current.snapshotLayerCanvas(layerId);
       }
       if (adjustmentBaseRef.current) {
@@ -383,8 +401,7 @@ export function useCanvasActions({
       pushHistory,
       document.activeLayerId,
       updateLayerData,
-      canvasRef,
-      handleReconcileLayer
+      canvasRef
     ]
   );
 

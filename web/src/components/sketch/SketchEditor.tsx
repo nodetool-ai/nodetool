@@ -314,6 +314,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onStrokeStart={canvasActions.handleStrokeStart}
             onStrokeEnd={canvasActions.handleStrokeEnd}
             onLayerTransformChange={store.setLayerTransform}
+            onLayerContentBoundsChange={store.setLayerContentBounds}
             onLayerReconcile={canvasActions.handleReconcileLayer}
             onBrushSizeChange={colorActions.handleBrushSizeChange}
             onContextMenu={canvasActions.handleContextMenu}

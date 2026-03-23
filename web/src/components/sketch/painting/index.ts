@@ -23,3 +23,15 @@ export { EraserEngine } from "./EraserEngine";
 // ── Coordinate mapping ─────────────────────────────────────────────────────
 export { CoordinateMapper } from "./CoordinateMapper";
 export type { CoordinateMapperConfig } from "./CoordinateMapper";
+
+// ── Layer raster bounds ────────────────────────────────────────────────────
+export {
+  getCanvasRasterBounds,
+  getLayerRasterBounds,
+  getLayerCompositeOffset,
+  getDocumentViewportLayerBounds,
+  unionLayerBounds,
+  getEffectiveLayerRasterBounds,
+  setCanvasRasterBounds,
+  ensureLayerRasterBounds
+} from "./layerBounds";

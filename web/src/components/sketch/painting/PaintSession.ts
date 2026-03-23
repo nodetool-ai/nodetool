@@ -23,6 +23,11 @@ import type { Point, Layer } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
 import { CoordinateMapper } from "./CoordinateMapper";
+import {
+  ensureLayerRasterBounds,
+  getDocumentViewportLayerBounds,
+  getCanvasRasterBounds
+} from "./layerBounds";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
@@ -86,16 +91,16 @@ export class PaintSession {
     }
 
     this.layer = activeLayer;
-
-    // Reconcile layer transform before painting so offset is always zero
-    const tx = activeLayer.transform?.x ?? 0;
-    const ty = activeLayer.transform?.y ?? 0;
-    if ((tx !== 0 || ty !== 0) && ctx.onLayerReconcile) {
-      ctx.onLayerReconcile(activeLayer.id);
-    }
+    ctx.onStrokeStart();
+    const rasterBounds = ensureLayerRasterBounds(
+      ctx,
+      activeLayer,
+      getDocumentViewportLayerBounds(activeLayer, doc)
+    );
 
     this.mapper = new CoordinateMapper({
-      layerTransform: { x: 0, y: 0 } // After reconcile, offset is always 0
+      layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
+      rasterBounds
     });
 
     const pt = event.point;
@@ -106,7 +111,6 @@ export class PaintSession {
     this.active = true;
 
     this.engine.beginStroke();
-    ctx.onStrokeStart();
 
     // ── Alpha-lock snapshot ──────────────────────────────────────────
     if (activeLayer.alphaLock) {
@@ -313,6 +317,12 @@ export class PaintSession {
     this.lastSmoothedPoint = null;
     this.hasMoved = false;
     this.active = false;
+    const committedBounds = getCanvasRasterBounds(
+      ctx.getOrCreateLayerCanvas(this.layer.id)
+    );
+    if (committedBounds) {
+      ctx.onLayerContentBoundsChange?.(this.layer.id, committedBounds);
+    }
 
     ctx.redraw();
 

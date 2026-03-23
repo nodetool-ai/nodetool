@@ -96,6 +96,9 @@
 
 - [x] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
 - [ ] Selection tools: add lasso and magic wand with Photoshop-style options.
+- [ ] make sure selection is per pixel and not just a shape. find good way to store with alpha, probably as a selection texture
+- [ ] improve / add feather settings to selections
+
 - [x] Selection should still be visible with other tools selected — overlay persists across tool switches and after shape/gradient/crop operations
 - [x] Deselect with CTRL+D
 - [x] allow to move selection
@@ -103,10 +106,16 @@
 
 #### Color system
 
+- [ ] make color picker and user palettes global for nodetool
+- [ ] refactor color picker: use color wheel as in krita - an outer ring with square inside for brightness and saturation
+- [ ] bring back predefined palette
+
 #### Layers
 
-- [ ] **Layers** add buttons for expose as input / output per layer. create dynamic handles for node.
+- [ ] **Expose Layers** add buttons for expose as input / output per layer. create dynamic handles for node. see how dynamic nodes work
+- [ ] **Use exposed inputs as Layers** make sure inputs show up as layers
 - [ ] **Adjustment layers** (or equivalent non-destructive stack) — global per-layer adjustments without baking until flatten/export; pairs well with iterative AI and large canvases.
+- [ ] fix / restore layer previews without breaking performance
 - [ ] Group / folder layers
 
 #### Canvas & view

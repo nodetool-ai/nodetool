@@ -15,6 +15,8 @@ import type { Point, LayerTransform } from "../types";
 export interface CoordinateMapperConfig {
   /** Current layer transform (offset from document origin). */
   layerTransform: LayerTransform;
+  /** Top-left of the backing raster in layer-local space. */
+  rasterBounds?: { x: number; y: number };
 }
 
 // ─── CoordinateMapper ───────────────────────────────────────────────────────
@@ -22,30 +24,40 @@ export interface CoordinateMapperConfig {
 export class CoordinateMapper {
   private tx: number;
   private ty: number;
+  private rx: number;
+  private ry: number;
 
   constructor(config: CoordinateMapperConfig) {
     this.tx = config.layerTransform.x;
     this.ty = config.layerTransform.y;
+    this.rx = config.rasterBounds?.x ?? 0;
+    this.ry = config.rasterBounds?.y ?? 0;
   }
 
-  /** Convert a document-space point to layer-local coordinates. */
+  /** Convert a document-space point to backing-raster coordinates. */
   docToLayer(pt: Point): Point {
-    return { x: pt.x - this.tx, y: pt.y - this.ty };
+    return {
+      x: pt.x - this.tx - this.rx,
+      y: pt.y - this.ty - this.ry
+    };
   }
 
-  /** Convert a layer-local point to document-space coordinates. */
+  /** Convert backing-raster coordinates to document-space coordinates. */
   layerToDoc(pt: Point): Point {
-    return { x: pt.x + this.tx, y: pt.y + this.ty };
+    return {
+      x: pt.x + this.tx + this.rx,
+      y: pt.y + this.ty + this.ry
+    };
   }
 
-  /** Return the current layer offset as a Point. */
+  /** Return the current document-space offset of the backing raster. */
   get offset(): Point {
-    return { x: this.tx, y: this.ty };
+    return { x: this.tx + this.rx, y: this.ty + this.ry };
   }
 
   /** True when the layer has a non-zero transform. */
   get hasOffset(): boolean {
-    return this.tx !== 0 || this.ty !== 0;
+    return this.tx !== 0 || this.ty !== 0 || this.rx !== 0 || this.ry !== 0;
   }
 
   /** Shift a dirty rect from layer-space to document-space. */
@@ -56,8 +68,8 @@ export class CoordinateMapper {
     maxY: number;
   }): { x: number; y: number; w: number; h: number } {
     return {
-      x: rect.minX + this.tx,
-      y: rect.minY + this.ty,
+      x: rect.minX + this.tx + this.rx,
+      y: rect.minY + this.ty + this.ry,
       w: rect.maxX - rect.minX,
       h: rect.maxY - rect.minY
     };

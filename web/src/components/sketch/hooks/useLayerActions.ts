@@ -49,8 +49,6 @@ export function useLayerActions({
   setLayerBlendMode,
   renameLayer,
   updateLayerData,
-  setLayerTransform,
-  setLayerContentBounds,
   setMaskLayer,
   toggleAlphaLock,
   toggleLayerExposedInput,
@@ -163,40 +161,6 @@ export function useLayerActions({
     [toggleLayerExposedOutput]
   );
 
-  const reconcileLayerForPixelEdit = useCallback(
-    (layerId: string) => {
-      const layer = document.layers.find((entry) => entry.id === layerId);
-      if (!layer || !canvasRef.current) {
-        return;
-      }
-
-      const tx = layer.transform?.x ?? 0;
-      const ty = layer.transform?.y ?? 0;
-      if (tx === 0 && ty === 0) {
-        return;
-      }
-
-      const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
-      setLayerTransform(layerId, { x: 0, y: 0 });
-      setLayerContentBounds(layerId, {
-        x: 0,
-        y: 0,
-        width: document.canvas.width,
-        height: document.canvas.height
-      });
-      updateLayerData(layerId, data);
-    },
-    [
-      document.layers,
-      document.canvas.width,
-      document.canvas.height,
-      canvasRef,
-      setLayerTransform,
-      setLayerContentBounds,
-      updateLayerData
-    ]
-  );
-
   const handleFlipHorizontal = useCallback(() => {
     const layerId = document.activeLayerId;
     if (!layerId || !canvasRef.current) {
@@ -207,7 +171,6 @@ export function useLayerActions({
       return;
     }
     pushHistory("flip horizontal");
-    reconcileLayerForPixelEdit(layerId);
     canvasRef.current.flipLayer(layerId, "horizontal");
     const data = canvasRef.current.getLayerData(layerId);
     updateLayerData(layerId, data);
@@ -216,8 +179,7 @@ export function useLayerActions({
     document.layers,
     pushHistory,
     updateLayerData,
-    canvasRef,
-    reconcileLayerForPixelEdit
+    canvasRef
   ]);
 
   const handleFlipVertical = useCallback(() => {
@@ -230,7 +192,6 @@ export function useLayerActions({
       return;
     }
     pushHistory("flip vertical");
-    reconcileLayerForPixelEdit(layerId);
     canvasRef.current.flipLayer(layerId, "vertical");
     const data = canvasRef.current.getLayerData(layerId);
     updateLayerData(layerId, data);
@@ -239,8 +200,7 @@ export function useLayerActions({
     document.layers,
     pushHistory,
     updateLayerData,
-    canvasRef,
-    reconcileLayerForPixelEdit
+    canvasRef
   ]);
 
   const handleMergeDown = useCallback(() => {

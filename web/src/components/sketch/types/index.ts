@@ -47,9 +47,13 @@ export interface LayerTransform {
 }
 
 export interface LayerContentBounds {
+  /** Top-left of the backing raster in layer-local space. */
   x: number;
+  /** Top-left of the backing raster in layer-local space. */
   y: number;
+  /** Backing raster width. */
   width: number;
+  /** Backing raster height. */
   height: number;
 }
 
@@ -190,7 +194,7 @@ export interface Layer {
   data: string | null;
   /** Layer placement in document space. */
   transform: LayerTransform;
-  /** Pixel bounds in layer-local space. */
+  /** Backing raster bounds in layer-local space. */
   contentBounds: LayerContentBounds;
   /** When true, this layer creates a dynamic input handle on the SketchNode */
   exposedAsInput?: boolean;

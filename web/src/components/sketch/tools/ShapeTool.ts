@@ -7,7 +7,12 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import type { Point } from "../types";
-import { CoordinateMapper } from "../painting";
+import {
+  CoordinateMapper,
+  ensureLayerRasterBounds,
+  getDocumentViewportLayerBounds,
+  getCanvasRasterBounds
+} from "../painting";
 
 export class ShapeTool implements ToolHandler {
   readonly toolId = "line" as const; // placeholder – covers all shape tools
@@ -17,15 +22,13 @@ export class ShapeTool implements ToolHandler {
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     this.shapeStart = event.point;
     ctx.onStrokeStart();
-
-    // Reconcile layer transform before painting
     const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (activeLayer) {
-      const tx = activeLayer.transform?.x ?? 0;
-      const ty = activeLayer.transform?.y ?? 0;
-      if ((tx !== 0 || ty !== 0) && ctx.onLayerReconcile) {
-        ctx.onLayerReconcile(activeLayer.id);
-      }
+      ensureLayerRasterBounds(
+        ctx,
+        activeLayer,
+        getDocumentViewportLayerBounds(activeLayer, ctx.doc)
+      );
     }
 
     return true;
@@ -58,13 +61,18 @@ export class ShapeTool implements ToolHandler {
         // The layer offset is applied so the overlay content lands
         // at the correct position in layer-local space.
         const mapper = new CoordinateMapper({
-          layerTransform: activeLayer.transform ?? { x: 0, y: 0 }
+          layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
+          rasterBounds: getCanvasRasterBounds(layerCanvas) ?? activeLayer.contentBounds
         });
         if (mapper.hasOffset) {
           const off = mapper.offset;
           layerCtx.drawImage(overlayCanvas, -off.x, -off.y);
         } else {
           layerCtx.drawImage(overlayCanvas, 0, 0);
+        }
+        const committedBounds = getCanvasRasterBounds(layerCanvas);
+        if (committedBounds) {
+          ctx.onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
         }
         ctx.invalidateLayer?.(activeLayer.id);
         ctx.clearOverlay();

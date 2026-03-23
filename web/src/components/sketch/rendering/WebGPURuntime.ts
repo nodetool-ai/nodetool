@@ -17,6 +17,7 @@ import type { SketchDocument } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { blendModeToComposite } from "../drawingUtils";
 import type { BlendMode } from "../types";
+import { getLayerCompositeOffset } from "../painting/layerBounds";
 import {
   FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,
@@ -501,6 +502,7 @@ export class WebGPURuntime implements SketchRuntime {
       opacity: number;
       blendMode?: BlendMode | string;
       transform?: { x?: number; y?: number };
+      contentBounds?: { x?: number; y?: number; width?: number; height?: number };
     },
     canvasW: number,
     canvasH: number
@@ -514,15 +516,17 @@ export class WebGPURuntime implements SketchRuntime {
       return;
     }
 
-    const tx = layer.transform?.x ?? 0;
-    const ty = layer.transform?.y ?? 0;
+    const compositeOffset = getLayerCompositeOffset(layer, {
+      width: layerTexture.width,
+      height: layerTexture.height
+    }, this.layerCanvases.get(layer.id));
     this.drawTextureGPU(
       encoder,
       textureView,
       layerTexture,
       layer.opacity,
-      tx,
-      ty,
+      compositeOffset.x,
+      compositeOffset.y,
       canvasW,
       canvasH
     );

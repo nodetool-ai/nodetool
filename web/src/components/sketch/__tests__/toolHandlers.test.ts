@@ -302,6 +302,62 @@ describe("ShapeTool", () => {
       { x: 25, y: 25 }
     );
   });
+
+  it("expands raster bounds instead of reconciling transformed layers", () => {
+    const tool = new ShapeTool();
+    const layerId = "shape_layer";
+    const canvasMap = new Map<string, HTMLCanvasElement>();
+    const canvas = window.document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    canvasMap.set(layerId, canvas);
+    const baseDoc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({
+      activeTool: "rectangle",
+      doc: {
+        ...baseDoc,
+        activeLayerId: layerId,
+        layers: [
+          {
+            ...baseDoc.layers[0],
+            id: layerId,
+            transform: { x: 16, y: 8 },
+            contentBounds: { x: 0, y: 0, width: 64, height: 64 }
+          }
+        ]
+      },
+      layerCanvasesRef: { current: canvasMap },
+      getOrCreateLayerCanvas: jest.fn((requestedLayerId: string) => {
+        const found = canvasMap.get(requestedLayerId);
+        if (!found) {
+          throw new Error(`missing canvas for ${requestedLayerId}`);
+        }
+        return found;
+      })
+    });
+
+    const fakeCtx = {
+      drawImage: jest.fn()
+    } as unknown as CanvasRenderingContext2D;
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((((contextId: string) =>
+        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+    try {
+      tool.onDown(ctx, makePointerEvent());
+
+      expect(ctx.onLayerReconcile).not.toHaveBeenCalled();
+      expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
+        x: -16,
+        y: -8,
+        width: 80,
+        height: 72
+      });
+    } finally {
+      getContextSpy.mockRestore();
+    }
+  });
 });
 
 describe("GradientTool", () => {

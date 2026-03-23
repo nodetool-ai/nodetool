@@ -28,6 +28,12 @@ import type { BlurTempCanvases } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import {
+  ensureLayerRasterBounds,
+  getCanvasRasterBounds,
+  getDocumentViewportLayerBounds,
+  getLayerCompositeOffset
+} from "../painting";
 
 
 export interface UsePointerHandlersParams {
@@ -131,7 +137,7 @@ export function usePointerHandlers({
   onStrokeStart,
   onStrokeEnd,
   onLayerTransformChange,
-  onLayerContentBoundsChange: _onLayerContentBoundsChange,
+  onLayerContentBoundsChange,
   onLayerReconcile,
   onBrushSizeChange,
   onContextMenu,
@@ -166,6 +172,7 @@ export function usePointerHandlers({
   const selectStartRef = useRef<Point | null>(null);
   const cloneSourceRef = useRef<Point | null>(null);
   const cloneOffsetRef = useRef<Point | null>(null);
+  const clonePaintOffsetRef = useRef<Point | null>(null);
   const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Selection movement state
@@ -272,7 +279,7 @@ export function usePointerHandlers({
       ctx: CanvasRenderingContext2D
     ) => {
       const sourceCanvas = cloneSourceCanvasRef.current;
-      const offset = cloneOffsetRef.current;
+      const offset = clonePaintOffsetRef.current ?? cloneOffsetRef.current;
       if (!sourceCanvas || !offset) {
         return;
       }
@@ -439,20 +446,51 @@ export function usePointerHandlers({
     [selection]
   );
 
-  const reconcileLayerForPixelEdit = useCallback(
+  const ensureLayerViewportStorage = useCallback(
     (layerId: string) => {
       const layer = doc.layers.find((entry) => entry.id === layerId);
-      if (!layer || !onLayerReconcile) {
-        return;
+      if (!layer) {
+        return null;
       }
-
-      const tx = layer.transform?.x ?? 0;
-      const ty = layer.transform?.y ?? 0;
-      if (tx !== 0 || ty !== 0) {
-        onLayerReconcile(layerId);
-      }
+      return ensureLayerRasterBounds(
+        {
+          getOrCreateLayerCanvas,
+          layerCanvasesRef,
+          onLayerContentBoundsChange,
+          invalidateLayer
+        } as ToolContext,
+        layer,
+        getDocumentViewportLayerBounds(layer, doc)
+      );
     },
-    [doc.layers, onLayerReconcile]
+    [
+      doc,
+      getOrCreateLayerCanvas,
+      layerCanvasesRef,
+      onLayerContentBoundsChange,
+      invalidateLayer
+    ]
+  );
+
+  const getLayerPaintOffset = useCallback(
+    (layerId: string): Point => {
+      const layer = doc.layers.find((entry) => entry.id === layerId);
+      if (!layer) {
+        return { x: 0, y: 0 };
+      }
+      const layerCanvas = layerCanvasesRef.current.get(layerId);
+      return getLayerCompositeOffset(
+        layer,
+        layerCanvas
+          ? { width: layerCanvas.width, height: layerCanvas.height }
+          : {
+              width: Math.max(1, layer.contentBounds?.width ?? doc.canvas.width),
+              height: Math.max(1, layer.contentBounds?.height ?? doc.canvas.height)
+            },
+        layerCanvas
+      );
+    },
+    [doc, layerCanvasesRef]
   );
 
   const drawActiveStrokePreview = useCallback(() => {
@@ -477,8 +515,10 @@ export function usePointerHandlers({
       return;
     }
 
-    const tx = layer.transform?.x ?? 0;
-    const ty = layer.transform?.y ?? 0;
+    const compositeOffset = getLayerCompositeOffset(layer, {
+      width: layerCanvas.width,
+      height: layerCanvas.height
+    }, layerCanvas);
     const temp = window.document.createElement("canvas");
     temp.width = layerCanvas.width;
     temp.height = layerCanvas.height;
@@ -497,7 +537,7 @@ export function usePointerHandlers({
     ctx.save();
     ctx.globalAlpha = layer.opacity;
     ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode);
-    ctx.drawImage(temp, tx, ty);
+    ctx.drawImage(temp, compositeOffset.x, compositeOffset.y);
     ctx.restore();
   }, [overlayCanvasRef, activeStrokeRef, doc.layers, layerCanvasesRef]);
 
@@ -541,7 +581,7 @@ export function usePointerHandlers({
     onStrokeStart,
     onStrokeEnd,
     onLayerTransformChange,
-    onLayerContentBoundsChange: _onLayerContentBoundsChange,
+    onLayerContentBoundsChange,
     onLayerReconcile,
     onBrushSizeChange,
     onContextMenu,
@@ -585,6 +625,7 @@ export function usePointerHandlers({
         const pt = screenToCanvas(e.clientX, e.clientY);
         cloneSourceRef.current = pt;
         cloneOffsetRef.current = null;
+        clonePaintOffsetRef.current = null;
         return;
       }
 
@@ -705,10 +746,9 @@ export function usePointerHandlers({
             if (!ctx) {
               continue;
             }
-            const tx = layer.transform?.x ?? 0;
-            const ty = layer.transform?.y ?? 0;
-            const localX = px - tx;
-            const localY = py - ty;
+            const compositeOffset = getLayerPaintOffset(layer.id);
+            const localX = px - compositeOffset.x;
+            const localY = py - compositeOffset.y;
             if (
               localX >= 0 &&
               localX < layerCanvas.width &&
@@ -749,20 +789,33 @@ export function usePointerHandlers({
             return;
           }
         }
+        onStrokeStart();
+        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
-          onStrokeStart();
-          reconcileLayerForPixelEdit(activeLayer.id);
-          paintLayerOffsetRef.current = { x: 0, y: 0 };
+          paintLayerOffsetRef.current = ensuredBounds
+            ? {
+                x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
+                y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
+              }
+            : getLayerPaintOffset(activeLayer.id);
+          const localPt = {
+            x: pt.x - paintLayerOffsetRef.current.x,
+            y: pt.y - paintLayerOffsetRef.current.y
+          };
           // Apply selection clip for fill
           const clipped = clipSelectionForOffset(
             ctx,
             paintLayerOffsetRef.current
           );
-          floodFillUtil(ctx, pt.x, pt.y, doc.toolSettings.fill);
+          floodFillUtil(ctx, localPt.x, localPt.y, doc.toolSettings.fill);
           if (clipped) {
             ctx.restore();
+          }
+          const committedBounds = getCanvasRasterBounds(layerCanvas);
+          if (committedBounds) {
+            onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
           }
           invalidateLayer(activeLayer.id);
           redraw();
@@ -783,6 +836,7 @@ export function usePointerHandlers({
             y: cloneSourceRef.current.y - pt.y
           };
         }
+        clonePaintOffsetRef.current = null;
         const settings = doc.toolSettings.cloneStamp;
         if (settings.sampling === "composited") {
           const tmp = window.document.createElement("canvas");
@@ -796,10 +850,7 @@ export function usePointerHandlers({
               }
               const lc = layerCanvasesRef.current.get(layer.id);
               if (lc) {
-                const useReconciledActiveTransform =
-                  layer.id === activeLayer.id &&
-                  ((activeLayer.transform?.x ?? 0) !== 0 ||
-                    (activeLayer.transform?.y ?? 0) !== 0);
+                const compositeOffset = getLayerPaintOffset(layer.id);
                 tmpCtx.save();
                 tmpCtx.globalAlpha = layer.opacity;
                 tmpCtx.globalCompositeOperation = blendModeToComposite(
@@ -807,8 +858,8 @@ export function usePointerHandlers({
                 );
                 tmpCtx.drawImage(
                   lc,
-                  useReconciledActiveTransform ? 0 : (layer.transform?.x ?? 0),
-                  useReconciledActiveTransform ? 0 : (layer.transform?.y ?? 0)
+                  compositeOffset.x,
+                  compositeOffset.y
                 );
                 tmpCtx.restore();
               }
@@ -832,7 +883,20 @@ export function usePointerHandlers({
         lastSmoothedPointRef.current = pt;
         currentPressureRef.current = e.pressure || 0.5;
         onStrokeStart();
-        reconcileLayerForPixelEdit(activeLayer.id);
+        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
+        paintLayerOffsetRef.current = ensuredBounds
+          ? {
+              x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
+              y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
+            }
+          : getLayerPaintOffset(activeLayer.id);
+        clonePaintOffsetRef.current =
+          settings.sampling === "composited" && cloneOffsetRef.current
+            ? {
+                x: cloneOffsetRef.current.x + paintLayerOffsetRef.current.x,
+                y: cloneOffsetRef.current.y + paintLayerOffsetRef.current.y
+              }
+            : cloneOffsetRef.current;
         strokeDirtyRectRef.current = null;
         if (activeLayer.alphaLock) {
           const lc = getOrCreateLayerCanvas(activeLayer.id);
@@ -851,7 +915,11 @@ export function usePointerHandlers({
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
-          drawCloneStampStroke(pt, pt, doc.toolSettings.cloneStamp, ctx);
+          const localPt = {
+            x: pt.x - paintLayerOffsetRef.current.x,
+            y: pt.y - paintLayerOffsetRef.current.y
+          };
+          drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, ctx);
           invalidateLayer(activeLayer.id);
           redraw();
         }
@@ -875,7 +943,13 @@ export function usePointerHandlers({
         gradientEndRef.current = pt;
         isDrawingRef.current = true;
         onStrokeStart();
-        reconcileLayerForPixelEdit(activeLayer.id);
+        const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
+        paintLayerOffsetRef.current = ensuredBounds
+          ? {
+              x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
+              y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
+            }
+          : getLayerPaintOffset(activeLayer.id);
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
       }
@@ -940,8 +1014,13 @@ export function usePointerHandlers({
       lastSmoothedPointRef.current = pt;
       currentPressureRef.current = e.pressure || 0.5;
       onStrokeStart();
-      reconcileLayerForPixelEdit(activeLayer.id);
-      paintLayerOffsetRef.current = { x: 0, y: 0 };
+      const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
+      paintLayerOffsetRef.current = ensuredBounds
+        ? {
+            x: (activeLayer.transform?.x ?? 0) + ensuredBounds.x,
+            y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
+          }
+        : getLayerPaintOffset(activeLayer.id);
 
       strokeDirtyRectRef.current = null;
 
@@ -980,7 +1059,10 @@ export function usePointerHandlers({
       const paintCtx = layerCanvas.getContext("2d");
       if (paintCtx) {
         const currentOffset = paintLayerOffsetRef.current;
-        const localPt = pt;
+        const localPt = {
+          x: pt.x - currentOffset.x,
+          y: pt.y - currentOffset.y
+        };
         const hasSelClip = clipSelectionForOffset(paintCtx, currentOffset);
 
         if (shiftHeldRef.current && lastStrokeEndRef.current) {
@@ -1022,7 +1104,8 @@ export function usePointerHandlers({
       clipSelectionForOffset,
       onEyedropperPick,
       rgbToHex,
-      reconcileLayerForPixelEdit,
+      ensureLayerViewportStorage,
+      getLayerPaintOffset,
       onSelectionChange,
       containerRef,
       displayCanvasRef,
@@ -1030,6 +1113,7 @@ export function usePointerHandlers({
       onAutoPickLayer,
       activeStrokeRef,
       invalidateLayer,
+      onLayerContentBoundsChange,
       drawActiveStrokePreview
     ]
   );
@@ -1196,9 +1280,15 @@ export function usePointerHandlers({
             : localPt;
           drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
         } else if (activeTool === "clone_stamp") {
+          const from = lastPointRef.current
+            ? {
+                x: lastPointRef.current.x - currentOffset.x,
+                y: lastPointRef.current.y - currentOffset.y
+              }
+            : localPt;
           drawCloneStampStroke(
-            lastPointRef.current,
-            pt,
+            from,
+            localPt,
             doc.toolSettings.cloneStamp,
             ctx
           );
@@ -1278,6 +1368,7 @@ export function usePointerHandlers({
       }
       if (activeTool === "clone_stamp") {
         cloneSourceCanvasRef.current = null;
+        clonePaintOffsetRef.current = null;
       }
 
       if (isShapeTool(activeTool)) {
@@ -1296,7 +1387,23 @@ export function usePointerHandlers({
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
-          drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
+          const currentOffset = paintLayerOffsetRef.current;
+          drawGradientUtil(
+            ctx,
+            {
+              x: start.x - currentOffset.x,
+              y: start.y - currentOffset.y
+            },
+            {
+              x: end.x - currentOffset.x,
+              y: end.y - currentOffset.y
+            },
+            doc.toolSettings.gradient
+          );
+          const committedBounds = getCanvasRasterBounds(layerCanvas);
+          if (committedBounds) {
+            onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
+          }
           invalidateLayer(activeLayer.id);
           clearOverlay();
           drawSelectionOverlay();
@@ -1463,6 +1570,11 @@ export function usePointerHandlers({
 
       if (activeLayer) {
         const layerId = activeLayer.id;
+        const layerCanvas = layerCanvasesRef.current.get(layerId);
+        const committedBounds = getCanvasRasterBounds(layerCanvas);
+        if (committedBounds) {
+          onLayerContentBoundsChange?.(layerId, committedBounds);
+        }
         onStrokeEnd(layerId, null);
       }
     },
@@ -1483,7 +1595,8 @@ export function usePointerHandlers({
       containerRef,
       mousePositionRef,
       layerCanvasesRef,
-      invalidateLayer
+      invalidateLayer,
+      onLayerContentBoundsChange
     ]
   );
 

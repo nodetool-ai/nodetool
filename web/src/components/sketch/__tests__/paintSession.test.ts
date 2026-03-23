@@ -163,6 +163,16 @@ describe("CoordinateMapper", () => {
     expect(docDirty).toEqual({ x: 15, y: 25, w: 10, h: 20 });
   });
 
+  it("accounts for raster bounds offset in both directions", () => {
+    const mapper = new CoordinateMapper({
+      layerTransform: { x: 30, y: 15 },
+      rasterBounds: { x: -20, y: -10 }
+    });
+    expect(mapper.docToLayer({ x: 30, y: 15 })).toEqual({ x: 20, y: 10 });
+    expect(mapper.layerToDoc({ x: 20, y: 10 })).toEqual({ x: 30, y: 15 });
+    expect(mapper.offset).toEqual({ x: 10, y: 5 });
+  });
+
   it("exposes offset as a Point", () => {
     const mapper = new CoordinateMapper({
       layerTransform: { x: 7, y: -3 }
@@ -470,6 +480,79 @@ describe("PaintSession", () => {
     session.begin(ctx2, makePointerEvent());
     expect(ctx2.activeStrokeRef.current?.compositeOp).toBe("destination-out");
     session.end(ctx2, makePointerEvent());
+  });
+
+  it("expands the backing raster for transformed painting without reconcile", () => {
+    const engine = new BrushEngine({
+      size: 10,
+      opacity: 1,
+      hardness: 0.8,
+      color: "#000000",
+      brushType: "round",
+      pressureSensitivity: true,
+      pressureAffects: "size",
+      roundness: 1,
+      angle: 0
+    });
+    const session = new PaintSession(engine);
+    const canvasMap = new Map<string, HTMLCanvasElement>();
+    const layerId = "layer_transform";
+    const existingCanvas = window.document.createElement("canvas");
+    existingCanvas.width = 64;
+    existingCanvas.height = 64;
+    canvasMap.set(layerId, existingCanvas);
+    const ctx = makeToolContext({
+      doc: {
+        ...createDefaultDocument(64, 64),
+        activeLayerId: layerId,
+        layers: [
+          {
+            ...createDefaultDocument(64, 64).layers[0],
+            id: layerId,
+            transform: { x: 20, y: 10 },
+            contentBounds: { x: 0, y: 0, width: 64, height: 64 }
+          }
+        ]
+      },
+      layerCanvasesRef: { current: canvasMap },
+      getOrCreateLayerCanvas: jest.fn((requestedLayerId: string) => {
+        const canvas = canvasMap.get(requestedLayerId);
+        if (!canvas) {
+          throw new Error(`missing canvas for ${requestedLayerId}`);
+        }
+        return canvas;
+      })
+    });
+
+    const fakeCtx = {
+      drawImage: jest.fn(),
+      clearRect: jest.fn(),
+      save: jest.fn(),
+      restore: jest.fn(),
+      rect: jest.fn(),
+      clip: jest.fn(),
+      getImageData: jest.fn(),
+      putImageData: jest.fn()
+    } as unknown as CanvasRenderingContext2D;
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((((contextId: string) =>
+        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+    try {
+      expect(session.begin(ctx, makePointerEvent())).toBe(true);
+      expect(ctx.onLayerReconcile).not.toHaveBeenCalled();
+      expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
+        x: -20,
+        y: -10,
+        width: 84,
+        height: 74
+      });
+      expect(ctx.activeStrokeRef.current?.buffer.width).toBe(84);
+      expect(ctx.activeStrokeRef.current?.buffer.height).toBe(74);
+    } finally {
+      getContextSpy.mockRestore();
+    }
   });
 });
 

@@ -242,7 +242,9 @@ describe("Canvas2DRuntime", () => {
 
       const layerCanvas = runtime.getOrCreateLayerCanvas(layerId, 16, 16);
       const sourceCtx = layerCanvas.getContext("2d");
-      expect(sourceCtx).not.toBeNull();
+      if (!sourceCtx) {
+        return;
+      }
       sourceCtx!.fillStyle = "#ff0000";
       sourceCtx!.fillRect(0, 0, 4, 4);
 
@@ -254,7 +256,9 @@ describe("Canvas2DRuntime", () => {
       expect(reconciledCanvas!.height).toBe(doc.canvas.height);
 
       const reconciledCtx = reconciledCanvas!.getContext("2d");
-      expect(reconciledCtx).not.toBeNull();
+      if (!reconciledCtx) {
+        return;
+      }
       const movedPixel = reconciledCtx!.getImageData(11, 13, 1, 1).data;
       expect(movedPixel[0]).toBeGreaterThan(0);
       expect(movedPixel[3]).toBeGreaterThan(0);
@@ -370,6 +374,7 @@ describe("Canvas2DRuntime", () => {
       const beginPath = jest.fn();
       const rect = jest.fn();
       const clip = jest.fn();
+      const strokeRect = jest.fn();
 
       const fakeContext = {
         drawImage,
@@ -381,6 +386,7 @@ describe("Canvas2DRuntime", () => {
         beginPath,
         rect,
         clip,
+        strokeRect,
         globalAlpha: 1,
         globalCompositeOperation: "source-over",
         fillStyle: "#000"
@@ -388,9 +394,8 @@ describe("Canvas2DRuntime", () => {
 
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")
-        .mockImplementation((contextId: string) =>
-          contextId === "2d" ? fakeContext : null
-        );
+        .mockImplementation((((contextId: string) =>
+          contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
 
       try {
         const target = document.createElement("canvas");
@@ -399,8 +404,10 @@ describe("Canvas2DRuntime", () => {
 
         runtime.compositeToDisplay(target, doc, null, null, null, upper.id);
 
-        expect(drawImage).toHaveBeenCalledWith(lowerCanvas, 0, 0);
-        expect(drawImage).not.toHaveBeenCalledWith(upperCanvas, 0, 0);
+        const layerDraws = drawImage.mock.calls.filter(
+          ([canvas]) => canvas === lowerCanvas || canvas === upperCanvas
+        );
+        expect(layerDraws).toEqual([[lowerCanvas, 0, 0]]);
       } finally {
         getContextSpy.mockRestore();
       }

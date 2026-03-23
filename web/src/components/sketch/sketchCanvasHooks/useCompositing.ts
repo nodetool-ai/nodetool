@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
 import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
+import { setCanvasRasterBounds } from "../painting";
 
 // Re-export so existing consumers keep compiling.
 export type { ActiveStrokeInfo } from "../rendering";
@@ -124,15 +125,18 @@ export function useCompositing({
 
   const getOrCreateLayerCanvas = useCallback(
     (layerId: string): HTMLCanvasElement => {
+      const layer = doc.layers.find((entry) => entry.id === layerId);
+      const width = Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width);
+      const height = Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height);
       // Always read from runtimeRef so we never hold a stale Canvas2D
       // reference after the WebGPU upgrade.
       return runtimeRef.current!.getOrCreateLayerCanvas(
         layerId,
-        doc.canvas.width,
-        doc.canvas.height
+        width,
+        height
       );
     },
-    [doc.canvas.width, doc.canvas.height]
+    [doc.layers, doc.canvas.width, doc.canvas.height]
   );
 
   const invalidateLayer = useCallback((layerId: string) => {
@@ -293,12 +297,25 @@ export function useCompositing({
 
     for (const layer of doc.layers) {
       const canvas = getOrCreateLayerCanvas(layer.id);
-      if (canvas.width !== doc.canvas.width || canvas.height !== doc.canvas.height) {
-        canvas.width = doc.canvas.width;
-        canvas.height = doc.canvas.height;
+      const rasterWidth = Math.max(1, layer.contentBounds?.width ?? doc.canvas.width);
+      const rasterHeight = Math.max(1, layer.contentBounds?.height ?? doc.canvas.height);
+      const sizeChanged =
+        canvas.width !== rasterWidth || canvas.height !== rasterHeight;
+      if (sizeChanged) {
+        canvas.width = rasterWidth;
+        canvas.height = rasterHeight;
       }
+      setCanvasRasterBounds(canvas, {
+        x: Math.round(layer.contentBounds?.x ?? 0),
+        y: Math.round(layer.contentBounds?.y ?? 0),
+        width: rasterWidth,
+        height: rasterHeight
+      });
       const hydrationKey = layer.data ?? "";
-      if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
+      if (
+        !sizeChanged &&
+        hydratedLayerStateRef.current.get(layer.id) === hydrationKey
+      ) {
         continue;
       }
       hydratedLayerStateRef.current.set(layer.id, hydrationKey);

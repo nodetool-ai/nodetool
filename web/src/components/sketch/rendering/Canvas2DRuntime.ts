@@ -14,6 +14,7 @@
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import type { SketchDocument } from "../types";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
+import { getLayerCompositeOffset, setCanvasRasterBounds } from "../painting/layerBounds";
 
 export class Canvas2DRuntime implements SketchRuntime {
   /**
@@ -46,6 +47,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       // rendering context. copyExternalImageToTexture (used by WebGPURuntime)
       // requires the source canvas to have been initialized with a context.
       canvas.getContext("2d");
+      setCanvasRasterBounds(canvas, { x: 0, y: 0, width, height });
       this.layerCanvases.set(layerId, canvas);
     }
     return canvas;
@@ -118,8 +120,10 @@ export class Canvas2DRuntime implements SketchRuntime {
 
       const hasActiveStroke =
         activeStroke && activeStroke.layerId === layer.id;
-      const tx = layer.transform?.x ?? 0;
-      const ty = layer.transform?.y ?? 0;
+      const compositeOffset = getLayerCompositeOffset(layer, {
+        width: layerCanvas.width,
+        height: layerCanvas.height
+      }, layerCanvas);
 
       if (hasActiveStroke) {
         let tempCanvas = this.strokeTempCanvas;
@@ -148,7 +152,7 @@ export class Canvas2DRuntime implements SketchRuntime {
           ctx.globalCompositeOperation = blendModeToComposite(
             layer.blendMode || "normal"
           );
-          ctx.drawImage(tempCanvas, tx, ty);
+          ctx.drawImage(tempCanvas, compositeOffset.x, compositeOffset.y);
           ctx.restore();
         }
       } else {
@@ -157,7 +161,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         ctx.globalCompositeOperation = blendModeToComposite(
           layer.blendMode || "normal"
         );
-        ctx.drawImage(layerCanvas, tx, ty);
+        ctx.drawImage(layerCanvas, compositeOffset.x, compositeOffset.y);
         ctx.restore();
       }
     }
@@ -167,7 +171,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
 
     // Draw a subtle border around the canvas to show its boundaries
-    if (!useClip) {
+    if (!useClip && typeof ctx.strokeRect === "function") {
       ctx.save();
       ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
       ctx.lineWidth = 1;
@@ -197,11 +201,11 @@ export class Canvas2DRuntime implements SketchRuntime {
         layer.blendMode || "normal"
       );
     }
-    ctx.drawImage(
-      layerCanvas,
-      layer.transform?.x ?? 0,
-      layer.transform?.y ?? 0
-    );
+    const compositeOffset = getLayerCompositeOffset(layer, {
+      width: layerCanvas.width,
+      height: layerCanvas.height
+    }, layerCanvas);
+    ctx.drawImage(layerCanvas, compositeOffset.x, compositeOffset.y);
     ctx.restore();
   }
 
@@ -322,6 +326,12 @@ export class Canvas2DRuntime implements SketchRuntime {
       canvas.width = source.width;
       canvas.height = source.height;
     }
+    setCanvasRasterBounds(canvas, {
+      x: 0,
+      y: 0,
+      width: source.width,
+      height: source.height
+    });
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       return;
