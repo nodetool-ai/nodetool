@@ -1075,7 +1075,11 @@ export function usePointerHandlers({
             prev = current;
           }
         } else {
-          if (activeTool === "pencil") {
+          if (activeTool === "brush") {
+            withMirror(paintCtx, (f, t, c, branchIndex) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), localPt, localPt);
+          } else if (activeTool === "eraser") {
+            withMirror(paintCtx, (f, t, c, branchIndex) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), localPt, localPt);
+          } else if (activeTool === "pencil") {
             withMirror(paintCtx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current), localPt, localPt);
           } else if (activeTool === "blur") {
             drawBlurStroke(localPt, localPt, doc.toolSettings.blur, layerCanvas);
@@ -1547,34 +1551,6 @@ export function usePointerHandlers({
           y: pt.y - currentOffset.y
         };
 
-        // Paint single dab for click-without-drag
-        if (!paintStrokeHasMovedRef.current) {
-          const bufferCtx = activeStroke.buffer.getContext("2d");
-          if (bufferCtx) {
-            const hasSelClip = clipSelectionForOffset(bufferCtx, currentOffset);
-            if (activeTool === "brush") {
-              withMirror(
-                bufferCtx,
-                (f, t, c, branchIndex) =>
-                  drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex),
-                localPt,
-                localPt
-              );
-            } else {
-              withMirror(
-                bufferCtx,
-                (f, t, c, branchIndex) =>
-                  drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex),
-                localPt,
-                localPt
-              );
-            }
-            if (hasSelClip) {
-              bufferCtx.restore();
-            }
-          }
-        }
-
         // Merge stroke buffer onto the layer canvas
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const layerCtx = layerCanvas.getContext("2d");
@@ -1642,6 +1618,8 @@ export function usePointerHandlers({
     [
       doc.layers,
       doc.activeLayerId,
+      doc.toolSettings.brush,
+      doc.toolSettings.eraser,
       doc.toolSettings.gradient,
       activeTool,
       selection,
