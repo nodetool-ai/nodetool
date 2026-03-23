@@ -89,6 +89,7 @@ export function usePointerHandlers({
   pan,
   mirrorX,
   mirrorY,
+  selection,
   displayCanvasRef,
   overlayCanvasRef,
   cursorCanvasRef,
@@ -142,6 +143,11 @@ export function usePointerHandlers({
   const cloneSourceRef = useRef<Point | null>(null);
   const cloneOffsetRef = useRef<Point | null>(null);
   const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Selection movement state
+  const isMovingSelectionRef = useRef(false);
+  const moveSelectionOriginRef = useRef<Point | null>(null);
+  const selectionAtMoveStartRef = useRef<Selection | null>(null);
 
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -574,9 +580,27 @@ export function usePointerHandlers({
 
       if (activeTool === "select") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+        // Check if clicking inside an existing selection — start moving it
+        if (
+          selection &&
+          !shiftHeldRef.current &&
+          !altHeldRef.current &&
+          pt.x >= selection.x &&
+          pt.x <= selection.x + selection.width &&
+          pt.y >= selection.y &&
+          pt.y <= selection.y + selection.height
+        ) {
+          isMovingSelectionRef.current = true;
+          moveSelectionOriginRef.current = pt;
+          selectionAtMoveStartRef.current = { ...selection };
+          isDrawingRef.current = true;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+        // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
         selectStartRef.current = pt;
         isDrawingRef.current = true;
-        if (onSelectionChange) {
+        if (!shiftHeldRef.current && !altHeldRef.current && onSelectionChange) {
           onSelectionChange(null);
         }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -668,6 +692,7 @@ export function usePointerHandlers({
     [
       doc,
       activeTool,
+      selection,
       screenToCanvas,
       onStrokeStart,
       onStrokeEnd,
@@ -765,6 +790,22 @@ export function usePointerHandlers({
         return;
       }
 
+      if (activeTool === "select" && isMovingSelectionRef.current && moveSelectionOriginRef.current && selectionAtMoveStartRef.current) {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        const dx = pt.x - moveSelectionOriginRef.current.x;
+        const dy = pt.y - moveSelectionOriginRef.current.y;
+        const orig = selectionAtMoveStartRef.current;
+        if (onSelectionChange) {
+          onSelectionChange({
+            x: Math.round(orig.x + dx),
+            y: Math.round(orig.y + dy),
+            width: orig.width,
+            height: orig.height
+          });
+        }
+        return;
+      }
+
       if (activeTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         drawOverlaySelection(selectStartRef.current, pt);
@@ -836,7 +877,8 @@ export function usePointerHandlers({
       requestRedraw,
       withMirror,
       stabilizePoint,
-      drawOverlaySelection
+      drawOverlaySelection,
+      onSelectionChange
     ]
   );
 
@@ -928,6 +970,14 @@ export function usePointerHandlers({
         return;
       }
 
+      // Finalize selection movement
+      if (activeTool === "select" && isMovingSelectionRef.current) {
+        isMovingSelectionRef.current = false;
+        moveSelectionOriginRef.current = null;
+        selectionAtMoveStartRef.current = null;
+        return;
+      }
+
       if (activeTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(
           mousePositionRef.current.x +
@@ -942,7 +992,38 @@ export function usePointerHandlers({
         clearOverlay();
         selectStartRef.current = null;
         if (w > 1 && h > 1 && onSelectionChange) {
-          onSelectionChange({ x, y, width: w, height: h });
+          const newRect = { x, y, width: w, height: h };
+          if (shiftHeldRef.current && selection) {
+            // Shift+drag: add (union) the new rect with existing selection
+            const ux = Math.min(selection.x, newRect.x);
+            const uy = Math.min(selection.y, newRect.y);
+            const ux2 = Math.max(selection.x + selection.width, newRect.x + newRect.width);
+            const uy2 = Math.max(selection.y + selection.height, newRect.y + newRect.height);
+            onSelectionChange({ x: ux, y: uy, width: ux2 - ux, height: uy2 - uy });
+          } else if (altHeldRef.current && selection) {
+            // Alt+drag: subtract the new rect from existing selection
+            // We approximate this by clipping the existing selection to exclude the new rect.
+            // Since we only support rectangular selections, we clip the existing rect:
+            // If the new rect fully covers the selection, deselect.
+            // Otherwise keep the existing selection but clamp it.
+            const sx1 = selection.x;
+            const sy1 = selection.y;
+            const sx2 = selection.x + selection.width;
+            const sy2 = selection.y + selection.height;
+            const nx1 = newRect.x;
+            const ny1 = newRect.y;
+            const nx2 = newRect.x + newRect.width;
+            const ny2 = newRect.y + newRect.height;
+            // If new rect fully contains existing selection, deselect
+            if (nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2) {
+              onSelectionChange(null);
+            } else {
+              // Keep existing selection (true subtraction needs non-rectangular regions)
+              onSelectionChange(selection);
+            }
+          } else {
+            onSelectionChange(newRect);
+          }
         }
         return;
       }
@@ -1010,6 +1091,7 @@ export function usePointerHandlers({
       doc.activeLayerId,
       doc.toolSettings.gradient,
       activeTool,
+      selection,
       onStrokeEnd,
       onCropComplete,
       getOrCreateLayerCanvas,
