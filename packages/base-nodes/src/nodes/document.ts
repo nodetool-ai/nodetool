@@ -128,7 +128,7 @@ export class SaveDocumentFileNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const document = (inputs.document ?? this.document ?? {}) as DocumentRefLike;
-    const p = String(inputs.path ?? this.path ?? "");
+    const p = String(inputs.path ?? "");
     const full = toFilePath(p);
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
@@ -280,8 +280,8 @@ export class SplitDocumentNode extends BaseNode {
     const document = inputs.document ?? this.document;
     const text = await readDocumentText(document);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number(inputs.chunk_size ?? 1200);
+    const overlap = Number(inputs.chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
       const idx = text.indexOf(chunk, startIndex);
@@ -324,8 +324,8 @@ export class SplitHTMLNode extends BaseNode {
     const html = await readDocumentText(document);
     const sourceId = documentSourceId(document);
     const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number(inputs.chunk_size ?? 1200);
+    const overlap = Number(inputs.chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
       const idx = text.indexOf(chunk, startIndex);
@@ -379,8 +379,8 @@ export class SplitJSONNode extends BaseNode {
     } catch {
       rendered = raw;
     }
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number(inputs.chunk_size ?? 1200);
+    const overlap = Number(inputs.chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(rendered, chunkSize, overlap)) {
       const idx = rendered.indexOf(chunk, startIndex);

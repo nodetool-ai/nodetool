@@ -187,15 +187,14 @@ export class ExtendMusicNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(inputs);
-    const audio = inputs.audio ?? this.audio;
-    if (!isRefSet(audio)) throw new Error("audio is required");
+    const audioId = String(inputs.audio_id ?? this.audio_id ?? "");
+    if (!audioId) throw new Error("audio_id is required");
 
-    const audioUrl = await uploadAudioInput(apiKey, audio);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const style = String(inputs.style ?? this.style ?? "");
     const continueAt = Number(inputs.continue_at ?? this.continue_at ?? 0);
     const model = String(inputs.model ?? this.model ?? "V4_5PLUS");
-    const instrumental = Boolean(inputs.instrumental ?? this.instrumental ?? false);
+    const instrumental = Boolean(inputs.instrumental ?? false);
 
     const payload: Record<string, unknown> = {
       customMode: true,
@@ -204,7 +203,7 @@ export class ExtendMusicNode extends BaseNode {
       instrumental,
       model,
       continue_at: continueAt,
-      audio_url: audioUrl,
+      audio_id: audioId,
       continue: true,
       callBackUrl: "https://example.com/callback",
     };
@@ -381,14 +380,14 @@ export class AddInstrumentalNode extends BaseNode {
     if (!isRefSet(audio)) throw new Error("audio is required");
 
     const audioUrl = await uploadAudioInput(apiKey, audio);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const style = String(inputs.style ?? this.style ?? "");
+    const tags = String(inputs.tags ?? this.tags ?? "");
+    const titleVal = String(inputs.title ?? this.title ?? "");
     const model = String(inputs.model ?? this.model ?? "V4_5PLUS");
 
     const payload: Record<string, unknown> = {
       customMode: true,
-      prompt,
-      style,
+      prompt: tags,
+      style: titleVal,
       instrumental: true,
       model,
       audio_url: audioUrl,
@@ -541,24 +540,24 @@ export class ReplaceMusicSectionNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(inputs);
-    const audio = inputs.audio ?? this.audio;
-    if (!isRefSet(audio)) throw new Error("audio is required");
+    const taskId = String(inputs.task_id ?? this.task_id ?? "");
+    const audioId = String(inputs.audio_id ?? this.audio_id ?? "");
+    if (!taskId) throw new Error("task_id is required");
+    if (!audioId) throw new Error("audio_id is required");
 
-    const audioUrl = await uploadAudioInput(apiKey, audio);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const style = String(inputs.style ?? this.style ?? "");
-    const startTime = Number(inputs.start_time ?? this.start_time ?? 0);
-    const endTime = Number(inputs.end_time ?? this.end_time ?? 30);
-    const model = String(inputs.model ?? this.model ?? "V4_5PLUS");
-    const instrumental = Boolean(inputs.instrumental ?? this.instrumental ?? false);
+    const tags = String(inputs.tags ?? this.tags ?? "");
+    const titleVal = String(inputs.title ?? this.title ?? "");
+    const startTime = Number(inputs.infill_start_s ?? this.infill_start_s ?? 0);
+    const endTime = Number(inputs.infill_end_s ?? this.infill_end_s ?? 30);
 
     const payload: Record<string, unknown> = {
       customMode: true,
       prompt,
-      style,
-      instrumental,
-      model,
-      audio_url: audioUrl,
+      style: tags,
+      title: titleVal,
+      task_id: taskId,
+      audio_id: audioId,
       replace_section: true,
       start_time: startTime,
       end_time: endTime,
@@ -620,8 +619,8 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(inputs);
     const text = String(inputs.text ?? this.text ?? "");
-    const voiceId = String(inputs.voice_id ?? this.voice_id ?? "");
-    const modelId = String(inputs.model_id ?? this.model_id ?? "eleven_multilingual_v2");
+    const voiceId = String(inputs.voice ?? this.voice ?? "");
+    const modelId = String(inputs.model ?? this.model ?? "eleven_multilingual_v2");
 
     if (!text) throw new Error("text is required");
     if (!voiceId) throw new Error("voice_id is required");
@@ -816,8 +815,8 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(inputs);
-    const script = String(inputs.script ?? this.script ?? "");
-    const voiceAssignments = (inputs.voice_assignments ?? this.voice_assignments ?? {}) as Record<string, string>;
+    const script = String(inputs.text ?? this.text ?? "");
+    const voiceAssignments = (inputs.voice ?? this.voice ?? {}) as Record<string, string>;
 
     if (!script) throw new Error("script is required");
 

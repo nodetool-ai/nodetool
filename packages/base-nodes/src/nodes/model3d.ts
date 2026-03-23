@@ -369,7 +369,7 @@ export class DecimateNode extends BaseNode {
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const model = (inputs.model ?? this.model ?? {}) as Model3DRefLike;
     const bytes = modelBytes(model);
-    const ratio = Number(inputs.ratio ?? this.ratio ?? 0.5);
+    const ratio = Number(inputs.target_ratio ?? this.target_ratio ?? 0.5);
     const keep = Math.max(1, Math.floor(bytes.length * Math.max(0, Math.min(1, ratio))));
     return {
       output: modelRef(bytes.slice(0, keep), {

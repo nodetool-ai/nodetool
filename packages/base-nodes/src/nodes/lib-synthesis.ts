@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { AudioRef } from "@nodetool/node-sdk";
 
 type OscillatorWaveform = "sine" | "square" | "sawtooth" | "triangle";
 type PitchEnvelopeCurve = "linear" | "exponential";
@@ -30,8 +31,9 @@ function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   return new Uint8Array(buffer);
 }
 
-function audioRefFromWav(wav: Uint8Array): Record<string, unknown> {
+function audioRefFromWav(wav: Uint8Array): AudioRef {
   return {
+    type: "audio",
     uri: "",
     data: Buffer.from(wav).toString("base64"),
   };

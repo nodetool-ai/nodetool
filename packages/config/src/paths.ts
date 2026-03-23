@@ -13,25 +13,24 @@ import { homedir } from "node:os";
 /**
  * Base directory for all Nodetool user data.
  *
+ * Must match Python's get_system_data_path() in nodetool-core so both
+ * runtimes read/write the same database and assets.
+ *
  * - Windows:  %APPDATA%\nodetool          (e.g. C:\Users\<name>\AppData\Roaming\nodetool)
- * - macOS:    ~/Library/Application Support/nodetool
- * - Linux:    $XDG_DATA_HOME/nodetool     (fallback: ~/.local/share/nodetool)
+ * - macOS/Linux: $XDG_DATA_HOME/nodetool  (fallback: ~/.local/share/nodetool)
  */
 export function getNodetoolDataDir(): string {
-  switch (process.platform) {
-    case "win32":
-      return join(
-        process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
-        "nodetool",
-      );
-    case "darwin":
-      return join(homedir(), "Library", "Application Support", "nodetool");
-    default:
-      return join(
-        process.env["XDG_DATA_HOME"] ?? join(homedir(), ".local", "share"),
-        "nodetool",
-      );
+  if (process.platform === "win32") {
+    return join(
+      process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
+      "nodetool",
+    );
   }
+  // macOS and Linux: use XDG standard to match Python side
+  return join(
+    process.env["XDG_DATA_HOME"] ?? join(homedir(), ".local", "share"),
+    "nodetool",
+  );
 }
 
 /** Default path for the main SQLite database. Override with DB_PATH. */

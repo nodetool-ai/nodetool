@@ -90,8 +90,9 @@ function validateAgainstSchema(data: unknown, schema: unknown): boolean {
 
 abstract class BaseGetJSONPathNode extends BaseNode {
   protected extract(inputs: Record<string, unknown>): unknown {
-    const data = inputs.data ?? this.data ?? {};
-    const path = String(inputs.path ?? this.path ?? "");
+    const props = this.serialize();
+    const data = inputs.data ?? props.data ?? {};
+    const path = String(inputs.path ?? props.path ?? "");
     return jsonPathExtract(data, path);
   }
 }

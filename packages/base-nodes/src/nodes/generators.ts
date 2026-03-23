@@ -267,7 +267,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(inputs, this.serialize());
-    const schema = inputs.schema ?? this.schema;
+    const schema = inputs.schema;
     if (schema && typeof schema === "object" && !Array.isArray(schema) && hasProviderSupport(context, providerId, modelId)) {
       const instructions = asText(inputs.instructions ?? this.instructions ?? "");
       const extraContext = asText(inputs.context ?? this.context ?? "");
@@ -643,8 +643,8 @@ export class SVGGeneratorNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const width = Number(inputs.width ?? this.width ?? 512) || 512;
-    const height = Number(inputs.height ?? this.height ?? 512) || 512;
+    const width = Number(inputs.width ?? 512) || 512;
+    const height = Number(inputs.height ?? 512) || 512;
     const text = prompt || "SVG";
     const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f2f2f2"/><text x="16" y="32" font-size="20" fill="#111">${safeText}</text></svg>`;

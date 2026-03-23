@@ -69,8 +69,8 @@ export class SelectLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const tableName = String(inputs.table_name ?? this.table_name ?? "");
     const columnsInput = (inputs.columns ?? this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string }>;
@@ -127,8 +127,8 @@ export class InsertLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const tableName = String(inputs.table_name ?? this.table_name ?? "");
     const recordsInput = inputs.records ?? this.records ?? [];
     const returnRows = Boolean(inputs.return_rows ?? this.return_rows ?? true);
@@ -178,8 +178,8 @@ export class UpdateLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const tableName = String(inputs.table_name ?? this.table_name ?? "");
     const values = (inputs.values ?? this.values ?? {}) as Record<string, unknown>;
     const filters = (inputs.filters ?? this.filters ?? []) as Filter[];
@@ -225,8 +225,8 @@ export class DeleteLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const tableName = String(inputs.table_name ?? this.table_name ?? "");
     const filters = (inputs.filters ?? this.filters ?? []) as Filter[];
 
@@ -269,8 +269,8 @@ export class UpsertLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const tableName = String(inputs.table_name ?? this.table_name ?? "");
     const recordsInput = inputs.records ?? this.records ?? [];
     const returnRows = Boolean(inputs.return_rows ?? this.return_rows ?? true);
@@ -318,8 +318,8 @@ export class RPCLibNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? this.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? this.supabase_key ?? "");
+    const url = String(inputs.supabase_url ?? "");
+    const key = String(inputs.supabase_key ?? "");
     const fnName = String(inputs.function ?? this.function ?? "");
     const params = (inputs.params ?? this.params ?? {}) as Record<string, unknown>;
 

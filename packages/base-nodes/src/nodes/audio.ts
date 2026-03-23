@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { AudioRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -61,8 +62,9 @@ function dateName(name: string): string {
     .replaceAll("%S", pad(now.getSeconds()));
 }
 
-function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unknown> {
+function audioRefFromBytes(data: Uint8Array, uri?: string): AudioRef {
   return {
+    type: "audio",
     uri: uri ?? "",
     data: Buffer.from(data).toString("base64"),
   };
@@ -326,7 +328,9 @@ export class SaveAudioFileNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const audio = inputs.audio ?? this.audio;
-    const p = uriToPath(String(inputs.path ?? this.path ?? ""));
+    const folder = String(inputs.folder ?? this.folder ?? ".");
+    const fname = dateName(String(inputs.filename ?? this.filename ?? "audio.wav"));
+    const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, audioBytes(audio));
     return { output: p };
@@ -406,8 +410,8 @@ export class OverlayAudioNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = audioBytes(inputs.audio_a ?? this.audio_a);
-    const b = audioBytes(inputs.audio_b ?? this.audio_b);
+    const a = audioBytes(inputs.a ?? this.a);
+    const b = audioBytes(inputs.b ?? this.b);
     const len = Math.max(a.length, b.length);
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
@@ -685,7 +689,7 @@ export class RepeatAudioNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const data = audioBytes(inputs.audio ?? this.audio);
-    const count = Math.max(1, Number(inputs.count ?? this.count ?? 2));
+    const count = Math.max(1, Number(inputs.loops ?? this.loops ?? 2));
     return { output: audioRefFromBytes(concatBytes(Array.from({ length: count }, () => data))) };
   }
 }
@@ -762,10 +766,14 @@ export class AudioMixerNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audios = Array.isArray(inputs.audios ?? this.audios)
-      ? (inputs.audios ?? this.audios) as unknown[]
-      : [];
-    const all = audios.map((a) => audioBytes(a));
+    const tracks = [
+      inputs.track1 ?? this.track1,
+      inputs.track2 ?? this.track2,
+      inputs.track3 ?? this.track3,
+      inputs.track4 ?? this.track4,
+      inputs.track5 ?? this.track5,
+    ].filter((t) => t && typeof t === "object");
+    const all = tracks.map((a) => audioBytes(a));
     if (all.length === 0) return { output: audioRefFromBytes(new Uint8Array()) };
     const len = Math.max(...all.map((x) => x.length));
     const out = new Uint8Array(len);
@@ -834,8 +842,8 @@ export class NumpyToAudioNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = Array.isArray(inputs.values ?? this.values)
-      ? (inputs.values ?? this.values) as unknown[]
+    const values = Array.isArray(inputs.array ?? this.array)
+      ? (inputs.array ?? this.array) as unknown[]
       : [];
     const bytes = new Uint8Array(values.map((v) => Number(v) & 0xff));
     return { output: audioRefFromBytes(bytes) };
@@ -917,7 +925,7 @@ export class CreateSilenceNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const length = Math.max(0, Number(inputs.length ?? this.length ?? 16000));
+    const length = Math.max(0, Number(inputs.duration ?? this.duration ?? 16000));
     return { output: audioRefFromBytes(new Uint8Array(length)) };
   }
 }
@@ -953,8 +961,8 @@ export class ConcatAudioNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = audioBytes(inputs.audio_a ?? this.audio_a);
-    const b = audioBytes(inputs.audio_b ?? this.audio_b);
+    const a = audioBytes(inputs.a ?? this.a);
+    const b = audioBytes(inputs.b ?? this.b);
     return { output: audioRefFromBytes(concatBytes([a, b])) };
   }
 }
@@ -975,8 +983,8 @@ export class ConcatAudioListNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const audios = Array.isArray(inputs.audios ?? this.audios)
-      ? (inputs.audios ?? this.audios) as unknown[]
+    const audios = Array.isArray(inputs.audio_files ?? this.audio_files)
+      ? (inputs.audio_files ?? this.audio_files) as unknown[]
       : [];
     const merged = concatBytes(audios.map((a) => audioBytes(a)));
     return { output: audioRefFromBytes(merged) };
@@ -1041,7 +1049,7 @@ export class TextToSpeechNode extends BaseNode {
         model: modelId,
         params: {
           text,
-          voice: inputs.voice ?? this.voice,
+          voice: inputs.voice ?? ((inputs.model as Record<string, unknown>)?.selected_voice ?? ""),
           speed: inputs.speed ?? this.speed,
         },
       })) {

@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { AudioRef } from "@nodetool/node-sdk";
 import FFT from "fft.js";
 
 // ── WAV helpers ───────────────────────────────────────────────────
@@ -96,8 +97,8 @@ function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   return new Uint8Array(buffer);
 }
 
-function audioRefFromWav(wav: Uint8Array): Record<string, unknown> {
-  return { uri: "", data: Buffer.from(wav).toString("base64") };
+function audioRefFromWav(wav: Uint8Array): AudioRef {
+  return { type: "audio", uri: "", data: Buffer.from(wav).toString("base64") };
 }
 
 // ── DSP helpers ───────────────────────────────────────────────────
@@ -1032,7 +1033,7 @@ export class SegmentAudioByOnsetsNode extends BaseNode {
 
       if (segDuration >= minSegLen) {
         const segment = mono.slice(start, end);
-        segments.push(audioRefFromWav(encodeWav(segment, wav.sampleRate)));
+        segments.push(audioRefFromWav(encodeWav(segment, wav.sampleRate)) as unknown as Record<string, unknown>);
       }
     }
 

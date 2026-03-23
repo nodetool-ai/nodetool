@@ -20,7 +20,7 @@ import {
   setSecretResolver,
   PythonBridge,
 } from "@nodetool/runtime";
-import { getSecret } from "@nodetool/security";
+import { getSecret, initMasterKey } from "@nodetool/security";
 import { initDb } from "@nodetool/models";
 import {
   Tool,
@@ -99,7 +99,11 @@ try {
   mkdirSync(dirname(dbPath), { recursive: true });
   initDb(dbPath);
   log.info("Database ready", { path: dbPath });
-  setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));
+  // Initialize master key from keychain before any secret access.
+  // This must happen before setSecretResolver so that getMasterKey() (sync)
+  // returns the keychain key rather than auto-generating a new one.
+  await initMasterKey();
+  setSecretResolver((key, userId) => getSecret(key, userId).then((v) => v ?? undefined));
 } catch (err) {
   log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
 }

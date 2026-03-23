@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { VideoRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -74,8 +75,8 @@ function bytesConcat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-function videoRef(data: Uint8Array, extras: Record<string, unknown> = {}): Record<string, unknown> {
-  return { data: Buffer.from(data).toString("base64"), ...extras };
+function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
+  return { type: "video", data: Buffer.from(data).toString("base64"), ...extras };
 }
 
 function modelConfig(
@@ -383,7 +384,9 @@ export class SaveVideoFileVideoNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+    const folder = String(inputs.folder ?? this.folder ?? ".");
+    const fname = dateName(String(inputs.filename ?? this.filename ?? "video.mp4"));
+    const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, videoBytes(inputs.video ?? this.video));
     return { output: p };
@@ -466,7 +469,7 @@ export class SaveVideoNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const folder = String(inputs.folder ?? this.folder ?? ".");
-    const filename = dateName(String(inputs.filename ?? this.filename ?? "video.mp4"));
+    const filename = dateName(String(inputs.name ?? this.name ?? "video.mp4"));
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     const bytes = videoBytes(inputs.video ?? this.video);
@@ -512,7 +515,7 @@ export class FrameIteratorNode extends BaseNode {
 
   async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
     const bytes = videoBytes(inputs.video ?? this.video);
-    const frameSize = Math.max(1, Number(inputs.frame_size ?? this.frame_size ?? 1024));
+    const frameSize = Math.max(1, Number(inputs.start ?? this.start ?? 1024));
     let index = 0;
     for (let i = 0; i < bytes.length; i += frameSize) {
       const frame = bytes.slice(i, i + frameSize);
@@ -546,8 +549,8 @@ export class FpsNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = videoBytes(inputs.video ?? this.video);
-    const fps = Number(inputs.fps ?? this.fps ?? 24);
-    return { output: videoRef(bytes, { fps }) };
+    const fps = Number(inputs.fps ?? 24);
+    return { output: videoRef(bytes, { duration: fps } as Partial<VideoRef>) };
   }
 }
 
@@ -575,8 +578,8 @@ export class FrameToVideoNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const frames = Array.isArray(inputs.frames ?? this.frames)
-      ? (inputs.frames ?? this.frames) as unknown[]
+    const frames = Array.isArray(inputs.frame ?? this.frame)
+      ? (inputs.frame ?? this.frame) as unknown[]
       : [];
     const parts = frames.map((f) => {
       if (!f || typeof f !== "object") return new Uint8Array();
@@ -587,6 +590,7 @@ export class FrameToVideoNode extends BaseNode {
 }
 
 abstract class VideoTransformNode extends BaseNode {
+  declare video: any;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
     return { output: videoRef(bytes) };
@@ -663,8 +667,8 @@ export class TrimVideoNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = videoBytes(inputs.video ?? this.video);
-    const start = Math.max(0, Number(inputs.start ?? this.start ?? 0));
-    const end = Math.max(0, Number(inputs.end ?? this.end ?? 0));
+    const start = Math.max(0, Number(inputs.start_time ?? this.start_time ?? 0));
+    const end = Math.max(0, Number(inputs.end_time ?? this.end_time ?? 0));
     return { output: videoRef(bytes.slice(start, Math.max(start, bytes.length - end))) };
   }
 }
@@ -827,7 +831,7 @@ export class OverlayVideoNode extends VideoTransformNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const mainVideo = await videoBytesAsync(inputs.main_video ?? this.main_video ?? inputs.video ?? this.video);
+    const mainVideo = await videoBytesAsync(inputs.main_video ?? this.main_video);
     const overlayVideo = await videoBytesAsync(inputs.overlay_video ?? this.overlay_video);
     if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
     const x = Number(inputs.x ?? this.x ?? 0);
@@ -878,9 +882,9 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const brightness = Number(inputs.brightness ?? this.brightness ?? 0);
-    const contrast = Number(inputs.contrast ?? this.contrast ?? 1);
-    const saturation = Number(inputs.saturation ?? this.saturation ?? 1);
+    const brightness = Number(inputs.red_adjust ?? this.red_adjust ?? 0);
+    const contrast = Number(inputs.green_adjust ?? this.green_adjust ?? 1);
+    const saturation = Number(inputs.blue_adjust ?? this.blue_adjust ?? 1);
     const transformed =
       (await ffmpegTransform(
         bytes,
@@ -1009,7 +1013,7 @@ export class BlurVideoNode extends VideoTransformNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const radius = Math.max(1, Number(inputs.radius ?? this.radius ?? 2));
+    const radius = Math.max(1, Number(inputs.strength ?? this.strength ?? 2));
     const transformed =
       (await ffmpegTransform(bytes, ["-vf", `boxblur=${radius}:${radius}`, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
@@ -1100,7 +1104,7 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const text = String(inputs.text ?? this.text ?? "").trim();
+    const text = String(inputs.chunks ?? this.chunks ?? "").trim();
     if (!text) return { output: videoRef(bytes) };
     const escaped = text.replaceAll(":", "\\:").replaceAll("'", "\\'");
     const transformed =
@@ -1238,7 +1242,7 @@ export class TransitionVideoNode extends VideoTransformNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(inputs.video_a ?? this.video_a ?? inputs.video ?? this.video);
+    const a = await videoBytesAsync(inputs.video_a ?? this.video_a);
     const b = await videoBytesAsync(inputs.video_b ?? this.video_b);
     if (b.length === 0) return { output: videoRef(a) };
     const duration = Math.max(0.1, Number(inputs.duration ?? this.duration ?? 1));
@@ -1332,7 +1336,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const color = String(inputs.color ?? this.color ?? "0x00FF00");
+    const color = String(inputs.key_color ?? this.key_color ?? "0x00FF00");
     const similarity = Number(inputs.similarity ?? this.similarity ?? 0.1);
     const blend = Number(inputs.blend ?? this.blend ?? 0.0);
     const transformed =
@@ -1405,7 +1409,7 @@ export class ExtractFrameVideoNode extends BaseNode {
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = videoBytes(inputs.video ?? this.video);
     const frameSize = 1024;
-    const index = Math.max(0, Number(inputs.frame_index ?? this.frame_index ?? 0));
+    const index = Math.max(0, Number(inputs.time ?? this.time ?? 0));
     const start = index * frameSize;
     const frame = bytes.slice(start, start + frameSize);
     return {

@@ -23,8 +23,9 @@ function createEnhanceNode(desc: Desc): NodeClass {
 
     async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
+      const props = this.serialize();
 
-      const baseObj = pickImage(inputs, this.serialize());
+      const baseObj = pickImage(inputs, props);
       const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
@@ -33,30 +34,30 @@ function createEnhanceNode(desc: Desc): NodeClass {
       let img = sharp(baseBytes, { failOn: "none" });
 
       if (t.endsWith(".Brightness")) {
-        const factor = Number(inputs.factor ?? this.factor ?? 1);
+        const factor = Number(inputs.factor ?? props.factor ?? 1);
         img = img.modulate({ brightness: factor });
       } else if (t.endsWith(".Color")) {
-        const factor = Number(inputs.factor ?? this.factor ?? 1);
+        const factor = Number(inputs.factor ?? props.factor ?? 1);
         img = img.modulate({ saturation: factor });
       } else if (t.endsWith(".Contrast")) {
-        const factor = Number(inputs.factor ?? this.factor ?? 1);
+        const factor = Number(inputs.factor ?? props.factor ?? 1);
         img = img.linear(factor, -(128 * (factor - 1)));
       } else if (t.endsWith(".Sharpen")) {
         img = img.convolve({ width: 3, height: 3, kernel: [-1, -1, -1, -1, 9, -1, -1, -1, -1] });
       } else if (t.endsWith(".Sharpness")) {
-        const factor = Number(inputs.factor ?? this.factor ?? 1);
+        const factor = Number(inputs.factor ?? props.factor ?? 1);
         img = img.sharpen({ sigma: 1, m1: Math.max(0, factor), m2: 0.5 });
       } else if (t.endsWith(".UnsharpMask")) {
-        const radius = Number(inputs.radius ?? this.radius ?? 2);
-        const percent = Number(inputs.percent ?? this.percent ?? 150);
-        const threshold = Number(inputs.threshold ?? this.threshold ?? 3);
+        const radius = Number(inputs.radius ?? props.radius ?? 2);
+        const percent = Number(inputs.percent ?? props.percent ?? 150);
+        const threshold = Number(inputs.threshold ?? props.threshold ?? 3);
         img = img.sharpen({ sigma: Math.max(0.5, radius), m1: percent / 100, m2: threshold });
       } else if (t.endsWith(".Equalize") || t.endsWith(".AutoContrast") || t.endsWith(".AdaptiveContrast")) {
         img = img.normalize();
       } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
         img = img.sharpen({ sigma: 0.5, m1: 0.5, m2: 0.3 });
       } else if (t.endsWith(".RankFilter")) {
-        const size = Number(inputs.size ?? this.size ?? 3);
+        const size = Number(inputs.size ?? props.size ?? 3);
         img = img.median(Math.max(1, size));
       }
 

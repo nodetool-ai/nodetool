@@ -1424,9 +1424,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
         model: modelId,
         params: {
           audio: bytes,
-          language: inputs.language ?? this.language,
-          prompt: inputs.prompt ?? this.prompt,
-          temperature: inputs.temperature ?? this.temperature,
+          language: inputs.language,
+          prompt: inputs.prompt,
+          temperature: inputs.temperature,
         },
       })) as string;
       return { text, output: text };

@@ -946,7 +946,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(inputs);
-    const chunk = (inputs.chunk ?? this.chunk ?? inputs.audio ?? {}) as Record<string, unknown>;
+    const chunk = (inputs.chunk ?? inputs.audio ?? {}) as Record<string, unknown>;
     const content =
       typeof chunk.content === "string"
         ? chunk.content

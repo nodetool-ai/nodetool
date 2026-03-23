@@ -14,39 +14,43 @@ import type { Edge } from "./graph.js";
 
 export interface ImageRef {
   type: "image";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
+  mimeType?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface AudioRef {
   type: "audio";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
 export interface VideoRef {
   type: "video";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
   format?: string | null;
 }
 
 export interface TextRef {
   type: "text";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
+  data?: string | null;
 }
 
 export interface DataframeRef {

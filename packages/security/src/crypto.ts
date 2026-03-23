@@ -102,7 +102,7 @@ export function decrypt(masterKey: string, userId: string, encryptedValue: strin
     ]);
     return decrypted.toString("utf-8");
   } catch (err) {
-    log.error("Decryption failed", { error: String(err) });
+    log.debug("AES-GCM decryption failed (may fall back to Fernet)", { error: String(err) });
     throw new Error("Failed to decrypt secret");
   }
 }
