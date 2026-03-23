@@ -30,7 +30,7 @@ import {
   floodFill as floodFillUtil,
   blendModeToComposite
 } from "../drawingUtils";
-import type { BlurTempCanvases } from "../drawingUtils";
+import type { BlurTempCanvases, StrokeStampState } from "../drawingUtils";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const STABILIZER_WINDOW = 4;
@@ -138,6 +138,7 @@ export function usePointerHandlers({
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Interaction state refs ─────────────────────────────────────────
   const isDrawingRef = useRef(false);
+  const paintStrokeHasMovedRef = useRef(false);
   const lastPointRef = useRef<Point | null>(null);
   const lastSmoothedPointRef = useRef<Point | null>(null);
   const isPanningRef = useRef(false);
@@ -187,6 +188,8 @@ export function usePointerHandlers({
   const blurSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const brushStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const eraserStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
+  const brushStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(new Map());
+  const eraserStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(new Map());
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -239,15 +242,57 @@ export function usePointerHandlers({
   // ─── Drawing function wrappers ──────────────────────────────────────
 
   const drawBrushStroke = useCallback(
-    (from: Point, to: Point, settings: BrushSettings, ctx: CanvasRenderingContext2D, pressure?: number) => {
-      drawBrushStrokeUtil(from, to, settings, ctx, pressure, strokeDirtyRectRef, brushStampCacheRef.current);
+    (
+      from: Point,
+      to: Point,
+      settings: BrushSettings,
+      ctx: CanvasRenderingContext2D,
+      pressure?: number,
+      branchIndex = 0
+    ) => {
+      let stampState = brushStrokeStampStatesRef.current.get(branchIndex);
+      if (!stampState) {
+        stampState = { hasStamped: false, distanceToNextDab: 0 };
+        brushStrokeStampStatesRef.current.set(branchIndex, stampState);
+      }
+      drawBrushStrokeUtil(
+        from,
+        to,
+        settings,
+        ctx,
+        pressure,
+        strokeDirtyRectRef,
+        brushStampCacheRef.current,
+        stampState
+      );
     },
     []
   );
 
   const drawEraserStroke = useCallback(
-    (from: Point, to: Point, settings: EraserSettings, ctx: CanvasRenderingContext2D, pressure?: number) => {
-      drawEraserStrokeUtil(from, to, settings, ctx, pressure, strokeDirtyRectRef, eraserStampCacheRef.current);
+    (
+      from: Point,
+      to: Point,
+      settings: EraserSettings,
+      ctx: CanvasRenderingContext2D,
+      pressure?: number,
+      branchIndex = 0
+    ) => {
+      let stampState = eraserStrokeStampStatesRef.current.get(branchIndex);
+      if (!stampState) {
+        stampState = { hasStamped: false, distanceToNextDab: 0 };
+        eraserStrokeStampStatesRef.current.set(branchIndex, stampState);
+      }
+      drawEraserStrokeUtil(
+        from,
+        to,
+        settings,
+        ctx,
+        pressure,
+        strokeDirtyRectRef,
+        eraserStampCacheRef.current,
+        stampState
+      );
     },
     []
   );
@@ -300,7 +345,12 @@ export function usePointerHandlers({
   const withMirror = useCallback(
     (
       ctx: CanvasRenderingContext2D,
-      drawFn: (from: Point, to: Point, c: CanvasRenderingContext2D) => void,
+      drawFn: (
+        from: Point,
+        to: Point,
+        c: CanvasRenderingContext2D,
+        branchIndex: number
+      ) => void,
       from: Point,
       to: Point
     ) => {
@@ -318,22 +368,28 @@ export function usePointerHandlers({
         return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
       };
 
+      let branchIndex = 0;
+      const drawBranch = (branchFrom: Point, branchTo: Point) => {
+        drawFn(branchFrom, branchTo, ctx, branchIndex);
+        branchIndex += 1;
+      };
+
       // Always draw the original stroke
-      drawFn(from, to, ctx);
+      drawBranch(from, to);
 
       switch (symmetryMode) {
         case "horizontal": {
-          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
           break;
         }
         case "vertical": {
-          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
           break;
         }
         case "dual": {
-          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
-          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
-          drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+          drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
+          drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
+          drawBranch({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y });
           break;
         }
         case "radial": {
@@ -341,7 +397,7 @@ export function usePointerHandlers({
           const step = (2 * Math.PI) / symmetryRays;
           for (let i = 1; i < symmetryRays; i++) {
             const angle = step * i;
-            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+            drawBranch(rotatePoint(from, angle), rotatePoint(to, angle));
           }
           break;
         }
@@ -350,27 +406,27 @@ export function usePointerHandlers({
           const mStep = (2 * Math.PI) / symmetryRays;
           for (let i = 1; i < symmetryRays; i++) {
             const angle = mStep * i;
-            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+            drawBranch(rotatePoint(from, angle), rotatePoint(to, angle));
           }
           // Mirror: reflect across X axis through center, then rotate
           const mirroredFrom = { x: cw - from.x, y: from.y };
           const mirroredTo = { x: cw - to.x, y: to.y };
           for (let i = 0; i < symmetryRays; i++) {
             const angle = mStep * i;
-            drawFn(rotatePoint(mirroredFrom, angle), rotatePoint(mirroredTo, angle), ctx);
+            drawBranch(rotatePoint(mirroredFrom, angle), rotatePoint(mirroredTo, angle));
           }
           break;
         }
         default: {
           // "off" — also handle legacy mirrorX/mirrorY booleans
           if (mirrorX) {
-            drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+            drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
           }
           if (mirrorY) {
-            drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+            drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
           }
           if (mirrorX && mirrorY) {
-            drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+            drawBranch({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y });
           }
           break;
         }
@@ -830,6 +886,9 @@ export function usePointerHandlers({
           cloneSourceCanvasRef.current = snapshot;
         }
         isDrawingRef.current = true;
+      paintStrokeHasMovedRef.current = false;
+      brushStrokeStampStatesRef.current.clear();
+      eraserStrokeStampStatesRef.current.clear();
         lastPointRef.current = pt;
         lastSmoothedPointRef.current = pt;
         currentPressureRef.current = e.pressure || 0.5;
@@ -981,11 +1040,11 @@ export function usePointerHandlers({
             const t = i / steps;
             const current = { x: from.x + dx * t, y: from.y + dy * t };
             if (activeTool === "brush") {
-              withMirror(ctx, (f, to, c) => drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current), prev, current);
+              withMirror(ctx, (f, to, c, branchIndex) => drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), prev, current);
             } else if (activeTool === "pencil") {
               withMirror(ctx, (f, to, c) => drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current), prev, current);
             } else if (activeTool === "eraser") {
-              withMirror(ctx, (f, to, c) => drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current), prev, current);
+              withMirror(ctx, (f, to, c, branchIndex) => drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), prev, current);
             } else if (activeTool === "blur") {
               drawBlurStroke(prev, current, doc.toolSettings.blur, layerCanvas);
             }
@@ -993,11 +1052,14 @@ export function usePointerHandlers({
           }
         } else {
           if (activeTool === "brush") {
-            withMirror(ctx, (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current), localPt, localPt);
+            // Delay the initial brush dab until we know whether this is a click
+            // or a drag. Dragging will paint on pointer move; clicks are
+            // committed on pointer up so the stroke head matches the rest.
           } else if (activeTool === "pencil") {
             withMirror(ctx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current), localPt, localPt);
           } else if (activeTool === "eraser") {
-            withMirror(ctx, (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current), localPt, localPt);
+            // Delay the initial eraser dab until we know whether this is a click
+            // or a drag to avoid a darker first stamp on dragged strokes.
           } else if (activeTool === "blur") {
             drawBlurStroke(localPt, localPt, doc.toolSettings.blur, layerCanvas);
           }
@@ -1172,6 +1234,13 @@ export function usePointerHandlers({
 
       for (const eventPoint of eventPoints) {
         const pt = eventPoint.point;
+        if (
+          !paintStrokeHasMovedRef.current &&
+          lastPointRef.current &&
+          (pt.x !== lastPointRef.current.x || pt.y !== lastPointRef.current.y)
+        ) {
+          paintStrokeHasMovedRef.current = true;
+        }
         const localPt = {
           x: pt.x - currentOffset.x,
           y: pt.y - currentOffset.y
@@ -1195,7 +1264,7 @@ export function usePointerHandlers({
                 }
               : null) ??
             smoothPt;
-          withMirror(ctx, (f, t, c) => drawBrushStroke(f, t, doc.toolSettings.brush, c, pressure), from, smoothPt);
+          withMirror(ctx, (f, t, c, branchIndex) => drawBrushStroke(f, t, doc.toolSettings.brush, c, pressure, branchIndex), from, smoothPt);
           lastSmoothedPointRef.current = {
             x: smoothPt.x + currentOffset.x,
             y: smoothPt.y + currentOffset.y
@@ -1224,7 +1293,7 @@ export function usePointerHandlers({
                 }
               : null) ??
             smoothPt;
-          withMirror(ctx, (f, t, c) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, pressure), from, smoothPt);
+          withMirror(ctx, (f, t, c, branchIndex) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, pressure, branchIndex), from, smoothPt);
           lastSmoothedPointRef.current = {
             x: smoothPt.x + currentOffset.x,
             y: smoothPt.y + currentOffset.y
@@ -1447,8 +1516,63 @@ export function usePointerHandlers({
         lastStrokeEndRef.current = screenToCanvas(e.clientX, e.clientY);
       }
 
+      if (
+        activeLayer &&
+        !paintStrokeHasMovedRef.current &&
+        (activeTool === "brush" || activeTool === "eraser")
+      ) {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        const currentOffset = paintLayerOffsetRef.current;
+        const localPt = {
+          x: pt.x - currentOffset.x,
+          y: pt.y - currentOffset.y
+        };
+        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+        const ctx = layerCanvas.getContext("2d");
+        if (ctx) {
+          const hasSelectionClip = clipSelectionForOffset(ctx, currentOffset);
+          if (activeTool === "brush") {
+            withMirror(
+              ctx,
+              (f, t, c, branchIndex) =>
+                drawBrushStroke(
+                  f,
+                  t,
+                  doc.toolSettings.brush,
+                  c,
+                  currentPressureRef.current,
+                  branchIndex
+                ),
+              localPt,
+              localPt
+            );
+          } else {
+            withMirror(
+              ctx,
+              (f, t, c, branchIndex) =>
+                drawEraserStroke(
+                  f,
+                  t,
+                  doc.toolSettings.eraser,
+                  c,
+                  currentPressureRef.current,
+                  branchIndex
+                ),
+              localPt,
+              localPt
+            );
+          }
+          if (hasSelectionClip) {
+            ctx.restore();
+          }
+        }
+      }
+
       lastPointRef.current = null;
       lastSmoothedPointRef.current = null;
+      paintStrokeHasMovedRef.current = false;
+      brushStrokeStampStatesRef.current.clear();
+      eraserStrokeStampStatesRef.current.clear();
       paintLayerOffsetRef.current = { x: 0, y: 0 };
 
       // Alpha lock: restore original alpha channel after drawing

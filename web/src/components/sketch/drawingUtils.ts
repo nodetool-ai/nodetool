@@ -26,6 +26,77 @@ import { parseColorToRgba } from "./types";
 
 export const MIN_PRESSURE_FACTOR = 0.2;
 
+function normalizeStampOpacity(
+  targetOpacity: number,
+  brushSize: number,
+  spacing: number,
+  isSingleDab: boolean
+): number {
+  const clampedTarget = Math.max(0, Math.min(1, targetOpacity));
+  if (isSingleDab || clampedTarget <= 0 || clampedTarget >= 1) {
+    return clampedTarget;
+  }
+
+  // A dragged stroke lays down many overlapping stamps. Convert the UI opacity
+  // into a per-stamp alpha so the built-up stroke more closely matches the
+  // requested opacity instead of saturating to fully opaque immediately.
+  const overlapCount = Math.max(1, brushSize / Math.max(0.01, spacing));
+  return 1 - Math.pow(1 - clampedTarget, 1 / overlapCount);
+}
+
+export interface StrokeStampState {
+  hasStamped: boolean;
+  distanceToNextDab: number;
+}
+
+function stampAlongStroke(
+  from: Point,
+  to: Point,
+  spacing: number,
+  stampAtPoint: (x: number, y: number) => void,
+  stampState?: StrokeStampState
+): void {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (!stampState) {
+    if (distance === 0) {
+      stampAtPoint(from.x, from.y);
+      return;
+    }
+
+    const steps = Math.max(1, Math.ceil(distance / spacing));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      stampAtPoint(from.x + dx * t, from.y + dy * t);
+    }
+    return;
+  }
+
+  if (!stampState.hasStamped) {
+    stampAtPoint(from.x, from.y);
+    stampState.hasStamped = true;
+    stampState.distanceToNextDab = spacing;
+  }
+
+  if (distance === 0) {
+    return;
+  }
+
+  let travelled = 0;
+  let distanceToNextDab = stampState.distanceToNextDab;
+
+  while (travelled + distanceToNextDab <= distance) {
+    travelled += distanceToNextDab;
+    const t = travelled / distance;
+    stampAtPoint(from.x + dx * t, from.y + dy * t);
+    distanceToNextDab = spacing;
+  }
+
+  stampState.distanceToNextDab = distanceToNextDab - (distance - travelled);
+}
+
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
 export interface DirtyRectBox {
@@ -171,7 +242,8 @@ export function drawBrushStroke(
   ctx: CanvasRenderingContext2D,
   pressure: number | undefined,
   dirtyRect: DirtyRectTracker,
-  brushStampCache: Map<string, HTMLCanvasElement>
+  brushStampCache: Map<string, HTMLCanvasElement>,
+  stampState?: StrokeStampState
 ): void {
   const brushType: BrushType = settings.brushType || "round";
   let effectiveSize = settings.size;
@@ -283,7 +355,7 @@ export function drawBrushStroke(
       const density = Math.max(6, Math.round(effectiveSize * 0.8));
       const radius = effectiveSize / 2;
       ctx.save();
-      ctx.globalAlpha = effectiveOpacity;
+      ctx.globalAlpha = stampOpacity;
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = settings.color;
       for (let i = 0; i < density; i++) {
@@ -314,8 +386,6 @@ export function drawBrushStroke(
       settings.angle,
       settings.color
     );
-    const stampOpacity =
-      brushType === "airbrush" ? effectiveOpacity * 0.18 : effectiveOpacity;
     ctx.save();
     ctx.globalAlpha = stampOpacity;
     ctx.globalCompositeOperation = "source-over";
@@ -333,12 +403,14 @@ export function drawBrushStroke(
       : brushType === "airbrush"
         ? Math.max(0.5, effectiveSize * 0.08)
         : Math.max(0.5, effectiveSize * 0.12);
-  const steps = Math.max(1, Math.ceil(distance / spacing));
+  const stampOpacity = normalizeStampOpacity(
+    brushType === "airbrush" ? effectiveOpacity * 0.18 : effectiveOpacity,
+    effectiveSize,
+    spacing,
+    distance === 0
+  );
 
-  for (let i = 0; i <= steps; i++) {
-    const t = steps === 0 ? 1 : i / steps;
-    stampBrushDab(from.x + dx * t, from.y + dy * t);
-  }
+  stampAlongStroke(from, to, spacing, stampBrushDab, stampState);
 }
 
 // ─── Eraser Stroke ───────────────────────────────────────────────────────────
@@ -350,7 +422,8 @@ export function drawEraserStroke(
   ctx: CanvasRenderingContext2D,
   pressure: number | undefined,
   dirtyRect: DirtyRectTracker,
-  eraserStampCache: Map<string, HTMLCanvasElement>
+  eraserStampCache: Map<string, HTMLCanvasElement>,
+  stampState?: StrokeStampState
 ): void {
   let effectiveSize = settings.size;
   let effectiveOpacity = settings.opacity;
@@ -413,22 +486,30 @@ export function drawEraserStroke(
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
   const spacing = Math.max(0.5, effectiveSize * 0.12);
-  const steps = Math.max(1, Math.ceil(distance / spacing));
   const stamp = getEraserStamp(
     effectiveSize,
     Math.max(0.05, Math.min(1, settings.hardness))
   );
+  const stampOpacity = normalizeStampOpacity(
+    effectiveOpacity,
+    effectiveSize,
+    spacing,
+    distance === 0
+  );
 
   ctx.save();
-  ctx.globalAlpha = effectiveOpacity;
+  ctx.globalAlpha = stampOpacity;
   ctx.globalCompositeOperation = "destination-out";
-  for (let i = 0; i <= steps; i++) {
-    const t = steps === 0 ? 1 : i / steps;
-    const x = from.x + dx * t;
-    const y = from.y + dy * t;
+  stampAlongStroke(
+    from,
+    to,
+    spacing,
+    (x, y) => {
     ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
     markDirtyRect(x, y, effectiveSize / 2);
-  }
+    },
+    stampState
+  );
   ctx.restore();
 }
 
