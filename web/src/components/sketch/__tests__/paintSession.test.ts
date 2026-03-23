@@ -70,7 +70,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     onStrokeEnd: jest.fn(),
     onLayerTransformChange: jest.fn(),
     onLayerContentBoundsChange: jest.fn(),
-    onLayerReconcile: jest.fn(),
     onBrushSizeChange: jest.fn(),
     onContextMenu: jest.fn(),
     onCropComplete: jest.fn(),
@@ -541,7 +540,6 @@ describe("PaintSession", () => {
 
     try {
       expect(session.begin(ctx, makePointerEvent())).toBe(true);
-      expect(ctx.onLayerReconcile).not.toHaveBeenCalled();
       expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
         x: -20,
         y: -10,

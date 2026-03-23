@@ -139,7 +139,7 @@ export function useCanvasActions({
     [onExportImage, onExportMask]
   );
 
-  const handleReconcileLayer = useCallback(
+  const reconcileLayerToDocumentSpace = useCallback(
     (layerId: string) => {
       const layer = document.layers.find((entry) => entry.id === layerId);
       if (!layer || !canvasRef.current) {
@@ -325,28 +325,46 @@ export function useCanvasActions({
       }
       pushHistory("crop");
       for (const layer of document.layers) {
-        handleReconcileLayer(layer.id);
+        reconcileLayerToDocumentSpace(layer.id);
       }
       canvasRef.current.cropCanvas(x, y, width, height);
       const state = useSketchStore.getState();
-      setDocument({
+      const nextDocument = {
         ...state.document,
         canvas: {
           ...state.document.canvas,
           width,
           height
         },
+        layers: state.document.layers.map((layer) => ({
+          ...layer,
+          transform: { x: 0, y: 0 },
+          contentBounds: {
+            x: 0,
+            y: 0,
+            width,
+            height
+          }
+        })),
         metadata: {
           ...state.document.metadata,
           updatedAt: new Date().toISOString()
         }
-      });
-      for (const layer of state.document.layers) {
+      };
+      setDocument(nextDocument);
+      for (const layer of nextDocument.layers) {
         const data = canvasRef.current.getLayerData(layer.id);
         updateLayerData(layer.id, data);
       }
     },
-    [pushHistory, setDocument, updateLayerData, canvasRef, document.layers, handleReconcileLayer]
+    [
+      pushHistory,
+      setDocument,
+      updateLayerData,
+      canvasRef,
+      document.layers,
+      reconcileLayerToDocumentSpace
+    ]
   );
 
   // ─── Context menu ──────────────────────────────────────────────
@@ -456,7 +474,6 @@ export function useCanvasActions({
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,
-    handleReconcileLayer,
     adjBrightness,
     adjContrast,
     adjSaturation,

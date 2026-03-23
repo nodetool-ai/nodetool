@@ -75,7 +75,6 @@ export interface UsePointerHandlersParams {
     layerId: string,
     contentBounds: { x: number; y: number; width: number; height: number }
   ) => void;
-  onLayerReconcile?: (layerId: string) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
@@ -138,7 +137,6 @@ export function usePointerHandlers({
   onStrokeEnd,
   onLayerTransformChange,
   onLayerContentBoundsChange,
-  onLayerReconcile,
   onBrushSizeChange,
   onContextMenu,
   onCropComplete,
@@ -174,6 +172,11 @@ export function usePointerHandlers({
   const cloneOffsetRef = useRef<Point | null>(null);
   const clonePaintOffsetRef = useRef<Point | null>(null);
   const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cloneSourceCanvasMetaRef = useRef<{
+    activeLayerId: string;
+    sampling: CloneStampSettings["sampling"];
+    signature: string;
+  } | null>(null);
 
   // Selection movement state
   const isMovingSelectionRef = useRef(false);
@@ -198,7 +201,6 @@ export function usePointerHandlers({
     blurred: null,
     mask: null
   });
-  const blurSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -257,13 +259,12 @@ export function usePointerHandlers({
       settings: BlurSettings,
       layerCanvas: HTMLCanvasElement
     ) => {
-      const sourceCanvas = blurSourceCanvasRef.current ?? layerCanvas;
       drawBlurStrokeUtil(
         from,
         to,
         settings,
         layerCanvas,
-        sourceCanvas,
+        layerCanvas,
         strokeDirtyRectRef,
         blurTempCanvasesRef.current
       );
@@ -493,6 +494,73 @@ export function usePointerHandlers({
     [doc, layerCanvasesRef]
   );
 
+  const getCloneSourceSignature = useCallback(
+    (activeLayerId: string, sampling: CloneStampSettings["sampling"]): string =>
+      [
+        activeLayerId,
+        sampling,
+        doc.metadata.updatedAt,
+        ...doc.layers.map(
+          (layer) =>
+            `${layer.id}:${layer.visible ? 1 : 0}:${layer.opacity}:${
+              layer.blendMode ?? "normal"
+            }:${layer.transform?.x ?? 0}:${layer.transform?.y ?? 0}:${
+              layer.contentBounds?.x ?? 0
+            }:${layer.contentBounds?.y ?? 0}:${
+              layer.contentBounds?.width ?? doc.canvas.width
+            }:${layer.contentBounds?.height ?? doc.canvas.height}`
+        )
+      ].join("|"),
+    [doc]
+  );
+
+  const buildCloneSourceCanvas = useCallback(
+    (
+      activeLayerId: string,
+      sampling: CloneStampSettings["sampling"]
+    ): HTMLCanvasElement | null => {
+      if (sampling === "composited") {
+        const tmp = window.document.createElement("canvas");
+        tmp.width = doc.canvas.width;
+        tmp.height = doc.canvas.height;
+        const tmpCtx = tmp.getContext("2d", { willReadFrequently: true });
+        if (!tmpCtx) {
+          return null;
+        }
+        for (const layer of doc.layers) {
+          if (!layer.visible || layer.type === "mask") {
+            continue;
+          }
+          const lc = layerCanvasesRef.current.get(layer.id);
+          if (!lc) {
+            continue;
+          }
+          const compositeOffset = getLayerPaintOffset(layer.id);
+          tmpCtx.save();
+          tmpCtx.globalAlpha = layer.opacity;
+          tmpCtx.globalCompositeOperation = blendModeToComposite(
+            layer.blendMode || "normal"
+          );
+          tmpCtx.drawImage(lc, compositeOffset.x, compositeOffset.y);
+          tmpCtx.restore();
+        }
+        return tmp;
+      }
+
+      const layerCanvas = getOrCreateLayerCanvas(activeLayerId);
+      const snapshot = window.document.createElement("canvas");
+      snapshot.width = layerCanvas.width;
+      snapshot.height = layerCanvas.height;
+      const snapCtx = snapshot.getContext("2d", { willReadFrequently: true });
+      if (!snapCtx) {
+        return null;
+      }
+      snapCtx.drawImage(layerCanvas, 0, 0);
+      return snapshot;
+    },
+    [doc, layerCanvasesRef, getLayerPaintOffset, getOrCreateLayerCanvas]
+  );
+
   const drawActiveStrokePreview = useCallback(() => {
     const overlay = overlayCanvasRef.current;
     if (!overlay) {
@@ -582,7 +650,6 @@ export function usePointerHandlers({
     onStrokeEnd,
     onLayerTransformChange,
     onLayerContentBoundsChange,
-    onLayerReconcile,
     onBrushSizeChange,
     onContextMenu,
     onCropComplete,
@@ -626,6 +693,24 @@ export function usePointerHandlers({
         cloneSourceRef.current = pt;
         cloneOffsetRef.current = null;
         clonePaintOffsetRef.current = null;
+        const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+        if (activeLayer) {
+          const signature = getCloneSourceSignature(
+            activeLayer.id,
+            doc.toolSettings.cloneStamp.sampling
+          );
+          cloneSourceCanvasRef.current = buildCloneSourceCanvas(
+            activeLayer.id,
+            doc.toolSettings.cloneStamp.sampling
+          );
+          cloneSourceCanvasMetaRef.current = cloneSourceCanvasRef.current
+            ? {
+                activeLayerId: activeLayer.id,
+                sampling: doc.toolSettings.cloneStamp.sampling,
+                signature
+              }
+            : null;
+        }
         return;
       }
 
@@ -838,44 +923,26 @@ export function usePointerHandlers({
         }
         clonePaintOffsetRef.current = null;
         const settings = doc.toolSettings.cloneStamp;
-        if (settings.sampling === "composited") {
-          const tmp = window.document.createElement("canvas");
-          tmp.width = doc.canvas.width;
-          tmp.height = doc.canvas.height;
-          const tmpCtx = tmp.getContext("2d");
-          if (tmpCtx) {
-            for (const layer of doc.layers) {
-              if (!layer.visible || layer.type === "mask") {
-                continue;
+        const cloneSignature = getCloneSourceSignature(activeLayer.id, settings.sampling);
+        const cachedMeta = cloneSourceCanvasMetaRef.current;
+        if (
+          !cloneSourceCanvasRef.current ||
+          !cachedMeta ||
+          cachedMeta.activeLayerId !== activeLayer.id ||
+          cachedMeta.sampling !== settings.sampling ||
+          cachedMeta.signature !== cloneSignature
+        ) {
+          cloneSourceCanvasRef.current = buildCloneSourceCanvas(
+            activeLayer.id,
+            settings.sampling
+          );
+          cloneSourceCanvasMetaRef.current = cloneSourceCanvasRef.current
+            ? {
+                activeLayerId: activeLayer.id,
+                sampling: settings.sampling,
+                signature: cloneSignature
               }
-              const lc = layerCanvasesRef.current.get(layer.id);
-              if (lc) {
-                const compositeOffset = getLayerPaintOffset(layer.id);
-                tmpCtx.save();
-                tmpCtx.globalAlpha = layer.opacity;
-                tmpCtx.globalCompositeOperation = blendModeToComposite(
-                  layer.blendMode || "normal"
-                );
-                tmpCtx.drawImage(
-                  lc,
-                  compositeOffset.x,
-                  compositeOffset.y
-                );
-                tmpCtx.restore();
-              }
-            }
-          }
-          cloneSourceCanvasRef.current = tmp;
-        } else {
-          const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-          const snapshot = window.document.createElement("canvas");
-          snapshot.width = layerCanvas.width;
-          snapshot.height = layerCanvas.height;
-          const snapCtx = snapshot.getContext("2d");
-          if (snapCtx) {
-            snapCtx.drawImage(layerCanvas, 0, 0);
-          }
-          cloneSourceCanvasRef.current = snapshot;
+            : null;
         }
         isDrawingRef.current = true;
         paintStrokeHasMovedRef.current = false;
@@ -1039,22 +1106,6 @@ export function usePointerHandlers({
         alphaSnapshotRef.current = null;
       }
 
-      if (activeTool === "blur") {
-        const layerCanvasForBlur = getOrCreateLayerCanvas(activeLayer.id);
-        const blurSnapshot = window.document.createElement("canvas");
-        blurSnapshot.width = layerCanvasForBlur.width;
-        blurSnapshot.height = layerCanvasForBlur.height;
-        const blurSnapshotCtx = blurSnapshot.getContext("2d");
-        if (blurSnapshotCtx) {
-          blurSnapshotCtx.drawImage(layerCanvasForBlur, 0, 0);
-          blurSourceCanvasRef.current = blurSnapshot;
-        } else {
-          blurSourceCanvasRef.current = null;
-        }
-      } else {
-        blurSourceCanvasRef.current = null;
-      }
-
       const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
       const paintCtx = layerCanvas.getContext("2d");
       if (paintCtx) {
@@ -1114,6 +1165,8 @@ export function usePointerHandlers({
       activeStrokeRef,
       invalidateLayer,
       onLayerContentBoundsChange,
+      getCloneSourceSignature,
+      buildCloneSourceCanvas,
       drawActiveStrokePreview
     ]
   );
@@ -1363,11 +1416,7 @@ export function usePointerHandlers({
         moveStartRef.current = null;
         moveLayerStartTransformRef.current = { x: 0, y: 0 };
       }
-      if (activeTool === "blur") {
-        blurSourceCanvasRef.current = null;
-      }
       if (activeTool === "clone_stamp") {
-        cloneSourceCanvasRef.current = null;
         clonePaintOffsetRef.current = null;
       }
 
@@ -1602,17 +1651,19 @@ export function usePointerHandlers({
 
   // ─── Wheel zoom ────────────────────────────────────────────────────
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      e.preventDefault();
+  const handleZoomWheel = useCallback(
+    (
+      event: Pick<WheelEvent, "deltaY" | "clientX" | "clientY" | "preventDefault">
+    ) => {
+      event.preventDefault();
       const factor = 1.3;
-      const delta = e.deltaY > 0 ? 1 / factor : factor;
+      const delta = event.deltaY > 0 ? 1 / factor : factor;
       const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
         const offsetX = mouseX - centerX - pan.x;
@@ -1627,6 +1678,27 @@ export function usePointerHandlers({
     },
     [zoom, pan, onZoomChange, onPanChange, containerRef]
   );
+
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      handleZoomWheel(e.nativeEvent);
+    },
+    [handleZoomWheel]
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const onWheel = (event: WheelEvent) => {
+      handleZoomWheel(event);
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", onWheel);
+    };
+  }, [containerRef, handleZoomWheel]);
 
   // ─── Mouse events (cursor + context menu) ──────────────────────────
 

@@ -154,6 +154,8 @@ export function blendModeToComposite(
 // ─── Checkerboard ────────────────────────────────────────────────────────────
 
 let cachedCheckerboardTile: HTMLCanvasElement | null = null;
+const cloneMaskCache = new Map<string, Uint8ClampedArray>();
+const blurBrushMaskCache = new Map<string, Float32Array>();
 
 export function drawCheckerboard(
   ctx: CanvasRenderingContext2D,
@@ -349,9 +351,6 @@ export function drawBrushStroke(
     return created;
   };
 
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
   const baseSpacing =
     brushType === "spray"
       ? Math.max(1, effectiveSize * 0.22)
@@ -476,9 +475,6 @@ export function drawEraserStroke(
     return created;
   };
 
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
   const baseSpacing = Math.max(0.5, effectiveSize * 0.12);
   const stamp = getEraserStamp(
     effectiveSize,
@@ -595,126 +591,261 @@ export function drawBlurStroke(
   layerCanvas: HTMLCanvasElement,
   sourceCanvas: HTMLCanvasElement,
   dirtyRect: DirtyRectTracker,
-  blurTempCanvases: BlurTempCanvases
+  _blurTempCanvases: BlurTempCanvases
 ): void {
-  const targetCtx = layerCanvas.getContext("2d");
+  const targetCtx = layerCanvas.getContext("2d", { willReadFrequently: true });
   if (!targetCtx) {
     return;
   }
 
-  const sourceCtx = sourceCanvas.getContext("2d");
+  const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
   if (!sourceCtx) {
     return;
   }
+  const brushRadius = Math.max(1, settings.size / 2);
+  const blurRadius = Math.max(1, Math.round(settings.strength));
+  const patchPad = Math.ceil(brushRadius + blurRadius * 2);
+  const minX = Math.min(from.x, to.x);
+  const minY = Math.min(from.y, to.y);
+  const maxX = Math.max(from.x, to.x);
+  const maxY = Math.max(from.y, to.y);
+  const sx = Math.max(0, Math.floor(minX - patchPad));
+  const sy = Math.max(0, Math.floor(minY - patchPad));
+  const ex = Math.min(layerCanvas.width, Math.ceil(maxX + patchPad));
+  const ey = Math.min(layerCanvas.height, Math.ceil(maxY + patchPad));
+  const sw = ex - sx;
+  const sh = ey - sy;
+  if (sw <= 0 || sh <= 0) {
+    return;
+  }
 
-  // Lazily create temp canvases if needed
-  if (!blurTempCanvases.tmp) {
-    blurTempCanvases.tmp = window.document.createElement("canvas");
-  }
-  if (!blurTempCanvases.blurred) {
-    blurTempCanvases.blurred = window.document.createElement("canvas");
-  }
-  if (!blurTempCanvases.mask) {
-    blurTempCanvases.mask = window.document.createElement("canvas");
-  }
-  const tmp = blurTempCanvases.tmp;
-  const blurred = blurTempCanvases.blurred;
-  const maskCanvas = blurTempCanvases.mask;
+  const sourceImage = sourceCtx.getImageData(sx, sy, sw, sh);
+  const sourceData = sourceImage.data;
+  const pixelCount = sw * sh;
+  const influence = new Float32Array(pixelCount);
 
-  const markDirtyRect = (x: number, y: number, radius: number) => {
-    expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + settings.strength + 2));
+  const smoothstep = (edge0: number, edge1: number, value: number): number => {
+    const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
   };
 
-  const blurPoint = (point: Point) => {
-    const r = Math.round(settings.size / 2);
-    const pad = Math.ceil(settings.strength * 2);
-    const x = Math.round(point.x) - r - pad;
-    const y = Math.round(point.y) - r - pad;
-    const w = (r + pad) * 2;
-    const h = (r + pad) * 2;
-    const sx = Math.max(0, x);
-    const sy = Math.max(0, y);
-    const sw = Math.min(layerCanvas.width - sx, w - (sx - x));
-    const sh = Math.min(layerCanvas.height - sy, h - (sy - y));
-    if (sw <= 0 || sh <= 0) {
-      return;
+  const getBlurBrushMask = (): {
+    diameter: number;
+    radius: number;
+    data: Float32Array;
+  } => {
+    const radius = Math.max(1, brushRadius);
+    const diameter = Math.max(1, Math.ceil(radius * 2));
+    const cacheKey = `${diameter}`;
+    const cached = blurBrushMaskCache.get(cacheKey);
+    if (cached) {
+      return { diameter, radius, data: cached };
     }
-
-    const imgData = sourceCtx.getImageData(sx, sy, sw, sh);
-
-    if (tmp.width !== sw || tmp.height !== sh) {
-      tmp.width = sw;
-      tmp.height = sh;
+    const center = diameter / 2;
+    const innerRadius = radius * 0.2;
+    const data = new Float32Array(diameter * diameter);
+    for (let y = 0; y < diameter; y++) {
+      for (let x = 0; x < diameter; x++) {
+        const dx = x + 0.5 - center;
+        const dy = y + 0.5 - center;
+        const dist = Math.hypot(dx, dy);
+        if (dist >= radius) {
+          continue;
+        }
+        const alpha =
+          dist <= innerRadius
+            ? 1
+            : 1 - smoothstep(innerRadius, radius, dist);
+        data[y * diameter + x] = alpha;
+      }
     }
-    if (blurred.width !== sw || blurred.height !== sh) {
-      blurred.width = sw;
-      blurred.height = sh;
-    }
-    if (maskCanvas.width !== sw || maskCanvas.height !== sh) {
-      maskCanvas.width = sw;
-      maskCanvas.height = sh;
-    }
-
-    const tmpCtx = tmp.getContext("2d");
-    const blurCtx = blurred.getContext("2d");
-    const maskCtx = maskCanvas.getContext("2d");
-    if (!tmpCtx || !blurCtx || !maskCtx) {
-      return;
-    }
-
-    tmpCtx.clearRect(0, 0, sw, sh);
-    tmpCtx.putImageData(imgData, 0, 0);
-
-    blurCtx.clearRect(0, 0, sw, sh);
-    blurCtx.filter = `blur(${settings.strength}px)`;
-    blurCtx.drawImage(tmp, 0, 0);
-    blurCtx.filter = "none";
-
-    const cx = Math.round(point.x) - sx;
-    const cy = Math.round(point.y) - sy;
-
-    maskCtx.clearRect(0, 0, sw, sh);
-    maskCtx.putImageData(imgData, 0, 0);
-    maskCtx.save();
-    maskCtx.beginPath();
-    maskCtx.arc(cx, cy, r, 0, Math.PI * 2);
-    maskCtx.clip();
-
-    const grad = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0, "rgba(255,255,255,1)");
-    grad.addColorStop(0.7, "rgba(255,255,255,0.8)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-
-    maskCtx.globalCompositeOperation = "source-over";
-    maskCtx.clearRect(cx - r, cy - r, r * 2, r * 2);
-    maskCtx.drawImage(blurred, 0, 0);
-    maskCtx.globalCompositeOperation = "destination-in";
-    maskCtx.fillStyle = grad;
-    maskCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    maskCtx.restore();
-
-    targetCtx.save();
-    targetCtx.clearRect(sx, sy, sw, sh);
-    targetCtx.putImageData(imgData, sx, sy);
-    targetCtx.globalCompositeOperation = "source-over";
-    targetCtx.drawImage(maskCanvas, sx, sy);
-    targetCtx.restore();
-    markDirtyRect(point.x, point.y, r);
+    blurBrushMaskCache.set(cacheKey, data);
+    return { diameter, radius, data };
   };
 
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
-  const spacing = Math.max(1.5, settings.size * 0.2);
-  const steps = Math.max(1, Math.ceil(distance / spacing));
+  const blurBrushMask = getBlurBrushMask();
 
-  for (let i = 0; i <= steps; i++) {
-    const t = steps === 0 ? 1 : i / steps;
-    blurPoint({
-      x: from.x + dx * t,
-      y: from.y + dy * t
-    });
+  const stampInfluence = (cx: number, cy: number) => {
+    const startX = Math.max(0, Math.floor(cx - blurBrushMask.radius));
+    const startY = Math.max(0, Math.floor(cy - blurBrushMask.radius));
+    const endX = Math.min(sw, Math.ceil(cx + blurBrushMask.radius));
+    const endY = Math.min(sh, Math.ceil(cy + blurBrushMask.radius));
+    for (let y = startY; y < endY; y++) {
+      const maskY = Math.floor(y - (cy - blurBrushMask.radius));
+      for (let x = startX; x < endX; x++) {
+        const maskX = Math.floor(x - (cx - blurBrushMask.radius));
+        if (
+          maskX < 0 ||
+          maskY < 0 ||
+          maskX >= blurBrushMask.diameter ||
+          maskY >= blurBrushMask.diameter
+        ) {
+          continue;
+        }
+        const maskValue =
+          blurBrushMask.data[maskY * blurBrushMask.diameter + maskX];
+        if (maskValue <= 0) {
+          continue;
+        }
+        const index = y * sw + x;
+        influence[index] = Math.max(influence[index], maskValue);
+      }
+    }
+  };
+
+  const localFrom = { x: from.x - sx, y: from.y - sy };
+  const localTo = { x: to.x - sx, y: to.y - sy };
+  const spacing = Math.max(0.75, settings.size * 0.12);
+  stampAlongStroke(localFrom, localTo, spacing, stampInfluence);
+
+  const boxBlurHorizontal = (
+    channel: Float32Array,
+    width: number,
+    height: number,
+    radius: number
+  ): Float32Array => {
+    const out = new Float32Array(channel.length);
+    const windowSize = radius * 2 + 1;
+    for (let y = 0; y < height; y++) {
+      const rowOffset = y * width;
+      let sum = 0;
+      for (let i = -radius; i <= radius; i++) {
+        const sampleX = Math.max(0, Math.min(width - 1, i));
+        sum += channel[rowOffset + sampleX];
+      }
+      out[rowOffset] = sum / windowSize;
+      for (let x = 1; x < width; x++) {
+        const addX = Math.min(width - 1, x + radius);
+        const removeX = Math.max(0, x - radius - 1);
+        sum += channel[rowOffset + addX] - channel[rowOffset + removeX];
+        out[rowOffset + x] = sum / windowSize;
+      }
+    }
+    return out;
+  };
+
+  const boxBlurVertical = (
+    channel: Float32Array,
+    width: number,
+    height: number,
+    radius: number
+  ): Float32Array => {
+    const out = new Float32Array(channel.length);
+    const windowSize = radius * 2 + 1;
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      for (let i = -radius; i <= radius; i++) {
+        const sampleY = Math.max(0, Math.min(height - 1, i));
+        sum += channel[sampleY * width + x];
+      }
+      out[x] = sum / windowSize;
+      for (let y = 1; y < height; y++) {
+        const addY = Math.min(height - 1, y + radius);
+        const removeY = Math.max(0, y - radius - 1);
+        sum += channel[addY * width + x] - channel[removeY * width + x];
+        out[y * width + x] = sum / windowSize;
+      }
+    }
+    return out;
+  };
+
+  const applySeparableBoxBlur = (
+    channel: Float32Array,
+    width: number,
+    height: number,
+    radius: number,
+    passes: number
+  ): Float32Array => {
+    let current = channel;
+    for (let pass = 0; pass < passes; pass++) {
+      current = boxBlurVertical(
+        boxBlurHorizontal(current, width, height, radius),
+        width,
+        height,
+        radius
+      );
+    }
+    return current;
+  };
+
+  const premultR = new Float32Array(pixelCount);
+  const premultG = new Float32Array(pixelCount);
+  const premultB = new Float32Array(pixelCount);
+  const alpha = new Float32Array(pixelCount);
+  for (let i = 0; i < pixelCount; i++) {
+    const dataIndex = i * 4;
+    const a = sourceData[dataIndex + 3] / 255;
+    alpha[i] = a;
+    premultR[i] = (sourceData[dataIndex] / 255) * a;
+    premultG[i] = (sourceData[dataIndex + 1] / 255) * a;
+    premultB[i] = (sourceData[dataIndex + 2] / 255) * a;
   }
+
+  const blurPasses = blurRadius >= 8 ? 3 : 2;
+  const blurredA = applySeparableBoxBlur(alpha, sw, sh, blurRadius, blurPasses);
+  const blurredR = applySeparableBoxBlur(
+    premultR,
+    sw,
+    sh,
+    blurRadius,
+    blurPasses
+  );
+  const blurredG = applySeparableBoxBlur(
+    premultG,
+    sw,
+    sh,
+    blurRadius,
+    blurPasses
+  );
+  const blurredB = applySeparableBoxBlur(
+    premultB,
+    sw,
+    sh,
+    blurRadius,
+    blurPasses
+  );
+
+  const output = new Uint8ClampedArray(sourceData);
+  for (let i = 0; i < pixelCount; i++) {
+    const t = influence[i];
+    if (t <= 0) {
+      continue;
+    }
+    const dataIndex = i * 4;
+    const originalA = alpha[i];
+    const originalR = premultR[i];
+    const originalG = premultG[i];
+    const originalB = premultB[i];
+    const outA = originalA + (blurredA[i] - originalA) * t;
+    const outR = originalR + (blurredR[i] - originalR) * t;
+    const outG = originalG + (blurredG[i] - originalG) * t;
+    const outB = originalB + (blurredB[i] - originalB) * t;
+
+    output[dataIndex + 3] = Math.round(Math.max(0, Math.min(1, outA)) * 255);
+    if (outA > 1e-6) {
+      output[dataIndex] = Math.round(
+        Math.max(0, Math.min(1, outR / outA)) * 255
+      );
+      output[dataIndex + 1] = Math.round(
+        Math.max(0, Math.min(1, outG / outA)) * 255
+      );
+      output[dataIndex + 2] = Math.round(
+        Math.max(0, Math.min(1, outB / outA)) * 255
+      );
+    } else {
+      output[dataIndex] = 0;
+      output[dataIndex + 1] = 0;
+      output[dataIndex + 2] = 0;
+    }
+  }
+
+  targetCtx.putImageData(new ImageData(output, sw, sh), sx, sy);
+  expandDirtyRectFromPoints(
+    dirtyRect,
+    from,
+    to,
+    Math.max(2, brushRadius + blurRadius + 2)
+  );
 }
 
 // ─── Clone Stamp Stroke ──────────────────────────────────────────────────────
@@ -730,20 +861,56 @@ export function drawCloneStampStroke(
   const r = settings.size / 2;
   const opacity = settings.opacity;
   const hardness = settings.hardness;
+  const diameter = Math.ceil(settings.size);
+  const srcCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  if (!srcCtx) {
+    return;
+  }
+
+  const getCloneMaskData = (): Uint8ClampedArray => {
+    const cacheKey = [
+      diameter,
+      Math.round(hardness * 1000),
+      Math.round(opacity * 1000)
+    ].join(":");
+    const cached = cloneMaskCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const maskCanvas = window.document.createElement("canvas");
+    maskCanvas.width = diameter;
+    maskCanvas.height = diameter;
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    if (!maskCtx) {
+      return new Uint8ClampedArray(diameter * diameter * 4);
+    }
+    const innerStop = Math.max(0, hardness);
+    const grad = maskCtx.createRadialGradient(
+      diameter / 2, diameter / 2, 0,
+      diameter / 2, diameter / 2, diameter / 2
+    );
+    grad.addColorStop(0, `rgba(255,255,255,${opacity})`);
+    grad.addColorStop(innerStop, `rgba(255,255,255,${opacity})`);
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    maskCtx.fillStyle = grad;
+    maskCtx.fillRect(0, 0, diameter, diameter);
+    const maskData = new Uint8ClampedArray(
+      maskCtx.getImageData(0, 0, diameter, diameter).data
+    );
+    cloneMaskCache.set(cacheKey, maskData);
+    return maskData;
+  };
+
+  const maskData = getCloneMaskData();
 
   const stampPoint = (point: Point) => {
     // Source coordinates = paint point + offset
     const sx = point.x + offset.x;
     const sy = point.y + offset.y;
 
-    const srcCtx = sourceCanvas.getContext("2d");
-    if (!srcCtx) {
-      return;
-    }
-
     const px = Math.round(point.x - r);
     const py = Math.round(point.y - r);
-    const diameter = Math.ceil(settings.size);
     const srcPx = Math.round(sx - r);
     const srcPy = Math.round(sy - r);
 
@@ -757,35 +924,17 @@ export function drawCloneStampStroke(
       return;
     }
 
-    // Build brush mask (radial gradient → alpha channel)
-    const maskCanvas = window.document.createElement("canvas");
-    maskCanvas.width = diameter;
-    maskCanvas.height = diameter;
-    const maskCtx = maskCanvas.getContext("2d");
-    if (!maskCtx) {
-      return;
-    }
-    const innerStop = Math.max(0, hardness);
-    const grad = maskCtx.createRadialGradient(
-      diameter / 2, diameter / 2, 0,
-      diameter / 2, diameter / 2, diameter / 2
-    );
-    grad.addColorStop(0, `rgba(255,255,255,${opacity})`);
-    grad.addColorStop(innerStop, `rgba(255,255,255,${opacity})`);
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    maskCtx.fillStyle = grad;
-    maskCtx.fillRect(0, 0, diameter, diameter);
-
     // Pixel-level lerp: result = dst*(1-t) + src*t  (premultiplied alpha)
     // This correctly copies source transparency — transparent source erases destination.
     const srcData  = srcCtx.getImageData(srcPx, srcPy, diameter, diameter).data;
     const dstID    = ctx.getImageData(px, py, diameter, diameter);
     const dstData  = dstID.data;
-    const maskData = maskCtx.getImageData(0, 0, diameter, diameter).data;
 
     for (let i = 0; i < dstData.length; i += 4) {
       const t = maskData[i + 3] / 255; // blend factor from gradient
-      if (t <= 0) continue;
+      if (t <= 0) {
+        continue;
+      }
 
       const srcA = srcData[i + 3] / 255;
       const dstA = dstData[i + 3] / 255;

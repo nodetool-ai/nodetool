@@ -77,7 +77,6 @@ export interface ToolContext {
     layerId: string,
     contentBounds: LayerContentBounds
   ) => void;
-  onLayerReconcile?: (layerId: string) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (

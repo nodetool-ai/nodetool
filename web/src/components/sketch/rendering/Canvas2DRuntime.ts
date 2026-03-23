@@ -46,7 +46,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       // Acquire the 2D context immediately so the canvas always has an active
       // rendering context. copyExternalImageToTexture (used by WebGPURuntime)
       // requires the source canvas to have been initialized with a context.
-      canvas.getContext("2d");
+      canvas.getContext("2d", { willReadFrequently: true });
       setCanvasRasterBounds(canvas, { x: 0, y: 0, width, height });
       this.layerCanvases.set(layerId, canvas);
     }
@@ -500,16 +500,22 @@ export class Canvas2DRuntime implements SketchRuntime {
     height: number
   ): void {
     for (const [, layerCanvas] of this.layerCanvases) {
+      const snapshot = window.document.createElement("canvas");
+      snapshot.width = layerCanvas.width;
+      snapshot.height = layerCanvas.height;
+      const snapshotCtx = snapshot.getContext("2d");
       const ctx = layerCanvas.getContext("2d");
-      if (ctx) {
-        const imgData = ctx.getImageData(x, y, width, height);
+      if (snapshotCtx && ctx) {
+        snapshotCtx.drawImage(layerCanvas, 0, 0);
         layerCanvas.width = width;
         layerCanvas.height = height;
-        ctx.putImageData(imgData, 0, 0);
+        setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width, height });
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(snapshot, -x, -y);
       } else {
-        // Still resize even when context is unavailable
         layerCanvas.width = width;
         layerCanvas.height = height;
+        setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width, height });
       }
     }
   }

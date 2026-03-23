@@ -98,7 +98,7 @@ export class CloneStampTool implements ToolHandler {
       const tmp = window.document.createElement("canvas");
       tmp.width = doc.canvas.width;
       tmp.height = doc.canvas.height;
-      const tmpCtx = tmp.getContext("2d");
+      const tmpCtx = tmp.getContext("2d", { willReadFrequently: true });
       if (tmpCtx) {
         for (const layer of doc.layers) {
           if (!layer.visible || layer.type === "mask") {
@@ -130,7 +130,7 @@ export class CloneStampTool implements ToolHandler {
       const snapshot = window.document.createElement("canvas");
       snapshot.width = layerCanvas.width;
       snapshot.height = layerCanvas.height;
-      const snapCtx = snapshot.getContext("2d");
+      const snapCtx = snapshot.getContext("2d", { willReadFrequently: true });
       if (snapCtx) {
         snapCtx.drawImage(layerCanvas, 0, 0);
       }

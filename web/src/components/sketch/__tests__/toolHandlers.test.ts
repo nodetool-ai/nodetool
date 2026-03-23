@@ -70,7 +70,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     onStrokeEnd: jest.fn(),
     onLayerTransformChange: jest.fn(),
     onLayerContentBoundsChange: jest.fn(),
-    onLayerReconcile: jest.fn(),
     onBrushSizeChange: jest.fn(),
     onContextMenu: jest.fn(),
     onCropComplete: jest.fn(),
@@ -347,7 +346,6 @@ describe("ShapeTool", () => {
     try {
       tool.onDown(ctx, makePointerEvent());
 
-      expect(ctx.onLayerReconcile).not.toHaveBeenCalled();
       expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
         x: -16,
         y: -8,

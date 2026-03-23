@@ -121,7 +121,6 @@ export interface SketchCanvasProps {
     layerId: string,
     contentBounds: LayerContentBounds
   ) => void;
-  onLayerReconcile?: (layerId: string) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
   onCropComplete?: (
@@ -158,7 +157,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeEnd,
       onLayerTransformChange,
       onLayerContentBoundsChange,
-      onLayerReconcile,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
@@ -264,7 +262,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onStrokeEnd,
       onLayerTransformChange,
       onLayerContentBoundsChange,
-      onLayerReconcile,
       onBrushSizeChange,
       onContextMenu,
       onCropComplete,
@@ -315,7 +312,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onPointerDown={pointerHandlers.handlePointerDown}
         onPointerMove={pointerHandlers.handlePointerMove}
         onPointerUp={pointerHandlers.handlePointerUp}
-        onWheel={pointerHandlers.handleWheel}
         onMouseMove={pointerHandlers.handleMouseMove}
         onMouseLeave={pointerHandlers.handleMouseLeave}
         onContextMenu={pointerHandlers.handleContextMenu}
