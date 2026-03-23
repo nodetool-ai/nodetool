@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
-import { Canvas2DRuntime, createRuntime } from "../rendering";
+import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
 
 // Re-export so existing consumers keep compiling.
 export type { ActiveStrokeInfo } from "../rendering";
@@ -57,6 +57,11 @@ export function useCompositing({
   const pendingDirtyRef = useRef<DirtyRect | null>(null);
   const isFullRedrawRef = useRef(false);
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
+  // True while we are waiting for the async WebGPU init to complete.
+  // Prevents Canvas2DRuntime from calling getContext("2d") on the display
+  // canvas, which would permanently block WebGPU from acquiring a "webgpu"
+  // context on the same element.
+  const gpuPendingRef = useRef(isWebGPUAvailable());
 
   // ─── Shared layer canvas map (injected into the runtime) ──────────
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
@@ -77,18 +82,29 @@ export function useCompositing({
 
     createRuntime(layerCanvasesRef.current).then(({ runtime: newRuntime, backend: newBackend }) => {
       if (cancelled) {
-        newRuntime.dispose();
+        // Don't dispose: Canvas2DRuntime.dispose() clears the shared layerCanvases map.
+        void newRuntime;
         return;
       }
+      // Unblock compositing now that we know which backend to use.
+      gpuPendingRef.current = false;
+
       if (newBackend === "webgpu" && runtimeRef.current !== newRuntime) {
-        // Dispose old Canvas2D runtime and switch to WebGPU
+        // Switch to WebGPU. setBackend triggers a re-render which recreates
+        // compositeToDisplay with the new runtime; the [requestRedraw, doc.layers]
+        // effect will then fire and kick off the first WebGPU frame.
         const oldRuntime = runtimeRef.current;
         runtimeRef.current = newRuntime;
         setBackend(newBackend);
-        // Don't dispose old runtime — it shares the same layerCanvases map
-        // and WebGPU runtime also uses it. Just drop the reference.
-        // The WebGPU runtime's cpuRuntime already wraps the same map.
+        // Don't dispose old runtime — it shares the same layerCanvases map.
         void oldRuntime;
+      } else {
+        // Canvas2D fallback (WebGPU not available or init failed).
+        // Don't dispose newRuntime for the same reason (shared map).
+        void newRuntime;
+        // setBackend("canvas2d") would be a no-op, so manually trigger the
+        // first render now that gpuPendingRef has been cleared.
+        requestRedraw();
       }
     });
 
@@ -107,13 +123,15 @@ export function useCompositing({
 
   const getOrCreateLayerCanvas = useCallback(
     (layerId: string): HTMLCanvasElement => {
-      return runtime.getOrCreateLayerCanvas(
+      // Always read from runtimeRef so we never hold a stale Canvas2D
+      // reference after the WebGPU upgrade.
+      return runtimeRef.current!.getOrCreateLayerCanvas(
         layerId,
         doc.canvas.width,
         doc.canvas.height
       );
     },
-    [runtime, doc.canvas.width, doc.canvas.height]
+    [doc.canvas.width, doc.canvas.height]
   );
 
   // ─── Compositing helpers ────────────────────────────────────────────
@@ -122,10 +140,18 @@ export function useCompositing({
   const compositeToDisplay = useCallback(
     (dirtyRect?: DirtyRect | null) => {
       const displayCanvas = displayCanvasRef.current;
-      if (!displayCanvas) {
+      // Block any compositing while WebGPU init is in flight.
+      // Using getContext("2d") on the display canvas before WebGPU acquires it
+      // would permanently lock the canvas to the 2D context.
+      if (!displayCanvas || gpuPendingRef.current) {
         return;
       }
-      runtime.compositeToDisplay(
+      // Always read the runtime from the ref so that stale closures (e.g. an
+      // img.onload captured before the WebGPU upgrade) still end up calling
+      // the current runtime instead of the old Canvas2DRuntime.
+      const rt = runtimeRef.current;
+      if (!rt) return;
+      rt.compositeToDisplay(
         displayCanvas,
         doc,
         isolatedLayerId ?? null,
@@ -133,7 +159,12 @@ export function useCompositing({
         dirtyRect
       );
     },
-    [runtime, doc, isolatedLayerId, activeStrokeRef]
+    // Include `backend` so that this callback (and the redraw/requestRedraw
+    // functions derived from it) is recreated when the backend switches to
+    // WebGPU, which causes the [requestRedraw, doc.layers] effect to fire and
+    // trigger the first WebGPU frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc, isolatedLayerId, activeStrokeRef, backend]
   );
 
   const mergePendingDirtyRect = useCallback(

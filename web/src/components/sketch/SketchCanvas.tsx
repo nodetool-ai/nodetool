@@ -39,12 +39,13 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.vars.palette.grey[700],
+    backgroundColor: theme.vars.palette.grey[800],
     "& canvas": {
       position: "absolute",
       top: "50%",
       left: "50%",
-      imageRendering: "pixelated"
+      imageRendering: "pixelated",
+      border: "1px solid var(--palette-grey-600)"
     },
     "& .cursor-overlay": {
       position: "absolute",
@@ -304,7 +305,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     return (
       <div
         ref={containerRef}
-        className={rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"}
+        className={
+          rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"
+        }
         css={styles(theme)}
         style={{ cursor: cursorStyle }}
         onPointerDown={pointerHandlers.handlePointerDown}
@@ -358,7 +361,13 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             {doc.canvas.width} × {doc.canvas.height}
           </span>
           <span>{Math.round(zoom * 100)}%</span>
-          <span style={{ textTransform: "uppercase", fontSize: "0.6rem", opacity: 0.7 }}>
+          <span
+            style={{
+              textTransform: "uppercase",
+              fontSize: "0.6rem",
+              opacity: 0.7
+            }}
+          >
             {backend}
           </span>
         </Box>

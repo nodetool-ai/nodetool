@@ -290,11 +290,21 @@ export class WebGPURuntime implements SketchRuntime {
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       return;
     }
+    // Always ensure the GPU texture entry exists so the compositing loop
+    // doesn't skip this layer due to a missing texture.
     const texture = this.getOrCreateLayerTexture(
       layerId,
       canvas.width,
       canvas.height
     );
+    // copyExternalImageToTexture requires the canvas to have an active
+    // rendering context. Layer canvases always use "2d"; calling getContext
+    // here is a no-op if the context was already acquired (the common case),
+    // and a safe initializer if the canvas was just created but not yet drawn
+    // to (blank layer). Skip the upload if the context cannot be obtained.
+    if (!canvas.getContext("2d")) {
+      return;
+    }
     this.device.queue.copyExternalImageToTexture(
       { source: canvas, flipY: false },
       { texture },

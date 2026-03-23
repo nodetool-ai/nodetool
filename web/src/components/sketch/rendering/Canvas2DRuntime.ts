@@ -42,6 +42,10 @@ export class Canvas2DRuntime implements SketchRuntime {
       canvas = window.document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
+      // Acquire the 2D context immediately so the canvas always has an active
+      // rendering context. copyExternalImageToTexture (used by WebGPURuntime)
+      // requires the source canvas to have been initialized with a context.
+      canvas.getContext("2d");
       this.layerCanvases.set(layerId, canvas);
     }
     return canvas;
