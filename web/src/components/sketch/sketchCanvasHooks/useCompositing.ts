@@ -19,9 +19,18 @@ interface DirtyRect {
   h: number;
 }
 
+/** Active stroke buffer state shared between compositing and pointer handlers */
+export interface ActiveStrokeInfo {
+  layerId: string;
+  buffer: HTMLCanvasElement;
+  opacity: number;
+  compositeOp: GlobalCompositeOperation;
+}
+
 export interface UseCompositingParams {
   doc: SketchDocument;
   isolatedLayerId?: string | null;
+  activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
 }
 
 export interface UseCompositingResult {
@@ -39,7 +48,8 @@ export interface UseCompositingResult {
 
 export function useCompositing({
   doc,
-  isolatedLayerId
+  isolatedLayerId,
+  activeStrokeRef
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,6 +59,7 @@ export function useCompositing({
   const pendingDirtyRef = useRef<DirtyRect | null>(null);
   const isFullRedrawRef = useRef(false);
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
+  const strokeTempCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const layerHydrationSignature = doc.layers
     .map((layer) => `${layer.id}:${layer.data ?? ""}`)
     .join("|");
@@ -108,6 +119,8 @@ export function useCompositing({
         drawCheckerboard(ctx, fullW, fullH);
       }
 
+      const activeStroke = activeStrokeRef.current;
+
       for (const layer of doc.layers) {
         if (!layer.visible) {
           continue;
@@ -119,13 +132,50 @@ export function useCompositing({
         if (!layerCanvas) {
           continue;
         }
-        ctx.save();
-        ctx.globalAlpha = layer.opacity;
-        ctx.globalCompositeOperation = blendModeToComposite(
-          layer.blendMode || "normal"
-        );
-        ctx.drawImage(layerCanvas, layer.transform?.x ?? 0, layer.transform?.y ?? 0);
-        ctx.restore();
+
+        const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
+        const tx = layer.transform?.x ?? 0;
+        const ty = layer.transform?.y ?? 0;
+
+        if (hasActiveStroke) {
+          // Composite layer + stroke buffer into a temp canvas, then draw
+          // that combined result with the layer's blend mode and opacity.
+          // This gives correct results for all blend modes and both
+          // brush (source-over) and eraser (destination-out) strokes.
+          let tempCanvas = strokeTempCanvasRef.current;
+          if (!tempCanvas || tempCanvas.width !== layerCanvas.width || tempCanvas.height !== layerCanvas.height) {
+            tempCanvas = window.document.createElement("canvas");
+            tempCanvas.width = layerCanvas.width;
+            tempCanvas.height = layerCanvas.height;
+            strokeTempCanvasRef.current = tempCanvas;
+          }
+          const tempCtx = tempCanvas.getContext("2d");
+          if (tempCtx) {
+            tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.drawImage(layerCanvas, 0, 0);
+            tempCtx.save();
+            tempCtx.globalAlpha = activeStroke.opacity;
+            tempCtx.globalCompositeOperation = activeStroke.compositeOp;
+            tempCtx.drawImage(activeStroke.buffer, 0, 0);
+            tempCtx.restore();
+
+            ctx.save();
+            ctx.globalAlpha = layer.opacity;
+            ctx.globalCompositeOperation = blendModeToComposite(
+              layer.blendMode || "normal"
+            );
+            ctx.drawImage(tempCanvas, tx, ty);
+            ctx.restore();
+          }
+        } else {
+          ctx.save();
+          ctx.globalAlpha = layer.opacity;
+          ctx.globalCompositeOperation = blendModeToComposite(
+            layer.blendMode || "normal"
+          );
+          ctx.drawImage(layerCanvas, tx, ty);
+          ctx.restore();
+        }
       }
 
       if (useClip) {

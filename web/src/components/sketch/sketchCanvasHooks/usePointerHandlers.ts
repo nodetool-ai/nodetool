@@ -31,6 +31,7 @@ import {
   blendModeToComposite
 } from "../drawingUtils";
 import type { BlurTempCanvases, StrokeStampState } from "../drawingUtils";
+import type { ActiveStrokeInfo } from "./useCompositing";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const STABILIZER_WINDOW = 4;
@@ -51,6 +52,7 @@ export interface UsePointerHandlersParams {
   containerRef: React.RefObject<HTMLDivElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
+  activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
@@ -110,6 +112,7 @@ export function usePointerHandlers({
   containerRef,
   layerCanvasesRef,
   mousePositionRef,
+  activeStrokeRef,
   getOrCreateLayerCanvas,
   redraw,
   redrawDirty,
@@ -296,6 +299,7 @@ export function usePointerHandlers({
     },
     []
   );
+
 
   const drawPencilStroke = useCallback(
     (from: Point, to: Point, settings: PencilSettings, ctx: CanvasRenderingContext2D, pressure?: number) => {
@@ -1019,10 +1023,30 @@ export function usePointerHandlers({
       }
 
       const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-      const ctx = layerCanvas.getContext("2d");
-      if (ctx) {
-        // Apply selection clip for initial stroke
-        const hasSelClip = clipSelectionForOffset(ctx, currentOffset);
+
+      // Create stroke buffer for brush/eraser. Dabs paint onto this buffer
+      // at full alpha; the compositing system blends it onto the layer at
+      // the tool's opacity every frame, giving correct live preview.
+      if (activeTool === "brush" || activeTool === "eraser") {
+        const buffer = window.document.createElement("canvas");
+        buffer.width = layerCanvas.width;
+        buffer.height = layerCanvas.height;
+        const strokeOpacity = activeTool === "brush"
+          ? doc.toolSettings.brush.opacity
+          : doc.toolSettings.eraser.opacity;
+        activeStrokeRef.current = {
+          layerId: activeLayer.id,
+          buffer,
+          opacity: strokeOpacity,
+          compositeOp: activeTool === "eraser" ? "destination-out" : "source-over"
+        };
+      }
+
+      const paintCtx = activeStrokeRef.current
+        ? activeStrokeRef.current.buffer.getContext("2d")
+        : layerCanvas.getContext("2d");
+      if (paintCtx) {
+        const hasSelClip = clipSelectionForOffset(paintCtx, currentOffset);
 
         if (shiftHeldRef.current && lastStrokeEndRef.current) {
           const from = {
@@ -1040,33 +1064,26 @@ export function usePointerHandlers({
             const t = i / steps;
             const current = { x: from.x + dx * t, y: from.y + dy * t };
             if (activeTool === "brush") {
-              withMirror(ctx, (f, to, c, branchIndex) => drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), prev, current);
+              withMirror(paintCtx, (f, to, c, branchIndex) => drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), prev, current);
             } else if (activeTool === "pencil") {
-              withMirror(ctx, (f, to, c) => drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current), prev, current);
+              withMirror(paintCtx, (f, to, c) => drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current), prev, current);
             } else if (activeTool === "eraser") {
-              withMirror(ctx, (f, to, c, branchIndex) => drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), prev, current);
+              withMirror(paintCtx, (f, to, c, branchIndex) => drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), prev, current);
             } else if (activeTool === "blur") {
-              drawBlurStroke(prev, current, doc.toolSettings.blur, layerCanvas);
+              drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
             }
             prev = current;
           }
         } else {
-          if (activeTool === "brush") {
-            // Delay the initial brush dab until we know whether this is a click
-            // or a drag. Dragging will paint on pointer move; clicks are
-            // committed on pointer up so the stroke head matches the rest.
-          } else if (activeTool === "pencil") {
-            withMirror(ctx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current), localPt, localPt);
-          } else if (activeTool === "eraser") {
-            // Delay the initial eraser dab until we know whether this is a click
-            // or a drag to avoid a darker first stamp on dragged strokes.
+          if (activeTool === "pencil") {
+            withMirror(paintCtx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current), localPt, localPt);
           } else if (activeTool === "blur") {
             drawBlurStroke(localPt, localPt, doc.toolSettings.blur, layerCanvas);
           }
         }
 
         if (hasSelClip) {
-          ctx.restore();
+          paintCtx.restore();
         }
 
         redraw();
@@ -1218,18 +1235,18 @@ export function usePointerHandlers({
 
       const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
       const currentOffset = paintLayerOffsetRef.current;
-      const previousPoint = lastPointRef.current
-        ? {
-            x: lastPointRef.current.x - currentOffset.x,
-            y: lastPointRef.current.y - currentOffset.y
-          }
-        : null;
-      const ctx = layerCanvas.getContext("2d");
+
+      // For brush/eraser, paint onto the stroke buffer; other tools paint
+      // directly onto the layer canvas.
+      const activeStroke = activeStrokeRef.current;
+      const paintCanvas = (activeStroke && (activeTool === "brush" || activeTool === "eraser"))
+        ? activeStroke.buffer
+        : layerCanvas;
+      const ctx = paintCanvas.getContext("2d");
       if (!ctx) {
         return;
       }
 
-      // Apply selection clip if a selection exists
       const hasSelectionClip = clipSelectionForOffset(ctx, currentOffset);
 
       for (const eventPoint of eventPoints) {
@@ -1313,7 +1330,6 @@ export function usePointerHandlers({
         lastPointRef.current = pt;
       }
 
-      // Restore context if selection clip was applied
       if (hasSelectionClip) {
         ctx.restore();
       }
@@ -1516,9 +1532,12 @@ export function usePointerHandlers({
         lastStrokeEndRef.current = screenToCanvas(e.clientX, e.clientY);
       }
 
+      // For brush/eraser: if click-without-drag, paint a single dab onto
+      // the stroke buffer, then merge the buffer onto the layer canvas.
+      const activeStroke = activeStrokeRef.current;
       if (
         activeLayer &&
-        !paintStrokeHasMovedRef.current &&
+        activeStroke &&
         (activeTool === "brush" || activeTool === "eraser")
       ) {
         const pt = screenToCanvas(e.clientX, e.clientY);
@@ -1527,45 +1546,46 @@ export function usePointerHandlers({
           x: pt.x - currentOffset.x,
           y: pt.y - currentOffset.y
         };
-        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        const ctx = layerCanvas.getContext("2d");
-        if (ctx) {
-          const hasSelectionClip = clipSelectionForOffset(ctx, currentOffset);
-          if (activeTool === "brush") {
-            withMirror(
-              ctx,
-              (f, t, c, branchIndex) =>
-                drawBrushStroke(
-                  f,
-                  t,
-                  doc.toolSettings.brush,
-                  c,
-                  currentPressureRef.current,
-                  branchIndex
-                ),
-              localPt,
-              localPt
-            );
-          } else {
-            withMirror(
-              ctx,
-              (f, t, c, branchIndex) =>
-                drawEraserStroke(
-                  f,
-                  t,
-                  doc.toolSettings.eraser,
-                  c,
-                  currentPressureRef.current,
-                  branchIndex
-                ),
-              localPt,
-              localPt
-            );
-          }
-          if (hasSelectionClip) {
-            ctx.restore();
+
+        // Paint single dab for click-without-drag
+        if (!paintStrokeHasMovedRef.current) {
+          const bufferCtx = activeStroke.buffer.getContext("2d");
+          if (bufferCtx) {
+            const hasSelClip = clipSelectionForOffset(bufferCtx, currentOffset);
+            if (activeTool === "brush") {
+              withMirror(
+                bufferCtx,
+                (f, t, c, branchIndex) =>
+                  drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex),
+                localPt,
+                localPt
+              );
+            } else {
+              withMirror(
+                bufferCtx,
+                (f, t, c, branchIndex) =>
+                  drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex),
+                localPt,
+                localPt
+              );
+            }
+            if (hasSelClip) {
+              bufferCtx.restore();
+            }
           }
         }
+
+        // Merge stroke buffer onto the layer canvas
+        const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
+        const layerCtx = layerCanvas.getContext("2d");
+        if (layerCtx) {
+          layerCtx.save();
+          layerCtx.globalAlpha = activeStroke.opacity;
+          layerCtx.globalCompositeOperation = activeStroke.compositeOp;
+          layerCtx.drawImage(activeStroke.buffer, 0, 0);
+          layerCtx.restore();
+        }
+        activeStrokeRef.current = null;
       }
 
       lastPointRef.current = null;
@@ -1575,7 +1595,7 @@ export function usePointerHandlers({
       eraserStrokeStampStatesRef.current.clear();
       paintLayerOffsetRef.current = { x: 0, y: 0 };
 
-      // Alpha lock: restore original alpha channel after drawing
+      // Alpha lock: restore original alpha channel after merging
       if (activeLayer?.alphaLock && alphaSnapshotRef.current) {
         const layerCanvas = layerCanvasesRef.current.get(activeLayer.id);
         if (layerCanvas) {
@@ -1606,7 +1626,6 @@ export function usePointerHandlers({
                 }
               }
               ctx.putImageData(currentData, x, y);
-              redraw();
             }
           }
         }

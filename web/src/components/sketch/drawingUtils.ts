@@ -26,22 +26,22 @@ import { parseColorToRgba } from "./types";
 
 export const MIN_PRESSURE_FACTOR = 0.2;
 
-function normalizeStampOpacity(
-  targetOpacity: number,
-  brushSize: number,
-  spacing: number,
-  isSingleDab: boolean
+function adjustSpacingForHardness(
+  baseSpacing: number,
+  hardness: number,
+  minimumSpacing: number
 ): number {
-  const clampedTarget = Math.max(0, Math.min(1, targetOpacity));
-  if (isSingleDab || clampedTarget <= 0 || clampedTarget >= 1) {
-    return clampedTarget;
-  }
+  const clampedHardness = Math.max(0, Math.min(1, hardness));
 
-  // A dragged stroke lays down many overlapping stamps. Convert the UI opacity
-  // into a per-stamp alpha so the built-up stroke more closely matches the
-  // requested opacity instead of saturating to fully opaque immediately.
-  const overlapCount = Math.max(1, brushSize / Math.max(0.01, spacing));
-  return 1 - Math.pow(1 - clampedTarget, 1 / overlapCount);
+  // Only tighten spacing for very hard brushes where the edge becomes nearly
+  // binary and the dab pattern starts showing through.
+  const normalizedTightening =
+    clampedHardness <= 0.7 ? 0 : (clampedHardness - 0.7) / 0.3;
+  const easedTightening =
+    normalizedTightening * normalizedTightening * (3 - 2 * normalizedTightening);
+  const spacingFactor = 1 - 0.45 * easedTightening;
+
+  return Math.max(minimumSpacing, baseSpacing * spacingFactor);
 }
 
 export interface StrokeStampState {
@@ -247,7 +247,6 @@ export function drawBrushStroke(
 ): void {
   const brushType: BrushType = settings.brushType || "round";
   let effectiveSize = settings.size;
-  let effectiveOpacity = settings.opacity;
   if (
     settings.pressureSensitivity &&
     pressure !== undefined &&
@@ -260,17 +259,17 @@ export function drawBrushStroke(
     ) {
       effectiveSize = settings.size * pressureFactor;
     }
-    if (
-      settings.pressureAffects === "opacity" ||
-      settings.pressureAffects === "both"
-    ) {
-      effectiveOpacity = settings.opacity * pressureFactor;
-    }
   }
 
   const markDirtyRect = (x: number, y: number, radius: number) => {
     expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + 2));
   };
+  const stampHardness =
+    brushType === "soft"
+      ? Math.min(settings.hardness, 0.35)
+      : brushType === "airbrush"
+        ? Math.min(settings.hardness, 0.18)
+        : settings.hardness;
 
   const createBrushStamp = (
     size: number,
@@ -350,12 +349,31 @@ export function drawBrushStroke(
     return created;
   };
 
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  const baseSpacing =
+    brushType === "spray"
+      ? Math.max(1, effectiveSize * 0.22)
+      : brushType === "airbrush"
+        ? Math.max(0.5, effectiveSize * 0.08)
+        : Math.max(0.5, effectiveSize * 0.12);
+  const spacing =
+    brushType === "spray"
+      ? baseSpacing
+      : adjustSpacingForHardness(baseSpacing, stampHardness, 0.5);
+
+  // Dabs paint at full alpha onto the stroke buffer. The stroke buffer is
+  // composited onto the layer at the brush opacity, so per-dab alpha only
+  // needs to be reduced for build-up brush types (airbrush).
+  const dabAlpha = brushType === "airbrush" ? 0.18 : 1.0;
+
   const stampBrushDab = (x: number, y: number) => {
     if (brushType === "spray") {
       const density = Math.max(6, Math.round(effectiveSize * 0.8));
       const radius = effectiveSize / 2;
       ctx.save();
-      ctx.globalAlpha = stampOpacity;
+      ctx.globalAlpha = dabAlpha;
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = settings.color;
       for (let i = 0; i < density; i++) {
@@ -373,12 +391,6 @@ export function drawBrushStroke(
       return;
     }
 
-    const stampHardness =
-      brushType === "soft"
-        ? Math.min(settings.hardness, 0.35)
-        : brushType === "airbrush"
-          ? Math.min(settings.hardness, 0.18)
-          : settings.hardness;
     const stamp = getBrushStamp(
       effectiveSize,
       stampHardness,
@@ -387,28 +399,12 @@ export function drawBrushStroke(
       settings.color
     );
     ctx.save();
-    ctx.globalAlpha = stampOpacity;
+    ctx.globalAlpha = dabAlpha;
     ctx.globalCompositeOperation = "source-over";
     ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
     ctx.restore();
     markDirtyRect(x, y, effectiveSize / 2);
   };
-
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
-  const spacing =
-    brushType === "spray"
-      ? Math.max(1, effectiveSize * 0.22)
-      : brushType === "airbrush"
-        ? Math.max(0.5, effectiveSize * 0.08)
-        : Math.max(0.5, effectiveSize * 0.12);
-  const stampOpacity = normalizeStampOpacity(
-    brushType === "airbrush" ? effectiveOpacity * 0.18 : effectiveOpacity,
-    effectiveSize,
-    spacing,
-    distance === 0
-  );
 
   stampAlongStroke(from, to, spacing, stampBrushDab, stampState);
 }
@@ -426,11 +422,9 @@ export function drawEraserStroke(
   stampState?: StrokeStampState
 ): void {
   let effectiveSize = settings.size;
-  let effectiveOpacity = settings.opacity;
   if (pressure !== undefined && pressure > 0) {
     const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
     effectiveSize = settings.size * pressureFactor;
-    effectiveOpacity = settings.opacity * pressureFactor;
   }
 
   const markDirtyRect = (x: number, y: number, radius: number) => {
@@ -485,21 +479,23 @@ export function drawEraserStroke(
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
-  const spacing = Math.max(0.5, effectiveSize * 0.12);
+  const baseSpacing = Math.max(0.5, effectiveSize * 0.12);
   const stamp = getEraserStamp(
     effectiveSize,
     Math.max(0.05, Math.min(1, settings.hardness))
   );
-  const stampOpacity = normalizeStampOpacity(
-    effectiveOpacity,
-    effectiveSize,
-    spacing,
-    distance === 0
+  const spacing = adjustSpacingForHardness(
+    baseSpacing,
+    Math.max(0.05, Math.min(1, settings.hardness)),
+    0.5
   );
 
+  // Eraser dabs paint at full alpha with source-over onto the stroke buffer.
+  // The buffer is composited as destination-out at eraser opacity by the
+  // compositing system, so no per-dab alpha normalization is needed.
   ctx.save();
-  ctx.globalAlpha = stampOpacity;
-  ctx.globalCompositeOperation = "destination-out";
+  ctx.globalAlpha = 1.0;
+  ctx.globalCompositeOperation = "source-over";
   stampAlongStroke(
     from,
     to,

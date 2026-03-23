@@ -29,6 +29,7 @@ import {
   useOverlayRenderer,
   usePointerHandlers
 } from "./sketchCanvasHooks";
+import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -173,6 +174,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
+    const activeStrokeRef = useRef<ActiveStrokeInfo | null>(null);
 
     // ─── Compositing (layer canvases, redraw) ──────────────────────────
 
@@ -185,7 +187,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       redrawDirty,
       requestRedraw,
       requestDirtyRedraw
-    } = useCompositing({ doc, isolatedLayerId });
+    } = useCompositing({ doc, isolatedLayerId, activeStrokeRef });
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
     // These refs are needed by the overlay renderer, so we extract them first
@@ -238,6 +240,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       containerRef,
       layerCanvasesRef,
       mousePositionRef,
+      activeStrokeRef,
       getOrCreateLayerCanvas,
       redraw,
       redrawDirty,
