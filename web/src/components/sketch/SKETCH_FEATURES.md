@@ -109,6 +109,7 @@
 - [ ] make color picker and user palettes global for nodetool
 - [ ] refactor color picker: use color wheel as in krita - an outer ring with square inside for brightness and saturation
 - [ ] bring back predefined palette
+- [ ] current standard swatch and user swatch at bottom of canvas (left of canvas pixel info which should be right aligned )
 
 #### Layers
 

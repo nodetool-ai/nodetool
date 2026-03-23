@@ -133,6 +133,7 @@ export interface SketchCanvasProps {
   selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
+  foregroundColor?: string;
   /** Merged onto the root container (e.g. for layout hooks / E2E). */
   className?: string;
 }
@@ -164,6 +165,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       selection,
       onSelectionChange,
       onAutoPickLayer,
+      foregroundColor,
       className: rootClassName
     } = props;
 
@@ -267,7 +269,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onCropComplete,
       onEyedropperPick,
       onSelectionChange,
-      onAutoPickLayer
+      onAutoPickLayer,
+      foregroundColor
     });
 
     // ─── Imperative handle ──────────────────────────────────────────────

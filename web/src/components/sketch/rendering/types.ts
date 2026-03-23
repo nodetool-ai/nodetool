@@ -8,7 +8,7 @@
  * It does NOT own the display canvas DOM element (React manages that).
  */
 
-import type { SketchDocument } from "../types";
+import type { LayerContentBounds, SketchDocument } from "../types";
 
 // ─── Dirty rect for partial compositing ──────────────────────────────────────
 
@@ -85,8 +85,7 @@ export interface SketchRuntime {
   setLayerData(
     layerId: string,
     data: string | null,
-    width: number,
-    height: number,
+    bounds: LayerContentBounds,
     onComplete?: () => void
   ): void;
 

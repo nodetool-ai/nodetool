@@ -322,6 +322,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             selection={store.selection}
             onSelectionChange={store.setSelection}
             onAutoPickLayer={store.setActiveLayer}
+            foregroundColor={store.foregroundColor}
           />
         </Box>
       </Box>

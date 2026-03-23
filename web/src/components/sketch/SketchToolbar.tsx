@@ -22,7 +22,7 @@ import { SketchTool } from "./types";
 import { PAINTING_TOOLS, SHAPE_TOOLS, type ToolDefinition } from "./toolDefinitions";
 import ColorSwatchPair from "./ColorSwatchPair";
 
-const BTN = 32; // button size px
+const BTN = 36; // button size px
 
 const styles = (theme: Theme) =>
   css({
@@ -77,7 +77,7 @@ function renderToolButton(def: ToolDefinition) {
   return (
     <ToggleButton key={tool} value={tool} aria-label={label}>
       <Tooltip title={tooltip} placement="right">
-        <Icon fontSize="small" />
+        <Icon sx={{ fontSize: "20px" }} />
       </Tooltip>
     </ToggleButton>
   );

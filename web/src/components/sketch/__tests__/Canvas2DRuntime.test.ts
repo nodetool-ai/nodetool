@@ -14,6 +14,10 @@
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { SketchDocument } from "../types";
 import { createDefaultDocument } from "../types";
+import {
+  getCanvasRasterBounds,
+  setCanvasRasterBounds
+} from "../painting/layerBounds";
 
 function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
   const base = createDefaultDocument(64, 64);
@@ -121,6 +125,13 @@ describe("Canvas2DRuntime", () => {
       expect(snapshot).not.toBe(canvas);
       expect(snapshot!.width).toBe(64);
       expect(snapshot!.height).toBe(48);
+    });
+
+    it("getLayerData serializes raster bounds metadata", () => {
+      const canvas = runtime.getOrCreateLayerCanvas("layer1", 64, 48);
+      setCanvasRasterBounds(canvas, { x: -12, y: -8, width: 64, height: 48 });
+      const data = runtime.getLayerData("layer1");
+      expect(data).toContain("ntlayer:");
     });
 
     it("getMaskDataUrl returns null when no mask layer", () => {
@@ -418,7 +429,12 @@ describe("Canvas2DRuntime", () => {
 
   describe("setLayerData", () => {
     it("creates the layer canvas when setting null data", () => {
-      runtime.setLayerData("layer1", null, 64, 64);
+      runtime.setLayerData("layer1", null, {
+        x: 0,
+        y: 0,
+        width: 64,
+        height: 64
+      });
       const canvas = runtime.getLayerCanvas("layer1");
       expect(canvas).toBeDefined();
       expect(canvas!.width).toBe(64);
@@ -427,9 +443,42 @@ describe("Canvas2DRuntime", () => {
 
     it("creates the layer canvas when setting a data URL", () => {
       // In JSDOM, image loading won't work, but the canvas should be created
-      runtime.setLayerData("layer1", "data:image/png;base64,iVBOR...", 64, 64);
+      runtime.setLayerData("layer1", "data:image/png;base64,iVBOR...", {
+        x: -10,
+        y: -6,
+        width: 64,
+        height: 64
+      });
       const canvas = runtime.getLayerCanvas("layer1");
       expect(canvas).toBeDefined();
+      expect(getCanvasRasterBounds(canvas)).toEqual({
+        x: -10,
+        y: -6,
+        width: 64,
+        height: 64
+      });
+    });
+
+    it("restores serialized raster bounds when setting encoded layer data", () => {
+      const sourceCanvas = runtime.getOrCreateLayerCanvas("layer_source", 32, 24);
+      setCanvasRasterBounds(sourceCanvas, { x: -7, y: -5, width: 32, height: 24 });
+      const data = runtime.getLayerData("layer_source");
+      runtime.setLayerData("layer_target", data, {
+        x: 0,
+        y: 0,
+        width: 64,
+        height: 64
+      });
+      const canvas = runtime.getLayerCanvas("layer_target");
+      expect(canvas).toBeDefined();
+      expect(canvas!.width).toBe(32);
+      expect(canvas!.height).toBe(24);
+      expect(getCanvasRasterBounds(canvas)).toEqual({
+        x: -7,
+        y: -5,
+        width: 32,
+        height: 24
+      });
     });
   });
 

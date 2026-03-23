@@ -435,38 +435,20 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
   onChange
 }: FillSettingsPanelProps) {
   return (
-    <>
-      <Box className="setting-row">
-        <Typography className="setting-label">Color</Typography>
-        <input
-          type="color"
-          className="color-input"
-          value={colorToHex6(settings.color)}
-          onChange={(e) =>
-            onChange({
-              color: mergeColor(
-                settings.color,
-                e.target.value
-              )
-            })
-          }
-        />
-      </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Tolerance</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={128}
-          value={settings.tolerance}
-          onChange={(_, v) => onChange({ tolerance: v as number })}
-        />
-        <Typography className="setting-value">
-          {settings.tolerance}
-        </Typography>
-      </Box>
-    </>
+    <Box className="setting-row">
+      <Typography className="setting-label">Tolerance</Typography>
+      <Slider
+        sx={sketchSliderSx}
+        size="small"
+        min={0}
+        max={128}
+        value={settings.tolerance}
+        onChange={(_, v) => onChange({ tolerance: v as number })}
+      />
+      <Typography className="setting-value">
+        {settings.tolerance}
+      </Typography>
+    </Box>
   );
 });
 

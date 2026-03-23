@@ -13,7 +13,7 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { SketchDocument } from "../types";
+import type { LayerContentBounds, SketchDocument } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { blendModeToComposite } from "../drawingUtils";
 import type { BlendMode } from "../types";
@@ -622,11 +622,10 @@ export class WebGPURuntime implements SketchRuntime {
   setLayerData(
     layerId: string,
     data: string | null,
-    width: number,
-    height: number,
+    bounds: LayerContentBounds,
     onComplete?: () => void
   ): void {
-    this.cpuRuntime.setLayerData(layerId, data, width, height, () => {
+    this.cpuRuntime.setLayerData(layerId, data, bounds, () => {
       this.markLayerDirty(layerId);
       onComplete?.();
     });

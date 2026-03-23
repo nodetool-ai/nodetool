@@ -42,8 +42,12 @@ export function useCanvasImperativeHandle({
         runtime.setLayerData(
           layerId,
           data,
-          Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width),
-          Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height),
+          {
+            x: layer?.contentBounds?.x ?? 0,
+            y: layer?.contentBounds?.y ?? 0,
+            width: Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width),
+            height: Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height)
+          },
           () => redraw()
         );
       },

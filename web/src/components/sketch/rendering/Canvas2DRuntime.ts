@@ -12,9 +12,73 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { SketchDocument } from "../types";
+import type { LayerContentBounds, SketchDocument } from "../types";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
-import { getLayerCompositeOffset, setCanvasRasterBounds } from "../painting/layerBounds";
+import {
+  getCanvasRasterBounds,
+  getLayerCompositeOffset,
+  setCanvasRasterBounds
+} from "../painting/layerBounds";
+
+const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
+
+type SerializedLayerData = {
+  version: 1;
+  image: string | null;
+  bounds: LayerContentBounds;
+};
+
+function getDefaultRasterBounds(bounds: LayerContentBounds): LayerContentBounds {
+  return {
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.max(1, Math.round(bounds.width)),
+    height: Math.max(1, Math.round(bounds.height))
+  };
+}
+
+function serializeLayerData(
+  image: string | null,
+  bounds: LayerContentBounds
+): string {
+  const payload: SerializedLayerData = {
+    version: 1,
+    image,
+    bounds: getDefaultRasterBounds(bounds)
+  };
+  return `${SERIALIZED_LAYER_DATA_PREFIX}${window.btoa(JSON.stringify(payload))}`;
+}
+
+function deserializeLayerData(
+  data: string | null,
+  fallbackBounds: LayerContentBounds
+): {
+  image: string | null;
+  bounds: LayerContentBounds;
+} {
+  if (!data) {
+    return { image: null, bounds: getDefaultRasterBounds(fallbackBounds) };
+  }
+  if (!data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
+    return { image: data, bounds: getDefaultRasterBounds(fallbackBounds) };
+  }
+  try {
+    const payload = JSON.parse(
+      window.atob(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
+    ) as Partial<SerializedLayerData>;
+    return {
+      image: typeof payload.image === "string" ? payload.image : null,
+      bounds: getDefaultRasterBounds({
+        x: payload.bounds?.x ?? fallbackBounds.x,
+        y: payload.bounds?.y ?? fallbackBounds.y,
+        width: payload.bounds?.width ?? fallbackBounds.width,
+        height: payload.bounds?.height ?? fallbackBounds.height
+      })
+    };
+  } catch {
+    return { image: null, bounds: getDefaultRasterBounds(fallbackBounds) };
+  }
+}
 
 export class Canvas2DRuntime implements SketchRuntime {
   /**
@@ -211,7 +275,16 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   getLayerData(layerId: string): string | null {
     const canvas = this.layerCanvases.get(layerId);
-    return canvas ? canvas.toDataURL("image/png") : null;
+    if (!canvas) {
+      return null;
+    }
+    const bounds = getCanvasRasterBounds(canvas) ?? {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height
+    };
+    return serializeLayerData(canvas.toDataURL("image/png"), bounds);
   }
 
   snapshotLayerCanvas(layerId: string): HTMLCanvasElement | null {
@@ -222,6 +295,10 @@ export class Canvas2DRuntime implements SketchRuntime {
     const snapshot = window.document.createElement("canvas");
     snapshot.width = source.width;
     snapshot.height = source.height;
+    const rasterBounds = getCanvasRasterBounds(source);
+    if (rasterBounds) {
+      setCanvasRasterBounds(snapshot, rasterBounds);
+    }
     const ctx = snapshot.getContext("2d");
     if (ctx) {
       ctx.drawImage(source, 0, 0);
@@ -287,30 +364,36 @@ export class Canvas2DRuntime implements SketchRuntime {
   setLayerData(
     layerId: string,
     data: string | null,
-    width: number,
-    height: number,
+    bounds: LayerContentBounds,
     onComplete?: () => void
   ): void {
-    const canvas = this.getOrCreateLayerCanvas(layerId, width, height);
+    const defaultBounds = getDefaultRasterBounds(bounds);
+    const decoded = deserializeLayerData(data, defaultBounds);
+    const canvas = this.getOrCreateLayerCanvas(
+      layerId,
+      decoded.bounds.width,
+      decoded.bounds.height
+    );
+    const desiredWidth = decoded.bounds.width;
+    const desiredHeight = decoded.bounds.height;
+    if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+      canvas.width = desiredWidth;
+      canvas.height = desiredHeight;
+    }
+    setCanvasRasterBounds(canvas, decoded.bounds);
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       onComplete?.();
       return;
     }
-    const desiredWidth = Math.max(1, width);
-    const desiredHeight = Math.max(1, height);
-    if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
-      canvas.width = desiredWidth;
-      canvas.height = desiredHeight;
-    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (data) {
+    if (decoded.image) {
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, 0, 0);
         onComplete?.();
       };
-      img.src = data;
+      img.src = decoded.image;
     } else {
       onComplete?.();
     }
@@ -326,12 +409,15 @@ export class Canvas2DRuntime implements SketchRuntime {
       canvas.width = source.width;
       canvas.height = source.height;
     }
-    setCanvasRasterBounds(canvas, {
-      x: 0,
-      y: 0,
-      width: source.width,
-      height: source.height
-    });
+    setCanvasRasterBounds(
+      canvas,
+      getCanvasRasterBounds(source) ?? {
+        x: 0,
+        y: 0,
+        width: source.width,
+        height: source.height
+      }
+    );
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       return;
@@ -567,6 +653,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     const tx = layer.transform?.x ?? 0;
     const ty = layer.transform?.y ?? 0;
     if (tx === 0 && ty === 0) {
+      setCanvasRasterBounds(canvas, {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height
+      });
       return canvas.toDataURL("image/png");
     }
 
@@ -595,6 +687,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     tempCtx.drawImage(source, tx, ty);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(temp, 0, 0);
+    setCanvasRasterBounds(canvas, {
+      x: 0,
+      y: 0,
+      width: doc.canvas.width,
+      height: doc.canvas.height
+    });
     return canvas.toDataURL("image/png");
   }
 

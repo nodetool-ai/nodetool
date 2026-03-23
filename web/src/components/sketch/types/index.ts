@@ -190,7 +190,7 @@ export interface Layer {
   /** When true, painting only affects existing opaque pixels (Krita/Photoshop "Lock Transparency") */
   alphaLock: boolean;
   blendMode: BlendMode;
-  /** Base64-encoded PNG data for the layer content */
+  /** Serialized layer raster payload, or a legacy PNG data URL. */
   data: string | null;
   /** Layer placement in document space. */
   transform: LayerTransform;

@@ -86,6 +86,7 @@ export interface UsePointerHandlersParams {
   onEyedropperPick?: (color: string) => void;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
+  foregroundColor?: string;
 }
 
 export interface UsePointerHandlersResult {
@@ -142,7 +143,8 @@ export function usePointerHandlers({
   onCropComplete,
   onEyedropperPick,
   onSelectionChange,
-  onAutoPickLayer
+  onAutoPickLayer,
+  foregroundColor = "#000000"
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Interaction state refs ─────────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -894,7 +896,7 @@ export function usePointerHandlers({
             ctx,
             paintLayerOffsetRef.current
           );
-          floodFillUtil(ctx, localPt.x, localPt.y, doc.toolSettings.fill);
+          floodFillUtil(ctx, localPt.x, localPt.y, { ...doc.toolSettings.fill, color: foregroundColor });
           if (clipped) {
             ctx.restore();
           }

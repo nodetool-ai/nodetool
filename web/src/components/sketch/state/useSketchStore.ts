@@ -337,17 +337,23 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       width,
       height
     );
-    set((state) => ({
-      document: {
-        ...state.document,
-        layers: [...state.document.layers, layer],
-        activeLayerId: layer.id,
-        metadata: {
-          ...state.document.metadata,
-          updatedAt: new Date().toISOString()
+    set((state) => {
+      const layers = state.document.layers;
+      const activeIdx = layers.findIndex((l) => l.id === state.document.activeLayerId);
+      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const newLayers = [...layers.slice(0, insertAt), layer, ...layers.slice(insertAt)];
+      return {
+        document: {
+          ...state.document,
+          layers: newLayers,
+          activeLayerId: layer.id,
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
         }
-      }
-    }));
+      };
+    });
     return layer.id;
   },
 
