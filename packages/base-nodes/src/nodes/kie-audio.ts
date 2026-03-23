@@ -22,8 +22,6 @@ export class GenerateMusicNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "bool", default: false, title: "Custom Mode", description: "Enable custom mode for detailed control over style and title." })
   declare custom_mode: any;
@@ -71,9 +69,6 @@ export class GenerateMusicNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom mode only)." })
   declare persona_id: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const customMode = Boolean(this.custom_mode ?? false);
@@ -114,7 +109,7 @@ export class GenerateMusicNode extends BaseNode {
     }
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -130,8 +125,6 @@ export class ExtendMusicNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "bool", default: false, title: "Default Param Flag", description: "If true, use custom parameters (prompt/style/title/continue_at). If false, inherit parameters from the source audio." })
   declare default_param_flag: any;
@@ -182,9 +175,6 @@ export class ExtendMusicNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom params only)." })
   declare persona_id: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const audioId = String(this.audio_id ?? "");
@@ -209,7 +199,7 @@ export class ExtendMusicNode extends BaseNode {
     };
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -225,8 +215,6 @@ export class CoverAudioNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "bool", default: false, title: "Custom Mode", description: "Enable custom mode for detailed control over style and title." })
   declare custom_mode: any;
@@ -283,9 +271,6 @@ export class CoverAudioNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Persona Id", description: "Persona ID to apply (custom mode only)." })
   declare persona_id: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio;
@@ -312,7 +297,7 @@ export class CoverAudioNode extends BaseNode {
     if (vocalGender) payload.vocalGender = vocalGender;
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -328,8 +313,6 @@ export class AddInstrumentalNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "audio", default: {
   "type": "audio",
@@ -371,9 +354,6 @@ export class AddInstrumentalNode extends BaseNode {
   @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
   declare audio_weight: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio;
@@ -396,7 +376,7 @@ export class AddInstrumentalNode extends BaseNode {
     };
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -412,8 +392,6 @@ export class AddVocalsNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "audio", default: {
   "type": "audio",
@@ -461,9 +439,6 @@ export class AddVocalsNode extends BaseNode {
   @prop({ type: "float", default: 0, title: "Audio Weight", description: "Balance weight for audio features (0-1)." })
   declare audio_weight: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio;
@@ -489,7 +464,7 @@ export class AddVocalsNode extends BaseNode {
     if (vocalGender) payload.vocalGender = vocalGender;
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -505,8 +480,6 @@ export class ReplaceMusicSectionNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Task Id", description: "Original music task ID." })
   declare task_id: any;
@@ -535,9 +508,6 @@ export class ReplaceMusicSectionNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Full Lyrics", description: "Full lyrics after modification." })
   declare full_lyrics: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const taskId = String(this.task_id ?? "");
@@ -565,7 +535,7 @@ export class ReplaceMusicSectionNode extends BaseNode {
     };
 
     const result = await kieExecuteSunoTask(apiKey, payload, 4000, 120);
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -583,8 +553,6 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Text", description: "The text to convert to speech." })
   declare text: any;
@@ -613,9 +581,6 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
 ] })
   declare model: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const text = String(this.text ?? "");
@@ -631,7 +596,7 @@ export class ElevenLabsTextToSpeechNode extends BaseNode {
       model_id: modelId,
     });
 
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -647,8 +612,6 @@ export class ElevenLabsAudioIsolationNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "audio", default: {
   "type": "audio",
@@ -658,9 +621,6 @@ export class ElevenLabsAudioIsolationNode extends BaseNode {
   "metadata": null
 }, title: "Audio", description: "Audio file to process for speech isolation." })
   declare audio: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -673,7 +633,7 @@ export class ElevenLabsAudioIsolationNode extends BaseNode {
       audio_url: audioUrl,
     });
 
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -689,8 +649,6 @@ export class ElevenLabsSoundEffectNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Text", description: "Text description of the sound effect to generate." })
   declare text: any;
@@ -700,9 +658,6 @@ export class ElevenLabsSoundEffectNode extends BaseNode {
 
   @prop({ type: "float", default: 0.3, title: "Prompt Influence", description: "How strongly the prompt influences generation (0-1).", min: 0, max: 1 })
   declare prompt_influence: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
@@ -720,7 +675,7 @@ export class ElevenLabsSoundEffectNode extends BaseNode {
 
     const result = await kieExecuteTask(apiKey, "elevenlabs/sound-effect", taskInput);
 
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 
@@ -736,8 +691,6 @@ export class ElevenLabsSpeechToTextNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "audio", default: {
   "type": "audio",
@@ -754,9 +707,6 @@ export class ElevenLabsSpeechToTextNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Diarization", description: "Enable speaker diarization to identify different speakers." })
   declare diarization: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio;
@@ -770,7 +720,7 @@ export class ElevenLabsSpeechToTextNode extends BaseNode {
       language_code: languageCode,
     });
 
-    return { output: { data: result.data } };
+    return { output: result.data };
   }
 }
 
@@ -786,8 +736,6 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
 ];
           static readonly exposeAsTool = true;
   
-  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Text", description: "The dialogue text to convert to speech. Supports audio tags for control." })
   declare text: any;
@@ -810,9 +758,6 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Language Code", description: "Language code for multilingual output. Leave empty for auto-detection." })
   declare language_code: any;
 
-
-
-
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const script = String(this.text ?? "");
@@ -825,7 +770,7 @@ export class ElevenLabsV3DialogueNode extends BaseNode {
       voice_assignments: voiceAssignments,
     });
 
-    return { output: { data: result.data } };
+    return { output: { type: "audio", data: result.data } };
   }
 }
 

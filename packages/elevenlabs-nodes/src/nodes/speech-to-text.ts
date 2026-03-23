@@ -94,30 +94,28 @@ export class SpeechToTextNode extends BaseNode {
   })
   declare file_format: any;
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getElevenLabsApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getElevenLabsApiKey(this._secrets);
 
-    const audio = inputs.audio as Record<string, unknown> | undefined;
+    const audio = this.audio as Record<string, unknown> | undefined;
     if (!audio?.uri && !audio?.data) {
       throw new Error("Audio input is required");
     }
 
-    const modelId = String(inputs.model_id ?? this.model_id ?? "scribe_v2");
+    const modelId = String(this.model_id ?? this.model_id ?? "scribe_v2");
     const languageCode = String(
-      inputs.language_code ?? this.language_code ?? ""
+      this.language_code ?? this.language_code ?? ""
     );
     const tagAudioEvents = Boolean(
-      inputs.tag_audio_events ?? this.tag_audio_events ?? true
+      this.tag_audio_events ?? this.tag_audio_events ?? true
     );
-    const numSpeakers = Number(inputs.num_speakers ?? this.num_speakers ?? 0);
+    const numSpeakers = Number(this.num_speakers ?? this.num_speakers ?? 0);
     const timestampsGranularity = String(
-      inputs.timestamps_granularity ?? this.timestamps_granularity ?? "word"
+      this.timestamps_granularity ?? this.timestamps_granularity ?? "word"
     );
-    const diarize = Boolean(inputs.diarize ?? this.diarize ?? false);
+    const diarize = Boolean(this.diarize ?? this.diarize ?? false);
     const fileFormat = String(
-      inputs.file_format ?? this.file_format ?? "other"
+      this.file_format ?? this.file_format ?? "other"
     );
 
     // Get audio bytes from data URI or fetch from URI
