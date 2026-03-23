@@ -540,8 +540,8 @@ export function usePointerHandlers({
         isDrawingRef.current = true;
         onStrokeStart();
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        // Use 4x canvas size as padding so the user can move the layer far
-        // outside the canvas bounds without cropping the content.
+        // Use 4x the canvas max dimension as padding so the user can move
+        // the layer far outside the canvas bounds without cropping content.
         const pad = Math.max(layerCanvas.width, layerCanvas.height) * 4;
         const snapshot = window.document.createElement("canvas");
         snapshot.width = layerCanvas.width + pad * 2;

@@ -245,6 +245,10 @@
 - [x] **Improved brush cursor preview** — cursor now shows elliptical shape for non-default roundness and rotates for non-zero brush angle; uses `ctx.ellipse()` with save/restore transform
 - [x] **Move tool padding fix** — increased move snapshot padding from 1x to 4x canvas max dimension, preserving layer content during large moves outside canvas bounds
 - [x] **Color picker improvements** — added opacity/alpha slider with gradient rail, and old→new color comparison swatch strip at the bottom of the picker popover
+- [x] **Extended symmetry modes** — added Radial and Mandala modes to symmetry dropdown with configurable ray count (2-12); `withMirror()` uses N-fold rotational math; consolidated mirror state from local SketchEditor state to Zustand store
+- [x] **Dirty-rect compositing** — `requestDirtyRedraw(x, y, w, h)` clips compositing to the dirty region during painting, merges multiple dirty rects per animation frame, automatically falls back to full redraw for non-painting operations
+- [x] **1px anti-aliased pencil** — pixel-grid snapping (`round(x-0.5)+0.5`) for crisp hairline strokes with consistent visual weight at any zoom level
+- [x] **Move tool auto-pick layer** — Alt+click with the move tool scans layers top-to-bottom and switches to the first layer with a non-transparent pixel at the click point
 
 #### Sketch command palette (canvas context menu)
 

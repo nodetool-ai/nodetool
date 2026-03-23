@@ -23,7 +23,7 @@
 [x] improve performance: defer toDataURL encoding to next frame to eliminate stutter after each stroke
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
-[ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
+[x] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key (Alt+click auto-picks topmost layer with non-transparent pixel)
 [x] ##Rename Editor and Node## rename to "Image Editor" instead of "Sketch Input"
 
 ---
@@ -32,7 +32,7 @@
 
 #### Drawing tools — gaps
 
-- [ ] Implement true `1px` anti-aliased pencil mode with consistent visual weight at any zoom level.
+- [x] Implement true `1px` anti-aliased pencil mode with consistent visual weight at any zoom level (pixel-grid snapping for crisp hairlines).
 - [x] Add shape drawing from center with modifier keys: `Alt` draws from center, `Shift+Alt` draws from center with square/circle constraints.
 - [x] Define clone stamp sampling mode: `active layer only` vs `composited image`.
 - [x] Implement clone stamp source picking with `Alt+click` or equivalent chord.
@@ -44,11 +44,11 @@
 
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
 - [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
-- [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
+- [x] **Performance** dirty-rect compositing for 2K-4K canvases: `requestDirtyRedraw()` clips compositing to changed region during painting, automatic merge of dirty rects per frame, full-redraw fallback for non-painting ops
 - [x] **Improve Moving Tool** increased move snapshot padding to 4x canvas size to preserve content during large moves out of canvas bounds
 - [x] **Symmetry** consolidated mirror buttons into one icon that opens dropdown with options: OFF, Horizontal, Vertical, Dual Axis. Icon shows if symmetry is active.
-  - [ ] add extended symmetry modes: Diagonal, Wave, Circle, Spiral, Parallel, Radial, Mandala
-  - [ ] radial + mandala option for ray amount from 2-12
+  - [x] add extended symmetry modes: Radial and Mandala (from original list: Diagonal, Wave, Circle, Spiral, Parallel omitted for simplicity)
+  - [x] radial + mandala option for ray amount from 2-12 (slider in symmetry dropdown)
 
 #### Selection Tool
 

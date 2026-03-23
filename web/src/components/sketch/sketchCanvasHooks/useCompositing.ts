@@ -214,10 +214,13 @@ export function useCompositing({
    * Schedule a partial redraw over a dirty region.
    * Multiple dirty rects are merged into one bounding box.
    * Falls back to full redraw if requestRedraw() was called in the same frame.
+   *
+   * Note: dirty regions are intentionally discarded when a full redraw is
+   * already scheduled, since the full redraw will repaint the entire canvas.
    */
   const requestDirtyRedraw = useCallback(
     (x: number, y: number, w: number, h: number) => {
-      // If full redraw is already pending, skip
+      // A full redraw covers the entire canvas, so dirty tracking is unnecessary
       if (isFullRedrawRef.current) {
         return;
       }
