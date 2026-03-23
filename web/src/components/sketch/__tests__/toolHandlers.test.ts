@@ -138,14 +138,9 @@ describe("getToolHandler factory", () => {
     expect(a).toBe(b);
   });
 
-  it("shares a single ShapeTool for all shape tools", () => {
-    const line = getToolHandler("line");
-    const rect = getToolHandler("rectangle");
-    const ellipse = getToolHandler("ellipse");
-    const arrow = getToolHandler("arrow");
-    expect(line).toBe(rect);
-    expect(rect).toBe(ellipse);
-    expect(ellipse).toBe(arrow);
+  it("returns the single ShapeTool for the shape tool", () => {
+    const shape = getToolHandler("shape");
+    expect(shape).toBeInstanceOf(ShapeTool);
   });
 });
 
@@ -285,7 +280,7 @@ describe("CropTool", () => {
 describe("ShapeTool", () => {
   it("starts a shape gesture on pointer down", () => {
     const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "rectangle" });
+    const ctx = makeToolContext({ activeTool: "shape" });
     const result = tool.onDown(ctx, makePointerEvent());
     expect(result).toBe(true);
     expect(ctx.onStrokeStart).toHaveBeenCalled();
@@ -293,7 +288,7 @@ describe("ShapeTool", () => {
 
   it("calls drawOverlayShape during drag", () => {
     const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "rectangle" });
+    const ctx = makeToolContext({ activeTool: "shape" });
     tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 25, y: 25 } }), []);
     expect(ctx.drawOverlayShape).toHaveBeenCalledWith(
@@ -315,7 +310,7 @@ describe("ShapeTool", () => {
     overlayCanvas.height = 64;
     const baseDoc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({
-      activeTool: "rectangle",
+      activeTool: "shape",
       doc: {
         ...baseDoc,
         activeLayerId: layerId,

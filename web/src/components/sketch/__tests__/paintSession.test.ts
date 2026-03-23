@@ -631,7 +631,7 @@ describe("EraserTool (PaintSession)", () => {
 describe("ShapeTool (transform-aware commit)", () => {
   it("starts a shape gesture on pointer down", () => {
     const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "rectangle" });
+    const ctx = makeToolContext({ activeTool: "shape" });
     const result = tool.onDown(ctx, makePointerEvent());
     expect(result).toBe(true);
     expect(ctx.onStrokeStart).toHaveBeenCalled();
@@ -639,7 +639,7 @@ describe("ShapeTool (transform-aware commit)", () => {
 
   it("calls drawOverlayShape during drag", () => {
     const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "rectangle" });
+    const ctx = makeToolContext({ activeTool: "shape" });
     tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     tool.onMove!(ctx, makePointerEvent({ point: { x: 25, y: 25 } }), []);
     expect(ctx.drawOverlayShape).toHaveBeenCalledWith(
@@ -650,7 +650,7 @@ describe("ShapeTool (transform-aware commit)", () => {
 
   it("calls onStrokeEnd on pointer up", () => {
     const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "rectangle" });
+    const ctx = makeToolContext({ activeTool: "shape" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);

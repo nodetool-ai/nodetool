@@ -173,11 +173,8 @@ describe("Sketch Types", () => {
   });
 
   describe("isShapeTool", () => {
-    it("returns true for shape tools", () => {
-      expect(isShapeTool("line")).toBe(true);
-      expect(isShapeTool("rectangle")).toBe(true);
-      expect(isShapeTool("ellipse")).toBe(true);
-      expect(isShapeTool("arrow")).toBe(true);
+    it("returns true for the shape tool", () => {
+      expect(isShapeTool("shape")).toBe(true);
     });
 
     it("returns false for non-shape tools", () => {
