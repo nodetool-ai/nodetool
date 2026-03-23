@@ -156,17 +156,20 @@ export function useCompositing({
       // the current runtime instead of the old Canvas2DRuntime.
       const rt = runtimeRef.current;
       if (!rt) return;
+      // WebGPU owns committed content only. Live paint preview is drawn on the
+      // separate 2D overlay, so the base composite hides the active layer while
+      // a stroke is in progress to avoid double-drawing it underneath.
       const activeStroke =
-        backend === "webgpu" &&
-        activeStrokeRef.current?.compositeOp === "source-over"
-          ? null
-          : activeStrokeRef.current;
+        backend === "webgpu" ? null : activeStrokeRef.current;
+      const hiddenLayerId =
+        backend === "webgpu" ? activeStrokeRef.current?.layerId ?? null : null;
       rt.compositeToDisplay(
         displayCanvas,
         doc,
         isolatedLayerId ?? null,
         activeStroke,
-        dirtyRect
+        dirtyRect,
+        hiddenLayerId
       );
     },
     // Include `backend` so that this callback (and the redraw/requestRedraw

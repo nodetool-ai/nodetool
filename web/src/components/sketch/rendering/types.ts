@@ -52,13 +52,16 @@ export interface SketchRuntime {
   /**
    * Composite all visible layers onto the target canvas.
    * When `dirtyRect` is provided, only that region is repainted.
+   * `hiddenLayerId` lets the caller suppress one layer from the base pass so a
+   * separate overlay can render that layer's live preview without double-drawing.
    */
   compositeToDisplay(
     targetCanvas: HTMLCanvasElement,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null
+    dirtyRect?: DirtyRect | null,
+    hiddenLayerId?: string | null
   ): void;
 
   // ─── Readback / export ───────────────────────────────────────────────

@@ -326,6 +326,60 @@ describe("Canvas2DRuntime", () => {
         runtime.compositeToDisplay(target, doc, layerId, null);
       }).not.toThrow();
     });
+
+    it("skips a hidden layer from the base composite", () => {
+      const doc = makeDoc();
+      const lower = doc.layers[0];
+      const upper = { ...lower, id: "upper", name: "Upper" };
+      doc.layers = [lower, upper];
+
+      const lowerCanvas = runtime.getOrCreateLayerCanvas(lower.id, 64, 64);
+      const upperCanvas = runtime.getOrCreateLayerCanvas(upper.id, 64, 64);
+
+      const drawImage = jest.fn();
+      const fillRect = jest.fn();
+      const createPattern = jest.fn(() => "pattern" as unknown as CanvasPattern);
+      const save = jest.fn();
+      const restore = jest.fn();
+      const clearRect = jest.fn();
+      const beginPath = jest.fn();
+      const rect = jest.fn();
+      const clip = jest.fn();
+
+      const fakeContext = {
+        drawImage,
+        fillRect,
+        createPattern,
+        save,
+        restore,
+        clearRect,
+        beginPath,
+        rect,
+        clip,
+        globalAlpha: 1,
+        globalCompositeOperation: "source-over",
+        fillStyle: "#000"
+      } as unknown as CanvasRenderingContext2D;
+
+      const getContextSpy = jest
+        .spyOn(HTMLCanvasElement.prototype, "getContext")
+        .mockImplementation((contextId: string) =>
+          contextId === "2d" ? fakeContext : null
+        );
+
+      try {
+        const target = document.createElement("canvas");
+        target.width = 64;
+        target.height = 64;
+
+        runtime.compositeToDisplay(target, doc, null, null, null, upper.id);
+
+        expect(drawImage).toHaveBeenCalledWith(lowerCanvas, 0, 0);
+        expect(drawImage).not.toHaveBeenCalledWith(upperCanvas, 0, 0);
+      } finally {
+        getContextSpy.mockRestore();
+      }
+    });
   });
 
   // ─── setLayerData ──────────────────────────────────────────────────

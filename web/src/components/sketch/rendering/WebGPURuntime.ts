@@ -298,28 +298,6 @@ export class WebGPURuntime implements SketchRuntime {
     );
   }
 
-  /**
-   * Upload a CPU canvas for the active stroke buffer to a temporary GPU texture.
-   */
-  private uploadStrokeBufferToGPU(activeStroke: ActiveStrokeInfo): GPUTexture {
-    const buffer = activeStroke.buffer;
-    const texture = this.device.createTexture({
-      label: "stroke-buffer",
-      size: {
-        width: Math.max(1, buffer.width),
-        height: Math.max(1, buffer.height)
-      },
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-    });
-    this.device.queue.copyExternalImageToTexture(
-      { source: buffer, flipY: false },
-      { texture },
-      { width: buffer.width, height: buffer.height }
-    );
-    return texture;
-  }
-
   private syncDirtyLayers(): void {
     for (const layerId of this.dirtyLayers) {
       this.uploadLayerToGPU(layerId);
@@ -371,8 +349,9 @@ export class WebGPURuntime implements SketchRuntime {
     targetCanvas: HTMLCanvasElement,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null
+    _activeStroke: ActiveStrokeInfo | null,
+    dirtyRect?: DirtyRect | null,
+    hiddenLayerId?: string | null
   ): void {
     // Ensure context is configured for this canvas
     this.configureContext(targetCanvas);
@@ -451,6 +430,9 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     // ── Pass 2: Layer compositing ─────────────────────────────────────
+    // Live paint preview is owned by the separate 2D overlay. WebGPU only
+    // composites committed layer content here, optionally skipping the active
+    // layer so the overlay can render the merged preview in its place.
     for (const layer of doc.layers) {
       if (!layer.visible) {
         continue;
@@ -458,42 +440,15 @@ export class WebGPURuntime implements SketchRuntime {
       if (isolatedLayerId && layer.id !== isolatedLayerId) {
         continue;
       }
-
-      const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
-
-      if (hasActiveStroke) {
-        if (activeStroke.compositeOp === "source-over") {
-          const layerTexture = this.layerTextures.get(layer.id);
-          if (layerTexture) {
-            this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
-          }
-          this.compositeActiveStrokeOverlayGPU(
-            encoder,
-            textureView,
-            layer,
-            activeStroke,
-            fullW,
-            fullH
-          );
-        } else {
-          // Keep the CPU-merged fallback for destination-out preview so eraser
-          // behavior stays correct while brush preview uses the simpler overlay path.
-          this.compositeLayerWithStrokeGPU(
-            encoder,
-            textureView,
-            layer,
-            activeStroke,
-            fullW,
-            fullH
-          );
-        }
-      } else {
-        const layerTexture = this.layerTextures.get(layer.id);
-        if (!layerTexture) {
-          continue;
-        }
-        this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
+      if (hiddenLayerId && layer.id === hiddenLayerId) {
+        continue;
       }
+
+      const layerTexture = this.layerTextures.get(layer.id);
+      if (!layerTexture) {
+        continue;
+      }
+      this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
     }
 
     // ── Pass 3: Border ────────────────────────────────────────────────
@@ -622,135 +577,6 @@ export class WebGPURuntime implements SketchRuntime {
     pass.setBindGroup(0, bindGroup);
     pass.draw(4);
     pass.end();
-  }
-
-  private compositeActiveStrokeOverlayGPU(
-    encoder: GPUCommandEncoder,
-    textureView: GPUTextureView,
-    layer: {
-      id: string;
-      opacity: number;
-      blendMode?: BlendMode | string;
-      transform?: { x?: number; y?: number };
-    },
-    activeStroke: ActiveStrokeInfo,
-    canvasW: number,
-    canvasH: number
-  ): void {
-    const tx = layer.transform?.x ?? 0;
-    const ty = layer.transform?.y ?? 0;
-    const strokeTexture = this.uploadStrokeBufferToGPU(activeStroke);
-    this.drawTextureGPU(
-      encoder,
-      textureView,
-      strokeTexture,
-      activeStroke.opacity,
-      tx,
-      ty,
-      canvasW,
-      canvasH
-    );
-  }
-
-  /**
-   * Composite a layer that has an active stroke on top of it.
-   *
-   * Strategy: merge layer + stroke buffer on CPU into a temp canvas,
-   * upload that to a temp GPU texture, and draw it as one layer.
-   * This gives correct results for eraser (destination-out) strokes.
-   */
-  private compositeLayerWithStrokeGPU(
-    encoder: GPUCommandEncoder,
-    textureView: GPUTextureView,
-    layer: {
-      id: string;
-      opacity: number;
-      blendMode?: BlendMode | string;
-      transform?: { x?: number; y?: number };
-    },
-    activeStroke: ActiveStrokeInfo,
-    canvasW: number,
-    canvasH: number
-  ): void {
-    if (!this.layerPipeline || !this.layerBindGroupLayout) {
-      return;
-    }
-
-    const layerCanvas = this.layerCanvases.get(layer.id);
-    if (!layerCanvas) {
-      return;
-    }
-
-    // Merge layer + stroke buffer on CPU
-    const temp = window.document.createElement("canvas");
-    temp.width = layerCanvas.width;
-    temp.height = layerCanvas.height;
-    const tempCtx = temp.getContext("2d");
-    if (!tempCtx) {
-      return;
-    }
-    tempCtx.drawImage(layerCanvas, 0, 0);
-    tempCtx.save();
-    tempCtx.globalAlpha = activeStroke.opacity;
-    tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-    tempCtx.drawImage(activeStroke.buffer, 0, 0);
-    tempCtx.restore();
-
-    // Upload merged temp canvas to a temporary texture
-    const tempTexture = this.device.createTexture({
-      label: `layer-stroke-${layer.id}`,
-      size: {
-        width: Math.max(1, temp.width),
-        height: Math.max(1, temp.height)
-      },
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-    });
-    this.device.queue.copyExternalImageToTexture(
-      { source: temp, flipY: false },
-      { texture: tempTexture },
-      { width: temp.width, height: temp.height }
-    );
-
-    const tx = layer.transform?.x ?? 0;
-    const ty = layer.transform?.y ?? 0;
-
-    const uniformData = new Float32Array([
-      layer.opacity,
-      tx / canvasW,
-      ty / canvasH,
-      0.0
-    ]);
-    const uniformBuffer = this.device.createBuffer({
-      size: uniformData.byteLength,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-
-    const bindGroup = this.device.createBindGroup({
-      layout: this.layerBindGroupLayout,
-      entries: [
-        { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: tempTexture.createView() }
-      ]
-    });
-
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: textureView,
-          loadOp: "load",
-          storeOp: "store"
-        }
-      ]
-    });
-
-    pass.setPipeline(this.layerPipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.draw(4);
-    pass.end();
-
-    // Temp texture will be GC'd after the command buffer is submitted
   }
 
   // ─── SketchRuntime: Readback / export ────────────────────────────────

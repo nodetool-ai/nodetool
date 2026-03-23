@@ -467,14 +467,39 @@ export function usePointerHandlers({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
     const activeStroke = activeStrokeRef.current;
-    if (activeStroke?.compositeOp === "source-over") {
-      ctx.save();
-      ctx.globalAlpha = activeStroke.opacity;
-      ctx.globalCompositeOperation = "source-over";
-      ctx.drawImage(activeStroke.buffer, 0, 0);
-      ctx.restore();
+    if (!activeStroke) {
+      return;
     }
-  }, [overlayCanvasRef, activeStrokeRef]);
+
+    const layer = doc.layers.find((candidate) => candidate.id === activeStroke.layerId);
+    const layerCanvas = layerCanvasesRef.current.get(activeStroke.layerId);
+    if (!layer || !layerCanvas) {
+      return;
+    }
+
+    const tx = layer.transform?.x ?? 0;
+    const ty = layer.transform?.y ?? 0;
+    const temp = window.document.createElement("canvas");
+    temp.width = layerCanvas.width;
+    temp.height = layerCanvas.height;
+    const tempCtx = temp.getContext("2d");
+    if (!tempCtx) {
+      return;
+    }
+
+    tempCtx.drawImage(layerCanvas, 0, 0);
+    tempCtx.save();
+    tempCtx.globalAlpha = activeStroke.opacity;
+    tempCtx.globalCompositeOperation = activeStroke.compositeOp;
+    tempCtx.drawImage(activeStroke.buffer, 0, 0);
+    tempCtx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = layer.opacity;
+    ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode);
+    ctx.drawImage(temp, tx, ty);
+    ctx.restore();
+  }, [overlayCanvasRef, activeStrokeRef, doc.layers, layerCanvasesRef]);
 
   // ─── Tool context ref ──────────────────────────────────────────────
   // Updated synchronously every render. Handlers read this ref to get
@@ -898,8 +923,9 @@ export function usePointerHandlers({
         const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
         if (started) {
           isDrawingRef.current = true;
-          // Live preview: render stroke buffer on overlay for source-over tools
-          if (activeStrokeRef.current?.compositeOp === "source-over") {
+          // Live preview: render the merged active-layer preview on the overlay
+          // for all paint tools while WebGPU hides the active layer underneath.
+          if (activeStrokeRef.current) {
             drawActiveStrokePreview();
           }
         }
@@ -1105,8 +1131,9 @@ export function usePointerHandlers({
           buildToolPointerEvent(e),
           buildCoalescedEvents(e)
         );
-        // Live preview: render stroke buffer on overlay for source-over tools
-        if (activeStrokeRef.current?.compositeOp === "source-over") {
+        // Live preview: render the merged active-layer preview on the overlay
+        // for all paint tools while WebGPU hides the active layer underneath.
+        if (activeStrokeRef.current) {
           drawActiveStrokePreview();
         }
         return;
