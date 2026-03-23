@@ -61,11 +61,13 @@ Done when:
 
 ## Phase 4: Common paint tools on WebGPU
 
-- [ ] brush on WebGPU
-- [ ] pencil on WebGPU
-- [ ] eraser on WebGPU
+- [ ] consolidate live stroke preview into one shared stroke-session path
+- [ ] keep overlay/cursor/live stroke preview on 2D
+- [ ] fix moved-layer then draw wiping preexisting layer content
+- [ ] keep brush commit path stable while preview stays off WebGPU
+- [ ] unify eraser preview with the same preview compositor model
+- [ ] pencil commit path on WebGPU
 - [ ] basic shape commit on WebGPU
-- [ ] decide overlay/cursor: stay 2D or move
 - [ ] stroke-end snapshot for GPU-authored layers
 - [ ] undo/redo boundaries intact
 
@@ -73,7 +75,9 @@ Legacy helpers still allowed: flood fill, blur, clone stamp, adjustments, crop, 
 
 Done when:
 
-- [ ] brush/pencil/eraser/shapes off Canvas2D
+- [ ] live brush/eraser preview is stable and does not depend on WebGPU stroke compositing
+- [ ] moved layers keep existing pixels when drawing resumes
+- [ ] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
 - [ ] stroke end still updates `Layer.data`
 - [ ] node preview still works
 
