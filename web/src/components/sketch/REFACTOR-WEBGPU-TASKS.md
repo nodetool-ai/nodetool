@@ -17,16 +17,16 @@
 
 ## Phase 1: Runtime seam
 
-- [ ] add `rendering/` under sketch
-- [ ] define minimal runtime API: redraw, dirty redraw, layer lookup, snapshot, flatten, mask export
-- [ ] refactor `SketchCanvas.tsx` to use the runtime seam
-- [ ] keep `SketchCanvasRef` working for `useCanvasActions.ts` and node export
-- [ ] hide existing Canvas2D behind one legacy implementation
+- [x] add `rendering/` under sketch
+- [x] define minimal runtime API: redraw, dirty redraw, layer lookup, snapshot, flatten, mask export
+- [x] refactor `SketchCanvas.tsx` to use the runtime seam
+- [x] keep `SketchCanvasRef` working for `useCanvasActions.ts` and node export
+- [x] hide existing Canvas2D behind one legacy implementation
 
 Done when:
 
-- [ ] drawing/export behavior unchanged
-- [ ] Canvas2D code no longer spread across the canvas component
+- [x] drawing/export behavior unchanged
+- [x] Canvas2D code no longer spread across the canvas component
 
 ## Phase 2: WebGPU compositing
 

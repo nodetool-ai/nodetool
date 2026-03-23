@@ -39,7 +39,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   ): HTMLCanvasElement {
     let canvas = this.layerCanvases.get(layerId);
     if (!canvas) {
-      canvas = document.createElement("canvas");
+      canvas = window.document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
       this.layerCanvases.set(layerId, canvas);
@@ -115,7 +115,7 @@ export class Canvas2DRuntime implements SketchRuntime {
           tempCanvas.width !== layerCanvas.width ||
           tempCanvas.height !== layerCanvas.height
         ) {
-          tempCanvas = document.createElement("canvas");
+          tempCanvas = window.document.createElement("canvas");
           tempCanvas.width = layerCanvas.width;
           tempCanvas.height = layerCanvas.height;
           this.strokeTempCanvas = tempCanvas;
@@ -202,7 +202,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!source) {
       return null;
     }
-    const snapshot = document.createElement("canvas");
+    const snapshot = window.document.createElement("canvas");
     snapshot.width = source.width;
     snapshot.height = source.height;
     const ctx = snapshot.getContext("2d");
@@ -213,7 +213,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   }
 
   flattenToDataUrl(doc: SketchDocument): string {
-    const canvas = document.createElement("canvas");
+    const canvas = window.document.createElement("canvas");
     canvas.width = doc.canvas.width;
     canvas.height = doc.canvas.height;
     const ctx = canvas.getContext("2d");
@@ -235,7 +235,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!doc.maskLayerId) {
       return null;
     }
-    const canvas = document.createElement("canvas");
+    const canvas = window.document.createElement("canvas");
     canvas.width = doc.canvas.width;
     canvas.height = doc.canvas.height;
     const ctx = canvas.getContext("2d");
@@ -247,7 +247,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   }
 
   flattenVisible(doc: SketchDocument): string {
-    const canvas = document.createElement("canvas");
+    const canvas = window.document.createElement("canvas");
     canvas.width = doc.canvas.width;
     canvas.height = doc.canvas.height;
     const ctx = canvas.getContext("2d");
@@ -354,7 +354,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!ctx) {
       return;
     }
-    const temp = document.createElement("canvas");
+    const temp = window.document.createElement("canvas");
     temp.width = canvas.width;
     temp.height = canvas.height;
     const tempCtx = temp.getContext("2d");
@@ -421,7 +421,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!ctx) {
       return;
     }
-    const tmp = document.createElement("canvas");
+    const tmp = window.document.createElement("canvas");
     tmp.width = canvas.width;
     tmp.height = canvas.height;
     const tmpCtx = tmp.getContext("2d");
@@ -450,7 +450,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
     const upperLayer = doc.layers.find((l) => l.id === upperLayerId);
     const lowerLayer = doc.layers.find((l) => l.id === lowerLayerId);
-    const mergedCanvas = document.createElement("canvas");
+    const mergedCanvas = window.document.createElement("canvas");
     mergedCanvas.width = doc.canvas.width;
     mergedCanvas.height = doc.canvas.height;
     const mergedCtx = mergedCanvas.getContext("2d");
@@ -512,7 +512,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     const b = Math.max(0, 1 + brightness / 100);
     const c = Math.max(0, 1 + contrast / 100);
     const s = Math.max(0, 1 + saturation / 100);
-    const tmp = document.createElement("canvas");
+    const tmp = window.document.createElement("canvas");
     tmp.width = layerCanvas.width;
     tmp.height = layerCanvas.height;
     const tmpCtx = tmp.getContext("2d");
@@ -541,7 +541,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       return canvas.toDataURL("image/png");
     }
 
-    const temp = document.createElement("canvas");
+    const temp = window.document.createElement("canvas");
     temp.width = doc.canvas.width;
     temp.height = doc.canvas.height;
     const tempCtx = temp.getContext("2d");
