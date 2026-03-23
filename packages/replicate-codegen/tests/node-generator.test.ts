@@ -215,7 +215,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const prompt = String(inputs.prompt ?? this.prompt ?? "");`,
+      `const prompt = String(inputs.prompt ?? (this as any).prompt ?? "");`,
     );
   });
 
@@ -227,7 +227,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 50);`,
+      `const numSteps = Number(inputs.num_steps ?? (this as any).num_steps ?? 50);`,
     );
   });
 
@@ -239,7 +239,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);`,
+      `const guidanceScale = Number(inputs.guidance_scale ?? (this as any).guidance_scale ?? 7.5);`,
     );
   });
 
@@ -251,7 +251,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const applyWatermark = Boolean(inputs.apply_watermark ?? this.apply_watermark ?? true);`,
+      `const applyWatermark = Boolean(inputs.apply_watermark ?? (this as any).apply_watermark ?? true);`,
     );
   });
 

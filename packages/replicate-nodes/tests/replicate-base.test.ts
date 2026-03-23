@@ -3,7 +3,6 @@ import {
   getReplicateApiKey,
   removeNulls,
   isRefSet,
-  extractVersion,
   assetToUrl,
   outputToImageRef,
   outputToVideoRef,
@@ -116,47 +115,6 @@ describe("removeNulls", () => {
     const obj: Record<string, unknown> = {};
     expect(() => removeNulls(obj)).not.toThrow();
     expect(obj).toEqual({});
-  });
-});
-
-/* ================================================================== */
-/*  extractVersion                                                      */
-/* ================================================================== */
-
-describe("extractVersion", () => {
-  it("parses owner/name:version correctly", () => {
-    const result = extractVersion(
-      "stability-ai/sdxl:abc123def456"
-    );
-    expect(result).toEqual({
-      owner: "stability-ai",
-      name: "sdxl",
-      version: "abc123def456",
-    });
-  });
-
-  it("handles version with special characters", () => {
-    const result = extractVersion(
-      "user/model:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b"
-    );
-    expect(result).toEqual({
-      owner: "user",
-      name: "model",
-      version:
-        "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-    });
-  });
-
-  it("throws for missing version (no colon)", () => {
-    expect(() => extractVersion("owner/name")).toThrow(
-      'Invalid model identifier "owner/name"'
-    );
-  });
-
-  it("throws for missing owner/name (no slash)", () => {
-    expect(() => extractVersion("model:version")).toThrow(
-      'Invalid model identifier "model:version"'
-    );
   });
 });
 
