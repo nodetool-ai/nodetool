@@ -9,12 +9,14 @@
  * After runtime-seam refactor: delegates layer storage and compositing
  * to the Canvas2DRuntime.  This hook owns React refs, hydration
  * tracking, and rAF scheduling.
+ *
+ * Phase 2: Tries WebGPU first, falls back to Canvas2D automatically.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
-import { Canvas2DRuntime } from "../rendering";
+import { Canvas2DRuntime, createRuntime } from "../rendering";
 
 // Re-export so existing consumers keep compiling.
 export type { ActiveStrokeInfo } from "../rendering";
@@ -33,6 +35,8 @@ export interface UseCompositingResult {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   /** The underlying rendering runtime (for imperative handle access). */
   runtime: SketchRuntime;
+  /** Which rendering backend is active: "webgpu" | "canvas2d" */
+  backend: "webgpu" | "canvas2d";
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
@@ -58,11 +62,42 @@ export function useCompositing({
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   // ─── Runtime instance (stable across renders) ─────────────────────
-  const runtimeRef = useRef<Canvas2DRuntime | null>(null);
+  // Start with Canvas2D immediately; attempt WebGPU upgrade async.
+  const runtimeRef = useRef<SketchRuntime | null>(null);
+  const [backend, setBackend] = useState<"webgpu" | "canvas2d">("canvas2d");
+
   if (!runtimeRef.current) {
     runtimeRef.current = new Canvas2DRuntime(layerCanvasesRef.current);
   }
   const runtime: SketchRuntime = runtimeRef.current;
+
+  // Try to upgrade to WebGPU on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    createRuntime(layerCanvasesRef.current).then(({ runtime: newRuntime, backend: newBackend }) => {
+      if (cancelled) {
+        newRuntime.dispose();
+        return;
+      }
+      if (newBackend === "webgpu" && runtimeRef.current !== newRuntime) {
+        // Dispose old Canvas2D runtime and switch to WebGPU
+        const oldRuntime = runtimeRef.current;
+        runtimeRef.current = newRuntime;
+        setBackend(newBackend);
+        // Don't dispose old runtime — it shares the same layerCanvases map
+        // and WebGPU runtime also uses it. Just drop the reference.
+        // The WebGPU runtime's cpuRuntime already wraps the same map.
+        void oldRuntime;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const layerHydrationSignature = doc.layers
     .map((layer) => `${layer.id}:${layer.data ?? ""}`)
@@ -274,6 +309,7 @@ export function useCompositing({
     overlayCanvasRef,
     layerCanvasesRef,
     runtime,
+    backend,
     getOrCreateLayerCanvas,
     redraw,
     redrawDirty,
