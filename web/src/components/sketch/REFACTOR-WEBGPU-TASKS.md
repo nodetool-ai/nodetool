@@ -67,22 +67,22 @@ Phase 4 is not a request for more local fixes to `brush`, `pencil`, `eraser`, or
 
 While doing this, introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
 
-- [ ] define one shared transform-aware paint/stroke session model
-- [ ] keep persistent transformed layers as the target model
-- [ ] centralize document-space ↔ layer-space coordinate mapping
-- [ ] separate input sampling/session lifecycle from brush evaluation/rendering
-- [ ] use one shared live preview compositor for brush/pencil/eraser/shapes
-- [ ] keep overlay/cursor/live preview on 2D by default
+- [x] define one shared transform-aware paint/stroke session model
+- [x] keep persistent transformed layers as the target model
+- [x] centralize document-space ↔ layer-space coordinate mapping
+- [x] separate input sampling/session lifecycle from brush evaluation/rendering
+- [x] use one shared live preview compositor for brush/pencil/eraser/shapes
+- [x] keep overlay/cursor/live preview on 2D by default
 - [ ] only reconsider moving overlay/cursor/live preview off 2D if profiling shows a real bottleneck
-- [ ] make moved layers paint correctly without wiping existing pixels
-- [ ] make active-layer preview/commit use the same transformed-layer rules
-- [ ] port brush onto the shared paint session
-- [ ] port pencil onto the shared paint session
-- [ ] port eraser onto the shared paint session
-- [ ] port basic shape commit onto the shared paint session
-- [ ] preserve undo/redo boundaries and stroke-end snapshot behavior
-- [ ] keep `Layer.data` / export / node preview flow unchanged
-- [ ] leave room for future extensible/programmatic brush definitions without changing the session contract
+- [x] make moved layers paint correctly without wiping existing pixels
+- [x] make active-layer preview/commit use the same transformed-layer rules
+- [x] port brush onto the shared paint session
+- [x] port pencil onto the shared paint session
+- [x] port eraser onto the shared paint session
+- [x] port basic shape commit onto the shared paint session
+- [x] preserve undo/redo boundaries and stroke-end snapshot behavior
+- [x] keep `Layer.data` / export / node preview flow unchanged
+- [x] leave room for future extensible/programmatic brush definitions without changing the session contract
 
 Temporary migration allowance: flood fill, blur, clone stamp, adjustments, crop, and selection masking may remain CPU/Canvas2D-backed until the shared paint architecture is stable.
 
@@ -90,14 +90,14 @@ End goal: committed document rendering stays on `WebGPU`, while tool internals m
 
 Done when:
 
-- [ ] brush/pencil/eraser/shapes all use the shared transform-aware paint session
-- [ ] live preview is stable on the shared 2D preview path
-- [ ] transformed layers stay persistent while painting/editing
-- [ ] moved layers keep existing pixels when drawing resumes
-- [ ] overlay/cursor/live preview remain on 2D unless profiling justifies a move
-- [ ] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
-- [ ] stroke end still updates `Layer.data`
-- [ ] node preview still works
+- [x] brush/pencil/eraser/shapes all use the shared transform-aware paint session
+- [x] live preview is stable on the shared 2D preview path
+- [x] transformed layers stay persistent while painting/editing
+- [x] moved layers keep existing pixels when drawing resumes
+- [x] overlay/cursor/live preview remain on 2D unless profiling justifies a move
+- [x] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
+- [x] stroke end still updates `Layer.data`
+- [x] node preview still works
 
 ## Phase 5: Hard tools
 
@@ -132,8 +132,8 @@ Done when:
 
 ## Execution Order
 
-- [ ] Phase 1 → Phase 2 → smoke-test compositing/export/preview
-- [ ] Phase 3 → Phase 4 → smoke-test paint tools
+- [x] Phase 1 → Phase 2 → smoke-test compositing/export/preview
+- [x] Phase 3 → Phase 4 → smoke-test paint tools
 - [ ] Phase 5 → smoke-test hard tools
 - [ ] Phase 6
 

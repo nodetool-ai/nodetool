@@ -37,9 +37,10 @@ export interface PaintSessionSnapshot {
 export class PaintSession {
   // ── Read-only references during stroke ─────────────────────────────
   private engine: PaintEngine;
-  private ctx: ToolContext;
-  private layer: Layer;
-  private mapper: CoordinateMapper;
+  private layer: Layer | null = null;
+  private mapper: CoordinateMapper = new CoordinateMapper({
+    layerTransform: { x: 0, y: 0 }
+  });
 
   // ── Stroke state ──────────────────────────────────────────────────
   private active = false;
@@ -53,12 +54,7 @@ export class PaintSession {
   private alphaSnapshot: ImageData | null = null;
 
   constructor(engine: PaintEngine) {
-    // Engine is set at construction; ctx/layer/mapper are set on begin().
     this.engine = engine;
-    // Placeholder values – overwritten in begin().
-    this.ctx = null as unknown as ToolContext;
-    this.layer = null as unknown as Layer;
-    this.mapper = new CoordinateMapper({ layerTransform: { x: 0, y: 0 } });
   }
 
   /** Replace the engine (e.g. when switching between brush/pencil/eraser). */
@@ -90,7 +86,6 @@ export class PaintSession {
       return false;
     }
 
-    this.ctx = ctx;
     this.layer = activeLayer;
     this.mapper = new CoordinateMapper({
       layerTransform: { x: 0, y: 0 } // After reconcile, offset is always 0
@@ -152,7 +147,7 @@ export class PaintSession {
     if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
       const from = this.mapper.docToLayer(this.lastStrokeEnd);
       const localPt = this.mapper.docToLayer(pt);
-      this.drawStraightLine(paintCtx, from, localPt);
+      this.drawStraightLine(ctx, paintCtx, from, localPt);
     } else if (this.engine.dabOnDown) {
       // Initial dab (e.g. pencil)
       const localPt = this.mapper.docToLayer(pt);
@@ -185,7 +180,7 @@ export class PaintSession {
     _event: ToolPointerEvent,
     coalescedPoints: ToolPointerEvent[]
   ): void {
-    if (!this.active || !this.lastPoint) {
+    if (!this.active || !this.lastPoint || !this.layer) {
       return;
     }
 
@@ -218,7 +213,7 @@ export class PaintSession {
       const smoothPt = this.engine.stabilize(localPt);
 
       // Determine the "from" point
-      const from = this.resolveFromPoint(offset);
+      const from = this.resolveFromPoint();
 
       ctx.withMirror(
         paintCtx,
@@ -257,7 +252,7 @@ export class PaintSession {
   // ─── End ──────────────────────────────────────────────────────────
 
   end(ctx: ToolContext, event: ToolPointerEvent): void {
-    if (!this.active) {
+    if (!this.active || !this.layer) {
       return;
     }
 
@@ -330,26 +325,23 @@ export class PaintSession {
   }
 
   /** Resolve the "from" point for the current segment. */
-  private resolveFromPoint(offset: Point): Point {
+  private resolveFromPoint(): Point {
     if (this.engine.hasStabilizer) {
-      // Use last smoothed point when available, fall back to last raw point
-      return (
-        (this.lastSmoothedPoint
-          ? this.mapper.docToLayer(this.lastSmoothedPoint)
-          : null) ??
-        (this.lastPoint
-          ? this.mapper.docToLayer(this.lastPoint)
-          : { x: 0, y: 0 })
-      );
+      // Use last smoothed point when available, fall back to last raw point.
+      // lastPoint is guaranteed non-null during an active move (checked at
+      // the start of move()), so the fallback chain always resolves.
+      if (this.lastSmoothedPoint) {
+        return this.mapper.docToLayer(this.lastSmoothedPoint);
+      }
+      return this.mapper.docToLayer(this.lastPoint!);
     }
-    // No stabilizer — use the raw last point
-    return this.lastPoint
-      ? this.mapper.docToLayer(this.lastPoint)
-      : { x: 0, y: 0 };
+    // No stabilizer — use the raw last point (guaranteed non-null during move)
+    return this.mapper.docToLayer(this.lastPoint!);
   }
 
   /** Draw a straight line between two layer-local points. */
   private drawStraightLine(
+    toolCtx: ToolContext,
     paintCtx: CanvasRenderingContext2D,
     from: Point,
     to: Point
@@ -367,7 +359,7 @@ export class PaintSession {
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       const current = { x: from.x + dx * t, y: from.y + dy * t };
-      this.ctx.withMirror(
+      toolCtx.withMirror(
         paintCtx,
         (f, tt, c, branchIdx) =>
           this.engine.evaluate(f, tt, c, this.currentPressure, branchIdx),
@@ -380,7 +372,7 @@ export class PaintSession {
 
   /** Restore the original alpha channel after alpha-locked painting. */
   private restoreAlphaLock(ctx: ToolContext): void {
-    if (!this.layer.alphaLock || !this.alphaSnapshot) {
+    if (!this.layer || !this.layer.alphaLock || !this.alphaSnapshot) {
       this.alphaSnapshot = null;
       return;
     }
