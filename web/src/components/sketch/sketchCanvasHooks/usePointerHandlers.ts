@@ -2,8 +2,8 @@
  * usePointerHandlers
  *
  * All pointer event handling for the sketch canvas: down, move, up, wheel.
- * Also manages keyboard modifier tracking (Shift, Space, S, Alt) and
- * tool-specific state refs (shape start, move snapshot, gradient, etc.).
+ * Keyboard modifier tracking and utility callbacks are delegated to
+ * useKeyboardModifiers and usePointerHandlerUtils respectively.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -12,28 +12,19 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform,
-  BlurSettings,
-  CloneStampSettings
+  LayerTransform
 } from "../types";
 import { isShapeTool, isPaintingTool } from "../types";
 import {
-  drawBlurStroke as drawBlurStrokeUtil,
-  drawCloneStampStroke as drawCloneStampStrokeUtil,
   drawGradient as drawGradientUtil,
-  floodFill as floodFillUtil,
-  blendModeToComposite
+  floodFill as floodFillUtil
 } from "../drawingUtils";
-import type { BlurTempCanvases } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import {
-  ensureLayerRasterBounds,
-  getCanvasRasterBounds,
-  getDocumentViewportLayerBounds,
-  getLayerCompositeOffset
-} from "../painting";
+import { getCanvasRasterBounds } from "../painting";
+import { useKeyboardModifiers } from "./useKeyboardModifiers";
+import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
 
 
 export interface UsePointerHandlersParams {
@@ -146,7 +137,7 @@ export function usePointerHandlers({
   onAutoPickLayer,
   foregroundColor = "#000000"
 }: UsePointerHandlersParams): UsePointerHandlersResult {
-  // ─── Interaction state refs ─────────────────────────────────────────
+  // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
   const paintStrokeHasMovedRef = useRef(false);
   const lastPointRef = useRef<Point | null>(null);
@@ -155,10 +146,6 @@ export function usePointerHandlers({
   const isSpacePanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
   const panOffsetRef = useRef<Point>(pan);
-  const shiftHeldRef = useRef(false);
-  const spaceHeldRef = useRef(false);
-  const sKeyHeldRef = useRef(false);
-  const altHeldRef = useRef(false);
   const isSizeDraggingRef = useRef(false);
   const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
   const sizeDragInitialSize = useRef(0);
@@ -170,15 +157,6 @@ export function usePointerHandlers({
   const gradientEndRef = useRef<Point | null>(null);
   const cropStartRef = useRef<Point | null>(null);
   const selectStartRef = useRef<Point | null>(null);
-  const cloneSourceRef = useRef<Point | null>(null);
-  const cloneOffsetRef = useRef<Point | null>(null);
-  const clonePaintOffsetRef = useRef<Point | null>(null);
-  const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const cloneSourceCanvasMetaRef = useRef<{
-    activeLayerId: string;
-    sampling: CloneStampSettings["sampling"];
-    signature: string;
-  } | null>(null);
 
   // Selection movement state
   const isMovingSelectionRef = useRef(false);
@@ -187,429 +165,54 @@ export function usePointerHandlers({
 
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
-  const strokeDirtyRectRef = useRef<{
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  } | null>(null);
   const lastStrokeEndRef = useRef<Point | null>(null);
   const currentPressureRef = useRef<number>(0.5);
   const paintLayerOffsetRef = useRef<Point>({ x: 0, y: 0 });
-
-  // Performance: reusable canvases
-  const blurTempCanvasesRef = useRef<BlurTempCanvases>({
-    tmp: null,
-    blurred: null,
-    mask: null
-  });
 
   // Keep pan offset in sync
   useEffect(() => {
     panOffsetRef.current = pan;
   }, [pan]);
 
-  // ─── Keyboard modifier tracking ────────────────────────────────────
+  // ─── Keyboard modifier tracking ─────────────────────────────────────
+  const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
+    useKeyboardModifiers({ isSpacePanningRef, isSizeDraggingRef });
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Shift") {
-        shiftHeldRef.current = true;
-      }
-      if (e.key === " ") {
-        spaceHeldRef.current = true;
-      }
-      if (e.key === "s" || e.key === "S") {
-        sKeyHeldRef.current = true;
-      }
-      if (e.key === "Alt") {
-        altHeldRef.current = true;
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Shift") {
-        shiftHeldRef.current = false;
-      }
-      if (e.key === " ") {
-        spaceHeldRef.current = false;
-        if (isSpacePanningRef.current) {
-          isSpacePanningRef.current = false;
-        }
-      }
-      if (e.key === "s" || e.key === "S") {
-        sKeyHeldRef.current = false;
-        isSizeDraggingRef.current = false;
-      }
-      if (e.key === "Alt") {
-        altHeldRef.current = false;
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown, true);
-    window.addEventListener("keyup", handleKeyUp, true);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-      window.removeEventListener("keyup", handleKeyUp, true);
-    };
-  }, []);
-
-  // ─── Drawing function wrappers ──────────────────────────────────────
-
-  const drawBlurStroke = useCallback(
-    (
-      from: Point,
-      to: Point,
-      settings: BlurSettings,
-      layerCanvas: HTMLCanvasElement
-    ) => {
-      drawBlurStrokeUtil(
-        from,
-        to,
-        settings,
-        layerCanvas,
-        layerCanvas,
-        strokeDirtyRectRef,
-        blurTempCanvasesRef.current
-      );
-    },
-    []
-  );
-
-  const drawCloneStampStroke = useCallback(
-    (
-      from: Point,
-      to: Point,
-      settings: CloneStampSettings,
-      ctx: CanvasRenderingContext2D
-    ) => {
-      const sourceCanvas = cloneSourceCanvasRef.current;
-      const offset = clonePaintOffsetRef.current ?? cloneOffsetRef.current;
-      if (!sourceCanvas || !offset) {
-        return;
-      }
-      drawCloneStampStrokeUtil(from, to, settings, ctx, sourceCanvas, offset);
-    },
-    []
-  );
-
-  // ─── Coordinate transform ───────────────────────────────────────────
-
-  const screenToCanvas = useCallback(
-    (clientX: number, clientY: number): Point => {
-      const displayCanvas = displayCanvasRef.current;
-      if (!displayCanvas) {
-        return { x: 0, y: 0 };
-      }
-      const rect = displayCanvas.getBoundingClientRect();
-      const x = (clientX - rect.left) / zoom;
-      const y = (clientY - rect.top) / zoom;
-      return { x, y };
-    },
-    [zoom, displayCanvasRef]
-  );
-
-  // ─── Mirror / Symmetry drawing helper ────────────────────────────────
-
-  const withMirror = useCallback(
-    (
-      ctx: CanvasRenderingContext2D,
-      drawFn: (
-        from: Point,
-        to: Point,
-        c: CanvasRenderingContext2D,
-        branchIndex: number
-      ) => void,
-      from: Point,
-      to: Point
-    ) => {
-      const cw = doc.canvas.width;
-      const ch = doc.canvas.height;
-      const cx = cw / 2;
-      const cy = ch / 2;
-
-      // Helper: rotate a point around center
-      const rotatePoint = (p: Point, angle: number): Point => {
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        const dx = p.x - cx;
-        const dy = p.y - cy;
-        return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
-      };
-
-      let branchIndex = 0;
-      const drawBranch = (branchFrom: Point, branchTo: Point) => {
-        drawFn(branchFrom, branchTo, ctx, branchIndex);
-        branchIndex += 1;
-      };
-
-      // Always draw the original stroke
-      drawBranch(from, to);
-
-      switch (symmetryMode) {
-        case "horizontal": {
-          drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
-          break;
-        }
-        case "vertical": {
-          drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
-          break;
-        }
-        case "dual": {
-          drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
-          drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
-          drawBranch(
-            { x: cw - from.x, y: ch - from.y },
-            { x: cw - to.x, y: ch - to.y }
-          );
-          break;
-        }
-        case "radial": {
-          // N-fold rotational symmetry
-          const step = (2 * Math.PI) / symmetryRays;
-          for (let i = 1; i < symmetryRays; i++) {
-            const angle = step * i;
-            drawBranch(rotatePoint(from, angle), rotatePoint(to, angle));
-          }
-          break;
-        }
-        case "mandala": {
-          // N-fold rotational + mirror at each slice
-          const mStep = (2 * Math.PI) / symmetryRays;
-          for (let i = 1; i < symmetryRays; i++) {
-            const angle = mStep * i;
-            drawBranch(rotatePoint(from, angle), rotatePoint(to, angle));
-          }
-          // Mirror: reflect across X axis through center, then rotate
-          const mirroredFrom = { x: cw - from.x, y: from.y };
-          const mirroredTo = { x: cw - to.x, y: to.y };
-          for (let i = 0; i < symmetryRays; i++) {
-            const angle = mStep * i;
-            drawBranch(
-              rotatePoint(mirroredFrom, angle),
-              rotatePoint(mirroredTo, angle)
-            );
-          }
-          break;
-        }
-        default: {
-          // "off" — also handle legacy mirrorX/mirrorY booleans
-          if (mirrorX) {
-            drawBranch(
-              { x: cw - from.x, y: from.y },
-              { x: cw - to.x, y: to.y }
-            );
-          }
-          if (mirrorY) {
-            drawBranch(
-              { x: from.x, y: ch - from.y },
-              { x: to.x, y: ch - to.y }
-            );
-          }
-          if (mirrorX && mirrorY) {
-            drawBranch(
-              { x: cw - from.x, y: ch - from.y },
-              { x: cw - to.x, y: ch - to.y }
-            );
-          }
-          break;
-        }
-      }
-    },
-    [
-      mirrorX,
-      mirrorY,
-      symmetryMode,
-      symmetryRays,
-      doc.canvas.width,
-      doc.canvas.height
-    ]
-  );
-
-  const rgbToHex = useCallback(
-    (r: number, g: number, b: number): string =>
-      `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`,
-    []
-  );
-
-  const clipSelectionForOffset = useCallback(
-    (ctx: CanvasRenderingContext2D, offset: Point) => {
-      if (!selection || selection.width <= 0 || selection.height <= 0) {
-        return false;
-      }
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(
-        selection.x - offset.x,
-        selection.y - offset.y,
-        selection.width,
-        selection.height
-      );
-      ctx.clip();
-      return true;
-    },
-    [selection]
-  );
-
-  const ensureLayerViewportStorage = useCallback(
-    (layerId: string) => {
-      const layer = doc.layers.find((entry) => entry.id === layerId);
-      if (!layer) {
-        return null;
-      }
-      return ensureLayerRasterBounds(
-        {
-          getOrCreateLayerCanvas,
-          layerCanvasesRef,
-          onLayerContentBoundsChange,
-          invalidateLayer
-        } as ToolContext,
-        layer,
-        getDocumentViewportLayerBounds(layer, doc)
-      );
-    },
-    [
-      doc,
-      getOrCreateLayerCanvas,
-      layerCanvasesRef,
-      onLayerContentBoundsChange,
-      invalidateLayer
-    ]
-  );
-
-  const getLayerPaintOffset = useCallback(
-    (layerId: string): Point => {
-      const layer = doc.layers.find((entry) => entry.id === layerId);
-      if (!layer) {
-        return { x: 0, y: 0 };
-      }
-      const layerCanvas = layerCanvasesRef.current.get(layerId);
-      return getLayerCompositeOffset(
-        layer,
-        layerCanvas
-          ? { width: layerCanvas.width, height: layerCanvas.height }
-          : {
-              width: Math.max(1, layer.contentBounds?.width ?? doc.canvas.width),
-              height: Math.max(1, layer.contentBounds?.height ?? doc.canvas.height)
-            },
-        layerCanvas
-      );
-    },
-    [doc, layerCanvasesRef]
-  );
-
-  const getCloneSourceSignature = useCallback(
-    (activeLayerId: string, sampling: CloneStampSettings["sampling"]): string =>
-      [
-        activeLayerId,
-        sampling,
-        doc.metadata.updatedAt,
-        ...doc.layers.map(
-          (layer) =>
-            `${layer.id}:${layer.visible ? 1 : 0}:${layer.opacity}:${
-              layer.blendMode ?? "normal"
-            }:${layer.transform?.x ?? 0}:${layer.transform?.y ?? 0}:${
-              layer.contentBounds?.x ?? 0
-            }:${layer.contentBounds?.y ?? 0}:${
-              layer.contentBounds?.width ?? doc.canvas.width
-            }:${layer.contentBounds?.height ?? doc.canvas.height}`
-        )
-      ].join("|"),
-    [doc]
-  );
-
-  const buildCloneSourceCanvas = useCallback(
-    (
-      activeLayerId: string,
-      sampling: CloneStampSettings["sampling"]
-    ): HTMLCanvasElement | null => {
-      if (sampling === "composited") {
-        const tmp = window.document.createElement("canvas");
-        tmp.width = doc.canvas.width;
-        tmp.height = doc.canvas.height;
-        const tmpCtx = tmp.getContext("2d", { willReadFrequently: true });
-        if (!tmpCtx) {
-          return null;
-        }
-        for (const layer of doc.layers) {
-          if (!layer.visible || layer.type === "mask") {
-            continue;
-          }
-          const lc = layerCanvasesRef.current.get(layer.id);
-          if (!lc) {
-            continue;
-          }
-          const compositeOffset = getLayerPaintOffset(layer.id);
-          tmpCtx.save();
-          tmpCtx.globalAlpha = layer.opacity;
-          tmpCtx.globalCompositeOperation = blendModeToComposite(
-            layer.blendMode || "normal"
-          );
-          tmpCtx.drawImage(lc, compositeOffset.x, compositeOffset.y);
-          tmpCtx.restore();
-        }
-        return tmp;
-      }
-
-      const layerCanvas = getOrCreateLayerCanvas(activeLayerId);
-      const snapshot = window.document.createElement("canvas");
-      snapshot.width = layerCanvas.width;
-      snapshot.height = layerCanvas.height;
-      const snapCtx = snapshot.getContext("2d", { willReadFrequently: true });
-      if (!snapCtx) {
-        return null;
-      }
-      snapCtx.drawImage(layerCanvas, 0, 0);
-      return snapshot;
-    },
-    [doc, layerCanvasesRef, getLayerPaintOffset, getOrCreateLayerCanvas]
-  );
-
-  const drawActiveStrokePreview = useCallback(() => {
-    const overlay = overlayCanvasRef.current;
-    if (!overlay) {
-      return;
-    }
-    const ctx = overlay.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-    const activeStroke = activeStrokeRef.current;
-    if (!activeStroke) {
-      return;
-    }
-
-    const layer = doc.layers.find((candidate) => candidate.id === activeStroke.layerId);
-    const layerCanvas = layerCanvasesRef.current.get(activeStroke.layerId);
-    if (!layer || !layerCanvas) {
-      return;
-    }
-
-    const compositeOffset = getLayerCompositeOffset(layer, {
-      width: layerCanvas.width,
-      height: layerCanvas.height
-    }, layerCanvas);
-    const temp = window.document.createElement("canvas");
-    temp.width = layerCanvas.width;
-    temp.height = layerCanvas.height;
-    const tempCtx = temp.getContext("2d");
-    if (!tempCtx) {
-      return;
-    }
-
-    tempCtx.drawImage(layerCanvas, 0, 0);
-    tempCtx.save();
-    tempCtx.globalAlpha = activeStroke.opacity;
-    tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-    tempCtx.drawImage(activeStroke.buffer, 0, 0);
-    tempCtx.restore();
-
-    ctx.save();
-    ctx.globalAlpha = layer.opacity;
-    ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode);
-    ctx.drawImage(temp, compositeOffset.x, compositeOffset.y);
-    ctx.restore();
-  }, [overlayCanvasRef, activeStrokeRef, doc.layers, layerCanvasesRef]);
+  // ─── Utility callbacks + clone stamp / blur refs ────────────────────
+  const {
+    cloneSourceRef,
+    cloneOffsetRef,
+    clonePaintOffsetRef,
+    cloneSourceCanvasRef,
+    cloneSourceCanvasMetaRef,
+    strokeDirtyRectRef,
+    screenToCanvas,
+    withMirror,
+    rgbToHex,
+    clipSelectionForOffset,
+    ensureLayerViewportStorage,
+    getLayerPaintOffset,
+    getCloneSourceSignature,
+    buildCloneSourceCanvas,
+    drawBlurStroke,
+    drawCloneStampStroke,
+    drawActiveStrokePreview
+  } = usePointerHandlerUtils({
+    zoom,
+    displayCanvasRef,
+    overlayCanvasRef,
+    activeStrokeRef,
+    mirrorX,
+    mirrorY,
+    symmetryMode,
+    symmetryRays,
+    doc,
+    layerCanvasesRef,
+    selection,
+    getOrCreateLayerCanvas,
+    invalidateLayer,
+    onLayerContentBoundsChange
+  });
 
   // ─── Tool context ref ──────────────────────────────────────────────
   // Updated synchronously every render. Handlers read this ref to get
@@ -1076,7 +679,7 @@ export function usePointerHandlers({
         return;
       }
 
-      // ─── Blur: inline path (Phase 5) ──────────────────────────────────
+      // ─── Blur: inline path ─────────────────────────────────────────────
       isDrawingRef.current = true;
       const pt = screenToCanvas(e.clientX, e.clientY);
       lastPointRef.current = pt;
@@ -1169,7 +772,17 @@ export function usePointerHandlers({
       onLayerContentBoundsChange,
       getCloneSourceSignature,
       buildCloneSourceCanvas,
-      drawActiveStrokePreview
+      drawActiveStrokePreview,
+      cloneSourceRef,
+      cloneOffsetRef,
+      clonePaintOffsetRef,
+      cloneSourceCanvasRef,
+      cloneSourceCanvasMetaRef,
+      strokeDirtyRectRef,
+      spaceHeldRef,
+      sKeyHeldRef,
+      shiftHeldRef,
+      altHeldRef
     ]
   );
 
@@ -1392,7 +1005,8 @@ export function usePointerHandlers({
       onLayerTransformChange,
       activeStrokeRef,
       invalidateLayer,
-      drawActiveStrokePreview
+      drawActiveStrokePreview,
+      strokeDirtyRectRef
     ]
   );
 
@@ -1650,7 +1264,11 @@ export function usePointerHandlers({
       mousePositionRef,
       layerCanvasesRef,
       invalidateLayer,
-      onLayerContentBoundsChange
+      onLayerContentBoundsChange,
+      clonePaintOffsetRef,
+      strokeDirtyRectRef,
+      shiftHeldRef,
+      altHeldRef
     ]
   );
 
