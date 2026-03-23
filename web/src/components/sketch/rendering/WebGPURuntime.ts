@@ -546,11 +546,19 @@ export class WebGPURuntime implements SketchRuntime {
       return;
     }
 
-    // Uniforms: opacity, offsetU, offsetV, pad
+    const scaleU = canvasW / texture.width;
+    const scaleV = canvasH / texture.height;
+    // Uniforms:
+    // params0 = [opacity, offsetU, offsetV, pad]
+    // params1 = [canvasW / textureW, canvasH / textureH, pad, pad]
     const uniformData = new Float32Array([
       opacity,
       tx / canvasW,
       ty / canvasH,
+      0.0,
+      scaleU,
+      scaleV,
+      0.0,
       0.0
     ]);
     const uniformBuffer = this.device.createBuffer({

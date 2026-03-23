@@ -66,11 +66,8 @@ fn fs_checkerboard(@location(0) uv: vec2f) -> @location(0) vec4f {
 
 export const LAYER_COMPOSITE_FRAGMENT = /* wgsl */ `
 struct LayerUniforms {
-  opacity: f32,
-  // Offset in UV space (offset_pixels / canvas_pixels)
-  offsetU: f32,
-  offsetV: f32,
-  _pad: f32,
+  params0: vec4f,
+  params1: vec4f,
 };
 
 @group(0) @binding(0) var<uniform> layer: LayerUniforms;
@@ -78,7 +75,10 @@ struct LayerUniforms {
 
 @fragment
 fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let sampleUV = uv - vec2f(layer.offsetU, layer.offsetV);
+  let opacity = layer.params0.x;
+  let offsetUV = layer.params0.yz;
+  let scaleUV = layer.params1.xy;
+  let sampleUV = (uv - offsetUV) * scaleUV;
   // Discard pixels outside the layer texture bounds
   if (sampleUV.x < 0.0 || sampleUV.x >= 1.0 || sampleUV.y < 0.0 || sampleUV.y >= 1.0) {
     return vec4f(0.0, 0.0, 0.0, 0.0);
@@ -86,7 +86,7 @@ fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
   let dims = vec2f(textureDimensions(layerTexture));
   let texel = vec2i(sampleUV * dims);
   let color = textureLoad(layerTexture, texel, 0);
-  return vec4f(color.rgb, color.a * layer.opacity);
+  return vec4f(color.rgb, color.a * opacity);
 }
 `;
 
