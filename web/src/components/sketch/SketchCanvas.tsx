@@ -104,6 +104,8 @@ export interface SketchCanvasProps {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  symmetryMode: string;
+  symmetryRays: number;
   isolatedLayerId?: string | null;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
@@ -135,6 +137,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      symmetryMode,
+      symmetryRays,
       isolatedLayerId,
       onZoomChange,
       onPanChange,
@@ -209,6 +213,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      symmetryMode,
+      symmetryRays,
       selection,
       displayCanvasRef,
       overlayCanvasRef,

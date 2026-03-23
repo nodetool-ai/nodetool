@@ -68,6 +68,14 @@ export function useSketchStoreSelectors() {
   const setSelection = useSketchStore((s) => s.setSelection);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
   const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
+  const mirrorX = useSketchStore((s) => s.mirrorX);
+  const mirrorY = useSketchStore((s) => s.mirrorY);
+  const setMirrorX = useSketchStore((s) => s.setMirrorX);
+  const setMirrorY = useSketchStore((s) => s.setMirrorY);
+  const symmetryMode = useSketchStore((s) => s.symmetryMode);
+  const symmetryRays = useSketchStore((s) => s.symmetryRays);
+  const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
+  const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
 
   // Defensively merge defaults so older/incomplete documents cannot break render.
   const toolSettings = {
@@ -135,6 +143,14 @@ export function useSketchStoreSelectors() {
     setSelection,
     isolatedLayerId,
     toggleIsolateLayer,
+    mirrorX,
+    mirrorY,
+    setMirrorX,
+    setMirrorY,
+    symmetryMode,
+    symmetryRays,
+    setSymmetryMode,
+    setSymmetryRays,
     toolSettings
   };
 }

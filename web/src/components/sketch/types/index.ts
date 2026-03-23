@@ -41,6 +41,20 @@ export interface Selection {
   height: number;
 }
 
+// ─── Symmetry Modes ───────────────────────────────────────────────────────────
+
+export type SymmetryMode =
+  | "off"
+  | "horizontal"
+  | "vertical"
+  | "dual"
+  | "radial"
+  | "mandala";
+
+export const SYMMETRY_MIN_RAYS = 2;
+export const SYMMETRY_MAX_RAYS = 12;
+export const SYMMETRY_DEFAULT_RAYS = 6;
+
 // ─── Tool Types ───────────────────────────────────────────────────────────────
 
 export type SketchTool =

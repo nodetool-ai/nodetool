@@ -41,6 +41,8 @@ export interface UsePointerHandlersParams {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  symmetryMode: string;
+  symmetryRays: number;
   selection?: Selection | null;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -89,6 +91,8 @@ export function usePointerHandlers({
   pan,
   mirrorX,
   mirrorY,
+  symmetryMode,
+  symmetryRays,
   selection,
   displayCanvasRef,
   overlayCanvasRef,
@@ -274,7 +278,7 @@ export function usePointerHandlers({
     [zoom, displayCanvasRef]
   );
 
-  // ─── Mirror drawing helper ──────────────────────────────────────────
+  // ─── Mirror / Symmetry drawing helper ────────────────────────────────
 
   const withMirror = useCallback(
     (
@@ -283,28 +287,79 @@ export function usePointerHandlers({
       from: Point,
       to: Point
     ) => {
+      const cw = doc.canvas.width;
+      const ch = doc.canvas.height;
+      const cx = cw / 2;
+      const cy = ch / 2;
+
+      // Helper: rotate a point around center
+      const rotatePoint = (p: Point, angle: number): Point => {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+      };
+
+      // Always draw the original stroke
       drawFn(from, to, ctx);
-      if (mirrorX) {
-        const cw = doc.canvas.width;
-        const mirroredFrom = { x: cw - from.x, y: from.y };
-        const mirroredTo = { x: cw - to.x, y: to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
-      }
-      if (mirrorY) {
-        const ch = doc.canvas.height;
-        const mirroredFrom = { x: from.x, y: ch - from.y };
-        const mirroredTo = { x: to.x, y: ch - to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
-      }
-      if (mirrorX && mirrorY) {
-        const cw = doc.canvas.width;
-        const ch = doc.canvas.height;
-        const mirroredFrom = { x: cw - from.x, y: ch - from.y };
-        const mirroredTo = { x: cw - to.x, y: ch - to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
+
+      switch (symmetryMode) {
+        case "horizontal": {
+          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          break;
+        }
+        case "vertical": {
+          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          break;
+        }
+        case "dual": {
+          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+          break;
+        }
+        case "radial": {
+          // N-fold rotational symmetry
+          const step = (2 * Math.PI) / symmetryRays;
+          for (let i = 1; i < symmetryRays; i++) {
+            const angle = step * i;
+            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+          }
+          break;
+        }
+        case "mandala": {
+          // N-fold rotational + mirror at each slice
+          const mStep = (2 * Math.PI) / symmetryRays;
+          for (let i = 1; i < symmetryRays; i++) {
+            const angle = mStep * i;
+            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+          }
+          // Mirror: reflect across X axis through center, then rotate
+          const mirroredFrom = { x: cw - from.x, y: from.y };
+          const mirroredTo = { x: cw - to.x, y: to.y };
+          for (let i = 0; i < symmetryRays; i++) {
+            const angle = mStep * i;
+            drawFn(rotatePoint(mirroredFrom, angle), rotatePoint(mirroredTo, angle), ctx);
+          }
+          break;
+        }
+        default: {
+          // "off" — also handle legacy mirrorX/mirrorY booleans
+          if (mirrorX) {
+            drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          }
+          if (mirrorY) {
+            drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          }
+          if (mirrorX && mirrorY) {
+            drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+          }
+          break;
+        }
       }
     },
-    [mirrorX, mirrorY, doc.canvas.width, doc.canvas.height]
+    [mirrorX, mirrorY, symmetryMode, symmetryRays, doc.canvas.width, doc.canvas.height]
   );
 
   // ─── Stabilizer ─────────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import {
   Point,
   Selection,
   ColorMode,
+  SymmetryMode,
+  SYMMETRY_DEFAULT_RAYS,
   BrushSettings,
   PencilSettings,
   EraserSettings,
@@ -103,11 +105,15 @@ export interface SketchStore {
   isolatedLayerId: string | null;
   toggleIsolateLayer: (layerId: string) => void;
 
-  // ─── Mirror State ─────────────────────────────────────────────────────────
+  // ─── Mirror / Symmetry State ────────────────────────────────────────────
   mirrorX: boolean;
   mirrorY: boolean;
   setMirrorX: (v: boolean) => void;
   setMirrorY: (v: boolean) => void;
+  symmetryMode: SymmetryMode;
+  symmetryRays: number;
+  setSymmetryMode: (mode: SymmetryMode) => void;
+  setSymmetryRays: (rays: number) => void;
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   panelsHidden: boolean;
@@ -144,6 +150,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   isolatedLayerId: null,
   mirrorX: false,
   mirrorY: false,
+  symmetryMode: "off" as SymmetryMode,
+  symmetryRays: SYMMETRY_DEFAULT_RAYS,
   panelsHidden: false,
 
   // ─── Document Actions ─────────────────────────────────────────────────
@@ -295,6 +303,15 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setIsDrawing: (isDrawing: boolean) => set({ isDrawing }),
   setMirrorX: (v: boolean) => set({ mirrorX: v }),
   setMirrorY: (v: boolean) => set({ mirrorY: v }),
+  setSymmetryMode: (mode: SymmetryMode) => {
+    // Keep mirrorX/mirrorY in sync for backward compatibility
+    set({
+      symmetryMode: mode,
+      mirrorX: mode === "horizontal" || mode === "dual",
+      mirrorY: mode === "vertical" || mode === "dual"
+    });
+  },
+  setSymmetryRays: (rays: number) => set({ symmetryRays: Math.max(2, Math.min(12, rays)) }),
 
   // ─── Layer Actions ────────────────────────────────────────────────────
   setActiveLayer: (layerId: string) =>

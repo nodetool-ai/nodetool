@@ -11,7 +11,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, IconButton, Typography, Tooltip, Divider, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box, IconButton, Typography, Tooltip, Divider, Menu, MenuItem, ListItemIcon, ListItemText, Slider } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import TrashIconSvg from "../../icons/trash.svg?react";
 const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
@@ -25,7 +25,7 @@ import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import CheckIcon from "@mui/icons-material/Check";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
 import { useSketchStore } from "./state";
-import { SketchDocument } from "./types";
+import { SketchDocument, SymmetryMode, SYMMETRY_MIN_RAYS, SYMMETRY_MAX_RAYS } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -80,16 +80,24 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
 
-  const mirrorX = useSketchStore((s) => s.mirrorX);
-  const mirrorY = useSketchStore((s) => s.mirrorY);
-  const setMirrorX = useSketchStore((s) => s.setMirrorX);
-  const setMirrorY = useSketchStore((s) => s.setMirrorY);
+  const symmetryMode = useSketchStore((s) => s.symmetryMode);
+  const symmetryRays = useSketchStore((s) => s.symmetryRays);
+  const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
+  const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
   const canUndo = useSketchStore((s) => s.canUndo);
   const canRedo = useSketchStore((s) => s.canRedo);
 
-  // Derive symmetry mode label from state
-  const symmetryLabel = mirrorX && mirrorY ? "Dual Axis" : mirrorX ? "Horizontal" : mirrorY ? "Vertical" : "Off";
-  const symmetryActive = mirrorX || mirrorY;
+  // Derive label from mode
+  const symmetryLabels: Record<SymmetryMode, string> = {
+    off: "Off",
+    horizontal: "Horizontal (M)",
+    vertical: "Vertical (⇧M)",
+    dual: "Dual Axis",
+    radial: `Radial (${symmetryRays})`,
+    mandala: `Mandala (${symmetryRays})`
+  };
+  const symmetryLabel = symmetryLabels[symmetryMode] || "Off";
+  const symmetryActive = symmetryMode !== "off";
 
   useEffect(() => {
     if (!open) { setConfirmDiscard(false); }
@@ -155,36 +163,35 @@ const SketchModal: React.FC<SketchModalProps> = ({
             onClose={() => setSymmetryAnchorEl(null)}
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             transformOrigin={{ vertical: "top", horizontal: "left" }}
-            slotProps={{ paper: { sx: { minWidth: 160 } } }}
+            slotProps={{ paper: { sx: { minWidth: 180 } } }}
           >
-            <MenuItem
-              onClick={() => { setMirrorX(false); setMirrorY(false); setSymmetryAnchorEl(null); }}
-              selected={!mirrorX && !mirrorY}
-            >
-              {!mirrorX && !mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!(!mirrorX && !mirrorY)}>Off</ListItemText>
-            </MenuItem>
-            <MenuItem
-              onClick={() => { setMirrorX(true); setMirrorY(false); setSymmetryAnchorEl(null); }}
-              selected={mirrorX && !mirrorY}
-            >
-              {mirrorX && !mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!(mirrorX && !mirrorY)}>Horizontal (M)</ListItemText>
-            </MenuItem>
-            <MenuItem
-              onClick={() => { setMirrorX(false); setMirrorY(true); setSymmetryAnchorEl(null); }}
-              selected={!mirrorX && mirrorY}
-            >
-              {!mirrorX && mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!(!mirrorX && mirrorY)}>Vertical (⇧M)</ListItemText>
-            </MenuItem>
-            <MenuItem
-              onClick={() => { setMirrorX(true); setMirrorY(true); setSymmetryAnchorEl(null); }}
-              selected={mirrorX && mirrorY}
-            >
-              {mirrorX && mirrorY && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-              <ListItemText inset={!(mirrorX && mirrorY)}>Dual Axis</ListItemText>
-            </MenuItem>
+            {(["off", "horizontal", "vertical", "dual", "radial", "mandala"] as SymmetryMode[]).map((mode) => (
+              <MenuItem
+                key={mode}
+                onClick={() => { setSymmetryMode(mode); if (mode !== "radial" && mode !== "mandala") { setSymmetryAnchorEl(null); } }}
+                selected={symmetryMode === mode}
+              >
+                {symmetryMode === mode && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
+                <ListItemText inset={symmetryMode !== mode}>{symmetryLabels[mode]}</ListItemText>
+              </MenuItem>
+            ))}
+            {(symmetryMode === "radial" || symmetryMode === "mandala") && (
+              <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
+                <Typography variant="caption" sx={{ color: "grey.500" }}>
+                  Rays: {symmetryRays}
+                </Typography>
+                <Slider
+                  value={symmetryRays}
+                  min={SYMMETRY_MIN_RAYS}
+                  max={SYMMETRY_MAX_RAYS}
+                  step={1}
+                  marks
+                  size="small"
+                  onChange={(_, v) => setSymmetryRays(v as number)}
+                  sx={{ mt: 0.5 }}
+                />
+              </Box>
+            )}
           </Menu>
 
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
