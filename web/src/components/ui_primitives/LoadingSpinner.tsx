@@ -87,7 +87,13 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <Box css={styles(theme, variant, size)} className={`loading-spinner ${className || ""}`}>
+    <Box
+      css={styles(theme, variant, size)}
+      className={`loading-spinner ${className || ""}`}
+      role="status"
+      aria-live="polite"
+      aria-label={text || "Loading"}
+    >
       {renderContent()}
       {text && (
         <Typography className="loading-text" variant="body2">
