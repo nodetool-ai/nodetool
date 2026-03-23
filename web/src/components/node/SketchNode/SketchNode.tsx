@@ -511,7 +511,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           id={props.id}
           data={props.data}
           hasParent={hasParent}
-          metadataTitle="Sketch Input"
+          metadataTitle="Image Editor"
           selected={props.selected}
           backgroundColor="transparent"
           iconType="image"
@@ -523,15 +523,15 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         <div className="content" onClick={handleOpenEditor}>
           {previewUrl ? (
             <>
-              <img className="preview-image" src={previewUrl} alt="Sketch preview" />
+              <img className="preview-image" src={previewUrl} alt="Image editor preview" />
               <div className="edit-overlay">
                 <EditIcon sx={{ fontSize: 32, color: "white" }} />
-                <span className="edit-overlay-label">Edit Sketch</span>
+                <span className="edit-overlay-label">Edit Image</span>
               </div>
             </>
           ) : (
             <Typography className="hint">
-              Click to open sketch editor
+              Click to open image editor
             </Typography>
           )}
         </div>
@@ -542,7 +542,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
       <SketchModal
         open={isModalOpen}
-        title="Sketch Editor"
+        title="Image Editor"
         initialDocument={editorDocument || sketchDoc}
         onClose={handleCloseEditor}
         onDocumentChange={handleDocumentChange}

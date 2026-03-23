@@ -142,7 +142,7 @@ const SketchProperty = (props: PropertyProps) => {
         onClick={handleOpenModal}
         role="button"
         tabIndex={0}
-        aria-label={`Edit sketch: ${props.property.name}`}
+        aria-label={`Edit image: ${props.property.name}`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             handleOpenModal();
@@ -150,7 +150,7 @@ const SketchProperty = (props: PropertyProps) => {
         }}
       >
         {previewUrl ? (
-          <img src={previewUrl} alt="Sketch preview" />
+          <img src={previewUrl} alt="Image editor preview" />
         ) : (
           <Box
             sx={{
@@ -181,7 +181,7 @@ const SketchProperty = (props: PropertyProps) => {
 
       <SketchModal
         open={isModalOpen}
-        title={props.property.name || "Sketch Editor"}
+        title={props.property.name || "Image Editor"}
         initialDocument={getDocument()}
         onClose={handleCloseModal}
         onSave={handleSave}

@@ -16,8 +16,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useRef,
-  useState
+  useRef
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -74,8 +73,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 }, ref) {
   const theme = useTheme();
   const canvasRef = useRef<SketchCanvasRef>(null);
-  const [mirrorX, setMirrorX] = useState(false);
-  const [mirrorY, setMirrorY] = useState(false);
   // Snapshot of the document as it was when the editor first loaded
   const initialDocumentRef = useRef(initialDocument);
 
@@ -169,8 +166,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     setActiveTool: store.setActiveTool,
     setZoom: store.setZoom,
-    setMirrorX,
-    setMirrorY,
+    setMirrorX: store.setMirrorX,
+    setMirrorY: store.setMirrorY,
     setBrushSettings: store.setBrushSettings,
     setPencilSettings: store.setPencilSettings,
     setEraserSettings: store.setEraserSettings,
@@ -300,8 +297,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             activeTool={store.activeTool}
             zoom={store.zoom}
             pan={store.pan}
-            mirrorX={mirrorX}
-            mirrorY={mirrorY}
+            mirrorX={store.mirrorX}
+            mirrorY={store.mirrorY}
+            symmetryMode={store.symmetryMode}
+            symmetryRays={store.symmetryRays}
             isolatedLayerId={store.isolatedLayerId}
             onZoomChange={store.setZoom}
             onPanChange={store.setPan}
@@ -313,6 +312,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onEyedropperPick={colorActions.handleEyedropperPick}
             selection={store.selection}
             onSelectionChange={store.setSelection}
+            onAutoPickLayer={store.setActiveLayer}
           />
         </Box>
       </Box>

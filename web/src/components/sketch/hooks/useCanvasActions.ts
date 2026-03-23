@@ -84,7 +84,7 @@ export function useCanvasActions({
     }
   }, [document.activeLayerId, pushHistory, updateLayerData, canvasRef]);
 
-  // ─── Fill layer with color ─────────────────────────────────────────
+  // ─── Fill layer with color (respects selection) ─────────────────
   const handleFillLayerWithColor = useCallback(
     (color: string) => {
       const activeLayerId = document.activeLayerId;
@@ -92,8 +92,14 @@ export function useCanvasActions({
       if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
         return;
       }
-      pushHistory("fill layer");
-      canvasRef.current.fillLayerWithColor(activeLayerId, color);
+      const sel = useSketchStore.getState().selection;
+      if (sel && sel.width > 0 && sel.height > 0) {
+        pushHistory("fill selection");
+        canvasRef.current.fillLayerRect(activeLayerId, sel.x, sel.y, sel.width, sel.height, color);
+      } else {
+        pushHistory("fill layer");
+        canvasRef.current.fillLayerWithColor(activeLayerId, color);
+      }
       const data = canvasRef.current.getLayerData(activeLayerId);
       updateLayerData(activeLayerId, data);
     },
@@ -126,7 +132,7 @@ export function useCanvasActions({
       return;
     }
     const link = window.document.createElement("a");
-    link.download = "sketch-export.png";
+    link.download = "image-editor-export.png";
     link.href = dataUrl;
     link.click();
   }, [canvasRef]);

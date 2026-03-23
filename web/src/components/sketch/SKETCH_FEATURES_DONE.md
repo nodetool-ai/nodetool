@@ -234,6 +234,21 @@
 - [x] **Layer thumbnail transparency** — layer preview thumbnails now show a checkerboard pattern for transparent areas instead of solid black (CSS `repeating-conic-gradient`)
 - [x] **Selection persists across tools** — marching ants selection overlay remains visible when switching to non-select tools and after shape/gradient/crop operations complete
 - [x] **Deferred toDataURL for performance** — layer PNG encoding after each stroke is now deferred to the next animation frame via `requestAnimationFrame`, eliminating the small stutter after drawing
+- [x] **Renamed to Image Editor** — user-visible text updated from "Sketch Input" / "Sketch Editor" to "Image Editor" across node header, modal title, property widget, and edit overlays
+- [x] **Symmetry dropdown** — consolidated two separate mirror buttons into a single dropdown menu with Off / Horizontal (M) / Vertical (⇧M) / Dual Axis options; icon highlights when symmetry is active
+- [x] **Selection movement** — drag inside an existing selection to reposition it without redrawing
+- [x] **Selection add/subtract** — Shift+drag to add (union) a new rectangle to existing selection; Alt+drag to subtract from selection
+- [x] **Delete respects selection** — Delete/Backspace key clears only the selected area on the active layer when a selection exists, otherwise clears the entire layer
+- [x] **Selection constrains painting** — when a rectangular selection exists, brush, pencil, eraser, blur, clone stamp, and fill tools only affect pixels within the selection region (via canvas clip path)
+- [x] **Invert selection (Ctrl+Shift+I)** — inverts selection to full canvas (approximation for rectangular selections)
+- [x] **Reselect last selection (Ctrl+Shift+D)** — stores the last selection when deselecting; Ctrl+Shift+D restores it
+- [x] **Improved brush cursor preview** — cursor now shows elliptical shape for non-default roundness and rotates for non-zero brush angle; uses `ctx.ellipse()` with save/restore transform
+- [x] **Move tool padding fix** — increased move snapshot padding from 1x to 4x canvas max dimension, preserving layer content during large moves outside canvas bounds
+- [x] **Color picker improvements** — added opacity/alpha slider with gradient rail, and old→new color comparison swatch strip at the bottom of the picker popover
+- [x] **Extended symmetry modes** — added Radial and Mandala modes to symmetry dropdown with configurable ray count (2-12); `withMirror()` uses N-fold rotational math; consolidated mirror state from local SketchEditor state to Zustand store
+- [x] **Dirty-rect compositing** — `requestDirtyRedraw(x, y, w, h)` clips compositing to the dirty region during painting, merges multiple dirty rects per animation frame, automatically falls back to full redraw for non-painting operations
+- [x] **1px anti-aliased pencil** — pixel-grid snapping (`round(x-0.5)+0.5`) for crisp hairline strokes with consistent visual weight at any zoom level
+- [x] **Move tool auto-pick layer** — Alt+click with the move tool scans layers top-to-bottom and switches to the first layer with a non-transparent pixel at the click point
 
 #### Sketch command palette (canvas context menu)
 

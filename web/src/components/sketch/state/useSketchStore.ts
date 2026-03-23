@@ -15,6 +15,8 @@ import {
   Point,
   Selection,
   ColorMode,
+  SymmetryMode,
+  SYMMETRY_DEFAULT_RAYS,
   BrushSettings,
   PencilSettings,
   EraserSettings,
@@ -93,18 +95,25 @@ export interface SketchStore {
 
   // ─── Selection ────────────────────────────────────────────────────────────
   selection: Selection | null;
+  lastSelection: Selection | null;
   setSelection: (sel: Selection | null) => void;
   selectAll: () => void;
+  invertSelection: () => void;
+  reselectLastSelection: () => void;
 
   // ─── Layer Isolation ──────────────────────────────────────────────────────
   isolatedLayerId: string | null;
   toggleIsolateLayer: (layerId: string) => void;
 
-  // ─── Mirror State ─────────────────────────────────────────────────────────
+  // ─── Mirror / Symmetry State ────────────────────────────────────────────
   mirrorX: boolean;
   mirrorY: boolean;
   setMirrorX: (v: boolean) => void;
   setMirrorY: (v: boolean) => void;
+  symmetryMode: SymmetryMode;
+  symmetryRays: number;
+  setSymmetryMode: (mode: SymmetryMode) => void;
+  setSymmetryRays: (rays: number) => void;
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   panelsHidden: boolean;
@@ -137,9 +146,12 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   backgroundColor: "#000000",
   colorMode: "hex" as ColorMode,
   selection: null,
+  lastSelection: null,
   isolatedLayerId: null,
   mirrorX: false,
   mirrorY: false,
+  symmetryMode: "off" as SymmetryMode,
+  symmetryRays: SYMMETRY_DEFAULT_RAYS,
   panelsHidden: false,
 
   // ─── Document Actions ─────────────────────────────────────────────────
@@ -291,6 +303,15 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setIsDrawing: (isDrawing: boolean) => set({ isDrawing }),
   setMirrorX: (v: boolean) => set({ mirrorX: v }),
   setMirrorY: (v: boolean) => set({ mirrorY: v }),
+  setSymmetryMode: (mode: SymmetryMode) => {
+    // Keep mirrorX/mirrorY in sync for backward compatibility
+    set({
+      symmetryMode: mode,
+      mirrorX: mode === "horizontal" || mode === "dual",
+      mirrorY: mode === "vertical" || mode === "dual"
+    });
+  },
+  setSymmetryRays: (rays: number) => set({ symmetryRays: Math.max(2, Math.min(12, rays)) }),
 
   // ─── Layer Actions ────────────────────────────────────────────────────
   setActiveLayer: (layerId: string) =>
@@ -564,7 +585,15 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setColorMode: (mode: ColorMode) => set({ colorMode: mode }),
 
   // ─── Selection ──────────────────────────────────────────────────────────
-  setSelection: (sel: Selection | null) => set({ selection: sel }),
+  setSelection: (sel: Selection | null) => {
+    const current = get().selection;
+    // Store the last non-null selection for Ctrl+Shift+D reselect
+    if (current && !sel) {
+      set({ selection: sel, lastSelection: current });
+    } else {
+      set({ selection: sel });
+    }
+  },
   selectAll: () => {
     const state = get();
     set({
@@ -575,6 +604,19 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         height: state.document.canvas.height
       }
     });
+  },
+  invertSelection: () => {
+    // With only rectangular selections, true inversion is not possible.
+    // Both cases (no selection, existing selection) select the full canvas
+    // as an approximation until non-rectangular selection support is added.
+    const { width: cw, height: ch } = get().document.canvas;
+    set({ selection: { x: 0, y: 0, width: cw, height: ch } });
+  },
+  reselectLastSelection: () => {
+    const last = get().lastSelection;
+    if (last) {
+      set({ selection: last });
+    }
   },
 
   // ─── Layer Isolation ────────────────────────────────────────────────────

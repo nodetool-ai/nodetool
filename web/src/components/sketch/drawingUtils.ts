@@ -459,19 +459,26 @@ export function drawPencilStroke(
     );
   };
 
-  // Keep the smallest pencil size as a true anti-aliased 1px line.
+  // True 1px anti-aliased pencil: use a crisp hairline stroke.
+  // Coordinates are snapped to nearest pixel center (x+0.5) for
+  // consistent visual weight at any zoom level.
   if (effectiveSize <= 1.5) {
     ctx.save();
     ctx.globalAlpha = effectiveOpacity;
     ctx.globalCompositeOperation = "source-over";
     ctx.strokeStyle = settings.color;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(0.5, effectiveSize);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.imageSmoothingEnabled = true;
+
+    // Snap to pixel grid for crisp lines at 1px
+    const snapX = (v: number) => Math.round(v - 0.5) + 0.5;
+    const snapY = (v: number) => Math.round(v - 0.5) + 0.5;
+
     ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
+    ctx.moveTo(snapX(from.x), snapY(from.y));
+    ctx.lineTo(snapX(to.x), snapY(to.y));
     ctx.stroke();
     ctx.restore();
     markDirtyRect(from, to, 1);
