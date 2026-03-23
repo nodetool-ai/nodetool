@@ -31,14 +31,14 @@ export class ShapeTool implements ToolHandler {
     return true;
   }
 
-  onMove(ctx: ToolContext, event: ToolPointerEvent): void {
+  onMove(ctx: ToolContext, event: ToolPointerEvent, _coalescedPoints?: ToolPointerEvent[]): void {
     if (!this.shapeStart) {
       return;
     }
     ctx.drawOverlayShape(this.shapeStart, event.point);
   }
 
-  onUp(ctx: ToolContext): void {
+  onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
     if (!this.shapeStart) {
       return;
     }
