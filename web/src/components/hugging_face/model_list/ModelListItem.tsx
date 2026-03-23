@@ -52,6 +52,10 @@ const ModelListItem: React.FC<
     setDialogOpen(true);
   }, []);
 
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
+
   const compatibilityCounts = useMemo(() => {
     if (!compatibility) {return { total: 0 };}
     return {
@@ -272,7 +276,7 @@ const ModelListItem: React.FC<
       {compatibility && (
         <ModelCompatibilityDialog
           open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
+          onClose={handleCloseDialog}
           model={model}
           compatibility={compatibility}
         />
