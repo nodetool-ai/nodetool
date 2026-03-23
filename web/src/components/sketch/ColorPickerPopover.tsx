@@ -258,6 +258,51 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         />
       </Box>
 
+      {/* Opacity slider */}
+      <Box sx={{ px: "4px" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Typography sx={{ fontSize: SKETCH_FONT.xs, color: "grey.400", minWidth: "24px" }}>A</Typography>
+          <Slider
+            value={Math.round(a * 100)}
+            min={0}
+            max={100}
+            step={1}
+            onChange={(_, val) => {
+              const newA = (val as number) / 100;
+              onColorChange(rgbaToCss({ r, g, b, a: newA }));
+            }}
+            sx={{
+              height: "8px",
+              padding: "0 !important",
+              "& .MuiSlider-rail": {
+                background: `linear-gradient(to right, rgba(${r},${g},${b},0) 0%, rgb(${r},${g},${b}) 100%)`,
+                opacity: 1,
+                height: "8px",
+                borderRadius: "3px"
+              },
+              "& .MuiSlider-track": { display: "none" },
+              "& .MuiSlider-thumb": {
+                width: "12px",
+                height: "12px",
+                border: "2px solid #fff",
+                boxShadow: "0 0 0 1px rgba(0,0,0,0.4)",
+                backgroundColor: `rgba(${r},${g},${b},${a})`,
+                "&:hover, &.Mui-focusVisible": { boxShadow: "0 0 0 2px rgba(255,255,255,0.3)" }
+              }
+            }}
+          />
+          <Typography sx={{ fontSize: SKETCH_FONT.xs, color: "grey.400", minWidth: "28px", textAlign: "right" }}>
+            {Math.round(a * 100)}%
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Color preview: old → new */}
+      <Box sx={{ display: "flex", gap: "2px", height: "20px", borderRadius: "3px", overflow: "hidden" }}>
+        <Box sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
+        <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
+      </Box>
+
       {/* Mode toggle */}
       <ToggleButtonGroup
         value={mode}

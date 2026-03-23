@@ -16,7 +16,8 @@ beforeEach(() => {
     useSketchStore.getState().resetDocument();
     useSketchStore.getState().setMirrorX(false);
     useSketchStore.getState().setMirrorY(false);
-    useSketchStore.getState().setSelection(null);
+    // Reset selection and lastSelection by setting selection directly via store
+    useSketchStore.setState({ selection: null, lastSelection: null });
   });
 });
 
@@ -217,5 +218,67 @@ describe("Mirror/symmetry state", () => {
     });
     expect(useSketchStore.getState().mirrorX).toBe(false);
     expect(useSketchStore.getState().mirrorY).toBe(false);
+  });
+});
+
+describe("Invert selection", () => {
+  it("invertSelection with no selection selects all", () => {
+    act(() => {
+      useSketchStore.getState().invertSelection();
+    });
+    const sel = useSketchStore.getState().selection;
+    const { width, height } = useSketchStore.getState().document.canvas;
+    expect(sel).toEqual({ x: 0, y: 0, width, height });
+  });
+
+  it("invertSelection with existing selection selects all (approx invert)", () => {
+    act(() => {
+      useSketchStore.getState().setSelection({ x: 10, y: 10, width: 50, height: 50 });
+    });
+    act(() => {
+      useSketchStore.getState().invertSelection();
+    });
+    const sel = useSketchStore.getState().selection;
+    const { width, height } = useSketchStore.getState().document.canvas;
+    expect(sel).toEqual({ x: 0, y: 0, width, height });
+  });
+});
+
+describe("Reselect last selection", () => {
+  it("lastSelection starts as null", () => {
+    expect(useSketchStore.getState().lastSelection).toBeNull();
+  });
+
+  it("deselecting stores the previous selection as lastSelection", () => {
+    const testSel = { x: 20, y: 30, width: 100, height: 60 };
+    act(() => {
+      useSketchStore.getState().setSelection(testSel);
+    });
+    act(() => {
+      useSketchStore.getState().setSelection(null);
+    });
+    expect(useSketchStore.getState().selection).toBeNull();
+    expect(useSketchStore.getState().lastSelection).toEqual(testSel);
+  });
+
+  it("reselectLastSelection restores the previous selection", () => {
+    const testSel = { x: 20, y: 30, width: 100, height: 60 };
+    act(() => {
+      useSketchStore.getState().setSelection(testSel);
+    });
+    act(() => {
+      useSketchStore.getState().setSelection(null);
+    });
+    act(() => {
+      useSketchStore.getState().reselectLastSelection();
+    });
+    expect(useSketchStore.getState().selection).toEqual(testSel);
+  });
+
+  it("reselectLastSelection does nothing when no last selection exists", () => {
+    act(() => {
+      useSketchStore.getState().reselectLastSelection();
+    });
+    expect(useSketchStore.getState().selection).toBeNull();
   });
 });

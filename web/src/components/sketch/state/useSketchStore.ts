@@ -93,8 +93,11 @@ export interface SketchStore {
 
   // ─── Selection ────────────────────────────────────────────────────────────
   selection: Selection | null;
+  lastSelection: Selection | null;
   setSelection: (sel: Selection | null) => void;
   selectAll: () => void;
+  invertSelection: () => void;
+  reselectLastSelection: () => void;
 
   // ─── Layer Isolation ──────────────────────────────────────────────────────
   isolatedLayerId: string | null;
@@ -137,6 +140,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   backgroundColor: "#000000",
   colorMode: "hex" as ColorMode,
   selection: null,
+  lastSelection: null,
   isolatedLayerId: null,
   mirrorX: false,
   mirrorY: false,
@@ -564,7 +568,15 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setColorMode: (mode: ColorMode) => set({ colorMode: mode }),
 
   // ─── Selection ──────────────────────────────────────────────────────────
-  setSelection: (sel: Selection | null) => set({ selection: sel }),
+  setSelection: (sel: Selection | null) => {
+    const current = get().selection;
+    // Store the last non-null selection for Ctrl+Shift+D reselect
+    if (current && !sel) {
+      set({ selection: sel, lastSelection: current });
+    } else {
+      set({ selection: sel });
+    }
+  },
   selectAll: () => {
     const state = get();
     set({
@@ -575,6 +587,27 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         height: state.document.canvas.height
       }
     });
+  },
+  invertSelection: () => {
+    const state = get();
+    const { width: cw, height: ch } = state.document.canvas;
+    const sel = state.selection;
+    if (!sel) {
+      // No selection → select all
+      set({ selection: { x: 0, y: 0, width: cw, height: ch } });
+      return;
+    }
+    // Invert: select the full canvas (since we only support rectangular
+    // selections, a true pixel-accurate invert isn't possible — we select
+    // the bounding complement which is the full canvas minus the interior,
+    // but since that's non-rectangular, we select all as the best approximation)
+    set({ selection: { x: 0, y: 0, width: cw, height: ch } });
+  },
+  reselectLastSelection: () => {
+    const last = get().lastSelection;
+    if (last) {
+      set({ selection: last });
+    }
   },
 
   // ─── Layer Isolation ────────────────────────────────────────────────────

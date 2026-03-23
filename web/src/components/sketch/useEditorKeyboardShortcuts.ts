@@ -85,9 +85,20 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           useSketchStore.getState().selectAll();
         }
-        if (e.key === "d") {
+        // Ctrl+Shift+D → reselect last selection
+        if (e.key === "D" && e.shiftKey) {
+          e.preventDefault();
+          useSketchStore.getState().reselectLastSelection();
+        }
+        // Ctrl+D → deselect (only when Shift is NOT held)
+        else if (e.key === "d" && !e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().setSelection(null);
+        }
+        // Ctrl+Shift+I → invert selection
+        if (e.key === "I" && e.shiftKey) {
+          e.preventDefault();
+          useSketchStore.getState().invertSelection();
         }
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {
