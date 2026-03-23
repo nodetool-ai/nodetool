@@ -37,6 +37,7 @@ import {
   serializeDocument,
   flattenDocument,
   exportMask,
+  exportLayer,
   canvasToDataUrl,
   loadImageWithDimensions
 } from "../../sketch";
@@ -396,9 +397,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           // Export individual layers marked as exposedAsOutput
           for (const layer of sketchDoc.layers) {
             if (layer.exposedAsOutput && layer.data) {
+              const layerCanvas = await exportLayer(sketchDoc, layer.id);
+              if (!layerCanvas) {
+                continue;
+              }
               outputProps[`layer_out_${layer.name}`] = {
                 type: "image",
-                uri: layer.data,
+                uri: canvasToDataUrl(layerCanvas),
                 asset_id: null,
                 data: null
               };

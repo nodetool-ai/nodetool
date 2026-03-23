@@ -17,7 +17,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
 import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
-import { setCanvasRasterBounds } from "../painting";
 
 // Re-export so existing consumers keep compiling.
 export type { ActiveStrokeInfo } from "../rendering";
@@ -118,7 +117,10 @@ export function useCompositing({
   }, []);
 
   const layerHydrationSignature = doc.layers
-    .map((layer) => `${layer.id}:${layer.data ?? ""}`)
+    .map(
+      (layer) =>
+        `${layer.id}:${layer.data ?? ""}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${layer.contentBounds?.width ?? doc.canvas.width}:${layer.contentBounds?.height ?? doc.canvas.height}`
+    )
     .join("|");
 
   // ─── Layer Canvas Management ────────────────────────────────────────
@@ -159,7 +161,9 @@ export function useCompositing({
       // img.onload captured before the WebGPU upgrade) still end up calling
       // the current runtime instead of the old Canvas2DRuntime.
       const rt = runtimeRef.current;
-      if (!rt) return;
+      if (!rt) {
+        return;
+      }
       // WebGPU owns committed content only. Live paint preview is drawn on the
       // separate 2D overlay, so the base composite hides the active layer while
       // a stroke is in progress to avoid double-drawing it underneath.
@@ -180,7 +184,6 @@ export function useCompositing({
     // functions derived from it) is recreated when the backend switches to
     // WebGPU, which causes the [requestRedraw, doc.layers] effect to fire and
     // trigger the first WebGPU frame.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [doc, isolatedLayerId, activeStrokeRef, backend]
   );
 
@@ -296,54 +299,27 @@ export function useCompositing({
     }
 
     for (const layer of doc.layers) {
-      const canvas = getOrCreateLayerCanvas(layer.id);
       const rasterWidth = Math.max(1, layer.contentBounds?.width ?? doc.canvas.width);
       const rasterHeight = Math.max(1, layer.contentBounds?.height ?? doc.canvas.height);
-      const sizeChanged =
-        canvas.width !== rasterWidth || canvas.height !== rasterHeight;
-      if (sizeChanged) {
-        canvas.width = rasterWidth;
-        canvas.height = rasterHeight;
-      }
-      setCanvasRasterBounds(canvas, {
+      const defaultBounds = {
         x: Math.round(layer.contentBounds?.x ?? 0),
         y: Math.round(layer.contentBounds?.y ?? 0),
         width: rasterWidth,
         height: rasterHeight
-      });
-      const hydrationKey = layer.data ?? "";
-      if (
-        !sizeChanged &&
-        hydratedLayerStateRef.current.get(layer.id) === hydrationKey
-      ) {
+      };
+      const hydrationKey = `${layer.data ?? ""}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
+      if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
         continue;
       }
       hydratedLayerStateRef.current.set(layer.id, hydrationKey);
-
-      if (layer.data) {
-        const img = new Image();
-        const capturedKey = hydrationKey;
-        img.onload = () => {
-          if (hydratedLayerStateRef.current.get(layer.id) !== capturedKey) {
-            return;
-          }
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            invalidateLayer(layer.id);
-            requestRedraw();
-          }
-        };
-        img.src = layer.data;
-      } else {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          invalidateLayer(layer.id);
-          requestRedraw();
+      getOrCreateLayerCanvas(layer.id);
+      runtime.setLayerData(layer.id, layer.data ?? null, defaultBounds, () => {
+        if (hydratedLayerStateRef.current.get(layer.id) !== hydrationKey) {
+          return;
         }
-      }
+        invalidateLayer(layer.id);
+        requestRedraw();
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

@@ -14,6 +14,7 @@ import FilterNoneIcon from "@mui/icons-material/FilterNone";
 import InputIcon from "@mui/icons-material/Input";
 import OutputIcon from "@mui/icons-material/Output";
 import type { Layer } from "./types";
+import { getLayerDataImageUrl } from "./serialization";
 
 export interface LayerItemProps {
   layer: Layer;
@@ -64,6 +65,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onDrop,
   onDragEnd
 }) => {
+  const thumbnailSrc = getLayerDataImageUrl(layer.data);
+
   return (
     <Box>
       <Box
@@ -121,10 +124,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
         </Tooltip>
 
         {/* Layer thumbnail preview */}
-        {layer.data ? (
+        {thumbnailSrc ? (
           <img
             className="layer-thumbnail"
-            src={layer.data}
+            src={thumbnailSrc}
             alt={layer.name}
             draggable={false}
           />

@@ -106,12 +106,15 @@ export {
   deserializeDocument,
   flattenDocument,
   exportMask,
+  exportLayer,
   canvasToDataUrl,
   canvasToBlob,
   loadImageToLayerData,
-  loadImageWithDimensions
+  loadImageWithDimensions,
+  getLayerDataImageUrl
 } from "./serialization";
 
 export type {
-  ImageLoadResult
+  ImageLoadResult,
+  LayerRasterBounds
 } from "./serialization";

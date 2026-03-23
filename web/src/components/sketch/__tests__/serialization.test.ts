@@ -6,7 +6,9 @@ import {
   serializeDocument,
   deserializeDocument,
   flattenDocument,
-  exportMask
+  exportMask,
+  exportLayer,
+  getLayerDataImageUrl
 } from "../serialization";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 import type { SketchDocument } from "../types";
@@ -147,6 +149,21 @@ describe("Sketch Serialization", () => {
   });
 
   describe("bounds-aware layer payloads", () => {
+    it("getLayerDataImageUrl extracts embedded image data from serialized payloads", () => {
+      const encoded = encodeLayerData("data:image/png;base64,preview", {
+        x: 1,
+        y: 2,
+        width: 3,
+        height: 4
+      });
+
+      expect(getLayerDataImageUrl(encoded)).toBe("data:image/png;base64,preview");
+      expect(getLayerDataImageUrl("data:image/png;base64,plain")).toBe(
+        "data:image/png;base64,plain"
+      );
+      expect(getLayerDataImageUrl(null)).toBeNull();
+    });
+
     it("flattenDocument draws serialized layer data using raster bounds plus transform", async () => {
       const doc = createDefaultDocument(64, 64);
       doc.layers[0].data = encodeLayerData("data:image/png;base64,stub", {
@@ -167,6 +184,8 @@ describe("Sketch Serialization", () => {
                 drawImage,
                 fillRect,
                 clearRect: jest.fn(),
+                save: jest.fn(),
+                restore: jest.fn(),
                 globalAlpha: 1,
                 fillStyle: "#000"
               } as unknown as CanvasRenderingContext2D)
@@ -203,6 +222,63 @@ describe("Sketch Serialization", () => {
       }
     });
 
+    it("exportLayer draws serialized layer data using raster bounds plus transform", async () => {
+      const doc = createDefaultDocument(64, 64);
+      doc.layers[0].data = encodeLayerData("data:image/png;base64,stub", {
+        x: -2,
+        y: 6,
+        width: 12,
+        height: 10
+      });
+      doc.layers[0].transform = { x: 4, y: 5 };
+
+      const drawImage = jest.fn();
+      const getContextSpy = jest
+        .spyOn(HTMLCanvasElement.prototype, "getContext")
+        .mockImplementation((((contextId: string) =>
+          contextId === "2d"
+            ? ({
+                drawImage,
+                fillRect: jest.fn(),
+                clearRect: jest.fn(),
+                save: jest.fn(),
+                restore: jest.fn(),
+                globalAlpha: 1,
+                fillStyle: "#000"
+              } as unknown as CanvasRenderingContext2D)
+            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+      class MockImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        naturalWidth = 12;
+        naturalHeight = 10;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      }
+
+      const originalImage = global.Image;
+      // @ts-expect-error test-only image mock
+      global.Image = MockImage;
+
+      try {
+        await exportLayer(doc, doc.layers[0].id);
+        const canvasDraws = drawImage.mock.calls.filter(
+          ([source]) => source instanceof HTMLCanvasElement
+        );
+        expect(canvasDraws).toContainEqual([
+          expect.any(HTMLCanvasElement),
+          2,
+          11
+        ]);
+      } finally {
+        global.Image = originalImage;
+        getContextSpy.mockRestore();
+      }
+    });
+
     it("exportMask draws serialized mask data using raster bounds plus transform", async () => {
       const doc = createDefaultDocument(64, 64);
       const maskLayer = createDefaultLayer("Mask", "mask", 64, 64);
@@ -225,6 +301,8 @@ describe("Sketch Serialization", () => {
                 drawImage,
                 fillRect: jest.fn(),
                 clearRect: jest.fn(),
+                save: jest.fn(),
+                restore: jest.fn(),
                 globalAlpha: 1,
                 fillStyle: "#000"
               } as unknown as CanvasRenderingContext2D)

@@ -7,12 +7,13 @@
 
 import {
   SketchDocument,
+  Layer,
   normalizeSketchDocument
 } from "../types";
 
 const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
 
-type LayerRasterBounds = {
+export type LayerRasterBounds = {
   x: number;
   y: number;
   width: number;
@@ -29,7 +30,7 @@ function getDefaultBounds(width: number, height: number): LayerRasterBounds {
   return { x: 0, y: 0, width, height };
 }
 
-function serializeLayerData(
+export function serializeLayerData(
   image: string | null,
   bounds: LayerRasterBounds
 ): string {
@@ -41,8 +42,8 @@ function serializeLayerData(
   return `${SERIALIZED_LAYER_DATA_PREFIX}${window.btoa(JSON.stringify(payload))}`;
 }
 
-function deserializeLayerData(
-  data: string,
+export function deserializeLayerData(
+  data: string | null | undefined,
   fallbackWidth: number,
   fallbackHeight: number
 ): {
@@ -50,6 +51,9 @@ function deserializeLayerData(
   bounds: LayerRasterBounds;
 } {
   const fallbackBounds = getDefaultBounds(fallbackWidth, fallbackHeight);
+  if (!data) {
+    return { image: null, bounds: fallbackBounds };
+  }
   if (!data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
     return { image: data, bounds: fallbackBounds };
   }
@@ -154,6 +158,35 @@ async function layerDataToCanvas(
   };
 }
 
+export function getLayerDataImageUrl(
+  data: string | null | undefined
+): string | null {
+  return deserializeLayerData(data, 1, 1).image;
+}
+
+async function drawLayerToContext(
+  ctx: CanvasRenderingContext2D,
+  doc: SketchDocument,
+  layer: Layer
+): Promise<void> {
+  if (!layer.data) {
+    return;
+  }
+  const { canvas: layerCanvas, bounds } = await layerDataToCanvas(
+    layer.data,
+    doc.canvas.width,
+    doc.canvas.height
+  );
+  ctx.save();
+  ctx.globalAlpha = layer.opacity;
+  ctx.drawImage(
+    layerCanvas,
+    (layer.transform?.x ?? 0) + bounds.x,
+    (layer.transform?.y ?? 0) + bounds.y
+  );
+  ctx.restore();
+}
+
 /**
  * Flatten all visible raster layers into a single canvas.
  * Mask layers are excluded from the flattened image.
@@ -178,19 +211,8 @@ export async function flattenDocument(
     if (!layer.visible || !layer.data || layer.type === "mask") {
       continue;
     }
-    ctx.globalAlpha = layer.opacity;
-    const { canvas: layerCanvas, bounds } = await layerDataToCanvas(
-      layer.data,
-      doc.canvas.width,
-      doc.canvas.height
-    );
-    ctx.drawImage(
-      layerCanvas,
-      (layer.transform?.x ?? 0) + bounds.x,
-      (layer.transform?.y ?? 0) + bounds.y
-    );
+    await drawLayerToContext(ctx, doc, layer);
   }
-  ctx.globalAlpha = 1;
 
   return canvas;
 }
@@ -217,16 +239,28 @@ export async function exportMask(
     throw new Error("Failed to get canvas context");
   }
 
-  const { canvas: maskCanvas, bounds } = await layerDataToCanvas(
-    maskLayer.data,
-    doc.canvas.width,
-    doc.canvas.height
-  );
-  ctx.drawImage(
-    maskCanvas,
-    (maskLayer.transform?.x ?? 0) + bounds.x,
-    (maskLayer.transform?.y ?? 0) + bounds.y
-  );
+  await drawLayerToContext(ctx, doc, maskLayer);
+  return canvas;
+}
+
+export async function exportLayer(
+  doc: SketchDocument,
+  layerId: string
+): Promise<HTMLCanvasElement | null> {
+  const layer = doc.layers.find((entry) => entry.id === layerId);
+  if (!layer || !layer.data) {
+    return null;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = doc.canvas.width;
+  canvas.height = doc.canvas.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Failed to get canvas context");
+  }
+
+  await drawLayerToContext(ctx, doc, layer);
   return canvas;
 }
 

@@ -11,18 +11,18 @@
 
 ## Remaining work
 
-### Phase 2 — in progress
+### Phase 3 — in progress
 
 ## Core Layer Plan
 
 > Goal: make layer movement and transforms lossless, serializable, and non-destructive while keeping the document canvas fixed.
 
-[ ] **Phase 1 — foundation:** introduce transform-aware layers with translate-first transform state, per-layer content bounds, and compatible history / serialization; render and export from layer pixels + transform instead of assuming every layer is a document-aligned raster.
-[ ] add `Layer.transform` and `contentBounds` to the document model with backward-compatible defaults
-[ ] persist transform-aware layer data through normalize / serialize / deserialize / history snapshots
-[ ] render layers through transform-aware compositing in editor preview
-[ ] apply transform-aware rendering to flatten/export paths
-[ ] make move and nudge update layer transform state instead of rewriting pixels
+[x] **Phase 1 — foundation:** introduce transform-aware layers with translate-first transform state, per-layer content bounds, and compatible history / serialization; render and export from layer pixels + transform instead of assuming every layer is a document-aligned raster.
+[x] add `Layer.transform` and `contentBounds` to the document model with backward-compatible defaults
+[x] persist transform-aware layer data through normalize / serialize / deserialize / history snapshots
+[x] render layers through transform-aware compositing in editor preview
+[x] apply transform-aware rendering to flatten/export paths
+[x] make move and nudge update layer transform state instead of rewriting pixels
 
 [ ] **Phase 2 — non-destructive editing pipeline:** keep transform edits separate from pixel edits, add reconciliation utilities that rasterize only when a paint operation truly requires it, and make undo/redo + invalidation aware of transform-only changes.
 [ ] define transform-only vs pixel-edit transaction types and paint-space rules for layer-local vs reconciled editing
@@ -80,8 +80,6 @@
 - [x] Implement clone stamp source picking with `Alt+click` or equivalent chord.
 - [x] Implement clone stamp offset tracking between source point and paint point.
 - [x] Implement clone stamp stroke rendering that copies pixels through the normal brush pipeline.
-- [ ] Implement healing brush with sampled texture transfer plus simple luminance/color blending.
-- [ ] Decide healing brush scope for v1 and document the exact behavior in the tool spec.
 - [x] add Delete key to delete layer content and respect selected tool selection when deleting
 
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
@@ -106,10 +104,12 @@
 
 #### Color system
 
+- [ ] fix: foreground color only used after explicitly changing and pressing ok. e.g. swap colors does use old color
 - [ ] make color picker and user palettes global for nodetool
 - [ ] refactor color picker: use color wheel as in krita - an outer ring with square inside for brightness and saturation
 - [ ] bring back predefined palette
 - [ ] current standard swatch and user swatch at bottom of canvas (left of canvas pixel info which should be right aligned )
+- [ ] show colors from image: store and show color swatch with up to 10 colors that were used for drawing
 
 #### Layers
 
