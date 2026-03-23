@@ -59,24 +59,42 @@ Done when:
 - [x] one tool replaceable without rewriting the whole pipeline
 - [x] history/autosave unchanged
 
-## Phase 4: Common paint tools on WebGPU
+## Phase 4: Shared Paint Architecture
 
-- [ ] consolidate live stroke preview into one shared stroke-session path
-- [ ] keep overlay/cursor/live stroke preview on 2D
-- [ ] fix moved-layer then draw wiping preexisting layer content
-- [ ] keep brush commit path stable while preview stays off WebGPU
-- [ ] unify eraser preview with the same preview compositor model
-- [ ] pencil commit path on WebGPU
-- [ ] basic shape commit on WebGPU
-- [ ] stroke-end snapshot for GPU-authored layers
-- [ ] undo/redo boundaries intact
+Phase 4 is not a request for more local fixes to `brush`, `pencil`, `eraser`, or shapes in isolation. The goal is one shared, transform-aware paint architecture that all common drawing tools use, with persistent transformed layers as the target model. Do not steer this phase toward baking transforms into pixels as the long-term solution, and do not introduce new tool-specific preview/composite paths.
 
-Legacy helpers still allowed: flood fill, blur, clone stamp, adjustments, crop, selection masking
+`WebGPU` remains the renderer for committed document content, but live interaction state is allowed to stay on `2D` if that keeps behavior correct and the performance is already good. Cursor, selection, shape preview, and live stroke preview should stay unified under one preview model. Correctness, shared architecture, and transformed-layer semantics matter more here than maximizing the amount of code that happens to run on `WebGPU`.
+
+While doing this, lightly introduce the core seams for a more extensible brush engine later. That does not mean building programmable brushes now; it means structuring the shared paint session so input sampling, transform mapping, brush evaluation, preview composition, and commit can evolve independently. `brush`, `pencil`, and `eraser` should move toward being different engines/modes inside the same session model rather than permanently separate pipelines.
+
+- [ ] define one shared transform-aware paint/stroke session model
+- [ ] keep persistent transformed layers as the target model
+- [ ] centralize document-space ↔ layer-space coordinate mapping
+- [ ] separate input sampling/session lifecycle from brush evaluation/rendering
+- [ ] use one shared live preview compositor for brush/pencil/eraser/shapes
+- [ ] keep overlay/cursor/live preview on 2D by default
+- [ ] only reconsider moving overlay/cursor/live preview off 2D if profiling shows a real bottleneck
+- [ ] make moved layers paint correctly without wiping existing pixels
+- [ ] make active-layer preview/commit use the same transformed-layer rules
+- [ ] port brush onto the shared paint session
+- [ ] port pencil onto the shared paint session
+- [ ] port eraser onto the shared paint session
+- [ ] port basic shape commit onto the shared paint session
+- [ ] preserve undo/redo boundaries and stroke-end snapshot behavior
+- [ ] keep `Layer.data` / export / node preview flow unchanged
+- [ ] leave room for future extensible/programmatic brush definitions without changing the session contract
+
+Temporary migration allowance: flood fill, blur, clone stamp, adjustments, crop, and selection masking may remain CPU/Canvas2D-backed until the shared paint architecture is stable.
+
+End goal: committed document rendering stays on `WebGPU`, while tool internals may stay CPU-backed where that remains simpler, correct, and fast enough. Those tools should still plug into the shared transform-aware paint/session model rather than keep ad hoc per-tool rendering paths.
 
 Done when:
 
-- [ ] live brush/eraser preview is stable and does not depend on WebGPU stroke compositing
+- [ ] brush/pencil/eraser/shapes all use the shared transform-aware paint session
+- [ ] live preview is stable on the shared 2D preview path
+- [ ] transformed layers stay persistent while painting/editing
 - [ ] moved layers keep existing pixels when drawing resumes
+- [ ] overlay/cursor/live preview remain on 2D unless profiling justifies a move
 - [ ] committed brush/pencil/eraser/shapes behave correctly with WebGPU display
 - [ ] stroke end still updates `Layer.data`
 - [ ] node preview still works
