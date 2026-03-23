@@ -27,17 +27,15 @@ import {
 // ─── Blend mode → GPUBlendState mapping ──────────────────────────────────
 
 function blendModeToGPUBlend(mode: BlendMode | string): GPUBlendState {
-  // For most modes we use premultiplied-alpha "source-over" and rely on
-  // the fragment shader writing premultiplied color.  True Photoshop-style
-  // blend modes (multiply, screen, overlay, etc.) would need multi-pass or
-  // a different approach.  Phase 2 supports "normal" perfectly; other modes
-  // fall back to the same alpha-blend which is visually close enough for now.
+  // Uploaded layer/stroke textures come from Canvas2D sources and are treated
+  // here as straight-alpha samples. Use a standard source-over blend so both
+  // partially transparent fills and live brush previews stay visible.
   switch (mode) {
     case "normal":
     default:
       return {
         color: {
-          srcFactor: "one",
+          srcFactor: "src-alpha",
           dstFactor: "one-minus-src-alpha",
           operation: "add"
         },
@@ -464,18 +462,31 @@ export class WebGPURuntime implements SketchRuntime {
       const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
 
       if (hasActiveStroke) {
-        // For active strokes, we need to composite the layer + stroke buffer.
-        // Upload stroke buffer and composite in a separate pass using the
-        // CPU temp-canvas approach (same as Canvas2DRuntime) for now.
-        // This keeps the stroke preview correct for all blend modes.
-        this.compositeLayerWithStrokeGPU(
-          encoder,
-          textureView,
-          layer,
-          activeStroke,
-          fullW,
-          fullH
-        );
+        if (activeStroke.compositeOp === "source-over") {
+          const layerTexture = this.layerTextures.get(layer.id);
+          if (layerTexture) {
+            this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
+          }
+          this.compositeActiveStrokeOverlayGPU(
+            encoder,
+            textureView,
+            layer,
+            activeStroke,
+            fullW,
+            fullH
+          );
+        } else {
+          // Keep the CPU-merged fallback for destination-out preview so eraser
+          // behavior stays correct while brush preview uses the simpler overlay path.
+          this.compositeLayerWithStrokeGPU(
+            encoder,
+            textureView,
+            layer,
+            activeStroke,
+            fullW,
+            fullH
+          );
+        }
       } else {
         const layerTexture = this.layerTextures.get(layer.id);
         if (!layerTexture) {
@@ -550,10 +561,35 @@ export class WebGPURuntime implements SketchRuntime {
 
     const tx = layer.transform?.x ?? 0;
     const ty = layer.transform?.y ?? 0;
+    this.drawTextureGPU(
+      encoder,
+      textureView,
+      layerTexture,
+      layer.opacity,
+      tx,
+      ty,
+      canvasW,
+      canvasH
+    );
+  }
+
+  private drawTextureGPU(
+    encoder: GPUCommandEncoder,
+    textureView: GPUTextureView,
+    texture: GPUTexture,
+    opacity: number,
+    tx: number,
+    ty: number,
+    canvasW: number,
+    canvasH: number
+  ): void {
+    if (!this.layerPipeline || !this.layerBindGroupLayout) {
+      return;
+    }
 
     // Uniforms: opacity, offsetU, offsetV, pad
     const uniformData = new Float32Array([
-      layer.opacity,
+      opacity,
       tx / canvasW,
       ty / canvasH,
       0.0
@@ -568,7 +604,7 @@ export class WebGPURuntime implements SketchRuntime {
       layout: this.layerBindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: layerTexture.createView() }
+        { binding: 1, resource: texture.createView() }
       ]
     });
 
@@ -586,6 +622,34 @@ export class WebGPURuntime implements SketchRuntime {
     pass.setBindGroup(0, bindGroup);
     pass.draw(4);
     pass.end();
+  }
+
+  private compositeActiveStrokeOverlayGPU(
+    encoder: GPUCommandEncoder,
+    textureView: GPUTextureView,
+    layer: {
+      id: string;
+      opacity: number;
+      blendMode?: BlendMode | string;
+      transform?: { x?: number; y?: number };
+    },
+    activeStroke: ActiveStrokeInfo,
+    canvasW: number,
+    canvasH: number
+  ): void {
+    const tx = layer.transform?.x ?? 0;
+    const ty = layer.transform?.y ?? 0;
+    const strokeTexture = this.uploadStrokeBufferToGPU(activeStroke);
+    this.drawTextureGPU(
+      encoder,
+      textureView,
+      strokeTexture,
+      activeStroke.opacity,
+      tx,
+      ty,
+      canvasW,
+      canvasH
+    );
   }
 
   /**

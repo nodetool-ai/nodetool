@@ -567,6 +567,27 @@ export function usePointerHandlers({
     [doc.layers, onLayerReconcile]
   );
 
+  const drawActiveStrokePreview = useCallback(() => {
+    const overlay = overlayCanvasRef.current;
+    if (!overlay) {
+      return;
+    }
+    const ctx = overlay.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+    const activeStroke = activeStrokeRef.current;
+    if (activeStroke?.compositeOp === "source-over") {
+      ctx.save();
+      ctx.globalAlpha = activeStroke.opacity;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(activeStroke.buffer, 0, 0);
+      ctx.restore();
+    }
+  }, [overlayCanvasRef, activeStrokeRef]);
+
   // ─── Pointer Down ──────────────────────────────────────────────────
 
   const handlePointerDown = useCallback(
@@ -1115,6 +1136,9 @@ export function usePointerHandlers({
           invalidateLayer(activeLayer.id);
         }
         redraw();
+        if (activeTool === "brush") {
+          drawActiveStrokePreview();
+        }
       }
 
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -1145,7 +1169,8 @@ export function usePointerHandlers({
       layerCanvasesRef,
       onAutoPickLayer,
       activeStrokeRef,
-      invalidateLayer
+      invalidateLayer,
+      drawActiveStrokePreview
     ]
   );
 
@@ -1413,6 +1438,9 @@ export function usePointerHandlers({
       } else {
         requestRedraw();
       }
+      if (activeTool === "brush") {
+        drawActiveStrokePreview();
+      }
     },
     [
       doc,
@@ -1438,7 +1466,8 @@ export function usePointerHandlers({
       onSelectionChange,
       onLayerTransformChange,
       activeStrokeRef,
-      invalidateLayer
+      invalidateLayer,
+      drawActiveStrokePreview
     ]
   );
 
@@ -1628,6 +1657,8 @@ export function usePointerHandlers({
         }
         activeStrokeRef.current = null;
       }
+      clearOverlay();
+      drawSelectionOverlay();
 
       lastPointRef.current = null;
       lastSmoothedPointRef.current = null;

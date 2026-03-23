@@ -86,8 +86,7 @@ fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
   let dims = vec2f(textureDimensions(layerTexture));
   let texel = vec2i(sampleUV * dims);
   let color = textureLoad(layerTexture, texel, 0);
-  let alpha = color.a * layer.opacity;
-  return vec4f(color.rgb * alpha, alpha);
+  return vec4f(color.rgb, color.a * layer.opacity);
 }
 `;
 

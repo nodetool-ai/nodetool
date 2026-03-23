@@ -156,11 +156,16 @@ export function useCompositing({
       // the current runtime instead of the old Canvas2DRuntime.
       const rt = runtimeRef.current;
       if (!rt) return;
+      const activeStroke =
+        backend === "webgpu" &&
+        activeStrokeRef.current?.compositeOp === "source-over"
+          ? null
+          : activeStrokeRef.current;
       rt.compositeToDisplay(
         displayCanvas,
         doc,
         isolatedLayerId ?? null,
-        activeStrokeRef.current,
+        activeStroke,
         dirtyRect
       );
     },
