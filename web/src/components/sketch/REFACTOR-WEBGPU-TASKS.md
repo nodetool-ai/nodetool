@@ -154,7 +154,8 @@ Done when:
 ## Execution Order
 
 - [x] Phase 1 → Phase 2 → smoke-test compositing/export/preview
-- [x] Phase 3 → Phase 4 → smoke-test paint tools- [ ] Phase 5 → smoke-test hard tools
+- [x] Phase 3 → Phase 4 → smoke-test paint tools
+- [ ] Phase 5 → smoke-test hard tools
 - [ ] Phase 6
 
 ## Optional
