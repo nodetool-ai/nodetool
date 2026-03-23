@@ -15,3 +15,7 @@ export type { UseOverlayRendererParams, UseOverlayRendererResult } from "./useOv
 
 export { usePointerHandlers } from "./usePointerHandlers";
 export type { UsePointerHandlersParams, UsePointerHandlersResult } from "./usePointerHandlers";
+
+// Re-export ActiveStrokeInfo from its canonical home in the rendering module.
+export type { ActiveStrokeInfo } from "../rendering";
+

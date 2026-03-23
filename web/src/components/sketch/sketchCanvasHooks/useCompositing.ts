@@ -5,27 +5,23 @@
  * - Layer canvas creation and lifecycle
  * - Compositing all visible layers onto the display canvas
  * - rAF-batched redraw scheduling with dirty-rect optimization
+ *
+ * After runtime-seam refactor: delegates layer storage and compositing
+ * to the Canvas2DRuntime.  This hook owns React refs, hydration
+ * tracking, and rAF scheduling.
+ *
+ * Phase 2: Tries WebGPU first, falls back to Canvas2D automatically.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
-import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
+import type { SketchRuntime, DirtyRect } from "../rendering";
+import { Canvas2DRuntime, createRuntime } from "../rendering";
 
-/** Dirty rect region for partial compositing */
-interface DirtyRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/** Active stroke buffer state shared between compositing and pointer handlers */
-export interface ActiveStrokeInfo {
-  layerId: string;
-  buffer: HTMLCanvasElement;
-  opacity: number;
-  compositeOp: GlobalCompositeOperation;
-}
+// Re-export so existing consumers keep compiling.
+export type { ActiveStrokeInfo } from "../rendering";
+// Re-import the value-level type for use in this file.
+import type { ActiveStrokeInfo } from "../rendering";
 
 export interface UseCompositingParams {
   doc: SketchDocument;
@@ -37,7 +33,10 @@ export interface UseCompositingResult {
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
-  redrawRequestRef: React.MutableRefObject<number | null>;
+  /** The underlying rendering runtime (for imperative handle access). */
+  runtime: SketchRuntime;
+  /** Which rendering backend is active: "webgpu" | "canvas2d" */
+  backend: "webgpu" | "canvas2d";
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
@@ -53,13 +52,53 @@ export function useCompositing({
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const redrawRequestRef = useRef<number | null>(null);
   /** Pending dirty rect. Null means full redraw. */
   const pendingDirtyRef = useRef<DirtyRect | null>(null);
   const isFullRedrawRef = useRef(false);
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
-  const strokeTempCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // ─── Shared layer canvas map (injected into the runtime) ──────────
+  const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
+
+  // ─── Runtime instance (stable across renders) ─────────────────────
+  // Start with Canvas2D immediately; attempt WebGPU upgrade async.
+  const runtimeRef = useRef<SketchRuntime | null>(null);
+  const [backend, setBackend] = useState<"webgpu" | "canvas2d">("canvas2d");
+
+  if (!runtimeRef.current) {
+    runtimeRef.current = new Canvas2DRuntime(layerCanvasesRef.current);
+  }
+  const runtime: SketchRuntime = runtimeRef.current;
+
+  // Try to upgrade to WebGPU on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    createRuntime(layerCanvasesRef.current).then(({ runtime: newRuntime, backend: newBackend }) => {
+      if (cancelled) {
+        newRuntime.dispose();
+        return;
+      }
+      if (newBackend === "webgpu" && runtimeRef.current !== newRuntime) {
+        // Dispose old Canvas2D runtime and switch to WebGPU
+        const oldRuntime = runtimeRef.current;
+        runtimeRef.current = newRuntime;
+        setBackend(newBackend);
+        // Don't dispose old runtime — it shares the same layerCanvases map
+        // and WebGPU runtime also uses it. Just drop the reference.
+        // The WebGPU runtime's cpuRuntime already wraps the same map.
+        void oldRuntime;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const layerHydrationSignature = doc.layers
     .map((layer) => `${layer.id}:${layer.data ?? ""}`)
     .join("|");
@@ -68,16 +107,13 @@ export function useCompositing({
 
   const getOrCreateLayerCanvas = useCallback(
     (layerId: string): HTMLCanvasElement => {
-      let canvas = layerCanvasesRef.current.get(layerId);
-      if (!canvas) {
-        canvas = window.document.createElement("canvas");
-        canvas.width = doc.canvas.width;
-        canvas.height = doc.canvas.height;
-        layerCanvasesRef.current.set(layerId, canvas);
-      }
-      return canvas;
+      return runtime.getOrCreateLayerCanvas(
+        layerId,
+        doc.canvas.width,
+        doc.canvas.height
+      );
     },
-    [doc.canvas.width, doc.canvas.height]
+    [runtime, doc.canvas.width, doc.canvas.height]
   );
 
   // ─── Compositing helpers ────────────────────────────────────────────
@@ -89,109 +125,15 @@ export function useCompositing({
       if (!displayCanvas) {
         return;
       }
-      const ctx = displayCanvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-
-      const fullW = displayCanvas.width;
-      const fullH = displayCanvas.height;
-      const useClip = !!dirtyRect;
-
-      if (useClip) {
-        // Expand dirty rect by 2px for anti-aliasing edges
-        const pad = 2;
-        const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
-        const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
-        const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
-        const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(rx, ry, rw, rh);
-        ctx.clip();
-
-        // Clear only the dirty region, then redraw checkerboard and layers
-        ctx.clearRect(rx, ry, rw, rh);
-        drawCheckerboard(ctx, fullW, fullH);
-      } else {
-        ctx.clearRect(0, 0, fullW, fullH);
-        drawCheckerboard(ctx, fullW, fullH);
-      }
-
-      const activeStroke = activeStrokeRef.current;
-
-      for (const layer of doc.layers) {
-        if (!layer.visible) {
-          continue;
-        }
-        if (isolatedLayerId && layer.id !== isolatedLayerId) {
-          continue;
-        }
-        const layerCanvas = layerCanvasesRef.current.get(layer.id);
-        if (!layerCanvas) {
-          continue;
-        }
-
-        const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
-        const tx = layer.transform?.x ?? 0;
-        const ty = layer.transform?.y ?? 0;
-
-        if (hasActiveStroke) {
-          // Composite layer + stroke buffer into a temp canvas, then draw
-          // that combined result with the layer's blend mode and opacity.
-          // This gives correct results for all blend modes and both
-          // brush (source-over) and eraser (destination-out) strokes.
-          let tempCanvas = strokeTempCanvasRef.current;
-          if (!tempCanvas || tempCanvas.width !== layerCanvas.width || tempCanvas.height !== layerCanvas.height) {
-            tempCanvas = window.document.createElement("canvas");
-            tempCanvas.width = layerCanvas.width;
-            tempCanvas.height = layerCanvas.height;
-            strokeTempCanvasRef.current = tempCanvas;
-          }
-          const tempCtx = tempCanvas.getContext("2d");
-          if (tempCtx) {
-            tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-            tempCtx.drawImage(layerCanvas, 0, 0);
-            tempCtx.save();
-            tempCtx.globalAlpha = activeStroke.opacity;
-            tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-            tempCtx.drawImage(activeStroke.buffer, 0, 0);
-            tempCtx.restore();
-
-            ctx.save();
-            ctx.globalAlpha = layer.opacity;
-            ctx.globalCompositeOperation = blendModeToComposite(
-              layer.blendMode || "normal"
-            );
-            ctx.drawImage(tempCanvas, tx, ty);
-            ctx.restore();
-          }
-        } else {
-          ctx.save();
-          ctx.globalAlpha = layer.opacity;
-          ctx.globalCompositeOperation = blendModeToComposite(
-            layer.blendMode || "normal"
-          );
-          ctx.drawImage(layerCanvas, tx, ty);
-          ctx.restore();
-        }
-      }
-
-      if (useClip) {
-        ctx.restore();
-      }
-
-      // Draw a subtle border around the canvas to show its boundaries
-      if (!useClip) {
-        ctx.save();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0.5, 0.5, fullW - 1, fullH - 1);
-        ctx.restore();
-      }
+      runtime.compositeToDisplay(
+        displayCanvas,
+        doc,
+        isolatedLayerId ?? null,
+        activeStrokeRef.current,
+        dirtyRect
+      );
     },
-    [doc.layers, isolatedLayerId]
+    [runtime, doc, isolatedLayerId, activeStrokeRef]
   );
 
   const mergePendingDirtyRect = useCallback(
@@ -300,7 +242,7 @@ export function useCompositing({
     const layerIds = new Set(doc.layers.map((l) => l.id));
     for (const [id] of layerCanvasesRef.current) {
       if (!layerIds.has(id)) {
-        layerCanvasesRef.current.delete(id);
+        runtime.deleteLayerCanvas(id);
         hydratedLayerStateRef.current.delete(id);
       }
     }
@@ -319,8 +261,9 @@ export function useCompositing({
 
       if (layer.data) {
         const img = new Image();
+        const capturedKey = hydrationKey;
         img.onload = () => {
-          if (hydratedLayerStateRef.current.get(layer.id) !== hydrationKey) {
+          if (hydratedLayerStateRef.current.get(layer.id) !== capturedKey) {
             return;
           }
           const ctx = canvas.getContext("2d");
@@ -351,20 +294,22 @@ export function useCompositing({
     requestRedraw();
   }, [requestRedraw, doc.layers]);
 
-  // Cleanup rAF on unmount
+  // Cleanup rAF on unmount and dispose runtime
   useEffect(() => {
     return () => {
       if (redrawRequestRef.current !== null) {
         cancelAnimationFrame(redrawRequestRef.current);
       }
+      runtime.dispose();
     };
-  }, []);
+  }, [runtime]);
 
   return {
     displayCanvasRef,
     overlayCanvasRef,
     layerCanvasesRef,
-    redrawRequestRef,
+    runtime,
+    backend,
     getOrCreateLayerCanvas,
     redraw,
     redrawDirty,

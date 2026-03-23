@@ -1,0 +1,567 @@
+/**
+ * Canvas2DRuntime
+ *
+ * Canvas2D implementation of the SketchRuntime interface.
+ * Extracts all Canvas2D compositing and layer operations from the
+ * former useCompositing / useCanvasImperativeHandle hooks into a
+ * framework-agnostic class.
+ *
+ * Accepts an external Map for layer canvas storage so that existing
+ * hooks (usePointerHandlers) can continue to access layer canvases
+ * directly via ref during the migration.
+ */
+
+import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
+import type { SketchDocument } from "../types";
+import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
+
+export class Canvas2DRuntime implements SketchRuntime {
+  /**
+   * Off-screen layer canvases keyed by layer ID.
+   * This map is shared with the React hooks that created the runtime,
+   * so changes here are visible to pointer handlers and vice-versa.
+   */
+  private layerCanvases: Map<string, HTMLCanvasElement>;
+
+  /** Reusable temp canvas for stroke compositing. */
+  private strokeTempCanvas: HTMLCanvasElement | null = null;
+
+  constructor(layerCanvases?: Map<string, HTMLCanvasElement>) {
+    this.layerCanvases = layerCanvases ?? new Map();
+  }
+
+  // ─── Layer canvas management ─────────────────────────────────────────
+
+  getOrCreateLayerCanvas(
+    layerId: string,
+    width: number,
+    height: number
+  ): HTMLCanvasElement {
+    let canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      canvas = window.document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      this.layerCanvases.set(layerId, canvas);
+    }
+    return canvas;
+  }
+
+  getLayerCanvas(layerId: string): HTMLCanvasElement | undefined {
+    return this.layerCanvases.get(layerId);
+  }
+
+  deleteLayerCanvas(layerId: string): void {
+    this.layerCanvases.delete(layerId);
+  }
+
+  // ─── Compositing ─────────────────────────────────────────────────────
+
+  compositeToDisplay(
+    targetCanvas: HTMLCanvasElement,
+    doc: SketchDocument,
+    isolatedLayerId: string | null | undefined,
+    activeStroke: ActiveStrokeInfo | null,
+    dirtyRect?: DirtyRect | null
+  ): void {
+    const ctx = targetCanvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+
+    const fullW = targetCanvas.width;
+    const fullH = targetCanvas.height;
+    const useClip = !!dirtyRect;
+
+    if (useClip) {
+      const pad = 2;
+      const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
+      const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
+      const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
+      const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, ry, rw, rh);
+      ctx.clip();
+      ctx.clearRect(rx, ry, rw, rh);
+      drawCheckerboard(ctx, fullW, fullH);
+    } else {
+      ctx.clearRect(0, 0, fullW, fullH);
+      drawCheckerboard(ctx, fullW, fullH);
+    }
+
+    for (const layer of doc.layers) {
+      if (!layer.visible) {
+        continue;
+      }
+      if (isolatedLayerId && layer.id !== isolatedLayerId) {
+        continue;
+      }
+      const layerCanvas = this.layerCanvases.get(layer.id);
+      if (!layerCanvas) {
+        continue;
+      }
+
+      const hasActiveStroke =
+        activeStroke && activeStroke.layerId === layer.id;
+      const tx = layer.transform?.x ?? 0;
+      const ty = layer.transform?.y ?? 0;
+
+      if (hasActiveStroke) {
+        let tempCanvas = this.strokeTempCanvas;
+        if (
+          !tempCanvas ||
+          tempCanvas.width !== layerCanvas.width ||
+          tempCanvas.height !== layerCanvas.height
+        ) {
+          tempCanvas = window.document.createElement("canvas");
+          tempCanvas.width = layerCanvas.width;
+          tempCanvas.height = layerCanvas.height;
+          this.strokeTempCanvas = tempCanvas;
+        }
+        const tempCtx = tempCanvas.getContext("2d");
+        if (tempCtx) {
+          tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+          tempCtx.drawImage(layerCanvas, 0, 0);
+          tempCtx.save();
+          tempCtx.globalAlpha = activeStroke.opacity;
+          tempCtx.globalCompositeOperation = activeStroke.compositeOp;
+          tempCtx.drawImage(activeStroke.buffer, 0, 0);
+          tempCtx.restore();
+
+          ctx.save();
+          ctx.globalAlpha = layer.opacity;
+          ctx.globalCompositeOperation = blendModeToComposite(
+            layer.blendMode || "normal"
+          );
+          ctx.drawImage(tempCanvas, tx, ty);
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.globalAlpha = layer.opacity;
+        ctx.globalCompositeOperation = blendModeToComposite(
+          layer.blendMode || "normal"
+        );
+        ctx.drawImage(layerCanvas, tx, ty);
+        ctx.restore();
+      }
+    }
+
+    if (useClip) {
+      ctx.restore();
+    }
+
+    // Draw a subtle border around the canvas to show its boundaries
+    if (!useClip) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, fullW - 1, fullH - 1);
+      ctx.restore();
+    }
+  }
+
+  // ─── Readback helpers ────────────────────────────────────────────────
+
+  /** Draw a single layer into a context, respecting opacity and blend mode. */
+  private drawLayerToContext(
+    ctx: CanvasRenderingContext2D,
+    doc: SketchDocument,
+    layerId: string,
+    includeOpacity = true
+  ): void {
+    const layer = doc.layers.find((l) => l.id === layerId);
+    const layerCanvas = this.layerCanvases.get(layerId);
+    if (!layer || !layerCanvas) {
+      return;
+    }
+    ctx.save();
+    if (includeOpacity) {
+      ctx.globalAlpha = layer.opacity;
+      ctx.globalCompositeOperation = blendModeToComposite(
+        layer.blendMode || "normal"
+      );
+    }
+    ctx.drawImage(
+      layerCanvas,
+      layer.transform?.x ?? 0,
+      layer.transform?.y ?? 0
+    );
+    ctx.restore();
+  }
+
+  getLayerData(layerId: string): string | null {
+    const canvas = this.layerCanvases.get(layerId);
+    return canvas ? canvas.toDataURL("image/png") : null;
+  }
+
+  snapshotLayerCanvas(layerId: string): HTMLCanvasElement | null {
+    const source = this.layerCanvases.get(layerId);
+    if (!source) {
+      return null;
+    }
+    const snapshot = window.document.createElement("canvas");
+    snapshot.width = source.width;
+    snapshot.height = source.height;
+    const ctx = snapshot.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(source, 0, 0);
+    }
+    return snapshot;
+  }
+
+  flattenToDataUrl(doc: SketchDocument): string {
+    const canvas = window.document.createElement("canvas");
+    canvas.width = doc.canvas.width;
+    canvas.height = doc.canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return "";
+    }
+    ctx.fillStyle = doc.canvas.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const layer of doc.layers) {
+      if (!layer.visible || layer.type === "mask") {
+        continue;
+      }
+      this.drawLayerToContext(ctx, doc, layer.id);
+    }
+    return canvas.toDataURL("image/png");
+  }
+
+  getMaskDataUrl(doc: SketchDocument): string | null {
+    if (!doc.maskLayerId) {
+      return null;
+    }
+    const canvas = window.document.createElement("canvas");
+    canvas.width = doc.canvas.width;
+    canvas.height = doc.canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return null;
+    }
+    this.drawLayerToContext(ctx, doc, doc.maskLayerId, false);
+    return canvas.toDataURL("image/png");
+  }
+
+  flattenVisible(doc: SketchDocument): string {
+    const canvas = window.document.createElement("canvas");
+    canvas.width = doc.canvas.width;
+    canvas.height = doc.canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return "";
+    }
+    ctx.fillStyle = doc.canvas.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const layer of doc.layers) {
+      if (!layer.visible) {
+        continue;
+      }
+      this.drawLayerToContext(ctx, doc, layer.id);
+    }
+    return canvas.toDataURL("image/png");
+  }
+
+  // ─── Layer operations ────────────────────────────────────────────────
+
+  setLayerData(
+    layerId: string,
+    data: string | null,
+    width: number,
+    height: number,
+    onComplete?: () => void
+  ): void {
+    const canvas = this.getOrCreateLayerCanvas(layerId, width, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      onComplete?.();
+      return;
+    }
+    const desiredWidth = Math.max(1, width);
+    const desiredHeight = Math.max(1, height);
+    if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+      canvas.width = desiredWidth;
+      canvas.height = desiredHeight;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (data) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        onComplete?.();
+      };
+      img.src = data;
+    } else {
+      onComplete?.();
+    }
+  }
+
+  restoreLayerCanvas(layerId: string, source: HTMLCanvasElement): void {
+    const canvas = this.getOrCreateLayerCanvas(
+      layerId,
+      source.width,
+      source.height
+    );
+    if (canvas.width !== source.width || canvas.height !== source.height) {
+      canvas.width = source.width;
+      canvas.height = source.height;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(source, 0, 0);
+  }
+
+  clearLayer(layerId: string): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  clearLayerRect(
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(x, y, width, height);
+    }
+  }
+
+  flipLayer(layerId: string, direction: "horizontal" | "vertical"): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const temp = window.document.createElement("canvas");
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    const tempCtx = temp.getContext("2d");
+    if (!tempCtx) {
+      return;
+    }
+    tempCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (direction === "horizontal") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    } else {
+      ctx.translate(0, canvas.height);
+      ctx.scale(1, -1);
+    }
+    ctx.drawImage(temp, 0, 0);
+    ctx.restore();
+  }
+
+  fillLayerWithColor(layerId: string, color: string): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  fillLayerRect(
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string
+  ): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  }
+
+  nudgeLayer(layerId: string, dx: number, dy: number): void {
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const tmp = window.document.createElement("canvas");
+    tmp.width = canvas.width;
+    tmp.height = canvas.height;
+    const tmpCtx = tmp.getContext("2d");
+    if (!tmpCtx) {
+      return;
+    }
+    tmpCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(tmp, dx, dy);
+  }
+
+  mergeLayerDown(
+    upperLayerId: string,
+    lowerLayerId: string,
+    doc: SketchDocument
+  ): string | undefined {
+    const lowerCanvas = this.layerCanvases.get(lowerLayerId);
+    if (!lowerCanvas) {
+      return;
+    }
+    const lowerCtx = lowerCanvas.getContext("2d");
+    if (!lowerCtx) {
+      // Even without a context we still clean up the upper layer
+      this.layerCanvases.delete(upperLayerId);
+      return;
+    }
+    const upperLayer = doc.layers.find((l) => l.id === upperLayerId);
+    const lowerLayer = doc.layers.find((l) => l.id === lowerLayerId);
+    const mergedCanvas = window.document.createElement("canvas");
+    mergedCanvas.width = doc.canvas.width;
+    mergedCanvas.height = doc.canvas.height;
+    const mergedCtx = mergedCanvas.getContext("2d");
+    if (!mergedCtx) {
+      this.layerCanvases.delete(upperLayerId);
+      return;
+    }
+    if (lowerLayer) {
+      this.drawLayerToContext(mergedCtx, doc, lowerLayerId);
+    }
+    if (upperLayer) {
+      this.drawLayerToContext(mergedCtx, doc, upperLayerId);
+    }
+    lowerCtx.clearRect(0, 0, lowerCanvas.width, lowerCanvas.height);
+    lowerCtx.drawImage(mergedCanvas, 0, 0);
+    this.layerCanvases.delete(upperLayerId);
+    return lowerCanvas.toDataURL("image/png");
+  }
+
+  cropLayers(
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): void {
+    for (const [, layerCanvas] of this.layerCanvases) {
+      const ctx = layerCanvas.getContext("2d");
+      if (ctx) {
+        const imgData = ctx.getImageData(x, y, width, height);
+        layerCanvas.width = width;
+        layerCanvas.height = height;
+        ctx.putImageData(imgData, 0, 0);
+      } else {
+        // Still resize even when context is unavailable
+        layerCanvas.width = width;
+        layerCanvas.height = height;
+      }
+    }
+  }
+
+  applyAdjustments(
+    doc: SketchDocument,
+    brightness: number,
+    contrast: number,
+    saturation: number
+  ): void {
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+    if (!activeLayer) {
+      return;
+    }
+    const layerCanvas = this.layerCanvases.get(activeLayer.id);
+    if (!layerCanvas) {
+      return;
+    }
+    const ctx = layerCanvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const b = Math.max(0, 1 + brightness / 100);
+    const c = Math.max(0, 1 + contrast / 100);
+    const s = Math.max(0, 1 + saturation / 100);
+    const tmp = window.document.createElement("canvas");
+    tmp.width = layerCanvas.width;
+    tmp.height = layerCanvas.height;
+    const tmpCtx = tmp.getContext("2d");
+    if (!tmpCtx) {
+      return;
+    }
+    tmpCtx.filter = `brightness(${b}) contrast(${c}) saturate(${s})`;
+    tmpCtx.drawImage(layerCanvas, 0, 0);
+    ctx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+    ctx.drawImage(tmp, 0, 0);
+  }
+
+  reconcileLayerToDocumentSpace(
+    layerId: string,
+    doc: SketchDocument
+  ): string | null {
+    const layer = doc.layers.find((l) => l.id === layerId);
+    const canvas = this.layerCanvases.get(layerId);
+    if (!layer || !canvas) {
+      return null;
+    }
+
+    const tx = layer.transform?.x ?? 0;
+    const ty = layer.transform?.y ?? 0;
+    if (tx === 0 && ty === 0) {
+      return canvas.toDataURL("image/png");
+    }
+
+    const temp = window.document.createElement("canvas");
+    temp.width = doc.canvas.width;
+    temp.height = doc.canvas.height;
+    const tempCtx = temp.getContext("2d");
+    canvas.width = doc.canvas.width;
+    canvas.height = doc.canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!tempCtx || !ctx) {
+      return canvas.toDataURL("image/png");
+    }
+
+    tempCtx.drawImage(canvas, tx, ty);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(temp, 0, 0);
+    return canvas.toDataURL("image/png");
+  }
+
+  // ─── Lifecycle ───────────────────────────────────────────────────────
+
+  dispose(): void {
+    this.layerCanvases.clear();
+    this.strokeTempCanvas = null;
+  }
+}
