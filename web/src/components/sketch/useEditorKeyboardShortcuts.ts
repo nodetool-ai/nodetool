@@ -28,8 +28,8 @@ export interface UseEditorKeyboardShortcutsParams {
   handleNudgeLayer: (dx: number, dy: number) => void;
   setActiveTool: (tool: SketchTool) => void;
   setZoom: (zoom: number) => void;
-  setMirrorX: React.Dispatch<React.SetStateAction<boolean>>;
-  setMirrorY: React.Dispatch<React.SetStateAction<boolean>>;
+  setMirrorX: (v: boolean) => void;
+  setMirrorY: (v: boolean) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
@@ -85,9 +85,20 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           useSketchStore.getState().selectAll();
         }
-        if (e.key === "d") {
+        // Ctrl+Shift+D → reselect last selection
+        if (e.key.toLowerCase() === "d" && e.shiftKey) {
+          e.preventDefault();
+          useSketchStore.getState().reselectLastSelection();
+        }
+        // Ctrl+D → deselect (only when Shift is NOT held)
+        else if (e.key.toLowerCase() === "d" && !e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().setSelection(null);
+        }
+        // Ctrl+Shift+I → invert selection
+        if (e.key.toLowerCase() === "i" && e.shiftKey) {
+          e.preventDefault();
+          useSketchStore.getState().invertSelection();
         }
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {
@@ -107,7 +118,7 @@ export function useEditorKeyboardShortcuts(
       } else if (e.shiftKey) {
         // Shift+M → toggle vertical mirror
         if (e.key === "M") {
-          params.setMirrorY((prev) => !prev);
+          params.setMirrorY(!useSketchStore.getState().mirrorY);
         }
         // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
         if (e.key === "{") {
@@ -214,7 +225,7 @@ export function useEditorKeyboardShortcuts(
               params.setActiveTool("clone_stamp");
               break;
             case "m":
-              params.setMirrorX((prev) => !prev);
+              params.setMirrorX(!useSketchStore.getState().mirrorX);
               break;
             case "v":
               params.setActiveTool("move");

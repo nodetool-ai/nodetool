@@ -11,7 +11,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, IconButton, Typography, Tooltip, Divider } from "@mui/material";
+import { Box, IconButton, Typography, Tooltip, Divider, Menu, MenuItem, ListItemIcon, ListItemText, Slider } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import TrashIconSvg from "../../icons/trash.svg?react";
 const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
@@ -22,9 +22,10 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import MergeIcon from "@mui/icons-material/CallMerge";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import CheckIcon from "@mui/icons-material/Check";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
 import { useSketchStore } from "./state";
-import { SketchDocument } from "./types";
+import { SketchDocument, SymmetryMode, SYMMETRY_MIN_RAYS, SYMMETRY_MAX_RAYS } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -67,7 +68,7 @@ export interface SketchModalProps {
 
 const SketchModal: React.FC<SketchModalProps> = ({
   open,
-  title = "Sketch Editor",
+  title = "Image Editor",
   initialDocument,
   onClose,
   onDocumentChange,
@@ -77,13 +78,26 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const theme = useTheme();
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
 
-  const mirrorX = useSketchStore((s) => s.mirrorX);
-  const mirrorY = useSketchStore((s) => s.mirrorY);
-  const setMirrorX = useSketchStore((s) => s.setMirrorX);
-  const setMirrorY = useSketchStore((s) => s.setMirrorY);
+  const symmetryMode = useSketchStore((s) => s.symmetryMode);
+  const symmetryRays = useSketchStore((s) => s.symmetryRays);
+  const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
+  const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
   const canUndo = useSketchStore((s) => s.canUndo);
   const canRedo = useSketchStore((s) => s.canRedo);
+
+  // Derive label from mode
+  const symmetryLabels: Record<SymmetryMode, string> = {
+    off: "Off",
+    horizontal: "Horizontal (M)",
+    vertical: "Vertical (⇧M)",
+    dual: "Dual Axis",
+    radial: `Radial (${symmetryRays})`,
+    mandala: `Mandala (${symmetryRays})`
+  };
+  const symmetryLabel = symmetryLabels[symmetryMode] || "Off";
+  const symmetryActive = symmetryMode !== "off";
 
   useEffect(() => {
     if (!open) { setConfirmDiscard(false); }
@@ -134,16 +148,51 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 
-          <Tooltip title="Mirror Horizontal (M)">
-            <IconButton size="small" onClick={() => setMirrorX(!mirrorX)} color={mirrorX ? "primary" : "default"}>
+          <Tooltip title={`Symmetry: ${symmetryLabel}`}>
+            <IconButton
+              size="small"
+              onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
+              color={symmetryActive ? "primary" : "default"}
+            >
               <FlipIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Mirror Vertical">
-            <IconButton size="small" onClick={() => setMirrorY(!mirrorY)} color={mirrorY ? "primary" : "default"}>
-              <FlipIcon sx={{ fontSize: "18px", transform: "rotate(90deg)" }} />
-            </IconButton>
-          </Tooltip>
+          <Menu
+            anchorEl={symmetryAnchorEl}
+            open={Boolean(symmetryAnchorEl)}
+            onClose={() => setSymmetryAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+            slotProps={{ paper: { sx: { minWidth: 180 } } }}
+          >
+            {(["off", "horizontal", "vertical", "dual", "radial", "mandala"] as SymmetryMode[]).map((mode) => (
+              <MenuItem
+                key={mode}
+                onClick={() => { setSymmetryMode(mode); if (mode !== "radial" && mode !== "mandala") { setSymmetryAnchorEl(null); } }}
+                selected={symmetryMode === mode}
+              >
+                {symmetryMode === mode && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
+                <ListItemText inset={symmetryMode !== mode}>{symmetryLabels[mode]}</ListItemText>
+              </MenuItem>
+            ))}
+            {(symmetryMode === "radial" || symmetryMode === "mandala") && (
+              <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
+                <Typography variant="caption" sx={{ color: "grey.500" }}>
+                  Rays: {symmetryRays}
+                </Typography>
+                <Slider
+                  value={symmetryRays}
+                  min={SYMMETRY_MIN_RAYS}
+                  max={SYMMETRY_MAX_RAYS}
+                  step={1}
+                  marks
+                  size="small"
+                  onChange={(_, v) => setSymmetryRays(v as number)}
+                  sx={{ mt: 0.5 }}
+                />
+              </Box>
+            )}
+          </Menu>
 
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 

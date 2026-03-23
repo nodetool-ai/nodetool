@@ -41,6 +41,8 @@ export interface UsePointerHandlersParams {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  symmetryMode: string;
+  symmetryRays: number;
   selection?: Selection | null;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -51,6 +53,7 @@ export interface UsePointerHandlersParams {
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   requestRedraw: () => void;
+  requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
@@ -67,6 +70,7 @@ export interface UsePointerHandlersParams {
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
   onEyedropperPick?: (color: string) => void;
   onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
 }
 
 export interface UsePointerHandlersResult {
@@ -89,6 +93,9 @@ export function usePointerHandlers({
   pan,
   mirrorX,
   mirrorY,
+  symmetryMode,
+  symmetryRays,
+  selection,
   displayCanvasRef,
   overlayCanvasRef,
   cursorCanvasRef,
@@ -98,6 +105,7 @@ export function usePointerHandlers({
   getOrCreateLayerCanvas,
   redraw,
   requestRedraw,
+  requestDirtyRedraw,
   clearOverlay,
   drawSelectionOverlay,
   drawOverlayShape,
@@ -113,7 +121,8 @@ export function usePointerHandlers({
   onContextMenu,
   onCropComplete,
   onEyedropperPick,
-  onSelectionChange
+  onSelectionChange,
+  onAutoPickLayer
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Interaction state refs ─────────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -142,6 +151,11 @@ export function usePointerHandlers({
   const cloneSourceRef = useRef<Point | null>(null);
   const cloneOffsetRef = useRef<Point | null>(null);
   const cloneSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Selection movement state
+  const isMovingSelectionRef = useRef(false);
+  const moveSelectionOriginRef = useRef<Point | null>(null);
+  const selectionAtMoveStartRef = useRef<Selection | null>(null);
 
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -268,7 +282,7 @@ export function usePointerHandlers({
     [zoom, displayCanvasRef]
   );
 
-  // ─── Mirror drawing helper ──────────────────────────────────────────
+  // ─── Mirror / Symmetry drawing helper ────────────────────────────────
 
   const withMirror = useCallback(
     (
@@ -277,28 +291,79 @@ export function usePointerHandlers({
       from: Point,
       to: Point
     ) => {
+      const cw = doc.canvas.width;
+      const ch = doc.canvas.height;
+      const cx = cw / 2;
+      const cy = ch / 2;
+
+      // Helper: rotate a point around center
+      const rotatePoint = (p: Point, angle: number): Point => {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+      };
+
+      // Always draw the original stroke
       drawFn(from, to, ctx);
-      if (mirrorX) {
-        const cw = doc.canvas.width;
-        const mirroredFrom = { x: cw - from.x, y: from.y };
-        const mirroredTo = { x: cw - to.x, y: to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
-      }
-      if (mirrorY) {
-        const ch = doc.canvas.height;
-        const mirroredFrom = { x: from.x, y: ch - from.y };
-        const mirroredTo = { x: to.x, y: ch - to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
-      }
-      if (mirrorX && mirrorY) {
-        const cw = doc.canvas.width;
-        const ch = doc.canvas.height;
-        const mirroredFrom = { x: cw - from.x, y: ch - from.y };
-        const mirroredTo = { x: cw - to.x, y: ch - to.y };
-        drawFn(mirroredFrom, mirroredTo, ctx);
+
+      switch (symmetryMode) {
+        case "horizontal": {
+          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          break;
+        }
+        case "vertical": {
+          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          break;
+        }
+        case "dual": {
+          drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+          break;
+        }
+        case "radial": {
+          // N-fold rotational symmetry
+          const step = (2 * Math.PI) / symmetryRays;
+          for (let i = 1; i < symmetryRays; i++) {
+            const angle = step * i;
+            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+          }
+          break;
+        }
+        case "mandala": {
+          // N-fold rotational + mirror at each slice
+          const mStep = (2 * Math.PI) / symmetryRays;
+          for (let i = 1; i < symmetryRays; i++) {
+            const angle = mStep * i;
+            drawFn(rotatePoint(from, angle), rotatePoint(to, angle), ctx);
+          }
+          // Mirror: reflect across X axis through center, then rotate
+          const mirroredFrom = { x: cw - from.x, y: from.y };
+          const mirroredTo = { x: cw - to.x, y: to.y };
+          for (let i = 0; i < symmetryRays; i++) {
+            const angle = mStep * i;
+            drawFn(rotatePoint(mirroredFrom, angle), rotatePoint(mirroredTo, angle), ctx);
+          }
+          break;
+        }
+        default: {
+          // "off" — also handle legacy mirrorX/mirrorY booleans
+          if (mirrorX) {
+            drawFn({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y }, ctx);
+          }
+          if (mirrorY) {
+            drawFn({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y }, ctx);
+          }
+          if (mirrorX && mirrorY) {
+            drawFn({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y }, ctx);
+          }
+          break;
+        }
       }
     },
-    [mirrorX, mirrorY, doc.canvas.width, doc.canvas.height]
+    [mirrorX, mirrorY, symmetryMode, symmetryRays, doc.canvas.width, doc.canvas.height]
   );
 
   // ─── Stabilizer ─────────────────────────────────────────────────────
@@ -441,11 +506,43 @@ export function usePointerHandlers({
 
       if (activeTool === "move") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+
+        // Alt+click: auto-pick the topmost layer with non-transparent pixels at click point
+        if (e.altKey && onAutoPickLayer) {
+          const px = Math.floor(pt.x);
+          const py = Math.floor(pt.y);
+          // Scan layers from top (last in array) to bottom (first in array)
+          for (let i = doc.layers.length - 1; i >= 0; i--) {
+            const layer = doc.layers[i];
+            if (!layer.visible || layer.locked) {
+              continue;
+            }
+            const layerCanvas = layerCanvasesRef.current.get(layer.id);
+            if (!layerCanvas) {
+              continue;
+            }
+            const ctx = layerCanvas.getContext("2d");
+            if (!ctx) {
+              continue;
+            }
+            if (px >= 0 && px < layerCanvas.width && py >= 0 && py < layerCanvas.height) {
+              const pixel = ctx.getImageData(px, py, 1, 1).data;
+              if (pixel[3] > 0) {
+                // Found a non-transparent pixel — switch to this layer
+                onAutoPickLayer(layer.id);
+                break;
+              }
+            }
+          }
+        }
+
         moveStartRef.current = pt;
         isDrawingRef.current = true;
         onStrokeStart();
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
-        const pad = Math.max(layerCanvas.width, layerCanvas.height);
+        // Use 4x the canvas max dimension as padding so the user can move
+        // the layer far outside the canvas bounds without cropping content.
+        const pad = Math.max(layerCanvas.width, layerCanvas.height) * 4;
         const snapshot = window.document.createElement("canvas");
         snapshot.width = layerCanvas.width + pad * 2;
         snapshot.height = layerCanvas.height + pad * 2;
@@ -460,11 +557,28 @@ export function usePointerHandlers({
 
       if (activeTool === "fill") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+        // Only fill if click is within selection (when one exists)
+        if (selection && selection.width > 0 && selection.height > 0) {
+          if (pt.x < selection.x || pt.x > selection.x + selection.width ||
+              pt.y < selection.y || pt.y > selection.y + selection.height) {
+            return;
+          }
+        }
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
           onStrokeStart();
+          // Apply selection clip for fill
+          if (selection && selection.width > 0 && selection.height > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(selection.x, selection.y, selection.width, selection.height);
+            ctx.clip();
+          }
           floodFillUtil(ctx, pt.x, pt.y, doc.toolSettings.fill);
+          if (selection && selection.width > 0 && selection.height > 0) {
+            ctx.restore();
+          }
           redraw();
           const data = layerCanvas.toDataURL("image/png");
           onStrokeEnd(activeLayer.id, data);
@@ -574,10 +688,28 @@ export function usePointerHandlers({
 
       if (activeTool === "select") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+        // Check if clicking inside an existing selection — start moving it
+        if (
+          selection &&
+          !shiftHeldRef.current &&
+          !altHeldRef.current &&
+          pt.x >= selection.x &&
+          pt.x < selection.x + selection.width &&
+          pt.y >= selection.y &&
+          pt.y < selection.y + selection.height
+        ) {
+          isMovingSelectionRef.current = true;
+          moveSelectionOriginRef.current = pt;
+          selectionAtMoveStartRef.current = { ...selection };
+          isDrawingRef.current = true;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+        // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
         selectStartRef.current = pt;
         isDrawingRef.current = true;
-        if (onSelectionChange) {
-          onSelectionChange(null);
+        if (!shiftHeldRef.current && !altHeldRef.current) {
+          onSelectionChange?.(null);
         }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
@@ -626,6 +758,15 @@ export function usePointerHandlers({
       const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
       const ctx = layerCanvas.getContext("2d");
       if (ctx) {
+        // Apply selection clip for initial stroke
+        const hasSelClip = selection && selection.width > 0 && selection.height > 0;
+        if (hasSelClip) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(selection.x, selection.y, selection.width, selection.height);
+          ctx.clip();
+        }
+
         if (shiftHeldRef.current && lastStrokeEndRef.current) {
           const from = lastStrokeEndRef.current;
           const dx = pt.x - from.x;
@@ -660,6 +801,11 @@ export function usePointerHandlers({
             drawBlurStroke(pt, pt, doc.toolSettings.blur, layerCanvas);
           }
         }
+
+        if (hasSelClip) {
+          ctx.restore();
+        }
+
         redraw();
       }
 
@@ -668,6 +814,7 @@ export function usePointerHandlers({
     [
       doc,
       activeTool,
+      selection,
       screenToCanvas,
       onStrokeStart,
       onStrokeEnd,
@@ -765,6 +912,22 @@ export function usePointerHandlers({
         return;
       }
 
+      if (activeTool === "select" && isMovingSelectionRef.current && moveSelectionOriginRef.current && selectionAtMoveStartRef.current) {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        const dx = pt.x - moveSelectionOriginRef.current.x;
+        const dy = pt.y - moveSelectionOriginRef.current.y;
+        const orig = selectionAtMoveStartRef.current;
+        if (onSelectionChange) {
+          onSelectionChange({
+            x: Math.round(orig.x + dx),
+            y: Math.round(orig.y + dy),
+            width: orig.width,
+            height: orig.height
+          });
+        }
+        return;
+      }
+
       if (activeTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         drawOverlaySelection(selectStartRef.current, pt);
@@ -783,6 +946,15 @@ export function usePointerHandlers({
       const ctx = layerCanvas.getContext("2d");
       if (!ctx) {
         return;
+      }
+
+      // Apply selection clip if a selection exists
+      const hasSelectionClip = selection && selection.width > 0 && selection.height > 0;
+      if (hasSelectionClip) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(selection.x, selection.y, selection.width, selection.height);
+        ctx.clip();
       }
 
       const nativePointerEvent = e.nativeEvent as PointerEvent;
@@ -816,7 +988,19 @@ export function usePointerHandlers({
 
         lastPointRef.current = pt;
       }
-      requestRedraw();
+
+      // Restore context if selection clip was applied
+      if (hasSelectionClip) {
+        ctx.restore();
+      }
+
+      // Use dirty-rect compositing during painting for better performance on large canvases
+      const dirty = strokeDirtyRectRef.current;
+      if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
+        requestDirtyRedraw(dirty.minX, dirty.minY, dirty.maxX - dirty.minX, dirty.maxY - dirty.minY);
+      } else {
+        requestRedraw();
+      }
     },
     [
       doc,
@@ -834,9 +1018,11 @@ export function usePointerHandlers({
       drawOverlayGradient,
       drawOverlayCrop,
       requestRedraw,
+      requestDirtyRedraw,
       withMirror,
       stabilizePoint,
-      drawOverlaySelection
+      drawOverlaySelection,
+      onSelectionChange
     ]
   );
 
@@ -928,6 +1114,14 @@ export function usePointerHandlers({
         return;
       }
 
+      // Finalize selection movement
+      if (activeTool === "select" && isMovingSelectionRef.current) {
+        isMovingSelectionRef.current = false;
+        moveSelectionOriginRef.current = null;
+        selectionAtMoveStartRef.current = null;
+        return;
+      }
+
       if (activeTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(
           mousePositionRef.current.x +
@@ -942,7 +1136,39 @@ export function usePointerHandlers({
         clearOverlay();
         selectStartRef.current = null;
         if (w > 1 && h > 1 && onSelectionChange) {
-          onSelectionChange({ x, y, width: w, height: h });
+          const newRect = { x, y, width: w, height: h };
+          if (shiftHeldRef.current && selection) {
+            // Shift+drag: add (union) the new rect with existing selection
+            const ux = Math.min(selection.x, newRect.x);
+            const uy = Math.min(selection.y, newRect.y);
+            const ux2 = Math.max(selection.x + selection.width, newRect.x + newRect.width);
+            const uy2 = Math.max(selection.y + selection.height, newRect.y + newRect.height);
+            onSelectionChange({ x: ux, y: uy, width: ux2 - ux, height: uy2 - uy });
+          } else if (altHeldRef.current && selection) {
+            // Alt+drag: subtract the new rect from existing selection
+            // We approximate this by clipping the existing selection to exclude the new rect.
+            // Since we only support rectangular selections, we clip the existing rect:
+            // If the new rect fully covers the selection, deselect.
+            // NOTE: Partial subtraction is not supported because we only
+            // support rectangular selections. A full non-rectangular
+            // selection system would be needed for true subtract.
+            const sx1 = selection.x;
+            const sy1 = selection.y;
+            const sx2 = selection.x + selection.width;
+            const sy2 = selection.y + selection.height;
+            const nx1 = newRect.x;
+            const ny1 = newRect.y;
+            const nx2 = newRect.x + newRect.width;
+            const ny2 = newRect.y + newRect.height;
+            if (nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2) {
+              onSelectionChange(null);
+            } else {
+              // Partial overlap: keep existing selection unchanged
+              onSelectionChange(selection);
+            }
+          } else {
+            onSelectionChange(newRect);
+          }
         }
         return;
       }
@@ -1010,6 +1236,7 @@ export function usePointerHandlers({
       doc.activeLayerId,
       doc.toolSettings.gradient,
       activeTool,
+      selection,
       onStrokeEnd,
       onCropComplete,
       getOrCreateLayerCanvas,

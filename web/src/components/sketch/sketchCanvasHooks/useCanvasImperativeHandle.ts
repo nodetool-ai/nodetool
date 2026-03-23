@@ -292,6 +292,18 @@ export function useCanvasImperativeHandle({
         ctx.restore();
         redraw();
       },
+      fillLayerRect: (layerId: string, x: number, y: number, width: number, height: number, color: string) => {
+        const canvas = getOrCreateLayerCanvas(layerId);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, width, height);
+        ctx.restore();
+        redraw();
+      },
       nudgeLayer: (layerId: string, dx: number, dy: number) => {
         const canvas = layerCanvasesRef.current.get(layerId);
         if (!canvas) {

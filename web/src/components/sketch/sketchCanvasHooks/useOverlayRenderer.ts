@@ -272,8 +272,12 @@ export function useOverlayRenderer({
       }
 
       let size: number;
+      let roundness = 1;
+      let angle = 0;
       if (activeTool === "brush") {
         size = doc.toolSettings.brush.size;
+        roundness = doc.toolSettings.brush.roundness;
+        angle = doc.toolSettings.brush.angle;
       } else if (activeTool === "pencil") {
         size = doc.toolSettings.pencil.size;
       } else if (activeTool === "blur") {
@@ -285,22 +289,34 @@ export function useOverlayRenderer({
       }
 
       // Calculate the visual radius on screen (accounting for zoom)
-      const screenRadius = (size / 2) * zoom;
+      const screenRadiusX = (size / 2) * zoom;
+      const screenRadiusY = screenRadiusX * roundness;
+      const angleRad = (angle * Math.PI) / 180;
 
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      if (angleRad !== 0) {
+        ctx.rotate(angleRad);
+      }
+
+      // Outer white ring
       ctx.beginPath();
-      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+      ctx.ellipse(0, 0, Math.max(1, screenRadiusX), Math.max(1, screenRadiusY), 0, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
       ctx.lineWidth = 1;
       ctx.stroke();
       // Inner dark ring for contrast
       ctx.beginPath();
-      ctx.arc(screenX, screenY, Math.max(1, screenRadius), 0, Math.PI * 2);
+      ctx.ellipse(0, 0, Math.max(1, screenRadiusX), Math.max(1, screenRadiusY), 0, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
       ctx.stroke();
       ctx.setLineDash([]);
-      // Center dot
+
+      ctx.restore();
+
+      // Center dot (unrotated)
       ctx.beginPath();
       ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
@@ -309,6 +325,8 @@ export function useOverlayRenderer({
     [
       activeTool,
       doc.toolSettings.brush.size,
+      doc.toolSettings.brush.roundness,
+      doc.toolSettings.brush.angle,
       doc.toolSettings.pencil.size,
       doc.toolSettings.eraser.size,
       doc.toolSettings.blur.size,

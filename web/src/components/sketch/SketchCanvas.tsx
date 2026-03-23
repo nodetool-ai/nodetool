@@ -84,6 +84,14 @@ export interface SketchCanvasRef {
     saturation: number
   ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
+  fillLayerRect: (
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string
+  ) => void;
   nudgeLayer: (layerId: string, dx: number, dy: number) => void;
 }
 
@@ -96,6 +104,8 @@ export interface SketchCanvasProps {
   pan: Point;
   mirrorX: boolean;
   mirrorY: boolean;
+  symmetryMode: string;
+  symmetryRays: number;
   isolatedLayerId?: string | null;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
@@ -112,6 +122,7 @@ export interface SketchCanvasProps {
   onEyedropperPick?: (color: string) => void;
   selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
   /** Merged onto the root container (e.g. for layout hooks / E2E). */
   className?: string;
 }
@@ -127,6 +138,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      symmetryMode,
+      symmetryRays,
       isolatedLayerId,
       onZoomChange,
       onPanChange,
@@ -138,6 +151,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onEyedropperPick,
       selection,
       onSelectionChange,
+      onAutoPickLayer,
       className: rootClassName
     } = props;
 
@@ -156,7 +170,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       layerCanvasesRef,
       getOrCreateLayerCanvas,
       redraw,
-      requestRedraw
+      requestRedraw,
+      requestDirtyRedraw
     } = useCompositing({ doc, isolatedLayerId });
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
@@ -201,6 +216,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       mirrorX,
       mirrorY,
+      symmetryMode,
+      symmetryRays,
       selection,
       displayCanvasRef,
       overlayCanvasRef,
@@ -211,6 +228,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       getOrCreateLayerCanvas,
       redraw,
       requestRedraw,
+      requestDirtyRedraw,
       clearOverlay: overlay.clearOverlay,
       drawSelectionOverlay: overlay.drawSelectionOverlay,
       drawOverlayShape: overlay.drawOverlayShape,
@@ -226,7 +244,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onContextMenu,
       onCropComplete,
       onEyedropperPick,
-      onSelectionChange
+      onSelectionChange,
+      onAutoPickLayer
     });
 
     // ─── Imperative handle ──────────────────────────────────────────────
