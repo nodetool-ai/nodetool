@@ -291,12 +291,12 @@ export function useOverlayRenderer({
       // Calculate the visual radius on screen (accounting for zoom)
       const screenRadiusX = (size / 2) * zoom;
       const screenRadiusY = screenRadiusX * roundness;
-      const rad = (angle * Math.PI) / 180;
+      const angleRad = (angle * Math.PI) / 180;
 
       ctx.save();
       ctx.translate(screenX, screenY);
-      if (rad !== 0) {
-        ctx.rotate(rad);
+      if (angleRad !== 0) {
+        ctx.rotate(angleRad);
       }
 
       // Outer white ring

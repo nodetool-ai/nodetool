@@ -589,18 +589,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     });
   },
   invertSelection: () => {
-    const state = get();
-    const { width: cw, height: ch } = state.document.canvas;
-    const sel = state.selection;
-    if (!sel) {
-      // No selection → select all
-      set({ selection: { x: 0, y: 0, width: cw, height: ch } });
-      return;
-    }
-    // Invert: select the full canvas (since we only support rectangular
-    // selections, a true pixel-accurate invert isn't possible — we select
-    // the bounding complement which is the full canvas minus the interior,
-    // but since that's non-rectangular, we select all as the best approximation)
+    // With only rectangular selections, true inversion is not possible.
+    // Both cases (no selection, existing selection) select the full canvas
+    // as an approximation until non-rectangular selection support is added.
+    const { width: cw, height: ch } = get().document.canvas;
     set({ selection: { x: 0, y: 0, width: cw, height: ch } });
   },
   reselectLastSelection: () => {

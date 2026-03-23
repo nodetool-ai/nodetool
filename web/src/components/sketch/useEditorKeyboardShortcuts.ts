@@ -86,17 +86,17 @@ export function useEditorKeyboardShortcuts(
           useSketchStore.getState().selectAll();
         }
         // Ctrl+Shift+D → reselect last selection
-        if (e.key === "D" && e.shiftKey) {
+        if (e.key.toLowerCase() === "d" && e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().reselectLastSelection();
         }
         // Ctrl+D → deselect (only when Shift is NOT held)
-        else if (e.key === "d" && !e.shiftKey) {
+        else if (e.key.toLowerCase() === "d" && !e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().setSelection(null);
         }
         // Ctrl+Shift+I → invert selection
-        if (e.key === "I" && e.shiftKey) {
+        if (e.key.toLowerCase() === "i" && e.shiftKey) {
           e.preventDefault();
           useSketchStore.getState().invertSelection();
         }

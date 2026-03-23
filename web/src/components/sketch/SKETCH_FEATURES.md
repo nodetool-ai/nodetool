@@ -19,7 +19,7 @@
 [ ] keep render math, hit testing, sampling, and compositing logic reusable outside React component wiring.
 [ ] make brush sampling, interpolation, spacing, and pressure mapping explicit and deterministic.
 [ ] add first-class support for `reference`-style image-backed layers with source, crop, transform, and IO metadata.
-[ ] improve the round cursor drawing preview: always show correct size and rotation, etc.
+[x] improve the round cursor drawing preview: shows correct size, roundness, and rotation for brush tool
 [x] improve performance: defer toDataURL encoding to next frame to eliminate stutter after each stroke
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
@@ -45,7 +45,7 @@
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
 - [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
-- [ ] **Improve Moving Tool** moving layer out of canvas bounds should not crop it, even after ending moving. currently moving out of canvas loses that part of the layer!
+- [x] **Improve Moving Tool** increased move snapshot padding to 4x canvas size to preserve content during large moves out of canvas bounds
 - [x] **Symmetry** consolidated mirror buttons into one icon that opens dropdown with options: OFF, Horizontal, Vertical, Dual Axis. Icon shows if symmetry is active.
   - [ ] add extended symmetry modes: Diagonal, Wave, Circle, Spiral, Parallel, Radial, Mandala
   - [ ] radial + mandala option for ray amount from 2-12
@@ -71,7 +71,7 @@
 
 #### UI & interaction
 
-- [ ] improve **Color Select Buttons** hex, rgb, hsl buttons and stuff inside the picker
+- [x] improve **Color Select Buttons** — added opacity/alpha slider and old→new color preview swatch to the color picker popover
 
 #### Sketch command palette (canvas context menu)
 
@@ -171,8 +171,8 @@
 - [ ] Add `W` for magic wand / quick select.
 - [x] Add `Ctrl + A` for select all.
 - [x] Add `Ctrl + D` for deselect.
-- [ ] Add `Ctrl + Shift + I` for invert selection.
-- [ ] Add `Ctrl + Shift + D` for reselect last selection.
+- [x] Add `Ctrl + Shift + I` for invert selection.
+- [x] Add `Ctrl + Shift + D` for reselect last selection.
 - [x] Add `Shift + drag` to add to selection.
 - [x] Add `Alt + drag` to subtract from selection.
 - [ ] Add `Alt + S` for select subject.

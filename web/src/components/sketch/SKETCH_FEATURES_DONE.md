@@ -240,6 +240,11 @@
 - [x] **Selection add/subtract** — Shift+drag to add (union) a new rectangle to existing selection; Alt+drag to subtract from selection
 - [x] **Delete respects selection** — Delete/Backspace key clears only the selected area on the active layer when a selection exists, otherwise clears the entire layer
 - [x] **Selection constrains painting** — when a rectangular selection exists, brush, pencil, eraser, blur, clone stamp, and fill tools only affect pixels within the selection region (via canvas clip path)
+- [x] **Invert selection (Ctrl+Shift+I)** — inverts selection to full canvas (approximation for rectangular selections)
+- [x] **Reselect last selection (Ctrl+Shift+D)** — stores the last selection when deselecting; Ctrl+Shift+D restores it
+- [x] **Improved brush cursor preview** — cursor now shows elliptical shape for non-default roundness and rotates for non-zero brush angle; uses `ctx.ellipse()` with save/restore transform
+- [x] **Move tool padding fix** — increased move snapshot padding from 1x to 4x canvas max dimension, preserving layer content during large moves outside canvas bounds
+- [x] **Color picker improvements** — added opacity/alpha slider with gradient rail, and old→new color comparison swatch strip at the bottom of the picker popover
 
 #### Sketch command palette (canvas context menu)
 

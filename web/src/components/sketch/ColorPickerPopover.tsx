@@ -275,7 +275,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
               height: "8px",
               padding: "0 !important",
               "& .MuiSlider-rail": {
-                background: `linear-gradient(to right, rgba(${r},${g},${b},0) 0%, rgb(${r},${g},${b}) 100%)`,
+                background: `linear-gradient(to right, rgba(${r},${g},${b},0) 0%, rgba(${r},${g},${b},1) 100%)`,
                 opacity: 1,
                 height: "8px",
                 borderRadius: "3px"
