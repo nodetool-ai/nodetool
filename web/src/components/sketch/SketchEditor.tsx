@@ -312,6 +312,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onEyedropperPick={colorActions.handleEyedropperPick}
             selection={store.selection}
             onSelectionChange={store.setSelection}
+            onAutoPickLayer={store.setActiveLayer}
           />
         </Box>
       </Box>

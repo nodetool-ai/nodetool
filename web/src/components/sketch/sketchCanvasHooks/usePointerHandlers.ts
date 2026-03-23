@@ -53,6 +53,7 @@ export interface UsePointerHandlersParams {
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   requestRedraw: () => void;
+  requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
@@ -69,6 +70,7 @@ export interface UsePointerHandlersParams {
   onCropComplete?: (x: number, y: number, width: number, height: number) => void;
   onEyedropperPick?: (color: string) => void;
   onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
 }
 
 export interface UsePointerHandlersResult {
@@ -103,6 +105,7 @@ export function usePointerHandlers({
   getOrCreateLayerCanvas,
   redraw,
   requestRedraw,
+  requestDirtyRedraw,
   clearOverlay,
   drawSelectionOverlay,
   drawOverlayShape,
@@ -118,7 +121,8 @@ export function usePointerHandlers({
   onContextMenu,
   onCropComplete,
   onEyedropperPick,
-  onSelectionChange
+  onSelectionChange,
+  onAutoPickLayer
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Interaction state refs ─────────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -502,6 +506,36 @@ export function usePointerHandlers({
 
       if (activeTool === "move") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+
+        // Alt+click: auto-pick the topmost layer with non-transparent pixels at click point
+        if (e.altKey && onAutoPickLayer) {
+          const px = Math.floor(pt.x);
+          const py = Math.floor(pt.y);
+          // Scan layers from top (last in array) to bottom (first in array)
+          for (let i = doc.layers.length - 1; i >= 0; i--) {
+            const layer = doc.layers[i];
+            if (!layer.visible || layer.locked) {
+              continue;
+            }
+            const layerCanvas = layerCanvasesRef.current.get(layer.id);
+            if (!layerCanvas) {
+              continue;
+            }
+            const ctx = layerCanvas.getContext("2d");
+            if (!ctx) {
+              continue;
+            }
+            if (px >= 0 && px < layerCanvas.width && py >= 0 && py < layerCanvas.height) {
+              const pixel = ctx.getImageData(px, py, 1, 1).data;
+              if (pixel[3] > 0) {
+                // Found a non-transparent pixel — switch to this layer
+                onAutoPickLayer(layer.id);
+                break;
+              }
+            }
+          }
+        }
+
         moveStartRef.current = pt;
         isDrawingRef.current = true;
         onStrokeStart();
@@ -960,7 +994,13 @@ export function usePointerHandlers({
         ctx.restore();
       }
 
-      requestRedraw();
+      // Use dirty-rect compositing during painting for better performance on large canvases
+      const dirty = strokeDirtyRectRef.current;
+      if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
+        requestDirtyRedraw(dirty.minX, dirty.minY, dirty.maxX - dirty.minX, dirty.maxY - dirty.minY);
+      } else {
+        requestRedraw();
+      }
     },
     [
       doc,
@@ -978,6 +1018,7 @@ export function usePointerHandlers({
       drawOverlayGradient,
       drawOverlayCrop,
       requestRedraw,
+      requestDirtyRedraw,
       withMirror,
       stabilizePoint,
       drawOverlaySelection,

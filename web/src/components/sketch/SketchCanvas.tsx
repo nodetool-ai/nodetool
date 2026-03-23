@@ -122,6 +122,7 @@ export interface SketchCanvasProps {
   onEyedropperPick?: (color: string) => void;
   selection?: Selection | null;
   onSelectionChange?: (sel: Selection | null) => void;
+  onAutoPickLayer?: (layerId: string) => void;
   /** Merged onto the root container (e.g. for layout hooks / E2E). */
   className?: string;
 }
@@ -150,6 +151,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onEyedropperPick,
       selection,
       onSelectionChange,
+      onAutoPickLayer,
       className: rootClassName
     } = props;
 
@@ -168,7 +170,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       layerCanvasesRef,
       getOrCreateLayerCanvas,
       redraw,
-      requestRedraw
+      requestRedraw,
+      requestDirtyRedraw
     } = useCompositing({ doc, isolatedLayerId });
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
@@ -225,6 +228,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       getOrCreateLayerCanvas,
       redraw,
       requestRedraw,
+      requestDirtyRedraw,
       clearOverlay: overlay.clearOverlay,
       drawSelectionOverlay: overlay.drawSelectionOverlay,
       drawOverlayShape: overlay.drawOverlayShape,
@@ -240,7 +244,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onContextMenu,
       onCropComplete,
       onEyedropperPick,
-      onSelectionChange
+      onSelectionChange,
+      onAutoPickLayer
     });
 
     // ─── Imperative handle ──────────────────────────────────────────────

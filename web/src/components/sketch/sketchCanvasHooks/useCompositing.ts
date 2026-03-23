@@ -4,12 +4,20 @@
  * Manages the display canvas compositing pipeline:
  * - Layer canvas creation and lifecycle
  * - Compositing all visible layers onto the display canvas
- * - rAF-batched redraw scheduling
+ * - rAF-batched redraw scheduling with dirty-rect optimization
  */
 
 import { useCallback, useEffect, useRef } from "react";
 import type { SketchDocument } from "../types";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
+
+/** Dirty rect region for partial compositing */
+interface DirtyRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 export interface UseCompositingParams {
   doc: SketchDocument;
@@ -24,6 +32,8 @@ export interface UseCompositingResult {
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   redraw: () => void;
   requestRedraw: () => void;
+  /** Schedule a partial redraw over only the changed region (faster for large canvases). */
+  requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
 }
 
 export function useCompositing({
@@ -34,6 +44,9 @@ export function useCompositing({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const redrawRequestRef = useRef<number | null>(null);
+  /** Pending dirty rect. Null means full redraw. */
+  const pendingDirtyRef = useRef<DirtyRect | null>(null);
+  const isFullRedrawRef = useRef(true);
 
   // ─── Layer Canvas Management ────────────────────────────────────────
 
@@ -86,49 +99,96 @@ export function useCompositing({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.layers.length, doc.layers.map((l) => l.id).join(","), doc.canvas.width, doc.canvas.height]);
 
-  // ─── Composite and redraw display canvas ────────────────────────────
+  // ─── Compositing helpers ────────────────────────────────────────────
+
+  /** Composite layers into display canvas, optionally clipped to a dirty rect. */
+  const compositeToDisplay = useCallback(
+    (dirtyRect?: DirtyRect | null) => {
+      const displayCanvas = displayCanvasRef.current;
+      if (!displayCanvas) {
+        return;
+      }
+      const ctx = displayCanvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+
+      const fullW = displayCanvas.width;
+      const fullH = displayCanvas.height;
+      const useClip = !!dirtyRect;
+
+      if (useClip) {
+        // Expand dirty rect by 2px for anti-aliasing edges
+        const pad = 2;
+        const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
+        const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
+        const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
+        const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(rx, ry, rw, rh);
+        ctx.clip();
+
+        // Clear only the dirty region, then redraw checkerboard and layers
+        ctx.clearRect(rx, ry, rw, rh);
+        drawCheckerboard(ctx, fullW, fullH);
+      } else {
+        ctx.clearRect(0, 0, fullW, fullH);
+        drawCheckerboard(ctx, fullW, fullH);
+      }
+
+      for (const layer of doc.layers) {
+        if (!layer.visible) {
+          continue;
+        }
+        if (isolatedLayerId && layer.id !== isolatedLayerId) {
+          continue;
+        }
+        const layerCanvas = layerCanvasesRef.current.get(layer.id);
+        if (!layerCanvas) {
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = layer.opacity;
+        ctx.globalCompositeOperation = blendModeToComposite(
+          layer.blendMode || "normal"
+        );
+        if (useClip) {
+          // Draw only the dirty region from the layer
+          const pad = 2;
+          const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
+          const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
+          const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
+          const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
+          ctx.drawImage(layerCanvas, rx, ry, rw, rh, rx, ry, rw, rh);
+        } else {
+          ctx.drawImage(layerCanvas, 0, 0);
+        }
+        ctx.restore();
+      }
+
+      if (useClip) {
+        ctx.restore();
+      }
+
+      // Draw a subtle border around the canvas to show its boundaries
+      if (!useClip) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, 0.5, fullW - 1, fullH - 1);
+        ctx.restore();
+      }
+    },
+    [doc.layers, isolatedLayerId]
+  );
+
+  // ─── Full redraw ───────────────────────────────────────────────────
 
   const redraw = useCallback(() => {
-    const displayCanvas = displayCanvasRef.current;
-    if (!displayCanvas) {
-      return;
-    }
-    const ctx = displayCanvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
-    drawCheckerboard(ctx, displayCanvas.width, displayCanvas.height);
-
-    for (const layer of doc.layers) {
-      if (!layer.visible) {
-        continue;
-      }
-      // When a layer is isolated/solo'd, skip all other layers
-      if (isolatedLayerId && layer.id !== isolatedLayerId) {
-        continue;
-      }
-      const layerCanvas = layerCanvasesRef.current.get(layer.id);
-      if (!layerCanvas) {
-        continue;
-      }
-      ctx.save();
-      ctx.globalAlpha = layer.opacity;
-      ctx.globalCompositeOperation = blendModeToComposite(
-        layer.blendMode || "normal"
-      );
-      ctx.drawImage(layerCanvas, 0, 0);
-      ctx.restore();
-    }
-
-    // Draw a subtle border around the canvas to show its boundaries
-    ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, displayCanvas.width - 1, displayCanvas.height - 1);
-    ctx.restore();
-  }, [doc.layers, isolatedLayerId]);
+    compositeToDisplay(null);
+  }, [compositeToDisplay]);
 
   /**
    * Batched redraw using requestAnimationFrame.
@@ -136,13 +196,62 @@ export function useCompositing({
    * This coalesces redraws so we only composite layers once per animation frame.
    */
   const requestRedraw = useCallback(() => {
+    // Mark as full redraw needed
+    isFullRedrawRef.current = true;
+    pendingDirtyRef.current = null;
+
     if (redrawRequestRef.current === null) {
       redrawRequestRef.current = requestAnimationFrame(() => {
         redrawRequestRef.current = null;
+        isFullRedrawRef.current = true;
+        pendingDirtyRef.current = null;
         redraw();
       });
     }
   }, [redraw]);
+
+  /**
+   * Schedule a partial redraw over a dirty region.
+   * Multiple dirty rects are merged into one bounding box.
+   * Falls back to full redraw if requestRedraw() was called in the same frame.
+   */
+  const requestDirtyRedraw = useCallback(
+    (x: number, y: number, w: number, h: number) => {
+      // If full redraw is already pending, skip
+      if (isFullRedrawRef.current) {
+        return;
+      }
+
+      const prev = pendingDirtyRef.current;
+      if (prev) {
+        // Merge bounding boxes
+        const minX = Math.min(prev.x, x);
+        const minY = Math.min(prev.y, y);
+        const maxX = Math.max(prev.x + prev.w, x + w);
+        const maxY = Math.max(prev.y + prev.h, y + h);
+        pendingDirtyRef.current = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+      } else {
+        pendingDirtyRef.current = { x, y, w, h };
+      }
+
+      if (redrawRequestRef.current === null) {
+        redrawRequestRef.current = requestAnimationFrame(() => {
+          redrawRequestRef.current = null;
+          const dirty = pendingDirtyRef.current;
+          const isFull = isFullRedrawRef.current;
+          pendingDirtyRef.current = null;
+          isFullRedrawRef.current = false;
+
+          if (isFull || !dirty) {
+            compositeToDisplay(null);
+          } else {
+            compositeToDisplay(dirty);
+          }
+        });
+      }
+    },
+    [compositeToDisplay]
+  );
 
   useEffect(() => {
     redraw();
@@ -164,6 +273,7 @@ export function useCompositing({
     redrawRequestRef,
     getOrCreateLayerCanvas,
     redraw,
-    requestRedraw
+    requestRedraw,
+    requestDirtyRedraw
   };
 }
