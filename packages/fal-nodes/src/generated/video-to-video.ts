@@ -93,7 +93,7 @@ video, style-transfer, animatediff, re-animation, video-to-video`;
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const firstNSeconds = Number(inputs.first_n_seconds ?? this.first_n_seconds ?? 3);
     const fps = Number(inputs.fps ?? this.fps ?? 8);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.7);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.7);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 25);
     const seed = String(inputs.seed ?? this.seed ?? "");
@@ -164,7 +164,7 @@ video, style-transfer, animatediff, turbo, fast, video-to-video`;
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const firstNSeconds = Number(inputs.first_n_seconds ?? this.first_n_seconds ?? 3);
     const fps = Number(inputs.fps ?? this.fps ?? 8);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.7);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.7);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 2);
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 12);
     const seed = String(inputs.seed ?? this.seed ?? "");
@@ -561,7 +561,7 @@ video, transformation, cogvideo, style-transfer, video-to-video`;
     const apiKey = getFalApiKey(inputs);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const useRife = Boolean(inputs.use_rife ?? this.use_rife ?? true);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.8);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.8);
     const videoSize = String(inputs.video_size ?? this.video_size ?? "");
     const loras = String(inputs.loras ?? this.loras ?? []);
     const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7);
@@ -635,7 +635,7 @@ video, transformation, hunyuan, video-to-video`;
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const strength = Number(inputs.strength ?? this.strength ?? 0.85);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.85);
     const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
     const seed = String(inputs.seed ?? this.seed ?? "");
     const numFrames = String(inputs.num_frames ?? this.num_frames ?? 129);
@@ -4516,7 +4516,7 @@ video, editing, video-to-video, vid2vid`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
-    const targetFps = String(inputs.target_fps ?? this.target_fps ?? "30fps");
+    const targetFps = String(inputs.target_fps ?? (this as any).target_fps ?? "30fps");
     const targetResolution = String(inputs.target_resolution ?? this.target_resolution ?? "1080p");
 
     const args: Record<string, unknown> = {
@@ -4748,7 +4748,7 @@ video, editing, video-to-video, vid2vid`;
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
     const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const strength = Number(inputs.strength ?? this.strength ?? 0.85);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.85);
     const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
     const seed = String(inputs.seed ?? this.seed ?? "");
 
@@ -6942,7 +6942,7 @@ video, editing, video-to-video, vid2vid`;
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(inputs);
-    const targetFps = String(inputs.target_fps ?? this.target_fps ?? "");
+    const targetFps = String(inputs.target_fps ?? (this as any).target_fps ?? "");
     const resolution = String(inputs.resolution ?? this.resolution ?? "");
 
     const args: Record<string, unknown> = {
@@ -7048,7 +7048,7 @@ video, editing, video-to-video, vid2vid`;
     const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
     const numInterpolatedFrames = Number(inputs.num_interpolated_frames ?? this.num_interpolated_frames ?? 1);
     const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const resampleFps = Boolean(inputs.resample_fps ?? this.resample_fps ?? false);
+    const resampleFps = Boolean(inputs.resample_fps ?? (this as any).resample_fps ?? false);
     const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
     const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
     const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
@@ -7059,7 +7059,7 @@ video, editing, video-to-video, vid2vid`;
     const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
     const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
     const guidanceScale_2 = Number(inputs.guidance_scale_2 ?? this.guidance_scale_2 ?? 4);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.9);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.9);
     const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
     const adjustFpsForInterpolation = Boolean(inputs.adjust_fps_for_interpolation ?? this.adjust_fps_for_interpolation ?? true);
     const seed = String(inputs.seed ?? this.seed ?? "");
@@ -7217,13 +7217,13 @@ video, editing, video-to-video, vid2vid`;
       if (videoUrl) {
         args["video"] = {
           "video_url": videoUrl,
-          "start_frame_num": Number(inputs.start_frame_num ?? this.start_frame_num ?? 0),
+          "start_frame_num": Number(inputs.start_frame_num ?? (this as any).start_frame_num ?? 0),
           "reverse_video": Boolean(inputs.reverse_video ?? this.reverse_video ?? false),
-          "limit_num_frames": Boolean(inputs.limit_num_frames ?? this.limit_num_frames ?? false),
-          "resample_fps": Boolean(inputs.resample_fps ?? this.resample_fps ?? false),
-          "strength": Number(inputs.strength ?? this.strength ?? 0),
-          "target_fps": Number(inputs.target_fps ?? this.target_fps ?? 0),
-          "max_num_frames": Number(inputs.max_num_frames ?? this.max_num_frames ?? 0),
+          "limit_num_frames": Boolean(inputs.limit_num_frames ?? (this as any).limit_num_frames ?? false),
+          "resample_fps": Boolean(inputs.resample_fps ?? (this as any).resample_fps ?? false),
+          "strength": Number(inputs.strength ?? (this as any).strength ?? 0),
+          "target_fps": Number(inputs.target_fps ?? (this as any).target_fps ?? 0),
+          "max_num_frames": Number(inputs.max_num_frames ?? (this as any).max_num_frames ?? 0),
         };
       }
     }
@@ -9606,13 +9606,13 @@ video, editing, video-to-video, vid2vid`;
       if (videoUrl) {
         args["video"] = {
           "video_url": videoUrl,
-          "start_frame_num": Number(inputs.start_frame_num ?? this.start_frame_num ?? 0),
+          "start_frame_num": Number(inputs.start_frame_num ?? (this as any).start_frame_num ?? 0),
           "reverse_video": Boolean(inputs.reverse_video ?? this.reverse_video ?? false),
-          "limit_num_frames": Boolean(inputs.limit_num_frames ?? this.limit_num_frames ?? false),
-          "resample_fps": Boolean(inputs.resample_fps ?? this.resample_fps ?? false),
-          "strength": Number(inputs.strength ?? this.strength ?? 0),
-          "target_fps": Number(inputs.target_fps ?? this.target_fps ?? 0),
-          "max_num_frames": Number(inputs.max_num_frames ?? this.max_num_frames ?? 0),
+          "limit_num_frames": Boolean(inputs.limit_num_frames ?? (this as any).limit_num_frames ?? false),
+          "resample_fps": Boolean(inputs.resample_fps ?? (this as any).resample_fps ?? false),
+          "strength": Number(inputs.strength ?? (this as any).strength ?? 0),
+          "target_fps": Number(inputs.target_fps ?? (this as any).target_fps ?? 0),
+          "max_num_frames": Number(inputs.max_num_frames ?? (this as any).max_num_frames ?? 0),
         };
       }
     }
@@ -9977,12 +9977,12 @@ video, editing, video-to-video, vid2vid`;
         args["video"] = {
           "video_url": videoUrl,
           "reverse_video": Boolean(inputs.reverse_video ?? this.reverse_video ?? false),
-          "start_frame_num": Number(inputs.start_frame_num ?? this.start_frame_num ?? 0),
-          "limit_num_frames": Boolean(inputs.limit_num_frames ?? this.limit_num_frames ?? false),
-          "resample_fps": Boolean(inputs.resample_fps ?? this.resample_fps ?? false),
-          "strength": Number(inputs.strength ?? this.strength ?? 0),
-          "target_fps": Number(inputs.target_fps ?? this.target_fps ?? 0),
-          "max_num_frames": Number(inputs.max_num_frames ?? this.max_num_frames ?? 0),
+          "start_frame_num": Number(inputs.start_frame_num ?? (this as any).start_frame_num ?? 0),
+          "limit_num_frames": Boolean(inputs.limit_num_frames ?? (this as any).limit_num_frames ?? false),
+          "resample_fps": Boolean(inputs.resample_fps ?? (this as any).resample_fps ?? false),
+          "strength": Number(inputs.strength ?? (this as any).strength ?? 0),
+          "target_fps": Number(inputs.target_fps ?? (this as any).target_fps ?? 0),
+          "max_num_frames": Number(inputs.max_num_frames ?? (this as any).max_num_frames ?? 0),
         };
       }
     }
@@ -10585,7 +10585,7 @@ video, editing, video-to-video, vid2vid`;
       if (videoUrl) {
         args["video"] = {
           "video_url": videoUrl,
-          "start_frame_num": Number(inputs.start_frame_num ?? this.start_frame_num ?? 0),
+          "start_frame_num": Number(inputs.start_frame_num ?? (this as any).start_frame_num ?? 0),
         };
       }
     }
@@ -10705,7 +10705,7 @@ video, editing, video-to-video, vid2vid`;
     const H264Output = Boolean(inputs.H264_output ?? this.H264_output ?? false);
     const compression = String(inputs.compression ?? this.compression ?? "");
     const recoverDetail = String(inputs.recover_detail ?? this.recover_detail ?? "");
-    const targetFps = String(inputs.target_fps ?? this.target_fps ?? "");
+    const targetFps = String(inputs.target_fps ?? (this as any).target_fps ?? "");
     const upscaleFactor = Number(inputs.upscale_factor ?? this.upscale_factor ?? 2);
     const halo = String(inputs.halo ?? this.halo ?? "");
     const grain = String(inputs.grain ?? this.grain ?? "");
@@ -10779,7 +10779,7 @@ video, editing, video-to-video, vid2vid, lora`;
     const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
     const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
     const loras = String(inputs.loras ?? this.loras ?? []);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.75);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.75);
     const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
     const numFrames = String(inputs.num_frames ?? this.num_frames ?? 129);

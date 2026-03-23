@@ -616,10 +616,10 @@ image, generation, stable-diffusion, open-source, text-to-image, txt2img`;
       if (controlnetUrl) {
         args["controlnet"] = {
           "control_image_url": controlnetUrl,
-          "conditioning_scale": Number(inputs.conditioning_scale ?? this.conditioning_scale ?? 0),
-          "path": String(inputs.path ?? this.path ?? ""),
-          "start_percentage": Number(inputs.start_percentage ?? this.start_percentage ?? 0),
-          "end_percentage": Number(inputs.end_percentage ?? this.end_percentage ?? 0),
+          "conditioning_scale": Number(inputs.conditioning_scale ?? (this as any).conditioning_scale ?? 0),
+          "path": String(inputs.path ?? (this as any).path ?? ""),
+          "start_percentage": Number(inputs.start_percentage ?? (this as any).start_percentage ?? 0),
+          "end_percentage": Number(inputs.end_percentage ?? (this as any).end_percentage ?? 0),
         };
       }
     }
@@ -7971,7 +7971,7 @@ flux, generation, text-to-image, txt2img, ai-art, lora`;
     const numImages = Number(inputs.num_images ?? this.num_images ?? 1);
     const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpeg");
     const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.85);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.85);
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 28);
     const maskUrl = String(inputs.mask_url ?? this.mask_url ?? "");
     const seed = String(inputs.seed ?? this.seed ?? "");
@@ -8202,9 +8202,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_3Url) {
         args["image_prompt_3"] = {
           "image_url": imagePrompt_3Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -8215,9 +8215,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_4Url) {
         args["image_prompt_4"] = {
           "image_url": imagePrompt_4Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -8228,9 +8228,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_1Url) {
         args["image_prompt_1"] = {
           "image_url": imagePrompt_1Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -8241,9 +8241,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_2Url) {
         args["image_prompt_2"] = {
           "image_url": imagePrompt_2Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -9606,7 +9606,7 @@ generation, text-to-image, txt2img, ai-art, fast`;
     const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
     const format = String(inputs.format ?? this.format ?? "jpeg");
     const numImages = Number(inputs.num_images ?? this.num_images ?? 1);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.95);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.95);
     const safetyCheckerVersion = String(inputs.safety_checker_version ?? this.safety_checker_version ?? "v1");
     const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 8);
     const seed = Number(inputs.seed ?? this.seed ?? -1);
@@ -10156,9 +10156,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_3Url) {
         args["image_prompt_3"] = {
           "image_url": imagePrompt_3Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10169,9 +10169,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_4Url) {
         args["image_prompt_4"] = {
           "image_url": imagePrompt_4Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10188,9 +10188,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_2Url) {
         args["image_prompt_2"] = {
           "image_url": imagePrompt_2Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10207,9 +10207,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_1Url) {
         args["image_prompt_1"] = {
           "image_url": imagePrompt_1Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10389,9 +10389,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_3Url) {
         args["image_prompt_3"] = {
           "image_url": imagePrompt_3Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10402,9 +10402,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_4Url) {
         args["image_prompt_4"] = {
           "image_url": imagePrompt_4Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10421,9 +10421,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_2Url) {
         args["image_prompt_2"] = {
           "image_url": imagePrompt_2Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10440,9 +10440,9 @@ generation, text-to-image, txt2img, ai-art`;
       if (imagePrompt_1Url) {
         args["image_prompt_1"] = {
           "image_url": imagePrompt_1Url,
-          "weight": Number(inputs.weight ?? this.weight ?? 0),
-          "stop_at": Number(inputs.stop_at ?? this.stop_at ?? 0),
-          "type": String(inputs.type ?? this.type ?? ""),
+          "weight": Number(inputs.weight ?? (this as any).weight ?? 0),
+          "stop_at": Number(inputs.stop_at ?? (this as any).stop_at ?? 0),
+          "type": String(inputs.type ?? (this as any).type ?? ""),
         };
       }
     }
@@ -10528,7 +10528,7 @@ generation, text-to-image, txt2img, ai-art`;
     const inpaintMaskOnly = Boolean(inputs.inpaint_mask_only ?? this.inpaint_mask_only ?? false);
     const numImages = Number(inputs.num_images ?? this.num_images ?? 1);
     const loraScale = Number(inputs.lora_scale ?? this.lora_scale ?? 1);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.8);
+    const strength = Number(inputs.strength ?? (this as any).strength ?? 0.8);
     const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
     const requestId = String(inputs.request_id ?? this.request_id ?? "");
     const seed = Number(inputs.seed ?? this.seed ?? -1);

@@ -335,7 +335,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(inputs.${field.name} ?? this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(inputs.${field.name} ?? (this as any).${field.name} ?? ${defLit});`,
       );
     }
 
@@ -357,7 +357,7 @@ export class NodeGenerator {
 
       lines.push(``);
       lines.push(
-        `    const ${varName}Ref = (inputs.${field.name} ?? this.${field.name}) as Record<string, unknown> | undefined;`,
+        `    const ${varName}Ref = (inputs.${field.name} ?? (this as any).${field.name}) as Record<string, unknown> | undefined;`,
       );
       lines.push(`    if (isRefSet(${varName}Ref)) {`);
       lines.push(

@@ -319,7 +319,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(inputs.${field.name} ?? this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(inputs.${field.name} ?? (this as any).${field.name} ?? ${defLit});`,
       );
     }
 
@@ -382,7 +382,7 @@ export class NodeGenerator {
           const subVar = fieldToVarName(sub.name);
           const subDefLit = defaultLiteral(sub.default, sub.propType);
           nestedObj.push(
-            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}(inputs.${sub.name} ?? this.${sub.name} ?? ${subDefLit}),`,
+            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}(inputs.${sub.name} ?? ${subDefLit}),`,
           );
         }
         lines.push(`        args[${JSON.stringify(apiName)}] = {`);
