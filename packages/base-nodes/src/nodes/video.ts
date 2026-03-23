@@ -515,7 +515,7 @@ export class FrameIteratorNode extends BaseNode {
 
   async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
     const bytes = videoBytes(inputs.video ?? this.video);
-    const frameSize = Math.max(1, Number(inputs.start ?? this.start ?? 1024));
+    const frameSize = Math.max(1, Number(inputs.frame_size ?? 1024));
     let index = 0;
     for (let i = 0; i < bytes.length; i += frameSize) {
       const frame = bytes.slice(i, i + frameSize);
@@ -548,9 +548,10 @@ export class FpsNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
+    // This node extracts FPS metadata from a video.
+    // Output type is float, not video — return the fps value directly.
     const fps = Number(inputs.fps ?? 24);
-    return { output: videoRef(bytes, { duration: fps } as Partial<VideoRef>) };
+    return { output: fps };
   }
 }
 
@@ -882,13 +883,15 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const brightness = Number(inputs.red_adjust ?? this.red_adjust ?? 0);
-    const contrast = Number(inputs.green_adjust ?? this.green_adjust ?? 1);
-    const saturation = Number(inputs.blue_adjust ?? this.blue_adjust ?? 1);
+    // Props are named red/green/blue_adjust but applied as ffmpeg eq filter
+    // brightness/contrast/saturation. The mapping is: red→brightness, green→contrast, blue→saturation.
+    const redAdj = Number(inputs.red_adjust ?? this.red_adjust ?? 0);
+    const greenAdj = Number(inputs.green_adjust ?? this.green_adjust ?? 1);
+    const blueAdj = Number(inputs.blue_adjust ?? this.blue_adjust ?? 1);
     const transformed =
       (await ffmpegTransform(
         bytes,
-        ["-vf", `eq=brightness=${brightness}:contrast=${contrast}:saturation=${saturation}`, "-c:a", "copy"]
+        ["-vf", `eq=brightness=${redAdj}:contrast=${greenAdj}:saturation=${blueAdj}`, "-c:a", "copy"]
       )) ?? bytes;
     return { output: videoRef(transformed) };
   }

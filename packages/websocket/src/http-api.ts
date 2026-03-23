@@ -14,7 +14,8 @@ import {
   Secret,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
-import { getSecret } from "@nodetool/security";
+import { getSecret, clearSecretCache } from "@nodetool/security";
+import { clearProviderCache } from "@nodetool/runtime";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
@@ -1271,6 +1272,9 @@ export async function handleSecretByKey(
         value: body.value,
         description: body.description,
       });
+      // Invalidate caches so providers pick up the new key
+      clearSecretCache(userId, key);
+      clearProviderCache();
       return jsonResponse(await toSecretResponse(secret));
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to update secret";
@@ -1281,6 +1285,8 @@ export async function handleSecretByKey(
   if (request.method === "DELETE") {
     const deleted = await Secret.deleteSecret(userId, key);
     if (!deleted) return errorResponse(404, "Secret not found");
+    clearSecretCache(userId, key);
+    clearProviderCache();
     return jsonResponse({ message: "Secret deleted successfully" });
   }
 
