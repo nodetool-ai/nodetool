@@ -38,6 +38,7 @@ export interface UseCompositingResult {
   /** Which rendering backend is active: "webgpu" | "canvas2d" */
   backend: "webgpu" | "canvas2d";
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
+  invalidateLayer: (layerId: string) => void;
   redraw: () => void;
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
   requestRedraw: () => void;
@@ -133,6 +134,10 @@ export function useCompositing({
     },
     [doc.canvas.width, doc.canvas.height]
   );
+
+  const invalidateLayer = useCallback((layerId: string) => {
+    runtimeRef.current?.invalidateLayer(layerId);
+  }, []);
 
   // ─── Compositing helpers ────────────────────────────────────────────
 
@@ -301,6 +306,7 @@ export function useCompositing({
           if (ctx) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
+            invalidateLayer(layer.id);
             requestRedraw();
           }
         };
@@ -309,6 +315,7 @@ export function useCompositing({
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
+          invalidateLayer(layer.id);
           requestRedraw();
         }
       }
@@ -342,6 +349,7 @@ export function useCompositing({
     runtime,
     backend,
     getOrCreateLayerCanvas,
+    invalidateLayer,
     redraw,
     redrawDirty,
     requestRedraw,

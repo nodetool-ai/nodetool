@@ -45,6 +45,9 @@ export interface SketchRuntime {
   /** Delete the off-screen canvas for a layer. */
   deleteLayerCanvas(layerId: string): void;
 
+  /** Notify the runtime that CPU-side layer pixels changed. */
+  invalidateLayer(layerId: string): void;
+
   // ─── Compositing ─────────────────────────────────────────────────────
   /**
    * Composite all visible layers onto the target canvas.

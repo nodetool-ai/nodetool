@@ -75,18 +75,19 @@ struct LayerUniforms {
 
 @group(0) @binding(0) var<uniform> layer: LayerUniforms;
 @group(0) @binding(1) var layerTexture: texture_2d<f32>;
-@group(0) @binding(2) var layerSampler: sampler;
 
 @fragment
 fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
   let sampleUV = uv - vec2f(layer.offsetU, layer.offsetV);
   // Discard pixels outside the layer texture bounds
-  if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) {
+  if (sampleUV.x < 0.0 || sampleUV.x >= 1.0 || sampleUV.y < 0.0 || sampleUV.y >= 1.0) {
     return vec4f(0.0, 0.0, 0.0, 0.0);
   }
-  var color = textureSample(layerTexture, layerSampler, sampleUV);
-  color = vec4f(color.rgb, color.a * layer.opacity);
-  return color;
+  let dims = vec2f(textureDimensions(layerTexture));
+  let texel = vec2i(sampleUV * dims);
+  let color = textureLoad(layerTexture, texel, 0);
+  let alpha = color.a * layer.opacity;
+  return vec4f(color.rgb * alpha, alpha);
 }
 `;
 

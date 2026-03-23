@@ -54,6 +54,7 @@ export interface UsePointerHandlersParams {
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
+  invalidateLayer: (layerId: string) => void;
   redraw: () => void;
   redrawDirty: (x: number, y: number, w: number, h: number) => void;
   requestRedraw: () => void;
@@ -77,7 +78,12 @@ export interface UsePointerHandlersParams {
   onLayerReconcile?: (layerId: string) => void;
   onBrushSizeChange?: (size: number) => void;
   onContextMenu?: (x: number, y: number) => void;
-  onCropComplete?: (x: number, y: number, width: number, height: number) => void;
+  onCropComplete?: (
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
   onEyedropperPick?: (color: string) => void;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
@@ -114,10 +120,11 @@ export function usePointerHandlers({
   mousePositionRef,
   activeStrokeRef,
   getOrCreateLayerCanvas,
+  invalidateLayer,
   redraw,
   redrawDirty,
   requestRedraw,
-  requestDirtyRedraw,
+  requestDirtyRedraw: _requestDirtyRedraw,
   clearOverlay,
   drawSelectionOverlay,
   drawOverlayShape,
@@ -130,7 +137,7 @@ export function usePointerHandlers({
   onStrokeStart,
   onStrokeEnd,
   onLayerTransformChange,
-  onLayerContentBoundsChange,
+  onLayerContentBoundsChange: _onLayerContentBoundsChange,
   onLayerReconcile,
   onBrushSizeChange,
   onContextMenu,
@@ -187,12 +194,20 @@ export function usePointerHandlers({
   const paintLayerOffsetRef = useRef<Point>({ x: 0, y: 0 });
 
   // Performance: reusable canvases
-  const blurTempCanvasesRef = useRef<BlurTempCanvases>({ tmp: null, blurred: null, mask: null });
+  const blurTempCanvasesRef = useRef<BlurTempCanvases>({
+    tmp: null,
+    blurred: null,
+    mask: null
+  });
   const blurSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const brushStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const eraserStampCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
-  const brushStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(new Map());
-  const eraserStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(new Map());
+  const brushStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(
+    new Map()
+  );
+  const eraserStrokeStampStatesRef = useRef<Map<number, StrokeStampState>>(
+    new Map()
+  );
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -300,24 +315,54 @@ export function usePointerHandlers({
     []
   );
 
-
   const drawPencilStroke = useCallback(
-    (from: Point, to: Point, settings: PencilSettings, ctx: CanvasRenderingContext2D, pressure?: number) => {
-      drawPencilStrokeUtil(from, to, settings, ctx, pressure, strokeDirtyRectRef);
+    (
+      from: Point,
+      to: Point,
+      settings: PencilSettings,
+      ctx: CanvasRenderingContext2D,
+      pressure?: number
+    ) => {
+      drawPencilStrokeUtil(
+        from,
+        to,
+        settings,
+        ctx,
+        pressure,
+        strokeDirtyRectRef
+      );
     },
     []
   );
 
   const drawBlurStroke = useCallback(
-    (from: Point, to: Point, settings: BlurSettings, layerCanvas: HTMLCanvasElement) => {
+    (
+      from: Point,
+      to: Point,
+      settings: BlurSettings,
+      layerCanvas: HTMLCanvasElement
+    ) => {
       const sourceCanvas = blurSourceCanvasRef.current ?? layerCanvas;
-      drawBlurStrokeUtil(from, to, settings, layerCanvas, sourceCanvas, strokeDirtyRectRef, blurTempCanvasesRef.current);
+      drawBlurStrokeUtil(
+        from,
+        to,
+        settings,
+        layerCanvas,
+        sourceCanvas,
+        strokeDirtyRectRef,
+        blurTempCanvasesRef.current
+      );
     },
     []
   );
 
   const drawCloneStampStroke = useCallback(
-    (from: Point, to: Point, settings: CloneStampSettings, ctx: CanvasRenderingContext2D) => {
+    (
+      from: Point,
+      to: Point,
+      settings: CloneStampSettings,
+      ctx: CanvasRenderingContext2D
+    ) => {
       const sourceCanvas = cloneSourceCanvasRef.current;
       const offset = cloneOffsetRef.current;
       if (!sourceCanvas || !offset) {
@@ -393,7 +438,10 @@ export function usePointerHandlers({
         case "dual": {
           drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
           drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
-          drawBranch({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y });
+          drawBranch(
+            { x: cw - from.x, y: ch - from.y },
+            { x: cw - to.x, y: ch - to.y }
+          );
           break;
         }
         case "radial": {
@@ -417,26 +465,45 @@ export function usePointerHandlers({
           const mirroredTo = { x: cw - to.x, y: to.y };
           for (let i = 0; i < symmetryRays; i++) {
             const angle = mStep * i;
-            drawBranch(rotatePoint(mirroredFrom, angle), rotatePoint(mirroredTo, angle));
+            drawBranch(
+              rotatePoint(mirroredFrom, angle),
+              rotatePoint(mirroredTo, angle)
+            );
           }
           break;
         }
         default: {
           // "off" — also handle legacy mirrorX/mirrorY booleans
           if (mirrorX) {
-            drawBranch({ x: cw - from.x, y: from.y }, { x: cw - to.x, y: to.y });
+            drawBranch(
+              { x: cw - from.x, y: from.y },
+              { x: cw - to.x, y: to.y }
+            );
           }
           if (mirrorY) {
-            drawBranch({ x: from.x, y: ch - from.y }, { x: to.x, y: ch - to.y });
+            drawBranch(
+              { x: from.x, y: ch - from.y },
+              { x: to.x, y: ch - to.y }
+            );
           }
           if (mirrorX && mirrorY) {
-            drawBranch({ x: cw - from.x, y: ch - from.y }, { x: cw - to.x, y: ch - to.y });
+            drawBranch(
+              { x: cw - from.x, y: ch - from.y },
+              { x: cw - to.x, y: ch - to.y }
+            );
           }
           break;
         }
       }
     },
-    [mirrorX, mirrorY, symmetryMode, symmetryRays, doc.canvas.width, doc.canvas.height]
+    [
+      mirrorX,
+      mirrorY,
+      symmetryMode,
+      symmetryRays,
+      doc.canvas.width,
+      doc.canvas.height
+    ]
   );
 
   // ─── Stabilizer ─────────────────────────────────────────────────────
@@ -465,22 +532,6 @@ export function usePointerHandlers({
     []
   );
 
-  const getLayerOffset = useCallback((layerId: string): Point => {
-    const layer = doc.layers.find((entry) => entry.id === layerId);
-    return {
-      x: layer?.transform?.x ?? 0,
-      y: layer?.transform?.y ?? 0
-    };
-  }, [doc.layers]);
-
-  const toLayerLocalPoint = useCallback((layerId: string, point: Point): Point => {
-    const offset = getLayerOffset(layerId);
-    return {
-      x: point.x - offset.x,
-      y: point.y - offset.y
-    };
-  }, [getLayerOffset]);
-
   const clipSelectionForOffset = useCallback(
     (ctx: CanvasRenderingContext2D, offset: Point) => {
       if (!selection || selection.width <= 0 || selection.height <= 0) {
@@ -498,133 +549,6 @@ export function usePointerHandlers({
       return true;
     },
     [selection]
-  );
-
-  const clipSelectionToLayer = useCallback(
-    (ctx: CanvasRenderingContext2D, layerId: string) => {
-      return clipSelectionForOffset(ctx, getLayerOffset(layerId));
-    },
-    [clipSelectionForOffset, getLayerOffset]
-  );
-
-  const ensureLayerLocalRectCapacity = useCallback(
-    (
-      layerId: string,
-      currentOffset: Point,
-      minX: number,
-      minY: number,
-      maxX: number,
-      maxY: number,
-      padding: number
-    ) => {
-      const canvas = getOrCreateLayerCanvas(layerId);
-      const paddedMinX = Math.floor(minX - padding);
-      const paddedMinY = Math.floor(minY - padding);
-      const paddedMaxX = Math.ceil(maxX + padding);
-      const paddedMaxY = Math.ceil(maxY + padding);
-      const addLeft = Math.max(0, -paddedMinX);
-      const addTop = Math.max(0, -paddedMinY);
-      const addRight = Math.max(0, paddedMaxX - canvas.width);
-      const addBottom = Math.max(0, paddedMaxY - canvas.height);
-
-      if (addLeft === 0 && addTop === 0 && addRight === 0 && addBottom === 0) {
-        return {
-          canvas,
-          offset: currentOffset,
-          shift: { x: 0, y: 0 }
-        };
-      }
-
-      const previousWidth = canvas.width;
-      const previousHeight = canvas.height;
-      const temp = window.document.createElement("canvas");
-      temp.width = previousWidth;
-      temp.height = previousHeight;
-      const tempCtx = temp.getContext("2d");
-      const ctx = canvas.getContext("2d");
-      if (!tempCtx || !ctx) {
-        return {
-          canvas,
-          offset: currentOffset,
-          shift: { x: 0, y: 0 }
-        };
-      }
-
-      tempCtx.drawImage(canvas, 0, 0);
-      canvas.width = previousWidth + addLeft + addRight;
-      canvas.height = previousHeight + addTop + addBottom;
-      const resizedCtx = canvas.getContext("2d");
-      if (!resizedCtx) {
-        return {
-          canvas,
-          offset: currentOffset,
-          shift: { x: 0, y: 0 }
-        };
-      }
-      resizedCtx.drawImage(temp, addLeft, addTop);
-
-      if (strokeDirtyRectRef.current) {
-        strokeDirtyRectRef.current = {
-          minX: strokeDirtyRectRef.current.minX + addLeft,
-          minY: strokeDirtyRectRef.current.minY + addTop,
-          maxX: strokeDirtyRectRef.current.maxX + addLeft,
-          maxY: strokeDirtyRectRef.current.maxY + addTop
-        };
-      }
-
-      const nextOffset = {
-        x: currentOffset.x - addLeft,
-        y: currentOffset.y - addTop
-      };
-      onLayerTransformChange?.(layerId, nextOffset);
-      onLayerContentBoundsChange?.(layerId, {
-        x: 0,
-        y: 0,
-        width: canvas.width,
-        height: canvas.height
-      });
-
-      return {
-        canvas,
-        offset: nextOffset,
-        shift: { x: addLeft, y: addTop }
-      };
-    },
-    [getOrCreateLayerCanvas, onLayerTransformChange, onLayerContentBoundsChange]
-  );
-
-  const getPaintingPadding = useCallback(
-    (tool: SketchTool) => {
-      if (tool === "brush") {
-        return Math.ceil(doc.toolSettings.brush.size / 2) + 4;
-      }
-      if (tool === "pencil") {
-        return Math.ceil(doc.toolSettings.pencil.size / 2) + 2;
-      }
-      if (tool === "eraser") {
-        return Math.ceil(doc.toolSettings.eraser.size / 2) + 4;
-      }
-      if (tool === "blur") {
-        return Math.ceil(doc.toolSettings.blur.size / 2) + 4;
-      }
-      return 4;
-    },
-    [doc.toolSettings]
-  );
-
-  const isDefaultAlignedLayer = useCallback(
-    (layerId: string) => {
-      const canvas = layerCanvasesRef.current.get(layerId);
-      const offset = getLayerOffset(layerId);
-      return (
-        !!canvas &&
-        offset.x === 0 &&
-        offset.y === 0 &&
-        canvas.width === doc.canvas.width &&
-        canvas.height === doc.canvas.height
-      );
-    },
-    [doc.canvas.width, doc.canvas.height, getLayerOffset, layerCanvasesRef]
   );
 
   const reconcileLayerForPixelEdit = useCallback(
@@ -648,11 +572,7 @@ export function usePointerHandlers({
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       // Clone stamp: Alt+click sets the clone source point
-      if (
-        e.button === 0 &&
-        e.altKey &&
-        activeTool === "clone_stamp"
-      ) {
+      if (e.button === 0 && e.altKey && activeTool === "clone_stamp") {
         const pt = screenToCanvas(e.clientX, e.clientY);
         cloneSourceRef.current = pt;
         cloneOffsetRef.current = null;
@@ -811,8 +731,12 @@ export function usePointerHandlers({
         const pt = screenToCanvas(e.clientX, e.clientY);
         // Only fill if click is within selection (when one exists)
         if (selection && selection.width > 0 && selection.height > 0) {
-          if (pt.x < selection.x || pt.x > selection.x + selection.width ||
-              pt.y < selection.y || pt.y > selection.y + selection.height) {
+          if (
+            pt.x < selection.x ||
+            pt.x > selection.x + selection.width ||
+            pt.y < selection.y ||
+            pt.y > selection.y + selection.height
+          ) {
             return;
           }
         }
@@ -823,11 +747,15 @@ export function usePointerHandlers({
           reconcileLayerForPixelEdit(activeLayer.id);
           paintLayerOffsetRef.current = { x: 0, y: 0 };
           // Apply selection clip for fill
-          const clipped = clipSelectionForOffset(ctx, paintLayerOffsetRef.current);
+          const clipped = clipSelectionForOffset(
+            ctx,
+            paintLayerOffsetRef.current
+          );
           floodFillUtil(ctx, pt.x, pt.y, doc.toolSettings.fill);
           if (clipped) {
             ctx.restore();
           }
+          invalidateLayer(activeLayer.id);
           redraw();
           onStrokeEnd(activeLayer.id, null);
         }
@@ -890,9 +818,9 @@ export function usePointerHandlers({
           cloneSourceCanvasRef.current = snapshot;
         }
         isDrawingRef.current = true;
-      paintStrokeHasMovedRef.current = false;
-      brushStrokeStampStatesRef.current.clear();
-      eraserStrokeStampStatesRef.current.clear();
+        paintStrokeHasMovedRef.current = false;
+        brushStrokeStampStatesRef.current.clear();
+        eraserStrokeStampStatesRef.current.clear();
         lastPointRef.current = pt;
         lastSmoothedPointRef.current = pt;
         currentPressureRef.current = e.pressure || 0.5;
@@ -904,7 +832,12 @@ export function usePointerHandlers({
           const lc = getOrCreateLayerCanvas(activeLayer.id);
           const snapCtx = lc.getContext("2d");
           if (snapCtx) {
-            alphaSnapshotRef.current = snapCtx.getImageData(0, 0, lc.width, lc.height);
+            alphaSnapshotRef.current = snapCtx.getImageData(
+              0,
+              0,
+              lc.width,
+              lc.height
+            );
           }
         } else {
           alphaSnapshotRef.current = null;
@@ -913,6 +846,7 @@ export function usePointerHandlers({
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
           drawCloneStampStroke(pt, pt, doc.toolSettings.cloneStamp, ctx);
+          invalidateLayer(activeLayer.id);
           redraw();
         }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -997,7 +931,8 @@ export function usePointerHandlers({
         const snapCtx = layerCanvasForSnapshot.getContext("2d");
         if (snapCtx) {
           alphaSnapshotRef.current = snapCtx.getImageData(
-            0, 0,
+            0,
+            0,
             layerCanvasForSnapshot.width,
             layerCanvasForSnapshot.height
           );
@@ -1031,14 +966,16 @@ export function usePointerHandlers({
         const buffer = window.document.createElement("canvas");
         buffer.width = layerCanvas.width;
         buffer.height = layerCanvas.height;
-        const strokeOpacity = activeTool === "brush"
-          ? doc.toolSettings.brush.opacity
-          : doc.toolSettings.eraser.opacity;
+        const strokeOpacity =
+          activeTool === "brush"
+            ? doc.toolSettings.brush.opacity
+            : doc.toolSettings.eraser.opacity;
         activeStrokeRef.current = {
           layerId: activeLayer.id,
           buffer,
           opacity: strokeOpacity,
-          compositeOp: activeTool === "eraser" ? "destination-out" : "source-over"
+          compositeOp:
+            activeTool === "eraser" ? "destination-out" : "source-over"
         };
       }
 
@@ -1057,18 +994,59 @@ export function usePointerHandlers({
           const dy = localPt.y - from.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           const STRAIGHT_LINE_STEP_DIVISOR = 100;
-          const step = Math.max(1, Math.min(4, dist / STRAIGHT_LINE_STEP_DIVISOR));
+          const step = Math.max(
+            1,
+            Math.min(4, dist / STRAIGHT_LINE_STEP_DIVISOR)
+          );
           const steps = Math.max(1, Math.ceil(dist / step));
           let prev = from;
           for (let i = 1; i <= steps; i++) {
             const t = i / steps;
             const current = { x: from.x + dx * t, y: from.y + dy * t };
             if (activeTool === "brush") {
-              withMirror(paintCtx, (f, to, c, branchIndex) => drawBrushStroke(f, to, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), prev, current);
+              withMirror(
+                paintCtx,
+                (f, to, c, branchIndex) =>
+                  drawBrushStroke(
+                    f,
+                    to,
+                    doc.toolSettings.brush,
+                    c,
+                    currentPressureRef.current,
+                    branchIndex
+                  ),
+                prev,
+                current
+              );
             } else if (activeTool === "pencil") {
-              withMirror(paintCtx, (f, to, c) => drawPencilStroke(f, to, doc.toolSettings.pencil, c, currentPressureRef.current), prev, current);
+              withMirror(
+                paintCtx,
+                (f, to, c) =>
+                  drawPencilStroke(
+                    f,
+                    to,
+                    doc.toolSettings.pencil,
+                    c,
+                    currentPressureRef.current
+                  ),
+                prev,
+                current
+              );
             } else if (activeTool === "eraser") {
-              withMirror(paintCtx, (f, to, c, branchIndex) => drawEraserStroke(f, to, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), prev, current);
+              withMirror(
+                paintCtx,
+                (f, to, c, branchIndex) =>
+                  drawEraserStroke(
+                    f,
+                    to,
+                    doc.toolSettings.eraser,
+                    c,
+                    currentPressureRef.current,
+                    branchIndex
+                  ),
+                prev,
+                current
+              );
             } else if (activeTool === "blur") {
               drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
             }
@@ -1076,13 +1054,56 @@ export function usePointerHandlers({
           }
         } else {
           if (activeTool === "brush") {
-            withMirror(paintCtx, (f, t, c, branchIndex) => drawBrushStroke(f, t, doc.toolSettings.brush, c, currentPressureRef.current, branchIndex), localPt, localPt);
+            withMirror(
+              paintCtx,
+              (f, t, c, branchIndex) =>
+                drawBrushStroke(
+                  f,
+                  t,
+                  doc.toolSettings.brush,
+                  c,
+                  currentPressureRef.current,
+                  branchIndex
+                ),
+              localPt,
+              localPt
+            );
           } else if (activeTool === "eraser") {
-            withMirror(paintCtx, (f, t, c, branchIndex) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, currentPressureRef.current, branchIndex), localPt, localPt);
+            withMirror(
+              paintCtx,
+              (f, t, c, branchIndex) =>
+                drawEraserStroke(
+                  f,
+                  t,
+                  doc.toolSettings.eraser,
+                  c,
+                  currentPressureRef.current,
+                  branchIndex
+                ),
+              localPt,
+              localPt
+            );
           } else if (activeTool === "pencil") {
-            withMirror(paintCtx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, currentPressureRef.current), localPt, localPt);
+            withMirror(
+              paintCtx,
+              (f, t, c) =>
+                drawPencilStroke(
+                  f,
+                  t,
+                  doc.toolSettings.pencil,
+                  c,
+                  currentPressureRef.current
+                ),
+              localPt,
+              localPt
+            );
           } else if (activeTool === "blur") {
-            drawBlurStroke(localPt, localPt, doc.toolSettings.blur, layerCanvas);
+            drawBlurStroke(
+              localPt,
+              localPt,
+              doc.toolSettings.blur,
+              layerCanvas
+            );
           }
         }
 
@@ -1090,6 +1111,9 @@ export function usePointerHandlers({
           paintCtx.restore();
         }
 
+        if (activeTool !== "brush" && activeTool !== "eraser") {
+          invalidateLayer(activeLayer.id);
+        }
         redraw();
       }
 
@@ -1110,13 +1134,7 @@ export function usePointerHandlers({
       drawBlurStroke,
       drawCloneStampStroke,
       redraw,
-      getLayerOffset,
-      isDefaultAlignedLayer,
-      toLayerLocalPoint,
       clipSelectionForOffset,
-      clipSelectionToLayer,
-      ensureLayerLocalRectCapacity,
-      getPaintingPadding,
       withMirror,
       onEyedropperPick,
       rgbToHex,
@@ -1125,7 +1143,9 @@ export function usePointerHandlers({
       containerRef,
       displayCanvasRef,
       layerCanvasesRef,
-      onAutoPickLayer
+      onAutoPickLayer,
+      activeStrokeRef,
+      invalidateLayer
     ]
   );
 
@@ -1158,10 +1178,7 @@ export function usePointerHandlers({
         return;
       }
 
-      if (
-        activeTool === "move" &&
-        moveStartRef.current
-      ) {
+      if (activeTool === "move" && moveStartRef.current) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         const dx = pt.x - moveStartRef.current.x;
         const dy = pt.y - moveStartRef.current.y;
@@ -1194,7 +1211,12 @@ export function usePointerHandlers({
         return;
       }
 
-      if (activeTool === "select" && isMovingSelectionRef.current && moveSelectionOriginRef.current && selectionAtMoveStartRef.current) {
+      if (
+        activeTool === "select" &&
+        isMovingSelectionRef.current &&
+        moveSelectionOriginRef.current &&
+        selectionAtMoveStartRef.current
+      ) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         const dx = pt.x - moveSelectionOriginRef.current.x;
         const dy = pt.y - moveSelectionOriginRef.current.y;
@@ -1243,9 +1265,10 @@ export function usePointerHandlers({
       // For brush/eraser, paint onto the stroke buffer; other tools paint
       // directly onto the layer canvas.
       const activeStroke = activeStrokeRef.current;
-      const paintCanvas = (activeStroke && (activeTool === "brush" || activeTool === "eraser"))
-        ? activeStroke.buffer
-        : layerCanvas;
+      const paintCanvas =
+        activeStroke && (activeTool === "brush" || activeTool === "eraser")
+          ? activeStroke.buffer
+          : layerCanvas;
       const ctx = paintCanvas.getContext("2d");
       if (!ctx) {
         return;
@@ -1285,7 +1308,20 @@ export function usePointerHandlers({
                 }
               : null) ??
             smoothPt;
-          withMirror(ctx, (f, t, c, branchIndex) => drawBrushStroke(f, t, doc.toolSettings.brush, c, pressure, branchIndex), from, smoothPt);
+          withMirror(
+            ctx,
+            (f, t, c, branchIndex) =>
+              drawBrushStroke(
+                f,
+                t,
+                doc.toolSettings.brush,
+                c,
+                pressure,
+                branchIndex
+              ),
+            from,
+            smoothPt
+          );
           lastSmoothedPointRef.current = {
             x: smoothPt.x + currentOffset.x,
             y: smoothPt.y + currentOffset.y
@@ -1297,7 +1333,13 @@ export function usePointerHandlers({
                 y: lastPointRef.current.y - currentOffset.y
               }
             : localPt;
-          withMirror(ctx, (f, t, c) => drawPencilStroke(f, t, doc.toolSettings.pencil, c, pressure), from, localPt);
+          withMirror(
+            ctx,
+            (f, t, c) =>
+              drawPencilStroke(f, t, doc.toolSettings.pencil, c, pressure),
+            from,
+            localPt
+          );
         } else if (activeTool === "eraser") {
           const smoothPt = stabilizePoint(localPt);
           const from =
@@ -1314,7 +1356,20 @@ export function usePointerHandlers({
                 }
               : null) ??
             smoothPt;
-          withMirror(ctx, (f, t, c, branchIndex) => drawEraserStroke(f, t, doc.toolSettings.eraser, c, pressure, branchIndex), from, smoothPt);
+          withMirror(
+            ctx,
+            (f, t, c, branchIndex) =>
+              drawEraserStroke(
+                f,
+                t,
+                doc.toolSettings.eraser,
+                c,
+                pressure,
+                branchIndex
+              ),
+            from,
+            smoothPt
+          );
           lastSmoothedPointRef.current = {
             x: smoothPt.x + currentOffset.x,
             y: smoothPt.y + currentOffset.y
@@ -1328,7 +1383,12 @@ export function usePointerHandlers({
             : localPt;
           drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
         } else if (activeTool === "clone_stamp") {
-          drawCloneStampStroke(lastPointRef.current, pt, doc.toolSettings.cloneStamp, ctx);
+          drawCloneStampStroke(
+            lastPointRef.current,
+            pt,
+            doc.toolSettings.cloneStamp,
+            ctx
+          );
         }
 
         lastPointRef.current = pt;
@@ -1338,6 +1398,9 @@ export function usePointerHandlers({
         ctx.restore();
       }
 
+      if (activeTool !== "brush" && activeTool !== "eraser") {
+        invalidateLayer(activeLayer.id);
+      }
       // Use dirty-rect compositing during painting for better performance on large canvases
       const dirty = strokeDirtyRectRef.current;
       if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
@@ -1368,19 +1431,14 @@ export function usePointerHandlers({
       drawOverlayCrop,
       redrawDirty,
       requestRedraw,
-      requestDirtyRedraw,
-      getLayerOffset,
-      isDefaultAlignedLayer,
-      toLayerLocalPoint,
       clipSelectionForOffset,
-      ensureLayerLocalRectCapacity,
-      getPaintingPadding,
       withMirror,
       stabilizePoint,
       drawOverlaySelection,
-      selection,
       onSelectionChange,
-      onLayerTransformChange
+      onLayerTransformChange,
+      activeStrokeRef,
+      invalidateLayer
     ]
   );
 
@@ -1423,6 +1481,7 @@ export function usePointerHandlers({
           const ctx = layerCanvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(overlayCanvas, 0, 0);
+            invalidateLayer(activeLayer.id);
             clearOverlay();
             drawSelectionOverlay();
             redraw();
@@ -1442,6 +1501,7 @@ export function usePointerHandlers({
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
           drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
+          invalidateLayer(activeLayer.id);
           clearOverlay();
           drawSelectionOverlay();
           redraw();
@@ -1499,9 +1559,20 @@ export function usePointerHandlers({
             // Shift+drag: add (union) the new rect with existing selection
             const ux = Math.min(selection.x, newRect.x);
             const uy = Math.min(selection.y, newRect.y);
-            const ux2 = Math.max(selection.x + selection.width, newRect.x + newRect.width);
-            const uy2 = Math.max(selection.y + selection.height, newRect.y + newRect.height);
-            onSelectionChange({ x: ux, y: uy, width: ux2 - ux, height: uy2 - uy });
+            const ux2 = Math.max(
+              selection.x + selection.width,
+              newRect.x + newRect.width
+            );
+            const uy2 = Math.max(
+              selection.y + selection.height,
+              newRect.y + newRect.height
+            );
+            onSelectionChange({
+              x: ux,
+              y: uy,
+              width: ux2 - ux,
+              height: uy2 - uy
+            });
           } else if (altHeldRef.current && selection) {
             // Alt+drag: subtract the new rect from existing selection
             // We approximate this by clipping the existing selection to exclude the new rect.
@@ -1544,13 +1615,6 @@ export function usePointerHandlers({
         activeStroke &&
         (activeTool === "brush" || activeTool === "eraser")
       ) {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        const currentOffset = paintLayerOffsetRef.current;
-        const localPt = {
-          x: pt.x - currentOffset.x,
-          y: pt.y - currentOffset.y
-        };
-
         // Merge stroke buffer onto the layer canvas
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const layerCtx = layerCanvas.getContext("2d");
@@ -1560,6 +1624,7 @@ export function usePointerHandlers({
           layerCtx.globalCompositeOperation = activeStroke.compositeOp;
           layerCtx.drawImage(activeStroke.buffer, 0, 0);
           layerCtx.restore();
+          invalidateLayer(activeLayer.id);
         }
         activeStrokeRef.current = null;
       }
@@ -1602,6 +1667,7 @@ export function usePointerHandlers({
                 }
               }
               ctx.putImageData(currentData, x, y);
+              invalidateLayer(activeLayer.id);
             }
           }
         }
@@ -1618,8 +1684,6 @@ export function usePointerHandlers({
     [
       doc.layers,
       doc.activeLayerId,
-      doc.toolSettings.brush,
-      doc.toolSettings.eraser,
       doc.toolSettings.gradient,
       activeTool,
       selection,
@@ -1635,7 +1699,8 @@ export function usePointerHandlers({
       mousePositionRef,
       layerCanvasesRef,
       overlayCanvasRef,
-      redraw
+      activeStrokeRef,
+      invalidateLayer
     ]
   );
 

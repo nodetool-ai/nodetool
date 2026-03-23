@@ -59,6 +59,11 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.layerCanvases.delete(layerId);
   }
 
+  invalidateLayer(_layerId: string): void {
+    // Canvas2D reads directly from the authoritative layer canvases, so
+    // there is no extra invalidation work to do here.
+  }
+
   // ─── Compositing ─────────────────────────────────────────────────────
 
   compositeToDisplay(

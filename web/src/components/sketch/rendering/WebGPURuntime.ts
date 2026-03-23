@@ -66,7 +66,6 @@ export class WebGPURuntime implements SketchRuntime {
   private layerBindGroupLayout: GPUBindGroupLayout | null = null;
   private borderPipeline: GPURenderPipeline | null = null;
   private borderBindGroupLayout: GPUBindGroupLayout | null = null;
-  private sampler: GPUSampler | null = null;
 
   // ── Layer textures ───────────────────────────────────────────────────
   private layerTextures = new Map<string, GPUTexture>();
@@ -153,11 +152,6 @@ export class WebGPURuntime implements SketchRuntime {
           binding: 1,
           visibility: GPUShaderStage.FRAGMENT,
           texture: { sampleType: "float" }
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" }
         }
       ]
     });
@@ -223,12 +217,6 @@ export class WebGPURuntime implements SketchRuntime {
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
 
-    // ── Shared sampler ─────────────────────────────────────────────────
-    this.sampler = device.createSampler({
-      label: "layer-sampler",
-      magFilter: "nearest",
-      minFilter: "nearest"
-    });
   }
 
   // ─── Canvas context management ───────────────────────────────────────
@@ -315,9 +303,7 @@ export class WebGPURuntime implements SketchRuntime {
   /**
    * Upload a CPU canvas for the active stroke buffer to a temporary GPU texture.
    */
-  private uploadStrokeBufferToGPU(
-    activeStroke: ActiveStrokeInfo
-  ): GPUTexture {
+  private uploadStrokeBufferToGPU(activeStroke: ActiveStrokeInfo): GPUTexture {
     const buffer = activeStroke.buffer;
     const texture = this.device.createTexture({
       label: "stroke-buffer",
@@ -375,6 +361,10 @@ export class WebGPURuntime implements SketchRuntime {
       this.layerTextures.delete(layerId);
     }
     this.dirtyLayers.delete(layerId);
+  }
+
+  invalidateLayer(layerId: string): void {
+    this.markLayerDirty(layerId);
   }
 
   // ─── SketchRuntime: Compositing ──────────────────────────────────────
@@ -471,13 +461,7 @@ export class WebGPURuntime implements SketchRuntime {
         continue;
       }
 
-      const layerTexture = this.layerTextures.get(layer.id);
-      if (!layerTexture) {
-        continue;
-      }
-
-      const hasActiveStroke =
-        activeStroke && activeStroke.layerId === layer.id;
+      const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
 
       if (hasActiveStroke) {
         // For active strokes, we need to composite the layer + stroke buffer.
@@ -493,13 +477,11 @@ export class WebGPURuntime implements SketchRuntime {
           fullH
         );
       } else {
-        this.compositeLayerGPU(
-          encoder,
-          textureView,
-          layer,
-          fullW,
-          fullH
-        );
+        const layerTexture = this.layerTextures.get(layer.id);
+        if (!layerTexture) {
+          continue;
+        }
+        this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
       }
     }
 
@@ -548,11 +530,16 @@ export class WebGPURuntime implements SketchRuntime {
   private compositeLayerGPU(
     encoder: GPUCommandEncoder,
     textureView: GPUTextureView,
-    layer: { id: string; opacity: number; blendMode?: BlendMode | string; transform?: { x?: number; y?: number } },
+    layer: {
+      id: string;
+      opacity: number;
+      blendMode?: BlendMode | string;
+      transform?: { x?: number; y?: number };
+    },
     canvasW: number,
     canvasH: number
   ): void {
-    if (!this.layerPipeline || !this.layerBindGroupLayout || !this.sampler) {
+    if (!this.layerPipeline || !this.layerBindGroupLayout) {
       return;
     }
 
@@ -581,8 +568,7 @@ export class WebGPURuntime implements SketchRuntime {
       layout: this.layerBindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: layerTexture.createView() },
-        { binding: 2, resource: this.sampler }
+        { binding: 1, resource: layerTexture.createView() }
       ]
     });
 
@@ -612,12 +598,17 @@ export class WebGPURuntime implements SketchRuntime {
   private compositeLayerWithStrokeGPU(
     encoder: GPUCommandEncoder,
     textureView: GPUTextureView,
-    layer: { id: string; opacity: number; blendMode?: BlendMode | string; transform?: { x?: number; y?: number } },
+    layer: {
+      id: string;
+      opacity: number;
+      blendMode?: BlendMode | string;
+      transform?: { x?: number; y?: number };
+    },
     activeStroke: ActiveStrokeInfo,
     canvasW: number,
     canvasH: number
   ): void {
-    if (!this.layerPipeline || !this.layerBindGroupLayout || !this.sampler) {
+    if (!this.layerPipeline || !this.layerBindGroupLayout) {
       return;
     }
 
@@ -676,8 +667,7 @@ export class WebGPURuntime implements SketchRuntime {
       layout: this.layerBindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: tempTexture.createView() },
-        { binding: 2, resource: this.sampler }
+        { binding: 1, resource: tempTexture.createView() }
       ]
     });
 
@@ -835,10 +825,7 @@ export class WebGPURuntime implements SketchRuntime {
     layerId: string,
     doc: SketchDocument
   ): string | null {
-    const result = this.cpuRuntime.reconcileLayerToDocumentSpace(
-      layerId,
-      doc
-    );
+    const result = this.cpuRuntime.reconcileLayerToDocumentSpace(layerId, doc);
     if (result !== null) {
       this.markLayerDirty(layerId);
     }
