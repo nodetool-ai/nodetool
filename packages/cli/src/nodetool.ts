@@ -23,6 +23,7 @@ import { workflowToDsl } from "@nodetool/dsl";
 import {
   initDb,
   Workflow,
+  Secret,
 } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
 import { getDefaultDbPath } from "@nodetool/config";
