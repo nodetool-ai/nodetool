@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { AudioRef } from "@nodetool/node-sdk";
 import sharp from "sharp";
 
 // ── WAV helpers (shared with lib-synthesis.ts pattern) ──────────────
@@ -29,8 +30,8 @@ function encodeWav(samples: Float32Array, sampleRate: number, numChannels = 1): 
   return new Uint8Array(buffer);
 }
 
-function audioRefFromWav(wav: Uint8Array): Record<string, unknown> {
-  return { uri: "", data: Buffer.from(wav).toString("base64") };
+function audioRefFromWav(wav: Uint8Array): AudioRef {
+  return { type: "audio", uri: "", data: Buffer.from(wav).toString("base64") };
 }
 
 interface WavData {
@@ -358,7 +359,7 @@ async function processAudioWithEffect(
     }
   }
 
-  return audioRefFromWav(encodeWav(outSamples, wav.sampleRate, wav.numChannels));
+  return audioRefFromWav(encodeWav(outSamples, wav.sampleRate, wav.numChannels)) as unknown as Record<string, unknown>;
 }
 
 export class GainNode_ extends BaseNode {

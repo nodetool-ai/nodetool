@@ -36,6 +36,33 @@ export type NodeClass = {
   toDescriptor(id?: string): NodeDescriptor;
 };
 
+// ---------------------------------------------------------------------------
+// NodeProps<T> — extracts @prop-declared fields from a node class as a
+// Partial type suitable for the `inputs` parameter of process().
+//
+// Excludes BaseNode's own members and underscore-prefixed fields so that
+// only the user-declared @prop fields remain.
+// ---------------------------------------------------------------------------
+
+/** Keys that belong to BaseNode itself and should not appear in NodeProps. */
+type BaseNodeKey =
+  | keyof BaseNode
+  | "dynamicProps";
+
+/**
+ * Extract the @prop-declared fields of a node as an optional record.
+ *
+ * Usage:
+ * ```ts
+ * async process(inputs: NodeProps<this>): Promise<{ output: ImageRef }> {
+ *   const prompt = inputs.prompt ?? this.prompt; // typed
+ * }
+ * ```
+ */
+export type NodeProps<T extends BaseNode> = Partial<
+  Pick<T, Exclude<keyof T, BaseNodeKey | `__${string}` | `_${string}`>>
+>;
+
 export abstract class BaseNode {
   static readonly nodeType: string = "";
   static readonly title: string = "";
@@ -58,7 +85,6 @@ export abstract class BaseNode {
 
   __node_id = "";
   __node_name = "";
-  [key: string]: unknown;
 
   protected dynamicProps = new Map<string, unknown>();
 
@@ -94,7 +120,7 @@ export abstract class BaseNode {
     }
     for (const { name } of declared) {
       if (Object.prototype.hasOwnProperty.call(merged, name)) {
-        (this as Record<string, unknown>)[name] = merged[name];
+        (this as any)[name] = merged[name];
       }
     }
   }
@@ -104,7 +130,7 @@ export abstract class BaseNode {
     const result: Record<string, unknown> = {};
 
     for (const { name } of ctor.getDeclaredProperties()) {
-      result[name] = (this as Record<string, unknown>)[name];
+      result[name] = (this as any)[name];
     }
 
     return result;

@@ -523,7 +523,7 @@ export class FalDynamicNode extends BaseNode {
 
     // First pass: schema-declared properties
     for (const [name, propSchema] of Object.entries(schemaProps)) {
-      const value = inputs[name] ?? (this as Record<string, unknown>)[name];
+      const value = inputs[name] ?? (this as any)[name];
       if (value === undefined || value === null) {
         if (required.has(name)) {
           throw new Error(`Missing required input: ${name}`);

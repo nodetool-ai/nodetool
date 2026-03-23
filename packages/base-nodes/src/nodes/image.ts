@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ImageRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -54,8 +55,9 @@ function dateName(name: string): string {
     .replaceAll("%S", pad(now.getSeconds()));
 }
 
-function imageRef(data: Uint8Array, extras: Record<string, unknown> = {}): Record<string, unknown> {
+function imageRef(data: Uint8Array, extras: Partial<ImageRef> = {}): ImageRef {
   return {
+    type: "image",
     data: Buffer.from(data).toString("base64"),
     ...extras,
   };
@@ -102,15 +104,15 @@ function hasProviderSupport(
   return !!context && typeof context.runProviderPrediction === "function" && !!providerId && !!modelId;
 }
 
-async function metadataFor(bytes: Uint8Array): Promise<{ width: number | null; height: number | null }> {
+async function metadataFor(bytes: Uint8Array): Promise<{ width: number | undefined; height: number | undefined }> {
   try {
     const md = await sharp(bytes).metadata();
     return {
-      width: md.width ?? null,
-      height: md.height ?? null,
+      width: md.width ?? undefined,
+      height: md.height ?? undefined,
     };
   } catch {
-    return { width: null, height: null };
+    return { width: undefined, height: undefined };
   }
 }
 
@@ -122,9 +124,9 @@ async function transformImage(
   if (bytes.length === 0) {
     return imageRef(bytes, {
       uri: image.uri ?? "",
-      width: image.width ?? null,
-      height: image.height ?? null,
-    });
+      width: image.width ?? undefined,
+      height: image.height ?? undefined,
+    }) as unknown as Record<string, unknown>;
   }
 
   try {
@@ -135,13 +137,13 @@ async function transformImage(
       mimeType: inferImageMime(image.uri, outputBytes),
       width: meta.width,
       height: meta.height,
-    });
+    }) as unknown as Record<string, unknown>;
   } catch {
     return imageRef(bytes, {
       uri: image.uri ?? "",
-      width: image.width ?? null,
-      height: image.height ?? null,
-    });
+      width: image.width ?? undefined,
+      height: image.height ?? undefined,
+    }) as unknown as Record<string, unknown>;
   }
 }
 
@@ -264,7 +266,9 @@ export class SaveImageFileImageNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+    const folder = String(inputs.folder ?? this.folder ?? ".");
+    const filename = dateName(String(inputs.filename ?? this.filename ?? "image.png"));
+    const p = filePath(path.resolve(folder, filename));
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, imageBytes(inputs.image ?? this.image));
     return { output: p };
@@ -429,12 +433,12 @@ export class ImagesToListNode extends BaseNode {
 
 
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const explicit = Array.isArray(inputs.images ?? this.images)
-      ? (inputs.images ?? this.images) as unknown[]
+    const explicit = Array.isArray(inputs.images)
+      ? inputs.images as unknown[]
       : [];
     const out = [...explicit];
-    const a = inputs.image_a ?? this.image_a;
-    const b = inputs.image_b ?? this.image_b;
+    const a = inputs.image_a;
+    const b = inputs.image_b;
     if (a) out.push(a);
     if (b) out.push(b);
     return { output: out };
@@ -443,10 +447,10 @@ export class ImagesToListNode extends BaseNode {
 
 abstract class TransformImageNode extends BaseNode {
   protected transformMeta(inputs: Record<string, unknown>): Record<string, unknown> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+    const image = (inputs.image ?? {}) as ImageRefLike;
     return {
-      width: Number(inputs.width ?? this.width ?? image.width ?? 0) || null,
-      height: Number(inputs.height ?? this.height ?? image.height ?? 0) || null,
+      width: Number(inputs.width ?? image.width ?? 0) || null,
+      height: Number(inputs.height ?? image.height ?? 0) || null,
     };
   }
 }
@@ -547,8 +551,8 @@ export class ScaleNode extends TransformImageNode {
   async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
     const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
     const requestedScale = Number(inputs.scale ?? this.scale ?? 0);
-    const targetWidth = Number(inputs.width ?? this.width ?? 0);
-    const targetHeight = Number(inputs.height ?? this.height ?? 0);
+    const targetWidth = Number(inputs.width ?? 0);
+    const targetHeight = Number(inputs.height ?? 0);
     const scale =
       requestedScale > 0
         ? requestedScale
@@ -661,10 +665,10 @@ export class CropNode extends TransformImageNode {
     const left = Math.max(0, Number(inputs.left ?? this.left ?? 0));
     const top = Math.max(0, Number(inputs.top ?? this.top ?? 0));
     const right = Number(
-      inputs.right ?? this.right ?? inputs.width ?? this.width ?? image.width ?? 0
+      inputs.right ?? this.right ?? inputs.width ?? image.width ?? 0
     );
     const bottom = Number(
-      inputs.bottom ?? this.bottom ?? inputs.height ?? this.height ?? image.height ?? 0
+      inputs.bottom ?? this.bottom ?? inputs.height ?? image.height ?? 0
     );
     const width = Math.max(1, right - left);
     const height = Math.max(1, bottom - top);
@@ -795,7 +799,7 @@ export class TextToImageNode extends BaseNode {
           width,
           height,
           negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
-          quality: inputs.quality ?? this.quality,
+          quality: inputs.quality,
         },
       })) as Uint8Array;
       const meta = await metadataFor(output);
@@ -906,7 +910,7 @@ export class ImageToImageNode extends BaseNode {
           negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
           target_width: inputs.target_width ?? this.target_width,
           target_height: inputs.target_height ?? this.target_height,
-          quality: inputs.quality ?? this.quality,
+          quality: inputs.quality,
         },
       })) as Uint8Array;
       const meta = await metadataFor(output);
@@ -922,7 +926,6 @@ export class ImageToImageNode extends BaseNode {
     return {
       output: imageRef(bytes, {
         uri: image.uri ?? "",
-        prompt: String(inputs.prompt ?? this.prompt ?? ""),
       }),
     };
   }

@@ -259,7 +259,8 @@ export class GetFileSizeLibNode extends BaseNode {
 
 abstract class FileTimeBase extends BaseNode {
   protected async getTime(inputs: Record<string, unknown>, kind: "atime" | "ctime" | "mtime") {
-    const p = expandUser(String(inputs.path ?? this.path ?? ""));
+    const props = this.serialize();
+    const p = expandUser(String(inputs.path ?? props.path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
     const stat = await fs.stat(p);
     const d = kind === "atime" ? stat.atime : kind === "ctime" ? stat.ctime : stat.mtime;

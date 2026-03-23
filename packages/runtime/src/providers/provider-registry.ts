@@ -5,10 +5,11 @@ interface ProviderRegistration {
   kwargs: Record<string, unknown>;
 }
 
-type SecretResolver = (key: string) => Promise<string | null | undefined> | string | null | undefined;
+type SecretResolver = (key: string, userId: string) => Promise<string | null | undefined> | string | null | undefined;
 let _secretResolver: SecretResolver | null = null;
 
 const _PROVIDER_REGISTRY = new Map<string, ProviderRegistration>();
+// Cache keyed by "providerId:userId" for per-user provider instances
 const _providerCache = new Map<string, BaseProvider>();
 
 export function registerProvider(
@@ -28,6 +29,8 @@ export function getRegisteredProvider(
 /**
  * Set a secret resolver so that providers can resolve API keys from
  * sources beyond process.env (e.g. encrypted secrets DB).
+ *
+ * The resolver receives (secretKey, userId) so secrets are resolved per-user.
  */
 export function setSecretResolver(resolver: SecretResolver): void {
   _secretResolver = resolver;
@@ -35,8 +38,9 @@ export function setSecretResolver(resolver: SecretResolver): void {
   _providerCache.clear();
 }
 
-export async function getProvider(providerId: string): Promise<BaseProvider> {
-  const cached = _providerCache.get(providerId);
+export async function getProvider(providerId: string, userId = "1"): Promise<BaseProvider> {
+  const cacheKey = `${providerId}:${userId}`;
+  const cached = _providerCache.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -52,7 +56,7 @@ export async function getProvider(providerId: string): Promise<BaseProvider> {
   for (const [key, value] of Object.entries(kwargs)) {
     if (!value) {
       if (_secretResolver) {
-        const resolved = await _secretResolver(key);
+        const resolved = await _secretResolver(key, userId);
         if (resolved) {
           kwargs[key] = resolved;
           continue;
@@ -66,7 +70,7 @@ export async function getProvider(providerId: string): Promise<BaseProvider> {
   }
 
   const instance = new registration.cls(kwargs);
-  _providerCache.set(providerId, instance);
+  _providerCache.set(cacheKey, instance);
   return instance;
 }
 
@@ -94,14 +98,14 @@ export function getProviderSecretKey(providerId: string): string | null {
   return null;
 }
 
-/** Check if a provider has credentials available (DB, env, or is local). */
-export async function isProviderConfigured(providerId: string): Promise<boolean> {
+/** Check if a provider has credentials available for a given user (DB, env, or is local). */
+export async function isProviderConfigured(providerId: string, userId = "1"): Promise<boolean> {
   const secretKey = getProviderSecretKey(providerId);
   if (!secretKey) return true; // Local provider, always available
 
   // Check via secret resolver (DB → env)
   if (_secretResolver) {
-    const val = await _secretResolver(secretKey);
+    const val = await _secretResolver(secretKey, userId);
     if (val) return true;
   }
   // Direct env check

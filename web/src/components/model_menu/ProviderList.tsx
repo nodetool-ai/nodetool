@@ -9,7 +9,6 @@ import {
   Checkbox,
   Tooltip,
   Box,
-  Button,
   Menu,
   MenuItem,
   Divider
@@ -22,7 +21,7 @@ import {
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
-import { useSettingsStore } from "../../stores/SettingsStore";
+
 import {
   isHuggingFaceProvider,
   isHuggingFaceLocalProvider,
@@ -30,7 +29,6 @@ import {
   formatGenericProviderName,
   getProviderUrl
 } from "../../utils/providerDisplay";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   ModelMenuStoreHook,
   requiredSecretForProvider,
@@ -159,6 +157,8 @@ const providerIconMap: Record<string, string> = {
   // Anthropic / Claude
   anthropic: anthropicIcon,
   claude: claudeColorIcon,
+  claude_agent: claudeColorIcon,
+  "claude-agent": claudeColorIcon,
   
   // Google / Gemini
   google: geminiColorIcon,
@@ -512,7 +512,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
     (s) => s.setProviderEnabled
   );
   const { isApiKeySet } = useSecrets();
-  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+
   const isDarkMode = useIsDarkMode();
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
@@ -561,9 +561,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setMenuProvider(null);
   }, []);
 
-  const handleOpenSettings = useCallback(() => {
-    setMenuOpen(true, 1);
-  }, [setMenuOpen]);
 
   const handleStopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -627,17 +624,20 @@ const ProviderList: React.FC<ProviderListProps> = ({
           />
         )}
       </ListItemButton>
-      {[...sortedProviders.enabledList, ...sortedProviders.disabledList].map(
+      {[...sortedProviders.enabledList, ...sortedProviders.disabledList]
+        .filter((p) => {
+          const env = requiredSecretForProvider(p);
+          return env ? isApiKeySet(env) : true;
+        })
+        .map(
         (p, idx) => {
           const enabled = isProviderEnabled(p);
           const showDivider =
             idx === sortedProviders.enabledList.length &&
             sortedProviders.disabledList.length > 0;
-          const env = requiredSecretForProvider(p);
           const normKey = /gemini|google/i.test(p) ? "gemini" : p;
           const providerEnabled = (enabledProviders || {})[normKey] !== false;
-          const hasKey = env ? isApiKeySet(env) : true;
-          const available = providerEnabled && hasKey;
+          const available = providerEnabled;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -813,44 +813,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         }
                       }}
                     />
-                    {!hasKey && (
-                      <Box
-                        className="model-menu__provider-missing-key"
-                        sx={{
-                          mr: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5
-                        }}
-                        onClick={handleStopPropagation}
-                      >
-                        <Tooltip className="model-menu__provider-missing-key-tooltip" title="API key required">
-                          <InfoOutlinedIcon
-                            className="model-menu__provider-missing-key-icon"
-                            sx={{
-                              fontSize: (theme) => theme.vars.fontSizeNormal,
-                              color: "warning.main"
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
-                          <Button
-                            className="model-menu__provider-add-key-button"
-                            size="small"
-                            variant="text"
-                            color="warning"
-                            sx={{
-                              minWidth: "auto",
-                              p: 0,
-                              fontSize: (theme) => theme.vars.fontSizeSmaller
-                            }}
-                            onClick={handleOpenSettings}
-                          >
-                            Add key
-                          </Button>
-                        </Tooltip>
-                      </Box>
-                    )}
                     <Box
                       className="model-menu__provider-actions"
                       sx={{

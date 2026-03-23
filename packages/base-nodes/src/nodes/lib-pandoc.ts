@@ -60,18 +60,21 @@ async function runCommand(cmd: string, args: string[], stdin: string, timeoutMs:
 
 abstract class PandocBaseLibNode extends BaseNode {
   protected formats(inputs: Record<string, unknown>): { input: string; output: string } {
-    const input = String(inputs.input_format ?? this.input_format ?? "markdown").toLowerCase();
-    const output = String(inputs.output_format ?? this.output_format ?? "plain").toLowerCase();
+    const props = this.serialize();
+    const input = String(inputs.input_format ?? props.input_format ?? "markdown").toLowerCase();
+    const output = String(inputs.output_format ?? props.output_format ?? "plain").toLowerCase();
     return { input, output };
   }
 
   protected extraArgs(inputs: Record<string, unknown>): string[] {
-    const raw = inputs.extra_args ?? this.extra_args ?? [];
+    const props = this.serialize();
+    const raw = inputs.extra_args ?? props.extra_args ?? [];
     return Array.isArray(raw) ? raw.map(String) : [];
   }
 
   protected timeoutMs(inputs: Record<string, unknown>): number {
-    const sec = Number(inputs.timeout ?? this.timeout ?? 120);
+    const props = this.serialize();
+    const sec = Number(inputs.timeout ?? props.timeout ?? 120);
     return Math.max(1, Math.trunc(sec * 1000));
   }
 }

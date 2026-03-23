@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { AudioRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import sharp from "sharp";
 
@@ -136,8 +137,8 @@ function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   return new Uint8Array(buffer);
 }
 
-function audioRefFromWav(wav: Uint8Array): Record<string, unknown> {
-  return { uri: "", data: Buffer.from(wav).toString("base64") };
+function audioRefFromWav(wav: Uint8Array): AudioRef {
+  return { type: "audio", uri: "", data: Buffer.from(wav).toString("base64") };
 }
 
 // ---------------------------------------------------------------------------

@@ -359,6 +359,9 @@ export class ClaudeAgentProvider extends BaseProvider {
     // It resets when a new turn begins (after tool execution in multi-turn MCP queries).
     let streamedTextLength = 0;
     let yieldedToolCallCount = 0;
+    // Track whether we already yielded text via stream_event/assistant messages
+    // so we can skip the duplicate result event.
+    let hasYieldedText = false;
 
     for await (const msg of queryHandle) {
       const msgObj = msg as Record<string, unknown>;
@@ -398,6 +401,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (text.length > streamedTextLength) {
             const delta = text.slice(streamedTextLength);
             streamedTextLength = text.length;
+            hasYieldedText = true;
             yield { type: "chunk", content: delta, done: false } as Chunk;
           }
         }
@@ -416,6 +420,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (text.length > streamedTextLength) {
             const delta = text.slice(streamedTextLength);
             streamedTextLength = text.length;
+            hasYieldedText = true;
             yield { type: "chunk", content: delta, done: false } as Chunk;
           }
         }
@@ -424,8 +429,8 @@ export class ClaudeAgentProvider extends BaseProvider {
         continue;
       }
 
-      // Result event — final text that may not have been streamed
-      if (msgType === "result") {
+      // Result event — final text fallback, only if nothing was streamed yet
+      if (msgType === "result" && !hasYieldedText) {
         const result = msgObj.result;
         if (typeof result === "string" && result.length > 0) {
           yield { type: "chunk", content: result, done: false } as Chunk;

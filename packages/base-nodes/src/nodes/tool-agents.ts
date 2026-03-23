@@ -331,10 +331,11 @@ class ToolAgentNode extends BaseNode {
     inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const prompt = String(inputs.prompt ?? this.prompt ?? "").trim();
+    const props = this.serialize();
+    const prompt = String(inputs.prompt ?? props.prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
-    const model = (inputs.model ?? this.model ?? {}) as Record<string, unknown>;
+    const model = (inputs.model ?? props.model ?? {}) as Record<string, unknown>;
     const providerId = String(model.provider || "").toLowerCase();
     const modelId = String(model.id || "");
     if (!providerId || !modelId) {

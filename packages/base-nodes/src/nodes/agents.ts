@@ -990,7 +990,7 @@ export class SummarizerNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const text = asText(inputs.text ?? this.text ?? "");
-    const maxSentences = Number(inputs.max_sentences ?? this.max_sentences ?? 3);
+    const maxSentences = Number(inputs.max_sentences ?? 3);
     const { providerId, modelId } = getModelConfig(inputs, this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
@@ -1212,7 +1212,7 @@ export class ExtractorNode extends BaseNode {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 1024),
+        maxTokens: Number(inputs.max_tokens ?? 1024),
         responseFormat: { type: "json_object" },
         messages: [
           { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
@@ -1399,7 +1399,7 @@ export class ClassifierNode extends BaseNode {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 256),
+        maxTokens: Number(inputs.max_tokens ?? 256),
         responseFormat: {
           type: "json_schema",
           json_schema: {
@@ -2560,7 +2560,7 @@ export class ResearchAgentNode extends BaseNode {
     inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const query = asText(inputs.query ?? this.query ?? this.prompt ?? inputs.prompt ?? "");
+    const query = asText(inputs.query ?? inputs.prompt ?? this.objective ?? "");
     const { providerId, modelId } = getModelConfig(inputs, this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
