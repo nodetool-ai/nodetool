@@ -47,9 +47,9 @@ describe("getNodeMetadata", () => {
     expect(propA!.required).toBe(false);
   });
 
-  it("handles node with no defaults (Passthrough)", () => {
+  it("handles node with minimal props (Passthrough)", () => {
     const meta = getNodeMetadata(Passthrough);
-    expect(meta.properties).toHaveLength(0);
+    expect(meta.properties).toHaveLength(1);
     expect(meta.title).toBe("Passthrough");
     expect(meta.node_type).toBe("nodetool.test.Passthrough");
   });

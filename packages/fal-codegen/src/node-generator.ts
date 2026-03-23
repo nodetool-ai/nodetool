@@ -301,9 +301,9 @@ export class NodeGenerator {
   private _renderProcessMethod(spec: NodeSpec): string[] {
     const lines: string[] = [];
     lines.push(
-      `  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {`,
+      `  async process(): Promise<Record<string, unknown>> {`,
     );
-    lines.push(`    const apiKey = getFalApiKey(inputs);`);
+    lines.push(`    const apiKey = getFalApiKey(this._secrets);`);
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
@@ -319,7 +319,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(inputs.${field.name} ?? (this as any).${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`,
       );
     }
 
@@ -346,7 +346,7 @@ export class NodeGenerator {
         // List of assets
         lines.push(``);
         lines.push(
-          `    const ${varName}List = inputs.${field.name} as Record<string, unknown>[] | undefined;`,
+          `    const ${varName}List = this.${field.name} as Record<string, unknown>[] | undefined;`,
         );
         lines.push(`    if (${varName}List?.length) {`);
         lines.push(
@@ -368,7 +368,7 @@ export class NodeGenerator {
         );
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         lines.push(
@@ -382,7 +382,7 @@ export class NodeGenerator {
           const subVar = fieldToVarName(sub.name);
           const subDefLit = defaultLiteral(sub.default, sub.propType);
           nestedObj.push(
-            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}(inputs.${sub.name} ?? ${subDefLit}),`,
+            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}((this as any).${sub.name} ?? ${subDefLit}),`,
           );
         }
         lines.push(`        args[${JSON.stringify(apiName)}] = {`);
@@ -394,7 +394,7 @@ export class NodeGenerator {
         // Plain asset
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         if (kind === "image") {

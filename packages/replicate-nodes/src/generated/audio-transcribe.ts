@@ -45,14 +45,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "chunk", values: ["chunk", "word"], description: "Whisper supports both chunked as well as word level timestamps." })
   declare timestamp: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 24);
-    const diariseAudio = Boolean(inputs.diarise_audio ?? this.diarise_audio ?? false);
-    const hfToken = String(inputs.hf_token ?? this.hf_token ?? "");
-    const language = String(inputs.language ?? this.language ?? "None");
-    const task = String(inputs.task ?? this.task ?? "transcribe");
-    const timestamp = String(inputs.timestamp ?? this.timestamp ?? "chunk");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const batchSize = Number(this.batch_size ?? 24);
+    const diariseAudio = Boolean(this.diarise_audio ?? false);
+    const hfToken = String(this.hf_token ?? "");
+    const language = String(this.language ?? "None");
+    const task = String(this.task ?? "transcribe");
+    const timestamp = String(this.timestamp ?? "chunk");
 
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
@@ -63,7 +63,7 @@ replicate, ai`;
       "timestamp": timestamp,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -97,11 +97,11 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Sampling temperature between 0 and 1" })
   declare temperature: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const language = String(inputs.language ?? this.language ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const language = String(this.language ?? "");
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0);
 
     const args: Record<string, unknown> = {
       "language": language,
@@ -109,7 +109,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
+    const audioFileRef = this.audio_file as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -170,20 +170,20 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Translate the text to English when set to True" })
   declare translate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const compressionRatioThreshold = Number(inputs.compression_ratio_threshold ?? this.compression_ratio_threshold ?? 2.4);
-    const conditionOnPreviousText = Boolean(inputs.condition_on_previous_text ?? this.condition_on_previous_text ?? true);
-    const initialPrompt = String(inputs.initial_prompt ?? this.initial_prompt ?? "");
-    const language = String(inputs.language ?? this.language ?? "auto");
-    const logprobThreshold = Number(inputs.logprob_threshold ?? this.logprob_threshold ?? -1);
-    const noSpeechThreshold = Number(inputs.no_speech_threshold ?? this.no_speech_threshold ?? 0.6);
-    const patience = Number(inputs.patience ?? this.patience ?? 0);
-    const suppressTokens = String(inputs.suppress_tokens ?? this.suppress_tokens ?? "-1");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0);
-    const temperatureIncrementOnFallback = Number(inputs.temperature_increment_on_fallback ?? this.temperature_increment_on_fallback ?? 0.2);
-    const transcription = String(inputs.transcription ?? this.transcription ?? "plain text");
-    const translate = Boolean(inputs.translate ?? this.translate ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const compressionRatioThreshold = Number(this.compression_ratio_threshold ?? 2.4);
+    const conditionOnPreviousText = Boolean(this.condition_on_previous_text ?? true);
+    const initialPrompt = String(this.initial_prompt ?? "");
+    const language = String(this.language ?? "auto");
+    const logprobThreshold = Number(this.logprob_threshold ?? -1);
+    const noSpeechThreshold = Number(this.no_speech_threshold ?? 0.6);
+    const patience = Number(this.patience ?? 0);
+    const suppressTokens = String(this.suppress_tokens ?? "-1");
+    const temperature = Number(this.temperature ?? 0);
+    const temperatureIncrementOnFallback = Number(this.temperature_increment_on_fallback ?? 0.2);
+    const transcription = String(this.transcription ?? "plain text");
+    const translate = Boolean(this.translate ?? false);
 
     const args: Record<string, unknown> = {
       "compression_ratio_threshold": compressionRatioThreshold,
@@ -200,7 +200,7 @@ replicate, ai`;
       "translate": translate,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -234,11 +234,11 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Sampling temperature between 0 and 1" })
   declare temperature: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const language = String(inputs.language ?? this.language ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const language = String(this.language ?? "");
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0);
 
     const args: Record<string, unknown> = {
       "language": language,
@@ -246,7 +246,7 @@ replicate, ai`;
       "temperature": temperature,
     };
 
-    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
+    const audioFileRef = this.audio_file as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -283,12 +283,12 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Set if you only want to return text; otherwise, segment metadata will be returned as well." })
   declare only_text: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const alignOutput = Boolean(inputs.align_output ?? this.align_output ?? false);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 32);
-    const debug = Boolean(inputs.debug ?? this.debug ?? false);
-    const onlyText = Boolean(inputs.only_text ?? this.only_text ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const alignOutput = Boolean(this.align_output ?? false);
+    const batchSize = Number(this.batch_size ?? 32);
+    const debug = Boolean(this.debug ?? false);
+    const onlyText = Boolean(this.only_text ?? false);
 
     const args: Record<string, unknown> = {
       "align_output": alignOutput,
@@ -297,7 +297,7 @@ replicate, ai`;
       "only_text": onlyText,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -343,15 +343,15 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Translate the speech into English." })
   declare translate: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const fileString = String(inputs.file_string ?? this.file_string ?? "");
-    const fileUrl = String(inputs.file_url ?? this.file_url ?? "");
-    const groupSegments = Boolean(inputs.group_segments ?? this.group_segments ?? true);
-    const language = String(inputs.language ?? this.language ?? "");
-    const numSpeakers = Number(inputs.num_speakers ?? this.num_speakers ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const translate = Boolean(inputs.translate ?? this.translate ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const fileString = String(this.file_string ?? "");
+    const fileUrl = String(this.file_url ?? "");
+    const groupSegments = Boolean(this.group_segments ?? true);
+    const language = String(this.language ?? "");
+    const numSpeakers = Number(this.num_speakers ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const translate = Boolean(this.translate ?? false);
 
     const args: Record<string, unknown> = {
       "file_string": fileString,
@@ -363,7 +363,7 @@ replicate, ai`;
       "translate": translate,
     };
 
-    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
+    const fileRef = this.file as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;
@@ -388,12 +388,12 @@ replicate, ai`;
   @prop({ type: "audio", default: "", description: "Input audio file to be transcribed by the ASR model" })
   declare audio_file: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioFileRef = (inputs.audio_file ?? this.audio_file) as Record<string, unknown> | undefined;
+    const audioFileRef = this.audio_file as Record<string, unknown> | undefined;
     if (isRefSet(audioFileRef)) {
       const audioFileUrl = await assetToUrl(audioFileRef!, apiKey);
       if (audioFileUrl) args["audio_file"] = audioFileUrl;
@@ -418,12 +418,12 @@ replicate, ai`;
   @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -448,12 +448,12 @@ replicate, ai`;
   @prop({ type: "audio", default: "", description: "Audio file" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -481,15 +481,15 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Optional text to provide as a prompt for each Whisper model call." })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
@@ -523,11 +523,11 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "Number of speakers to diarize. Default: infer" })
   declare num_speakers: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxSpeakers = Number(inputs.max_speakers ?? this.max_speakers ?? 0);
-    const minSpeakers = Number(inputs.min_speakers ?? this.min_speakers ?? 0);
-    const numSpeakers = Number(inputs.num_speakers ?? this.num_speakers ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxSpeakers = Number(this.max_speakers ?? 0);
+    const minSpeakers = Number(this.min_speakers ?? 0);
+    const numSpeakers = Number(this.num_speakers ?? 0);
 
     const args: Record<string, unknown> = {
       "max_speakers": maxSpeakers,
@@ -535,7 +535,7 @@ replicate, ai`;
       "num_speakers": numSpeakers,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;

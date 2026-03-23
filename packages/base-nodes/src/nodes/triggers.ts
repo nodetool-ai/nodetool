@@ -110,13 +110,9 @@ export class WaitNode extends BaseNode {
   })
   declare input: any;
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const timeoutSeconds = Number(
-      inputs.timeout_seconds ?? this.timeout_seconds ?? 0
-    );
-    const inputData = inputs.input ?? this.input ?? "";
+  async process(): Promise<Record<string, unknown>> {
+    const timeoutSeconds = Number(this.timeout_seconds ?? 0);
+    const inputData = this.input ?? "";
 
     const start = Date.now();
     if (timeoutSeconds > 0) {

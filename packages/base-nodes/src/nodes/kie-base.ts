@@ -113,9 +113,9 @@ export async function uploadFile(
   return downloadUrl;
 }
 
-export function getApiKey(inputs: Record<string, unknown>): string {
+export function getApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.KIE_API_KEY ||
+    secrets?.KIE_API_KEY ||
     process.env.KIE_API_KEY ||
     "";
   if (!key) throw new Error("KIE_API_KEY is not configured");

@@ -14,7 +14,7 @@ import {
   Secret,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
-import { getSecret, clearSecretCache } from "@nodetool/security";
+import { clearSecretCache } from "@nodetool/security";
 import { clearProviderCache } from "@nodetool/runtime";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
@@ -1709,13 +1709,6 @@ export async function handleApiRequest(
   if (pathname === "/api/models" || pathname.startsWith("/api/models/")) {
     const response = await handleModelsApiRequest(request);
     if (response) return response;
-  }
-
-  if (pathname === "/api/nodes/replicate_status") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
-    const configured = Boolean(replicateKey);
-    return jsonResponse({ configured });
   }
 
   if (pathname === "/api/users/validate_username") {

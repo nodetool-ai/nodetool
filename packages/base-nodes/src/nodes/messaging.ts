@@ -38,20 +38,14 @@ export class DiscordBotTrigger extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const secrets = (inputs._secrets as Record<string, string>) ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const secrets = this._secrets;
     const token =
-      String(inputs.token ?? this.token ?? "") ||
+      String(this.token ?? "") ||
       secrets.DISCORD_BOT_TOKEN ||
       "";
-    const channelId = String(
-      inputs.channel_id ?? this.channel_id ?? ""
-    );
-    const allowBotMessages = Boolean(
-      inputs.allow_bot_messages ?? this.allow_bot_messages ?? false
-    );
+    const channelId = String(this.channel_id ?? "");
+    const allowBotMessages = Boolean(this.allow_bot_messages ?? false);
 
     if (!token) {
       throw new Error("Discord bot token is required");
@@ -108,20 +102,16 @@ export class DiscordSendMessage extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const secrets = (inputs._secrets as Record<string, string>) ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const secrets = this._secrets;
     const token =
-      String(inputs.token ?? this.token ?? "") ||
+      String(this.token ?? "") ||
       secrets.DISCORD_BOT_TOKEN ||
       "";
-    const channelId = String(
-      inputs.channel_id ?? this.channel_id ?? ""
-    );
-    const content = String(inputs.content ?? this.content ?? "");
-    const tts = Boolean(inputs.tts ?? this.tts ?? false);
-    const embeds = (inputs.embeds ?? this.embeds ?? []) as unknown[];
+    const channelId = String(this.channel_id ?? "");
+    const content = String(this.content ?? "");
+    const tts = Boolean(this.tts ?? false);
+    const embeds = (this.embeds ?? []) as unknown[];
 
     if (!token) {
       throw new Error("Discord bot token is required");
@@ -213,22 +203,16 @@ export class TelegramBotTrigger extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const secrets = (inputs._secrets as Record<string, string>) ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const secrets = this._secrets;
     const token =
-      String(inputs.token ?? this.token ?? "") ||
+      String(this.token ?? "") ||
       secrets.TELEGRAM_BOT_TOKEN ||
       "";
-    const chatId = Number(inputs.chat_id ?? this.chat_id ?? 0);
-    const allowBotMessages = Boolean(
-      inputs.allow_bot_messages ?? this.allow_bot_messages ?? false
-    );
+    const chatId = Number(this.chat_id ?? 0);
+    const allowBotMessages = Boolean(this.allow_bot_messages ?? false);
     const includeEditedMessages = Boolean(
-      inputs.include_edited_messages ??
-        this.include_edited_messages ??
-        false
+      this.include_edited_messages ?? false
     );
 
     if (!token) {
@@ -299,32 +283,22 @@ export class TelegramSendMessage extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const secrets = (inputs._secrets as Record<string, string>) ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const secrets = this._secrets;
     const token =
-      String(inputs.token ?? this.token ?? "") ||
+      String(this.token ?? "") ||
       secrets.TELEGRAM_BOT_TOKEN ||
       "";
-    const chatId = Number(inputs.chat_id ?? this.chat_id ?? 0);
-    const text = String(inputs.text ?? this.text ?? "");
-    const parseMode = String(
-      inputs.parse_mode ?? this.parse_mode ?? ""
-    );
+    const chatId = Number(this.chat_id ?? 0);
+    const text = String(this.text ?? "");
+    const parseMode = String(this.parse_mode ?? "");
     const disableWebPagePreview = Boolean(
-      inputs.disable_web_page_preview ??
-        this.disable_web_page_preview ??
-        false
+      this.disable_web_page_preview ?? false
     );
     const disableNotification = Boolean(
-      inputs.disable_notification ??
-        this.disable_notification ??
-        false
+      this.disable_notification ?? false
     );
-    const replyToMessageId = Number(
-      inputs.reply_to_message_id ?? this.reply_to_message_id ?? 0
-    );
+    const replyToMessageId = Number(this.reply_to_message_id ?? 0);
 
     if (!token) {
       throw new Error("Telegram bot token is required");

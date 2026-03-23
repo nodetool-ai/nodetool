@@ -24,9 +24,9 @@ function getClient(apiKey: string): Replicate {
 // API Key extraction
 // ---------------------------------------------------------------------------
 
-export function getReplicateApiKey(inputs: Record<string, unknown>): string {
+export function getReplicateApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.REPLICATE_API_TOKEN ||
+    secrets?.REPLICATE_API_TOKEN ||
     process.env.REPLICATE_API_TOKEN ||
     "";
   if (!key) throw new Error("REPLICATE_API_TOKEN is not configured");
@@ -120,11 +120,11 @@ async function uploadToReplicate(apiKey: string, sourceUrl: string): Promise<str
   const ext = contentType.split("/")[1]?.split(";")[0] || "bin";
 
   const client = getClient(apiKey);
-  const file = await client.files.create({
+  const file = await (client.files as any).create({
     content: new Blob([bytes], { type: contentType }),
     filename: `upload.${ext}`,
   });
-  const fileUrl = (file as Record<string, unknown>).urls as Record<string, string> | undefined;
+  const fileUrl = (file as unknown as Record<string, unknown>).urls as Record<string, string> | undefined;
   if (fileUrl?.get) return fileUrl.get;
   throw new Error("No URL in upload response");
 }

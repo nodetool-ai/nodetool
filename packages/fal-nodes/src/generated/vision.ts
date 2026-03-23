@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,6 @@ export class ArbiterImageText extends FalNode {
   static readonly description = `Arbiter measures semantic alignment between images and text descriptions.
 vision, alignment, similarity, text-image, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -25,10 +25,10 @@ vision, alignment, similarity, text-image, analysis`;
   @prop({ type: "list[SemanticImageInput]", default: [], description: "The inputs to use for the measurement." })
   declare inputs: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const measurements = String(inputs.measurements ?? this.measurements ?? []);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const measurements = String(this.measurements ?? []);
+    const field_inputs = String(this.inputs ?? []);
 
     const args: Record<string, unknown> = {
       "measurements": measurements,
@@ -47,7 +47,6 @@ export class ArbiterImageImage extends FalNode {
   static readonly description = `Arbiter measures similarity and alignment between reference images.
 vision, similarity, comparison, image-matching, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -55,10 +54,10 @@ vision, similarity, comparison, image-matching, analysis`;
   @prop({ type: "list[ReferenceImageInput]", default: [], description: "The inputs to use for the measurement." })
   declare inputs: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const measurements = String(inputs.measurements ?? this.measurements ?? []);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const measurements = String(this.measurements ?? []);
+    const field_inputs = String(this.inputs ?? []);
 
     const args: Record<string, unknown> = {
       "measurements": measurements,
@@ -77,7 +76,6 @@ export class ArbiterImage extends FalNode {
   static readonly description = `Arbiter provides comprehensive image analysis and quality metrics.
 vision, analysis, quality, metrics, image-evaluation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -85,10 +83,10 @@ vision, analysis, quality, metrics, image-evaluation`;
   @prop({ type: "list[ImageInput]", default: [], description: "The inputs to use for the measurement." })
   declare inputs: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const measurements = String(inputs.measurements ?? this.measurements ?? []);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? []);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const measurements = String(this.measurements ?? []);
+    const field_inputs = String(this.inputs ?? []);
 
     const args: Record<string, unknown> = {
       "measurements": measurements,
@@ -107,7 +105,6 @@ export class Florence2RegionToDescription extends FalNode {
   static readonly description = `Florence-2 Large generates detailed descriptions of specific image regions.
 vision, captioning, region-description, florence, ocr`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -115,17 +112,17 @@ vision, captioning, region-description, florence, ocr`;
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const region = String(inputs.region ?? this.region ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const region = String(this.region ?? "");
 
     const args: Record<string, unknown> = {
       "region": region,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -141,19 +138,18 @@ export class Florence2OCR extends FalNode {
   static readonly description = `Florence-2 Large performs optical character recognition to extract text from images.
 vision, ocr, text-extraction, florence, reading`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -169,19 +165,18 @@ export class Florence2MoreDetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates highly detailed, comprehensive image captions.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -197,7 +192,6 @@ export class Florence2RegionToCategory extends FalNode {
   static readonly description = `Florence-2 Large classifies image regions into semantic categories.
 vision, classification, region-analysis, florence, categorization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -205,17 +199,17 @@ vision, classification, region-analysis, florence, categorization`;
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const region = String(inputs.region ?? this.region ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const region = String(this.region ?? "");
 
     const args: Record<string, unknown> = {
       "region": region,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -231,19 +225,18 @@ export class Florence2Caption extends FalNode {
   static readonly description = `Florence-2 Large generates concise, accurate captions for images.
 vision, captioning, description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -259,19 +252,18 @@ export class Florence2DetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates detailed captions with rich contextual information.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -287,19 +279,18 @@ export class Sam3ImageEmbed extends FalNode {
   static readonly description = `Sam 3
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image to embed." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -315,16 +306,15 @@ export class OpenrouterRouterVision extends FalNode {
   static readonly description = `OpenRouter [Vision]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
-  declare system_prompt: any;
-
   @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
   declare reasoning: any;
+
+  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
+  declare system_prompt: any;
 
   @prop({ type: "str", default: "", description: "Name of the model to use. Charged based on actual token usage." })
   declare model: any;
@@ -338,25 +328,25 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "list[image]", default: [], description: "List of image URLs to be processed" })
   declare images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const reasoning = Boolean(inputs.reasoning ?? this.reasoning ?? false);
-    const model = String(inputs.model ?? this.model ?? "");
-    const maxTokens = String(inputs.max_tokens ?? this.max_tokens ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const reasoning = Boolean(this.reasoning ?? false);
+    const systemPrompt = String(this.system_prompt ?? "");
+    const model = String(this.model ?? "");
+    const maxTokens = String(this.max_tokens ?? "");
+    const temperature = Number(this.temperature ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "system_prompt": systemPrompt,
       "reasoning": reasoning,
+      "system_prompt": systemPrompt,
       "model": model,
       "max_tokens": maxTokens,
       "temperature": temperature,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -377,7 +367,6 @@ export class Moondream3PreviewDetect extends FalNode {
   static readonly description = `Moondream3 Preview [Detect]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare prompt: any;
@@ -388,19 +377,19 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const preview = Boolean(inputs.preview ?? this.preview ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const preview = Boolean(this.preview ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "preview": preview,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -416,7 +405,6 @@ export class Moondream3PreviewPoint extends FalNode {
   static readonly description = `Moondream3 Preview [Point]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be located in the image" })
   declare prompt: any;
@@ -427,19 +415,19 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const preview = Boolean(inputs.preview ?? this.preview ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const preview = Boolean(this.preview ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "preview": preview,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -455,7 +443,6 @@ export class Moondream3PreviewQuery extends FalNode {
   static readonly description = `Moondream 3 Preview [Query]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -472,12 +459,12 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const topP = String(inputs.top_p ?? this.top_p ?? "");
-    const temperature = String(inputs.temperature ?? this.temperature ?? "");
-    const reasoning = Boolean(inputs.reasoning ?? this.reasoning ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const topP = String(this.top_p ?? "");
+    const temperature = String(this.temperature ?? "");
+    const reasoning = Boolean(this.reasoning ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -486,9 +473,9 @@ vision, analysis, image-understanding, detection`;
       "reasoning": reasoning,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -504,7 +491,6 @@ export class Moondream3PreviewCaption extends FalNode {
   static readonly description = `Moondream3 Preview [Caption]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Nucleus sampling probability mass to use, between 0 and 1." })
   declare top_p: any;
@@ -518,11 +504,11 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const topP = String(inputs.top_p ?? this.top_p ?? "");
-    const length = String(inputs.length ?? this.length ?? "normal");
-    const temperature = String(inputs.temperature ?? this.temperature ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const topP = String(this.top_p ?? "");
+    const length = String(this.length ?? "normal");
+    const temperature = String(this.temperature ?? "");
 
     const args: Record<string, unknown> = {
       "top_p": topP,
@@ -530,9 +516,9 @@ vision, analysis, image-understanding, detection`;
       "temperature": temperature,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -548,10 +534,9 @@ export class PerceptronIsaac01OpenaiV1ChatCompletions extends FalNode {
   static readonly description = `Isaac 0.1 [OpenAI Compatible Endpoint]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
     removeNulls(args);
@@ -567,7 +552,6 @@ export class PerceptronIsaac01 extends FalNode {
   static readonly description = `Isaac-01 is a multimodal vision-language model from Perceptron for various vision language tasks.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -578,19 +562,19 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "Image URL to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const responseStyle = String(inputs.response_style ?? this.response_style ?? "text");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const responseStyle = String(this.response_style ?? "text");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "response_style": responseStyle,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -606,17 +590,16 @@ export class XAilabNsfw extends FalNode {
   static readonly description = `Predict whether an image is NSFW or SFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "list[image]", default: [], description: "List of image URLs to check. If more than 10 images are provided, only the first 10 will be checked." })
   declare images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -637,28 +620,27 @@ export class VideoUnderstanding extends FalNode {
   static readonly description = `A video understanding model to analyze video content and answer questions about what's happening in the video based on user prompts.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-
-  @prop({ type: "bool", default: false, description: "Whether to request a more detailed analysis of the video" })
-  declare detailed_analysis: any;
-
-  @prop({ type: "video", default: "", description: "URL of the video to analyze" })
-  declare video: any;
 
   @prop({ type: "str", default: "", description: "The question or prompt about the video content." })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const detailedAnalysis = Boolean(inputs.detailed_analysis ?? this.detailed_analysis ?? false);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  @prop({ type: "video", default: "", description: "URL of the video to analyze" })
+  declare video: any;
+
+  @prop({ type: "bool", default: false, description: "Whether to request a more detailed analysis of the video" })
+  declare detailed_analysis: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const detailedAnalysis = Boolean(this.detailed_analysis ?? false);
 
     const args: Record<string, unknown> = {
-      "detailed_analysis": detailedAnalysis,
       "prompt": prompt,
+      "detailed_analysis": detailedAnalysis,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
@@ -676,7 +658,6 @@ export class Moondream2VisualQuery extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -684,17 +665,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -710,19 +691,18 @@ export class Moondream2 extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -738,7 +718,6 @@ export class Moondream2PointObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -746,17 +725,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const object = String(inputs.object ?? this.object ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const object = String(this.object ?? "");
 
     const args: Record<string, unknown> = {
       "object": object,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -772,7 +751,6 @@ export class Moondream2ObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -780,17 +758,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const object = String(inputs.object ?? this.object ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const object = String(this.object ?? "");
 
     const args: Record<string, unknown> = {
       "object": object,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -806,7 +784,6 @@ export class GotOcrV2 extends FalNode {
   static readonly description = `GOT-OCR2 works on a wide range of tasks, including plain document OCR, scene text OCR, formatted document OCR, and even OCR for tables, charts, mathematical formulas, geometric shapes, molecular formulas and sheet music.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: false, description: "Generate the output in formatted mode." })
   declare do_format: any;
@@ -817,17 +794,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "list[image]", default: [], description: "URL of images." })
   declare input_images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const doFormat = Boolean(inputs.do_format ?? this.do_format ?? false);
-    const multiPage = Boolean(inputs.multi_page ?? this.multi_page ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const doFormat = Boolean(this.do_format ?? false);
+    const multiPage = Boolean(this.multi_page ?? false);
 
     const args: Record<string, unknown> = {
       "do_format": doFormat,
       "multi_page": multiPage,
     };
 
-    const inputImagesList = inputs.input_images as Record<string, unknown>[] | undefined;
+    const inputImagesList = this.input_images as Record<string, unknown>[] | undefined;
     if (inputImagesList?.length) {
       const inputImagesUrls: string[] = [];
       for (const ref of inputImagesList) {
@@ -848,7 +825,6 @@ export class MoondreamNextBatch extends FalNode {
   static readonly description = `MoonDreamNext Batch is a multimodal vision-language model for batch captioning.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Single prompt to apply to all images" })
   declare prompt: any;
@@ -859,19 +835,19 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "int", default: 64, description: "Maximum number of tokens to generate" })
   declare max_tokens: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 64);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const maxTokens = Number(this.max_tokens ?? 64);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "max_tokens": maxTokens,
     };
 
-    const imagesDataRef = inputs.images_data as Record<string, unknown> | undefined;
+    const imagesDataRef = this.images_data as Record<string, unknown> | undefined;
     if (isRefSet(imagesDataRef)) {
-      const imagesDataUrl = await assetToFalUrl(apiKey, imagesDataRef!);
+      const imagesDataUrl = await imageToDataUrl(imagesDataRef!) ?? await assetToFalUrl(apiKey, imagesDataRef!);
       if (imagesDataUrl) args["images_data_url"] = imagesDataUrl;
     }
     removeNulls(args);
@@ -887,7 +863,6 @@ export class Sa2va4bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -898,17 +873,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "int", default: 0, description: "Number of frames to sample from the video. If not provided, all frames are sampled." })
   declare num_frames_to_sample: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const numFramesToSample = Number(inputs.num_frames_to_sample ?? this.num_frames_to_sample ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const numFramesToSample = Number(this.num_frames_to_sample ?? 0);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "num_frames_to_sample": numFramesToSample,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
@@ -926,7 +901,6 @@ export class Sa2va8bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -937,17 +911,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "int", default: 0, description: "Number of frames to sample from the video. If not provided, all frames are sampled." })
   declare num_frames_to_sample: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const numFramesToSample = Number(inputs.num_frames_to_sample ?? this.num_frames_to_sample ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const numFramesToSample = Number(this.num_frames_to_sample ?? 0);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "num_frames_to_sample": numFramesToSample,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
@@ -965,7 +939,6 @@ export class Sa2va4bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -973,17 +946,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "Url for the Input image." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -999,7 +972,6 @@ export class Sa2va8bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -1007,17 +979,17 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "Url for the Input image." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1033,7 +1005,6 @@ export class MoondreamNext extends FalNode {
   static readonly description = `MoonDreamNext is a multimodal vision-language model for captioning, gaze detection, bbox detection, point detection, and more.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt for query task" })
   declare prompt: any;
@@ -1047,11 +1018,11 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "Image URL to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const taskType = String(inputs.task_type ?? this.task_type ?? "caption");
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 64);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const taskType = String(this.task_type ?? "caption");
+    const maxTokens = Number(this.max_tokens ?? 64);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1059,9 +1030,9 @@ vision, analysis, image-understanding, detection`;
       "max_tokens": maxTokens,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1077,19 +1048,18 @@ export class ImageutilsNsfw extends FalNode {
   static readonly description = `Predict the probability of an image being NSFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "image", default: "", description: "Input image url." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1105,7 +1075,6 @@ export class MoondreamBatched extends FalNode {
   static readonly description = `Answer questions from the images.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "enum", default: "vikhyatk/moondream2", values: ["vikhyatk/moondream2", "fal-ai/moondream2-docci"], description: "Model ID to use for inference" })
   declare model_id: any;
@@ -1125,14 +1094,14 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "float", default: 1, description: "Top P for sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const modelId = String(inputs.model_id ?? this.model_id ?? "vikhyatk/moondream2");
-    const repetitionPenalty = Number(inputs.repetition_penalty ?? this.repetition_penalty ?? 1);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? []);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 64);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const modelId = String(this.model_id ?? "vikhyatk/moondream2");
+    const repetitionPenalty = Number(this.repetition_penalty ?? 1);
+    const field_inputs = String(this.inputs ?? []);
+    const maxTokens = Number(this.max_tokens ?? 64);
+    const temperature = Number(this.temperature ?? 0.2);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "model_id": modelId,
@@ -1155,7 +1124,6 @@ export class LlavaNext extends FalNode {
   static readonly description = `Vision
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -1172,12 +1140,12 @@ vision, analysis, image-understanding, detection`;
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 64);
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const topP = Number(this.top_p ?? 1);
+    const maxTokens = Number(this.max_tokens ?? 64);
+    const temperature = Number(this.temperature ?? 0.2);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1186,9 +1154,9 @@ vision, analysis, image-understanding, detection`;
       "temperature": temperature,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);

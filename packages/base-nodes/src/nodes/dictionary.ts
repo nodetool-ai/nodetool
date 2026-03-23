@@ -49,10 +49,10 @@ export class GetValueNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionary = asRecord(inputs.dictionary ?? this.dictionary ?? {});
-    const key = String(inputs.key ?? this.key ?? "");
-    const defaultValue = inputs.default ?? this.default ?? null;
+  async process(): Promise<Record<string, unknown>> {
+    const dictionary = asRecord(this.dictionary ?? this.dictionary ?? {});
+    const key = String(this.key ?? this.key ?? "");
+    const defaultValue = this.default ?? this.default ?? null;
     return { output: key in dictionary ? dictionary[key] : defaultValue };
   }
 }
@@ -75,9 +75,9 @@ export class UpdateDictionaryNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionary = asRecord(inputs.dictionary ?? this.dictionary ?? {});
-    const newPairs = asRecord(inputs.new_pairs ?? this.new_pairs ?? {});
+  async process(): Promise<Record<string, unknown>> {
+    const dictionary = asRecord(this.dictionary ?? this.dictionary ?? {});
+    const newPairs = asRecord(this.new_pairs ?? this.new_pairs ?? {});
     return { output: { ...dictionary, ...newPairs } };
   }
 }
@@ -100,11 +100,11 @@ export class RemoveDictionaryKeyNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const dictionary = {
-      ...asRecord(inputs.dictionary ?? this.dictionary ?? {}),
+      ...asRecord(this.dictionary ?? this.dictionary ?? {}),
     };
-    const key = String(inputs.key ?? this.key ?? "");
+    const key = String(this.key ?? this.key ?? "");
     delete dictionary[key];
     return { output: dictionary };
   }
@@ -125,8 +125,8 @@ export class ParseJSONNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const jsonString = String(inputs.json_string ?? this.json_string ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const jsonString = String(this.json_string ?? this.json_string ?? "");
     const parsed = JSON.parse(jsonString) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("Input JSON is not a dictionary");
@@ -153,9 +153,9 @@ export class ZipDictionaryNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const maybeKeys = inputs.keys ?? this.keys;
-    const maybeValues = inputs.values ?? this.values;
+  async process(): Promise<Record<string, unknown>> {
+    const maybeKeys = this.keys ?? this.keys;
+    const maybeValues = this.values ?? this.values;
     const keys: unknown[] = Array.isArray(maybeKeys) ? maybeKeys : [];
     const values: unknown[] = Array.isArray(maybeValues) ? maybeValues : [];
 
@@ -186,9 +186,9 @@ export class CombineDictionaryNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asRecord(inputs.dict_a ?? this.dict_a ?? {});
-    const b = asRecord(inputs.dict_b ?? this.dict_b ?? {});
+  async process(): Promise<Record<string, unknown>> {
+    const a = asRecord(this.dict_a ?? this.dict_a ?? {});
+    const b = asRecord(this.dict_b ?? this.dict_b ?? {});
     return { output: { ...a, ...b } };
   }
 }
@@ -210,10 +210,10 @@ export class FilterDictionaryNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionary = asRecord(inputs.dictionary ?? this.dictionary ?? {});
-    const keys = Array.isArray(inputs.keys ?? this.keys)
-      ? ((inputs.keys ?? this.keys) as unknown[])
+  async process(): Promise<Record<string, unknown>> {
+    const dictionary = asRecord(this.dictionary ?? this.dictionary ?? {});
+    const keys = Array.isArray(this.keys ?? this.keys)
+      ? ((this.keys ?? this.keys) as unknown[])
       : [];
     const output: Record<string, unknown> = {};
     for (const k of keys) {
@@ -253,14 +253,14 @@ export class ReduceDictionariesNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionaries = Array.isArray(inputs.dictionaries ?? this.dictionaries)
-      ? ((inputs.dictionaries ?? this.dictionaries) as unknown[])
+  async process(): Promise<Record<string, unknown>> {
+    const dictionaries = Array.isArray(this.dictionaries ?? this.dictionaries)
+      ? ((this.dictionaries ?? this.dictionaries) as unknown[])
       : [];
-    const keyField = String(inputs.key_field ?? this.key_field ?? "");
-    const valueField = String(inputs.value_field ?? this.value_field ?? "");
+    const keyField = String(this.key_field ?? this.key_field ?? "");
+    const valueField = String(this.value_field ?? this.value_field ?? "");
     const conflictResolution = String(
-      inputs.conflict_resolution ?? this.conflict_resolution ?? "first"
+      this.conflict_resolution ?? this.conflict_resolution ?? "first"
     ) as ConflictResolution;
 
     const result: Record<string, unknown> = {};
@@ -317,8 +317,8 @@ export class MakeDictionaryNode extends BaseNode {
           static readonly isDynamic = true;
   
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: { ...this.serialize(), ...inputs } };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.serialize() };
   }
 }
 
@@ -337,8 +337,8 @@ export class ArgMaxNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const scores = asRecord(inputs.scores ?? this.scores ?? {});
+  async process(): Promise<Record<string, unknown>> {
+    const scores = asRecord(this.scores ?? this.scores ?? {});
     const entries = Object.entries(scores).filter(
       ([, value]) => typeof value === "number" && Number.isFinite(value)
     );
@@ -373,8 +373,8 @@ export class ToJSONNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionary = asRecord(inputs.dictionary ?? this.dictionary ?? {});
+  async process(): Promise<Record<string, unknown>> {
+    const dictionary = asRecord(this.dictionary ?? this.dictionary ?? {});
     return { output: JSON.stringify(dictionary) };
   }
 }
@@ -424,8 +424,8 @@ export class ToYAMLNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dictionary = asRecord(inputs.dictionary ?? this.dictionary ?? {});
+  async process(): Promise<Record<string, unknown>> {
+    const dictionary = asRecord(this.dictionary ?? this.dictionary ?? {});
     return { output: toYAML(dictionary) };
   }
 }
@@ -444,8 +444,8 @@ export class LoadCSVFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const path = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const path = String(this.path ?? this.path ?? "");
     if (!path) {
       throw new Error("path cannot be empty");
     }
@@ -484,12 +484,12 @@ export class SaveCSVFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = Array.isArray(inputs.data ?? this.data)
-      ? ((inputs.data ?? this.data) as Record<string, unknown>[])
+  async process(): Promise<Record<string, unknown>> {
+    const data = Array.isArray(this.data ?? this.data)
+      ? ((this.data ?? this.data) as Record<string, unknown>[])
       : [];
-    const folder = String(inputs.folder ?? this.folder ?? "");
-    const filename = String(inputs.filename ?? this.filename ?? "");
+    const folder = String(this.folder ?? this.folder ?? "");
+    const filename = String(this.filename ?? this.filename ?? "");
     if (data.length === 0) {
       throw new Error("'data' field cannot be empty");
     }
@@ -537,15 +537,9 @@ export class FilterDictByQueryNode extends BaseNode {
     this._condition = String(this.condition ?? "");
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("condition" in inputs) {
-      this._condition = String(inputs.condition ?? "");
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
-    const dict = asRecord(inputs.value);
+  async process(): Promise<Record<string, unknown>> {
+    this._condition = String(this.condition ?? "");
+    const dict = asRecord(this.value);
     if (!this._condition.trim()) {
       return { output: dict };
     }
@@ -617,24 +611,12 @@ export class FilterDictByNumberNode extends BaseNode {
     this._compareValue = Number(this.compare_value ?? 0);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("key" in inputs) {
-      this._key = String(inputs.key ?? "");
-      return {};
-    }
-    if ("filter_type" in inputs) {
-      this._filterType = String(inputs.filter_type) as FilterDictNumberType;
-      return {};
-    }
-    if ("compare_value" in inputs) {
-      this._compareValue = Number(inputs.compare_value);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._key = String(this.key ?? "");
+    this._filterType = String(this.filter_type ?? "greater_than") as FilterDictNumberType;
+    this._compareValue = Number(this.compare_value ?? 0);
 
-    const dict = asRecord(inputs.value);
+    const dict = asRecord(this.value);
     if (!(this._key in dict)) {
       return {};
     }
@@ -719,28 +701,13 @@ export class FilterDictByRangeNode extends BaseNode {
     this._inclusive = Boolean(this.inclusive ?? true);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("key" in inputs) {
-      this._key = String(inputs.key ?? "");
-      return {};
-    }
-    if ("min_value" in inputs) {
-      this._minValue = Number(inputs.min_value);
-      return {};
-    }
-    if ("max_value" in inputs) {
-      this._maxValue = Number(inputs.max_value);
-      return {};
-    }
-    if ("inclusive" in inputs) {
-      this._inclusive = Boolean(inputs.inclusive);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._key = String(this.key ?? "");
+    this._minValue = Number(this.min_value ?? 0);
+    this._maxValue = Number(this.max_value ?? 0);
+    this._inclusive = Boolean(this.inclusive ?? true);
 
-    const dict = asRecord(inputs.value);
+    const dict = asRecord(this.value);
     if (!(this._key in dict)) {
       return {};
     }
@@ -795,24 +762,12 @@ export class FilterDictRegexNode extends BaseNode {
     this._fullMatch = Boolean(this.full_match ?? false);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("key" in inputs) {
-      this._key = String(inputs.key ?? "");
-      return {};
-    }
-    if ("pattern" in inputs) {
-      this._pattern = String(inputs.pattern ?? "");
-      return {};
-    }
-    if ("full_match" in inputs) {
-      this._fullMatch = Boolean(inputs.full_match);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._key = String(this.key ?? "");
+    this._pattern = String(this.pattern ?? "");
+    this._fullMatch = Boolean(this.full_match ?? false);
 
-    const dict = asRecord(inputs.value);
+    const dict = asRecord(this.value);
     if (!(this._key in dict)) {
       return {};
     }
@@ -880,24 +835,12 @@ export class FilterDictByValueNode extends BaseNode {
     this._criteria = String(this.criteria ?? "");
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("key" in inputs) {
-      this._key = String(inputs.key ?? "");
-      return {};
-    }
-    if ("filter_type" in inputs) {
-      this._filterType = String(inputs.filter_type) as FilterDictValueType;
-      return {};
-    }
-    if ("criteria" in inputs) {
-      this._criteria = String(inputs.criteria ?? "");
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._key = String(this.key ?? "");
+    this._filterType = String(this.filter_type ?? "contains") as FilterDictValueType;
+    this._criteria = String(this.criteria ?? "");
 
-    const dict = asRecord(inputs.value);
+    const dict = asRecord(this.value);
     if (!(this._key in dict)) {
       return {};
     }

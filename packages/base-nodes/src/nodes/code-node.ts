@@ -59,14 +59,12 @@ export class CodeNode extends BaseNode {
   })
   declare timeout: number;
 
-  async process(
-    inputs: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "return {};");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? "return {};");
+    const timeout = Number(this.timeout ?? 30);
 
     // Extract dynamic inputs (filter reserved/invalid keys).
-    const dynamicInputs = extractDynamicInputs(inputs);
+    const dynamicInputs = extractDynamicInputs(this.serialize());
 
     // Build the function body with implicit return support.
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
@@ -79,20 +77,18 @@ export class CodeNode extends BaseNode {
     }
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>,
-  ): AsyncGenerator<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "return {};");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const code = String(this.code ?? "return {};");
+    const timeout = Number(this.timeout ?? 30);
 
     // If no yield in code, fall back to single-shot process().
     if (!hasYieldStatement(code)) {
-      yield await this.process(inputs);
+      yield await this.process();
       return;
     }
 
     // For streaming: collect all yielded values, then emit them.
-    const dynamicInputs = extractDynamicInputs(inputs);
+    const dynamicInputs = extractDynamicInputs(this.serialize());
 
     const wrappedBody = `
       const __yielded = [];

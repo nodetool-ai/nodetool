@@ -21,11 +21,11 @@ function createColorGradingNode(desc: Desc): NodeClass {
     static readonly basicFields = desc.basicFields;
     static readonly metadataOutputTypes = desc.outputs;
 
-    async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
+    async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
       const self = this as unknown as Record<string, unknown>;
 
-      const baseObj = pickImage(inputs, this.serialize());
+      const baseObj = pickImage(this.serialize(), this.serialize());
       const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
@@ -33,8 +33,8 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // ColorBalance
       if (t.endsWith(".ColorBalance")) {
-        const temperature = Number(inputs.temperature ?? self.temperature ?? 0);
-        const tint = Number(inputs.tint ?? self.tint ?? 0);
+        const temperature = Number((this as any).temperature ?? self.temperature ?? 0);
+        const tint = Number((this as any).tint ?? self.tint ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const tempShift = temperature * 0.3;
         const tintShift = tint * 0.3;
@@ -49,12 +49,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // Exposure
       if (t.endsWith(".Exposure")) {
-        const exposure = Number(inputs.exposure ?? self.exposure ?? 0);
-        const contrast = Number(inputs.contrast ?? self.contrast ?? 0);
-        const highlights = Number(inputs.highlights ?? self.highlights ?? 0);
-        const shadows = Number(inputs.shadows ?? self.shadows ?? 0);
-        const whites = Number(inputs.whites ?? self.whites ?? 0);
-        const blacks = Number(inputs.blacks ?? self.blacks ?? 0);
+        const exposure = Number((this as any).exposure ?? self.exposure ?? 0);
+        const contrast = Number((this as any).contrast ?? self.contrast ?? 0);
+        const highlights = Number((this as any).highlights ?? self.highlights ?? 0);
+        const shadows = Number((this as any).shadows ?? self.shadows ?? 0);
+        const whites = Number((this as any).whites ?? self.whites ?? 0);
+        const blacks = Number((this as any).blacks ?? self.blacks ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const expMul = Math.pow(2, exposure);
         for (let i = 0; i < data.length; i += 3) {
@@ -78,8 +78,8 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // SaturationVibrance
       if (t.endsWith(".SaturationVibrance")) {
-        const saturation = Number(inputs.saturation ?? self.saturation ?? 0);
-        const vibrance = Number(inputs.vibrance ?? self.vibrance ?? 0);
+        const saturation = Number((this as any).saturation ?? self.saturation ?? 0);
+        const vibrance = Number((this as any).vibrance ?? self.vibrance ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
           let r = data[i], g = data[i+1], b = data[i+2];
@@ -108,18 +108,18 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // LiftGammaGain
       if (t.endsWith(".LiftGammaGain")) {
-        const liftR = Number(inputs.lift_r ?? self.lift_r ?? 0);
-        const liftG = Number(inputs.lift_g ?? self.lift_g ?? 0);
-        const liftB = Number(inputs.lift_b ?? self.lift_b ?? 0);
-        const liftM = Number(inputs.lift_master ?? self.lift_master ?? 0);
-        const gammaR = Number(inputs.gamma_r ?? self.gamma_r ?? 1);
-        const gammaG = Number(inputs.gamma_g ?? self.gamma_g ?? 1);
-        const gammaB = Number(inputs.gamma_b ?? self.gamma_b ?? 1);
-        const gammaM = Number(inputs.gamma_master ?? self.gamma_master ?? 1);
-        const gainR = Number(inputs.gain_r ?? self.gain_r ?? 1);
-        const gainG = Number(inputs.gain_g ?? self.gain_g ?? 1);
-        const gainB = Number(inputs.gain_b ?? self.gain_b ?? 1);
-        const gainM = Number(inputs.gain_master ?? self.gain_master ?? 1);
+        const liftR = Number((this as any).lift_r ?? self.lift_r ?? 0);
+        const liftG = Number((this as any).lift_g ?? self.lift_g ?? 0);
+        const liftB = Number((this as any).lift_b ?? self.lift_b ?? 0);
+        const liftM = Number((this as any).lift_master ?? self.lift_master ?? 0);
+        const gammaR = Number((this as any).gamma_r ?? self.gamma_r ?? 1);
+        const gammaG = Number((this as any).gamma_g ?? self.gamma_g ?? 1);
+        const gammaB = Number((this as any).gamma_b ?? self.gamma_b ?? 1);
+        const gammaM = Number((this as any).gamma_master ?? self.gamma_master ?? 1);
+        const gainR = Number((this as any).gain_r ?? self.gain_r ?? 1);
+        const gainG = Number((this as any).gain_g ?? self.gain_g ?? 1);
+        const gainB = Number((this as any).gain_b ?? self.gain_b ?? 1);
+        const gainM = Number((this as any).gain_master ?? self.gain_master ?? 1);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
           let r = (data[i] * gainR * gainM) + liftR + liftM;
@@ -138,16 +138,16 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // CDL
       if (t.endsWith(".CDL")) {
-        const slopeR = Number(inputs.slope_r ?? self.slope_r ?? 1);
-        const slopeG = Number(inputs.slope_g ?? self.slope_g ?? 1);
-        const slopeB = Number(inputs.slope_b ?? self.slope_b ?? 1);
-        const offsetR = Number(inputs.offset_r ?? self.offset_r ?? 0);
-        const offsetG = Number(inputs.offset_g ?? self.offset_g ?? 0);
-        const offsetB = Number(inputs.offset_b ?? self.offset_b ?? 0);
-        const powerR = Number(inputs.power_r ?? self.power_r ?? 1);
-        const powerG = Number(inputs.power_g ?? self.power_g ?? 1);
-        const powerB = Number(inputs.power_b ?? self.power_b ?? 1);
-        const sat = Number(inputs.saturation ?? self.saturation ?? 1);
+        const slopeR = Number((this as any).slope_r ?? self.slope_r ?? 1);
+        const slopeG = Number((this as any).slope_g ?? self.slope_g ?? 1);
+        const slopeB = Number((this as any).slope_b ?? self.slope_b ?? 1);
+        const offsetR = Number((this as any).offset_r ?? self.offset_r ?? 0);
+        const offsetG = Number((this as any).offset_g ?? self.offset_g ?? 0);
+        const offsetB = Number((this as any).offset_b ?? self.offset_b ?? 0);
+        const powerR = Number((this as any).power_r ?? self.power_r ?? 1);
+        const powerG = Number((this as any).power_g ?? self.power_g ?? 1);
+        const powerB = Number((this as any).power_b ?? self.power_b ?? 1);
+        const sat = Number((this as any).saturation ?? self.saturation ?? 1);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
           let r = clamp(data[i] * slopeR + offsetR, 0, 1);
@@ -167,14 +167,14 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // Curves
       if (t.endsWith(".Curves")) {
-        const blackPoint = Number(inputs.black_point ?? self.black_point ?? 0);
-        const whitePoint = Number(inputs.white_point ?? self.white_point ?? 1);
-        const shadowsV = Number(inputs.shadows ?? self.shadows ?? 0);
-        const midtones = Number(inputs.midtones ?? self.midtones ?? 0);
-        const highlightsV = Number(inputs.highlights ?? self.highlights ?? 0);
-        const redMid = Number(inputs.red_midtones ?? self.red_midtones ?? 0);
-        const greenMid = Number(inputs.green_midtones ?? self.green_midtones ?? 0);
-        const blueMid = Number(inputs.blue_midtones ?? self.blue_midtones ?? 0);
+        const blackPoint = Number((this as any).black_point ?? self.black_point ?? 0);
+        const whitePoint = Number((this as any).white_point ?? self.white_point ?? 1);
+        const shadowsV = Number((this as any).shadows ?? self.shadows ?? 0);
+        const midtones = Number((this as any).midtones ?? self.midtones ?? 0);
+        const highlightsV = Number((this as any).highlights ?? self.highlights ?? 0);
+        const redMid = Number((this as any).red_midtones ?? self.red_midtones ?? 0);
+        const greenMid = Number((this as any).green_midtones ?? self.green_midtones ?? 0);
+        const blueMid = Number((this as any).blue_midtones ?? self.blue_midtones ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const range = Math.max(0.001, whitePoint - blackPoint);
         const gammaAll = 1 / Math.max(0.01, 1 + midtones);
@@ -208,10 +208,10 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // HSLAdjust
       if (t.endsWith(".HSLAdjust")) {
-        const colorRange = String(inputs.color_range ?? self.color_range ?? "ALL").toUpperCase();
-        const hueShift = Number(inputs.hue_shift ?? self.hue_shift ?? 0);
-        const satAdj = Number(inputs.saturation ?? self.saturation ?? 0);
-        const lumAdj = Number(inputs.luminance ?? self.luminance ?? 0);
+        const colorRange = String((this as any).color_range ?? self.color_range ?? "ALL").toUpperCase();
+        const hueShift = Number((this as any).hue_shift ?? self.hue_shift ?? 0);
+        const satAdj = Number((this as any).saturation ?? self.saturation ?? 0);
+        const lumAdj = Number((this as any).luminance ?? self.luminance ?? 0);
         const HUE_RANGES: Record<string, [number, number]> = {
           ALL: [0, 1], REDS: [0.95, 0.05], ORANGES: [0.02, 0.10], YELLOWS: [0.10, 0.18],
           GREENS: [0.18, 0.45], CYANS: [0.45, 0.55], BLUES: [0.55, 0.72],
@@ -256,11 +256,11 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // SplitToning
       if (t.endsWith(".SplitToning")) {
-        const shadowHue = Number(inputs.shadow_hue ?? self.shadow_hue ?? 30);
-        const shadowSat = Number(inputs.shadow_saturation ?? self.shadow_saturation ?? 0.5);
-        const highlightHue = Number(inputs.highlight_hue ?? self.highlight_hue ?? 200);
-        const highlightSat = Number(inputs.highlight_saturation ?? self.highlight_saturation ?? 0.5);
-        const balance = Number(inputs.balance ?? self.balance ?? 0);
+        const shadowHue = Number((this as any).shadow_hue ?? self.shadow_hue ?? 30);
+        const shadowSat = Number((this as any).shadow_saturation ?? self.shadow_saturation ?? 0.5);
+        const highlightHue = Number((this as any).highlight_hue ?? self.highlight_hue ?? 200);
+        const highlightSat = Number((this as any).highlight_saturation ?? self.highlight_saturation ?? 0.5);
+        const balance = Number((this as any).balance ?? self.balance ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const [sr, sg, sb] = hsvToRgb(shadowHue / 360, 1, 1);
         const [hr, hg, hb] = hsvToRgb(highlightHue / 360, 1, 1);
@@ -291,8 +291,8 @@ function createColorGradingNode(desc: Desc): NodeClass {
           CROSS_PROCESS: { shadow: [0.1, 0.3, 0.0], highlight: [1.0, 0.8, 0.2], contrast: 1.1, saturation: 1.3, fade: 0 },
           FADED_FILM:    { shadow: [0.2, 0.15, 0.1], highlight: [0.95, 0.9, 0.85], contrast: 0.85, saturation: 0.75, fade: 0.15 },
         };
-        const preset = String(inputs.preset ?? self.preset ?? "TEAL_ORANGE").toUpperCase();
-        const intensity = Number(inputs.intensity ?? self.intensity ?? 1);
+        const preset = String((this as any).preset ?? self.preset ?? "TEAL_ORANGE").toUpperCase();
+        const intensity = Number((this as any).intensity ?? self.intensity ?? 1);
         const p = FILM_PRESETS[preset] ?? FILM_PRESETS.TEAL_ORANGE;
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
@@ -326,10 +326,10 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // Vignette
       if (t.endsWith(".Vignette")) {
-        const amount = Number(inputs.amount ?? self.amount ?? 0.5);
-        const midpoint = Number(inputs.midpoint ?? self.midpoint ?? 0.5);
-        const roundness = Number(inputs.roundness ?? self.roundness ?? 0);
-        const feather = Math.max(0.01, Number(inputs.feather ?? self.feather ?? 0.4));
+        const amount = Number((this as any).amount ?? self.amount ?? 0.5);
+        const midpoint = Number((this as any).midpoint ?? self.midpoint ?? 0.5);
+        const roundness = Number((this as any).roundness ?? self.roundness ?? 0);
+        const feather = Math.max(0.01, Number((this as any).feather ?? self.feather ?? 0.4));
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const cx = width / 2, cy = height / 2;
         const halfW = width / 2, halfH = height / 2;

@@ -73,10 +73,9 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
 }
 
 function getModelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = ((inputs.model ?? props.model ?? {}) as LanguageModelLike) ?? {};
+  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -263,14 +262,13 @@ export class StructuredOutputGeneratorNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
-    const schema = inputs.schema;
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    const schema = (this as any).schema;
     if (schema && typeof schema === "object" && !Array.isArray(schema) && hasProviderSupport(context, providerId, modelId)) {
-      const instructions = asText(inputs.instructions ?? this.instructions ?? "");
-      const extraContext = asText(inputs.context ?? this.context ?? "");
+      const instructions = asText(this.instructions ?? this.instructions ?? "");
+      const extraContext = asText(this.context ?? this.context ?? "");
       const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "generate_message",
@@ -315,8 +313,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       return out;
     }
 
-    const instructions = asText(inputs.instructions ?? this.instructions ?? "");
-    const contextText = asText(inputs.context ?? this.context ?? "");
+    const instructions = asText(this.instructions ?? this.instructions ?? "");
+    const contextText = asText(this.context ?? this.context ?? "");
     return {
       output: {
         instructions,
@@ -371,22 +369,21 @@ export class DataGeneratorNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const inputText = asText(inputs.input_text ?? this.input_text ?? "");
-    const columnsInput = inputs.columns ?? this.columns;
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const inputText = asText(this.input_text ?? this.input_text ?? "");
+    const columnsInput = this.columns ?? this.columns;
     const columns = parseColumns(columnsInput);
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const providerText = await generateProviderText(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(inputs.max_tokens ?? this.max_tokens ?? 256)
+        Number(this.max_tokens ?? this.max_tokens ?? 256)
       );
       const rows = parseMarkdownTable(providerText, columnsInput);
       if (rows.length > 0) {
@@ -397,21 +394,18 @@ export class DataGeneratorNode extends BaseNode {
     return { output: dataframeFromRows(rows, columnsInput) };
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
-    const columnsInput = inputs.columns ?? this.columns;
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    const columnsInput = this.columns ?? this.columns;
     if (hasProviderSupport(context, providerId, modelId)) {
-      const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-      const inputText = asText(inputs.input_text ?? this.input_text ?? "");
+      const prompt = asText(this.prompt ?? this.prompt ?? "");
+      const inputText = asText(this.input_text ?? this.input_text ?? "");
       const providerText = await streamProviderText(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(inputs.max_tokens ?? this.max_tokens ?? 256)
+        Number(this.max_tokens ?? this.max_tokens ?? 256)
       );
       const rows = parseMarkdownTable(providerText, columnsInput);
       if (rows.length > 0) {
@@ -423,7 +417,7 @@ export class DataGeneratorNode extends BaseNode {
       }
     }
 
-    const full = await this.process(inputs, context);
+    const full = await this.process(context);
     const rows = ((full.output as { rows?: unknown }).rows ?? []) as Row[];
     for (let i = 0; i < rows.length; i += 1) {
       yield { record: rows[i], index: i, dataframe: null };
@@ -469,19 +463,18 @@ export class ListGeneratorNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const inputText = asText(inputs.input_text ?? this.input_text ?? "");
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const inputText = asText(this.input_text ?? this.input_text ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const providerText = await generateProviderText(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(inputs.max_tokens ?? this.max_tokens ?? 128)
+        Number(this.max_tokens ?? this.max_tokens ?? 128)
       );
       const items = parseListItems(providerText);
       if (items.length === 0) {
@@ -495,20 +488,17 @@ export class ListGeneratorNode extends BaseNode {
     return { output: items };
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
-      const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-      const inputText = asText(inputs.input_text ?? this.input_text ?? "");
+      const prompt = asText(this.prompt ?? this.prompt ?? "");
+      const inputText = asText(this.input_text ?? this.input_text ?? "");
       const providerText = await streamProviderText(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(inputs.max_tokens ?? this.max_tokens ?? 128)
+        Number(this.max_tokens ?? this.max_tokens ?? 128)
       );
       const items = parseListItems(providerText);
       if (items.length === 0) {
@@ -520,7 +510,7 @@ export class ListGeneratorNode extends BaseNode {
       return;
     }
 
-    const result = await this.process(inputs, context);
+    const result = await this.process(context);
     const list = Array.isArray(result.output) ? result.output : [];
     for (let i = 0; i < list.length; i += 1) {
       yield { item: String(list[i]), index: i };
@@ -570,9 +560,9 @@ export class ChartGeneratorNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const data = inputs.data ?? this.data ?? { rows: [] };
+  async process(): Promise<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const data = this.data ?? this.data ?? { rows: [] };
     const rows = Array.isArray((data as { rows?: unknown }).rows)
       ? ((data as { rows: Row[] }).rows ?? [])
       : [];
@@ -641,10 +631,10 @@ export class SVGGeneratorNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const width = Number(inputs.width ?? 512) || 512;
-    const height = Number(inputs.height ?? 512) || 512;
+  async process(): Promise<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const width = Number((this as any).width ?? 512) || 512;
+    const height = Number((this as any).height ?? 512) || 512;
     const text = prompt || "SVG";
     const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f2f2f2"/><text x="16" y="32" font-size="20" fill="#111">${safeText}</text></svg>`;

@@ -22,10 +22,8 @@ export class ConvertToMarkdownLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const doc = (inputs.document ?? this.document ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const doc = (this.document ?? {}) as Record<string, unknown>;
     const uri = String(doc.uri ?? "");
     const data = doc.data ? String(doc.data) : "";
 

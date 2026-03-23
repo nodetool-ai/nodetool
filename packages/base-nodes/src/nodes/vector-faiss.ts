@@ -19,7 +19,6 @@
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
 // FaissIndexRef — opaque wrapper passed between nodes
@@ -590,10 +589,8 @@ export class CreateIndexFlatL2Node extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const dim = Number(inputs.dim ?? this.dim ?? 768);
+    const dim = Number(this.dim ?? 768);
     if (!Number.isInteger(dim) || dim < 1) {
       throw new Error(`dim must be a positive integer, got ${dim}`);
     }
@@ -621,10 +618,8 @@ export class CreateIndexFlatIPNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const dim = Number(inputs.dim ?? this.dim ?? 768);
+    const dim = Number(this.dim ?? 768);
     if (!Number.isInteger(dim) || dim < 1) {
       throw new Error(`dim must be a positive integer, got ${dim}`);
     }
@@ -661,12 +656,10 @@ export class CreateIndexIVFFlatNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const dim = Number(inputs.dim ?? this.dim ?? 768);
-    const nlist = Number(inputs.nlist ?? this.nlist ?? 1024);
-    const metric = String(inputs.metric ?? this.metric ?? "L2") as
+    const dim = Number(this.dim ?? 768);
+    const nlist = Number(this.nlist ?? 1024);
+    const metric = String(this.metric ?? "L2") as
       | "L2"
       | "IP";
 
@@ -717,10 +710,8 @@ export class TrainIndexNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const indexRaw = inputs.index ?? this.index;
+    const indexRaw = this.index;
     if (indexRaw === null || indexRaw === undefined) {
       throw new Error("FAISS index is not set");
     }
@@ -728,7 +719,7 @@ export class TrainIndexNode extends BaseNode {
     const ref = unwrapIndex(indexRaw);
     const { _index: backend, dim } = ref;
 
-    const vectorsRaw = inputs.vectors ?? this.vectors;
+    const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
     if (ndArr.data.length === 0) {
       throw new Error("Training vectors are empty");
@@ -777,10 +768,8 @@ export class AddVectorsNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const indexRaw = inputs.index ?? this.index;
+    const indexRaw = this.index;
     if (indexRaw === null || indexRaw === undefined) {
       throw new Error("FAISS index is not set");
     }
@@ -788,7 +777,7 @@ export class AddVectorsNode extends BaseNode {
     const ref = unwrapIndex(indexRaw);
     const { _index: backend, dim } = ref;
 
-    const vectorsRaw = inputs.vectors ?? this.vectors;
+    const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
     if (ndArr.data.length === 0) {
       throw new Error("Vectors are empty");
@@ -854,10 +843,8 @@ export class AddWithIdsNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const indexRaw = inputs.index ?? this.index;
+    const indexRaw = this.index;
     if (indexRaw === null || indexRaw === undefined) {
       throw new Error("FAISS index is not set");
     }
@@ -865,13 +852,13 @@ export class AddWithIdsNode extends BaseNode {
     const ref = unwrapIndex(indexRaw);
     const { _index: backend, dim } = ref;
 
-    const vectorsRaw = inputs.vectors ?? this.vectors;
+    const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
     if (ndArr.data.length === 0) {
       throw new Error("Vectors are empty");
     }
 
-    const idsRaw = inputs.ids ?? this.ids;
+    const idsRaw = this.ids;
     const idsArr = Array.isArray(idsRaw)
       ? (idsRaw as number[]).map(Number)
       : asNdArray(idsRaw).data.map(Number);
@@ -943,10 +930,8 @@ export class SearchNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
-    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const indexRaw = inputs.index ?? this.index;
+    const indexRaw = this.index;
     if (indexRaw === null || indexRaw === undefined) {
       throw new Error("FAISS index is not set");
     }
@@ -954,7 +939,7 @@ export class SearchNode extends BaseNode {
     const ref = unwrapIndex(indexRaw);
     const { _index: backend, dim } = ref;
 
-    const queryRaw = inputs.query ?? this.query;
+    const queryRaw = this.query;
     const ndArr = asNdArray(queryRaw);
     if (ndArr.data.length === 0) {
       throw new Error("Query vectors are empty");
@@ -965,12 +950,12 @@ export class SearchNode extends BaseNode {
       throw new Error("Query vectors are empty");
     }
 
-    const k = Number(inputs.k ?? this.k ?? 5);
+    const k = Number(this.k ?? 5);
     if (!Number.isInteger(k) || k < 1) {
       throw new Error(`k must be a positive integer, got ${k}`);
     }
 
-    const nprobe = Number(inputs.nprobe ?? this.nprobe ?? 10);
+    const nprobe = Number(this.nprobe ?? 10);
     if (nprobe >= 1) {
       backend.setNprobe(Math.floor(nprobe));
     }

@@ -34,8 +34,8 @@ export class AddLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Number(inputs.a ?? this.a ?? 0) + Number(inputs.b ?? this.b ?? 0) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Number(this.a ?? 0) + Number(this.b ?? 0) };
   }
 }
 
@@ -58,8 +58,8 @@ export class SubtractLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Number(inputs.a ?? this.a ?? 0) - Number(inputs.b ?? this.b ?? 0) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Number(this.a ?? 0) - Number(this.b ?? 0) };
   }
 }
 
@@ -82,8 +82,8 @@ export class MultiplyLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Number(inputs.a ?? this.a ?? 0) * Number(inputs.b ?? this.b ?? 0) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Number(this.a ?? 0) * Number(this.b ?? 0) };
   }
 }
 
@@ -106,8 +106,8 @@ export class DivideLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Number(inputs.a ?? this.a ?? 0) / Number(inputs.b ?? this.b ?? 1) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Number(this.a ?? 0) / Number(this.b ?? 1) };
   }
 }
 
@@ -130,8 +130,8 @@ export class ModulusLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Number(inputs.a ?? this.a ?? 0) % Number(inputs.b ?? this.b ?? 1) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Number(this.a ?? 0) % Number(this.b ?? 1) };
   }
 }
 
@@ -168,10 +168,10 @@ export class MathFunctionLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const input = Number(inputs.input ?? this.input ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const input = Number(this.input ?? 0);
     const operation = String(
-      inputs.operation ?? this.operation ?? "negate"
+      this.operation ?? "negate"
     ) as MathOperation;
 
     switch (operation) {
@@ -223,8 +223,8 @@ export class SineLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Math.sin(Number(inputs.angle_rad ?? this.angle_rad ?? 0)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Math.sin(Number(this.angle_rad ?? 0)) };
   }
 }
 
@@ -244,8 +244,8 @@ export class CosineLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Math.cos(Number(inputs.angle_rad ?? this.angle_rad ?? 0)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Math.cos(Number(this.angle_rad ?? 0)) };
   }
 }
 
@@ -268,11 +268,11 @@ export class PowerLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {
       output: Math.pow(
-        Number(inputs.base ?? this.base ?? 0),
-        Number(inputs.exponent ?? this.exponent ?? 1)
+        Number(this.base ?? 0),
+        Number(this.exponent ?? 1)
       ),
     };
   }
@@ -294,8 +294,8 @@ export class SqrtLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: Math.sqrt(Number(inputs.x ?? this.x ?? 0)) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: Math.sqrt(Number(this.x ?? 0)) };
   }
 }
 

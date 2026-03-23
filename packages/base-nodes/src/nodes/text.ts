@@ -23,9 +23,9 @@ export class ToStringNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = inputs.value ?? this.value ?? null;
-    const mode = String(inputs.mode ?? this.mode ?? "str") as ToStringMode;
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.value ?? this.value ?? null;
+    const mode = String(this.mode ?? this.mode ?? "str") as ToStringMode;
 
     if (mode === "repr") {
       return { output: inspect(value) };
@@ -51,9 +51,9 @@ export class ConcatTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = String(inputs.a ?? this.a ?? "");
-    const b = String(inputs.b ?? this.b ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const a = String(this.a ?? this.a ?? "");
+    const b = String(this.b ?? this.b ?? "");
     return { output: a + b };
   }
 }
@@ -75,9 +75,9 @@ export class JoinTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const strings = (inputs.strings ?? this.strings ?? []) as unknown[];
-    const separator = String(inputs.separator ?? this.separator ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const strings = (this.strings ?? this.strings ?? []) as unknown[];
+    const separator = String(this.separator ?? this.separator ?? "");
 
     if (!Array.isArray(strings) || strings.length === 0) {
       return { output: "" };
@@ -107,10 +107,10 @@ export class ReplaceTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const oldValue = String(inputs.old ?? this.old ?? "");
-    const newValue = String(inputs.new ?? this.new ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const oldValue = String(this.old ?? this.old ?? "");
+    const newValue = String(this.new ?? this.new ?? "");
     return { output: text.replaceAll(oldValue, newValue) };
   }
 }
@@ -139,11 +139,9 @@ export class CollectTextNode extends BaseNode {
     this._items = [];
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const separator = String(inputs.separator ?? this.separator ?? "");
-    if ("input_item" in inputs) {
-      this._items.push(String(inputs.input_item ?? ""));
-    }
+  async process(): Promise<Record<string, unknown>> {
+    const separator = String(this.separator ?? "");
+    this._items.push(String(this.input_item ?? ""));
     return { output: this._items.join(separator) };
   }
 }
@@ -163,9 +161,9 @@ export class FormatTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    let template = String(inputs.template ?? this.template ?? "");
-    const values = { ...this.serialize(), ...inputs };
+  async process(): Promise<Record<string, unknown>> {
+    let template = String(this.template ?? "");
+    const values = this.serialize();
 
     for (const [key, value] of Object.entries(values)) {
       const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -195,9 +193,9 @@ export class TemplateTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    let template = String(inputs.string ?? this.string ?? "");
-    const valuesInput = inputs.values ?? this.values ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    let template = String(this.string ?? this.string ?? "");
+    const valuesInput = this.values ?? this.values ?? {};
     const values =
       valuesInput && typeof valuesInput === "object"
         ? (valuesInput as Record<string, unknown>)

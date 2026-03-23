@@ -53,8 +53,8 @@ export class GetPageCountPdfPlumberNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
     const doc = await loadPdfDocument(pdf);
     const count = doc.numPages;
     void doc.destroy();
@@ -88,10 +88,10 @@ export class ExtractTextPdfPlumberNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? 4);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -131,10 +131,10 @@ export class ExtractPageMetadataPdfPlumberNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? 4);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -198,10 +198,10 @@ export class ExtractTablesPdfPlumberNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? 4);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -276,9 +276,7 @@ export class ExtractImagesPdfPlumberNode extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     // pdfjs-dist does not expose raw image streams like pdfplumber does.
     // Return empty list with a note.
     return { output: [] };
@@ -314,10 +312,10 @@ export class ExtractTextPyMuPdfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? -1);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -371,10 +369,10 @@ export class ExtractMarkdownPyMuPdfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? -1);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -471,10 +469,10 @@ export class ExtractTextBlocksPyMuPdfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? -1);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -575,10 +573,10 @@ export class ExtractTextWithStylePyMuPdfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? -1);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);
@@ -642,10 +640,10 @@ export class ExtractTablesPyMuPdfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const pdf = (inputs.pdf ?? this.pdf ?? {}) as DocumentRefLike;
-    const startPage = Number(inputs.start_page ?? this.start_page ?? 0);
-    const endPage = Number(inputs.end_page ?? this.end_page ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const pdf = (this.pdf ?? {}) as DocumentRefLike;
+    const startPage = Number(this.start_page ?? 0);
+    const endPage = Number(this.end_page ?? -1);
 
     const doc = await loadPdfDocument(pdf);
     const [start, end] = resolvePageRange(startPage, endPage, doc.numPages);

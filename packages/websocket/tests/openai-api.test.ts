@@ -1,11 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import {
   handleOpenAIRequest,
   convertMessages,
   convertTools,
   createSSEStream,
+  resolveProvider,
   type OpenAIApiOptions,
 } from "../src/openai-api.js";
+import * as security from "@nodetool/security";
 import type { BaseProvider } from "@nodetool/runtime";
 import type { Message, ProviderStreamItem, ProviderTool } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
@@ -69,6 +71,10 @@ async function collectSSE(stream: ReadableStream<Uint8Array>): Promise<string[]>
 // ---------------------------------------------------------------------------
 
 describe("OpenAI-compatible API", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe("GET /v1/models", () => {
     it("returns a list of models", async () => {
       const request = new Request("http://localhost/v1/models", { method: "GET" });
@@ -428,6 +434,18 @@ describe("OpenAI-compatible API", () => {
 
       expect(response).not.toBeNull();
       expect(response!.status).toBe(400);
+    });
+  });
+
+  describe("provider resolution", () => {
+    it("uses the authenticated user's secret when resolving providers", async () => {
+      const getSecretSpy = vi
+        .spyOn(security, "getSecret")
+        .mockImplementation(async (key, userId) => `${userId}-${key}`);
+
+      const provider = await resolveProvider("gpt-4o", undefined, "user-2") as { apiKey: string };
+      expect(getSecretSpy).toHaveBeenCalledWith("OPENAI_API_KEY", "user-2");
+      expect(provider.apiKey).toBe("user-2-OPENAI_API_KEY");
     });
   });
 });

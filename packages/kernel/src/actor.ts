@@ -227,6 +227,13 @@ export class NodeActor {
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
+    // Merge node properties as defaults — edge inputs override.
+    // This matches Python's behavior where process() always receives
+    // the node's own property values as baseline inputs.
+    if (this.node.properties) {
+      inputs = { ...this.node.properties, ...inputs };
+    }
+
     // Inject _control_context for controller nodes (Python parity:
     // process_streaming_node_with_inputs / _is_controller / _build_control_context)
     if (this._controlContext) {

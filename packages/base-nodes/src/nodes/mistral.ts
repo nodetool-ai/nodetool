@@ -3,9 +3,9 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 type ImageRefLike = { data?: string | Uint8Array; uri?: string };
 
-function getApiKey(inputs: Record<string, unknown>): string {
+function getApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.MISTRAL_API_KEY ||
+    secrets.MISTRAL_API_KEY ||
     process.env.MISTRAL_API_KEY ||
     "";
   if (!key) throw new Error("Mistral API key not configured");
@@ -87,15 +87,15 @@ export class ChatComplete extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(inputs.model ?? this.model ?? "mistral-small-latest");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
+    const model = String(this.model ?? "mistral-small-latest");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.7);
+    const maxTokens = Number(this.max_tokens ?? 1024);
 
     const messages: Record<string, unknown>[] = [];
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
@@ -148,14 +148,14 @@ export class CodeComplete extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const suffix = String(inputs.suffix ?? this.suffix ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2048);
+    const suffix = String(this.suffix ?? "");
+    const temperature = Number(this.temperature ?? 0.0);
+    const maxTokens = Number(this.max_tokens ?? 2048);
     const model = "codestral-latest";
 
     let data: Record<string, unknown>;
@@ -215,13 +215,13 @@ export class Embedding extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const input = String(inputs.input ?? this.input ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const input = String(this.input ?? "");
     if (!input) throw new Error("Input text cannot be empty");
 
-    const model = String(inputs.model ?? this.model ?? "mistral-embed");
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 4096);
+    const model = String(this.model ?? "mistral-embed");
+    const chunkSize = Number(this.chunk_size ?? 4096);
 
     // Chunk the input
     const chunks: string[] = [];
@@ -300,17 +300,17 @@ export class ImageToText extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image = (this.image ?? {}) as ImageRefLike;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Describe this image in detail.");
+    const prompt = String(this.prompt ?? "Describe this image in detail.");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(inputs.model ?? this.model ?? "pixtral-large-latest");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.3);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
+    const model = String(this.model ?? "pixtral-large-latest");
+    const temperature = Number(this.temperature ?? 0.3);
+    const maxTokens = Number(this.max_tokens ?? 1024);
 
     const dataUri = imageToDataUri(image);
 
@@ -371,12 +371,12 @@ export class OCR extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image = (this.image ?? {}) as ImageRefLike;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const model = String(inputs.model ?? this.model ?? "pixtral-large-latest");
+    const model = String(this.model ?? "pixtral-large-latest");
     const dataUri = imageToDataUri(image);
 
     const data = await mistralPost(apiKey, "chat/completions", {

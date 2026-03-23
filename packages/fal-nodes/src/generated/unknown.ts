@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,17 +18,16 @@ export class WorkflowUtilitiesInterleaveVideo extends FalNode {
   static readonly description = `ffmpeg utility to interleave videos
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
 
   @prop({ type: "list[video]", default: [], description: "List of video URLs to interleave in order" })
   declare video_urls: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const videoUrlsList = inputs.video_urls as Record<string, unknown>[] | undefined;
+    const videoUrlsList = this.video_urls as Record<string, unknown>[] | undefined;
     if (videoUrlsList?.length) {
       const videoUrlsUrls: string[] = [];
       for (const ref of videoUrlsList) {
@@ -48,23 +48,22 @@ export class Qwen3TtsCloneVoice17b extends FalNode {
   static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-
-  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
-  declare reference_text: any;
 
   @prop({ type: "audio", default: "", description: "URL to the reference audio file used for voice cloning." })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
+  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
+  declare reference_text: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const referenceText = String(this.reference_text ?? "");
 
     const args: Record<string, unknown> = {
       "reference_text": referenceText,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -82,23 +81,22 @@ export class Qwen3TtsCloneVoice06b extends FalNode {
   static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-
-  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
-  declare reference_text: any;
 
   @prop({ type: "audio", default: "", description: "URL to the reference audio file used for voice cloning." })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
+  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
+  declare reference_text: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const referenceText = String(this.reference_text ?? "");
 
     const args: Record<string, unknown> = {
       "reference_text": referenceText,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -116,16 +114,15 @@ export class OpenrouterRouterAudio extends FalNode {
   static readonly description = `Run any ALM (Audio Language Model) with fal, powered by OpenRouter.
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the audio processing" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
-  declare system_prompt: any;
-
   @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
   declare reasoning: any;
+
+  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
+  declare system_prompt: any;
 
   @prop({ type: "str", default: "", description: "Name of the model to use. Charged based on actual token usage." })
   declare model: any;
@@ -139,25 +136,25 @@ utility, processing, general`;
   @prop({ type: "str", default: "", description: "This sets the upper limit for the number of tokens the model can generate in response. It won't produce more than this limit. The maximum value is the context length minus the prompt length." })
   declare max_tokens: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const reasoning = Boolean(inputs.reasoning ?? this.reasoning ?? false);
-    const model = String(inputs.model ?? this.model ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const maxTokens = String(inputs.max_tokens ?? this.max_tokens ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const reasoning = Boolean(this.reasoning ?? false);
+    const systemPrompt = String(this.system_prompt ?? "");
+    const model = String(this.model ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const maxTokens = String(this.max_tokens ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "system_prompt": systemPrompt,
       "reasoning": reasoning,
+      "system_prompt": systemPrompt,
       "model": model,
       "temperature": temperature,
       "max_tokens": maxTokens,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;

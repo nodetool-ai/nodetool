@@ -89,10 +89,9 @@ function validateAgainstSchema(data: unknown, schema: unknown): boolean {
 }
 
 abstract class BaseGetJSONPathNode extends BaseNode {
-  protected extract(inputs: Record<string, unknown>): unknown {
-    const props = this.serialize();
-    const data = inputs.data ?? props.data ?? {};
-    const path = String(inputs.path ?? props.path ?? "");
+  protected extract(): unknown {
+    const data = (this as any).data ?? {};
+    const path = String((this as any).path ?? "");
     return jsonPathExtract(data, path);
   }
 }
@@ -111,8 +110,8 @@ export class ParseDictLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const parsed = JSON.parse(String(inputs.json_string ?? this.json_string ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const parsed = JSON.parse(String(this.json_string ?? ""));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("JSON string must represent an object/dictionary");
     }
@@ -134,8 +133,8 @@ export class ParseListLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const parsed = JSON.parse(String(inputs.json_string ?? this.json_string ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const parsed = JSON.parse(String(this.json_string ?? ""));
     if (!Array.isArray(parsed)) {
       throw new Error("JSON string must represent an array/list");
     }
@@ -160,9 +159,9 @@ export class StringifyJSONLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = inputs.data ?? this.data ?? {};
-    const indent = Number(inputs.indent ?? this.indent ?? 2);
+  async process(): Promise<Record<string, unknown>> {
+    const data = this.data ?? {};
+    const indent = Number(this.indent ?? 2);
     return { output: JSON.stringify(data, null, indent) };
   }
 }
@@ -186,9 +185,9 @@ export class GetJSONPathStrLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
-    const fallback = String(inputs.default ?? this.default ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
+    const fallback = String(this.default ?? "");
     return { output: value !== null && value !== undefined ? String(value) : fallback };
   }
 }
@@ -212,9 +211,9 @@ export class GetJSONPathIntLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
-    const fallback = Number(inputs.default ?? this.default ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
+    const fallback = Number(this.default ?? 0);
     return { output: value !== null && value !== undefined ? Number.parseInt(String(value), 10) : fallback };
   }
 }
@@ -238,9 +237,9 @@ export class GetJSONPathFloatLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
-    const fallback = Number(inputs.default ?? this.default ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
+    const fallback = Number(this.default ?? 0);
     return { output: value !== null && value !== undefined ? Number(value) : fallback };
   }
 }
@@ -264,9 +263,9 @@ export class GetJSONPathBoolLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
-    const fallback = Boolean(inputs.default ?? this.default ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
+    const fallback = Boolean(this.default ?? false);
     return { output: value !== null && value !== undefined ? Boolean(value) : fallback };
   }
 }
@@ -290,10 +289,10 @@ export class GetJSONPathListLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
-    const fallback = Array.isArray(inputs.default ?? this.default)
-      ? (inputs.default ?? this.default ?? [])
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
+    const fallback = Array.isArray(this.default)
+      ? (this.default ?? [])
       : [];
     return { output: value !== null && value !== undefined ? Array.from(value as Iterable<unknown>) : fallback };
   }
@@ -318,11 +317,11 @@ export class GetJSONPathDictLibNode extends BaseGetJSONPathNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = this.extract(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.extract();
     const fallback =
-      inputs.default && typeof inputs.default === "object" && !Array.isArray(inputs.default)
-        ? (inputs.default as Record<string, unknown>)
+      this.default && typeof this.default === "object" && !Array.isArray(this.default)
+        ? (this.default as Record<string, unknown>)
         : this.default && typeof this.default === "object" && !Array.isArray(this.default)
           ? (this.default as Record<string, unknown>)
           : {};
@@ -350,9 +349,9 @@ export class ValidateJSONLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const data = inputs.data ?? this.data ?? {};
-    const schema = inputs.json_schema ?? this.json_schema ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const data = this.data ?? {};
+    const schema = this.json_schema ?? {};
     return { output: validateAgainstSchema(data, schema) };
   }
 }
@@ -377,10 +376,10 @@ export class FilterJSONLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const array = (inputs.array ?? this.array ?? []) as unknown[];
-    const key = String(inputs.key ?? this.key ?? "");
-    const value = inputs.value ?? this.value;
+  async process(): Promise<Record<string, unknown>> {
+    const array = (this.array ?? []) as unknown[];
+    const key = String(this.key ?? "");
+    const value = this.value;
     const output = array.filter(
       (item) => item && typeof item === "object" && (item as Record<string, unknown>)[key] === value
     ) as Record<string, unknown>[];
@@ -405,9 +404,9 @@ export class JSONTemplateLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    let result = String(inputs.template ?? this.template ?? "");
-    const values = ((inputs.values ?? this.values ?? {}) as Record<string, unknown>) ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    let result = String(this.template ?? "");
+    const values = ((this.values ?? {}) as Record<string, unknown>) ?? {};
 
     for (const [key, value] of Object.entries(values)) {
       const jsonValue = JSON.stringify(value);
@@ -451,12 +450,12 @@ export class LoadJSONAssetsLibNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = inferLocalFolder(inputs.folder ?? this.folder ?? { uri: "" });
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = inferLocalFolder(this.folder ?? { uri: "" });
     if (!folder) {
       throw new Error("Please select an asset folder.");
     }

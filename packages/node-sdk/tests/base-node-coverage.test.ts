@@ -6,14 +6,18 @@
 
 import { describe, it, expect } from "vitest";
 import { BaseNode } from "../src/base-node.js";
+import { prop } from "../src/decorators.js";
 
 class SimpleNode extends BaseNode {
   static readonly nodeType = "test.Simple";
   static readonly title = "Simple";
   static readonly description = "A simple test node";
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { out: inputs.value ?? "default" };
+  @prop({ type: "any", default: "default" })
+  declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { out: this.value ?? "default" };
   }
 }
 
@@ -27,9 +31,10 @@ describe("BaseNode – initialize()", () => {
 describe("BaseNode – genProcess() default", () => {
   it("default genProcess yields the process result", async () => {
     const node = new SimpleNode();
+    node.assign({ value: 42 });
     const results: Record<string, unknown>[] = [];
 
-    for await (const item of node.genProcess({ value: 42 })) {
+    for await (const item of node.genProcess()) {
       results.push(item);
     }
 

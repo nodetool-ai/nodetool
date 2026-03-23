@@ -36,23 +36,23 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 1);
-    const seed = Number(inputs.seed ?? this.seed ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const guidanceScale = Number(this.guidance_scale ?? 1);
+    const seed = Number(this.seed ?? 0);
 
     const args: Record<string, unknown> = {
       "guidance_scale": guidanceScale,
       "seed": seed,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -80,18 +80,18 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image containing a human subject, face or character." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -122,21 +122,21 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Template video whose motion, facial expressions, and lip movements will be applied to the image subject. Supported formats: MP4, MOV, WebM. Max duration: 30 seconds. Resolution: 200x200 to 2048x1440." })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cutFirstSecond = Boolean(inputs.cut_first_second ?? this.cut_first_second ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cutFirstSecond = Boolean(this.cut_first_second ?? true);
 
     const args: Record<string, unknown> = {
       "cut_first_second": cutFirstSecond,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -188,16 +188,16 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Use eye blink" })
   declare use_eyeblink: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const expressionScale = Number(inputs.expression_scale ?? this.expression_scale ?? 1);
-    const facerender = String(inputs.facerender ?? this.facerender ?? "facevid2vid");
-    const poseStyle = Number(inputs.pose_style ?? this.pose_style ?? 0);
-    const preprocess = String(inputs.preprocess ?? this.preprocess ?? "crop");
-    const sizeOfImage = String(inputs.size_of_image ?? this.size_of_image ?? 256);
-    const stillMode = Boolean(inputs.still_mode ?? this.still_mode ?? true);
-    const useEnhancer = Boolean(inputs.use_enhancer ?? this.use_enhancer ?? false);
-    const useEyeblink = Boolean(inputs.use_eyeblink ?? this.use_eyeblink ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const expressionScale = Number(this.expression_scale ?? 1);
+    const facerender = String(this.facerender ?? "facevid2vid");
+    const poseStyle = Number(this.pose_style ?? 0);
+    const preprocess = String(this.preprocess ?? "crop");
+    const sizeOfImage = String(this.size_of_image ?? 256);
+    const stillMode = Boolean(this.still_mode ?? true);
+    const useEnhancer = Boolean(this.use_enhancer ?? false);
+    const useEyeblink = Boolean(this.use_eyeblink ?? true);
 
     const args: Record<string, unknown> = {
       "expression_scale": expressionScale,
@@ -210,13 +210,13 @@ replicate, ai`;
       "use_eyeblink": useEyeblink,
     };
 
-    const drivenAudioRef = (inputs.driven_audio ?? this.driven_audio) as Record<string, unknown> | undefined;
+    const drivenAudioRef = this.driven_audio as Record<string, unknown> | undefined;
     if (isRefSet(drivenAudioRef)) {
       const drivenAudioUrl = await assetToUrl(drivenAudioRef!, apiKey);
       if (drivenAudioUrl) args["driven_audio"] = drivenAudioUrl;
     }
 
-    const sourceImageRef = (inputs.source_image ?? this.source_image) as Record<string, unknown> | undefined;
+    const sourceImageRef = this.source_image as Record<string, unknown> | undefined;
     if (isRefSet(sourceImageRef)) {
       const sourceImageUrl = await assetToUrl(sourceImageRef!, apiKey);
       if (sourceImageUrl) args["source_image"] = sourceImageUrl;
@@ -262,14 +262,14 @@ replicate, ai`;
   @prop({ type: "int", default: 512, description: "Width of output video" })
   declare width: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const fps = Number(inputs.fps ?? this.fps ?? 30);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const height = Number(inputs.height ?? this.height ?? 512);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 25);
-    const width = Number(inputs.width ?? this.width ?? 512);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const fps = Number(this.fps ?? 30);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const height = Number(this.height ?? 512);
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 25);
+    const width = Number(this.width ?? 512);
 
     const args: Record<string, unknown> = {
       "fps": fps,
@@ -280,13 +280,13 @@ replicate, ai`;
       "width": width,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -314,18 +314,18 @@ replicate, ai`;
   @prop({ type: "audio", default: "", description: "Input audio file. Avoid special symbol in the filename as it may cause ffmpeg erros." })
   declare input_audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const faceRef = (inputs.face ?? this.face) as Record<string, unknown> | undefined;
+    const faceRef = this.face as Record<string, unknown> | undefined;
     if (isRefSet(faceRef)) {
       const faceUrl = await assetToUrl(faceRef!, apiKey);
       if (faceUrl) args["face"] = faceUrl;
     }
 
-    const inputAudioRef = (inputs.input_audio ?? this.input_audio) as Record<string, unknown> | undefined;
+    const inputAudioRef = this.input_audio as Record<string, unknown> | undefined;
     if (isRefSet(inputAudioRef)) {
       const inputAudioUrl = await assetToUrl(inputAudioRef!, apiKey);
       if (inputAudioUrl) args["input_audio"] = inputAudioUrl;
@@ -353,18 +353,18 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Video file to upload to PixVerse as media" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -410,13 +410,13 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Enable turbo mode optimizations (adjusts thresholds and guidance scales for speed)" })
   declare turbo: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A smiling man and woman wearing headphones sit in front of microphones, appearing to host a podcast.");
-    const samplingSteps = Number(inputs.sampling_steps ?? this.sampling_steps ?? 40);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const turbo = Boolean(inputs.turbo ?? this.turbo ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const numFrames = Number(this.num_frames ?? 81);
+    const prompt = String(this.prompt ?? "A smiling man and woman wearing headphones sit in front of microphones, appearing to host a podcast.");
+    const samplingSteps = Number(this.sampling_steps ?? 40);
+    const seed = Number(this.seed ?? -1);
+    const turbo = Boolean(this.turbo ?? true);
 
     const args: Record<string, unknown> = {
       "num_frames": numFrames,
@@ -426,19 +426,19 @@ replicate, ai`;
       "turbo": turbo,
     };
 
-    const firstAudioRef = (inputs.first_audio ?? this.first_audio) as Record<string, unknown> | undefined;
+    const firstAudioRef = this.first_audio as Record<string, unknown> | undefined;
     if (isRefSet(firstAudioRef)) {
       const firstAudioUrl = await assetToUrl(firstAudioRef!, apiKey);
       if (firstAudioUrl) args["first_audio"] = firstAudioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const secondAudioRef = (inputs.second_audio ?? this.second_audio) as Record<string, unknown> | undefined;
+    const secondAudioRef = this.second_audio as Record<string, unknown> | undefined;
     if (isRefSet(secondAudioRef)) {
       const secondAudioUrl = await assetToUrl(secondAudioRef!, apiKey);
       if (secondAudioUrl) args["second_audio"] = secondAudioUrl;
@@ -472,23 +472,23 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Positive text prompt to define avatar actions, emotions, and camera movements." })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const mode = String(inputs.mode ?? this.mode ?? "std");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const mode = String(this.mode ?? "std");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "mode": mode,
       "prompt": prompt,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -516,18 +516,18 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input face image" })
   declare user_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const templateImageRef = (inputs.template_image ?? this.template_image) as Record<string, unknown> | undefined;
+    const templateImageRef = this.template_image as Record<string, unknown> | undefined;
     if (isRefSet(templateImageRef)) {
       const templateImageUrl = await assetToUrl(templateImageRef!, apiKey);
       if (templateImageUrl) args["template_image"] = templateImageUrl;
     }
 
-    const userImageRef = (inputs.user_image ?? this.user_image) as Record<string, unknown> | undefined;
+    const userImageRef = this.user_image as Record<string, unknown> | undefined;
     if (isRefSet(userImageRef)) {
       const userImageUrl = await assetToUrl(userImageRef!, apiKey);
       if (userImageUrl) args["user_image"] = userImageUrl;
@@ -555,18 +555,18 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Swap image" })
   declare swap_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
+    const inputImageRef = this.input_image as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
       const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
 
-    const swapImageRef = (inputs.swap_image ?? this.swap_image) as Record<string, unknown> | undefined;
+    const swapImageRef = this.swap_image as Record<string, unknown> | undefined;
     if (isRefSet(swapImageRef)) {
       const swapImageUrl = await assetToUrl(swapImageRef!, apiKey);
       if (swapImageUrl) args["swap_image"] = swapImageUrl;
@@ -612,13 +612,13 @@ replicate, ai`;
   @prop({ type: "enum", default: "a woman", values: ["a man", "a woman"], description: "Optional description of user gender ('a man', 'a woman'), used for multi-user swaps" })
   declare user_gender: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const detailer = Boolean(inputs.detailer ?? this.detailer ?? false);
-    const hairSource = String(inputs.hair_source ?? this.hair_source ?? "user");
-    const upscale = Boolean(inputs.upscale ?? this.upscale ?? true);
-    const userBGender = String(inputs.user_b_gender ?? this.user_b_gender ?? "a woman");
-    const userGender = String(inputs.user_gender ?? this.user_gender ?? "a woman");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const detailer = Boolean(this.detailer ?? false);
+    const hairSource = String(this.hair_source ?? "user");
+    const upscale = Boolean(this.upscale ?? true);
+    const userBGender = String(this.user_b_gender ?? "a woman");
+    const userGender = String(this.user_gender ?? "a woman");
 
     const args: Record<string, unknown> = {
       "detailer": detailer,
@@ -628,19 +628,19 @@ replicate, ai`;
       "user_gender": userGender,
     };
 
-    const swapImageRef = (inputs.swap_image ?? this.swap_image) as Record<string, unknown> | undefined;
+    const swapImageRef = this.swap_image as Record<string, unknown> | undefined;
     if (isRefSet(swapImageRef)) {
       const swapImageUrl = await assetToUrl(swapImageRef!, apiKey);
       if (swapImageUrl) args["swap_image"] = swapImageUrl;
     }
 
-    const swapImageBRef = (inputs.swap_image_b ?? this.swap_image_b) as Record<string, unknown> | undefined;
+    const swapImageBRef = this.swap_image_b as Record<string, unknown> | undefined;
     if (isRefSet(swapImageBRef)) {
       const swapImageBUrl = await assetToUrl(swapImageBRef!, apiKey);
       if (swapImageBUrl) args["swap_image_b"] = swapImageBUrl;
     }
 
-    const targetImageRef = (inputs.target_image ?? this.target_image) as Record<string, unknown> | undefined;
+    const targetImageRef = this.target_image as Record<string, unknown> | undefined;
     if (isRefSet(targetImageRef)) {
       const targetImageUrl = await assetToUrl(targetImageRef!, apiKey);
       if (targetImageUrl) args["target_image"] = targetImageUrl;
@@ -716,22 +716,22 @@ replicate, ai`;
   @prop({ type: "float", default: 7.5, description: "Text guidance strength" })
   declare text_control_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const defaultNegativePrompt = String(inputs.default_negative_prompt ?? this.default_negative_prompt ?? "blurry, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face");
-    const defaultPositionPrompt = String(inputs.default_position_prompt ?? this.default_position_prompt ?? "best quality, masterpiece,ultra-detailed, UHD 4K, photographic");
-    const faceBoundingBox = String(inputs.face_bounding_box ?? this.face_bounding_box ?? "[0., 0., 0., 0.]");
-    const faceGuidance = Number(inputs.face_guidance ?? this.face_guidance ?? 2.2);
-    const lamdaFeature = Number(inputs.lamda_feature ?? this.lamda_feature ?? 0.9);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "nsfw");
-    const numSample = Number(inputs.num_sample ?? this.num_sample ?? 1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
-    const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
-    const positivePrompt = String(inputs.positive_prompt ?? this.positive_prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stepToLaunchFaceGuidance = Number(inputs.step_to_launch_face_guidance ?? this.step_to_launch_face_guidance ?? 600);
-    const steps = Number(inputs.steps ?? this.steps ?? 35);
-    const textControlScale = Number(inputs.text_control_scale ?? this.text_control_scale ?? 7.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const defaultNegativePrompt = String(this.default_negative_prompt ?? "blurry, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face");
+    const defaultPositionPrompt = String(this.default_position_prompt ?? "best quality, masterpiece,ultra-detailed, UHD 4K, photographic");
+    const faceBoundingBox = String(this.face_bounding_box ?? "[0., 0., 0., 0.]");
+    const faceGuidance = Number(this.face_guidance ?? 2.2);
+    const lamdaFeature = Number(this.lamda_feature ?? 0.9);
+    const negativePrompt = String(this.negative_prompt ?? "nsfw");
+    const numSample = Number(this.num_sample ?? 1);
+    const outputFormat = String(this.output_format ?? "webp");
+    const outputQuality = Number(this.output_quality ?? 80);
+    const positivePrompt = String(this.positive_prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const stepToLaunchFaceGuidance = Number(this.step_to_launch_face_guidance ?? 600);
+    const steps = Number(this.steps ?? 35);
+    const textControlScale = Number(this.text_control_scale ?? 7.5);
 
     const args: Record<string, unknown> = {
       "default_negative_prompt": defaultNegativePrompt,
@@ -750,25 +750,25 @@ replicate, ai`;
       "text_control_scale": textControlScale,
     };
 
-    const referenceFace_1Ref = (inputs.reference_face_1 ?? this.reference_face_1) as Record<string, unknown> | undefined;
+    const referenceFace_1Ref = this.reference_face_1 as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_1Ref)) {
       const referenceFace_1Url = await assetToUrl(referenceFace_1Ref!, apiKey);
       if (referenceFace_1Url) args["reference_face_1"] = referenceFace_1Url;
     }
 
-    const referenceFace_2Ref = (inputs.reference_face_2 ?? this.reference_face_2) as Record<string, unknown> | undefined;
+    const referenceFace_2Ref = this.reference_face_2 as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_2Ref)) {
       const referenceFace_2Url = await assetToUrl(referenceFace_2Ref!, apiKey);
       if (referenceFace_2Url) args["reference_face_2"] = referenceFace_2Url;
     }
 
-    const referenceFace_3Ref = (inputs.reference_face_3 ?? this.reference_face_3) as Record<string, unknown> | undefined;
+    const referenceFace_3Ref = this.reference_face_3 as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_3Ref)) {
       const referenceFace_3Url = await assetToUrl(referenceFace_3Ref!, apiKey);
       if (referenceFace_3Url) args["reference_face_3"] = referenceFace_3Url;
     }
 
-    const referenceFace_4Ref = (inputs.reference_face_4 ?? this.reference_face_4) as Record<string, unknown> | undefined;
+    const referenceFace_4Ref = this.reference_face_4 as Record<string, unknown> | undefined;
     if (isRefSet(referenceFace_4Ref)) {
       const referenceFace_4Url = await assetToUrl(referenceFace_4Ref!, apiKey);
       if (referenceFace_4Url) args["reference_face_4"] = referenceFace_4Url;

@@ -44,17 +44,17 @@ export class Flux2ProTextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "flux-2/pro-text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String(this.resolution ?? "1K"),
       },
       1500,
       200
@@ -108,11 +108,11 @@ export class Flux2ProImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -125,8 +125,8 @@ export class Flux2ProImageToImageNode extends BaseNode {
       {
         prompt,
         input_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String(this.resolution ?? "1K"),
       },
       1500,
       200
@@ -177,17 +177,17 @@ export class Flux2FlexTextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "flux-2/flex-text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String(this.resolution ?? "1K"),
       },
       1500,
       200
@@ -241,11 +241,11 @@ export class Flux2FlexImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -258,8 +258,8 @@ export class Flux2FlexImageToImageNode extends BaseNode {
       {
         prompt,
         input_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String(this.resolution ?? "1K"),
       },
       1500,
       200
@@ -307,17 +307,17 @@ export class Seedream45TextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "seedream/4-5-text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200
@@ -368,19 +368,19 @@ export class Seedream45EditNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, (this as any).image);
     const result = await kieExecuteTask(
       apiKey,
       "seedream/4-5-edit",
       {
         prompt,
         image_url: imageUrl,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200
@@ -422,15 +422,15 @@ export class ZImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {
       prompt,
-      aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+      aspect_ratio: String(this.aspect_ratio ?? "1:1"),
     };
-    const seed = Number(inputs.seed ?? -1);
+    const seed = Number((this as any).seed ?? -1);
     if (seed >= 0) params.seed = seed;
     const result = await kieExecuteTask(apiKey, "z-image/turbo", params, 1500, 200);
     return { output: { data: result.data } };
@@ -476,16 +476,16 @@ export class NanoBananaNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "nano-banana/text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+        aspect_ratio: String((this as any).aspect_ratio ?? "1:1"),
       },
       1500,
       200
@@ -537,16 +537,16 @@ export class NanoBananaProNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "nano-banana-pro/text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       },
       1500,
       200
@@ -594,11 +594,11 @@ export class FluxKontextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = ((this as any).images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -607,7 +607,7 @@ export class FluxKontextNode extends BaseNode {
     }
     const params: Record<string, unknown> = {
       prompt,
-      aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+      aspect_ratio: String(this.aspect_ratio ?? "1:1"),
     };
     if (input_urls.length > 0) params.input_urls = input_urls;
     const result = await kieExecuteTask(apiKey, "flux-kontext/text-to-image", params, 1500, 200);
@@ -648,16 +648,16 @@ export class GrokImagineTextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "grok-imagine/text-to-image",
       {
         prompt,
-        n: Number(inputs.n ?? 1),
+        n: Number((this as any).n ?? 1),
       },
       1500,
       200
@@ -696,15 +696,15 @@ export class GrokImagineUpscaleNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "grok-imagine/upscale",
       {
         image_url: imageUrl,
-        scale_factor: Number(inputs.scale_factor ?? 2),
+        scale_factor: Number((this as any).scale_factor ?? 2),
       },
       1500,
       200
@@ -746,17 +746,17 @@ export class QwenTextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "qwen/text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200
@@ -807,19 +807,19 @@ export class QwenImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "qwen/image-to-image",
       {
         prompt,
         image_url: imageUrl,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200
@@ -864,16 +864,16 @@ export class TopazImageUpscaleNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "topaz/image-upscale",
       {
         image_url: imageUrl,
-        scale_factor: Number(inputs.scale_factor ?? 2),
-        model_name: String(inputs.model_name ?? "Standard V2"),
+        scale_factor: Number(this.upscale_factor ?? 2),
+        model_name: String((this as any).model_name ?? "Standard V2"),
       },
       1500,
       200
@@ -912,9 +912,9 @@ export class RecraftRemoveBackgroundNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "recraft/remove-background",
@@ -986,11 +986,11 @@ export class IdeogramCharacterNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = ((this as any).images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -999,10 +999,10 @@ export class IdeogramCharacterNode extends BaseNode {
     }
     const params: Record<string, unknown> = {
       prompt,
-      aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-      rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
+      aspect_ratio: String((this as any).aspect_ratio ?? "1:1"),
+      rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
     };
-    const characterDescription = String(inputs.character_description ?? "");
+    const characterDescription = String((this as any).character_description ?? "");
     if (characterDescription) params.character_description = characterDescription;
     if (input_urls.length > 0) params.input_urls = input_urls;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-character", params, 1500, 200);
@@ -1075,22 +1075,22 @@ export class IdeogramCharacterEditNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {
       prompt,
       image_url: imageUrl,
-      rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
+      rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
     };
-    if (isRefSet(inputs.mask)) {
-      params.mask_url = await uploadImageInput(apiKey, inputs.mask);
+    if (isRefSet(this.mask)) {
+      params.mask_url = await uploadImageInput(apiKey, this.mask);
     }
-    const characterDescription = String(inputs.character_description ?? "");
+    const characterDescription = String((this as any).character_description ?? "");
     if (characterDescription) params.character_description = characterDescription;
-    const refImages = (inputs.images as unknown[]) ?? [];
+    const refImages = (this.reference_images as unknown[]) ?? [];
     const ref_urls: string[] = [];
     for (const img of refImages) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -1170,7 +1170,7 @@ export class IdeogramCharacterRemixNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Negative Prompt", description: "Undesired elements to exclude from the image." })
   declare negative_prompt: any;
 
-  @prop({ type: "list[image]", default: [], title: "Additional Images", description: "Additional image inputs." })
+  @prop({ type: "list[image]", default: [], title: "Additional Images", description: "Additional image this." })
   declare additional_images: any;
 
   @prop({ type: "str", default: "", title: "Reference Mask Urls", description: "URL(s) to masks for references (comma-separated)." })
@@ -1179,20 +1179,20 @@ export class IdeogramCharacterRemixNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const params: Record<string, unknown> = {
       prompt,
       image_url: imageUrl,
-      rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
-      style_type: String(inputs.style_type ?? "AUTO"),
+      rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
+      style_type: String((this as any).style_type ?? "AUTO"),
     };
-    const characterDescription = String(inputs.character_description ?? "");
+    const characterDescription = String((this as any).character_description ?? "");
     if (characterDescription) params.character_description = characterDescription;
-    const refImages = (inputs.images as unknown[]) ?? [];
+    const refImages = (this.reference_images as unknown[]) ?? [];
     const ref_urls: string[] = [];
     for (const img of refImages) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -1263,16 +1263,16 @@ export class IdeogramV3ReframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "ideogram/v3-reframe",
       {
         image_url: imageUrl,
-        resolution: String(inputs.resolution ?? "AUTO"),
-        rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
+        resolution: String((this as any).resolution ?? "AUTO"),
+        rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
       },
       1500,
       200
@@ -1311,9 +1311,9 @@ export class RecraftCrispUpscaleNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "recraft/crisp-upscale",
@@ -1361,16 +1361,16 @@ export class Imagen4FastNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "imagen-4/fast",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       },
       1500,
       200
@@ -1418,16 +1418,16 @@ export class Imagen4UltraNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "imagen-4/ultra",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       },
       1500,
       200
@@ -1475,16 +1475,16 @@ export class Imagen4Node extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "imagen-4/standard",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       },
       1500,
       200
@@ -1535,17 +1535,17 @@ export class NanoBananaEditNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, (this as any).image);
     const params: Record<string, unknown> = {
       prompt,
       image_url: imageUrl,
     };
-    if (isRefSet(inputs.mask)) {
-      params.mask_url = await uploadImageInput(apiKey, inputs.mask);
+    if (isRefSet((this as any).mask)) {
+      params.mask_url = await uploadImageInput(apiKey, (this as any).mask);
     }
     const result = await kieExecuteTask(apiKey, "nano-banana/edit", params, 1500, 200);
     return { output: { data: result.data } };
@@ -1589,17 +1589,17 @@ export class GPTImage4oTextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "gpt-image-4o/text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        quality: String(inputs.quality ?? "standard"),
+        aspect_ratio: String((this as any).aspect_ratio ?? "1:1"),
+        quality: String((this as any).quality ?? "standard"),
       },
       1500,
       200
@@ -1645,11 +1645,11 @@ export class GPTImage4oImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -1662,7 +1662,7 @@ export class GPTImage4oImageToImageNode extends BaseNode {
       {
         prompt,
         input_urls,
-        quality: String(inputs.quality ?? "standard"),
+        quality: String((this as any).quality ?? "standard"),
       },
       1500,
       200
@@ -1708,17 +1708,17 @@ export class GPTImage15TextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "gpt-image-1-5/text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        quality: String(inputs.quality ?? "standard"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        quality: String(this.quality ?? "standard"),
       },
       1500,
       200
@@ -1767,11 +1767,11 @@ export class GPTImage15ImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const images = (inputs.images as unknown[]) ?? [];
+    const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
       if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
@@ -1784,7 +1784,7 @@ export class GPTImage15ImageToImageNode extends BaseNode {
       {
         prompt,
         input_urls,
-        quality: String(inputs.quality ?? "standard"),
+        quality: String(this.quality ?? "standard"),
       },
       1500,
       200
@@ -1851,17 +1851,17 @@ export class IdeogramV3TextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const params: Record<string, unknown> = {
       prompt,
-      aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-      rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
-      style_type: String(inputs.style_type ?? "AUTO"),
+      aspect_ratio: String((this as any).aspect_ratio ?? "1:1"),
+      rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
+      style_type: String((this as any).style_type ?? "AUTO"),
     };
-    const negativePrompt = String(inputs.negative_prompt ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
     if (negativePrompt) params.negative_prompt = negativePrompt;
     const result = await kieExecuteTask(apiKey, "ideogram/v3-text-to-image", params, 1500, 200);
     return { output: { data: result.data } };
@@ -1938,21 +1938,21 @@ export class IdeogramV3ImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "ideogram/v3-image-to-image",
       {
         prompt,
         image_url: imageUrl,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        rendering_speed: String(inputs.rendering_speed ?? "DEFAULT"),
-        style_type: String(inputs.style_type ?? "AUTO"),
-        image_weight: Number(inputs.image_weight ?? 50),
+        aspect_ratio: String((this as any).aspect_ratio ?? "1:1"),
+        rendering_speed: String(this.rendering_speed ?? "DEFAULT"),
+        style_type: String((this as any).style_type ?? "AUTO"),
+        image_weight: Number((this as any).image_weight ?? 50),
       },
       1500,
       200
@@ -2000,17 +2000,17 @@ export class Seedream40TextToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
     const result = await kieExecuteTask(
       apiKey,
       "seedream/4-0-text-to-image",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200
@@ -2067,19 +2067,19 @@ export class Seedream40ImageToImageNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
-    const imageUrl = await uploadImageInput(apiKey, inputs.image);
+    const imageUrl = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "seedream/4-0-image-to-image",
       {
         prompt,
         image_url: imageUrl,
-        aspect_ratio: String(inputs.aspect_ratio ?? "1:1"),
-        resolution: String(inputs.resolution ?? "1K"),
+        aspect_ratio: String(this.aspect_ratio ?? "1:1"),
+        resolution: String((this as any).resolution ?? "1K"),
       },
       1500,
       200

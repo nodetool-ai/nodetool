@@ -68,18 +68,18 @@ export class SelectLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "");
-    const columnsInput = (inputs.columns ?? this.columns ?? { columns: [] }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const tableName = String(this.table_name ?? "");
+    const columnsInput = (this.columns ?? { columns: [] }) as {
       columns?: Array<{ name: string }>;
     };
     const cols = columnsInput.columns ?? [];
-    const filters = (inputs.filters ?? this.filters ?? []) as Filter[];
-    const orderBy = String(inputs.order_by ?? this.order_by ?? "");
-    const descending = Boolean(inputs.descending ?? this.descending ?? false);
-    const limit = Number(inputs.limit ?? this.limit ?? 0);
+    const filters = (this.filters ?? []) as Filter[];
+    const orderBy = String(this.order_by ?? "");
+    const descending = Boolean(this.descending ?? false);
+    const limit = Number(this.limit ?? 0);
 
     if (!tableName) throw new Error("table_name cannot be empty");
 
@@ -126,12 +126,12 @@ export class InsertLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "");
-    const recordsInput = inputs.records ?? this.records ?? [];
-    const returnRows = Boolean(inputs.return_rows ?? this.return_rows ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const tableName = String(this.table_name ?? "");
+    const recordsInput = this.records ?? [];
+    const returnRows = Boolean(this.return_rows ?? true);
 
     if (!tableName) throw new Error("table_name cannot be empty");
 
@@ -177,13 +177,13 @@ export class UpdateLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "");
-    const values = (inputs.values ?? this.values ?? {}) as Record<string, unknown>;
-    const filters = (inputs.filters ?? this.filters ?? []) as Filter[];
-    const returnRows = Boolean(inputs.return_rows ?? this.return_rows ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const tableName = String(this.table_name ?? "");
+    const values = (this.values ?? {}) as Record<string, unknown>;
+    const filters = (this.filters ?? []) as Filter[];
+    const returnRows = Boolean(this.return_rows ?? true);
 
     if (!tableName) throw new Error("table_name cannot be empty");
     if (Object.keys(values).length === 0) throw new Error("values cannot be empty");
@@ -224,11 +224,11 @@ export class DeleteLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "");
-    const filters = (inputs.filters ?? this.filters ?? []) as Filter[];
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const tableName = String(this.table_name ?? "");
+    const filters = (this.filters ?? []) as Filter[];
 
     if (!tableName) throw new Error("table_name cannot be empty");
     if (filters.length === 0) {
@@ -268,12 +268,12 @@ export class UpsertLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const tableName = String(inputs.table_name ?? this.table_name ?? "");
-    const recordsInput = inputs.records ?? this.records ?? [];
-    const returnRows = Boolean(inputs.return_rows ?? this.return_rows ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const tableName = String(this.table_name ?? "");
+    const recordsInput = this.records ?? [];
+    const returnRows = Boolean(this.return_rows ?? true);
 
     if (!tableName) throw new Error("table_name cannot be empty");
 
@@ -317,11 +317,11 @@ export class RPCLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.supabase_url ?? "");
-    const key = String(inputs.supabase_key ?? "");
-    const fnName = String(inputs.function ?? this.function ?? "");
-    const params = (inputs.params ?? this.params ?? {}) as Record<string, unknown>;
+  async process(): Promise<Record<string, unknown>> {
+    const url = String((this as any).supabase_url ?? "");
+    const key = String((this as any).supabase_key ?? "");
+    const fnName = String(this.function ?? "");
+    const params = (this.params ?? {}) as Record<string, unknown>;
 
     if (!fnName) throw new Error("function cannot be empty");
 

@@ -63,20 +63,20 @@ replicate, ai`;
   @prop({ type: "enum", default: "int24", values: ["int16", "int24", "float32"], description: "Choose format for the WAV output. If WAV is not selected as the output type, this has no effect." })
   declare wav_format: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const clipMode = String(inputs.clip_mode ?? this.clip_mode ?? "rescale");
-    const jobs = Number(inputs.jobs ?? this.jobs ?? 0);
-    const model = String(inputs.model ?? this.model ?? "htdemucs");
-    const mp3Bitrate = Number(inputs.mp3_bitrate ?? this.mp3_bitrate ?? 320);
-    const mp3Preset = String(inputs.mp3_preset ?? this.mp3_preset ?? 2);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "mp3");
-    const overlap = Number(inputs.overlap ?? this.overlap ?? 0.25);
-    const segment = Number(inputs.segment ?? this.segment ?? 0);
-    const shifts = Number(inputs.shifts ?? this.shifts ?? 1);
-    const split = Boolean(inputs.split ?? this.split ?? true);
-    const stem = String(inputs.stem ?? this.stem ?? "none");
-    const wavFormat = String(inputs.wav_format ?? this.wav_format ?? "int24");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const clipMode = String(this.clip_mode ?? "rescale");
+    const jobs = Number(this.jobs ?? 0);
+    const model = String(this.model ?? "htdemucs");
+    const mp3Bitrate = Number(this.mp3_bitrate ?? 320);
+    const mp3Preset = String(this.mp3_preset ?? 2);
+    const outputFormat = String(this.output_format ?? "mp3");
+    const overlap = Number(this.overlap ?? 0.25);
+    const segment = Number(this.segment ?? 0);
+    const shifts = Number(this.shifts ?? 1);
+    const split = Boolean(this.split ?? true);
+    const stem = String(this.stem ?? "none");
+    const wavFormat = String(this.wav_format ?? "int24");
 
     const args: Record<string, unknown> = {
       "clip_mode": clipMode,
@@ -93,7 +93,7 @@ replicate, ai`;
       "wav_format": wavFormat,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;

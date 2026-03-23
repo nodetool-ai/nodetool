@@ -82,28 +82,26 @@ export class OscillatorLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const waveform = String(
-      inputs.waveform ?? this.waveform ?? "sine"
+      this.waveform ?? "sine"
     ) as OscillatorWaveform;
-    const frequency = Number(inputs.frequency ?? this.frequency ?? 440);
-    const amplitude = Number(inputs.amplitude ?? this.amplitude ?? 0.5);
-    const duration = Number(inputs.duration ?? this.duration ?? 1.0);
+    const frequency = Number(this.frequency ?? 440);
+    const amplitude = Number(this.amplitude ?? 0.5);
+    const duration = Number(this.duration ?? 1.0);
     const sampleRate = Number(
-      inputs.sample_rate ?? this.sample_rate ?? 44100
+      this.sample_rate ?? 44100
     );
     const pitchEnvAmount = Number(
-      inputs.pitch_envelope_amount ??
+      this.pitch_envelope_amount ??
         this.pitch_envelope_amount ??
         0.0
     );
     const pitchEnvTime = Number(
-      inputs.pitch_envelope_time ?? this.pitch_envelope_time ?? 0.5
+      this.pitch_envelope_time ?? 0.5
     );
     const pitchEnvCurve = String(
-      inputs.pitch_envelope_curve ??
+      this.pitch_envelope_curve ??
         this.pitch_envelope_curve ??
         "linear"
     ) as PitchEnvelopeCurve;
@@ -193,13 +191,11 @@ export class WhiteNoiseLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const amplitude = Number(inputs.amplitude ?? this.amplitude ?? 0.5);
-    const duration = Number(inputs.duration ?? this.duration ?? 1.0);
+  async process(): Promise<Record<string, unknown>> {
+    const amplitude = Number(this.amplitude ?? 0.5);
+    const duration = Number(this.duration ?? 1.0);
     const sampleRate = Number(
-      inputs.sample_rate ?? this.sample_rate ?? 44100
+      this.sample_rate ?? 44100
     );
 
     const numSamples = Math.floor(sampleRate * duration);
@@ -232,13 +228,11 @@ export class PinkNoiseLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const amplitude = Number(inputs.amplitude ?? this.amplitude ?? 0.5);
-    const duration = Number(inputs.duration ?? this.duration ?? 1.0);
+  async process(): Promise<Record<string, unknown>> {
+    const amplitude = Number(this.amplitude ?? 0.5);
+    const duration = Number(this.duration ?? 1.0);
     const sampleRate = Number(
-      inputs.sample_rate ?? this.sample_rate ?? 44100
+      this.sample_rate ?? 44100
     );
 
     const numSamples = Math.floor(sampleRate * duration);
@@ -317,22 +311,20 @@ export class FM_SynthesisLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const carrierFreq = Number(
-      inputs.carrier_freq ?? this.carrier_freq ?? 440
+      this.carrier_freq ?? 440
     );
     const modulatorFreq = Number(
-      inputs.modulator_freq ?? this.modulator_freq ?? 110
+      this.modulator_freq ?? 110
     );
     const modIndex = Number(
-      inputs.modulation_index ?? this.modulation_index ?? 5
+      this.modulation_index ?? 5
     );
-    const amplitude = Number(inputs.amplitude ?? this.amplitude ?? 0.5);
-    const duration = Number(inputs.duration ?? this.duration ?? 1.0);
+    const amplitude = Number(this.amplitude ?? 0.5);
+    const duration = Number(this.duration ?? 1.0);
     const sampleRate = Number(
-      inputs.sample_rate ?? this.sample_rate ?? 44100
+      this.sample_rate ?? 44100
     );
 
     const numSamples = Math.floor(sampleRate * duration);
@@ -381,17 +373,15 @@ export class EnvelopeLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const audio = (inputs.audio ?? this.audio ?? {}) as {
+  async process(): Promise<Record<string, unknown>> {
+    const audio = (this.audio ?? {}) as {
       data?: string | Uint8Array;
     };
-    const attack = Number(inputs.attack ?? this.attack ?? 0.1);
-    const decay = Number(inputs.decay ?? this.decay ?? 0.3);
-    const release = Number(inputs.release ?? this.release ?? 0.5);
+    const attack = Number(this.attack ?? 0.1);
+    const decay = Number(this.decay ?? 0.3);
+    const release = Number(this.release ?? 0.5);
     const peakAmp = Number(
-      inputs.peak_amplitude ?? this.peak_amplitude ?? 1.0
+      this.peak_amplitude ?? 1.0
     );
 
     // Decode WAV data

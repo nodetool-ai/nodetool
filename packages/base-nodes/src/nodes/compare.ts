@@ -57,9 +57,9 @@ export class CompareImagesNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = toBytes((inputs.image_a ?? this.image_a ?? {}) as ImageLike);
-    const b = toBytes((inputs.image_b ?? this.image_b ?? {}) as ImageLike);
+  async process(): Promise<Record<string, unknown>> {
+    const a = toBytes((this.image_a ?? this.image_a ?? {}) as ImageLike);
+    const b = toBytes((this.image_b ?? this.image_b ?? {}) as ImageLike);
 
     if (a.length === 0 && b.length === 0) {
       return { score: 1, equal: true };

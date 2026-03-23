@@ -51,21 +51,19 @@ export class KlingTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "kling-2.6/text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "768P"),
-        duration: String(inputs.duration ?? "5"),
-        seed: Number(inputs.seed ?? -1),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "768P"),
+        duration: String(this.duration ?? "5"),
+        seed: Number(this.seed ?? -1),
       },
       8000,
       450
@@ -131,12 +129,10 @@ export class KlingImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
-    for (const img of [inputs.image1, inputs.image2, inputs.image3]) {
+    for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
     if (image_urls.length === 0) throw new Error("At least one image is required");
@@ -144,10 +140,10 @@ export class KlingImageToVideoNode extends BaseNode {
       apiKey,
       "kling-2.6/image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_urls,
-        sound: Boolean(inputs.sound ?? false),
-        duration: String(inputs.duration ?? "5"),
+        sound: Boolean(this.sound ?? false),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -204,20 +200,18 @@ export class KlingAIAvatarStandardNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const audio_url = await uploadAudioInput(apiKey, inputs.audio);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const audio_url = await uploadAudioInput(apiKey, this.audio);
     const result = await kieExecuteTask(
       apiKey,
       "kling/v1-avatar-standard",
       {
         image_url,
         audio_url,
-        prompt: String(inputs.prompt ?? ""),
-        mode: String(inputs.mode ?? "standard"),
+        prompt: String(this.prompt ?? ""),
+        mode: String(this.mode ?? "standard"),
       },
       8000,
       450
@@ -274,20 +268,18 @@ export class KlingAIAvatarProNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const audio_url = await uploadAudioInput(apiKey, inputs.audio);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const audio_url = await uploadAudioInput(apiKey, this.audio);
     const result = await kieExecuteTask(
       apiKey,
       "kling/v1-avatar-pro",
       {
         image_url,
         audio_url,
-        prompt: String(inputs.prompt ?? ""),
-        mode: String(inputs.mode ?? "standard"),
+        prompt: String(this.prompt ?? ""),
+        mode: String(this.mode ?? "standard"),
       },
       8000,
       450
@@ -333,19 +325,17 @@ export class GrokImagineTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "grok-imagine/text-to-video",
       {
         prompt,
-        resolution: String(inputs.resolution ?? "1080p"),
-        duration: String(inputs.duration ?? "medium"),
+        resolution: String(this.resolution ?? "1080p"),
+        duration: String(this.duration ?? "medium"),
       },
       8000,
       450
@@ -394,18 +384,16 @@ export class GrokImagineImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "grok-imagine/image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        duration: String(inputs.duration ?? "medium"),
+        duration: String(this.duration ?? "medium"),
       },
       8000,
       450
@@ -463,21 +451,19 @@ export class SeedanceV1LiteTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "seedance/v1-lite-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720p"),
-        duration: String(inputs.duration ?? "5"),
-        remove_watermark: Boolean(inputs.remove_watermark ?? true),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: String(this.duration ?? "5"),
+        remove_watermark: Boolean(this.remove_watermark ?? true),
       },
       8000,
       450
@@ -535,21 +521,19 @@ export class SeedanceV1ProTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "seedance/v1-pro-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720p"),
-        duration: String(inputs.duration ?? "5"),
-        remove_watermark: Boolean(inputs.remove_watermark ?? true),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: String(this.duration ?? "5"),
+        remove_watermark: Boolean(this.remove_watermark ?? true),
       },
       8000,
       450
@@ -634,12 +618,10 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
-    for (const img of [inputs.image1, inputs.image2, inputs.image3]) {
+    for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
     if (image_urls.length === 0) throw new Error("At least one image is required");
@@ -647,12 +629,12 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
       apiKey,
       "seedance/v1-lite-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720p"),
-        duration: String(inputs.duration ?? "5"),
-        remove_watermark: Boolean(inputs.remove_watermark ?? true),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: String(this.duration ?? "5"),
+        remove_watermark: Boolean(this.remove_watermark ?? true),
       },
       8000,
       450
@@ -737,12 +719,10 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
-    for (const img of [inputs.image1, inputs.image2, inputs.image3]) {
+    for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
     if (image_urls.length === 0) throw new Error("At least one image is required");
@@ -750,12 +730,12 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
       apiKey,
       "seedance/v1-pro-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720p"),
-        duration: String(inputs.duration ?? "5"),
-        remove_watermark: Boolean(inputs.remove_watermark ?? true),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: String(this.duration ?? "5"),
+        remove_watermark: Boolean(this.remove_watermark ?? true),
       },
       8000,
       450
@@ -837,12 +817,10 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
     const image_urls: string[] = [];
-    for (const img of [inputs.image1, inputs.image2, inputs.image3]) {
+    for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
     if (image_urls.length === 0) throw new Error("At least one image is required");
@@ -851,10 +829,10 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
       "seedance/v1-pro-fast-image-to-video",
       {
         image_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720p"),
-        duration: String(inputs.duration ?? "5"),
-        remove_watermark: Boolean(inputs.remove_watermark ?? true),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: String(this.duration ?? "5"),
+        remove_watermark: Boolean(this.remove_watermark ?? true),
       },
       8000,
       450
@@ -899,14 +877,12 @@ export class HailuoTextToVideoProNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
-    const resolution = String(inputs.resolution ?? "768P");
-    const duration = String(inputs.duration ?? "6");
+    const resolution = String(this.resolution ?? "768P");
+    const duration = String(this.duration ?? "6");
     if (resolution === "1080P" && duration === "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
@@ -957,14 +933,12 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
-    const resolution = String(inputs.resolution ?? "768P");
-    const duration = String(inputs.duration ?? "6");
+    const resolution = String(this.resolution ?? "768P");
+    const duration = String(this.duration ?? "6");
     if (resolution === "1080P" && duration === "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
@@ -1024,13 +998,11 @@ export class HailuoImageToVideoProNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const resolution = String(inputs.resolution ?? "768P");
-    const duration = String(inputs.duration ?? "6");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const resolution = String(this.resolution ?? "768P");
+    const duration = String(this.duration ?? "6");
     if (resolution === "1080P" && duration === "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
@@ -1039,7 +1011,7 @@ export class HailuoImageToVideoProNode extends BaseNode {
       "hailuo/2-3-image-to-video-pro",
       {
         image_url,
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         duration,
         resolution,
       },
@@ -1095,13 +1067,11 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const resolution = String(inputs.resolution ?? "768P");
-    const duration = String(inputs.duration ?? "6");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const resolution = String(this.resolution ?? "768P");
+    const duration = String(this.duration ?? "6");
     if (resolution === "1080P" && duration === "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
@@ -1110,7 +1080,7 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
       "hailuo/2-3-image-to-video-standard",
       {
         image_url,
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         duration,
         resolution,
       },
@@ -1164,21 +1134,19 @@ export class Kling25TurboTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "kling/v2-5-turbo-text-to-video-pro",
       {
         prompt,
-        duration: String(inputs.duration ?? "5"),
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
-        cfg_scale: Number(inputs.cfg_scale ?? 0.5),
+        duration: String(this.duration ?? "5"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        negative_prompt: String(this.negative_prompt ?? ""),
+        cfg_scale: Number(this.cfg_scale ?? 0.5),
       },
       8000,
       450
@@ -1241,21 +1209,19 @@ export class Kling25TurboImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "kling/v2-5-turbo-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        duration: String(inputs.duration ?? "5"),
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
-        cfg_scale: Number(inputs.cfg_scale ?? 0.5),
+        duration: String(this.duration ?? "5"),
+        aspect_ratio: String((this as any).aspect_ratio ?? "16:9"),
+        negative_prompt: String(this.negative_prompt ?? ""),
+        cfg_scale: Number(this.cfg_scale ?? 0.5),
       },
       8000,
       450
@@ -1304,19 +1270,17 @@ export class Sora2ProTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "sora-2/pro-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        n_frames: String(inputs.n_frames ?? "default"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        n_frames: String(this.n_frames ?? "default"),
       },
       8000,
       450
@@ -1374,19 +1338,17 @@ export class Sora2ProImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "sora-2/pro-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        n_frames: String(inputs.n_frames ?? "default"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        n_frames: String(this.n_frames ?? "default"),
       },
       8000,
       450
@@ -1446,13 +1408,11 @@ export class Sora2ProStoryboardNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String((this as any).prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
-    const rawImages = Array.isArray(inputs.images) ? inputs.images : [];
+    const rawImages = Array.isArray(this.images) ? this.images : [];
     const image_urls: string[] = [];
     for (const img of rawImages.slice(0, 5)) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
@@ -1508,19 +1468,17 @@ export class Sora2TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "sora-2/text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        n_frames: String(inputs.n_frames ?? "default"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        n_frames: String(this.n_frames ?? "default"),
       },
       8000,
       450
@@ -1577,21 +1535,19 @@ export class WanMultiShotTextToVideoProNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "wan/multi-shot-text-to-video-pro",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
-        shot_count: Number(inputs.shot_count ?? 3),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
+        shot_count: Number((this as any).shot_count ?? 3),
       },
       8000,
       450
@@ -1636,20 +1592,18 @@ export class Wan26TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-6-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        aspect_ratio: String((this as any).aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -1721,19 +1675,17 @@ export class Wan26ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image1);
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-6-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -1811,18 +1763,16 @@ export class Wan26VideoToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const video_url = await uploadVideoInput(apiKey, inputs.video);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const video_url = await uploadVideoInput(apiKey, this.video1);
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-6-video-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         video_url,
-        resolution: String(inputs.resolution ?? "720P"),
+        resolution: String(this.resolution ?? "720P"),
       },
       8000,
       450
@@ -1872,17 +1822,15 @@ export class TopazVideoUpscaleNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const video_url = await uploadVideoInput(apiKey, inputs.video);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const video_url = await uploadVideoInput(apiKey, this.video);
     const result = await kieExecuteTask(
       apiKey,
       "topaz/video-upscale",
       {
         video_url,
-        scale_factor: Number(inputs.scale_factor ?? 2),
+        scale_factor: Number((this as any).scale_factor ?? 2),
       },
       8000,
       450
@@ -1936,12 +1884,10 @@ export class InfinitalkV1Node extends BaseNode {
 ] })
   declare resolution: any;
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const audio_url = await uploadAudioInput(apiKey, inputs.audio);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const audio_url = await uploadAudioInput(apiKey, this.audio);
     const result = await kieExecuteTask(
       apiKey,
       "infinitalk/v1",
@@ -1992,21 +1938,19 @@ export class Veo31TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "veo-3-1/text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        duration: String(inputs.duration ?? "8"),
-        generate_audio: Boolean(inputs.generate_audio ?? true),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        duration: String((this as any).duration ?? "8"),
+        generate_audio: Boolean((this as any).generate_audio ?? true),
+        negative_prompt: String((this as any).negative_prompt ?? ""),
       },
       8000,
       450
@@ -2066,21 +2010,19 @@ export class RunwayGen3AlphaTextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "runway/gen3-alpha-text-to-video",
       {
         prompt,
-        duration: String(inputs.duration ?? "5"),
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        watermark: Boolean(inputs.watermark ?? false),
-        seed: Number(inputs.seed ?? -1),
+        duration: String(this.duration ?? "5"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        watermark: Boolean(this.water_mark ?? false),
+        seed: Number((this as any).seed ?? -1),
       },
       8000,
       450
@@ -2140,21 +2082,19 @@ export class RunwayGen3AlphaImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "runway/gen3-alpha-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        duration: String(inputs.duration ?? "5"),
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        watermark: Boolean(inputs.watermark ?? false),
-        seed: Number(inputs.seed ?? -1),
+        duration: String(this.duration ?? "5"),
+        aspect_ratio: String((this as any).aspect_ratio ?? "16:9"),
+        watermark: Boolean(this.water_mark ?? false),
+        seed: Number((this as any).seed ?? -1),
       },
       8000,
       450
@@ -2208,20 +2148,18 @@ export class RunwayGen3AlphaExtendVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const video_url = await uploadVideoInput(apiKey, inputs.video);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const video_url = await uploadVideoInput(apiKey, (this as any).video);
     const result = await kieExecuteTask(
       apiKey,
       "runway/gen3-alpha-extend-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         video_url,
-        duration: String(inputs.duration ?? "5"),
-        watermark: Boolean(inputs.watermark ?? false),
-        seed: Number(inputs.seed ?? -1),
+        duration: String(this.duration ?? "5"),
+        watermark: Boolean(this.water_mark ?? false),
+        seed: Number((this as any).seed ?? -1),
       },
       8000,
       450
@@ -2279,19 +2217,17 @@ export class RunwayAlephVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
     const payload: Record<string, unknown> = {
-      prompt: String(inputs.prompt ?? ""),
-      duration: String(inputs.duration ?? "5"),
-      aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-      watermark: Boolean(inputs.watermark ?? false),
-      seed: Number(inputs.seed ?? -1),
+      prompt: String(this.prompt ?? ""),
+      duration: String(this.duration ?? "5"),
+      aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+      watermark: Boolean(this.water_mark ?? false),
+      seed: Number((this as any).seed ?? -1),
     };
-    if (isRefSet(inputs.image)) {
-      payload.image_url = await uploadImageInput(apiKey, inputs.image);
+    if (isRefSet((this as any).image)) {
+      payload.image_url = await uploadImageInput(apiKey, (this as any).image);
     }
     const result = await kieExecuteTask(apiKey, "runway/aleph-video", payload, 8000, 450);
     return { output: { data: result.data } };
@@ -2346,19 +2282,17 @@ export class LumaModifyVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const video_url = await uploadVideoInput(apiKey, inputs.video);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const video_url = await uploadVideoInput(apiKey, this.video);
     const result = await kieExecuteTask(
       apiKey,
       "luma/modify-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         video_url,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        loop: Boolean(inputs.loop ?? false),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        loop: Boolean((this as any).loop ?? false),
       },
       8000,
       450
@@ -2424,21 +2358,19 @@ export class Veo31ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image1);
     const result = await kieExecuteTask(
       apiKey,
       "veo-3-1/image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        duration: String(inputs.duration ?? "8"),
-        generate_audio: Boolean(inputs.generate_audio ?? true),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        duration: String((this as any).duration ?? "8"),
+        generate_audio: Boolean((this as any).generate_audio ?? true),
+        negative_prompt: String((this as any).negative_prompt ?? ""),
       },
       8000,
       450
@@ -2513,25 +2445,23 @@ export class Veo31ReferenceToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const rawImages = Array.isArray(inputs.images) ? inputs.images : [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const rawImages = [this.image1, this.image2, this.image3].filter((img) => isRefSet(img));
     const image_urls: string[] = [];
     for (const img of rawImages) {
-      if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
+      image_urls.push(await uploadImageInput(apiKey, img));
     }
     const result = await kieExecuteTask(
       apiKey,
       "veo-3-1/reference-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_urls,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        duration: String(inputs.duration ?? "8"),
-        generate_audio: Boolean(inputs.generate_audio ?? true),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        duration: String((this as any).duration ?? "8"),
+        generate_audio: Boolean((this as any).generate_audio ?? true),
+        negative_prompt: String((this as any).negative_prompt ?? ""),
       },
       8000,
       450
@@ -2596,19 +2526,17 @@ export class KlingMotionControlNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "kling/motion-control",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        motion_type: String(inputs.motion_type ?? "camera"),
-        duration: String(inputs.duration ?? "5"),
+        motion_type: String((this as any).motion_type ?? "camera"),
+        duration: String((this as any).duration ?? "5"),
       },
       8000,
       450
@@ -2666,21 +2594,19 @@ export class Kling21TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "kling/v2-1-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        duration: String(inputs.duration ?? "5"),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
-        cfg_scale: Number(inputs.cfg_scale ?? 0.5),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        duration: String(this.duration ?? "5"),
+        negative_prompt: String((this as any).negative_prompt ?? ""),
+        cfg_scale: Number((this as any).cfg_scale ?? 0.5),
       },
       8000,
       450
@@ -2752,20 +2678,18 @@ export class Kling21ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image1);
     const result = await kieExecuteTask(
       apiKey,
       "kling/v2-1-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        duration: String(inputs.duration ?? "5"),
-        negative_prompt: String(inputs.negative_prompt ?? ""),
-        cfg_scale: Number(inputs.cfg_scale ?? 0.5),
+        duration: String(this.duration ?? "5"),
+        negative_prompt: String((this as any).negative_prompt ?? ""),
+        cfg_scale: Number((this as any).cfg_scale ?? 0.5),
       },
       8000,
       450
@@ -2817,20 +2741,18 @@ export class Wan25TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-5-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -2902,19 +2824,17 @@ export class Wan25ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image1);
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-5-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -2968,19 +2888,17 @@ export class WanAnimateNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "wan/animate",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -3034,17 +2952,15 @@ export class WanSpeechToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
-    const audio_url = await uploadAudioInput(apiKey, inputs.audio);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
+    const audio_url = await uploadAudioInput(apiKey, this.audio);
     const result = await kieExecuteTask(
       apiKey,
       "wan/speech-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String((this as any).prompt ?? ""),
         image_url,
         audio_url,
       },
@@ -3097,20 +3013,18 @@ export class Wan22TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-2-text-to-video",
       {
         prompt,
-        aspect_ratio: String(inputs.aspect_ratio ?? "16:9"),
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -3163,19 +3077,17 @@ export class Wan22ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "wan/2-2-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        resolution: String(inputs.resolution ?? "720P"),
-        duration: String(inputs.duration ?? "5"),
+        resolution: String(this.resolution ?? "720P"),
+        duration: String(this.duration ?? "5"),
       },
       8000,
       450
@@ -3227,19 +3139,17 @@ export class Hailuo02TextToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const prompt = String(inputs.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
     const result = await kieExecuteTask(
       apiKey,
       "hailuo/0-2-text-to-video",
       {
         prompt,
-        duration: String(inputs.duration ?? "6"),
-        resolution: String(inputs.resolution ?? "768P"),
+        duration: String(this.duration ?? "6"),
+        resolution: String(this.resolution ?? "768P"),
       },
       8000,
       450
@@ -3293,19 +3203,17 @@ export class Hailuo02ImageToVideoNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const image_url = await uploadImageInput(apiKey, inputs.image);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image_url = await uploadImageInput(apiKey, this.image);
     const result = await kieExecuteTask(
       apiKey,
       "hailuo/0-2-image-to-video",
       {
-        prompt: String(inputs.prompt ?? ""),
+        prompt: String(this.prompt ?? ""),
         image_url,
-        duration: String(inputs.duration ?? "6"),
-        resolution: String(inputs.resolution ?? "768P"),
+        duration: String(this.duration ?? "6"),
+        resolution: String(this.resolution ?? "768P"),
       },
       8000,
       450
@@ -3344,11 +3252,9 @@ export class Sora2WatermarkRemoverNode extends BaseNode {
 }, title: "Video", description: "Video to remove watermark from. Must be publicly accessible." })
   declare video: any;
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApiKey(inputs);
-    const video_url = await uploadVideoInput(apiKey, inputs.video);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const video_url = await uploadVideoInput(apiKey, this.video);
     const result = await kieExecuteTask(
       apiKey,
       "sora-2/watermark-remover",

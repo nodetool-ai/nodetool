@@ -101,8 +101,8 @@ export class LoadWordDocumentLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const filePath = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const filePath = String(this.path ?? "");
     if (!filePath.trim()) throw new Error("path cannot be empty");
     const expanded = expandUser(filePath);
     const result = await mammoth.extractRawText({ path: expanded });
@@ -136,10 +136,10 @@ export class AddHeadingLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const text = String(inputs.text ?? this.text ?? "");
-    const level = Number(inputs.level ?? this.level ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const text = String(this.text ?? "");
+    const level = Number(this.level ?? 1);
     const newDoc: DocState = {
       ...doc,
       elements: [...doc.elements, { type: "heading", text, level }],
@@ -188,13 +188,13 @@ export class AddParagraphLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const text = String(inputs.text ?? this.text ?? "");
-    const alignment = String(inputs.alignment ?? this.alignment ?? "LEFT");
-    const bold = Boolean(inputs.bold ?? this.bold ?? false);
-    const italic = Boolean(inputs.italic ?? this.italic ?? false);
-    const fontSize = Number(inputs.font_size ?? this.font_size ?? 12);
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const text = String(this.text ?? "");
+    const alignment = String(this.alignment ?? "LEFT");
+    const bold = Boolean(this.bold ?? false);
+    const italic = Boolean(this.italic ?? false);
+    const fontSize = Number(this.font_size ?? 12);
     const newDoc: DocState = {
       ...doc,
       elements: [
@@ -236,9 +236,9 @@ export class AddTableLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const dataInput = inputs.data ?? this.data ?? {};
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const dataInput = this.data ?? {};
     // Accept DataframeRef-like { data: string[][], columns: string[] } or { rows: Row[] }
     let tableData: string[][] = [];
     if (dataInput && typeof dataInput === "object") {
@@ -294,11 +294,11 @@ export class AddImageLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const imageInput = inputs.image ?? this.image ?? {};
-    const width = Number(inputs.width ?? this.width ?? 0);
-    const height = Number(inputs.height ?? this.height ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const imageInput = this.image ?? {};
+    const width = Number(this.width ?? 0);
+    const height = Number(this.height ?? 0);
 
     // Read image data from path or uri
     let imageData: Buffer;
@@ -345,8 +345,8 @@ export class AddPageBreakLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
     const newDoc: DocState = {
       ...doc,
       elements: [...doc.elements, { type: "page_break" }],
@@ -387,12 +387,12 @@ export class SetDocumentPropertiesLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const title = String(inputs.title ?? this.title ?? "");
-    const author = String(inputs.author ?? this.author ?? "");
-    const subject = String(inputs.subject ?? this.subject ?? "");
-    const keywords = String(inputs.keywords ?? this.keywords ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const title = String(this.title ?? "");
+    const author = String(this.author ?? "");
+    const subject = String(this.subject ?? "");
+    const keywords = String(this.keywords ?? "");
 
     const newDoc: DocState = {
       ...doc,
@@ -434,16 +434,16 @@ export class SaveDocumentLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const doc = getDocState(inputs.document ?? this.document);
-    const pathInput = inputs.path ?? this.path;
+  async process(): Promise<Record<string, unknown>> {
+    const doc = getDocState(this.document);
+    const pathInput = this.path;
     const folderPath =
       typeof pathInput === "string"
         ? pathInput
         : (pathInput as { path?: string })?.path ?? "";
     if (!folderPath) throw new Error("Path is not set");
 
-    const filenameTemplate = String(inputs.filename ?? this.filename ?? "");
+    const filenameTemplate = String(this.filename ?? "");
     const filename = formatDate(filenameTemplate);
     const fullPath = expandUser(path.join(folderPath, filename));
 
