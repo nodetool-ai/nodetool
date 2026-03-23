@@ -17,6 +17,17 @@ export class ShapeTool implements ToolHandler {
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     this.shapeStart = event.point;
     ctx.onStrokeStart();
+
+    // Reconcile layer transform before painting
+    const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    if (activeLayer) {
+      const tx = activeLayer.transform?.x ?? 0;
+      const ty = activeLayer.transform?.y ?? 0;
+      if ((tx !== 0 || ty !== 0) && ctx.onLayerReconcile) {
+        ctx.onLayerReconcile(activeLayer.id);
+      }
+    }
+
     return true;
   }
 
@@ -55,6 +66,7 @@ export class ShapeTool implements ToolHandler {
         } else {
           layerCtx.drawImage(overlayCanvas, 0, 0);
         }
+        ctx.invalidateLayer?.(activeLayer.id);
         ctx.clearOverlay();
         ctx.drawSelectionOverlay();
         ctx.redraw();
