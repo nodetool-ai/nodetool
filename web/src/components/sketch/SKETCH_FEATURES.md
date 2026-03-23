@@ -1,7 +1,7 @@
 # Sketch Editor — Comprehensive Feature Checklist
 
 > **Status**: Phase 1 complete
-> **Last updated**: 2026-03-22
+> **Last updated**: 2026-03-23
 
 ## Remaining work
 
@@ -24,7 +24,7 @@
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
 [ ] ##Move Tool## add option to move another layer directly with hit mask when using move tool with modifier key
-[ ] ##Rename Editor and Node## rename to "Image Editor" instead of "Sketch Input"
+[x] ##Rename Editor and Node## rename to "Image Editor" instead of "Sketch Input"
 
 ---
 
@@ -40,24 +40,24 @@
 - [x] Implement clone stamp stroke rendering that copies pixels through the normal brush pipeline.
 - [ ] Implement healing brush with sampled texture transfer plus simple luminance/color blending.
 - [ ] Decide healing brush scope for v1 and document the exact behavior in the tool spec.
-- [ ] add Delete key to delete layer content and respect selected tool selection when deleting
+- [x] add Delete key to delete layer content and respect selected tool selection when deleting
 
 - [x] **FIX ADJUSTMENTS** see how ImageEditor.tsx did this. currently slow, not working
 - [x] **Canvas show transparency as grid** currently shows black, but should be grid for alpha
 - [ ] **Performance** further improvements needed for 2K - 4K canvases where brushes feel super slow. do web research to fix.
 - [ ] **Improve Moving Tool** moving layer out of canvas bounds should not crop it, even after ending moving. currently moving out of canvas loses that part of the layer!
-- [ ] **Symmetry** make as one icon that opens select with options: - OFF - Vertical - Horizontal - Dual Axis - Diagonal - Wave - Circle - Spiral - Parallel - Radial - Mandala
-  - radial + mandala option for ray amount from 2-12
-  - the icon should show if symmetry is active or OFF
+- [x] **Symmetry** consolidated mirror buttons into one icon that opens dropdown with options: OFF, Horizontal, Vertical, Dual Axis. Icon shows if symmetry is active.
+  - [ ] add extended symmetry modes: Diagonal, Wave, Circle, Spiral, Parallel, Radial, Mandala
+  - [ ] radial + mandala option for ray amount from 2-12
 
 #### Selection Tool
 
-- [ ] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
+- [x] make Selection as a first-class editing surface (not only marquee) - e.g. draw, eraser only inside selections when selection exists
 - [ ] Selection tools: add lasso and magic wand with Photoshop-style options.
 - [x] Selection should still be visible with other tools selected — overlay persists across tool switches and after shape/gradient/crop operations
-- [ ] Deselect with CTRL+D
-- [ ] allow to move selection
-- [ ] allow to add to and subtract from selection with modifier keys SHIFT is add, ALT is remove
+- [x] Deselect with CTRL+D
+- [x] allow to move selection
+- [x] allow to add to and subtract from selection with modifier keys SHIFT is add, ALT is remove
 
 #### Color system
 
@@ -173,8 +173,8 @@
 - [x] Add `Ctrl + D` for deselect.
 - [ ] Add `Ctrl + Shift + I` for invert selection.
 - [ ] Add `Ctrl + Shift + D` for reselect last selection.
-- [ ] Add `Shift + drag` to add to selection.
-- [ ] Add `Alt + drag` to subtract from selection.
+- [x] Add `Shift + drag` to add to selection.
+- [x] Add `Alt + drag` to subtract from selection.
 - [ ] Add `Alt + S` for select subject.
 
 ### Move & Transform

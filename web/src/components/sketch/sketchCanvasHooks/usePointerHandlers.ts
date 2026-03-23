@@ -466,11 +466,28 @@ export function usePointerHandlers({
 
       if (activeTool === "fill") {
         const pt = screenToCanvas(e.clientX, e.clientY);
+        // Only fill if click is within selection (when one exists)
+        if (selection && selection.width > 0 && selection.height > 0) {
+          if (pt.x < selection.x || pt.x > selection.x + selection.width ||
+              pt.y < selection.y || pt.y > selection.y + selection.height) {
+            return;
+          }
+        }
         const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
         const ctx = layerCanvas.getContext("2d");
         if (ctx) {
           onStrokeStart();
+          // Apply selection clip for fill
+          if (selection && selection.width > 0 && selection.height > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(selection.x, selection.y, selection.width, selection.height);
+            ctx.clip();
+          }
           floodFillUtil(ctx, pt.x, pt.y, doc.toolSettings.fill);
+          if (selection && selection.width > 0 && selection.height > 0) {
+            ctx.restore();
+          }
           redraw();
           const data = layerCanvas.toDataURL("image/png");
           onStrokeEnd(activeLayer.id, data);
@@ -650,6 +667,15 @@ export function usePointerHandlers({
       const layerCanvas = getOrCreateLayerCanvas(activeLayer.id);
       const ctx = layerCanvas.getContext("2d");
       if (ctx) {
+        // Apply selection clip for initial stroke
+        const hasSelClip = selection && selection.width > 0 && selection.height > 0;
+        if (hasSelClip) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(selection.x, selection.y, selection.width, selection.height);
+          ctx.clip();
+        }
+
         if (shiftHeldRef.current && lastStrokeEndRef.current) {
           const from = lastStrokeEndRef.current;
           const dx = pt.x - from.x;
@@ -684,6 +710,11 @@ export function usePointerHandlers({
             drawBlurStroke(pt, pt, doc.toolSettings.blur, layerCanvas);
           }
         }
+
+        if (hasSelClip) {
+          ctx.restore();
+        }
+
         redraw();
       }
 
@@ -826,6 +857,15 @@ export function usePointerHandlers({
         return;
       }
 
+      // Apply selection clip if a selection exists
+      const hasSelectionClip = selection && selection.width > 0 && selection.height > 0;
+      if (hasSelectionClip) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(selection.x, selection.y, selection.width, selection.height);
+        ctx.clip();
+      }
+
       const nativePointerEvent = e.nativeEvent as PointerEvent;
       const coalescedEvents =
         typeof nativePointerEvent.getCoalescedEvents === "function"
@@ -857,6 +897,12 @@ export function usePointerHandlers({
 
         lastPointRef.current = pt;
       }
+
+      // Restore context if selection clip was applied
+      if (hasSelectionClip) {
+        ctx.restore();
+      }
+
       requestRedraw();
     },
     [

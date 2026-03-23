@@ -84,6 +84,14 @@ export interface SketchCanvasRef {
     saturation: number
   ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
+  fillLayerRect: (
+    layerId: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string
+  ) => void;
   nudgeLayer: (layerId: string, dx: number, dy: number) => void;
 }
 
