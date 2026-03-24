@@ -312,6 +312,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 - [ ] **Canvas size from input layer** if input layers exist, one layer can be set to define canvas size. define clearer!?
 - [ ] **Tonemapping**: add professional tonemapping section with 10 good presets
 - [ ] **Pixel workflow**: pixel grid overlay, snap-to-pixel, crisp view at high zoom
+- [ ] Import PNG into current layer
 - [ ] **Performance guardrails**: max megapixels warning; history memory cap by pixel count; throttle compositing on huge documents
 - [ ] **AI Healing Brush**: add healing brush functionality that uses AI model. research and present plan before implementing.
 - [ ] **Shader System**: draw and fill with webgpu shaders
@@ -335,7 +336,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 # FEATURE IDEAS / STRETCH GOALS
 
 - [ ] Layer effects / filters (blur, sharpen, etc.)
-- [ ] Import PNG into current layer
+
 - [ ] Palettes / custom swatch management (save/load)
 - [ ] PSD/ORA compatibility import/export
 - [ ] Richer project operations (save/load/templates)
