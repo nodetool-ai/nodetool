@@ -15,7 +15,6 @@ interface RuntimeStatus {
   description: string;
   installed: boolean;
   installing: boolean;
-  requiresConda: boolean;
 }
 
 const panelStyles = (theme: Theme) =>
@@ -98,8 +97,7 @@ const RuntimesPanel: React.FC = () => {
       setInstalling((prev) => new Set(prev).add(packageId));
       setError(null);
       try {
-        const location =
-          packageId === "python-runtime" ? installLocation : undefined;
+        const location = installLocation || undefined;
         const result = await api.packages.installRuntime(packageId, location);
         if (result.success) {
           await loadStatuses();
@@ -146,9 +144,6 @@ const RuntimesPanel: React.FC = () => {
   }
 
   const installedCount = runtimes.filter((r) => r.installed).length;
-  const condaInstalled = runtimes.find(
-    (r) => r.id === "python-runtime"
-  )?.installed;
 
   return (
     <FlexColumn
@@ -212,8 +207,6 @@ const RuntimesPanel: React.FC = () => {
           <FlexColumn gap={3}>
             {runtimes.map((rt) => {
               const isInstalling = installing.has(rt.id) || rt.installing;
-              const needsConda =
-                rt.requiresConda && !condaInstalled && !rt.installed;
 
               return (
                 <Card
@@ -238,14 +231,6 @@ const RuntimesPanel: React.FC = () => {
                         )}
                       </FlexRow>
                       <Caption size="small">{rt.description}</Caption>
-                      {needsConda && (
-                        <Caption
-                          size="smaller"
-                          sx={{ color: theme.vars.palette.warning.main, mt: 0.5 }}
-                        >
-                          Requires Python Runtime first
-                        </Caption>
-                      )}
                     </FlexColumn>
                     <Box sx={{ flexShrink: 0 }}>
                       {rt.installed ? (
@@ -269,7 +254,7 @@ const RuntimesPanel: React.FC = () => {
                             )
                           }
                           onClick={() => handleInstall(rt.id)}
-                          disabled={isInstalling || needsConda}
+                          disabled={isInstalling}
                         >
                           {isInstalling ? "Installing..." : "Install"}
                         </Button>

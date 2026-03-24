@@ -22,12 +22,14 @@ const RUNTIME_LABELS: Record<string, string> = {
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
 const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
+  python: "python",
+  nodejs: "nodejs",
+  bash: "bash",
+  ruby: "ruby",
+  lua: "lua",
   ffmpeg: "ffmpeg",
-  python: "python-runtime",
-  nodejs: "python-runtime",
-  bash: "python-runtime",
-  ruby: "python-runtime",
-  lua: "python-runtime",
+  pandoc: "pandoc",
+  "yt-dlp": "yt-dlp",
   ollama: "ollama",
   "llama-cpp": "llama-cpp",
 };

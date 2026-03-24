@@ -1012,7 +1012,17 @@ export interface PackageUninstallRequest {
   repo_id: string;
 }
 
-export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp" | "ffmpeg";
+export type RuntimePackageId =
+  | "python"
+  | "nodejs"
+  | "bash"
+  | "ruby"
+  | "lua"
+  | "ffmpeg"
+  | "pandoc"
+  | "yt-dlp"
+  | "ollama"
+  | "llama-cpp";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
@@ -1020,7 +1030,6 @@ export interface RuntimePackageStatus {
   description: string;
   installed: boolean;
   installing: boolean;
-  requiresConda: boolean;
 }
 
 // Claude Agent SDK types

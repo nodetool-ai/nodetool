@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getPythonPath, getCondaEnvPath, getOllamaPath, getLlamaServerPath } from "./config";
+import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
 import * as path from "path";
 
 // TODO: Package manager needs to be rewritten for npm packages.
@@ -1065,9 +1065,17 @@ export function validateRepoId(repoId: string): {
 // them on-demand without blocking the app.
 // =============================================================================
 
-import { isCondaEnvironmentInstalled } from "./python";
-
-export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp" | "ffmpeg";
+export type RuntimePackageId =
+  | "python"
+  | "nodejs"
+  | "bash"
+  | "ruby"
+  | "lua"
+  | "ffmpeg"
+  | "pandoc"
+  | "yt-dlp"
+  | "ollama"
+  | "llama-cpp";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
@@ -1075,76 +1083,150 @@ export interface RuntimePackageStatus {
   description: string;
   installed: boolean;
   installing: boolean;
-  requiresConda: boolean;
 }
+
+/**
+ * Maps each runtime to the conda package specs needed to provide it,
+ * and the binary name used to verify installation.
+ */
+const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
+  name: string;
+  description: string;
+  condaPackages: string[];
+  /** Binary name to check in the conda env (without .exe suffix) */
+  verifyBinary: string;
+  /** Windows subdirectory under conda env where the binary lives (default: root for .exe) */
+  windowsBinSubdir?: string;
+}> = {
+  python: {
+    name: "Python",
+    description: "Python interpreter and uv package manager. Required for AI and data processing nodes.",
+    condaPackages: ["python=3.11", "uv"],
+    verifyBinary: "python",
+  },
+  nodejs: {
+    name: "Node.js",
+    description: "JavaScript runtime for Node.js-based nodes.",
+    condaPackages: ["nodejs>=24"],
+    verifyBinary: "node",
+  },
+  bash: {
+    name: "Bash",
+    description: "Bash shell for script execution nodes.",
+    condaPackages: ["bash"],
+    verifyBinary: "bash",
+  },
+  ruby: {
+    name: "Ruby",
+    description: "Ruby interpreter for Ruby-based nodes.",
+    condaPackages: ["ruby"],
+    verifyBinary: "ruby",
+  },
+  lua: {
+    name: "Lua",
+    description: "Lua interpreter for Lua-based nodes.",
+    condaPackages: ["lua"],
+    verifyBinary: "lua",
+  },
+  ffmpeg: {
+    name: "FFmpeg & Codecs",
+    description: "Audio/video processing toolkit. Required for video nodes and the FFmpeg Agent.",
+    condaPackages: [
+      "ffmpeg>=6,<7", "x264", "x265", "aom", "libopus",
+      "libvorbis", "libpng", "libjpeg-turbo", "libtiff",
+      "openjpeg", "libwebp", "giflib", "lame",
+    ],
+    verifyBinary: "ffmpeg",
+    windowsBinSubdir: "Library\\bin",
+  },
+  pandoc: {
+    name: "Pandoc",
+    description: "Universal document converter for text and file format conversion.",
+    condaPackages: ["pandoc"],
+    verifyBinary: "pandoc",
+  },
+  "yt-dlp": {
+    name: "yt-dlp",
+    description: "Video/audio downloader from YouTube and other sites.",
+    condaPackages: ["yt-dlp"],
+    verifyBinary: "yt-dlp",
+  },
+  ollama: {
+    name: "Ollama",
+    description: "Local LLM inference server. Easy to use, recommended for most users.",
+    condaPackages: ["ollama"],
+    verifyBinary: "ollama",
+    windowsBinSubdir: "Scripts",
+  },
+  "llama-cpp": {
+    name: "llama.cpp",
+    description: "High-performance GPU-accelerated LLM backend with GGUF model support.",
+    condaPackages: [], // Platform-dependent; handled in installRuntimePackage
+    verifyBinary: "llama-server",
+    windowsBinSubdir: "Library\\bin",
+  },
+};
 
 // Track which runtime packages are currently being installed
 const runtimeInstalling = new Set<RuntimePackageId>();
 
 /**
- * Check the installation status of all runtime packages
+ * Check if a runtime binary exists in the conda environment.
  */
-export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[]> {
-  const [pythonInstalled, ollamaInstalled, llamaInstalled, ffmpegInstalled] =
-    await Promise.all([
-      isCondaEnvironmentInstalled().catch(() => false),
-      checkOllamaRuntimeInstalled(),
-      checkLlamaCppRuntimeInstalled(),
-      checkFfmpegInstalled(),
-    ]);
-
-  return [
-    {
-      id: "python-runtime",
-      name: "Python Runtime",
-      description:
-        "Python environment for running Python-based nodes. Required for AI image generation, audio processing, and other Python workflows.",
-      installed: pythonInstalled,
-      installing: runtimeInstalling.has("python-runtime"),
-      requiresConda: false,
-    },
-    {
-      id: "ffmpeg",
-      name: "FFmpeg & Codecs",
-      description:
-        "Audio/video processing toolkit. Required for video nodes (scaling, rotation, filters, composition) and the FFmpeg Agent skill.",
-      installed: ffmpegInstalled,
-      installing: runtimeInstalling.has("ffmpeg"),
-      requiresConda: true,
-    },
-    {
-      id: "ollama",
-      name: "Ollama",
-      description:
-        "Local LLM inference server. Easy to use, recommended for most users. Includes model management and a simple API.",
-      installed: ollamaInstalled,
-      installing: runtimeInstalling.has("ollama"),
-      requiresConda: true,
-    },
-    {
-      id: "llama-cpp",
-      name: "llama.cpp",
-      description:
-        "High-performance GPU-accelerated LLM backend with GGUF model support.",
-      installed: llamaInstalled,
-      installing: runtimeInstalling.has("llama-cpp"),
-      requiresConda: true,
-    },
-  ];
+async function checkRuntimeBinary(
+  condaEnvPath: string,
+  binaryName: string,
+  windowsBinSubdir?: string,
+): Promise<boolean> {
+  try {
+    const exeName = process.platform === "win32" ? `${binaryName}.exe` : binaryName;
+    const binDir = process.platform === "win32"
+      ? path.join(condaEnvPath, windowsBinSubdir || ".")
+      : path.join(condaEnvPath, "bin");
+    return await fileExists(path.join(binDir, exeName));
+  } catch {
+    return false;
+  }
 }
 
-async function checkOllamaRuntimeInstalled(): Promise<boolean> {
-  // Check bundled ollama first
-  try {
-    const ollamaPath = getOllamaPath();
-    if (await fileExists(ollamaPath)) {
-      return true;
-    }
-  } catch {
-    // ignore - conda env may not exist
-  }
+/**
+ * Check whether the conda environment directory exists (has conda-meta).
+ */
+async function isCondaEnvPresent(condaEnvPath: string): Promise<boolean> {
+  return fileExists(path.join(condaEnvPath, "conda-meta"));
+}
 
-  // Check system ollama
+/**
+ * Check the installation status of all runtime packages.
+ */
+export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[]> {
+  const condaEnvPath = getCondaEnvPath();
+  const envExists = await isCondaEnvPresent(condaEnvPath);
+
+  const entries = Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, typeof RUNTIME_DEFINITIONS[RuntimePackageId]][];
+
+  const checks = entries.map(async ([id, def]) => {
+    let installed = false;
+    if (envExists) {
+      installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
+    }
+    // Special case: check if Ollama is running as a system service
+    if (id === "ollama" && !installed) {
+      installed = await checkSystemOllama();
+    }
+    return {
+      id,
+      name: def.name,
+      description: def.description,
+      installed,
+      installing: runtimeInstalling.has(id),
+    };
+  });
+
+  return Promise.all(checks);
+}
+
+async function checkSystemOllama(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 1000);
@@ -1152,31 +1234,7 @@ async function checkOllamaRuntimeInstalled(): Promise<boolean> {
       signal: controller.signal,
     });
     clearTimeout(id);
-    if (res.ok) return true;
-  } catch {
-    // not running
-  }
-
-  return false;
-}
-
-async function checkLlamaCppRuntimeInstalled(): Promise<boolean> {
-  try {
-    const llamaPath = getLlamaServerPath();
-    return await fileExists(llamaPath);
-  } catch {
-    return false;
-  }
-}
-
-async function checkFfmpegInstalled(): Promise<boolean> {
-  try {
-    const condaPath = getCondaEnvPath();
-    const ffmpegBin =
-      process.platform === "win32"
-        ? path.join(condaPath, "Library", "bin", "ffmpeg.exe")
-        : path.join(condaPath, "bin", "ffmpeg");
-    return await fileExists(ffmpegBin);
+    return res.ok;
   } catch {
     return false;
   }
@@ -1190,9 +1248,8 @@ export function getCondaInstallLocation(): string {
 }
 
 /**
- * Install a runtime package (Python, Ollama, llama.cpp, or FFmpeg).
- * @param packageId - Which package to install
- * @param installLocation - Optional custom install location (only used for python-runtime)
+ * Install a runtime package by creating the conda env if needed and
+ * installing the runtime's conda packages into it.
  */
 export async function installRuntimePackage(
   packageId: RuntimePackageId,
@@ -1202,79 +1259,51 @@ export async function installRuntimePackage(
     return { success: false, message: `${packageId} is already being installed` };
   }
 
+  const def = RUNTIME_DEFINITIONS[packageId];
+  if (!def) {
+    return { success: false, message: `Unknown runtime: ${packageId}` };
+  }
+
   runtimeInstalling.add(packageId);
 
   try {
-    // Lazy-import installer functions to avoid circular dependencies
     const {
-      provisionCondaEnvironment,
-      ensureOllamaInstalled,
-      ensureLlamaCppInstalled,
+      ensureCondaEnvironment,
       installCondaPackageBySpec,
       setCondaInstallLocation,
     } = await import("./installer");
 
-    // For Python runtime, allow setting a custom install location
-    let condaEnvPath = getCondaEnvPath();
-    if (packageId === "python-runtime" && installLocation) {
+    // Allow setting a custom install location
+    if (installLocation) {
       setCondaInstallLocation(installLocation);
-      condaEnvPath = installLocation;
     }
 
-    // Packages that require conda need the env to exist first (except python-runtime itself)
-    if (packageId !== "python-runtime") {
-      const hasConda = await isCondaEnvironmentInstalled().catch(() => false);
-      if (!hasConda) {
-        return {
-          success: false,
-          message:
-            "Please install the Python Runtime first. " +
-            "It creates the conda environment needed for this package.",
-        };
-      }
+    // Auto-init conda env if not present (prompts user for folder)
+    emitBootMessage(`Installing ${def.name}...`);
+    logMessage(`Installing runtime: ${packageId}`);
+    const condaEnvPath = await ensureCondaEnvironment(installLocation);
+
+    // Determine packages to install
+    let packageSpecs = [...def.condaPackages];
+
+    // Special handling for llama-cpp (CUDA vs CPU)
+    if (packageId === "llama-cpp") {
+      const prefersCuda = process.platform === "win32" || process.platform === "linux";
+      packageSpecs = [prefersCuda ? "llama.cpp=*=cuda126*" : "llama.cpp"];
     }
 
-    switch (packageId) {
-      case "python-runtime": {
-        emitBootMessage("Installing Python runtime...");
-        logMessage("Installing Python runtime via package manager");
-        await provisionCondaEnvironment(condaEnvPath, "none", {
-          bootMessage: "Installing Python runtime...",
-          installOllama: false,
-          installLlamaCpp: false,
-        });
-        return { success: true, message: "Python runtime installed successfully" };
-      }
-
-      case "ffmpeg": {
-        emitBootMessage("Installing FFmpeg & codecs...");
-        logMessage("Installing FFmpeg via package manager");
-        // Install ffmpeg with GPL codecs (matches environment.yml spec)
-        await installCondaPackageBySpec(
-          condaEnvPath,
-          ["ffmpeg>=6,<7"],
-          "Installing FFmpeg & codecs",
-        );
-        return { success: true, message: "FFmpeg & codecs installed successfully" };
-      }
-
-      case "ollama": {
-        emitBootMessage("Installing Ollama...");
-        logMessage("Installing Ollama via package manager");
-        await ensureOllamaInstalled(condaEnvPath);
-        return { success: true, message: "Ollama installed successfully" };
-      }
-
-      case "llama-cpp": {
-        emitBootMessage("Installing llama.cpp...");
-        logMessage("Installing llama.cpp via package manager");
-        await ensureLlamaCppInstalled(condaEnvPath);
-        return { success: true, message: "llama.cpp installed successfully" };
-      }
-
-      default:
-        return { success: false, message: `Unknown runtime package: ${packageId}` };
+    // Install conda packages
+    if (packageSpecs.length > 0) {
+      await installCondaPackageBySpec(condaEnvPath, packageSpecs, `Installing ${def.name}`);
     }
+
+    // Post-install hook: Python needs pip packages
+    if (packageId === "python") {
+      const { installRequiredPythonPackages } = await import("./python");
+      await installRequiredPythonPackages();
+    }
+
+    return { success: true, message: `${def.name} installed successfully` };
   } catch (error: any) {
     logMessage(`Failed to install runtime package ${packageId}: ${error.message}`, "error");
     return { success: false, message: `Failed to install: ${error.message}` };

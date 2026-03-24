@@ -82,9 +82,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     async (packageId: RuntimePackageId) => {
       setInstalling((prev) => new Set(prev).add(packageId));
       try {
-        // Pass install location for python-runtime
-        const location =
-          packageId === "python-runtime" ? installLocation : undefined;
+        const location = installLocation || undefined;
         const result = await window.api.packages.installRuntime(
           packageId,
           location
@@ -299,11 +297,6 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
 
           <div className="package-list">
             {runtimePackages.map((pkg) => {
-              const condaNotInstalled =
-                pkg.requiresConda &&
-                !runtimePackages.find((p) => p.id === "python-runtime")
-                  ?.installed;
-
               return (
                 <div
                   key={pkg.id}
@@ -319,17 +312,6 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                       )}
                     </div>
                     <p className="package-description">{pkg.description}</p>
-                    {condaNotInstalled && !pkg.installed && (
-                      <p
-                        style={{
-                          color: "#f59e0b",
-                          fontSize: "12px",
-                          margin: "4px 0 0",
-                        }}
-                      >
-                        Requires Python Runtime to be installed first.
-                      </p>
-                    )}
                   </div>
                   <div className="package-actions">
                     {pkg.installed ? (
@@ -342,8 +324,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                         onClick={() => handleRuntimeInstall(pkg.id)}
                         disabled={
                           isProcessing(pkg.id) ||
-                          pkg.installing ||
-                          condaNotInstalled
+                          pkg.installing
                         }
                       >
                         {isProcessing(pkg.id) || pkg.installing

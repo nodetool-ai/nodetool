@@ -941,10 +941,8 @@ export function initializeIpcHandlers(): void {
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
     async (_event, data: { packageId: string; installLocation?: string }) => {
       const validIds: import("./packageManager").RuntimePackageId[] = [
-        "python-runtime",
-        "ollama",
-        "llama-cpp",
-        "ffmpeg",
+        "python", "nodejs", "bash", "ruby", "lua",
+        "ffmpeg", "pandoc", "yt-dlp", "ollama", "llama-cpp",
       ];
       if (!validIds.includes(data.packageId as any)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
