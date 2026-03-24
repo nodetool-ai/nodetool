@@ -303,7 +303,7 @@ const api = {
     checkVersion: () =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
 
-    /** Get runtime package statuses (Python, Ollama, llama.cpp, FFmpeg) */
+    /** Get runtime package statuses for all registered runtimes */
     getRuntimeStatuses: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_STATUSES),
 

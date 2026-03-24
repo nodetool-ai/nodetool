@@ -23,6 +23,7 @@ import {
   IpcChannels,
   IpcEvents,
   IpcResponse,
+  RuntimePackageId,
   WindowCloseAction,
 } from "./types.d";
 import {
@@ -48,6 +49,7 @@ import {
   getRuntimePackageStatuses,
   installRuntimePackage,
   getCondaInstallLocation,
+  RUNTIME_PACKAGE_IDS,
 } from "./packageManager";
 import {
   openModelDirectory,
@@ -940,16 +942,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
     async (_event, data: { packageId: string; installLocation?: string }) => {
-      const validIds: import("./packageManager").RuntimePackageId[] = [
-        "python", "nodejs", "bash", "ruby", "lua",
-        "ffmpeg", "pandoc", "yt-dlp", "ollama", "llama-cpp",
-      ];
-      if (!validIds.includes(data.packageId as any)) {
+      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Installing runtime package: ${data.packageId}`);
       return await installRuntimePackage(
-        data.packageId as import("./packageManager").RuntimePackageId,
+        data.packageId as RuntimePackageId,
         data.installLocation,
       );
     },

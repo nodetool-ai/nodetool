@@ -19,7 +19,7 @@ import os from "os";
 import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
-// Lock file no longer used — packages are specified directly in BASE_CONDA_PACKAGES
+// Lock file no longer used — packages are specified directly via runtime configuration
 import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
@@ -670,19 +670,19 @@ async function provisionCondaEnvironment(
  * Conda Environment Installer Module
  *
  * This module handles the installation of the conda environment for Nodetool.
- * It provisions a Conda environment using micromamba with package specs defined
- * in BASE_CONDA_PACKAGES (matching environment.yml).
+ * A minimal bootstrap env is created via `ensureCondaEnvironment()`, and
+ * individual runtimes are installed on-demand via `installCondaPackageBySpec()`.
  *
  * Key Features:
- * - Creates the conda environment directly from package specifications
+ * - Creates a minimal conda environment with BOOTSTRAP_CONDA_PACKAGES
  * - Provides interactive installation location selection
  * - Streams micromamba output for visibility into long-running operations
  * - Handles environment initialization and required dependency installation
  *
  * Installation Process:
- * 1. `provisionCondaEnvironment()` creates the env with base packages
- * 2. `installCondaPackages()` adds optional backend packages (ollama, llama.cpp)
- * 3. `installCondaPackageBySpec()` installs additional packages on demand (e.g. ffmpeg)
+ * 1. `ensureCondaEnvironment()` creates a minimal env if none exists
+ * 2. `installCondaPackageBySpec()` installs runtime-specific packages on demand
+ * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
 /**

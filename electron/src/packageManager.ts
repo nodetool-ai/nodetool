@@ -1059,31 +1059,18 @@ export function validateRepoId(repoId: string): {
 // =============================================================================
 // Runtime Package Management
 // =============================================================================
-// These functions manage "system-level" runtime packages (Python environment,
-// Ollama, llama.cpp) that were previously handled by the install wizard.
-// They are now exposed through the package manager UI so users can install
-// them on-demand without blocking the app.
+// These functions manage "system-level" runtime packages that were previously
+// handled by the install wizard. They are now exposed through the package
+// manager UI so users can install them on-demand without blocking the app.
 // =============================================================================
 
-export type RuntimePackageId =
-  | "python"
-  | "nodejs"
-  | "bash"
-  | "ruby"
-  | "lua"
-  | "ffmpeg"
-  | "pandoc"
-  | "yt-dlp"
-  | "ollama"
-  | "llama-cpp";
+import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 
-export interface RuntimePackageStatus {
-  id: RuntimePackageId;
-  name: string;
-  description: string;
-  installed: boolean;
-  installing: boolean;
-}
+/** All valid runtime package IDs, derived from a single source of truth. */
+export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] = [
+  "python", "nodejs", "bash", "ruby", "lua",
+  "ffmpeg", "pandoc", "yt-dlp", "ollama", "llama-cpp",
+] as const;
 
 /**
  * Maps each runtime to the conda package specs needed to provide it,

@@ -112,21 +112,22 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   const [loading, setLoading] = useState(true);
   const { isElectron } = getIsElectronDetails();
 
-  const checkRuntimes = useCallback(async () => {
+  const checkRuntimes = useCallback(async (forceRefresh = false) => {
     if (!isElectron) {
       setMissingRuntimes(requiredRuntimes);
       setLoading(false);
       return;
     }
 
-    // Invalidate cache so we get fresh statuses.
-    cachedStatuses = null;
-    if (!fetchPromise) {
-      fetchPromise = refreshRuntimeStatuses().finally(() => {
-        fetchPromise = null;
-      });
+    // Only refresh statuses when cache is empty or explicitly forced.
+    if (!cachedStatuses || forceRefresh) {
+      if (!fetchPromise) {
+        fetchPromise = refreshRuntimeStatuses().finally(() => {
+          fetchPromise = null;
+        });
+      }
+      await fetchPromise;
     }
-    await fetchPromise;
 
     const missing = requiredRuntimes.filter((rt) => {
       const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
@@ -150,7 +151,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   useEffect(() => {
     if (missingRuntimes.length === 0) return;
     const onFocus = () => {
-      checkRuntimes();
+      checkRuntimes(true);
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
