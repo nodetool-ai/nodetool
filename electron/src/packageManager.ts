@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
+import { getProcessEnv, getPythonPath, getCondaEnvPath, getOllamaPath, getLlamaServerPath } from "./config";
 import * as path from "path";
 
 // TODO: Package manager needs to be rewritten for npm packages.
@@ -1054,4 +1054,173 @@ export function validateRepoId(repoId: string): {
   }
 
   return { valid: true };
+}
+
+// =============================================================================
+// Runtime Package Management
+// =============================================================================
+// These functions manage "system-level" runtime packages (Python environment,
+// Ollama, llama.cpp) that were previously handled by the install wizard.
+// They are now exposed through the package manager UI so users can install
+// them on-demand without blocking the app.
+// =============================================================================
+
+import { isCondaEnvironmentInstalled } from "./python";
+
+export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp";
+
+export interface RuntimePackageStatus {
+  id: RuntimePackageId;
+  name: string;
+  description: string;
+  installed: boolean;
+  installing: boolean;
+}
+
+// Track which runtime packages are currently being installed
+const runtimeInstalling = new Set<RuntimePackageId>();
+
+/**
+ * Check the installation status of all runtime packages
+ */
+export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[]> {
+  const [pythonInstalled, ollamaInstalled, llamaInstalled] = await Promise.all([
+    isCondaEnvironmentInstalled().catch(() => false),
+    checkOllamaRuntimeInstalled(),
+    checkLlamaCppRuntimeInstalled(),
+  ]);
+
+  return [
+    {
+      id: "python-runtime",
+      name: "Python Runtime",
+      description:
+        "Python environment for running Python-based nodes. Required for AI image generation, audio processing, and other Python workflows.",
+      installed: pythonInstalled,
+      installing: runtimeInstalling.has("python-runtime"),
+    },
+    {
+      id: "ollama",
+      name: "Ollama",
+      description:
+        "Local LLM inference server. Easy to use, recommended for most users. Includes model management and a simple API.",
+      installed: ollamaInstalled,
+      installing: runtimeInstalling.has("ollama"),
+    },
+    {
+      id: "llama-cpp",
+      name: "llama.cpp",
+      description:
+        "High-performance GPU-accelerated LLM backend with GGUF model support.",
+      installed: llamaInstalled,
+      installing: runtimeInstalling.has("llama-cpp"),
+    },
+  ];
+}
+
+async function checkOllamaRuntimeInstalled(): Promise<boolean> {
+  // Check bundled ollama first
+  try {
+    const ollamaPath = getOllamaPath();
+    if (await fileExists(ollamaPath)) {
+      return true;
+    }
+  } catch {
+    // ignore - conda env may not exist
+  }
+
+  // Check system ollama
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1000);
+    const res = await fetch("http://127.0.0.1:11434/api/tags", {
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    if (res.ok) return true;
+  } catch {
+    // not running
+  }
+
+  return false;
+}
+
+async function checkLlamaCppRuntimeInstalled(): Promise<boolean> {
+  try {
+    const llamaPath = getLlamaServerPath();
+    return await fileExists(llamaPath);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Install a runtime package (Python, Ollama, or llama.cpp)
+ */
+export async function installRuntimePackage(
+  packageId: RuntimePackageId,
+): Promise<{ success: boolean; message: string }> {
+  if (runtimeInstalling.has(packageId)) {
+    return { success: false, message: `${packageId} is already being installed` };
+  }
+
+  runtimeInstalling.add(packageId);
+
+  try {
+    // Lazy-import installer functions to avoid circular dependencies
+    const { provisionCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled } =
+      await import("./installer");
+
+    const condaEnvPath = getCondaEnvPath();
+
+    switch (packageId) {
+      case "python-runtime": {
+        emitBootMessage("Installing Python runtime...");
+        logMessage("Installing Python runtime via package manager");
+        await provisionCondaEnvironment(condaEnvPath, "none", {
+          bootMessage: "Installing Python runtime...",
+          installOllama: false,
+          installLlamaCpp: false,
+        });
+        return { success: true, message: "Python runtime installed successfully" };
+      }
+
+      case "ollama": {
+        // Ollama needs the conda env to exist first
+        const hasPython = await isCondaEnvironmentInstalled().catch(() => false);
+        if (!hasPython) {
+          return {
+            success: false,
+            message: "Please install the Python Runtime first before installing Ollama.",
+          };
+        }
+        emitBootMessage("Installing Ollama...");
+        logMessage("Installing Ollama via package manager");
+        await ensureOllamaInstalled(condaEnvPath);
+        return { success: true, message: "Ollama installed successfully" };
+      }
+
+      case "llama-cpp": {
+        const hasPython = await isCondaEnvironmentInstalled().catch(() => false);
+        if (!hasPython) {
+          return {
+            success: false,
+            message: "Please install the Python Runtime first before installing llama.cpp.",
+          };
+        }
+        emitBootMessage("Installing llama.cpp...");
+        logMessage("Installing llama.cpp via package manager");
+        await ensureLlamaCppInstalled(condaEnvPath);
+        return { success: true, message: "llama.cpp installed successfully" };
+      }
+
+      default:
+        return { success: false, message: `Unknown runtime package: ${packageId}` };
+    }
+  } catch (error: any) {
+    logMessage(`Failed to install runtime package ${packageId}: ${error.message}`, "error");
+    return { success: false, message: `Failed to install: ${error.message}` };
+  } finally {
+    runtimeInstalling.delete(packageId);
+  }
 }

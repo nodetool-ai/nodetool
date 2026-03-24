@@ -301,6 +301,14 @@ const api = {
     /** Check package versions against expected versions */
     checkVersion: () =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
+
+    /** Get runtime package statuses (Python, Ollama, llama.cpp) */
+    getRuntimeStatuses: () =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_STATUSES),
+
+    /** Install a runtime package */
+    installRuntime: (packageId: string) =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_INSTALL, packageId),
   },
 
   // ============================================================================

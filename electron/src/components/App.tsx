@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import BootMessage from "./BootMessage";
-import InstallWizard from "./InstallWizard";
 import LogContainer from "./LogContainer";
 import UpdateNotification from "./UpdateNotification";
 import { useIconAnimation } from "../hooks/useIconAnimation";
@@ -8,7 +7,6 @@ import "./index.css";
 import PackageManager from "./PackageManager";
 import PackageUpdatesNotification from "./PackageUpdatesNotification";
 import type {
-  InstallLocationData,
   PackageUpdateInfo,
   ServerState,
   UpdateInfo,
@@ -21,7 +19,6 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [bootMessage, setBootMessage] = useState<string>("");
   const [showBootMessage, setShowBootMessage] = useState(!showPackageManager);
-  const [showInstallWizard, setShowInstallPrompt] = useState(false);
   const [showUpdateSteps, setShowUpdateSteps] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const [showPackageUpdates, setShowPackageUpdates] = useState(false);
@@ -37,8 +34,6 @@ const App: React.FC = () => {
   const [serverError, setServerError] = useState<string | null>(null);
   // showPackageManager is declared above to allow conditional initial state
 
-  const [installLocationData, setInstallLocationData] =
-    useState<InstallLocationData | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [packageUpdates, setPackageUpdates] = useState<
     PackageUpdateInfo[] | null
@@ -138,18 +133,6 @@ const App: React.FC = () => {
     setShowLogs(true);
   }, []);
 
-  const handleInstallLocationPrompt = useCallback(
-    (data: InstallLocationData) => {
-      setInstallLocationData({
-        ...data,
-        packages: data.packages ?? [],
-      });
-      setShowBootMessage(false);
-      setShowInstallPrompt(true);
-    },
-    [setInstallLocationData, setShowBootMessage, setShowInstallPrompt]
-  );
-
   const handleUpdateAvailable = useCallback(
     (info: UpdateInfo) => {
       setUpdateInfo(info);
@@ -226,7 +209,6 @@ const App: React.FC = () => {
     unsubs.push(window.api.server.onBootMessage(handleBootMessage));
     unsubs.push(window.api.server.onLog(handleServerLog));
     unsubs.push(window.api.server.onError(handleServerError));
-    unsubs.push(window.api.installer.onLocationPrompt(handleInstallLocationPrompt));
     unsubs.push(window.api.updates.onAvailable(handleUpdateAvailable));
     unsubs.push(window.api.packages.onUpdatesAvailable(handlePackageUpdatesAvailable));
     unsubs.push(window.api.menu.onEvent(handleMenuEvent));
@@ -249,17 +231,11 @@ const App: React.FC = () => {
     handleBootMessage,
     handleServerLog,
     handleServerError,
-    handleInstallLocationPrompt,
     handleUpdateAvailable,
     handlePackageUpdatesAvailable,
     handleMenuEvent,
     showPackageManager,
   ]);
-
-  const handleInstallComplete = useCallback(() => {
-    setShowInstallPrompt(false);
-    setShowBootMessage(true);
-  }, []);
 
   const handleRetryStart = useCallback(() => {
     setServerError(null);
@@ -281,13 +257,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleReinstallEnvironment = useCallback(() => {
-    if (installLocationData) {
-      setShowBootMessage(false);
-      setShowInstallPrompt(true);
-      return;
-    }
     window.api.packages.showManager?.(undefined);
-  }, [installLocationData]);
+  }, []);
 
   const handleSkipPackageManager = useCallback(() => {
     setShowBootMessage(true);
@@ -320,14 +291,6 @@ const App: React.FC = () => {
           onRetry={handleRetryStart}
           onOpenLogs={handleOpenLogs}
           onReinstall={handleReinstallEnvironment}
-        />
-      )}
-
-      {showInstallWizard && installLocationData && (
-        <InstallWizard
-          defaultPath={installLocationData.defaultPath}
-          defaultSelectedModules={installLocationData.packages}
-          onComplete={handleInstallComplete}
         />
       )}
 

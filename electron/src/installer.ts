@@ -859,4 +859,4 @@ async function ensureOllamaInstalled(
   }
 }
 
-export { promptForInstallLocation, installCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled };
+export { promptForInstallLocation, installCondaEnvironment, provisionCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled };

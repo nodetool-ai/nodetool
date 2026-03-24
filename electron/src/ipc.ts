@@ -45,6 +45,8 @@ import {
   validateRepoId,
   searchNodes,
   checkExpectedPackageVersions,
+  getRuntimePackageStatuses,
+  installRuntimePackage,
 } from "./packageManager";
 import {
   openModelDirectory,
@@ -927,6 +929,20 @@ export function initializeIpcHandlers(): void {
     logMessage("Checking expected package versions");
     return await checkExpectedPackageVersions();
   });
+
+  // Runtime package handlers
+  createIpcMainHandler(IpcChannels.RUNTIME_PACKAGE_STATUSES, async () => {
+    logMessage("Fetching runtime package statuses");
+    return await getRuntimePackageStatuses();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_PACKAGE_INSTALL,
+    async (_event, packageId: string) => {
+      logMessage(`Installing runtime package: ${packageId}`);
+      return await installRuntimePackage(packageId as import("./packageManager").RuntimePackageId);
+    },
+  );
 
   // Log viewer handlers
   createIpcMainHandler(IpcChannels.GET_LOGS, async () => {

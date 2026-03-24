@@ -79,6 +79,10 @@ declare global {
           callback: (packages: PackageUpdateInfo[]) => void,
         ) => () => void;
         checkVersion: () => Promise<PackageVersionCheckResult[]>;
+        getRuntimeStatuses: () => Promise<RuntimePackageStatus[]>;
+        installRuntime: (
+          packageId: RuntimePackageId,
+        ) => Promise<{ success: boolean; message: string }>;
       };
 
       // Window controls
@@ -545,6 +549,9 @@ export enum IpcChannels {
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
   PACKAGE_VERSION_CHECK = "package-version-check",
+  // Runtime package channels
+  RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
+  RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
@@ -719,6 +726,8 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
+  [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
+  [IpcChannels.RUNTIME_PACKAGE_INSTALL]: string; // RuntimePackageId
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
@@ -836,6 +845,8 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
+  [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
+  [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
@@ -990,6 +1001,16 @@ export interface PackageInstallRequest {
 
 export interface PackageUninstallRequest {
   repo_id: string;
+}
+
+export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp";
+
+export interface RuntimePackageStatus {
+  id: RuntimePackageId;
+  name: string;
+  description: string;
+  installed: boolean;
+  installing: boolean;
 }
 
 // Claude Agent SDK types
