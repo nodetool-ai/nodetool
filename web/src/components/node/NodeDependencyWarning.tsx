@@ -9,8 +9,11 @@ import { getIsElectronDetails } from "../../utils/browser";
 
 const RUNTIME_LABELS: Record<string, string> = {
   ffmpeg: "FFmpeg & Codecs",
-  "python-runtime": "Python Runtime",
-  python: "Python Runtime",
+  python: "Python",
+  nodejs: "Node.js",
+  bash: "Bash",
+  ruby: "Ruby",
+  lua: "Lua",
   ollama: "Ollama",
   "llama-cpp": "llama.cpp",
 };
@@ -18,8 +21,11 @@ const RUNTIME_LABELS: Record<string, string> = {
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
 const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   ffmpeg: "ffmpeg",
-  "python-runtime": "python-runtime",
   python: "python-runtime",
+  nodejs: "python-runtime",
+  bash: "python-runtime",
+  ruby: "python-runtime",
+  lua: "python-runtime",
   ollama: "ollama",
   "llama-cpp": "llama-cpp",
 };
