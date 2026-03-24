@@ -66,6 +66,7 @@ export class ExecutePythonNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Python code to execute as-is. Dynamic inputs are provided as local vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -100,6 +101,7 @@ export class ExecuteJavaScriptNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Code", description: "JavaScript code to execute as-is under Node.js. Dynamic inputs are provided as local vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -135,6 +137,7 @@ export class ExecuteBashNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Bash script to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -170,6 +173,7 @@ export class ExecuteRubyNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Ruby code to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -205,6 +209,7 @@ export class ExecuteLuaNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Lua code to execute as-is in a restricted environment. Dynamic inputs are provided as variables. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -248,6 +253,7 @@ export class ExecuteCommandNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Single command to run via the selected shell. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare command: any;
@@ -332,6 +338,7 @@ export class RunPythonCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "python" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Python command to execute" })
   declare command: any;
@@ -346,6 +353,7 @@ export class RunJavaScriptCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "javascript" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "JavaScript command to execute" })
   declare command: any;
@@ -360,6 +368,7 @@ export class RunBashCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "bash" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Bash command to execute" })
   declare command: any;
@@ -374,6 +383,7 @@ export class RunRubyCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "ruby" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Ruby command to execute" })
   declare command: any;
@@ -388,6 +398,7 @@ export class RunLuaCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "lua" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Lua command to execute" })
   declare command: any;
@@ -408,6 +419,7 @@ export class RunShellCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "command" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Shell command to execute" })
   declare command: any;
@@ -424,6 +436,7 @@ export class RunLuaCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "lua" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Lua command to execute" })
   declare command: any;
@@ -444,6 +457,7 @@ export class RunPythonCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "python" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Python command to execute" })
   declare command: any;
@@ -461,6 +475,7 @@ export class RunJavaScriptCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "javascript" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "JavaScript command to execute" })
   declare command: any;
@@ -478,6 +493,7 @@ export class RunBashCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "bash" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Bash command to execute" })
   declare command: any;
@@ -495,6 +511,7 @@ export class RunRubyCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "ruby" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Ruby command to execute" })
   declare command: any;
@@ -512,6 +529,7 @@ export class RunShellCommandDockerNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "command" as const;
   static readonly defaultMode = "docker" as const;
+  static readonly requiredRuntimes = ["python-runtime"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Shell command to execute" })
   declare command: any;
