@@ -24,12 +24,27 @@ export const defaultLayout: SerializedDockview = {
           size: 500
         },
         {
-          type: "leaf",
-          data: {
-            views: ["activity"],
-            activeView: "activity",
-            id: "activity"
-          },
+          type: "branch",
+          data: [
+            {
+              type: "leaf",
+              data: {
+                views: ["runtimes"],
+                activeView: "runtimes",
+                id: "runtimes"
+              },
+              size: 400
+            },
+            {
+              type: "leaf",
+              data: {
+                views: ["activity"],
+                activeView: "activity",
+                id: "activity"
+              },
+              size: 400
+            }
+          ],
           size: 400
         }
       ],
@@ -49,6 +64,11 @@ export const defaultLayout: SerializedDockview = {
       id: "templates",
       contentComponent: "templates",
       title: "Templates"
+    },
+    runtimes: {
+      id: "runtimes",
+      contentComponent: "runtimes",
+      title: "Runtimes"
     },
     activity: {
       id: "activity",

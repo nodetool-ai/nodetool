@@ -21,6 +21,7 @@ export type NodeClass = {
   recommendedModels?: unknown[];
   basicFields?: string[];
   requiredSettings?: string[];
+  requiredRuntimes?: string[];
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
   isDynamic: boolean;
@@ -73,6 +74,7 @@ export abstract class BaseNode {
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly basicFields: string[] | undefined = undefined;
   static readonly requiredSettings: string[] | undefined = undefined;
+  static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   static readonly isStreamingOutput: boolean = false;
   static readonly isDynamic: boolean = false;

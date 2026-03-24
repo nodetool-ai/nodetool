@@ -110,6 +110,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     subtitles: "str",
     thumbnail: "image"
   };
+  static readonly requiredRuntimes = ["yt-dlp"];
   
   @prop({ type: "str", default: "", title: "Url", description: "URL of the media to download" })
   declare url: any;

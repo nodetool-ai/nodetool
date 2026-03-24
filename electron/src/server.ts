@@ -520,11 +520,30 @@ async function startServer(): Promise<void> {
   const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
   logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
 
+  // Python path may not exist if the Python runtime hasn't been installed yet.
+  // The backend will start without Python support in that case.
+  let pythonPath = "";
+  try {
+    const candidatePath = getPythonPath();
+    const { promises: fsPromises } = await import("fs");
+    try {
+      await fsPromises.access(candidatePath);
+      pythonPath = candidatePath;
+    } catch {
+      logMessage(
+        `Python executable not found at ${candidatePath}. Backend will start without Python support.`,
+        "warn",
+      );
+    }
+  } catch {
+    logMessage("Could not resolve Python path. Backend will start without Python support.", "warn");
+  }
+
   const backendEnv: Record<string, string> = {
     ...getProcessEnv(),
     PORT: String(selectedPort),
     STATIC_FOLDER: webPath,
-    NODETOOL_PYTHON: getPythonPath(),
+    NODETOOL_PYTHON: pythonPath,
     OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: "production",
