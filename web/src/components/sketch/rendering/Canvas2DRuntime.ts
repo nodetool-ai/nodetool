@@ -28,7 +28,9 @@ type SerializedLayerData = {
   bounds: LayerContentBounds;
 };
 
-function getDefaultRasterBounds(bounds: LayerContentBounds): LayerContentBounds {
+function getDefaultRasterBounds(
+  bounds: LayerContentBounds
+): LayerContentBounds {
   return {
     x: Math.round(bounds.x),
     y: Math.round(bounds.y),
@@ -189,12 +191,15 @@ export class Canvas2DRuntime implements SketchRuntime {
         continue;
       }
 
-      const hasActiveStroke =
-        activeStroke && activeStroke.layerId === layer.id;
-      const compositeOffset = getLayerCompositeOffset(layer, {
-        width: layerCanvas.width,
-        height: layerCanvas.height
-      }, layerCanvas);
+      const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
+      const compositeOffset = getLayerCompositeOffset(
+        layer,
+        {
+          width: layerCanvas.width,
+          height: layerCanvas.height
+        },
+        layerCanvas
+      );
 
       if (hasActiveStroke) {
         let tempCanvas = this.strokeTempCanvas;
@@ -272,10 +277,14 @@ export class Canvas2DRuntime implements SketchRuntime {
         layer.blendMode || "normal"
       );
     }
-    const compositeOffset = getLayerCompositeOffset(layer, {
-      width: layerCanvas.width,
-      height: layerCanvas.height
-    }, layerCanvas);
+    const compositeOffset = getLayerCompositeOffset(
+      layer,
+      {
+        width: layerCanvas.width,
+        height: layerCanvas.height
+      },
+      layerCanvas
+    );
     ctx.drawImage(layerCanvas, compositeOffset.x, compositeOffset.y);
     ctx.restore();
   }
@@ -345,7 +354,9 @@ export class Canvas2DRuntime implements SketchRuntime {
   private findContentRect(
     canvas: HTMLCanvasElement
   ): { x: number; y: number; width: number; height: number } | null {
-    if (canvas.width === 0 || canvas.height === 0) return null;
+    if (canvas.width === 0 || canvas.height === 0) {
+      return null;
+    }
 
     const PROXY_MAX = 128;
     const scaleX = canvas.width / PROXY_MAX;
@@ -357,26 +368,41 @@ export class Canvas2DRuntime implements SketchRuntime {
     proxy.width = pw;
     proxy.height = ph;
     const proxyCtx = proxy.getContext("2d", { willReadFrequently: true });
-    if (!proxyCtx) return null;
+    if (!proxyCtx) {
+      return null;
+    }
     proxyCtx.drawImage(canvas, 0, 0, pw, ph);
 
     const imageData = proxyCtx.getImageData(0, 0, pw, ph);
     const data = imageData.data;
 
-    let minX = pw, minY = ph, maxX = -1, maxY = -1;
+    let minX = pw,
+      minY = ph,
+      maxX = -1,
+      maxY = -1;
     for (let y = 0; y < ph; y++) {
       const rowBase = y * pw;
       for (let x = 0; x < pw; x++) {
         if (data[(rowBase + x) * 4 + 3] !== 0) {
-          if (x < minX) minX = x;
-          if (y < minY) minY = y;
-          if (x > maxX) maxX = x;
-          if (y > maxY) maxY = y;
+          if (x < minX) {
+            minX = x;
+          }
+          if (y < minY) {
+            minY = y;
+          }
+          if (x > maxX) {
+            maxX = x;
+          }
+          if (y > maxY) {
+            maxY = y;
+          }
         }
       }
     }
 
-    if (maxX < 0) return null; // all transparent
+    if (maxX < 0) {
+      return null; // all transparent
+    }
 
     // Scale back to full-canvas coordinates, padded by one proxy-pixel each
     // side to account for sub-pixel content the downscale may have blurred.
@@ -481,7 +507,11 @@ export class Canvas2DRuntime implements SketchRuntime {
 
     if (!decoded.image) {
       // No image: resize and clear immediately (canvas is already blank).
-      const canvas = this.getOrCreateLayerCanvas(layerId, desiredWidth, desiredHeight);
+      const canvas = this.getOrCreateLayerCanvas(
+        layerId,
+        desiredWidth,
+        desiredHeight
+      );
       if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
         canvas.width = desiredWidth;
         canvas.height = desiredHeight;
@@ -507,7 +537,11 @@ export class Canvas2DRuntime implements SketchRuntime {
       if (this.layerLoadGenerations.get(layerId) !== gen) {
         return;
       }
-      const canvas = this.getOrCreateLayerCanvas(layerId, desiredWidth, desiredHeight);
+      const canvas = this.getOrCreateLayerCanvas(
+        layerId,
+        desiredWidth,
+        desiredHeight
+      );
       if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
         // Assigning width/height also clears the canvas; no clearRect needed.
         canvas.width = desiredWidth;
@@ -517,7 +551,9 @@ export class Canvas2DRuntime implements SketchRuntime {
       }
       setCanvasRasterBounds(canvas, decoded.bounds);
       const ctx = canvas.getContext("2d");
-      if (ctx) { ctx.drawImage(img, 0, 0); }
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+      }
       onComplete?.();
     };
     img.src = decoded.image;
@@ -820,12 +856,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     });
   }
 
-  cropLayers(
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): void {
+  cropLayers(x: number, y: number, width: number, height: number): void {
     for (const [, layerCanvas] of this.layerCanvases) {
       const snapshot = window.document.createElement("canvas");
       snapshot.width = layerCanvas.width;

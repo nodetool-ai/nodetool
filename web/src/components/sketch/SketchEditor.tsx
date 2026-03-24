@@ -314,6 +314,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onPanChange={store.setPan}
             onStrokeStart={canvasActions.handleStrokeStart}
             onStrokeEnd={canvasActions.handleStrokeEnd}
+            onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
             onLayerTransformChange={store.setLayerTransform}
             onLayerContentBoundsChange={store.setLayerContentBounds}
             onBrushSizeChange={colorActions.handleBrushSizeChange}

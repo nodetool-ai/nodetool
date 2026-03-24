@@ -139,6 +139,8 @@ export interface SketchCanvasProps {
   foregroundColor?: string;
   /** Merged onto the root container (e.g. for layout hooks / E2E). */
   className?: string;
+  /** Called when the pointer leaves the canvas area (e.g. refresh layer thumbnails off the hot path). */
+  onCanvasLeave?: () => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -169,7 +171,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onSelectionChange,
       onAutoPickLayer,
       foregroundColor,
-      className: rootClassName
+      className: rootClassName,
+      onCanvasLeave
     } = props;
 
     const theme = useTheme();
@@ -273,7 +276,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onEyedropperPick,
       onSelectionChange,
       onAutoPickLayer,
-      foregroundColor
+      foregroundColor,
+      onCanvasLeave
     });
 
     // ─── Imperative handle ──────────────────────────────────────────────
@@ -318,6 +322,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onPointerDown={pointerHandlers.handlePointerDown}
         onPointerMove={pointerHandlers.handlePointerMove}
         onPointerUp={pointerHandlers.handlePointerUp}
+        onPointerLeave={pointerHandlers.handleMouseLeave}
         onMouseMove={pointerHandlers.handleMouseMove}
         onMouseLeave={pointerHandlers.handleMouseLeave}
         onContextMenu={pointerHandlers.handleContextMenu}

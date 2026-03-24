@@ -55,6 +55,7 @@ export function useCanvasActions({
   interface PendingStrokeFinalize {
     hasSnapshot: boolean;
     data: string | null;
+    committedBounds?: LayerContentBounds | null;
   }
 
   interface PendingExportSync {
@@ -64,6 +65,7 @@ export function useCanvasActions({
 
   const pendingStrokeFinalizeRef = useRef<Map<string, PendingStrokeFinalize>>(new Map());
   const pendingExportSyncRef = useRef<PendingExportSync>({ image: false, mask: false });
+  const layerThumbIdleFlushScheduledRef = useRef(false);
 
   const flushPendingStrokeFinalization = useCallback(() => {
     const pendingEntries = Array.from(pendingStrokeFinalizeRef.current.entries());
@@ -79,9 +81,34 @@ export function useCanvasActions({
         ? pending.data
         : canvas?.getLayerData(layerId) ?? null;
       updateLayerData(layerId, nextData);
+      if (pending.committedBounds) {
+        setLayerContentBounds(layerId, pending.committedBounds);
+      }
     }
 
-  }, [canvasRef, updateLayerData]);
+  }, [canvasRef, updateLayerData, setLayerContentBounds]);
+
+  /**
+   * Encode pending layer pixels into document state for layer-panel thumbnails.
+   * Runs on an idle callback so it does not compete with cursor / pointer-up work.
+   * Stroke end only registers pending data; this is invoked when the pointer leaves
+   * the canvas (see SketchCanvas). Modal close still uses flushPendingCanvasSync.
+   */
+  const flushLayerThumbnailsWhenIdle = useCallback(() => {
+    if (layerThumbIdleFlushScheduledRef.current) {
+      return;
+    }
+    layerThumbIdleFlushScheduledRef.current = true;
+    const run = () => {
+      layerThumbIdleFlushScheduledRef.current = false;
+      flushPendingStrokeFinalization();
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => run(), { timeout: 1500 });
+    } else {
+      window.setTimeout(run, 0);
+    }
+  }, [flushPendingStrokeFinalization]);
 
   const flushPendingExportSync = useCallback(() => {
     const pending = pendingExportSyncRef.current;
@@ -145,35 +172,16 @@ export function useCanvasActions({
         return;
       }
 
-      // Defer the expensive canvas.toDataURL() + pixel-scan out of the
-      // pointer-up event handler so the cursor doesn't stall while the PNG
-      // is being encoded for the current (potentially large) layer canvas.
-      // Batching updateLayerData + setLayerContentBounds in the same rAF tick
-      // lets React 18 merge them into a single re-render, eliminating the
-      // intermediate re-render that would trigger a stale-data hydration pass.
+      // Canvas already has the correct pixels. Defer encode + Zustand update until
+      // the pointer leaves the canvas (flushLayerThumbnailsWhenIdle) or modal
+      // close (flushPendingCanvasSync) so pointer-up stays smooth.
       pendingStrokeFinalizeRef.current.set(layerId, {
         hasSnapshot: false,
-        data: null
-      });
-      requestAnimationFrame(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const nextData = canvas.getLayerData(layerId) ?? null;
-        updateLayerData(layerId, nextData);
-        if (committedBounds) {
-          setLayerContentBounds(layerId, committedBounds);
-        }
-        // Mark as resolved so flushPendingStrokeFinalization won't re-encode.
-        const pending = pendingStrokeFinalizeRef.current.get(layerId);
-        if (pending && !pending.hasSnapshot) {
-          pendingStrokeFinalizeRef.current.set(layerId, {
-            hasSnapshot: true,
-            data: nextData
-          });
-        }
+        data: null,
+        committedBounds: committedBounds ?? null
       });
     },
-    [canvasRef, onExportImage, onExportMask, setLayerContentBounds, updateLayerData]
+    [onExportImage, onExportMask, updateLayerData, setLayerContentBounds]
   );
 
   const reconcileLayerToDocumentSpace = useCallback(
@@ -532,6 +540,7 @@ export function useCanvasActions({
     handleStrokeStart,
     handleStrokeEnd,
     flushPendingCanvasSync,
+    flushLayerThumbnailsWhenIdle,
     handleClearLayer,
     handleFillLayerWithColor,
     handleNudgeLayer,

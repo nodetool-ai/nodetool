@@ -79,6 +79,8 @@ export interface UsePointerHandlersParams {
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
   foregroundColor?: string;
+  /** Fires when the pointer leaves the canvas container (thumbnails, etc.). */
+  onCanvasLeave?: () => void;
 }
 
 export interface UsePointerHandlersResult {
@@ -136,7 +138,8 @@ export function usePointerHandlers({
   onEyedropperPick,
   onSelectionChange,
   onAutoPickLayer,
-  foregroundColor = "#000000"
+  foregroundColor = "#000000",
+  onCanvasLeave
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -1342,7 +1345,8 @@ export function usePointerHandlers({
         ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
       }
     }
-  }, [cursorCanvasRef]);
+    onCanvasLeave?.();
+  }, [cursorCanvasRef, onCanvasLeave]);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
