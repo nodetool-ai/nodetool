@@ -714,6 +714,7 @@ export class EmailAgentNode extends ToolAgentNode {
 
 export class FfmpegAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.FfmpegAgent";
+  static readonly requiredRuntimes = ["ffmpeg"];
       static readonly title = "FFmpeg Agent";
       static readonly description = "Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.\n    skills, ffmpeg, media, video, audio, transcode, remux";
     static readonly metadataOutputTypes = {

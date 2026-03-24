@@ -21,6 +21,7 @@ import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
+import NodeDependencyWarning from "./NodeDependencyWarning";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { hasNodeError } from "../../stores/ErrorStore";
@@ -691,6 +692,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
+      {metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
+        <NodeDependencyWarning requiredRuntimes={metadata.required_runtimes} />
+      )}
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
       {!isOverlayVisible &&
