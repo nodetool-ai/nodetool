@@ -111,21 +111,18 @@ const ToolsListProperty = (props: PropertyProps) => {
     [props]
   );
 
-  const handleToggleTool = useCallback(
-    (toolName: string) => {
+  const handleToolClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const toolName = event.currentTarget.dataset.tool;
+      if (!toolName) {
+        return;
+      }
       const newToolNames = toolNames.includes(toolName)
         ? toolNames.filter((name) => name !== toolName)
         : [...toolNames, toolName];
       onChange(newToolNames);
     },
     [toolNames, onChange]
-  );
-
-  const handleToolClick = useCallback(
-    (toolName: string) => () => {
-      handleToggleTool(toolName);
-    },
-    [handleToggleTool]
   );
 
   return (
@@ -152,7 +149,8 @@ const ToolsListProperty = (props: PropertyProps) => {
           >
             <IconButton
               size="small"
-              onClick={handleToolClick(tool)}
+              onClick={handleToolClick}
+              data-tool={tool}
               sx={{
                 padding: "1px",
                 marginLeft: "0 !important",
@@ -202,7 +200,7 @@ const ToolsListProperty = (props: PropertyProps) => {
         {AVAILABLE_TOOLS.map((tool) => {
           const selected = toolNames.includes(tool);
           return (
-            <MenuItem key={tool} onClick={handleToolClick(tool)} dense>
+            <MenuItem key={tool} onClick={handleToolClick} data-tool={tool} dense>
               <ListItemIcon sx={{ minWidth: 24 }}>
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
               </ListItemIcon>
