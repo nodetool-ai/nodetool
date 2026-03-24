@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { execSync } from "node:child_process";
 import { Agent } from "../../src/agent.js";
 import { TaskExecutor } from "../../src/task-executor.js";
 import { StepExecutor } from "../../src/step-executor.js";
@@ -20,6 +21,8 @@ const TIMEOUT = 180_000;
 let sdkAvailable = false;
 try {
   await import("@anthropic-ai/claude-agent-sdk");
+  // Also verify the claude CLI is actually available and runnable
+  execSync("claude --version", { stdio: "pipe", timeout: 5000 });
   sdkAvailable = true;
 } catch {}
 

@@ -106,7 +106,12 @@ describe("RemoteSettingsMenu", () => {
       return mockRemoteSettingsStore as any;
     });
 
-    mockUseNotificationStore.mockReturnValue(mockNotificationStore as any);
+    mockUseNotificationStore.mockImplementation((selector?: (state: typeof mockNotificationStore) => unknown) => {
+      if (typeof selector === "function") {
+        return selector(mockNotificationStore);
+      }
+      return mockNotificationStore as any;
+    });
 
     mockRemoteSettingsStore.fetchSettings.mockResolvedValue([]);
   });
