@@ -29,6 +29,8 @@
 
 ## PHASE 2 - FIXES
 
+- [ ] remove white border around canvas, seems not to come from css?
+- [ ] make alpha texture resolution independent
 - [ ] fix history undo, currently not working
 - [ ] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
 - [ ] improve round cursor/tool preview accuracy, currently roughly 2 times too large
