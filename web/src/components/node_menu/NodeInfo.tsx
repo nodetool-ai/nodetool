@@ -216,12 +216,12 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   );
 
   const renderTags = (tags: string = "") => {
-    return tags?.split(",").map((tag, index) => {
+    return tags?.split(",").map((tag) => {
       const trimmedTag = tag.trim();
       return (
         <span
           onClick={handleTagClick(trimmedTag)}
-          key={index}
+          key={trimmedTag}
           className="tag"
         >
           {trimmedTag}
