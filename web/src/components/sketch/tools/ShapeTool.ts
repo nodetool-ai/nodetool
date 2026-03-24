@@ -70,6 +70,7 @@ export class ShapeTool implements ToolHandler {
         } else {
           layerCtx.drawImage(overlayCanvas, 0, 0);
         }
+        ctx.onStrokeEnd(activeLayer.id, null);
         const committedBounds = getCanvasRasterBounds(layerCanvas);
         if (committedBounds) {
           ctx.onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
@@ -81,6 +82,5 @@ export class ShapeTool implements ToolHandler {
       }
     }
     this.shapeStart = null;
-    ctx.onStrokeEnd(activeLayer.id, null);
   }
 }

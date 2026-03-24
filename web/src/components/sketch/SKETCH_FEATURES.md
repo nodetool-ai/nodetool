@@ -115,6 +115,7 @@
 
 - [x] **Expose Layers** add buttons for expose as input / output per layer. create dynamic handles for node. see how dynamic nodes work
 - [ ] **Use exposed inputs as Layers** make sure inputs show up as layers
+
 - [ ] **Adjustment layers** (or equivalent non-destructive stack) — global per-layer adjustments without baking until flatten/export; pairs well with iterative AI and large canvases.
 - [x] fix / restore layer previews without breaking performance
 - [ ] Group / folder layers
@@ -308,6 +309,7 @@ web/src/components/node/ReactFlowWrapper.tsx        → Node type registration
 
 - [x] **Alt + click** temporary eyedropper while Brush/Pencil/Eraser/Fill is active — picks color without switching tool
 - [x] **Keyboard shortcut for vertical mirror** — **Shift+M** = vertical; **M** = horizontal
+- [ ] **Canvas size from input layer** if input layers exist, one layer can be set to define canvas size. define clearer!?
 - [ ] **Tonemapping**: add professional tonemapping section with 10 good presets
 - [ ] **Pixel workflow**: pixel grid overlay, snap-to-pixel, crisp view at high zoom
 - [ ] **Performance guardrails**: max megapixels warning; history memory cap by pixel count; throttle compositing on huge documents

@@ -125,9 +125,12 @@ export function useCanvasActions({
 
   const handleStrokeEnd = useCallback(
     (layerId: string, data: string | null) => {
+      const nextData =
+        data !== null ? data : canvasRef.current?.getLayerData(layerId) ?? null;
+      updateLayerData(layerId, nextData);
       pendingStrokeFinalizeRef.current.set(layerId, {
-        hasSnapshot: data !== null,
-        data
+        hasSnapshot: true,
+        data: nextData
       });
       if (onExportImage) {
         pendingExportSyncRef.current.image = true;
@@ -136,7 +139,7 @@ export function useCanvasActions({
         pendingExportSyncRef.current.mask = true;
       }
     },
-    [onExportImage, onExportMask]
+    [canvasRef, onExportImage, onExportMask, updateLayerData]
   );
 
   const reconcileLayerToDocumentSpace = useCallback(

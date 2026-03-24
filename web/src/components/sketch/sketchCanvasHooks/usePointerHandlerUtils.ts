@@ -35,7 +35,6 @@ import type { ActiveStrokeInfo } from "./useCompositing";
 import type { ToolContext } from "../tools/types";
 import {
   ensureLayerRasterBounds,
-  getCanvasRasterBounds,
   getDocumentViewportLayerBounds,
   getLayerCompositeOffset
 } from "../painting";
@@ -60,7 +59,6 @@ export interface UsePointerHandlerUtilsParams {
   ) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function usePointerHandlerUtils({
   zoom,
   displayCanvasRef,

@@ -317,6 +317,7 @@ export class PaintSession {
     this.lastSmoothedPoint = null;
     this.hasMoved = false;
     this.active = false;
+    ctx.onStrokeEnd(this.layer.id, null);
     const committedBounds = getCanvasRasterBounds(
       ctx.getOrCreateLayerCanvas(this.layer.id)
     );
@@ -325,8 +326,6 @@ export class PaintSession {
     }
 
     ctx.redraw();
-
-    ctx.onStrokeEnd(this.layer.id, null);
   }
 
   // ─── Internals ────────────────────────────────────────────────────

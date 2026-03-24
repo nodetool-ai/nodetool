@@ -499,17 +499,20 @@ export function usePointerHandlers({
             ctx,
             paintLayerOffsetRef.current
           );
-          floodFillUtil(ctx, localPt.x, localPt.y, { ...doc.toolSettings.fill, color: foregroundColor });
+          floodFillUtil(ctx, localPt.x, localPt.y, {
+            ...doc.toolSettings.fill,
+            color: foregroundColor
+          });
           if (clipped) {
             ctx.restore();
           }
+          onStrokeEnd(activeLayer.id, null);
           const committedBounds = getCanvasRasterBounds(layerCanvas);
           if (committedBounds) {
             onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
           }
           invalidateLayer(activeLayer.id);
           redraw();
-          onStrokeEnd(activeLayer.id, null);
         }
         return;
       }
@@ -782,7 +785,8 @@ export function usePointerHandlers({
       spaceHeldRef,
       sKeyHeldRef,
       shiftHeldRef,
-      altHeldRef
+      altHeldRef,
+      foregroundColor
     ]
   );
 
@@ -1068,6 +1072,7 @@ export function usePointerHandlers({
             },
             doc.toolSettings.gradient
           );
+          onStrokeEnd(activeLayer.id, null);
           const committedBounds = getCanvasRasterBounds(layerCanvas);
           if (committedBounds) {
             onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
@@ -1239,11 +1244,11 @@ export function usePointerHandlers({
       if (activeLayer) {
         const layerId = activeLayer.id;
         const layerCanvas = layerCanvasesRef.current.get(layerId);
+        onStrokeEnd(layerId, null);
         const committedBounds = getCanvasRasterBounds(layerCanvas);
         if (committedBounds) {
           onLayerContentBoundsChange?.(layerId, committedBounds);
         }
-        onStrokeEnd(layerId, null);
       }
     },
     [
