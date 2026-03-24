@@ -9,6 +9,9 @@ export default {
   testTimeout: 10000,
   maxWorkers: "50%",
   moduleNameMapper: {
+    "^@nodetool/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
+    "^@nodetool/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
+    "^(\\.{1,2}/.+)\\.js$": "$1",
     canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas/.*$": "<rootDir>/src/__mocks__/canvas.ts",
@@ -54,7 +57,7 @@ export default {
     ]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter)/)"
+    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter|@nodetool)/)"
   ],
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",

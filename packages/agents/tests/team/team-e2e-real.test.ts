@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { execSync } from "node:child_process";
 import { ClaudeAgentProvider, ProcessingContext } from "@nodetool/runtime";
 import { TeamExecutor } from "../../src/team/team-executor.js";
 import { Tool } from "../../src/tools/base-tool.js";
@@ -19,6 +20,8 @@ const TIMEOUT = 300_000; // 5 min — multi-agent takes time
 let sdkAvailable = false;
 try {
   await import("@anthropic-ai/claude-agent-sdk");
+  // Also verify the claude CLI is actually available and runnable
+  execSync("claude --version", { stdio: "pipe", timeout: 5000 });
   sdkAvailable = true;
 } catch {}
 

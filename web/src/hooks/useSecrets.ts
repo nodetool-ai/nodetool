@@ -24,8 +24,7 @@ export const useSecrets = () => {
 
   const isApiKeySet = useCallback(
     (key: string) => {
-      const secret = secrets.find((s) => s.key === key);
-      return secret !== undefined && secret.is_configured === true;
+      return secrets.some((s) => s.key === key);
     },
     [secrets]
   );

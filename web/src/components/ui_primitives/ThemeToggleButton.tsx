@@ -62,7 +62,7 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
         <Switch
           checked={isDark}
           onChange={handleToggle}
-          inputProps={{ "aria-label": tooltipText }}
+          slotProps={{ input: { "aria-label": tooltipText, role: "switch" } as React.InputHTMLAttributes<HTMLInputElement> }}
           icon={<LightModeIcon fontSize="small" />}
           checkedIcon={<DarkModeIcon fontSize="small" />}
           size={buttonSize === "large" ? "medium" : "small"}
