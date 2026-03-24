@@ -65,7 +65,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onDrop,
   onDragEnd
 }) => {
-  const thumbnailSrc = getLayerDataImageUrl(layer.data);
+  // TEMP: disabled to isolate stutter source
+  const thumbnailSrc = null; // getLayerDataImageUrl(layer.data);
 
   return (
     <Box>

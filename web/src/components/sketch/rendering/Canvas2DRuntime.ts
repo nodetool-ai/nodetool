@@ -91,6 +91,13 @@ export class Canvas2DRuntime implements SketchRuntime {
   /** Reusable temp canvas for stroke compositing. */
   private strokeTempCanvas: HTMLCanvasElement | null = null;
 
+  /**
+   * Generation counter per layer for setLayerData. Each call increments the
+   * generation; img.onload checks it and bails out if superseded, preventing
+   * a stale (e.g. pre-stroke) image from overwriting live-painted pixels.
+   */
+  private layerLoadGenerations: Map<string, number> = new Map();
+
   constructor(layerCanvases?: Map<string, HTMLCanvasElement>) {
     this.layerCanvases = layerCanvases ?? new Map();
   }
@@ -486,11 +493,20 @@ export class Canvas2DRuntime implements SketchRuntime {
       return;
     }
 
+    // Bump the generation so any in-flight img.onload from a prior call
+    // knows it has been superseded and should not overwrite the canvas.
+    const gen = (this.layerLoadGenerations.get(layerId) ?? 0) + 1;
+    this.layerLoadGenerations.set(layerId, gen);
+
     // Defer the resize and clear until the image is ready to draw.
     // This keeps the live canvas content visible between now and onload,
     // preventing a blank-canvas flash during the encode→decode round-trip.
     const img = new Image();
     img.onload = () => {
+      // Bail out if a newer setLayerData call has already taken over.
+      if (this.layerLoadGenerations.get(layerId) !== gen) {
+        return;
+      }
       const canvas = this.getOrCreateLayerCanvas(layerId, desiredWidth, desiredHeight);
       if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
         // Assigning width/height also clears the canvas; no clearRect needed.

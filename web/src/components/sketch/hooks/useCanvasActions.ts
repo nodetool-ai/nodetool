@@ -124,7 +124,7 @@ export function useCanvasActions({
   }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
-    (layerId: string, data: string | null) => {
+    (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => {
       if (onExportImage) {
         pendingExportSyncRef.current.image = true;
       }
@@ -135,6 +135,9 @@ export function useCanvasActions({
       if (data !== null) {
         // Caller already provided serialized data (rare fast-path).
         updateLayerData(layerId, data);
+        if (committedBounds) {
+          setLayerContentBounds(layerId, committedBounds);
+        }
         pendingStrokeFinalizeRef.current.set(layerId, {
           hasSnapshot: true,
           data
@@ -145,6 +148,9 @@ export function useCanvasActions({
       // Defer the expensive canvas.toDataURL() + pixel-scan out of the
       // pointer-up event handler so the cursor doesn't stall while the PNG
       // is being encoded for the current (potentially large) layer canvas.
+      // Batching updateLayerData + setLayerContentBounds in the same rAF tick
+      // lets React 18 merge them into a single re-render, eliminating the
+      // intermediate re-render that would trigger a stale-data hydration pass.
       pendingStrokeFinalizeRef.current.set(layerId, {
         hasSnapshot: false,
         data: null
@@ -154,6 +160,9 @@ export function useCanvasActions({
         if (!canvas) return;
         const nextData = canvas.getLayerData(layerId) ?? null;
         updateLayerData(layerId, nextData);
+        if (committedBounds) {
+          setLayerContentBounds(layerId, committedBounds);
+        }
         // Mark as resolved so flushPendingStrokeFinalization won't re-encode.
         const pending = pendingStrokeFinalizeRef.current.get(layerId);
         if (pending && !pending.hasSnapshot) {
@@ -164,7 +173,7 @@ export function useCanvasActions({
         }
       });
     },
-    [canvasRef, onExportImage, onExportMask, updateLayerData]
+    [canvasRef, onExportImage, onExportMask, setLayerContentBounds, updateLayerData]
   );
 
   const reconcileLayerToDocumentSpace = useCallback(

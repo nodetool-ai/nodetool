@@ -12,7 +12,8 @@ import type {
   SketchTool,
   Point,
   Selection,
-  LayerTransform
+  LayerTransform,
+  LayerContentBounds
 } from "../types";
 import { isShapeTool, isPaintingTool } from "../types";
 import {
@@ -60,7 +61,7 @@ export interface UsePointerHandlersParams {
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
-  onStrokeEnd: (layerId: string, data: string | null) => void;
+  onStrokeEnd: (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange?: (
     layerId: string,
@@ -506,11 +507,8 @@ export function usePointerHandlers({
           if (clipped) {
             ctx.restore();
           }
-          onStrokeEnd(activeLayer.id, null);
-          const committedBounds = getCanvasRasterBounds(layerCanvas);
-          if (committedBounds) {
-            onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
-          }
+          const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
+          onStrokeEnd(activeLayer.id, null, committedBounds);
           invalidateLayer(activeLayer.id);
           redraw();
         }
@@ -772,7 +770,6 @@ export function usePointerHandlers({
       onAutoPickLayer,
       activeStrokeRef,
       invalidateLayer,
-      onLayerContentBoundsChange,
       getCloneSourceSignature,
       buildCloneSourceCanvas,
       drawActiveStrokePreview,
@@ -1072,11 +1069,8 @@ export function usePointerHandlers({
             },
             doc.toolSettings.gradient
           );
-          onStrokeEnd(activeLayer.id, null);
-          const committedBounds = getCanvasRasterBounds(layerCanvas);
-          if (committedBounds) {
-            onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
-          }
+          const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
+          onStrokeEnd(activeLayer.id, null, committedBounds);
           invalidateLayer(activeLayer.id);
           clearOverlay();
           drawSelectionOverlay();
@@ -1244,11 +1238,8 @@ export function usePointerHandlers({
       if (activeLayer) {
         const layerId = activeLayer.id;
         const layerCanvas = layerCanvasesRef.current.get(layerId);
-        onStrokeEnd(layerId, null);
-        const committedBounds = getCanvasRasterBounds(layerCanvas);
-        if (committedBounds) {
-          onLayerContentBoundsChange?.(layerId, committedBounds);
-        }
+        const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
+        onStrokeEnd(layerId, null, committedBounds);
       }
     },
     [
@@ -1269,7 +1260,6 @@ export function usePointerHandlers({
       mousePositionRef,
       layerCanvasesRef,
       invalidateLayer,
-      onLayerContentBoundsChange,
       clonePaintOffsetRef,
       strokeDirtyRectRef,
       shiftHeldRef,

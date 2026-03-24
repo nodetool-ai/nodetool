@@ -364,27 +364,23 @@ export class PaintSession {
           }
         }
 
-        // Finalize stroke
-        ctx.onStrokeEnd(layer.id, null);
+        // Finalize stroke. Pass committedBounds so handleStrokeEnd can
+        // batch-update both layer.data and layer.contentBounds in one rAF,
+        // avoiding the stale-data hydration caused by separate Zustand updates.
         const committedBounds = getCanvasRasterBounds(
           ctx.getOrCreateLayerCanvas(layer.id)
         );
-        if (committedBounds) {
-          ctx.onLayerContentBoundsChange?.(layer.id, committedBounds);
-        }
+        ctx.onStrokeEnd(layer.id, null, committedBounds ?? undefined);
       };
       this.layer = null;
     } else {
       // ── Direct mode: already committed, just finalize ─────────────
       this.restoreAlphaLock(ctx);
       this.layer = null;
-      ctx.onStrokeEnd(layer.id, null);
       const committedBounds = getCanvasRasterBounds(
         ctx.getOrCreateLayerCanvas(layer.id)
       );
-      if (committedBounds) {
-        ctx.onLayerContentBoundsChange?.(layer.id, committedBounds);
-      }
+      ctx.onStrokeEnd(layer.id, null, committedBounds ?? undefined);
     }
 
     // Schedule the rAF that will drain pendingCommit and then composite.

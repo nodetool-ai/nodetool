@@ -71,7 +71,7 @@ export interface ToolContext {
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
-  onStrokeEnd: (layerId: string, data: string | null) => void;
+  onStrokeEnd: (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange?: (
     layerId: string,
