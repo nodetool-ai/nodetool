@@ -311,18 +311,10 @@ async function initialize(): Promise<void> {
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
 
-      // Check if this is a first launch (no Python) — show package manager
-      if (!hasPython) {
-        logMessage("First launch detected, will show package manager");
-        const timestamp = new Date().getTime();
-        mainWindow.loadURL(
-          `${serverState.initialURL}/?nocache=${timestamp}&package-manager=true`,
-        );
-      } else {
-        logMessage("Loading web app...");
-        const timestamp = new Date().getTime();
-        mainWindow.loadURL(`${serverState.initialURL}/?nocache=${timestamp}`);
-      }
+      // Always load the web app — runtimes panel in the dashboard handles setup
+      logMessage("Loading web app...");
+      const timestamp = new Date().getTime();
+      mainWindow.loadURL(`${serverState.initialURL}/?nocache=${timestamp}`);
     }
 
     void notifyPackageUpdates();
