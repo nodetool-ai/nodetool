@@ -8,7 +8,7 @@
 - keep the document canvas fixed; off-canvas layer content must survive editing, history, and serialization
 - prefer shared transform-aware infrastructure over ad hoc per-tool fixes
 - keep ordinary raster workflows cheap and predictable
-- only run sketch-related tests for normal iteration
+- only run sketch-related tests for normal iteration, not full app tests
 
 ## Current Priorities
 
@@ -58,30 +58,30 @@
 
 These are not current priorities, but they should stay visible so they can be revived deliberately later.
 
-- `DISCARDED:` improve round cursor/tool preview accuracy, including size and rotation
-- `DISCARDED:` move-tool modifier to directly move another layer via hit mask
-- `DISCARDED:` rename the editor/node from "Sketch Input" to "Image Editor"
-- `DISCARDED:` replace the old `ImageEditor` path with the new `SketchEditor` once parity is strong
-- `DISCARDED:` adjustment layers as a richer non-destructive stack beyond the current baseline
-- `DISCARDED:` portable project import/export, backup/download flows, and richer project persistence
-- `DISCARDED:` clipping masks / clipping groups
-- `DISCARDED:` canvas resizing from all borders/edges with richer drag UX
-- `DISCARDED:` canvas size driven by an input layer
-- `DISCARDED:` better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
-- `DISCARDED:` tonemapping presets and richer export options such as alpha/opaque/JPEG choices
-- `DISCARDED:` performance guardrails for very large documents
-- `DISCARDED:` import PNG into current layer
-- `DISCARDED:` touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
-- `DISCARDED:` rulers and draggable guides
-- `DISCARDED:` rotate canvas view, wrap-around/tiling mode, radial palette HUD, gamut hints
-- `DISCARDED:` advanced brush extensions such as stronger stabilizer controls, smudge/color-smudge, and richer symmetry expansion
-- `DISCARDED:` more programmable/extensible brush definitions
-- `DISCARDED:` text layers, vector/pen tool, and selection transform tools
-- `DISCARDED:` healing brush and other AI-assisted painting tools
-- `DISCARDED:` segmentation/SAM-driven layer creation flows
-- `DISCARDED:` PSD/ORA compatibility, SVG IO, and other external format work
-- `DISCARDED:` multi-document or multi-canvas workflows
-- `DISCARDED:` 3D layer support
-- `DISCARDED:` plugin/tool extensibility as a product feature
-- `DISCARDED:` broader color-system ideas such as global palettes, predefined palettes, image-derived swatches, and a Krita-style wheel/square picker
-- `DISCARDED:` full Photoshop-style shortcut parity backlog (`M/L/W`, `Ctrl+T`, `J`, `Shift+F5`, `Z`, `H`, `F`, guides, flow shortcuts, etc.)
+- `MAYBE:` improve round cursor/tool preview accuracy, including size and rotation
+- `MAYBE:` move-tool modifier to directly move another layer via hit mask
+- `MAYBE:` rename the editor/node from "Sketch Input" to "Image Editor"
+- `MAYBE:` replace the old `ImageEditor` path with the new `SketchEditor` once parity is strong
+- `MAYBE:` adjustment layers as a richer non-destructive stack beyond the current baseline
+- `MAYBE:` portable project import/export, backup/download flows, and richer project persistence
+- `MAYBE:` clipping masks / clipping groups
+- `MAYBE:` canvas resizing from all borders/edges with richer drag UX
+- `MAYBE:` canvas size driven by an input layer
+- `MAYBE:` better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
+- `MAYBE:` tonemapping presets and richer export options such as alpha/opaque/JPEG choices
+- `MAYBE:` performance guardrails for very large documents
+- `MAYBE:` import PNG into current layer
+- `MAYBE:` touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
+- `MAYBE:` rulers and draggable guides
+- `MAYBE:` rotate canvas view, wrap-around/tiling mode, radial palette HUD, gamut hints
+- `MAYBE:` advanced brush extensions such as stronger stabilizer controls, smudge/color-smudge, and richer symmetry expansion
+- `MAYBE:` more programmable/extensible brush definitions
+- `MAYBE:` text layers, vector/pen tool, and selection transform tools
+- `MAYBE:` healing brush and other AI-assisted painting tools
+- `MAYBE:` segmentation/SAM-driven layer creation flows
+- `MAYBE:` PSD/ORA compatibility, SVG IO, and other external format work
+- `MAYBE:` multi-document or multi-canvas workflows
+- `MAYBE:` 3D layer support
+- `MAYBE:` plugin/tool extensibility as a product feature
+- `MAYBE:` broader color-system ideas such as global palettes, predefined palettes, image-derived swatches, and a Krita-style wheel/square picker
+- `MAYBE:` full Photoshop-style shortcut parity backlog (`M/L/W`, `Ctrl+T`, `J`, `Shift+F5`, `Z`, `H`, `F`, guides, flow shortcuts, etc.)

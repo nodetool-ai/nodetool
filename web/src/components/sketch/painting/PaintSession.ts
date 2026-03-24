@@ -325,7 +325,11 @@ export class PaintSession {
       ctx.onLayerContentBoundsChange?.(this.layer.id, committedBounds);
     }
 
-    ctx.redraw();
+    // Use requestRedraw (rAF-batched) instead of the synchronous redraw so the
+    // pointer-up event handler returns immediately. The composite and any GPU
+    // texture upload happen in the next animation frame instead of blocking the
+    // input thread.
+    ctx.requestRedraw();
   }
 
   // ─── Internals ────────────────────────────────────────────────────

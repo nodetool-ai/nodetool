@@ -306,6 +306,20 @@ export class WebGPURuntime implements SketchRuntime {
     this.dirtyLayers.clear();
   }
 
+  /**
+   * Upload layers that need a GPU texture update: dirty layers AND layers
+   * whose texture doesn't exist yet (handles the initial switch from
+   * Canvas2DRuntime where all existing CPU canvases have no GPU counterpart).
+   */
+  private syncLayerTextures(): void {
+    for (const [layerId] of this.layerCanvases) {
+      if (this.dirtyLayers.has(layerId) || !this.layerTextures.has(layerId)) {
+        this.uploadLayerToGPU(layerId);
+      }
+    }
+    this.dirtyLayers.clear();
+  }
+
   private markLayerDirty(layerId: string): void {
     this.dirtyLayers.add(layerId);
   }
@@ -360,17 +374,12 @@ export class WebGPURuntime implements SketchRuntime {
       return;
     }
 
-    // Upload any dirty CPU canvases to GPU
-    // For a full redraw, re-upload all layers; for dirty-rect, only dirty ones
-    if (!dirtyRect) {
-      // Full redraw: upload all layers
-      for (const [layerId] of this.layerCanvases) {
-        this.uploadLayerToGPU(layerId);
-      }
-      this.dirtyLayers.clear();
-    } else {
-      this.syncDirtyLayers();
-    }
+    // Upload CPU canvas → GPU texture for any layer that is dirty or whose
+    // texture doesn't exist yet (handles initial sync after the WebGPU runtime
+    // takes over from Canvas2DRuntime). "Full redraw" controls compositing
+    // scope (full canvas vs. dirty rect clip), not upload scope — we never
+    // need to re-upload unchanged layers just because the clip region changed.
+    this.syncLayerTextures();
 
     const device = this.device;
     const textureView = this.context.getCurrentTexture().createView();

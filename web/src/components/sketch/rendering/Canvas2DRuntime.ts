@@ -328,27 +328,38 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   /**
    * Find the bounding rect of all non-transparent pixels in the canvas.
-   * Uses step=4 sampling for speed; the result is padded by the step size so
-   * no visible pixel is ever excluded. Returns null if the canvas is empty.
+   *
+   * To keep this fast regardless of canvas size, we draw the layer into a
+   * small proxy canvas (max PROXY_MAX × PROXY_MAX) and scan that instead.
+   * The result is scaled back to full-canvas coordinates and padded by one
+   * proxy pixel (= one scale-factor worth of real pixels) so no visible
+   * content is ever excluded. Returns null if the canvas is empty.
    */
   private findContentRect(
     canvas: HTMLCanvasElement
   ): { x: number; y: number; width: number; height: number } | null {
     if (canvas.width === 0 || canvas.height === 0) return null;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    const imageData = ctx.getImageData(0, 0, w, h);
+    const PROXY_MAX = 128;
+    const scaleX = canvas.width / PROXY_MAX;
+    const scaleY = canvas.height / PROXY_MAX;
+    const pw = Math.min(canvas.width, PROXY_MAX);
+    const ph = Math.min(canvas.height, PROXY_MAX);
+
+    const proxy = window.document.createElement("canvas");
+    proxy.width = pw;
+    proxy.height = ph;
+    const proxyCtx = proxy.getContext("2d", { willReadFrequently: true });
+    if (!proxyCtx) return null;
+    proxyCtx.drawImage(canvas, 0, 0, pw, ph);
+
+    const imageData = proxyCtx.getImageData(0, 0, pw, ph);
     const data = imageData.data;
 
-    const STEP = 4;
-    let minX = w, minY = h, maxX = -1, maxY = -1;
-
-    for (let y = 0; y < h; y += STEP) {
-      const rowBase = y * w;
-      for (let x = 0; x < w; x += STEP) {
+    let minX = pw, minY = ph, maxX = -1, maxY = -1;
+    for (let y = 0; y < ph; y++) {
+      const rowBase = y * pw;
+      for (let x = 0; x < pw; x++) {
         if (data[(rowBase + x) * 4 + 3] !== 0) {
           if (x < minX) minX = x;
           if (y < minY) minY = y;
@@ -360,12 +371,15 @@ export class Canvas2DRuntime implements SketchRuntime {
 
     if (maxX < 0) return null; // all transparent
 
-    // Pad by STEP so we don't clip pixels the step scan may have skipped.
-    const px = Math.max(0, minX - STEP);
-    const py = Math.max(0, minY - STEP);
-    const pw = Math.min(w - px, maxX - px + 1 + STEP * 2);
-    const ph = Math.min(h - py, maxY - py + 1 + STEP * 2);
-    return { x: px, y: py, width: pw, height: ph };
+    // Scale back to full-canvas coordinates, padded by one proxy-pixel each
+    // side to account for sub-pixel content the downscale may have blurred.
+    const padX = Math.ceil(scaleX);
+    const padY = Math.ceil(scaleY);
+    const fx = Math.max(0, Math.floor(minX * scaleX) - padX);
+    const fy = Math.max(0, Math.floor(minY * scaleY) - padY);
+    const fx2 = Math.min(canvas.width, Math.ceil((maxX + 1) * scaleX) + padX);
+    const fy2 = Math.min(canvas.height, Math.ceil((maxY + 1) * scaleY) + padY);
+    return { x: fx, y: fy, width: fx2 - fx, height: fy2 - fy };
   }
 
   snapshotLayerCanvas(layerId: string): HTMLCanvasElement | null {
