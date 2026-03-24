@@ -26,6 +26,12 @@ export interface ActiveStrokeInfo {
   buffer: HTMLCanvasElement;
   opacity: number;
   compositeOp: GlobalCompositeOperation;
+  /**
+   * When set, the stroke buffer has not yet been merged onto the layer canvas.
+   * Execute this callback at the start of the next rAF (before compositing) to
+   * commit the merge without blocking the pointer-up handler.
+   */
+  pendingCommit?: (() => void) | null;
 }
 
 // ─── Runtime interface ───────────────────────────────────────────────────────

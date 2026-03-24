@@ -1,70 +1,106 @@
 # Shortcut Checklist
 
-## Photoshop-Style Shortcuts
+Sketch-focused Photoshop parity checklist.
 
 Mac users: swap `Ctrl` to `Cmd` and `Alt` to `Option`.
 
-Only mark a shortcut as implemented when the actual behavior exists, not just the key binding.
+Only mark a shortcut as implemented when the behavior really exists in the sketch editor. This file intentionally omits Photoshop shortcuts that are not meaningful here yet, such as type formatting, channels, layer-stack power features, and desktop file-management actions like `Save As` / `Save for Web`.
 
-### Selection
+## Must-Know
 
-- [ ] `M` for marquee tool
-- [ ] `L` for lasso tool
-- [ ] `W` for magic wand / quick select
-- [x] `Ctrl+A` for select all
-- [x] `Ctrl+D` for deselect
-- [x] `Ctrl+Shift+I` for invert selection
-- [x] `Ctrl+Shift+D` for reselect last selection
-- [x] `Shift+drag` to add to selection
-- [x] `Alt+drag` to subtract from selection
-- [ ] `Alt+S` for select subject
+- [x] `Ctrl+Z` undo
+- [ ] `Ctrl+Shift+Z` / `Ctrl+Y` redo
+- [x] `Ctrl+S` export PNG
+- [x] `D` restore default colors (black / white)
+- [x] `X` swap foreground / background colors
+- [x] `Space+drag` temporary hand tool / pan from any tool
+- [ ] `Alt+click` temporary eyedropper while painting - does not work reliably yet; should also show explicit eyedropper feedback while held
+- [x] `[` / `]` decrease / increase brush size
+- [x] `Shift+[` / `Shift+]` decrease / increase brush hardness
+- [x] `0-9` set tool opacity (`0` = 100%, `1` = 10%, etc.) - works already; add better tooltip/discoverability on the opacity slider
+- [x] `Ctrl+0` fit / reset view
+- [x] `Ctrl+1` actual pixels (100%)
+- [x] `Tab` show / hide panels
 
-### Move & Transform
+## Toolbar Shortcuts
 
-- [x] `V` for move tool
-- [ ] `Ctrl+T` for free transform
-- [ ] `Enter` to confirm transform
-- [x] `Esc` to cancel active selection / transform-like interactions
-- [x] `Shift+drag` shape constraints for line, square, and circle drawing
-- [ ] `Ctrl+Shift+T` for repeat last transform
-- [x] `Arrow` keys to nudge by 1px
-- [x] `Shift+Arrow` keys to nudge by 10px
+- [x] `V` move tool
+- [x] `B` brush tool
+- [x] `P` pencil tool
+- [x] `E` eraser tool
+- [x] `G` fill tool
+- [x] `I` eyedropper tool
+- [x] `Q` blur tool
+- [x] `S` clone stamp tool
+- [x] `T` gradient tool
+- [x] `C` crop tool
+- [x] `L` line tool
+- [x] `R` rectangle tool
+- [x] `O` ellipse tool
+- [x] `A` arrow tool
+- [ ] `M` rectangular marquee tool
+- [ ] `W` object selection / magic wand
+- [ ] `J` healing / spot heal
+- [ ] `U` rectangle/shape group tool
+- [ ] `Z` zoom tool
+- [ ] `H` hand tool
+- [ ] `K` frame tool
 
-### Painting & Drawing
+## Selection
 
-- [x] `S` for clone stamp
-- [ ] `J` for healing brush / spot heal
-- [ ] `Shift+0-9` to set brush flow
-- [x] `Alt+click` temporary eyedropper while painting
-- [x] `Shift+click` straight line from last stroke end
-- [x] `[` / `]` to decrease / increase brush size
-- [x] `Shift+[` / `Shift+]` to decrease / increase hardness
-- [x] `0-9` to set brush opacity
+- [x] `Ctrl+A` select all
+- [x] `Ctrl+D` deselect
+- [ ] `Ctrl+Shift+I` invert selection - current implementation is not correct because selection is not pixel-based yet
+- [x] `Ctrl+Shift+D` restore last selection
+- [ ] `Shift+drag` add to selection - current implementation is not correct because selection is not pixel-based yet
+- [ ] `Alt+drag` subtract from selection - currently behaves incorrectly
+- [ ] `Shift+Alt+drag` intersect with selection
+- [ ] `Arrow` keys move selection by 1 px
+- [ ] `Shift+Arrow` keys move selection by 10 px
+- [x] `Space` move marquee while drawing selection
+- [ ] `L` lasso tool
+- [ ] `W` magic wand / quick select
+- [ ] `Shift+F6` feather selection
+- [ ] `Alt+S` select subject
 
-### Erasing & Filling
+## Move & Transform
 
-- [x] `E` for eraser
-- [x] `G` for paint bucket / fill tool
-- [x] `Alt+Backspace` to fill with foreground color
-- [x] `Ctrl+Backspace` to fill with background color
-- [ ] `Shift+F5` for fill dialog
-- [ ] `Ctrl+Shift+Backspace` to fill and preserve transparency
+- [ ] `Arrow` keys nudge active layer by 1 px - currently broken in practice
+- [ ] `Shift+Arrow` keys nudge active layer by 10 px - currently broken in practice
+- [x] `Esc` cancel active selection / crop / transform-like interaction
+- [ ] `Shift+drag` constrain line / square / circle drawing - currently broken in practice
+- [ ] `Ctrl+T` free transform
+- [ ] `Enter` commit transform
+- [ ] `Ctrl+Shift+T` repeat last transform
+- [ ] hold `Ctrl` while painting to temporarily switch to move tool
+- [ ] `Ctrl+Alt+Arrow` move duplicate of selection by 1 px
+- [ ] `Ctrl+Alt+Shift+Arrow` move duplicate of selection by 10 px
 
-### View & Navigation
+## Painting & Fill
 
-- [x] `Ctrl++` to zoom in
-- [x] `Ctrl+-` to zoom out
-- [x] `Ctrl+0` to fit / reset view
-- [x] `Tab` to hide / show panels
-- [ ] `Z` for zoom tool
-- [ ] `H` for hand / pan tool
-- [x] `Ctrl+1` for 100% actual pixels
-- [x] `Space+drag` to pan from any tool
-- [ ] `F` to cycle screen modes
-- [ ] `Ctrl+;` to show / hide guides
+- [x] `Shift+click` straight line from last stroke endpoint
+- [x] `Alt+Backspace` fill with foreground color
+- [x] `Ctrl+Backspace` fill with background color
+- [ ] `Shift+Backspace` / `Shift+F5` open fill dialog
+- [ ] `Ctrl+Shift+Backspace` fill while preserving transparency
+- [ ] `Shift+0-9` set brush flow
+- [ ] `~` temporarily erase with current brush
+- [ ] `Caps Lock` cross-hair cursor
+- [ ] `/` toggle lock transparent pixels
+
+## View & Navigation
+
+- [x] `+` / `-` zoom in / out
+- [ ] `Shift+Tab` hide panels but keep canvas view chrome
+- [ ] `F` cycle screen modes
+- [ ] `Ctrl+H` hide extras / overlays
+- [ ] `Ctrl+;` show / hide guides
+- [ ] `Home` move view to upper-left corner
+- [ ] `End` move view to lower-right corner
+- [ ] `Page Up` / `Page Down` scroll by one screen
 
 ## Notes
 
-- Brush size/hardness shortcuts should apply consistently to Brush, Eraser, and Clone Stamp.
-- `Alt+click` eyedropper and `Space+drag` pan are high-value patterns and should stay reliable across tool changes.
-- Keep this file in sync with actual shipped behavior rather than wishlist-only shortcut plans elsewhere.
+- Brush-size, hardness, opacity, eyedropper, and pan shortcuts are the highest-value Photoshop behaviors and should remain reliable across tool changes.
+- Keep the shortcut meaning accurate. Example: `D` is default colors, while `Ctrl+D` is deselect.
+- Inline reality notes are intentional here. If a shortcut exists but is broken, flaky, or only partially correct, keep that note instead of silently marking it done.

@@ -106,17 +106,21 @@ const SketchProperty = (props: PropertyProps) => {
   }, []);
 
   const handleCloseModal = useCallback(() => {
+    // Persist on close — this is the only place we serialize.
+    const doc = documentRef.current;
+    if (doc) {
+      props.onChange(serializeDocument(doc));
+    }
     setIsModalOpen(false);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.onChange]);
 
-  const handleDocumentChange = useCallback(
-    (doc: SketchDocument) => {
-      documentRef.current = doc;
-      const serialized = serializeDocument(doc);
-      props.onChange(serialized);
-    },
-    [props]
-  );
+  const handleDocumentChange = useCallback((doc: SketchDocument) => {
+    // Keep in-memory ref up to date. No serialization here —
+    // persisting on every stroke stalls the main thread.
+    // handleCloseModal and handleSave do the actual persist.
+    documentRef.current = doc;
+  }, []);
 
   const handleSave = useCallback(
     (_doc: SketchDocument) => {

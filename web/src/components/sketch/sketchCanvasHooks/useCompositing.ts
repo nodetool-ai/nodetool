@@ -246,10 +246,18 @@ export function useCompositing({
         redrawRequestRef.current = null;
         isFullRedrawRef.current = false;
         pendingDirtyRef.current = null;
+        // Drain any pending stroke buffer merge BEFORE compositing.
+        // This defers the GPU→CPU drawImage stall out of the pointer-up
+        // handler so the cursor is never blocked by it.
+        const pending = activeStrokeRef.current?.pendingCommit;
+        if (pending) {
+          activeStrokeRef.current!.pendingCommit = null;
+          pending();
+        }
         redraw();
       });
     }
-  }, [redraw]);
+  }, [redraw, activeStrokeRef]);
 
   /**
    * Schedule a partial redraw over a dirty region.
@@ -276,6 +284,13 @@ export function useCompositing({
           pendingDirtyRef.current = null;
           isFullRedrawRef.current = false;
 
+          // Drain pending stroke buffer merge before compositing.
+          const pending = activeStrokeRef.current?.pendingCommit;
+          if (pending) {
+            activeStrokeRef.current!.pendingCommit = null;
+            pending();
+          }
+
           if (isFull || !dirty) {
             compositeToDisplay(null);
           } else {
@@ -284,7 +299,7 @@ export function useCompositing({
         });
       }
     },
-    [mergePendingDirtyRect, compositeToDisplay]
+    [mergePendingDirtyRect, compositeToDisplay, activeStrokeRef]
   );
 
   // ─── Initialize layer canvases from document data ───────────────────

@@ -271,8 +271,10 @@ export class PaintSession {
     this.lastStrokeEnd = event.point;
 
     const activeStroke = ctx.activeStrokeRef.current;
+    const layer = this.layer;
 
     // ── Click-without-drag dab ──────────────────────────────────────
+    // Drawing into the buffer is cheap (GPU-side), so we do this now.
     if (!this.hasMoved && activeStroke) {
       const pt = event.point;
       const localPt = this.mapper.docToLayer(pt);
@@ -293,42 +295,99 @@ export class PaintSession {
       }
     }
 
-    // ── Merge stroke buffer onto layer canvas ───────────────────────
-    if (activeStroke) {
-      const layerCanvas = ctx.getOrCreateLayerCanvas(this.layer.id);
-      const layerCtx = layerCanvas.getContext("2d");
-      if (layerCtx) {
-        layerCtx.save();
-        layerCtx.globalAlpha = activeStroke.opacity;
-        layerCtx.globalCompositeOperation = activeStroke.compositeOp;
-        layerCtx.drawImage(activeStroke.buffer, 0, 0);
-        layerCtx.restore();
-      }
-      ctx.activeStrokeRef.current = null;
-      // Notify runtime that layer pixels changed after merge
-      ctx.invalidateLayer?.(this.layer.id);
-    }
-
-    // ── Alpha-lock: restore original alpha channel ──────────────────
-    this.restoreAlphaLock(ctx);
-
-    // ── Clean up ────────────────────────────────────────────────────
+    // ── Clear per-stroke state immediately ─────────────────────────
+    // Note: this.layer is cleared AFTER the branch below so that
+    // restoreAlphaLock (direct mode) still has access to it.
     this.lastPoint = null;
     this.lastSmoothedPoint = null;
     this.hasMoved = false;
     this.active = false;
-    ctx.onStrokeEnd(this.layer.id, null);
-    const committedBounds = getCanvasRasterBounds(
-      ctx.getOrCreateLayerCanvas(this.layer.id)
-    );
-    if (committedBounds) {
-      ctx.onLayerContentBoundsChange?.(this.layer.id, committedBounds);
+
+    if (activeStroke) {
+      // ── Defer buffer merge to rAF to avoid GPU→CPU stall ─────────
+      // The stroke buffer may be GPU-accelerated. The layer canvas uses
+      // willReadFrequently (CPU renderer). drawImage GPU→CPU blocks the
+      // input thread for ~5-15ms, causing cursor lag after each stroke.
+      //
+      // Instead we attach a pendingCommit closure; useCompositing drains
+      // it at the start of the next rAF before compositing, so the
+      // pointer-up handler returns with zero blocking work.
+      const capturedAlphaSnapshot = this.alphaSnapshot;
+      const capturedDirtyRect = this.engine.getDirtyRect();
+      this.alphaSnapshot = null;
+
+      activeStroke.pendingCommit = () => {
+        // Merge buffer → layer canvas (the expensive step)
+        const layerCanvas = ctx.getOrCreateLayerCanvas(layer.id);
+        const layerCtx = layerCanvas.getContext("2d");
+        if (layerCtx) {
+          layerCtx.save();
+          layerCtx.globalAlpha = activeStroke.opacity;
+          layerCtx.globalCompositeOperation = activeStroke.compositeOp;
+          layerCtx.drawImage(activeStroke.buffer, 0, 0);
+          layerCtx.restore();
+        }
+        ctx.activeStrokeRef.current = null;
+        ctx.invalidateLayer?.(layer.id);
+
+        // Alpha-lock: restore original alpha channel
+        if (layer.alphaLock && capturedAlphaSnapshot) {
+          const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+          if (lCanvas) {
+            const lCtx = lCanvas.getContext("2d");
+            if (lCtx) {
+              const dr = capturedDirtyRect ?? {
+                minX: 0,
+                minY: 0,
+                maxX: lCanvas.width,
+                maxY: lCanvas.height
+              };
+              const x = Math.max(0, dr.minX);
+              const y = Math.max(0, dr.minY);
+              const width = Math.min(lCanvas.width - x, dr.maxX - x);
+              const height = Math.min(lCanvas.height - y, dr.maxY - y);
+              if (width > 0 && height > 0) {
+                const currentData = lCtx.getImageData(x, y, width, height);
+                for (let yy = 0; yy < height; yy++) {
+                  for (let xx = 0; xx < width; xx++) {
+                    const li = (yy * width + xx) * 4 + 3;
+                    const si = ((y + yy) * lCanvas.width + (x + xx)) * 4 + 3;
+                    currentData.data[li] = Math.min(
+                      currentData.data[li],
+                      capturedAlphaSnapshot.data[si]
+                    );
+                  }
+                }
+                lCtx.putImageData(currentData, x, y);
+              }
+            }
+          }
+        }
+
+        // Finalize stroke
+        ctx.onStrokeEnd(layer.id, null);
+        const committedBounds = getCanvasRasterBounds(
+          ctx.getOrCreateLayerCanvas(layer.id)
+        );
+        if (committedBounds) {
+          ctx.onLayerContentBoundsChange?.(layer.id, committedBounds);
+        }
+      };
+      this.layer = null;
+    } else {
+      // ── Direct mode: already committed, just finalize ─────────────
+      this.restoreAlphaLock(ctx);
+      this.layer = null;
+      ctx.onStrokeEnd(layer.id, null);
+      const committedBounds = getCanvasRasterBounds(
+        ctx.getOrCreateLayerCanvas(layer.id)
+      );
+      if (committedBounds) {
+        ctx.onLayerContentBoundsChange?.(layer.id, committedBounds);
+      }
     }
 
-    // Use requestRedraw (rAF-batched) instead of the synchronous redraw so the
-    // pointer-up event handler returns immediately. The composite and any GPU
-    // texture upload happen in the next animation frame instead of blocking the
-    // input thread.
+    // Schedule the rAF that will drain pendingCommit and then composite.
     ctx.requestRedraw();
   }
 

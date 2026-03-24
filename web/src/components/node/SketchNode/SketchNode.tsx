@@ -437,11 +437,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const handleDocumentChange = useCallback(
     (doc: SketchDocument) => {
+      // Keep in-memory ref up to date for on-close flush.
+      // No serialization here — persisting on every stroke causes main-thread
+      // stutter. flushPendingNodeSync() on modal close handles the actual save.
       documentRef.current = doc;
       pendingDocumentSyncRef.current = doc;
-      schedulePendingNodeSync();
     },
-    [schedulePendingNodeSync]
+    []
   );
 
   // ─── Export callbacks for real-time output updates during editing ──
