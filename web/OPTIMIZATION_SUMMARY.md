@@ -189,3 +189,24 @@ Verify by checking the React Profiler during node drag operations with multiple 
 - Ran `cd web && pnpm typecheck`: Passed.
 - Ran `cd web && pnpm lint`: Passed.
 - Ran `make test-web`: Verified core tests pass.
+
+# ⚡ Bolt: WorkflowAssistantChat Nodes Subscription Optimization
+
+## 💡 What
+Added `areNodesEqualIgnoringPosition` equality function to the `useNodes` subscription in `WorkflowAssistantChat.tsx`.
+
+## 🎯 Why
+`WorkflowAssistantChat` was subscribing to `state.nodes` without a custom equality function. Since ReactFlow updates the `nodes` array reference on every drag frame (for positional updates), this caused the entire chat panel component to re-render unnecessarily on every single drag frame (60fps) even when node data didn't change.
+
+## 📊 Impact
+- **Eliminates Unnecessary Re-renders:** The chat component now ignores positional node updates during dragging.
+- **Reduces Main Thread Work:** Prevents evaluating complex message logic on every drag frame.
+- **Improved Responsiveness:** Smoother drag-and-drop experience in the node editor when the chat panel is open.
+
+## 🔬 Measurement
+Verify by opening the Workflow Assistant chat panel and dragging nodes around in a large workflow. Using React Profiler, observe that `WorkflowAssistantChat` no longer re-renders during drag operations.
+
+## 🧪 Testing
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
+- Ran `make test-web`: All tests passed.
