@@ -144,10 +144,17 @@ export function useCanvasActions({
         ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
         : null;
 
-    pushHistory(
-      `${activeTool} stroke`,
-      activeLayerId ? { [activeLayerId]: activeLayerSnapshot } : undefined
-    );
+    const actionLabel = `${activeTool} stroke`;
+    const layerSnapshots = activeLayerId
+      ? { [activeLayerId]: activeLayerSnapshot }
+      : undefined;
+
+    // pushHistory updates Zustand (and can trigger React). Doing that in the same
+    // turn as pointerdown competes with the first dab and compositing. The pixel
+    // snapshot must stay synchronous for undo; defer only the history commit.
+    window.requestAnimationFrame(() => {
+      pushHistory(actionLabel, layerSnapshots);
+    });
   }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
