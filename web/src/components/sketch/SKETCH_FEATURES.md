@@ -26,7 +26,7 @@
 
 [ ] **Phase 2 — non-destructive editing pipeline:** keep transform edits separate from pixel edits, add reconciliation utilities that rasterize only when a paint operation truly requires it, and make undo/redo + invalidation aware of transform-only changes.
 [ ] define transform-only vs pixel-edit transaction types and paint-space rules for layer-local vs reconciled editing
-[ ] add reconciliation / rasterize-on-demand path for painting into transformed layers
+[x] add reconciliation / rasterize-on-demand path for painting into transformed layers
 [ ] make undo/redo preserve transform-only edits correctly
 [ ] update invalidation and redraw flow for transform-only changes
 [ ] add regression tests for move, nudge, paint-after-move, and roundtrip serialization
@@ -43,8 +43,8 @@
 [x] show transparency in layer previews — checkerboard pattern instead of black
 [x] show a border around the canvas — subtle white outline marks canvas boundaries
 [ ] centralize coordinate conversions between screen, viewport, canvas, layer-local, and selection space.
-[ ] track dirty rects and per-layer content bounds as first-class engine data.
-[ ] separate transient preview state from committed document pixel state.
+[x] track dirty rects and per-layer content bounds as first-class engine data.
+[x] separate transient preview state from committed document pixel state.
 [ ] treat each logical edit as one transaction with one history commit.
 [ ] keep render math, hit testing, and compositing logic reusable outside React component wiring.
 [ ] share stroke infrastructure where tool behavior truly overlaps, instead of forcing every tool through one identical pipeline.
@@ -113,10 +113,10 @@
 
 #### Layers
 
-- [ ] **Expose Layers** add buttons for expose as input / output per layer. create dynamic handles for node. see how dynamic nodes work
+- [x] **Expose Layers** add buttons for expose as input / output per layer. create dynamic handles for node. see how dynamic nodes work
 - [ ] **Use exposed inputs as Layers** make sure inputs show up as layers
 - [ ] **Adjustment layers** (or equivalent non-destructive stack) — global per-layer adjustments without baking until flatten/export; pairs well with iterative AI and large canvases.
-- [ ] fix / restore layer previews without breaking performance
+- [x] fix / restore layer previews without breaking performance
 - [ ] Group / folder layers
 
 #### Canvas & view
