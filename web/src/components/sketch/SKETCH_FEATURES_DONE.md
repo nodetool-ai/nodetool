@@ -294,6 +294,14 @@
 - [x] Shape preview overlay canvas
 - [x] Brush cursor preview canvas
 - [x] Comprehensive test suite (types, store, serialization, data flow)
+- [x] add `Layer.transform` and `contentBounds` to the document model
+- [x] persist transform-aware layer data through serialization, history, export, and preview flows
+- [x] render layers through transform-aware compositing instead of rewriting pixels on move/nudge
+- [x] keep persistent layer-local raster bounds so off-canvas pixels can survive normal editing
+- [x] move brush, pencil, eraser, and basic shape commit onto the shared paint-session model
+- [x] track dirty rects and separate transient preview state from committed document state
+- [x] restore layer previews and expose layers as input/output
+- [x] ship core quality-of-life pieces already proven useful: alpha lock, symmetry modes, clone stamp basics, and trim-to-bounds
 
 ### Node / SketchInput
 

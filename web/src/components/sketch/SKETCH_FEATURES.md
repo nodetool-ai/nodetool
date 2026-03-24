@@ -5,83 +5,85 @@
 
 ## Principles
 
+- keep code clean and modular with separation of concerns
 - keep the document canvas fixed; off-canvas layer content must survive editing, history, and serialization
 - prefer shared transform-aware infrastructure over ad hoc per-tool fixes
 - keep ordinary raster workflows cheap and predictable
 - only run sketch-related tests for normal iteration, not full app tests
+- when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
 
-## Current Priorities
+## PHASE 1: Current Priorities
 
-- [ ] eliminate remaining move/nudge/paint regressions and add focused regression coverage for move, paint-after-move, undo/redo, and save/load roundtrips
-- [ ] finish transform-only history and invalidation semantics so logical edits stay lossless and each user action creates one clean transaction
-- [ ] centralize coordinate conversion between screen, viewport, canvas, layer-local, and selection spaces
-- [ ] make selection truly per-pixel and add the next practical selection upgrades: lasso, magic wand, and feathering
-- [ ] finish the exposed-layer workflow so exposed inputs can appear as editable layers without breaking preview/export behavior
-- [ ] add first-class reference/image-backed layers with source, crop, transform, and IO metadata
-- [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of the shared layer model
+- [ ] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
+- [ ] fix moving the active layer with arrow keys and cover keyboard nudge behavior in regression tests
+- [ ] fix exposed layers being treated as non-image datatypes where image-layer behavior is expected
+- [ ] make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
+- [ ] improve node/editor layout so input handle titles are not covered by the preview and outputs sit below the preview cleanly
+- [ ] widen and clean up the right panel: spacing, icon order, icon position, and expose-button visibility
+- [ ] add focused regression coverage for transformed layers: move, nudge, paint-after-transform, undo/redo, serialize, reload, and repaint
+- [ ] define transform-only edit semantics explicitly: which actions push history, which only invalidate, when raster data changes, and when reconciliation is allowed
+- [ ] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
+- [ ] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
+- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior
+- [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
 
-## Important Follow-Up
+## PHASE 2 - FIXES
 
-- [ ] add adjustment layers or an equivalent non-destructive per-layer adjustment stack
-- [ ] add group/folder layers
+- [ ] fix history undo, currently not working
+- [ ] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
+- [ ] improve round cursor/tool preview accuracy, currently roughly 2 times too large
+
+## 2.1 - FEATURES
+
+- [ ] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, and feathering on top of it
 - [ ] make the canvas resizable from edges/corners with a solid interaction model
-- [ ] fix foreground/background color state sync and simplify the color system backlog into one coherent picker/palette plan
+- [ ] move-tool modifier to directly move another layer via hit mask
+- [ ] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
 
-## Later
+### PHASE 3 - ADVANCED FEATURES
 
-- [ ] replace the old `ImageEditor` path with `SketchEditor` once parity is truly good
-- [ ] add portable project import/export and an explicit backup path
-- [ ] add clipping masks / clipping groups
-- [ ] add performance guardrails for huge documents (warnings, history caps, throttling)
-- [ ] improve cursor/tool previews where they still feel inaccurate
-- [ ] add canvas-size-from-input-layer and similar workflow polish only after the core layer model is stable
-
-## Stretch Goals
-
-- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [x] rename the editor/node from "Sketch Input" to "Image Editor"
+- [ ] import image into current layer by drop from outside and paste command
+- [ ] add group/folder layers
+- [ ] segmentation/SAM-driven layer creation flows - see web/components/sketch/FEAT-2-SAM.md
+- [ ] add adjustment layers or an equivalent non-destructive per-layer adjustment stack
+- [ ] advanced brush extensions such as stronger stabilizer controls, smudge/color-smudge
+- [ ] selection transform tools
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
-- [ ] investigate PSD/ORA compatibility once the native document model settles
-- [ ] add advanced authoring features such as text, vector/pen, or richer multi-document workflows only after the raster core feels finished
+- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams
+- [ ] broader color-system ideas such as global palettes, predefined palettes, image-derived swatches. color palette in own panel
+- [ ] add performance guardrails for huge documents (warnings, history caps, throttling)
+- [ ] better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
+- [ ] add professional tonemapping options, additionally add presets for 10 distinctive but well-balanced looks
+- [ ] replace the old `ImageEditor.tsx` path with the new `SketchEditor` once parity is strong
 
-## Completed Foundation
-
-- [x] add `Layer.transform` and `contentBounds` to the document model
-- [x] persist transform-aware layer data through serialization, history, export, and preview flows
-- [x] render layers through transform-aware compositing instead of rewriting pixels on move/nudge
-- [x] keep persistent layer-local raster bounds so off-canvas pixels can survive normal editing
-- [x] move brush, pencil, eraser, and basic shape commit onto the shared paint-session model
-- [x] track dirty rects and separate transient preview state from committed document state
-- [x] restore layer previews and expose layers as input/output
-- [x] ship core quality-of-life pieces already proven useful: alpha lock, symmetry modes, clone stamp basics, and trim-to-bounds
-
-## Discarded / Parked Ideas
+## Parked Ideas
 
 These are not current priorities, but they should stay visible so they can be revived deliberately later.
 
-- `MAYBE:` improve round cursor/tool preview accuracy, including size and rotation
-- `MAYBE:` move-tool modifier to directly move another layer via hit mask
-- `MAYBE:` rename the editor/node from "Sketch Input" to "Image Editor"
-- `MAYBE:` replace the old `ImageEditor` path with the new `SketchEditor` once parity is strong
-- `MAYBE:` adjustment layers as a richer non-destructive stack beyond the current baseline
-- `MAYBE:` portable project import/export, backup/download flows, and richer project persistence
-- `MAYBE:` clipping masks / clipping groups
-- `MAYBE:` canvas resizing from all borders/edges with richer drag UX
-- `MAYBE:` canvas size driven by an input layer
-- `MAYBE:` better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
-- `MAYBE:` tonemapping presets and richer export options such as alpha/opaque/JPEG choices
-- `MAYBE:` performance guardrails for very large documents
-- `MAYBE:` import PNG into current layer
-- `MAYBE:` touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
-- `MAYBE:` rulers and draggable guides
-- `MAYBE:` rotate canvas view, wrap-around/tiling mode, radial palette HUD, gamut hints
-- `MAYBE:` advanced brush extensions such as stronger stabilizer controls, smudge/color-smudge, and richer symmetry expansion
-- `MAYBE:` more programmable/extensible brush definitions
-- `MAYBE:` text layers, vector/pen tool, and selection transform tools
-- `MAYBE:` healing brush and other AI-assisted painting tools
-- `MAYBE:` segmentation/SAM-driven layer creation flows
-- `MAYBE:` PSD/ORA compatibility, SVG IO, and other external format work
-- `MAYBE:` multi-document or multi-canvas workflows
-- `MAYBE:` 3D layer support
-- `MAYBE:` plugin/tool extensibility as a product feature
-- `MAYBE:` broader color-system ideas such as global palettes, predefined palettes, image-derived swatches, and a Krita-style wheel/square picker
-- `MAYBE:` full Photoshop-style shortcut parity backlog (`M/L/W`, `Ctrl+T`, `J`, `Shift+F5`, `Z`, `H`, `F`, guides, flow shortcuts, etc.)
+### 3.2
+
+- [ ] adjustment layers as a richer non-destructive stack beyond the current baseline
+- [ ] richer export options such as alpha/opaque/JPEG choices
+- [ ] healing brush and other AI-assisted painting tools
+
+### 3.3
+
+- [ ] touch/tablet features such as pinch zoom, two-finger pan, and palm rejection
+- [ ] rulers and draggable guides
+- [ ] make symmetry transformable
+- [ ] rotate canvas view
+- [ ] wrap-around/tiling mode
+- [ ] text layers
+- [ ] vector/pen tool
+- [ ] portable project import/export, backup/download flows, and richer project persistence
+- [ ] clipping masks / clipping groups
+
+### 3.4 MAYBE
+
+- [ ] add canvas-size-from-input-layer. needs some planning
+- [ ] plugin/tool extensibility as a product feature
+- [ ] investigate PSD/ORA compatibility once the native document model settles
+- [ ] PSD/ORA compatibility, SVG IO, and other external format work
+- [ ] multi-document or multi-canvas workflows
+- [ ] 3D layer support to allow compositing model3D type layers with basic translate, rotate, scale
