@@ -278,13 +278,94 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!canvas) {
       return null;
     }
-    const bounds = getCanvasRasterBounds(canvas) ?? {
+    const fullBounds = getCanvasRasterBounds(canvas) ?? {
       x: 0,
       y: 0,
       width: canvas.width,
       height: canvas.height
     };
-    return serializeLayerData(canvas.toDataURL("image/png"), bounds);
+
+    // Find the actual non-transparent content rect so we store a compact,
+    // content-sized PNG instead of the full (often doc-sized) canvas.
+    // A smaller PNG encodes faster and makes layer thumbnails zoom in on the
+    // painted pixels rather than showing a tiny speck inside a large canvas.
+    const contentRect = this.findContentRect(canvas);
+    if (!contentRect) {
+      // Empty layer — store a 1×1 null image at the canvas origin.
+      return serializeLayerData(null, {
+        x: fullBounds.x,
+        y: fullBounds.y,
+        width: 1,
+        height: 1
+      });
+    }
+
+    const contentBounds = {
+      x: fullBounds.x + contentRect.x,
+      y: fullBounds.y + contentRect.y,
+      width: contentRect.width,
+      height: contentRect.height
+    };
+
+    // Only crop when it meaningfully reduces the encoded area (>10% reduction).
+    const originalArea = canvas.width * canvas.height;
+    const contentArea = contentRect.width * contentRect.height;
+    if (contentArea >= originalArea * 0.9) {
+      return serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    }
+
+    // Encode only the content region.
+    const cropped = window.document.createElement("canvas");
+    cropped.width = contentRect.width;
+    cropped.height = contentRect.height;
+    const croppedCtx = cropped.getContext("2d");
+    if (!croppedCtx) {
+      return serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    }
+    croppedCtx.drawImage(canvas, -contentRect.x, -contentRect.y);
+    return serializeLayerData(cropped.toDataURL("image/png"), contentBounds);
+  }
+
+  /**
+   * Find the bounding rect of all non-transparent pixels in the canvas.
+   * Uses step=4 sampling for speed; the result is padded by the step size so
+   * no visible pixel is ever excluded. Returns null if the canvas is empty.
+   */
+  private findContentRect(
+    canvas: HTMLCanvasElement
+  ): { x: number; y: number; width: number; height: number } | null {
+    if (canvas.width === 0 || canvas.height === 0) return null;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+
+    const STEP = 4;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+
+    for (let y = 0; y < h; y += STEP) {
+      const rowBase = y * w;
+      for (let x = 0; x < w; x += STEP) {
+        if (data[(rowBase + x) * 4 + 3] !== 0) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < 0) return null; // all transparent
+
+    // Pad by STEP so we don't clip pixels the step scan may have skipped.
+    const px = Math.max(0, minX - STEP);
+    const py = Math.max(0, minY - STEP);
+    const pw = Math.min(w - px, maxX - px + 1 + STEP * 2);
+    const ph = Math.min(h - py, maxY - py + 1 + STEP * 2);
+    return { x: px, y: py, width: pw, height: ph };
   }
 
   snapshotLayerCanvas(layerId: string): HTMLCanvasElement | null {
@@ -374,34 +455,42 @@ export class Canvas2DRuntime implements SketchRuntime {
   ): void {
     const defaultBounds = getDefaultRasterBounds(bounds);
     const decoded = deserializeLayerData(data, defaultBounds);
-    const canvas = this.getOrCreateLayerCanvas(
-      layerId,
-      decoded.bounds.width,
-      decoded.bounds.height
-    );
     const desiredWidth = decoded.bounds.width;
     const desiredHeight = decoded.bounds.height;
-    if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
-      canvas.width = desiredWidth;
-      canvas.height = desiredHeight;
-    }
-    setCanvasRasterBounds(canvas, decoded.bounds);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
+
+    if (!decoded.image) {
+      // No image: resize and clear immediately (canvas is already blank).
+      const canvas = this.getOrCreateLayerCanvas(layerId, desiredWidth, desiredHeight);
+      if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+        canvas.width = desiredWidth;
+        canvas.height = desiredHeight;
+      } else {
+        canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      setCanvasRasterBounds(canvas, decoded.bounds);
       onComplete?.();
       return;
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (decoded.image) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-        onComplete?.();
-      };
-      img.src = decoded.image;
-    } else {
+
+    // Defer the resize and clear until the image is ready to draw.
+    // This keeps the live canvas content visible between now and onload,
+    // preventing a blank-canvas flash during the encode→decode round-trip.
+    const img = new Image();
+    img.onload = () => {
+      const canvas = this.getOrCreateLayerCanvas(layerId, desiredWidth, desiredHeight);
+      if (canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+        // Assigning width/height also clears the canvas; no clearRect needed.
+        canvas.width = desiredWidth;
+        canvas.height = desiredHeight;
+      } else {
+        canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      setCanvasRasterBounds(canvas, decoded.bounds);
+      const ctx = canvas.getContext("2d");
+      if (ctx) { ctx.drawImage(img, 0, 0); }
       onComplete?.();
-    }
+    };
+    img.src = decoded.image;
   }
 
   restoreLayerCanvas(layerId: string, source: HTMLCanvasElement): void {

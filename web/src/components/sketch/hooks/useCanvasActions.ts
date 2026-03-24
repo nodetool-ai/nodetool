@@ -125,19 +125,44 @@ export function useCanvasActions({
 
   const handleStrokeEnd = useCallback(
     (layerId: string, data: string | null) => {
-      const nextData =
-        data !== null ? data : canvasRef.current?.getLayerData(layerId) ?? null;
-      updateLayerData(layerId, nextData);
-      pendingStrokeFinalizeRef.current.set(layerId, {
-        hasSnapshot: true,
-        data: nextData
-      });
       if (onExportImage) {
         pendingExportSyncRef.current.image = true;
       }
       if (onExportMask) {
         pendingExportSyncRef.current.mask = true;
       }
+
+      if (data !== null) {
+        // Caller already provided serialized data (rare fast-path).
+        updateLayerData(layerId, data);
+        pendingStrokeFinalizeRef.current.set(layerId, {
+          hasSnapshot: true,
+          data
+        });
+        return;
+      }
+
+      // Defer the expensive canvas.toDataURL() + pixel-scan out of the
+      // pointer-up event handler so the cursor doesn't stall while the PNG
+      // is being encoded for the current (potentially large) layer canvas.
+      pendingStrokeFinalizeRef.current.set(layerId, {
+        hasSnapshot: false,
+        data: null
+      });
+      requestAnimationFrame(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const nextData = canvas.getLayerData(layerId) ?? null;
+        updateLayerData(layerId, nextData);
+        // Mark as resolved so flushPendingStrokeFinalization won't re-encode.
+        const pending = pendingStrokeFinalizeRef.current.get(layerId);
+        if (pending && !pending.hasSnapshot) {
+          pendingStrokeFinalizeRef.current.set(layerId, {
+            hasSnapshot: true,
+            data: nextData
+          });
+        }
+      });
     },
     [canvasRef, onExportImage, onExportMask, updateLayerData]
   );
