@@ -35,7 +35,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Layer, BlendMode, CANVAS_PRESETS } from "./types";
+import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference } from "./types";
 import LayerItem from "./LayerItem";
 import { useCollapsedSections } from "./useCollapsedSections";
 
@@ -576,6 +576,26 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <MenuItem value="exclusion">Exclusion</MenuItem>
             </Select>
           </FormControl>
+          {activeLayer.imageReference ? (
+            <Box sx={{ px: "6px", pt: "4px" }}>
+              <Typography
+                sx={{
+                  fontSize: "0.6rem",
+                  color: "grey.500",
+                  lineHeight: 1.35,
+                  wordBreak: "break-all",
+                  fontFamily: "monospace"
+                }}
+              >
+                {summarizeLayerImageReference(activeLayer.imageReference)}
+              </Typography>
+              {activeLayer.locked ? (
+                <Typography sx={{ fontSize: "0.58rem", color: "grey.600", mt: "4px" }}>
+                  Reference layer: pixels locked; move and nudge still apply transform.
+                </Typography>
+              ) : null}
+            </Box>
+          ) : null}
         </>
       )}
 

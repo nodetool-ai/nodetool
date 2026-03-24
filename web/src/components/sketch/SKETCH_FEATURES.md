@@ -14,10 +14,10 @@
 
 ## PHASE 1: Current Priorities
 
-- [ ] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
-- [ ] fix moving the active layer with arrow keys and cover keyboard nudge behavior in regression tests
-- [ ] fix exposed layers being treated as non-image datatypes where image-layer behavior is expected
-- [ ] make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
+- [x] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
+- [x] fix moving the active layer with arrow keys (incl. Shift+10px nudge; transform deltas covered by `useSketchStore` tests)
+- [x] fix exposed layers being treated as non-image datatypes where image-layer behavior is expected
+- [x] make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
 - [ ] improve node/editor layout so input handle titles are not covered by the preview and outputs sit below the preview cleanly
 - [ ] widen and clean up the right panel: spacing, icon order, icon position, and expose-button visibility
 - [ ] add focused regression coverage for transformed layers: move, nudge, paint-after-transform, undo/redo, serialize, reload, and repaint

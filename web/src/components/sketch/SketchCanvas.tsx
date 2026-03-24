@@ -29,6 +29,7 @@ import {
   useOverlayRenderer,
   usePointerHandlers
 } from "./sketchCanvasHooks";
+import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -118,7 +119,12 @@ export interface SketchCanvasProps {
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
-  onStrokeEnd: (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange?: (
     layerId: string,
@@ -187,6 +193,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const {
       displayCanvasRef,
+      bootstrapDisplayRef,
+      bootstrapPhaseActive,
       overlayCanvasRef,
       layerCanvasesRef,
       runtime,
@@ -328,11 +336,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onContextMenu={pointerHandlers.handleContextMenu}
       >
         <canvas
+          ref={bootstrapDisplayRef}
+          className="sketch-canvas__bootstrap"
+          width={doc.canvas.width}
+          height={doc.canvas.height}
+          style={{
+            ...canvasStyle,
+            pointerEvents: "none",
+            ...(bootstrapPhaseActive ? {} : { visibility: "hidden" })
+          }}
+        />
+        <canvas
           ref={displayCanvasRef}
           className="sketch-canvas__display"
           width={doc.canvas.width}
           height={doc.canvas.height}
-          style={canvasStyle}
+          style={{
+            ...canvasStyle,
+            ...(bootstrapPhaseActive
+              ? { opacity: 0, pointerEvents: "none" }
+              : {})
+          }}
         />
         {/* Overlay canvas for shape/gradient/crop preview */}
         <canvas

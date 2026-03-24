@@ -24,7 +24,7 @@ import { EyedropperTool } from "../tools/EyedropperTool";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import type { SketchTool } from "../types";
-import { createDefaultDocument } from "../types";
+import { createDefaultDocument, createDefaultLayer } from "../types";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -202,6 +202,34 @@ describe("MoveTool", () => {
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+  });
+
+  it("returns false when the active layer is locked without an image reference", () => {
+    const tool = new MoveTool();
+    const doc = createDefaultDocument(64, 64);
+    const active = doc.layers.find((l) => l.id === doc.activeLayerId);
+    if (active) {
+      active.locked = true;
+    }
+    const ctx = makeToolContext({ doc });
+    expect(tool.onDown(ctx, makePointerEvent())).toBe(false);
+  });
+
+  it("allows move when the active layer is locked but image-backed", () => {
+    const tool = new MoveTool();
+    const doc = createDefaultDocument(64, 64);
+    const refLayer = createDefaultLayer("Ref", "raster", 64, 64);
+    refLayer.locked = true;
+    refLayer.imageReference = {
+      uri: "https://example.com/x.png",
+      naturalWidth: 64,
+      naturalHeight: 64,
+      objectFit: "fill"
+    };
+    doc.layers = [refLayer];
+    doc.activeLayerId = refLayer.id;
+    const ctx = makeToolContext({ doc });
+    expect(tool.onDown(ctx, makePointerEvent())).toBe(true);
   });
 });
 

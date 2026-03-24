@@ -760,7 +760,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         alphaLock: l.alphaLock,
         blendMode: l.blendMode,
         transform: l.transform,
-        contentBounds: l.contentBounds
+        contentBounds: l.contentBounds,
+        exposedAsInput: l.exposedAsInput,
+        exposedAsOutput: l.exposedAsOutput,
+        imageReference: l.imageReference
       })
     );
     const entry: HistoryEntry = {

@@ -17,6 +17,8 @@ import {
   MAX_HISTORY_SIZE,
   isShapeTool,
   isPaintingTool,
+  layerAllowsTransformWhilePixelLocked,
+  summarizeLayerImageReference,
   hexToRgb,
   rgbToHex,
   rgbToHsl,
@@ -112,6 +114,40 @@ describe("Sketch Types", () => {
     it("generates ids with expected prefix", () => {
       const id = generateLayerId();
       expect(id).toMatch(/^layer_\d+_[a-z0-9]+$/);
+    });
+  });
+
+  describe("image reference helpers", () => {
+    it("layerAllowsTransformWhilePixelLocked is true when imageReference.uri is set", () => {
+      const layer = createDefaultLayer("R");
+      layer.locked = true;
+      layer.imageReference = {
+        uri: "https://x.test/a.png",
+        naturalWidth: 1,
+        naturalHeight: 1,
+        objectFit: "fill"
+      };
+      expect(layerAllowsTransformWhilePixelLocked(layer)).toBe(true);
+    });
+
+    it("layerAllowsTransformWhilePixelLocked is false when locked without reference", () => {
+      const layer = createDefaultLayer("R");
+      layer.locked = true;
+      expect(layerAllowsTransformWhilePixelLocked(layer)).toBe(false);
+    });
+
+    it("summarizeLayerImageReference includes uri and crop", () => {
+      const s = summarizeLayerImageReference({
+        uri: "https://ex/img.png",
+        naturalWidth: 10,
+        naturalHeight: 20,
+        objectFit: "contain",
+        sourceCrop: { x: 1, y: 2, width: 3, height: 4 }
+      });
+      expect(s).toContain("contain");
+      expect(s).toContain("10×20");
+      expect(s).toContain("https://ex/img.png");
+      expect(s).toContain("crop");
     });
   });
 

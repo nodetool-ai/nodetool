@@ -16,7 +16,9 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useRef
+  useLayoutEffect,
+  useRef,
+  useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -76,6 +78,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const canvasRef = useRef<SketchCanvasRef>(null);
   // Snapshot of the document as it was when the editor first loaded
   const initialDocumentRef = useRef(initialDocument);
+  /**
+   * The sketch store is global and survives modal unmount. SketchCanvas must not
+   * mount until `initialDocument` is applied in a layout effect; otherwise the
+   * compositor hydrates from stale store state and stays blank while the node
+   * preview (built from props) still looks correct.
+   */
+  const [canvasReady, setCanvasReady] = useState(false);
 
   // ─── Store selectors ────────────────────────────────────────────────
   const store = useSketchStoreSelectors();
@@ -142,22 +151,22 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setCloneStampSettings: store.setCloneStampSettings
   });
 
-  // ─── Initialize from prop ───────────────────────────────────────────
-  const initializedRef = useRef(false);
+  // ─── Seed global store from prop before SketchCanvas mounts ─────────
   const { setDocument } = store;
-  useEffect(() => {
-    if (initialDocument && !initializedRef.current) {
+  useLayoutEffect(() => {
+    initialDocumentRef.current = initialDocument;
+    if (initialDocument) {
       setDocument(initialDocument);
-      initializedRef.current = true;
     }
+    setCanvasReady(true);
   }, [initialDocument, setDocument]);
 
   // ─── Autosave on document changes ──────────────────────────────────
   useEffect(() => {
-    if (onDocumentChange && initializedRef.current) {
+    if (onDocumentChange && canvasReady) {
       onDocumentChange(store.document);
     }
-  }, [store.document, onDocumentChange]);
+  }, [store.document, onDocumentChange, canvasReady]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -170,6 +179,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handleClearLayer: canvasActions.handleClearLayer,
     handleFillLayerWithColor: canvasActions.handleFillLayerWithColor,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
+    syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
     setActiveTool: store.setActiveTool,
     setZoom: store.setZoom,
     setMirrorX: store.setMirrorX,
@@ -298,34 +308,36 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           className="sketch-editor__canvas-region"
           sx={{ flex: 1, position: "relative", overflow: "hidden" }}
         >
-          <SketchCanvas
-            ref={canvasRef}
-            className="sketch-editor__canvas"
-            document={store.document}
-            activeTool={store.activeTool}
-            zoom={store.zoom}
-            pan={store.pan}
-            mirrorX={store.mirrorX}
-            mirrorY={store.mirrorY}
-            symmetryMode={store.symmetryMode}
-            symmetryRays={store.symmetryRays}
-            isolatedLayerId={store.isolatedLayerId}
-            onZoomChange={store.setZoom}
-            onPanChange={store.setPan}
-            onStrokeStart={canvasActions.handleStrokeStart}
-            onStrokeEnd={canvasActions.handleStrokeEnd}
-            onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
-            onLayerTransformChange={store.setLayerTransform}
-            onLayerContentBoundsChange={store.setLayerContentBounds}
-            onBrushSizeChange={colorActions.handleBrushSizeChange}
-            onContextMenu={canvasActions.handleContextMenu}
-            onCropComplete={canvasActions.handleCropComplete}
-            onEyedropperPick={colorActions.handleEyedropperPick}
-            selection={store.selection}
-            onSelectionChange={store.setSelection}
-            onAutoPickLayer={store.setActiveLayer}
-            foregroundColor={store.foregroundColor}
-          />
+          {canvasReady ? (
+            <SketchCanvas
+              ref={canvasRef}
+              className="sketch-editor__canvas"
+              document={store.document}
+              activeTool={store.activeTool}
+              zoom={store.zoom}
+              pan={store.pan}
+              mirrorX={store.mirrorX}
+              mirrorY={store.mirrorY}
+              symmetryMode={store.symmetryMode}
+              symmetryRays={store.symmetryRays}
+              isolatedLayerId={store.isolatedLayerId}
+              onZoomChange={store.setZoom}
+              onPanChange={store.setPan}
+              onStrokeStart={canvasActions.handleStrokeStart}
+              onStrokeEnd={canvasActions.handleStrokeEnd}
+              onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
+              onLayerTransformChange={store.setLayerTransform}
+              onLayerContentBoundsChange={store.setLayerContentBounds}
+              onBrushSizeChange={colorActions.handleBrushSizeChange}
+              onContextMenu={canvasActions.handleContextMenu}
+              onCropComplete={canvasActions.handleCropComplete}
+              onEyedropperPick={colorActions.handleEyedropperPick}
+              selection={store.selection}
+              onSelectionChange={store.setSelection}
+              onAutoPickLayer={store.setActiveLayer}
+              foregroundColor={store.foregroundColor}
+            />
+          ) : null}
         </Box>
       </Box>
 

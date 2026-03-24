@@ -9,7 +9,8 @@ import {
 } from "../serialization";
 import {
   createDefaultDocument,
-  createDefaultLayer
+  createDefaultLayer,
+  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
 } from "../types";
 import type { SketchDocument } from "../types";
 
@@ -30,9 +31,15 @@ describe("SketchNode data flow helpers", () => {
       const doc = createDefaultDocument();
 
       // Simulate what SketchNode does when it loads an input image
-      const inputLayer = createDefaultLayer("Input Image", "raster");
+      const inputLayer = createDefaultLayer(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME, "raster");
       inputLayer.data = "data:image/png;base64,fakedata";
       inputLayer.locked = true;
+      inputLayer.imageReference = {
+        uri: "https://example.com/in.png",
+        naturalWidth: 64,
+        naturalHeight: 48,
+        objectFit: "fill"
+      };
 
       const updatedLayers = [inputLayer, ...doc.layers];
       const updatedDoc: SketchDocument = {
@@ -42,9 +49,11 @@ describe("SketchNode data flow helpers", () => {
       };
 
       expect(updatedDoc.layers).toHaveLength(2);
-      expect(updatedDoc.layers[0].name).toBe("Input Image");
+      expect(updatedDoc.layers[0].name).toBe(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME);
       expect(updatedDoc.layers[0].locked).toBe(true);
       expect(updatedDoc.layers[0].data).toBe("data:image/png;base64,fakedata");
+      expect(updatedDoc.layers[0].imageReference?.uri).toBe("https://example.com/in.png");
+      expect(updatedDoc.layers[0].imageReference?.objectFit).toBe("fill");
       expect(updatedDoc.layers[1].name).toBe("Background");
     });
 
@@ -52,29 +61,43 @@ describe("SketchNode data flow helpers", () => {
       const doc = createDefaultDocument();
 
       // Add initial input image layer
-      const inputLayer = createDefaultLayer("Input Image", "raster");
+      const inputLayer = createDefaultLayer(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME, "raster");
       inputLayer.data = "data:image/png;base64,first";
       const layers = [inputLayer, ...doc.layers];
 
       // Replace it (as SketchNode does when input_image changes)
-      const existingIdx = layers.findIndex((l) => l.name === "Input Image");
+      const existingIdx = layers.findIndex((l) => l.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME);
       expect(existingIdx).toBe(0);
 
       const updatedLayers = [...layers];
       updatedLayers[existingIdx] = {
         ...updatedLayers[existingIdx],
-        data: "data:image/png;base64,second"
+        data: "data:image/png;base64,second",
+        imageReference: {
+          uri: "https://example.com/v2.png",
+          naturalWidth: 32,
+          naturalHeight: 32,
+          objectFit: "fill"
+        }
       };
 
       expect(updatedLayers[0].data).toBe("data:image/png;base64,second");
+      expect(updatedLayers[0].imageReference?.uri).toBe("https://example.com/v2.png");
       expect(updatedLayers).toHaveLength(2);
     });
 
     it("serializes document with input image layer correctly", () => {
       const doc = createDefaultDocument();
-      const inputLayer = createDefaultLayer("Input Image", "raster");
+      const inputLayer = createDefaultLayer(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME, "raster");
       inputLayer.data = "data:image/png;base64,testdata";
       inputLayer.locked = true;
+      inputLayer.imageReference = {
+        uri: "asset://abc",
+        naturalWidth: 100,
+        naturalHeight: 200,
+        sourceCrop: { x: 0, y: 0, width: 100, height: 100 },
+        objectFit: "cover"
+      };
       doc.layers = [inputLayer, ...doc.layers];
 
       const json = serializeDocument(doc);
@@ -82,9 +105,12 @@ describe("SketchNode data flow helpers", () => {
 
       expect(restored).not.toBeNull();
       expect(restored!.layers).toHaveLength(2);
-      expect(restored!.layers[0].name).toBe("Input Image");
+      expect(restored!.layers[0].name).toBe(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME);
       expect(restored!.layers[0].locked).toBe(true);
       expect(restored!.layers[0].data).toBe("data:image/png;base64,testdata");
+      expect(restored!.layers[0].imageReference?.uri).toBe("asset://abc");
+      expect(restored!.layers[0].imageReference?.objectFit).toBe("cover");
+      expect(restored!.layers[0].imageReference?.sourceCrop?.width).toBe(100);
     });
   });
 

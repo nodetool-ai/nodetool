@@ -9,6 +9,9 @@
 
 export const SKETCH_FORMAT_VERSION = 2;
 
+/** Display name for the raster created from the Sketch node `input_image` handle. */
+export const SKETCH_NODE_INPUT_IMAGE_LAYER_NAME = "Input Image";
+
 // ─── Primitive Types ──────────────────────────────────────────────────────────
 
 export interface Point {
@@ -178,6 +181,25 @@ export type BlendMode =
   | "difference"
   | "exclusion";
 
+/**
+ * How the (optionally cropped) source image is mapped into the layer's
+ * `contentBounds` when the two aspect ratios differ.
+ */
+export type LayerImageObjectFit = "fill" | "contain" | "cover";
+
+/**
+ * Image-backed layer metadata: stable source URI plus crop/fit bookkeeping.
+ * Pixel data in `data` remains the working copy for compositing and export.
+ */
+export interface LayerImageReference {
+  uri: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  /** Optional sub-rectangle in source pixel space; omit to use the full image. */
+  sourceCrop?: { x: number; y: number; width: number; height: number };
+  objectFit: LayerImageObjectFit;
+}
+
 export interface Layer {
   id: string;
   name: string;
@@ -198,6 +220,11 @@ export interface Layer {
   exposedAsInput?: boolean;
   /** When true, this layer creates a dynamic output handle on the SketchNode */
   exposedAsOutput?: boolean;
+  /**
+   * When set, pixels are tied to an external image URI (workflow input, asset URL, etc.).
+   * The layer may stay `locked` for painting while still allowing move/nudge transforms.
+   */
+  imageReference?: LayerImageReference | null;
 }
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────
@@ -276,6 +303,9 @@ export interface LayerStructureSnapshot {
   blendMode: BlendMode;
   transform: LayerTransform;
   contentBounds: LayerContentBounds;
+  exposedAsInput?: boolean;
+  exposedAsOutput?: boolean;
+  imageReference?: LayerImageReference | null;
 }
 
 export interface HistoryEntry {
@@ -377,6 +407,20 @@ export function generateLayerId(): string {
   return `layer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Locked pixel buffer, but transform (move / nudge) is still allowed. */
+export function layerAllowsTransformWhilePixelLocked(layer: Layer): boolean {
+  return Boolean(layer.imageReference?.uri);
+}
+
+/** Tooltip / panel text for an image-backed layer. */
+export function summarizeLayerImageReference(ref: LayerImageReference): string {
+  const crop = ref.sourceCrop;
+  const cropPart = crop
+    ? ` · crop ${crop.width}×${crop.height} @ (${crop.x}, ${crop.y})`
+    : "";
+  return `${ref.objectFit} · source ${ref.naturalWidth}×${ref.naturalHeight}${cropPart}\n${ref.uri}`;
+}
+
 export function createDefaultLayer(
   name: string,
   type: LayerType = "raster",
@@ -448,6 +492,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         alphaLock: layer.alphaLock ?? false,
         blendMode: layer.blendMode ?? "normal",
         data: layer.data ?? null,
+        imageReference: layer.imageReference ?? undefined,
         transform: {
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0

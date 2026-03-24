@@ -65,8 +65,8 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 
 ## Move & Transform
 
-- [ ] `Arrow` keys nudge active layer by 1 px - currently broken in practice
-- [ ] `Shift+Arrow` keys nudge active layer by 10 px - currently broken in practice
+- [x] `Arrow` keys nudge active layer by 1 px
+- [x] `Shift+Arrow` keys nudge active layer by 10 px
 - [x] `Esc` cancel active selection / crop / transform-like interaction
 - [ ] `Shift+drag` constrain line / square / circle drawing - currently broken in practice
 - [ ] `Ctrl+T` free transform

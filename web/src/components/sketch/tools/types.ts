@@ -19,6 +19,16 @@ import type {
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
 
+/** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */
+export interface StrokeEndOptions {
+  /**
+   * When false, do not queue a deferred `getLayerData` → `updateLayerData` sync.
+   * Transform-only tools (move) must use this so idle flush never overwrites
+   * `layer.data` with empty/not-yet-hydrated canvas encodings.
+   */
+  syncDocumentFromCanvas?: boolean;
+}
+
 // ─── Tool context (injected dependencies) ─────────────────────────────────
 
 export interface ToolContext {
@@ -71,7 +81,12 @@ export interface ToolContext {
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
-  onStrokeEnd: (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange?: (
     layerId: string,

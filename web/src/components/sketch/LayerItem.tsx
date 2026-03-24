@@ -13,7 +13,9 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import FilterNoneIcon from "@mui/icons-material/FilterNone";
 import InputIcon from "@mui/icons-material/Input";
 import OutputIcon from "@mui/icons-material/Output";
+import LinkIcon from "@mui/icons-material/Link";
 import type { Layer } from "./types";
+import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 
 export interface LayerItemProps {
@@ -160,14 +162,40 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
           />
         ) : (
-          <Typography
-            className="layer-name"
-            onDoubleClick={() => onStartRename(layer.id, layer.name)}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              minWidth: 0
+            }}
           >
-            {layer.name}
-            {isMask && " 🎭"}
-            {layer.alphaLock && " 🔒"}
-          </Typography>
+            {layer.imageReference ? (
+              <Tooltip
+                title={summarizeLayerImageReference(layer.imageReference)}
+                placement="left"
+              >
+                <LinkIcon
+                  sx={{
+                    fontSize: "12px",
+                    color: "info.light",
+                    flexShrink: 0,
+                    opacity: 0.85
+                  }}
+                />
+              </Tooltip>
+            ) : null}
+            <Typography
+              className="layer-name"
+              onDoubleClick={() => onStartRename(layer.id, layer.name)}
+              sx={{ minWidth: 0 }}
+            >
+              {layer.name}
+              {isMask && " 🎭"}
+              {layer.alphaLock && " 🔒"}
+            </Typography>
+          </Box>
         )}
 
         <Box sx={{ display: "flex", gap: 0, ml: "auto" }}>

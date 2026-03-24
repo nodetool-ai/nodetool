@@ -5,7 +5,7 @@
  * Extracted from SketchEditor.tsx to reduce component size.
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSketchStore } from "./state";
 import type {
   SketchTool,
@@ -18,6 +18,17 @@ import type {
   ShapeSettings
 } from "./types";
 
+type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+
+function isArrowKey(key: string): key is ArrowKey {
+  return (
+    key === "ArrowUp" ||
+    key === "ArrowDown" ||
+    key === "ArrowLeft" ||
+    key === "ArrowRight"
+  );
+}
+
 export interface UseEditorKeyboardShortcutsParams {
   handleUndo: () => void;
   handleRedo: () => void;
@@ -27,7 +38,13 @@ export interface UseEditorKeyboardShortcutsParams {
   handleExportPng: () => void;
   handleClearLayer: () => void;
   handleFillLayerWithColor: (color: string) => void;
-  handleNudgeLayer: (dx: number, dy: number) => void;
+  handleNudgeLayer: (
+    dx: number,
+    dy: number,
+    options?: { recordHistory?: boolean; syncOutputs?: boolean }
+  ) => void;
+  /** Run once after a held-arrow nudge ends so parent node gets a final PNG/mask. */
+  syncSketchOutputsNow: () => void;
   setActiveTool: (tool: SketchTool) => void;
   setZoom: (zoom: number) => void;
   setMirrorX: (v: boolean) => void;
@@ -46,8 +63,75 @@ export interface UseEditorKeyboardShortcutsParams {
 export function useEditorKeyboardShortcuts(
   params: UseEditorKeyboardShortcutsParams
 ): void {
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+
+  const heldArrowsRef = useRef<Record<ArrowKey, boolean>>({
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false
+  });
+  const shiftHeldRef = useRef(false);
+  const nudgeRafRef = useRef<number | null>(null);
+  /** True until the first applied nudge of the current hold session (for one undo step). */
+  const nudgeHistoryPendingRef = useRef(false);
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const stopLayerNudgeLoop = () => {
+      if (nudgeRafRef.current !== null) {
+        cancelAnimationFrame(nudgeRafRef.current);
+        nudgeRafRef.current = null;
+      }
+      nudgeHistoryPendingRef.current = false;
+      paramsRef.current.syncSketchOutputsNow();
+    };
+
+    const anyArrowHeld = (): boolean => {
+      const h = heldArrowsRef.current;
+      return h.ArrowUp || h.ArrowDown || h.ArrowLeft || h.ArrowRight;
+    };
+
+    const runNudgeFrame = () => {
+      nudgeRafRef.current = null;
+      if (!anyArrowHeld()) {
+        return;
+      }
+
+      const step = shiftHeldRef.current ? 10 : 1;
+      let dx = 0;
+      let dy = 0;
+      const held = heldArrowsRef.current;
+      if (held.ArrowLeft) {
+        dx -= step;
+      }
+      if (held.ArrowRight) {
+        dx += step;
+      }
+      if (held.ArrowUp) {
+        dy -= step;
+      }
+      if (held.ArrowDown) {
+        dy += step;
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        const recordHistory = nudgeHistoryPendingRef.current;
+        nudgeHistoryPendingRef.current = false;
+        paramsRef.current.handleNudgeLayer(dx, dy, {
+          recordHistory,
+          syncOutputs: false
+        });
+      }
+
+      if (anyArrowHeld()) {
+        nudgeRafRef.current = requestAnimationFrame(runNudgeFrame);
+      } else {
+        stopLayerNudgeLoop();
+      }
+    };
+
+    const keydownHandler = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -59,30 +143,53 @@ export function useEditorKeyboardShortcuts(
       // Prevent sketch shortcuts from bleeding to node editor
       e.stopPropagation();
 
+      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        shiftHeldRef.current = true;
+      }
+
+      if (
+        isArrowKey(e.key) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          shiftHeldRef.current = true;
+        }
+        heldArrowsRef.current[e.key] = true;
+        if (nudgeRafRef.current === null) {
+          nudgeHistoryPendingRef.current = true;
+          // Run immediately so a quick tap still moves one step before keyup cancels rAF.
+          runNudgeFrame();
+        }
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
           e.preventDefault();
           if (e.shiftKey) {
-            params.handleRedo();
+            paramsRef.current.handleRedo();
           } else {
-            params.handleUndo();
+            paramsRef.current.handleUndo();
           }
         }
         if (e.key === "y") {
           e.preventDefault();
-          params.handleRedo();
+          paramsRef.current.handleRedo();
         }
         if (e.key === "0") {
           e.preventDefault();
-          params.handleZoomReset();
+          paramsRef.current.handleZoomReset();
         }
         if (e.key === "1") {
           e.preventDefault();
-          params.setZoom(1);
+          paramsRef.current.setZoom(1);
         }
         if (e.key === "s") {
           e.preventDefault();
-          params.handleExportPng();
+          paramsRef.current.handleExportPng();
         }
         if (e.key === "a") {
           e.preventDefault();
@@ -106,7 +213,7 @@ export function useEditorKeyboardShortcuts(
         // Ctrl+Backspace → fill with background color (Photoshop convention)
         if (e.key === "Backspace") {
           e.preventDefault();
-          params.handleFillLayerWithColor(
+          paramsRef.current.handleFillLayerWithColor(
             useSketchStore.getState().backgroundColor
           );
         }
@@ -114,14 +221,14 @@ export function useEditorKeyboardShortcuts(
         // Alt+Backspace → fill with foreground color (Photoshop convention)
         if (e.key === "Backspace") {
           e.preventDefault();
-          params.handleFillLayerWithColor(
+          paramsRef.current.handleFillLayerWithColor(
             useSketchStore.getState().foregroundColor
           );
         }
       } else if (e.shiftKey) {
         // Shift+M → toggle vertical mirror
         if (e.key === "M") {
-          params.setMirrorY(!useSketchStore.getState().mirrorY);
+          paramsRef.current.setMirrorY(!useSketchStore.getState().mirrorY);
         }
         // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
         if (e.key === "{") {
@@ -132,7 +239,7 @@ export function useEditorKeyboardShortcuts(
               0,
               store.document.toolSettings.brush.hardness - 0.1
             );
-            params.setBrushSettings({
+            paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           } else if (tool === "eraser") {
@@ -140,7 +247,7 @@ export function useEditorKeyboardShortcuts(
               0,
               store.document.toolSettings.eraser.hardness - 0.1
             );
-            params.setEraserSettings({
+            paramsRef.current.setEraserSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           }
@@ -152,7 +259,7 @@ export function useEditorKeyboardShortcuts(
               1,
               store.document.toolSettings.brush.hardness + 0.1
             );
-            params.setBrushSettings({
+            paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           } else if (tool === "eraser") {
@@ -160,7 +267,7 @@ export function useEditorKeyboardShortcuts(
               1,
               store.document.toolSettings.eraser.hardness + 0.1
             );
-            params.setEraserSettings({
+            paramsRef.current.setEraserSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           }
@@ -174,11 +281,11 @@ export function useEditorKeyboardShortcuts(
           const digit = parseInt(e.key, 10);
           const opacity = digit === 0 ? 1 : digit / 10;
           if (tool === "brush") {
-            params.setBrushSettings({ opacity });
+            paramsRef.current.setBrushSettings({ opacity });
           } else if (tool === "pencil") {
-            params.setPencilSettings({ opacity });
+            paramsRef.current.setPencilSettings({ opacity });
           } else if (tool === "eraser") {
-            params.setEraserSettings({ opacity });
+            paramsRef.current.setEraserSettings({ opacity });
           }
         } else {
           switch (e.key) {
@@ -186,22 +293,22 @@ export function useEditorKeyboardShortcuts(
               useSketchStore.getState().setSelection(null);
               break;
             case "b":
-              params.setActiveTool("brush");
+              paramsRef.current.setActiveTool("brush");
               break;
             case "p":
-              params.setActiveTool("pencil");
+              paramsRef.current.setActiveTool("pencil");
               break;
             case "e":
-              params.setActiveTool("eraser");
+              paramsRef.current.setActiveTool("eraser");
               break;
             case "i":
-              params.setActiveTool("eyedropper");
+              paramsRef.current.setActiveTool("eyedropper");
               break;
             case "g":
-              params.setActiveTool("fill");
+              paramsRef.current.setActiveTool("fill");
               break;
             case "u":
-              params.setActiveTool("shape");
+              paramsRef.current.setActiveTool("shape");
               break;
             case "l":
             case "r":
@@ -210,40 +317,42 @@ export function useEditorKeyboardShortcuts(
               const shapeTypeMap: Record<string, ShapeToolType> = {
                 l: "line", r: "rectangle", o: "ellipse", a: "arrow"
               };
-              params.setActiveTool("shape");
-              params.setShapeSettings({ shapeType: shapeTypeMap[e.key] });
+              paramsRef.current.setActiveTool("shape");
+              paramsRef.current.setShapeSettings({
+                shapeType: shapeTypeMap[e.key]
+              });
               break;
             }
             case "q":
-              params.setActiveTool("blur");
+              paramsRef.current.setActiveTool("blur");
               break;
             case "t":
-              params.setActiveTool("gradient");
+              paramsRef.current.setActiveTool("gradient");
               break;
             case "c":
-              params.setActiveTool("crop");
+              paramsRef.current.setActiveTool("crop");
               break;
             case "j":
-              params.setActiveTool("adjust");
+              paramsRef.current.setActiveTool("adjust");
               break;
             case "s":
-              params.setActiveTool("clone_stamp");
+              paramsRef.current.setActiveTool("clone_stamp");
               break;
             case "m":
-              params.setMirrorX(!useSketchStore.getState().mirrorX);
+              paramsRef.current.setMirrorX(!useSketchStore.getState().mirrorX);
               break;
             case "v":
-              params.setActiveTool("move");
+              paramsRef.current.setActiveTool("move");
               break;
             case "x":
-              params.swapColors();
+              paramsRef.current.swapColors();
               break;
             case "d":
-              params.resetColors();
+              paramsRef.current.resetColors();
               break;
             case "Tab":
               e.preventDefault();
-              params.togglePanelsHidden();
+              paramsRef.current.togglePanelsHidden();
               break;
             case "[": {
               const store = useSketchStore.getState();
@@ -253,31 +362,31 @@ export function useEditorKeyboardShortcuts(
                   1,
                   store.document.toolSettings.brush.size - 5
                 );
-                params.setBrushSettings({ size: newSize });
+                paramsRef.current.setBrushSettings({ size: newSize });
               } else if (tool === "pencil") {
                 const newSize = Math.max(
                   1,
                   store.document.toolSettings.pencil.size - 1
                 );
-                params.setPencilSettings({ size: newSize });
+                paramsRef.current.setPencilSettings({ size: newSize });
               } else if (tool === "eraser") {
                 const newSize = Math.max(
                   1,
                   store.document.toolSettings.eraser.size - 5
                 );
-                params.setEraserSettings({ size: newSize });
+                paramsRef.current.setEraserSettings({ size: newSize });
               } else if (tool === "blur") {
                 const newSize = Math.max(
                   1,
                   store.document.toolSettings.blur.size - 5
                 );
-                params.setBlurSettings({ size: newSize });
+                paramsRef.current.setBlurSettings({ size: newSize });
               } else if (tool === "clone_stamp") {
                 const newSize = Math.max(
                   1,
                   store.document.toolSettings.cloneStamp.size - 5
                 );
-                params.setCloneStampSettings({ size: newSize });
+                paramsRef.current.setCloneStampSettings({ size: newSize });
               }
               break;
             }
@@ -289,75 +398,101 @@ export function useEditorKeyboardShortcuts(
                   200,
                   store.document.toolSettings.brush.size + 5
                 );
-                params.setBrushSettings({ size: newSize });
+                paramsRef.current.setBrushSettings({ size: newSize });
               } else if (tool === "pencil") {
                 const newSize = Math.min(
                   10,
                   store.document.toolSettings.pencil.size + 1
                 );
-                params.setPencilSettings({ size: newSize });
+                paramsRef.current.setPencilSettings({ size: newSize });
               } else if (tool === "eraser") {
                 const newSize = Math.min(
                   200,
                   store.document.toolSettings.eraser.size + 5
                 );
-                params.setEraserSettings({ size: newSize });
+                paramsRef.current.setEraserSettings({ size: newSize });
               } else if (tool === "blur") {
                 const newSize = Math.min(
                   200,
                   store.document.toolSettings.blur.size + 5
                 );
-                params.setBlurSettings({ size: newSize });
+                paramsRef.current.setBlurSettings({ size: newSize });
               } else if (tool === "clone_stamp") {
                 const newSize = Math.min(
                   200,
                   store.document.toolSettings.cloneStamp.size + 5
                 );
-                params.setCloneStampSettings({ size: newSize });
+                paramsRef.current.setCloneStampSettings({ size: newSize });
               }
               break;
             }
             case "=":
             case "+":
-              params.handleZoomIn();
+              paramsRef.current.handleZoomIn();
               break;
             case "-":
-              params.handleZoomOut();
+              paramsRef.current.handleZoomOut();
               break;
             case "Delete":
             case "Backspace":
-              params.handleClearLayer();
+              paramsRef.current.handleClearLayer();
               break;
-            case "ArrowUp": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              params.handleNudgeLayer(0, -amount);
-              break;
-            }
-            case "ArrowDown": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              params.handleNudgeLayer(0, amount);
-              break;
-            }
-            case "ArrowLeft": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              params.handleNudgeLayer(-amount, 0);
-              break;
-            }
-            case "ArrowRight": {
-              e.preventDefault();
-              const amount = e.shiftKey ? 10 : 1;
-              params.handleNudgeLayer(amount, 0);
-              break;
-            }
           }
         }
       }
     };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const keyupHandler = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      e.stopPropagation();
+
+      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        shiftHeldRef.current = false;
+      }
+
+      if (isArrowKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        heldArrowsRef.current[e.key] = false;
+        if (!anyArrowHeld()) {
+          if (nudgeRafRef.current !== null) {
+            cancelAnimationFrame(nudgeRafRef.current);
+            nudgeRafRef.current = null;
+          }
+          nudgeHistoryPendingRef.current = false;
+          paramsRef.current.syncSketchOutputsNow();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", keydownHandler, true);
+    window.addEventListener("keyup", keyupHandler, true);
+    return () => {
+      window.removeEventListener("keydown", keydownHandler, true);
+      window.removeEventListener("keyup", keyupHandler, true);
+      if (nudgeRafRef.current !== null) {
+        cancelAnimationFrame(nudgeRafRef.current);
+        nudgeRafRef.current = null;
+      }
+      const hadArrowHeld =
+        heldArrowsRef.current.ArrowUp ||
+        heldArrowsRef.current.ArrowDown ||
+        heldArrowsRef.current.ArrowLeft ||
+        heldArrowsRef.current.ArrowRight;
+      heldArrowsRef.current = {
+        ArrowUp: false,
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false
+      };
+      if (hadArrowHeld) {
+        paramsRef.current.syncSketchOutputsNow();
+      }
+    };
   }, []);
 }

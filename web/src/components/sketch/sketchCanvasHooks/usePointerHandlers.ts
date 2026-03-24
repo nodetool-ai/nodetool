@@ -15,14 +15,22 @@ import type {
   LayerTransform,
   LayerContentBounds
 } from "../types";
-import { isShapeTool, isPaintingTool } from "../types";
+import {
+  isShapeTool,
+  isPaintingTool,
+  layerAllowsTransformWhilePixelLocked
+} from "../types";
 import {
   drawGradient as drawGradientUtil,
   floodFill as floodFillUtil
 } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
-import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import type {
+  ToolContext,
+  ToolPointerEvent,
+  StrokeEndOptions
+} from "../tools/types";
 import { getCanvasRasterBounds } from "../painting";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
@@ -61,7 +69,12 @@ export interface UsePointerHandlersParams {
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
-  onStrokeEnd: (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => void;
+  onStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
   onLayerTransformChange?: (layerId: string, transform: LayerTransform) => void;
   onLayerContentBoundsChange?: (
     layerId: string,
@@ -391,7 +404,7 @@ export function usePointerHandlers({
       }
 
       const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-      if (!activeLayer || activeLayer.locked || !activeLayer.visible) {
+      if (!activeLayer || !activeLayer.visible) {
         return;
       }
 
@@ -429,7 +442,9 @@ export function usePointerHandlers({
           // Scan layers from top (last in array) to bottom (first in array)
           for (let i = doc.layers.length - 1; i >= 0; i--) {
             const layer = doc.layers[i];
-            if (!layer.visible || layer.locked) {
+            const skipForHit =
+              !layer.visible || (layer.locked && !layer.imageReference);
+            if (skipForHit) {
               continue;
             }
             const layerCanvas = layerCanvasesRef.current.get(layer.id);
@@ -467,6 +482,47 @@ export function usePointerHandlers({
         isDrawingRef.current = true;
         onStrokeStart();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (activeTool === "crop") {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        cropStartRef.current = pt;
+        isDrawingRef.current = true;
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (activeTool === "select") {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        // Check if clicking inside an existing selection — start moving it
+        if (
+          selection &&
+          !shiftHeldRef.current &&
+          !altHeldRef.current &&
+          pt.x >= selection.x &&
+          pt.x < selection.x + selection.width &&
+          pt.y >= selection.y &&
+          pt.y < selection.y + selection.height
+        ) {
+          isMovingSelectionRef.current = true;
+          moveSelectionOriginRef.current = pt;
+          selectionAtMoveStartRef.current = { ...selection };
+          isDrawingRef.current = true;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+        // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
+        selectStartRef.current = pt;
+        isDrawingRef.current = true;
+        if (!shiftHeldRef.current && !altHeldRef.current) {
+          onSelectionChange?.(null);
+        }
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (activeLayer.locked && !layerAllowsTransformWhilePixelLocked(activeLayer)) {
         return;
       }
 
@@ -626,43 +682,6 @@ export function usePointerHandlers({
               y: (activeLayer.transform?.y ?? 0) + ensuredBounds.y
             }
           : getLayerPaintOffset(activeLayer.id);
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (activeTool === "crop") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        cropStartRef.current = pt;
-        isDrawingRef.current = true;
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        return;
-      }
-
-      if (activeTool === "select") {
-        const pt = screenToCanvas(e.clientX, e.clientY);
-        // Check if clicking inside an existing selection — start moving it
-        if (
-          selection &&
-          !shiftHeldRef.current &&
-          !altHeldRef.current &&
-          pt.x >= selection.x &&
-          pt.x < selection.x + selection.width &&
-          pt.y >= selection.y &&
-          pt.y < selection.y + selection.height
-        ) {
-          isMovingSelectionRef.current = true;
-          moveSelectionOriginRef.current = pt;
-          selectionAtMoveStartRef.current = { ...selection };
-          isDrawingRef.current = true;
-          (e.target as HTMLElement).setPointerCapture(e.pointerId);
-          return;
-        }
-        // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
-        selectStartRef.current = pt;
-        isDrawingRef.current = true;
-        if (!shiftHeldRef.current && !altHeldRef.current) {
-          onSelectionChange?.(null);
-        }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
       }
@@ -1038,6 +1057,15 @@ export function usePointerHandlers({
       if (activeTool === "move") {
         moveStartRef.current = null;
         moveLayerStartTransformRef.current = { x: 0, y: 0 };
+        // Move only changes transform; pixels are unchanged. Do not enqueue the
+        // deferred getLayerData sync used by paint tools — it can overwrite
+        // document `layer.data` with empty/not-yet-hydrated CPU canvases.
+        if (activeLayer) {
+          onStrokeEnd(activeLayer.id, null, undefined, {
+            syncDocumentFromCanvas: false
+          });
+        }
+        return;
       }
       if (activeTool === "clone_stamp") {
         clonePaintOffsetRef.current = null;
@@ -1081,6 +1109,7 @@ export function usePointerHandlers({
         }
         gradientStartRef.current = null;
         gradientEndRef.current = null;
+        return;
       }
 
       if (activeTool === "crop" && cropStartRef.current) {

@@ -56,6 +56,8 @@ export type {
   ShapeToolType,
   Layer,
   LayerType,
+  LayerImageReference,
+  LayerImageObjectFit,
   BlendMode,
   BrushSettings,
   BrushType,
@@ -80,6 +82,7 @@ export type {
 
 export {
   SKETCH_FORMAT_VERSION,
+  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_PENCIL_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
@@ -92,6 +95,8 @@ export {
   createDefaultDocument,
   createDefaultLayer,
   generateLayerId,
+  layerAllowsTransformWhilePixelLocked,
+  summarizeLayerImageReference,
   isShapeTool,
   isPaintingTool,
   hexToRgb,

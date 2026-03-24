@@ -31,6 +31,7 @@ import { Slugify } from "../../../utils/TypeHandler";
 import { SketchModal } from "../../sketch";
 import {
   SketchDocument,
+  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
   createDefaultDocument,
   createDefaultLayer,
   deserializeDocument,
@@ -43,10 +44,17 @@ import {
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = (theme: Theme) =>
+type SketchNodeStyleOptions = {
+  selected: boolean;
+  isFocused: boolean;
+  baseColor: string;
+};
+
+const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
   css({
     "&.sketch-node": {
       display: "block",
@@ -58,35 +66,95 @@ const styles = (theme: Theme) =>
       maxWidth: "unset",
       minHeight: "200px",
       borderRadius: "var(--rounded-node)",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
-      transition: "border-color 0.15s ease",
-      "&:hover": {
+      transition: "border-color 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease",
+      boxShadow: opts.selected
+        ? `0 0 0 1px ${opts.baseColor}, 0 1px 10px rgba(0,0,0,0.5)`
+        : opts.isFocused
+          ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+          : "none",
+      outline: opts.isFocused
+        ? `2px dashed ${theme.vars.palette.warning.main}`
+        : opts.selected
+          ? `3px solid ${opts.baseColor}`
+          : "none",
+      outlineOffset: "-2px",
+      "--node-primary-color": opts.baseColor,
+      backdropFilter: opts.selected ? theme.vars.palette.glass.blur : "none",
+      WebkitBackdropFilter: opts.selected ? theme.vars.palette.glass.blur : "none",
+      "&:hover:not(.sketch-node--selected)": {
         borderColor: theme.vars.palette.grey[500]
       }
     },
+    "&.sketch-node--selected": {
+      backgroundColor: "transparent"
+    },
     ".sketch-node-content": {
       position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      inset: 0,
       backgroundColor: "transparent",
+      overflow: "visible",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0
+    },
+    ".sketch-node-stack": {
+      flex: "1 1 auto",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0,
       overflow: "visible"
+    },
+    // Preview + handles: main fills space below header only (inputs start under header)
+    ".sketch-main": {
+      position: "relative",
+      flex: "1 1 auto",
+      minHeight: 0,
+      minWidth: 0,
+      overflow: "visible"
+    },
+    ".sketch-input-handles": {
+      position: "absolute",
+      left: 0,
+      top: "6px",
+      zIndex: 2,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "36px"
+    },
+    ".sketch-output-handles": {
+      position: "absolute",
+      right: 0,
+      top: "6px",
+      zIndex: 2,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: "14px"
+    },
+    ".sketch-preview-wrap": {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+      cursor: "pointer",
+      "&:hover .edit-overlay": {
+        opacity: 1
+      }
     },
     ".content": {
       position: "absolute",
-      top: "30px",
-      left: 0,
-      right: 0,
-      bottom: 0,
+      inset: 0,
       overflow: "hidden",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       cursor: "pointer",
-      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)",
       "&:hover .edit-overlay": {
         opacity: 1
       }
@@ -109,8 +177,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: "rgba(0,0,0,0.45)",
       opacity: 0,
-      transition: "opacity 0.2s",
-      borderRadius: "0 0 var(--rounded-node) var(--rounded-node)"
+      transition: "opacity 0.2s"
     },
     ".edit-overlay-label": {
       fontSize: "0.7rem",
@@ -132,42 +199,16 @@ const styles = (theme: Theme) =>
       opacity: 0.8,
       pointerEvents: "none"
     },
-    ".handle-popup": {
-      position: "absolute",
-      left: 0
-    },
-    ".handle-popup.input_image": {
-      top: "60px"
-    },
-    ".output-handles": {
-      position: "absolute",
-      right: 0
-    },
-    ".handle-popup.output-image": {
-      top: "60px"
-    },
-    ".handle-popup.output-mask": {
-      top: "100px"
-    },
-    // Handle labels for dynamic exposed layers
-    ".handle-label": {
-      position: "absolute",
-      fontSize: "0.6rem",
-      fontWeight: 500,
-      color: theme.vars.palette.grey[400],
-      whiteSpace: "nowrap",
-      pointerEvents: "none",
-      lineHeight: 1
-    },
-    ".handle-label.left": {
-      left: "12px",
-      top: "50%",
-      transform: "translateY(-50%)"
-    },
-    ".handle-label.right": {
-      right: "12px",
-      top: "50%",
-      transform: "translateY(-50%)"
+    // Per-output wrapper in vertical stack (overrides global full-height output rail)
+    "& .sketch-output-handles .output-handle-container": {
+      position: "relative",
+      top: "auto",
+      right: "auto",
+      bottom: "auto",
+      left: "auto",
+      width: "auto",
+      height: "auto",
+      textAlign: "right"
     }
   });
 
@@ -178,10 +219,6 @@ const imageTypeMetadata = {
   optional: true
 };
 
-// Handle layout constants
-const DYNAMIC_HANDLE_START_TOP = 100;
-const DYNAMIC_HANDLE_SPACING = 40;
-const DYNAMIC_OUTPUT_START_TOP = 140;
 const NODE_SYNC_DEBOUNCE_MS = 200;
 
 const outputImageTypeMetadata = {
@@ -204,6 +241,17 @@ interface SketchNodeProps extends NodeProps {
 const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
+  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === props.id);
+  const inputAccentColor = theme.vars.palette.success.main;
+  const sketchCss = useMemo(
+    () =>
+      styles(theme, {
+        selected: Boolean(props.selected),
+        isFocused,
+        baseColor: inputAccentColor
+      }),
+    [theme, props.selected, isFocused, inputAccentColor]
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(null);
@@ -331,24 +379,51 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     const doc = documentRef.current || sketchDoc;
     loadImageWithDimensions(inputImageUri)
       .then(({ data: layerData, naturalWidth, naturalHeight }) => {
-        // Create an updated document with the input image as the base layer
-        const inputLayer = createDefaultLayer("Input Image", "raster");
-        inputLayer.data = layerData;
-        inputLayer.locked = true;
+        const imageReference = {
+          uri: inputImageUri,
+          naturalWidth,
+          naturalHeight,
+          objectFit: "fill" as const
+        };
 
         // Auto-resize canvas to match input image dimensions
         const canvasWidth = naturalWidth > 0 ? naturalWidth : doc.canvas.width;
         const canvasHeight = naturalHeight > 0 ? naturalHeight : doc.canvas.height;
 
+        const contentBounds = {
+          x: 0,
+          y: 0,
+          width: canvasWidth,
+          height: canvasHeight
+        };
+
         // Insert input layer at the bottom (index 0) if not already present
-        const existingInputIdx = doc.layers.findIndex((l) => l.name === "Input Image");
+        const existingInputIdx = doc.layers.findIndex(
+          (l) => l.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
+        );
         let updatedLayers;
         if (existingInputIdx >= 0) {
-          // Replace existing input layer
+          const prev = doc.layers[existingInputIdx];
           updatedLayers = [...doc.layers];
-          updatedLayers[existingInputIdx] = { ...updatedLayers[existingInputIdx], data: layerData };
+          updatedLayers[existingInputIdx] = {
+            ...prev,
+            data: layerData,
+            locked: true,
+            imageReference,
+            contentBounds,
+            transform: { x: 0, y: 0 }
+          };
         } else {
-          // Add input layer at the bottom
+          const inputLayer = createDefaultLayer(
+            SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
+            "raster",
+            canvasWidth,
+            canvasHeight
+          );
+          inputLayer.data = layerData;
+          inputLayer.locked = true;
+          inputLayer.imageReference = imageReference;
+          inputLayer.contentBounds = contentBounds;
           updatedLayers = [inputLayer, ...doc.layers];
         }
 
@@ -477,123 +552,108 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   return (
     <Box
-      css={styles(theme)}
-      className={`sketch-node nopan node-drag-handle ${
-        hasParent ? "hasParent" : ""
+      css={sketchCss}
+      className={`sketch-node nopan node-drag-handle${props.selected ? " sketch-node--selected" : ""}${
+        hasParent ? " hasParent" : ""
       }`}
     >
       <div className="sketch-node-content">
-        {/* Input handle: input_image */}
-        <div className="handle-popup input_image">
-          <HandleTooltip
-            typeMetadata={imageTypeMetadata}
-            paramName="input_image"
-            handlePosition="left"
-          >
-            <Handle
-              type="target"
-              id="input_image"
-              position={Position.Left}
-              isConnectable={true}
-              className={Slugify("image")}
-            />
-          </HandleTooltip>
-        </div>
+        <div className="sketch-node-stack">
+          <NodeHeader
+            id={props.id}
+            data={props.data}
+            hasParent={hasParent}
+            metadataTitle="Image Editor"
+            selected={props.selected}
+            backgroundColor="transparent"
+            iconType="image"
+            iconBaseColor={inputAccentColor}
+            showIcon={false}
+            workflowId={props.data.workflow_id}
+          />
 
-        {/* Dynamic input handles for exposed layers */}
-        {exposedInputLayers.map((layer, idx) => (
-          <div
-            key={`input-${layer.id}`}
-            className="handle-popup"
-            style={{ position: "absolute", left: 0, top: `${DYNAMIC_HANDLE_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
-          >
-            <HandleTooltip
-              typeMetadata={imageTypeMetadata}
-              paramName={`layer_in_${layer.name}`}
-              handlePosition="left"
-            >
-              <Handle
-                type="target"
-                id={`layer_in_${layer.name}`}
-                position={Position.Left}
-                isConnectable={true}
-                className={Slugify("image")}
-              />
-            </HandleTooltip>
-            <span className="handle-label left">{layer.name}</span>
-          </div>
-        ))}
+          <div className="sketch-main">
+            <div className="sketch-preview-wrap" onClick={handleOpenEditor}>
+              <div className="content">
+                {previewUrl ? (
+                  <>
+                    <img className="preview-image" src={previewUrl} alt="Image editor preview" />
+                    <div className="edit-overlay">
+                      <EditIcon sx={{ fontSize: 32, color: "white" }} />
+                      <span className="edit-overlay-label">Edit Image</span>
+                    </div>
+                  </>
+                ) : (
+                  <Typography className="hint">
+                    Click to open image editor
+                  </Typography>
+                )}
+              </div>
+            </div>
 
-        {/* Output handles */}
-        <div className="output-handles">
-          <div className="handle-popup output-image" style={{ position: "absolute", right: 0, top: "60px" }}>
-            <NodeOutput
-              id={props.id}
-              output={{
-                name: "image",
-                type: outputImageTypeMetadata,
-                stream: false
-              }}
-            />
-          </div>
-          <div className="handle-popup output-mask" style={{ position: "absolute", right: 0, top: "100px" }}>
-            <NodeOutput
-              id={props.id}
-              output={{
-                name: "mask",
-                type: outputImageTypeMetadata,
-                stream: false
-              }}
-            />
-          </div>
+            <div className="sketch-input-handles">
+              <HandleTooltip
+                typeMetadata={imageTypeMetadata}
+                paramName="input_image"
+                handlePosition="left"
+              >
+                <Handle
+                  type="target"
+                  id="input_image"
+                  position={Position.Left}
+                  isConnectable={true}
+                  className={Slugify("image")}
+                />
+              </HandleTooltip>
 
-          {/* Dynamic output handles for exposed layers */}
-          {exposedOutputLayers.map((layer, idx) => (
-            <div
-              key={`output-${layer.id}`}
-              className="handle-popup"
-              style={{ position: "absolute", right: 0, top: `${DYNAMIC_OUTPUT_START_TOP + idx * DYNAMIC_HANDLE_SPACING}px` }}
-            >
+              {exposedInputLayers.map((layer) => (
+                <HandleTooltip
+                  key={`input-${layer.id}`}
+                  typeMetadata={imageTypeMetadata}
+                  paramName={`layer_in_${layer.name}`}
+                  handlePosition="left"
+                >
+                  <Handle
+                    type="target"
+                    id={`layer_in_${layer.name}`}
+                    position={Position.Left}
+                    isConnectable={true}
+                    className={Slugify("image")}
+                  />
+                </HandleTooltip>
+              ))}
+            </div>
+
+            <div className="sketch-output-handles">
               <NodeOutput
                 id={props.id}
                 output={{
-                  name: `layer_out_${layer.name}`,
+                  name: "image",
                   type: outputImageTypeMetadata,
                   stream: false
                 }}
               />
-              <span className="handle-label right">{layer.name}</span>
+              <NodeOutput
+                id={props.id}
+                output={{
+                  name: "mask",
+                  type: outputImageTypeMetadata,
+                  stream: false
+                }}
+              />
+              {exposedOutputLayers.map((layer) => (
+                <NodeOutput
+                  key={`output-${layer.id}`}
+                  id={props.id}
+                  output={{
+                    name: `layer_out_${layer.name}`,
+                    type: outputImageTypeMetadata,
+                    stream: false
+                  }}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-
-        <NodeHeader
-          id={props.id}
-          data={props.data}
-          hasParent={hasParent}
-          metadataTitle="Image Editor"
-          selected={props.selected}
-          backgroundColor="transparent"
-          iconType="image"
-          iconBaseColor={theme.vars.palette.primary.main}
-          showIcon={false}
-          workflowId={props.data.workflow_id}
-        />
-
-        <div className="content" onClick={handleOpenEditor}>
-          {previewUrl ? (
-            <>
-              <img className="preview-image" src={previewUrl} alt="Image editor preview" />
-              <div className="edit-overlay">
-                <EditIcon sx={{ fontSize: 32, color: "white" }} />
-                <span className="edit-overlay-label">Edit Image</span>
-              </div>
-            </>
-          ) : (
-            <Typography className="hint">
-              Click to open image editor
-            </Typography>
-          )}
+          </div>
         </div>
 
         <NodeResizeHandle minWidth={250} minHeight={200} />

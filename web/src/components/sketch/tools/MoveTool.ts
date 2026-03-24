@@ -9,6 +9,7 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import type { Point, LayerTransform } from "../types";
+import { layerAllowsTransformWhilePixelLocked } from "../types";
 
 export class MoveTool implements ToolHandler {
   readonly toolId = "move" as const;
@@ -22,6 +23,12 @@ export class MoveTool implements ToolHandler {
     if (!activeLayer) {
       return false;
     }
+    if (
+      activeLayer.locked &&
+      !layerAllowsTransformWhilePixelLocked(activeLayer)
+    ) {
+      return false;
+    }
 
     const pt = event.point;
 
@@ -31,7 +38,9 @@ export class MoveTool implements ToolHandler {
       const py = Math.floor(pt.y);
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
-        if (!layer.visible || layer.locked) {
+        const skipForHit =
+          !layer.visible || (layer.locked && !layer.imageReference);
+        if (skipForHit) {
           continue;
         }
         const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
@@ -94,7 +103,9 @@ export class MoveTool implements ToolHandler {
     const { doc } = ctx;
     const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
     if (activeLayer) {
-      ctx.onStrokeEnd(activeLayer.id, null);
+      ctx.onStrokeEnd(activeLayer.id, null, undefined, {
+        syncDocumentFromCanvas: false
+      });
     }
   }
 }

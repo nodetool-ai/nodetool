@@ -10,7 +10,12 @@ import type { SketchTool } from "../types";
 import { isShapeTool } from "../types";
 import type { ToolHandler } from "./types";
 
-export type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
+export type {
+  ToolHandler,
+  ToolContext,
+  ToolPointerEvent,
+  StrokeEndOptions
+} from "./types";
 
 export { EyedropperTool } from "./EyedropperTool";
 export { MoveTool } from "./MoveTool";

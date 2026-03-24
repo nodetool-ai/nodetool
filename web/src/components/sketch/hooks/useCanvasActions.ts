@@ -7,9 +7,16 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { SketchDocument, SketchTool, Point, LayerContentBounds } from "../types";
+import {
+  layerAllowsTransformWhilePixelLocked,
+  type LayerContentBounds,
+  type Point,
+  type SketchDocument,
+  type SketchTool
+} from "../types";
 import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
+import type { StrokeEndOptions } from "../tools/types";
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -136,6 +143,20 @@ export function useCanvasActions({
     flushPendingExportSync();
   }, [flushPendingStrokeFinalization, flushPendingExportSync]);
 
+  /** Immediate PNG/mask sync to parent (used after keyboard nudge session ends). */
+  const syncSketchOutputsNow = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    if (onExportImage) {
+      onExportImage(canvas.flattenToDataUrl());
+    }
+    if (onExportMask) {
+      onExportMask(canvas.getMaskDataUrl());
+    }
+  }, [canvasRef, onExportImage, onExportMask]);
+
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
     const activeLayerId = document.activeLayerId;
@@ -158,7 +179,12 @@ export function useCanvasActions({
   }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
 
   const handleStrokeEnd = useCallback(
-    (layerId: string, data: string | null, committedBounds?: LayerContentBounds) => {
+    (
+      layerId: string,
+      data: string | null,
+      committedBounds?: LayerContentBounds,
+      options?: StrokeEndOptions
+    ) => {
       if (onExportImage) {
         pendingExportSyncRef.current.image = true;
       }
@@ -176,6 +202,10 @@ export function useCanvasActions({
           hasSnapshot: true,
           data
         });
+        return;
+      }
+
+      if (options?.syncDocumentFromCanvas === false) {
         return;
       }
 
@@ -309,15 +339,28 @@ export function useCanvasActions({
 
   // ─── Arrow key nudge for active layer ───────────────────────────
   const handleNudgeLayer = useCallback(
-    (dx: number, dy: number) => {
+    (
+      dx: number,
+      dy: number,
+      options?: { recordHistory?: boolean; syncOutputs?: boolean }
+    ) => {
+      const recordHistory = options?.recordHistory !== false;
+      const syncOutputs = options?.syncOutputs !== false;
       const activeLayerId = document.activeLayerId;
       const layer = document.layers.find((l) => l.id === activeLayerId);
-      if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
+      const blockedByLock =
+        layer?.locked && !layerAllowsTransformWhilePixelLocked(layer);
+      if (!activeLayerId || !canvasRef.current || !layer || blockedByLock) {
         return;
       }
-      pushHistory("nudge layer");
+      if (recordHistory) {
+        pushHistory("nudge layer");
+      }
       translateLayer(activeLayerId, dx, dy);
-      if (canvasRef.current) {
+      if (!canvasRef.current) {
+        return;
+      }
+      if (syncOutputs) {
         if (onExportImage) {
           onExportImage(canvasRef.current.flattenToDataUrl());
         }
@@ -547,6 +590,7 @@ export function useCanvasActions({
     handleStrokeStart,
     handleStrokeEnd,
     flushPendingCanvasSync,
+    syncSketchOutputsNow,
     flushLayerThumbnailsWhenIdle,
     handleClearLayer,
     handleFillLayerWithColor,

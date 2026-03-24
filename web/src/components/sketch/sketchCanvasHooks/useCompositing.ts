@@ -13,7 +13,7 @@
  * Phase 2: Tries WebGPU first, falls back to Canvas2D automatically.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
 import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
@@ -31,6 +31,10 @@ export interface UseCompositingParams {
 
 export interface UseCompositingResult {
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Temporary 2D display target while WebGPU is initializing (keeps canvas visible). */
+  bootstrapDisplayRef: React.RefObject<HTMLCanvasElement | null>;
+  /** True when compositing to `bootstrapDisplayRef` instead of the WebGPU display canvas. */
+  bootstrapPhaseActive: boolean;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   /** The underlying rendering runtime (for imperative handle access). */
@@ -52,17 +56,24 @@ export function useCompositing({
   activeStrokeRef
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const bootstrapDisplayRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const redrawRequestRef = useRef<number | null>(null);
   /** Pending dirty rect. Null means full redraw. */
   const pendingDirtyRef = useRef<DirtyRect | null>(null);
   const isFullRedrawRef = useRef(false);
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
-  // True while we are waiting for the async WebGPU init to complete.
-  // Prevents Canvas2DRuntime from calling getContext("2d") on the display
-  // canvas, which would permanently block WebGPU from acquiring a "webgpu"
-  // context on the same element.
-  const gpuPendingRef = useRef(isWebGPUAvailable());
+  /**
+   * While true and WebGPU is exposed by the browser, we composite with Canvas2D
+   * onto `bootstrapDisplayRef` so the editor is not blank during async init.
+   * The real display canvas stays free of a "2d" context until WebGPU is ready
+   * or we fall back to Canvas2D on that element.
+   */
+  const [webgpuBootstrapPending, setWebgpuBootstrapPending] = useState(
+    () => isWebGPUAvailable()
+  );
+  const bootstrapPhaseActive =
+    webgpuBootstrapPending && isWebGPUAvailable();
 
   // ─── Shared layer canvas map (injected into the runtime) ──────────
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
@@ -87,8 +98,7 @@ export function useCompositing({
         void newRuntime;
         return;
       }
-      // Unblock compositing now that we know which backend to use.
-      gpuPendingRef.current = false;
+      setWebgpuBootstrapPending(false);
 
       if (newBackend === "webgpu" && runtimeRef.current !== newRuntime) {
         // Switch to WebGPU. setBackend triggers a re-render which recreates
@@ -104,7 +114,7 @@ export function useCompositing({
         // Don't dispose newRuntime for the same reason (shared map).
         void newRuntime;
         // setBackend("canvas2d") would be a no-op, so manually trigger the
-        // first render now that gpuPendingRef has been cleared.
+        // first render now that bootstrap phase has ended.
         requestRedraw();
       }
     });
@@ -117,10 +127,13 @@ export function useCompositing({
   }, []);
 
   const layerHydrationSignature = doc.layers
-    .map(
-      (layer) =>
-        `${layer.id}:${layer.data ?? ""}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${layer.contentBounds?.width ?? doc.canvas.width}:${layer.contentBounds?.height ?? doc.canvas.height}`
-    )
+    .map((layer) => {
+      const ref = layer.imageReference;
+      const refKey = ref
+        ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
+        : "";
+      return `${layer.id}:${layer.data ?? ""}:${refKey}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${layer.contentBounds?.width ?? doc.canvas.width}:${layer.contentBounds?.height ?? doc.canvas.height}`;
+    })
     .join("|");
 
   // ─── Layer Canvas Management ────────────────────────────────────────
@@ -151,10 +164,19 @@ export function useCompositing({
   const compositeToDisplay = useCallback(
     (dirtyRect?: DirtyRect | null) => {
       const displayCanvas = displayCanvasRef.current;
-      // Block any compositing while WebGPU init is in flight.
-      // Using getContext("2d") on the display canvas before WebGPU acquires it
-      // would permanently lock the canvas to the 2D context.
-      if (!displayCanvas || gpuPendingRef.current) {
+      const bootstrapCanvas = bootstrapDisplayRef.current;
+      let targetCanvas: HTMLCanvasElement | null;
+      if (bootstrapPhaseActive) {
+        // Never acquire "2d" on the real display canvas during bootstrap — that
+        // would prevent WebGPU from using it later.
+        if (!bootstrapCanvas) {
+          return;
+        }
+        targetCanvas = bootstrapCanvas;
+      } else {
+        targetCanvas = displayCanvas;
+      }
+      if (!targetCanvas) {
         return;
       }
       // Always read the runtime from the ref so that stale closures (e.g. an
@@ -172,7 +194,7 @@ export function useCompositing({
       const hiddenLayerId =
         backend === "webgpu" ? activeStrokeRef.current?.layerId ?? null : null;
       rt.compositeToDisplay(
-        displayCanvas,
+        targetCanvas,
         doc,
         isolatedLayerId ?? null,
         activeStroke,
@@ -184,7 +206,7 @@ export function useCompositing({
     // functions derived from it) is recreated when the backend switches to
     // WebGPU, which causes the [requestRedraw, doc.layers] effect to fire and
     // trigger the first WebGPU frame.
-    [doc, isolatedLayerId, activeStrokeRef, backend]
+    [doc, isolatedLayerId, activeStrokeRef, backend, bootstrapPhaseActive]
   );
 
   const mergePendingDirtyRect = useCallback(
@@ -322,7 +344,11 @@ export function useCompositing({
         width: rasterWidth,
         height: rasterHeight
       };
-      const hydrationKey = `${layer.data ?? ""}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
+      const ref = layer.imageReference;
+      const refKey = ref
+        ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
+        : "";
+      const hydrationKey = `${layer.data ?? ""}:${refKey}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
       if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
         continue;
       }
@@ -346,7 +372,14 @@ export function useCompositing({
 
   useEffect(() => {
     requestRedraw();
-  }, [requestRedraw, doc.layers]);
+  }, [requestRedraw, doc.layers, bootstrapPhaseActive]);
+
+  // After DOM commit, `<canvas>` refs are set; compositing effects may have run
+  // in the same tick with null refs. One layout-pass redraw catches hydration
+  // + bootstrap/WebGPU handoff so the first frame is not stuck blank.
+  useLayoutEffect(() => {
+    requestRedraw();
+  }, [requestRedraw, bootstrapPhaseActive]);
 
   // Cleanup rAF on unmount and dispose runtime
   useEffect(() => {
@@ -354,12 +387,19 @@ export function useCompositing({
       if (redrawRequestRef.current !== null) {
         cancelAnimationFrame(redrawRequestRef.current);
       }
+      // `runtime.dispose()` clears `layerCanvases`. React 18 Strict Mode runs this
+      // cleanup then re-runs the hydration effect; without clearing the map below,
+      // hydration thinks every layer is already synced and skips `setLayerData`,
+      // leaving the display permanently blank.
+      hydratedLayerStateRef.current.clear();
       runtime.dispose();
     };
   }, [runtime]);
 
   return {
     displayCanvasRef,
+    bootstrapDisplayRef,
+    bootstrapPhaseActive,
     overlayCanvasRef,
     layerCanvasesRef,
     runtime,
