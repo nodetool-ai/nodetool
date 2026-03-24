@@ -16,6 +16,8 @@ const RUNTIME_LABELS: Record<string, string> = {
   lua: "Lua",
   ollama: "Ollama",
   "llama-cpp": "llama.cpp",
+  "yt-dlp": "yt-dlp",
+  pandoc: "Pandoc",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */

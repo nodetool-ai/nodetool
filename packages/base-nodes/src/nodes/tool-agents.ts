@@ -1333,6 +1333,7 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
     video: "video",
     text: "str"
   };
+  static readonly requiredRuntimes = ["yt-dlp", "ffmpeg"];
   static readonly _outputSinkConfig = { video: "set_output_video" };
   static readonly _systemPrompt =
     "You are yt-dlp-downloader.\n" +
