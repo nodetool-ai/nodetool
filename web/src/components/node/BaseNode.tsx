@@ -692,7 +692,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
-      {metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
+      {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
         <NodeDependencyWarning requiredRuntimes={metadata.required_runtimes} />
       )}
       <NodeStatus status={status} />

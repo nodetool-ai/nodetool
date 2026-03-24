@@ -49,8 +49,7 @@ const NodeItem = memo(
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const hasRuntimeDeps =
-        (node as any).required_runtimes &&
-        (node as any).required_runtimes.length > 0;
+        node.required_runtimes && node.required_runtimes.length > 0;
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
         useMemo(() => (state) => ({
@@ -324,7 +323,7 @@ const NodeItem = memo(
             )}
             {hasRuntimeDeps && (
               <Tooltip
-                title={`Requires: ${(node as any).required_runtimes.join(", ")}`}
+                title={`Requires: ${node.required_runtimes!.join(", ")}`}
                 placement="top"
                 enterDelay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
@@ -338,8 +337,8 @@ const NodeItem = memo(
                     fontSize: "0.55rem",
                     fontWeight: 600,
                     textTransform: "uppercase",
-                    bgcolor: "rgba(245, 158, 11, 0.2)",
-                    color: "#f59e0b",
+                    bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
+                    color: theme.vars.palette.warning.main,
                     px: 0.5,
                     py: 0.15,
                     borderRadius: "3px",
@@ -347,7 +346,7 @@ const NodeItem = memo(
                     flexShrink: 0,
                   }}
                 >
-                  {(node as any).required_runtimes.join(", ")}
+                  {node.required_runtimes!.join(", ")}
                 </Box>
               </Tooltip>
             )}

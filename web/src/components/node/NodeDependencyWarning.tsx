@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "lodash/isEqual";
+import { getIsElectronDetails } from "../../utils/browser";
 
 const RUNTIME_LABELS: Record<string, string> = {
   ffmpeg: "FFmpeg & Codecs",
@@ -12,9 +14,17 @@ const RUNTIME_LABELS: Record<string, string> = {
   "llama-cpp": "llama.cpp",
 };
 
+/** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
+const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
+  ffmpeg: "ffmpeg",
+  python: "python-runtime",
+  ollama: "ollama",
+  "llama-cpp": "llama-cpp",
+};
+
 const warningStyles = (theme: Theme) =>
   css({
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    backgroundColor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 15%, transparent)`,
     borderRadius: "1px",
     padding: "8px 10px",
     display: "flex",
@@ -26,7 +36,7 @@ const warningStyles = (theme: Theme) =>
     ".warning-title": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
-      color: "#f59e0b",
+      color: theme.vars.palette.warning.main,
       fontWeight: 600,
       display: "flex",
       alignItems: "center",
@@ -36,21 +46,21 @@ const warningStyles = (theme: Theme) =>
     ".warning-text": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeTiny,
-      color: "#d4a34a",
+      color: theme.vars.palette.warning.dark,
       lineHeight: "1.3em",
     },
 
     ".install-link": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeTiny,
-      color: "#4a9eff",
+      color: theme.vars.palette.primary.main,
       cursor: "pointer",
       textDecoration: "underline",
       border: "none",
       background: "none",
       padding: 0,
       "&:hover": {
-        color: "#6db5ff",
+        color: theme.vars.palette.primary.light,
       },
     },
   });
@@ -59,23 +69,86 @@ interface NodeDependencyWarningProps {
   requiredRuntimes: string[];
 }
 
+/**
+ * Cache runtime statuses across all instances so we don't call IPC per-node.
+ * Refreshed once per mount cycle (first component to mount triggers the fetch).
+ */
+let cachedStatuses: Record<string, boolean> | null = null;
+let fetchPromise: Promise<void> | null = null;
+
+async function refreshRuntimeStatuses(): Promise<void> {
+  const api = (window as any).api;
+  if (!api?.packages?.getRuntimeStatuses) return;
+  try {
+    const statuses: Array<{ id: string; installed: boolean }> =
+      await api.packages.getRuntimeStatuses();
+    const map: Record<string, boolean> = {};
+    for (const s of statuses) {
+      map[s.id] = s.installed;
+    }
+    cachedStatuses = map;
+  } catch {
+    // If IPC fails, assume nothing is installed so warnings stay visible.
+  }
+}
+
 const NodeDependencyWarning: React.FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
   const theme = useTheme();
+  const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { isElectron } = getIsElectronDetails();
 
-  if (!requiredRuntimes || requiredRuntimes.length === 0) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function check() {
+      if (!isElectron) {
+        // In web mode we can't check — show warning for all declared runtimes.
+        if (!cancelled) {
+          setMissingRuntimes(requiredRuntimes);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Share a single IPC call across all mounted instances.
+      if (!fetchPromise) {
+        fetchPromise = refreshRuntimeStatuses().finally(() => {
+          fetchPromise = null;
+        });
+      }
+      await fetchPromise;
+
+      if (cancelled) return;
+
+      const missing = requiredRuntimes.filter((rt) => {
+        const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
+        return cachedStatuses ? !cachedStatuses[pkgId] : true;
+      });
+      setMissingRuntimes(missing);
+      setLoading(false);
+    }
+
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [requiredRuntimes, isElectron]);
+
+  if (loading || missingRuntimes.length === 0) {
     return null;
   }
 
-  const runtimeNames = requiredRuntimes
+  const runtimeNames = missingRuntimes
     .map((r) => RUNTIME_LABELS[r] || r)
     .join(", ");
 
   const handleOpenPackageManager = () => {
-    // Open the package manager in Electron, or show guidance in web mode
-    if ((window as any).api?.packages?.showManager) {
-      (window as any).api.packages.showManager();
+    const api = (window as any).api;
+    if (api?.packages?.showManager) {
+      api.packages.showManager();
     }
   };
 
@@ -85,26 +158,21 @@ const NodeDependencyWarning: React.FC<NodeDependencyWarningProps> = ({
       className="node-dependency-warning nodrag nowheel"
     >
       <div className="warning-title">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
+        <WarningAmberIcon sx={{ fontSize: 14 }} />
         Requires {runtimeNames}
       </div>
       <div className="warning-text">
-        Install via the{" "}
-        <button className="install-link" onClick={handleOpenPackageManager}>
-          Package Manager
-        </button>{" "}
-        to use this node.
+        {isElectron ? (
+          <>
+            Install via the{" "}
+            <button className="install-link" onClick={handleOpenPackageManager}>
+              Package Manager
+            </button>{" "}
+            to use this node.
+          </>
+        ) : (
+          <>This runtime must be installed on your system to use this node.</>
+        )}
       </div>
     </div>
   );
