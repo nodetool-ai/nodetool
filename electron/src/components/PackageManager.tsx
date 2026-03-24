@@ -22,11 +22,16 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [installLocation, setInstallLocation] = useState<string>("");
 
   const loadRuntimeStatuses = useCallback(async () => {
     try {
-      const statuses = await window.api.packages.getRuntimeStatuses();
+      const [statuses, location] = await Promise.all([
+        window.api.packages.getRuntimeStatuses(),
+        window.api.packages.getInstallLocation(),
+      ]);
       setRuntimePackages(statuses);
+      setInstallLocation(location);
     } catch (err) {
       console.error("Failed to load runtime statuses:", err);
     }
@@ -61,12 +66,27 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     loadPackages();
   }, [loadPackages]);
 
+  const handleSelectLocation = useCallback(async () => {
+    try {
+      const selected = await window.api.packages.selectInstallLocation();
+      if (selected) {
+        setInstallLocation(selected);
+      }
+    } catch (err) {
+      console.error("Failed to select location:", err);
+    }
+  }, []);
+
   const handleRuntimeInstall = useCallback(
     async (packageId: string) => {
       setInstalling((prev) => new Set(prev).add(packageId));
       try {
+        // Pass install location for python-runtime
+        const location =
+          packageId === "python-runtime" ? installLocation : undefined;
         const result = await window.api.packages.installRuntime(
-          packageId as any
+          packageId as any,
+          location
         );
         if (result.success) {
           await loadRuntimeStatuses();
@@ -84,7 +104,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
         });
       }
     },
-    [loadRuntimeStatuses]
+    [loadRuntimeStatuses, installLocation]
   );
 
   const handleInstall = useCallback(
@@ -229,40 +249,111 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
           <p className="section-description" style={{ color: "#999", margin: "4px 0 12px", fontSize: "13px" }}>
             Core runtimes for AI capabilities. Install what you need.
           </p>
+
+          {/* Install location selector */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 0 16px",
+              padding: "10px 14px",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: "8px",
+              fontSize: "13px",
+            }}
+          >
+            <span style={{ color: "#999", whiteSpace: "nowrap" }}>
+              Install location:
+            </span>
+            <code
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                color: "#ccc",
+                fontSize: "12px",
+              }}
+              title={installLocation}
+            >
+              {installLocation}
+            </code>
+            <button
+              onClick={handleSelectLocation}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "transparent",
+                color: "#ccc",
+                cursor: "pointer",
+                fontSize: "12px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Change
+            </button>
+          </div>
+
           <div className="package-list">
-            {runtimePackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className={`package-item ${pkg.installed ? "installed" : "available"}`}
-              >
-                <div className="package-info">
-                  <div className="package-header-row">
-                    <h3>{pkg.name}</h3>
-                    {pkg.installed && (
-                      <span className="status-badge up-to-date">INSTALLED</span>
+            {runtimePackages.map((pkg) => {
+              const condaNotInstalled =
+                pkg.requiresConda &&
+                !runtimePackages.find((p) => p.id === "python-runtime")
+                  ?.installed;
+
+              return (
+                <div
+                  key={pkg.id}
+                  className={`package-item ${pkg.installed ? "installed" : "available"}`}
+                >
+                  <div className="package-info">
+                    <div className="package-header-row">
+                      <h3>{pkg.name}</h3>
+                      {pkg.installed && (
+                        <span className="status-badge up-to-date">
+                          INSTALLED
+                        </span>
+                      )}
+                    </div>
+                    <p className="package-description">{pkg.description}</p>
+                    {condaNotInstalled && !pkg.installed && (
+                      <p
+                        style={{
+                          color: "#f59e0b",
+                          fontSize: "12px",
+                          margin: "4px 0 0",
+                        }}
+                      >
+                        Requires Python Runtime to be installed first.
+                      </p>
                     )}
                   </div>
-                  <p className="package-description">{pkg.description}</p>
+                  <div className="package-actions">
+                    {pkg.installed ? (
+                      <button className="installed-indicator" disabled>
+                        Installed
+                      </button>
+                    ) : (
+                      <button
+                        className="install-button"
+                        onClick={() => handleRuntimeInstall(pkg.id)}
+                        disabled={
+                          isProcessing(pkg.id) ||
+                          pkg.installing ||
+                          condaNotInstalled
+                        }
+                      >
+                        {isProcessing(pkg.id) || pkg.installing
+                          ? "Installing..."
+                          : "Install"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="package-actions">
-                  {pkg.installed ? (
-                    <button className="installed-indicator" disabled>
-                      Installed
-                    </button>
-                  ) : (
-                    <button
-                      className="install-button"
-                      onClick={() => handleRuntimeInstall(pkg.id)}
-                      disabled={isProcessing(pkg.id) || pkg.installing}
-                    >
-                      {isProcessing(pkg.id) || pkg.installing
-                        ? "Installing..."
-                        : "Install"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

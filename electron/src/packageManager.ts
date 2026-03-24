@@ -1067,7 +1067,7 @@ export function validateRepoId(repoId: string): {
 
 import { isCondaEnvironmentInstalled } from "./python";
 
-export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp";
+export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp" | "ffmpeg";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
@@ -1075,6 +1075,7 @@ export interface RuntimePackageStatus {
   description: string;
   installed: boolean;
   installing: boolean;
+  requiresConda: boolean;
 }
 
 // Track which runtime packages are currently being installed
@@ -1084,11 +1085,13 @@ const runtimeInstalling = new Set<RuntimePackageId>();
  * Check the installation status of all runtime packages
  */
 export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[]> {
-  const [pythonInstalled, ollamaInstalled, llamaInstalled] = await Promise.all([
-    isCondaEnvironmentInstalled().catch(() => false),
-    checkOllamaRuntimeInstalled(),
-    checkLlamaCppRuntimeInstalled(),
-  ]);
+  const [pythonInstalled, ollamaInstalled, llamaInstalled, ffmpegInstalled] =
+    await Promise.all([
+      isCondaEnvironmentInstalled().catch(() => false),
+      checkOllamaRuntimeInstalled(),
+      checkLlamaCppRuntimeInstalled(),
+      checkFfmpegInstalled(),
+    ]);
 
   return [
     {
@@ -1098,6 +1101,16 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
         "Python environment for running Python-based nodes. Required for AI image generation, audio processing, and other Python workflows.",
       installed: pythonInstalled,
       installing: runtimeInstalling.has("python-runtime"),
+      requiresConda: false,
+    },
+    {
+      id: "ffmpeg",
+      name: "FFmpeg & Codecs",
+      description:
+        "Audio/video processing toolkit. Required for video nodes (scaling, rotation, filters, composition) and the FFmpeg Agent skill.",
+      installed: ffmpegInstalled,
+      installing: runtimeInstalling.has("ffmpeg"),
+      requiresConda: true,
     },
     {
       id: "ollama",
@@ -1106,6 +1119,7 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
         "Local LLM inference server. Easy to use, recommended for most users. Includes model management and a simple API.",
       installed: ollamaInstalled,
       installing: runtimeInstalling.has("ollama"),
+      requiresConda: true,
     },
     {
       id: "llama-cpp",
@@ -1114,6 +1128,7 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
         "High-performance GPU-accelerated LLM backend with GGUF model support.",
       installed: llamaInstalled,
       installing: runtimeInstalling.has("llama-cpp"),
+      requiresConda: true,
     },
   ];
 }
@@ -1154,11 +1169,34 @@ async function checkLlamaCppRuntimeInstalled(): Promise<boolean> {
   }
 }
 
+async function checkFfmpegInstalled(): Promise<boolean> {
+  try {
+    const condaPath = getCondaEnvPath();
+    const ffmpegBin =
+      process.platform === "win32"
+        ? path.join(condaPath, "Library", "bin", "ffmpeg.exe")
+        : path.join(condaPath, "bin", "ffmpeg");
+    return await fileExists(ffmpegBin);
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Install a runtime package (Python, Ollama, or llama.cpp)
+ * Get the current conda environment install location, or the default if not set.
+ */
+export function getCondaInstallLocation(): string {
+  return getCondaEnvPath();
+}
+
+/**
+ * Install a runtime package (Python, Ollama, llama.cpp, or FFmpeg).
+ * @param packageId - Which package to install
+ * @param installLocation - Optional custom install location (only used for python-runtime)
  */
 export async function installRuntimePackage(
   packageId: RuntimePackageId,
+  installLocation?: string,
 ): Promise<{ success: boolean; message: string }> {
   if (runtimeInstalling.has(packageId)) {
     return { success: false, message: `${packageId} is already being installed` };
@@ -1168,10 +1206,33 @@ export async function installRuntimePackage(
 
   try {
     // Lazy-import installer functions to avoid circular dependencies
-    const { provisionCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled } =
-      await import("./installer");
+    const {
+      provisionCondaEnvironment,
+      ensureOllamaInstalled,
+      ensureLlamaCppInstalled,
+      installCondaPackageBySpec,
+      setCondaInstallLocation,
+    } = await import("./installer");
 
-    const condaEnvPath = getCondaEnvPath();
+    // For Python runtime, allow setting a custom install location
+    let condaEnvPath = getCondaEnvPath();
+    if (packageId === "python-runtime" && installLocation) {
+      setCondaInstallLocation(installLocation);
+      condaEnvPath = installLocation;
+    }
+
+    // Packages that require conda need the env to exist first (except python-runtime itself)
+    if (packageId !== "python-runtime") {
+      const hasConda = await isCondaEnvironmentInstalled().catch(() => false);
+      if (!hasConda) {
+        return {
+          success: false,
+          message:
+            "Please install the Python Runtime first. " +
+            "It creates the conda environment needed for this package.",
+        };
+      }
+    }
 
     switch (packageId) {
       case "python-runtime": {
@@ -1185,15 +1246,19 @@ export async function installRuntimePackage(
         return { success: true, message: "Python runtime installed successfully" };
       }
 
+      case "ffmpeg": {
+        emitBootMessage("Installing FFmpeg & codecs...");
+        logMessage("Installing FFmpeg via package manager");
+        // Install ffmpeg with GPL codecs (matches environment.yml spec)
+        await installCondaPackageBySpec(
+          condaEnvPath,
+          ["ffmpeg>=6,<7"],
+          "Installing FFmpeg & codecs",
+        );
+        return { success: true, message: "FFmpeg & codecs installed successfully" };
+      }
+
       case "ollama": {
-        // Ollama needs the conda env to exist first
-        const hasPython = await isCondaEnvironmentInstalled().catch(() => false);
-        if (!hasPython) {
-          return {
-            success: false,
-            message: "Please install the Python Runtime first before installing Ollama.",
-          };
-        }
         emitBootMessage("Installing Ollama...");
         logMessage("Installing Ollama via package manager");
         await ensureOllamaInstalled(condaEnvPath);
@@ -1201,13 +1266,6 @@ export async function installRuntimePackage(
       }
 
       case "llama-cpp": {
-        const hasPython = await isCondaEnvironmentInstalled().catch(() => false);
-        if (!hasPython) {
-          return {
-            success: false,
-            message: "Please install the Python Runtime first before installing llama.cpp.",
-          };
-        }
         emitBootMessage("Installing llama.cpp...");
         logMessage("Installing llama.cpp via package manager");
         await ensureLlamaCppInstalled(condaEnvPath);

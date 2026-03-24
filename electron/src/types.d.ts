@@ -82,7 +82,10 @@ declare global {
         getRuntimeStatuses: () => Promise<RuntimePackageStatus[]>;
         installRuntime: (
           packageId: RuntimePackageId,
+          installLocation?: string,
         ) => Promise<{ success: boolean; message: string }>;
+        getInstallLocation: () => Promise<string>;
+        selectInstallLocation: () => Promise<string | null>;
       };
 
       // Window controls
@@ -552,6 +555,8 @@ export enum IpcChannels {
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
+  RUNTIME_GET_INSTALL_LOCATION = "runtime-get-install-location",
+  RUNTIME_SELECT_INSTALL_LOCATION = "runtime-select-install-location",
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
@@ -727,7 +732,9 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
-  [IpcChannels.RUNTIME_PACKAGE_INSTALL]: string; // RuntimePackageId
+  [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
+  [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: void;
+  [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: void;
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
@@ -847,6 +854,8 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
+  [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: string;
+  [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: string | null;
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
@@ -1003,7 +1012,7 @@ export interface PackageUninstallRequest {
   repo_id: string;
 }
 
-export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp";
+export type RuntimePackageId = "python-runtime" | "ollama" | "llama-cpp" | "ffmpeg";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
@@ -1011,6 +1020,7 @@ export interface RuntimePackageStatus {
   description: string;
   installed: boolean;
   installing: boolean;
+  requiresConda: boolean;
 }
 
 // Claude Agent SDK types

@@ -47,6 +47,7 @@ import {
   checkExpectedPackageVersions,
   getRuntimePackageStatuses,
   installRuntimePackage,
+  getCondaInstallLocation,
 } from "./packageManager";
 import {
   openModelDirectory,
@@ -938,9 +939,31 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
-    async (_event, packageId: string) => {
-      logMessage(`Installing runtime package: ${packageId}`);
-      return await installRuntimePackage(packageId as import("./packageManager").RuntimePackageId);
+    async (_event, data: { packageId: string; installLocation?: string }) => {
+      logMessage(`Installing runtime package: ${data.packageId}`);
+      return await installRuntimePackage(
+        data.packageId as import("./packageManager").RuntimePackageId,
+        data.installLocation,
+      );
+    },
+  );
+
+  createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
+    return getCondaInstallLocation();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION,
+    async () => {
+      const { filePaths, canceled } = await dialog.showOpenDialog({
+        properties: ["openDirectory", "createDirectory"],
+        title: "Select folder for the conda environment",
+        buttonLabel: "Select Folder",
+      });
+      if (canceled || !filePaths?.[0]) {
+        return null;
+      }
+      return path.join(filePaths[0], "nodetool-env");
     },
   );
 
