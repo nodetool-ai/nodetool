@@ -219,13 +219,16 @@ const Alert: React.FC = memo(() => {
 
     setVisibleNotifications((prevNotifications) => {
       const combined = [...prevNotifications, ...newNotifications];
-      // Deduplicate notifications by id
-      return combined.reduce((acc, current) => {
-        if (acc.findIndex(({ id }) => id === current.id) === -1) {
-          acc.push(current);
+      // Deduplicate notifications by id (O(N) implementation)
+      const seenIds = new Set<string>();
+      const result: Notification[] = [];
+      for (const notification of combined) {
+        if (!seenIds.has(notification.id)) {
+          seenIds.add(notification.id);
+          result.push(notification);
         }
-        return acc;
-      }, [] as Notification[]);
+      }
+      return result;
     });
 
     const latestTimestamp = newNotifications.reduce(
