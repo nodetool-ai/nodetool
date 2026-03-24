@@ -48,6 +48,11 @@ export interface NodeMetadata {
   recommended_models?: unknown[];
   basic_fields?: string[];
   required_settings?: string[];
+  /**
+   * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").
+   * The frontend uses this to show install prompts before execution.
+   */
+  required_runtimes?: string[];
   is_dynamic?: boolean;
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;

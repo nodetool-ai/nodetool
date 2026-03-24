@@ -588,6 +588,7 @@ export class FrameToVideoNode extends BaseNode {
 }
 
 abstract class VideoTransformNode extends BaseNode {
+  static readonly requiredRuntimes = ["ffmpeg"];
   declare video: any;
   async process(): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video);
@@ -599,6 +600,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
             static readonly title = "Concat";
             static readonly description = "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio, +";
+  static readonly requiredRuntimes = ["ffmpeg"];
         static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -639,6 +641,7 @@ export class TrimVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Trim";
             static readonly title = "Trim";
             static readonly description = "Trim a video to a specific start and end time.\n    video, trim, cut, segment";
+  static readonly requiredRuntimes = ["ffmpeg"];
         static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -1118,6 +1121,7 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
 
 export class ReverseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Reverse";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Reverse";
             static readonly description = "Reverse the playback of a video.\n    video, reverse, backwards, effect";
         static readonly metadataOutputTypes = {
@@ -1259,6 +1263,7 @@ export class TransitionVideoNode extends VideoTransformNode {
 
 export class AddAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddAudio";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Add Audio";
             static readonly description = "Add an audio track to a video, replacing or mixing with existing audio.\n    video, audio, soundtrack, merge";
         static readonly metadataOutputTypes = {
@@ -1350,6 +1355,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
 
 export class ExtractAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractAudio";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Extract Audio";
             static readonly description = "Separate and extract audio track from a video file.\n    video, audio, extract, separate, split";
         static readonly metadataOutputTypes = {
@@ -1383,6 +1389,7 @@ export class ExtractAudioVideoNode extends BaseNode {
 
 export class ExtractFrameVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractFrame";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Extract Frame";
             static readonly description = "Extract a single frame from a video at a specific time position.\n    video, frame, extract, screenshot, thumbnail, capture";
         static readonly metadataOutputTypes = {

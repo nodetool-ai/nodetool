@@ -10,6 +10,7 @@ import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
 import TemplatesPanel from "./TemplatesPanel";
+import RuntimesPanel from "./RuntimesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
@@ -51,6 +52,11 @@ export const createPanelComponents = () => ({
         props.params?.handleViewAllTemplates || (() => {})
       }
     />
+  ),
+  runtimes: (_props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <RuntimesPanel />
+    </Box>
   ),
   // Legacy panels kept for backward compatibility
   workflows: (_props: IDockviewPanelProps<PanelProps>) => (

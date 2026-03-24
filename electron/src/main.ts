@@ -39,7 +39,6 @@ import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
-import { installCondaEnvironment } from "./installer";
 import { emitBootMessage, emitShowPackageManager } from "./events";
 import { createTray, cleanupTrayEvents } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
@@ -169,52 +168,19 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
 }
 
 /**
- * Checks and sets up the Python Conda environment
- * @returns Promise<boolean> - true if environment exists, false if installation was needed
+ * Checks if the Python Conda environment is available (non-blocking).
+ * Returns true if the environment exists, false otherwise.
+ * Does NOT trigger installation — that is handled by the package manager.
  */
-async function checkPythonEnvironment(): Promise<boolean> {
-  logMessage("=== Starting Python Environment Check ===");
-
-  emitBootMessage("Checking for Python environment...");
-  logMessage("Emitted boot message: Checking for Python environment...");
-
+async function checkPythonEnvironmentExists(): Promise<boolean> {
+  logMessage("=== Checking Python Environment (non-blocking) ===");
   try {
-    logMessage("Calling isCondaEnvironmentInstalled()...");
     const hasCondaEnv = await isCondaEnvironmentInstalled();
-    logMessage(`isCondaEnvironmentInstalled() returned: ${hasCondaEnv}`);
-
-    if (hasCondaEnv) {
-      logMessage(`Python environment found - proceeding with startup`);
-      return true;
-    } else {
-      logMessage("Python environment not found - starting installation");
-      emitBootMessage("Python environment not found");
-      await installCondaEnvironment();
-      logMessage("Installation completed");
-      return false;
-    }
+    logMessage(`Python environment available: ${hasCondaEnv}`);
+    return hasCondaEnv;
   } catch (error) {
-    // Be defensive: if the check itself failed, attempt to run installer as fallback
-    logMessage(`Error in checkPythonEnvironment: ${error}`, "error");
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    // If the error already occurred during installation, don't attempt to run the installer again
-    if (
-      errorMessage.includes("Failed to install Python environment") ||
-      errorMessage.includes("install-to-location")
-    ) {
-      throw error;
-    }
-    try {
-      emitBootMessage("Environment check failed, starting installer...");
-      await installCondaEnvironment();
-      logMessage("Fallback installation completed");
-      return false;
-    } catch (installError) {
-      logMessage(`Fallback installation failed: ${installError}`, "error");
-      throw installError;
-    }
-  } finally {
-    logMessage("=== Python Environment Check Complete ===");
+    logMessage(`Error checking Python environment: ${error}`, "warn");
+    return false;
   }
 }
 
@@ -324,44 +290,31 @@ async function initialize(): Promise<void> {
       const timestamp = new Date().getTime();
       mainWindow.loadURL(`${getWebDevServerUrl()}/?nocache=${timestamp}`);
     } else {
-      // Check if conda environment is installed
-      logMessage("About to check Python environment...");
-      const hasEnvironment = await checkPythonEnvironment();
-      logMessage(
-        `Python environment check complete, hasEnvironment: ${hasEnvironment}`,
-      );
+      // Check Python environment status (non-blocking — no wizard)
+      const hasPython = await checkPythonEnvironmentExists();
 
-      if (hasEnvironment) {
-        logMessage(
-          "Environment exists, determining if package checks are needed",
-        );
-
-        // Check and install expected package versions
-        // This is now done synchronously before starting the backend to ensure version consistency
+      if (hasPython) {
+        // Run package version checks in background before starting server
         const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
-
         if (pipUpdatesPerformed) {
-          logMessage("Pip packages updated, checking for conda package updates");
           await checkAndUpdateCondaPackages();
-        } else {
-          logMessage("No pip updates performed, skipping conda package check");
         }
-
-        logMessage("Starting backend server");
-        await initializeBackendServer();
-        logMessage("initializeBackendServer() completed");
-        logMessage("Loading web app...");
-        const timestamp = new Date().getTime();
-        mainWindow.loadURL(`${serverState.initialURL}/?nocache=${timestamp}`);
       } else {
-        // Environment was just installed, proceed normally
-        logMessage("Environment was just installed, initializing backend server");
-        await initializeBackendServer();
-        logMessage("initializeBackendServer() completed");
-
-        logMessage("Setting up workflow shortcuts...");
-        await setupWorkflowShortcuts();
+        logMessage(
+          "Python environment not installed. App will start without Python support. " +
+          "Users can install it via the package manager.",
+        );
       }
+
+      // Start the backend server regardless of Python availability
+      logMessage("Starting backend server");
+      await initializeBackendServer();
+      logMessage("initializeBackendServer() completed");
+
+      // Always load the web app — runtimes panel in the dashboard handles setup
+      logMessage("Loading web app...");
+      const timestamp = new Date().getTime();
+      mainWindow.loadURL(`${serverState.initialURL}/?nocache=${timestamp}`);
     }
 
     void notifyPackageUpdates();

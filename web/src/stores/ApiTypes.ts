@@ -83,6 +83,11 @@ export interface NodeMetadata extends BaseNodeMetadata {
     cover_image_url?: string;
     [key: string]: unknown;
   };
+  /**
+   * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").
+   * Populated by the backend from node metadata; used to show install prompts.
+   */
+  required_runtimes?: string[];
 }
 export type SettingWithValue = components["schemas"]["SettingWithValue"];
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];

@@ -59,6 +59,8 @@ async function runCommand(cmd: string, args: string[], stdin: string, timeoutMs:
 }
 
 abstract class PandocBaseLibNode extends BaseNode {
+  static readonly requiredRuntimes = ["pandoc"];
+
   protected formats(): { input: string; output: string } {
     const input = String((this as any).input_format ?? "markdown").toLowerCase();
     const output = String((this as any).output_format ?? "plain").toLowerCase();
