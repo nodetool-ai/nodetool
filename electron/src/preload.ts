@@ -32,6 +32,7 @@ import {
   DialogOpenFolderRequest,
   AgentSessionOptions,
   LocalhostProxyRequest,
+  RuntimePackageId,
 } from "./types.d";
 
 // ============================================================================
@@ -307,7 +308,7 @@ const api = {
       ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_STATUSES),
 
     /** Install a runtime package */
-    installRuntime: (packageId: string, installLocation?: string) =>
+    installRuntime: (packageId: RuntimePackageId, installLocation?: string) =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_INSTALL, {
         packageId,
         installLocation,

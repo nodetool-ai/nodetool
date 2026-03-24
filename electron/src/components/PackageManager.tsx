@@ -5,6 +5,7 @@ import {
   PackageListResponse,
   InstalledPackageListResponse,
   RuntimePackageStatus,
+  RuntimePackageId,
 } from "../types";
 
 interface PackageManagerProps {
@@ -78,14 +79,14 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   }, []);
 
   const handleRuntimeInstall = useCallback(
-    async (packageId: string) => {
+    async (packageId: RuntimePackageId) => {
       setInstalling((prev) => new Set(prev).add(packageId));
       try {
         // Pass install location for python-runtime
         const location =
           packageId === "python-runtime" ? installLocation : undefined;
         const result = await window.api.packages.installRuntime(
-          packageId as any,
+          packageId,
           location
         );
         if (result.success) {

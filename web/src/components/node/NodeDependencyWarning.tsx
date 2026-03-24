@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState, type FC } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -100,7 +100,7 @@ async function refreshRuntimeStatuses(): Promise<void> {
   }
 }
 
-const NodeDependencyWarning: React.FC<NodeDependencyWarningProps> = ({
+const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
   const theme = useTheme();
@@ -108,42 +108,49 @@ const NodeDependencyWarning: React.FC<NodeDependencyWarningProps> = ({
   const [loading, setLoading] = useState(true);
   const { isElectron } = getIsElectronDetails();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function check() {
-      if (!isElectron) {
-        // In web mode we can't check — show warning for all declared runtimes.
-        if (!cancelled) {
-          setMissingRuntimes(requiredRuntimes);
-          setLoading(false);
-        }
-        return;
-      }
-
-      // Share a single IPC call across all mounted instances.
-      if (!fetchPromise) {
-        fetchPromise = refreshRuntimeStatuses().finally(() => {
-          fetchPromise = null;
-        });
-      }
-      await fetchPromise;
-
-      if (cancelled) return;
-
-      const missing = requiredRuntimes.filter((rt) => {
-        const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
-        return cachedStatuses ? !cachedStatuses[pkgId] : true;
-      });
-      setMissingRuntimes(missing);
+  const checkRuntimes = useCallback(async () => {
+    if (!isElectron) {
+      setMissingRuntimes(requiredRuntimes);
       setLoading(false);
+      return;
     }
 
-    check();
+    // Invalidate cache so we get fresh statuses.
+    cachedStatuses = null;
+    if (!fetchPromise) {
+      fetchPromise = refreshRuntimeStatuses().finally(() => {
+        fetchPromise = null;
+      });
+    }
+    await fetchPromise;
+
+    const missing = requiredRuntimes.filter((rt) => {
+      const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
+      return cachedStatuses ? !cachedStatuses[pkgId] : true;
+    });
+    setMissingRuntimes(missing);
+    setLoading(false);
+  }, [requiredRuntimes, isElectron]);
+
+  useEffect(() => {
+    let cancelled = false;
+    checkRuntimes().then(() => {
+      if (cancelled) return;
+    });
     return () => {
       cancelled = true;
     };
-  }, [requiredRuntimes, isElectron]);
+  }, [checkRuntimes]);
+
+  // Re-check when window regains focus (e.g. after installing a runtime).
+  useEffect(() => {
+    if (missingRuntimes.length === 0) return;
+    const onFocus = () => {
+      checkRuntimes();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [missingRuntimes.length, checkRuntimes]);
 
   if (loading || missingRuntimes.length === 0) {
     return null;
