@@ -146,7 +146,7 @@ export class SubAgentPlanner {
         }
 
         if (!teamData && response.content) {
-          teamData = extractJSON(String(response.content));
+          teamData = extractJSON(String(response.content)) as Record<string, unknown> | null;
         }
 
         if (!teamData || !Array.isArray(teamData.agents)) {
