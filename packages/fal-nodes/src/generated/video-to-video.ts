@@ -18,6 +18,7 @@ export class AMTInterpolation extends FalNode {
   static readonly description = `AMT (Any-to-Many Temporal) Interpolation creates smooth transitions between video frames.
 video, interpolation, frame-generation, amt, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of the video to be processed" })
   declare video: any;
@@ -56,6 +57,7 @@ export class AnimateDiffVideoToVideo extends FalNode {
   static readonly description = `AnimateDiff re-animates videos with new styles and effects using diffusion models.
 video, style-transfer, animatediff, re-animation, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -129,6 +131,7 @@ export class AnimateDiffTurboVideoToVideo extends FalNode {
   static readonly description = `AnimateDiff Turbo re-animates videos quickly with reduced generation time.
 video, style-transfer, animatediff, turbo, fast, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -197,6 +200,7 @@ export class AutoCaption extends FalNode {
   static readonly description = `Auto Caption automatically generates and adds captions to videos with speech recognition.
 video, captions, subtitles, speech-to-text, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video_url": "video" };
 
   @prop({ type: "str", default: "Standard", description: "Font for generated captions. Choose one in 'Arial','Standard','Garamond', 'Times New Roman','Georgia', or pass a url to a .ttf file" })
   declare txt_font: any;
@@ -260,6 +264,7 @@ export class BenV2Video extends FalNode {
   static readonly description = `Ben v2 Video enhances and processes video content with advanced AI techniques.
 video, enhancement, processing, ben, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of video to be used for background removal." })
   declare video: any;
@@ -298,6 +303,7 @@ export class BiRefNetV2Video extends FalNode {
   static readonly description = `BiRefNet v2 Video performs background removal from videos with high accuracy.
 video, background-removal, segmentation, birefnet, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "mask_video": "str", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -366,6 +372,7 @@ export class BriaVideoEraserMask extends FalNode {
   static readonly description = `Bria Video Eraser removes objects from videos using mask-based selection.
 video, object-removal, eraser, inpainting, bria, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: true, description: "If true, audio will be preserved in the output video." })
   declare preserve_audio: any;
@@ -418,6 +425,7 @@ export class BriaVideoEraserKeypoints extends FalNode {
   static readonly description = `Bria Video Eraser removes objects from videos using keypoint-based selection.
 video, object-removal, eraser, keypoints, bria, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: true, description: "If true, audio will be preserved in the output video." })
   declare preserve_audio: any;
@@ -466,6 +474,7 @@ export class BriaVideoEraserPrompt extends FalNode {
   static readonly description = `Bria Video Eraser removes objects from videos using text prompt descriptions.
 video, object-removal, eraser, prompt, bria, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Input prompt to detect object to erase" })
   declare prompt: any;
@@ -514,6 +523,7 @@ export class CogVideoX5BVideoToVideo extends FalNode {
   static readonly description = `CogVideoX-5B transforms existing videos with new styles and effects.
 video, transformation, cogvideo, style-transfer, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "timings": "dict[str, any]", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -592,6 +602,7 @@ export class HunyuanVideoToVideo extends FalNode {
   static readonly description = `Hunyuan Video transforms existing videos with advanced AI-powered effects.
 video, transformation, hunyuan, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -660,6 +671,7 @@ export class VideoUpscaler extends FalNode {
   static readonly description = `Video Upscaler enhances video resolution and quality using AI.
 video, upscaling, enhancement, resolution, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to upscale" })
   declare video: any;
@@ -693,6 +705,7 @@ export class CCSR extends FalNode {
   static readonly description = `CCSR (Controllable Color Style Restoration) restores and enhances video colors.
 video, color-restoration, enhancement, ccsr, video-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "enum", default: "adain", values: ["none", "wavelet", "adain"], description: "Type of color correction for samples." })
   declare color_fix_type: any;
@@ -771,7 +784,7 @@ video, color-restoration, enhancement, ccsr, video-to-video`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ccsr", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -781,6 +794,7 @@ export class Ltx219BDistilledVideoToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -971,6 +985,7 @@ export class Ltx219BDistilledVideoToVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1156,6 +1171,7 @@ export class Ltx219BVideoToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1356,6 +1372,7 @@ export class Ltx219BVideoToVideo extends FalNode {
   static readonly description = `LTX-2 19B
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1551,6 +1568,7 @@ export class Ltx219BDistilledExtendVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1708,6 +1726,7 @@ export class Ltx219BDistilledExtendVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1860,6 +1879,7 @@ export class Ltx219BExtendVideoLora extends FalNode {
   static readonly description = `LTX-2 19B
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -2027,6 +2047,7 @@ export class Ltx219BExtendVideo extends FalNode {
   static readonly description = `LTX-2 19B
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -2189,6 +2210,7 @@ export class BriaVideoEraseKeypoints extends FalNode {
   static readonly description = `Video
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: true, description: "If true, audio will be preserved in the output video." })
   declare preserve_audio: any;
@@ -2237,6 +2259,7 @@ export class BriaVideoErasePrompt extends FalNode {
   static readonly description = `Video
 video, editing, video-to-video, vid2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "Input prompt to detect object to erase" })
   declare prompt: any;
@@ -2285,6 +2308,7 @@ export class BriaVideoEraseMask extends FalNode {
   static readonly description = `Video
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "bool", default: true, description: "If true, audio will be preserved in the output video." })
   declare preserve_audio: any;
@@ -2337,6 +2361,7 @@ export class LightxRelight extends FalNode {
   static readonly description = `Lightx
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "viz_video": "str", "seed": "int", "input_video": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Optional text prompt. If omitted, Light-X will auto-caption the video." })
   declare prompt: any;
@@ -2399,6 +2424,7 @@ export class LightxRecamera extends FalNode {
   static readonly description = `Lightx
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "viz_video": "str", "seed": "int", "input_video": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Optional text prompt. If omitted, Light-X will auto-caption the video." })
   declare prompt: any;
@@ -2457,6 +2483,7 @@ export class KlingVideoV26StandardMotionControl extends FalNode {
   static readonly description = `Kling Video v2.6 Motion Control [Standard]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -2509,6 +2536,7 @@ export class KlingVideoV26ProMotionControl extends FalNode {
   static readonly description = `Kling Video v2.6 Motion Control [Pro]
 video, editing, video-to-video, vid2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -2561,6 +2589,7 @@ export class DecartLucyRestyle extends FalNode {
   static readonly description = `Lucy Restyle
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: false, description: "\n            If set to true, the function will wait for the video to be generated\n            and uploaded before returning the response. This will increase the\n            latency of the function but it allows you to get the video directly\n            in the response without going through the CDN.\n        " })
   declare sync_mode: any;
@@ -2614,6 +2643,7 @@ export class Scail extends FalNode {
   static readonly description = `Scail
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide video generation." })
   declare prompt: any;
@@ -2671,6 +2701,7 @@ export class ClarityaiCrystalVideoUpscaler extends FalNode {
   static readonly description = `Crystal Upscaler [Video]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL to the input video." })
   declare video: any;
@@ -2704,6 +2735,7 @@ export class WanV26ReferenceToVideo extends FalNode {
   static readonly description = `Wan v2.6 Reference to Video
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "actual_prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Video1, @Video2, @Video3 to reference subjects from your videos. Works for people, animals, or objects. For multi-shot prompts: '[0-3s] Shot 1. [3-6s] Shot 2.' Max 800 characters." })
   declare prompt: any;
@@ -2780,6 +2812,7 @@ export class Veo31FastExtendVideo extends FalNode {
   static readonly description = `Veo 3.1 Fast
 video, editing, video-to-video, vid2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing how the video should be extended" })
   declare prompt: any;
@@ -2853,6 +2886,7 @@ export class Veo31ExtendVideo extends FalNode {
   static readonly description = `Veo 3.1
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing how the video should be extended" })
   declare prompt: any;
@@ -2926,6 +2960,7 @@ export class KlingVideoO1StandardVideoToVideoReference extends FalNode {
   static readonly description = `Kling O1 Reference Video to Video [Standard]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
@@ -2991,6 +3026,7 @@ export class KlingVideoO1StandardVideoToVideoEdit extends FalNode {
   static readonly description = `Kling O1 Edit Video [Standard]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
@@ -3046,6 +3082,7 @@ export class KlingVideoO3StandardVideoToVideoReference extends FalNode {
   static readonly description = `Kling O3 Reference Video to Video [Standard]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Reference video as @Video1." })
   declare prompt: any;
@@ -3116,6 +3153,7 @@ export class KlingVideoO3StandardVideoToVideoEdit extends FalNode {
   static readonly description = `Kling O3 Edit Video [Standard]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Reference video as @Video1." })
   declare prompt: any;
@@ -3176,6 +3214,7 @@ export class KlingVideoO3ProVideoToVideoReference extends FalNode {
   static readonly description = `Kling O3 Reference Video to Video [Pro]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Reference video as @Video1." })
   declare prompt: any;
@@ -3246,6 +3285,7 @@ export class KlingVideoO3ProVideoToVideoEdit extends FalNode {
   static readonly description = `Kling O3 Edit Video [Pro]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Reference video as @Video1." })
   declare prompt: any;
@@ -3306,6 +3346,7 @@ export class SteadyDancer extends FalNode {
   static readonly description = `Steady Dancer
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "num_frames": "int", "video": "video" };
 
   @prop({ type: "str", default: "A person dancing with smooth and natural movements.", description: "Text prompt describing the desired animation." })
   declare prompt: any;
@@ -3428,6 +3469,7 @@ export class OneToAllAnimation13B extends FalNode {
   static readonly description = `One To All Animation
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -3495,6 +3537,7 @@ export class OneToAllAnimation14B extends FalNode {
   static readonly description = `One To All Animation
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -3562,6 +3605,7 @@ export class WanVisionEnhancer extends FalNode {
   static readonly description = `Wan Vision Enhancer
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "timings": "dict[str, any]", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to prepend to the VLM-generated description. Leave empty to use only the auto-generated description from the video." })
   declare prompt: any;
@@ -3615,6 +3659,7 @@ export class SyncLipsyncReact1 extends FalNode {
   static readonly description = `Sync React-1
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "", values: ["happy", "angry", "sad", "neutral", "disgusted", "surprised"], description: "Emotion prompt for the generation. Currently supports single-word emotions only." })
   declare emotion: any;
@@ -3672,6 +3717,7 @@ export class VeedVideoBackgroundRemovalFast extends FalNode {
   static readonly description = `Video Background Removal
 video, editing, video-to-video, vid2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "list[File]" };
 
   @prop({ type: "video", default: "" })
   declare video: any;
@@ -3715,6 +3761,7 @@ export class KlingVideoO1VideoToVideoEdit extends FalNode {
   static readonly description = `Kling O1 Edit Video [Pro]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
@@ -3770,6 +3817,7 @@ export class KlingVideoO1VideoToVideoReference extends FalNode {
   static readonly description = `Kling O1 Reference Video to Video [Pro]
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
@@ -3835,6 +3883,7 @@ export class VeedVideoBackgroundRemoval extends FalNode {
   static readonly description = `Video Background Removal
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "list[File]" };
 
   @prop({ type: "video", default: "" })
   declare video: any;
@@ -3878,6 +3927,7 @@ export class VeedVideoBackgroundRemovalGreenScreen extends FalNode {
   static readonly description = `Video Background Removal
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "list[File]" };
 
   @prop({ type: "video", default: "" })
   declare video: any;
@@ -3916,6 +3966,7 @@ export class Ltx2RetakeVideo extends FalNode {
   static readonly description = `LTX Video 2.0 Retake
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to retake the video with" })
   declare prompt: any;
@@ -3964,6 +4015,7 @@ export class DecartLucyEditFast extends FalNode {
   static readonly description = `Lucy Edit [Fast]
 video, editing, video-to-video, vid2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: false, description: "\n            If set to true, the function will wait for the video to be generated\n            and uploaded before returning the response. This will increase the\n            latency of the function but it allows you to get the video directly\n            in the response without going through the CDN.\n        " })
   declare sync_mode: any;
@@ -4007,6 +4059,7 @@ export class Sam3VideoRle extends FalNode {
   static readonly description = `Sam 3
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "boundingbox_frames_zip": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for segmentation. Use commas to track multiple objects (e.g., 'person, cloth')." })
   declare prompt: any;
@@ -4075,6 +4128,7 @@ export class Sam3Video extends FalNode {
   static readonly description = `Sam 3
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "boundingbox_frames_zip": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for segmentation. Use commas to track multiple objects (e.g., 'person, cloth')." })
   declare prompt: any;
@@ -4138,6 +4192,7 @@ export class Editto extends FalNode {
   static readonly description = `Editto
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
   declare shift: any;
@@ -4276,6 +4331,7 @@ export class FlashvsrUpscaleVideo extends FalNode {
   static readonly description = `Flashvsr
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "video", default: "", description: "The input video to be upscaled" })
   declare video: any;
@@ -4354,6 +4410,7 @@ export class WorkflowUtilitiesAutoSubtitle extends FalNode {
   static readonly description = `Workflow Utilities
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "transcription": "str", "subtitle_count": "int", "transcription_metadata": "str", "words": "str", "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of the video file to add automatic subtitles to" })
   declare video: any;
@@ -4452,6 +4509,7 @@ export class BytedanceUpscalerUpscaleVideo extends FalNode {
   static readonly description = `Bytedance Upscaler
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to upscale." })
   declare video: any;
@@ -4490,6 +4548,7 @@ export class VideoAsPrompt extends FalNode {
   static readonly description = `Video As Prompt
 video, editing, video-to-video, vid2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4572,6 +4631,7 @@ export class ViduQ2VideoExtensionPro extends FalNode {
   static readonly description = `Vidu
 video, editing, video-to-video, vid2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "text prompt to guide the video extension" })
   declare prompt: any;
@@ -4620,6 +4680,7 @@ export class MireloAiSfxV15VideoToVideo extends FalNode {
   static readonly description = `Mirelo SFX V1.5
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "list[Video]" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -4673,6 +4734,7 @@ export class KreaWan14BVideoToVideo extends FalNode {
   static readonly description = `Krea Wan 14B
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Prompt for the video-to-video generation." })
   declare prompt: any;
@@ -4721,6 +4783,7 @@ export class Sora2VideoToVideoRemix extends FalNode {
   static readonly description = `Sora 2
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "thumbnail": "str", "video_id": "str", "spritesheet": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Updated text prompt that directs the remix generation" })
   declare prompt: any;
@@ -4755,6 +4818,7 @@ export class WanVaceAppsLongReframe extends FalNode {
   static readonly description = `Wan 2.1 VACE Long Reframe
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
   declare shift: any;
@@ -4898,6 +4962,7 @@ export class InfinitalkVideoToVideo extends FalNode {
   static readonly description = `Infinitalk
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4960,6 +5025,7 @@ export class SeedvrUpscaleVideo extends FalNode {
   static readonly description = `SeedVR2
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "video", default: "", description: "The input video to be processed" })
   declare video: any;
@@ -5033,6 +5099,7 @@ export class WanVaceAppsVideoEdit extends FalNode {
   static readonly description = `Wan VACE Video Edit
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "frames_zip": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Prompt to edit the video." })
   declare prompt: any;
@@ -5118,6 +5185,7 @@ export class WanV2214bAnimateReplace extends FalNode {
   static readonly description = `Wan-Animate Replace is a model that can integrate animated characters into reference videos, replacing the original character while preserving the scene's lighting and color tone for seamless environmental integration.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the output video. Faster write mode means faster results but larger file size, balanced write mode is a good compromise between speed and quality, and small write mode is the slowest but produces the smallest file size." })
   declare video_write_mode: any;
@@ -5210,6 +5278,7 @@ export class WanV2214bAnimateMove extends FalNode {
   static readonly description = `Wan-Animate is a video model that generates high-fidelity character videos by replicating the expressions and movements of characters from reference videos.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the output video. Faster write mode means faster results but larger file size, balanced write mode is a good compromise between speed and quality, and small write mode is the slowest but produces the smallest file size." })
   declare video_write_mode: any;
@@ -5302,6 +5371,7 @@ export class DecartLucyEditPro extends FalNode {
   static readonly description = `Edit outfits, objects, faces, or restyle your video - all with maximum detail retention.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: true, description: "\n            If set to true, the function will wait for the video to be generated\n            and uploaded before returning the response. This will increase the\n            latency of the function but it allows you to get the video directly\n            in the response without going through the CDN.\n        " })
   declare sync_mode: any;
@@ -5350,6 +5420,7 @@ export class DecartLucyEditDev extends FalNode {
   static readonly description = `Edit outfits, objects, faces, or restyle your video - all with maximum detail retention.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: true, description: "\n            If set to true, the function will wait for the video to be generated\n            and uploaded before returning the response. This will increase the\n            latency of the function but it allows you to get the video directly\n            in the response without going through the CDN.\n        " })
   declare sync_mode: any;
@@ -5393,6 +5464,7 @@ export class Wan22VaceFunA14bReframe extends FalNode {
   static readonly description = `VACE Fun for Wan 2.2 A14B from Alibaba-PAI
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation. Optional for reframing." })
   declare prompt: any;
@@ -5579,6 +5651,7 @@ export class Wan22VaceFunA14bOutpainting extends FalNode {
   static readonly description = `VACE Fun for Wan 2.2 A14B from Alibaba-PAI
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -5792,6 +5865,7 @@ export class Wan22VaceFunA14bInpainting extends FalNode {
   static readonly description = `VACE Fun for Wan 2.2 A14B from Alibaba-PAI
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -6003,6 +6077,7 @@ export class Wan22VaceFunA14bDepth extends FalNode {
   static readonly description = `VACE Fun for Wan 2.2 A14B from Alibaba-PAI
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -6196,6 +6271,7 @@ export class Wan22VaceFunA14bPose extends FalNode {
   static readonly description = `VACE Fun for Wan 2.2 A14B from Alibaba-PAI
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation. For pose task, the prompt should describe the desired pose and action of the subject in the video." })
   declare prompt: any;
@@ -6389,6 +6465,7 @@ export class HunyuanVideoFoley extends FalNode {
   static readonly description = `Use the capabilities of the hunyuan foley model to bring life to your videos by adding sound effect to them.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to generate audio for." })
   declare video: any;
@@ -6442,6 +6519,7 @@ export class SyncLipsyncV2Pro extends FalNode {
   static readonly description = `Generate high-quality realistic lipsync animations from audio while preserving unique details like natural teeth and unique facial features using the state-of-the-art Sync Lipsync 2 Pro model.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "cut_off", values: ["cut_off", "loop", "bounce", "silence", "remap"], description: "Lipsync mode when audio and video durations are out of sync." })
   declare sync_mode: any;
@@ -6484,6 +6562,7 @@ export class WanFunControl extends FalNode {
   static readonly description = `Generate pose or depth controlled video using Alibaba-PAI's Wan 2.2 Fun
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "float", default: 5, description: "The shift for the scheduler." })
   declare shift: any;
@@ -6581,6 +6660,7 @@ export class BriaVideoIncreaseResolution extends FalNode {
   static readonly description = `Upscale videos up to 8K output resolution. Trained on fully licensed and commercially safe data.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "Input video to increase resolution. Size should be less than 7680,4320 and duration less than 30s." })
   declare video: any;
@@ -6619,6 +6699,7 @@ export class Infinitalk extends FalNode {
   static readonly description = `Infinitalk model generates a talking avatar video from an image and audio file. The avatar lip-syncs to the provided audio with natural facial expressions.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -6681,6 +6762,7 @@ export class MireloAiSfxV1VideoToVideo extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return it with its new sound track (like MMAudio) 
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "list[Video]" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -6729,6 +6811,7 @@ export class MoonvalleyMareyPoseTransfer extends FalNode {
   static readonly description = `Ideal for matching human movement. Your input video determines human poses, gestures, and body movements that will appear in the generated video.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a video from" })
   declare prompt: any;
@@ -6790,6 +6873,7 @@ export class MoonvalleyMareyMotionTransfer extends FalNode {
   static readonly description = `Pull motion from a reference video and apply it to new subjects or scenes.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a video from" })
   declare prompt: any;
@@ -6851,6 +6935,7 @@ export class FfmpegApiMergeVideos extends FalNode {
   static readonly description = `Use ffmpeg capabilities to merge 2 or more videos.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "metadata": "dict[str, any]", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Resolution of the final video. Width and height must be between 512 and 2048." })
   declare resolution: any;
@@ -6892,6 +6977,7 @@ export class WanV22A14bVideoToVideo extends FalNode {
   static readonly description = `Wan-2.2 video-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts and source videos.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -7030,6 +7116,7 @@ export class Ltxv13b098DistilledExtend extends FalNode {
   static readonly description = `Extend videos using LTX Video-0.9.8 13B Distilled and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -7159,6 +7246,7 @@ export class RifeVideo extends FalNode {
   static readonly description = `Interpolate videos with RIFE - Real-Time Intermediate Flow Estimation
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to use for interpolation." })
   declare video: any;
@@ -7212,6 +7300,7 @@ export class FilmVideo extends FalNode {
   static readonly description = `Interpolate videos with FILM - Frame Interpolation for Large Motion
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the output video. Only applicable if output_type is 'video'." })
   declare video_write_mode: any;
@@ -7280,6 +7369,7 @@ export class LumaDreamMachineRay2FlashModify extends FalNode {
   static readonly description = `Ray2 Flash Modify is a video generative model capable of restyling or retexturing the entire shot, from turning live-action into CG or stylized animation, to changing wardrobe, props, or the overall aesthetic and swap environments or time periods, giving you control over background, location, or even weather.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Instruction for modifying the video" })
   declare prompt: any;
@@ -7327,6 +7417,7 @@ export class Ltxv13b098DistilledMulticonditioning extends FalNode {
   static readonly description = `Generate long videos from prompts, images, and videos using LTX Video-0.9.8 13B Distilled and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -7446,6 +7537,7 @@ export class PixverseSoundEffects extends FalNode {
   static readonly description = `Add immersive sound effects and background music to your videos using PixVerse sound effects  generation
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Description of the sound effect to generate. If empty, a random sound effect will be generated" })
   declare prompt: any;
@@ -7484,6 +7576,7 @@ export class ThinksoundAudio extends FalNode {
   static readonly description = `Generate realistic audio from a video with an optional text prompt
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "A prompt to guide the audio generation. If not provided, it will be extracted from the video." })
   declare prompt: any;
@@ -7532,6 +7625,7 @@ export class Thinksound extends FalNode {
   static readonly description = `Generate realistic audio for a video with an optional text prompt and combine
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "A prompt to guide the audio generation. If not provided, it will be extracted from the video." })
   declare prompt: any;
@@ -7580,6 +7674,7 @@ export class PixverseExtendFast extends FalNode {
   static readonly description = `PixVerse Extend model is a video extending tool for your videos using with high-quality video extending techniques 
 video, editing, video-to-video, vid2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Prompt describing how to extend the video" })
   declare prompt: any;
@@ -7638,6 +7733,7 @@ export class PixverseExtend extends FalNode {
   static readonly description = `PixVerse Extend model is a video extending tool for your videos using with high-quality video extending techniques 
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Prompt describing how to extend the video" })
   declare prompt: any;
@@ -7701,6 +7797,7 @@ export class PixverseLipsync extends FalNode {
   static readonly description = `Generate realistic lipsync animations from audio using advanced algorithms for high-quality synchronization with PixVerse Lipsync model
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text content for TTS when audio_url is not provided" })
   declare text: any;
@@ -7748,6 +7845,7 @@ export class LumaDreamMachineRay2Modify extends FalNode {
   static readonly description = `Ray2 Modify is a video generative model capable of restyling or retexturing the entire shot, from turning live-action into CG or stylized animation, to changing wardrobe, props, or the overall aesthetic and swap environments or time periods, giving you control over background, location, or even weather.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Instruction for modifying the video" })
   declare prompt: any;
@@ -7795,6 +7893,7 @@ export class WanVace14bReframe extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation. Optional for reframing." })
   declare prompt: any;
@@ -7981,6 +8080,7 @@ export class WanVace14bOutpainting extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -8194,6 +8294,7 @@ export class WanVace14bInpainting extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -8405,6 +8506,7 @@ export class WanVace14bPose extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation. For pose task, the prompt should describe the desired pose and action of the subject in the video." })
   declare prompt: any;
@@ -8598,6 +8700,7 @@ export class WanVace14bDepth extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -8791,6 +8894,7 @@ export class DwposeVideo extends FalNode {
   static readonly description = `Predict poses from videos.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of video to be used for pose estimation" })
   declare video: any;
@@ -8824,6 +8928,7 @@ export class FfmpegApiMergeAudioVideo extends FalNode {
   static readonly description = `Merge videos with standalone audio files or audio from video files.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of the video file to use as the video track" })
   declare video: any;
@@ -8866,6 +8971,7 @@ export class WanVace13b extends FalNode {
   static readonly description = `Vace a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
   declare shift: any;
@@ -8989,6 +9095,7 @@ export class LumaDreamMachineRay2FlashReframe extends FalNode {
   static readonly description = `Adjust and enhance videos with Ray-2 Reframe. This advanced tool seamlessly reframes videos to your desired aspect ratio, intelligently inpainting missing regions to ensure realistic visuals and coherent motion, delivering exceptional quality and creative flexibility.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Optional prompt for reframing" })
   declare prompt: any;
@@ -9066,6 +9173,7 @@ export class LumaDreamMachineRay2Reframe extends FalNode {
   static readonly description = `Adjust and enhance videos with Ray-2 Reframe. This advanced tool seamlessly reframes videos to your desired aspect ratio, intelligently inpainting missing regions to ensure realistic visuals and coherent motion, delivering exceptional quality and creative flexibility.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Optional prompt for reframing" })
   declare prompt: any;
@@ -9143,6 +9251,7 @@ export class VeedLipsync extends FalNode {
   static readonly description = `Generate realistic lipsync from any audio using VEED's latest model
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "" })
   declare video: any;
@@ -9179,6 +9288,7 @@ export class WanVace14b extends FalNode {
   static readonly description = `VACE is a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "frames_zip": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -9395,6 +9505,7 @@ export class LtxVideo13bDistilledExtend extends FalNode {
   static readonly description = `Extend videos using LTX Video-0.9.7 13B Distilled and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "int", default: 5, description: "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes." })
   declare second_pass_skip_initial_steps: any;
@@ -9524,6 +9635,7 @@ export class LtxVideo13bDistilledMulticonditioning extends FalNode {
   static readonly description = `Generate videos from prompts, images, and videos using LTX Video-0.9.7 13B Distilled and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "int", default: 5, description: "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes." })
   declare second_pass_skip_initial_steps: any;
@@ -9643,6 +9755,7 @@ export class LtxVideo13bDevMulticonditioning extends FalNode {
   static readonly description = `Generate videos from prompts, images, and videos using LTX Video-0.9.7 13B and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -9762,6 +9875,7 @@ export class LtxVideo13bDevExtend extends FalNode {
   static readonly description = `Extend videos using LTX Video-0.9.7 13B and custom LoRA
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -9891,6 +10005,7 @@ export class LtxVideoLoraMulticonditioning extends FalNode {
   static readonly description = `Generate videos from prompts, images, and videos using LTX Video-0.9.7 and custom LoRA
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -9980,6 +10095,7 @@ export class MagiExtendVideo extends FalNode {
   static readonly description = `MAGI-1 extends videos with an exceptional understanding of physical interactions and prompts
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -10048,6 +10164,7 @@ export class MagiDistilledExtendVideo extends FalNode {
   static readonly description = `MAGI-1 distilled extends videos faster with an exceptional understanding of physical interactions and prompts
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -10116,6 +10233,7 @@ export class WanVace extends FalNode {
   static readonly description = `Vace a video generation model that uses a source image, mask, and video to create prompted videos with controllable sources.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -10239,6 +10357,7 @@ export class CassetteaiVideoSoundEffectsGenerator extends FalNode {
   static readonly description = `Add sound effects to your videos
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "A video file to analyze & re-sound with generated SFX." })
   declare video: any;
@@ -10266,6 +10385,7 @@ export class SyncLipsyncV2 extends FalNode {
   static readonly description = `Generate realistic lipsync animations from audio using advanced algorithms for high-quality synchronization with Sync Lipsync 2.0 model
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "cut_off", values: ["cut_off", "loop", "bounce", "silence", "remap"], description: "Lipsync mode when audio and video durations are out of sync." })
   declare sync_mode: any;
@@ -10313,6 +10433,7 @@ export class Latentsync extends FalNode {
   static readonly description = `LatentSync is a video-to-video model that generates lip sync animations from audio using advanced algorithms for high-quality synchronization.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to generate the lip sync for." })
   declare video: any;
@@ -10365,6 +10486,7 @@ export class PikaV2Pikadditions extends FalNode {
   static readonly description = `Pikadditions is a powerful video-to-video AI model that allows you to add anyone or anything to any video with seamless integration.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing what to add" })
   declare prompt: any;
@@ -10417,6 +10539,7 @@ export class LtxVideoV095Extend extends FalNode {
   static readonly description = `Generate videos from prompts and videos using LTX Video-0.9.5
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -10485,6 +10608,7 @@ export class LtxVideoV095Multiconditioning extends FalNode {
   static readonly description = `Generate videos from prompts,images, and videos using LTX Video-0.9.5
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -10549,6 +10673,7 @@ export class TopazUpscaleVideo extends FalNode {
   static readonly description = `Professional-grade video upscaling using Topaz technology. Enhance your videos with high-quality upscaling.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Noise reduction level (0.0-1.0). Default varies by model." })
   declare noise: any;
@@ -10622,6 +10747,7 @@ export class HunyuanVideoLoraVideoToVideo extends FalNode {
   static readonly description = `Hunyuan Video is an Open video generation model with high visual quality, motion diversity, text-video alignment, and generation stability. Use this endpoint to generate videos from videos.
 video, editing, video-to-video, vid2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -10695,6 +10821,7 @@ export class FfmpegApiCompose extends FalNode {
   static readonly description = `Compose videos from multiple media sources using FFmpeg API.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video_url": "video", "thumbnail_url": "image" };
 
   @prop({ type: "list[Track]", default: [], description: "List of tracks to be combined into the final media" })
   declare tracks: any;
@@ -10709,7 +10836,7 @@ video, editing, video-to-video, vid2vid`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ffmpeg-api/compose", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -10719,6 +10846,7 @@ export class SyncLipsync extends FalNode {
   static readonly description = `Generate realistic lipsync animations from audio using advanced algorithms for high-quality synchronization.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "cut_off", values: ["cut_off", "loop", "bounce", "silence", "remap"], description: "Lipsync mode when audio and video durations are out of sync." })
   declare sync_mode: any;
@@ -10766,6 +10894,7 @@ export class Dubbing extends FalNode {
   static readonly description = `This endpoint delivers seamlessly localized videos by generating lip-synced dubs in multiple languages, ensuring natural and immersive multilingual experiences
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to lip sync the audio to the video" })
   declare do_lipsync: any;
@@ -10804,6 +10933,7 @@ export class Controlnext extends FalNode {
   static readonly description = `Animate a reference image with a driving video using ControlNeXt.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "float", default: 1, description: "Condition scale for ControlNeXt." })
   declare controlnext_cond_scale: any;
@@ -10901,6 +11031,7 @@ export class Sam2Video extends FalNode {
   static readonly description = `SAM 2 is a model for segmenting images and videos in real-time.
 video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "boundingbox_frames_zip": "str", "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the video to be segmented." })
   declare video: any;

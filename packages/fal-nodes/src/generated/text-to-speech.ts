@@ -18,6 +18,7 @@ export class Qwen3TtsTextToSpeech17B extends FalNode {
   static readonly description = `Qwen-3 TTS 1.7B generates natural-sounding speech from text using the large 1.7-billion parameter model.
 audio, tts, qwen, 1.7b, text-to-speech, speech-synthesis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech. This prompt will be ignored if a speaker embedding is provided." })
   declare prompt: any;
@@ -112,6 +113,7 @@ export class Qwen3TtsTextToSpeech06B extends FalNode {
   static readonly description = `Qwen-3 TTS 0.6B generates speech from text efficiently using the compact 600-million parameter model.
 audio, tts, qwen, 0.6b, efficient, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to guide the style of the generated speech. This prompt will be ignored if a speaker embedding is provided." })
   declare prompt: any;
@@ -206,6 +208,7 @@ export class Qwen3TtsVoiceDesign17B extends FalNode {
   static readonly description = `Qwen-3 TTS Voice Design 1.7B creates custom voice characteristics for personalized speech synthesis.
 audio, tts, qwen, voice-design, custom, 1.7b`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech." })
   declare text: any;
@@ -285,6 +288,7 @@ export class Vibevoice05B extends FalNode {
   static readonly description = `VibeVoice 0.5B generates expressive and emotive speech from text with natural vocal characteristics.
 audio, tts, vibevoice, 0.5b, expressive, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "rtf": "float", "duration": "float", "sample_rate": "int", "generation_time": "float", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech." })
   declare script: any;
@@ -324,6 +328,7 @@ export class Maya extends FalNode {
   static readonly description = `Maya generates high-quality natural speech from text with advanced voice synthesis capabilities.
 audio, tts, maya, high-quality, text-to-speech`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration": "float", "rtf": "float", "sample_rate": "str", "generation_time": "float", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
   declare text: any;
@@ -383,6 +388,7 @@ export class MinimaxSpeech26Hd extends FalNode {
   static readonly description = `Minimax Speech 2.6 HD generates high-definition speech from text with superior audio quality.
 audio, tts, minimax, 2.6, hd, high-quality`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech. Paragraph breaks should be marked with newline characters. **NOTE**: You can customize speech pauses by adding markers in the form '<#x#>', where 'x' is the pause duration in seconds. Valid range: '[0.01, 99.99]', up to two decimal places. Pause markers must be placed between speakable text segments and cannot be used consecutively." })
   declare prompt: any;
@@ -437,6 +443,7 @@ export class MinimaxSpeech26Turbo extends FalNode {
   static readonly description = `Minimax Speech 2.6 Turbo generates speech from text with optimized speed and good quality.
 audio, tts, minimax, 2.6, turbo, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech. Paragraph breaks should be marked with newline characters. **NOTE**: You can customize speech pauses by adding markers in the form '<#x#>', where 'x' is the pause duration in seconds. Valid range: '[0.01, 99.99]', up to two decimal places. Pause markers must be placed between speakable text segments and cannot be used consecutively." })
   declare prompt: any;
@@ -491,6 +498,7 @@ export class MayaBatch extends FalNode {
   static readonly description = `Maya Batch TTS generates high-quality speech in batch mode for efficient processing.
 speech, synthesis, text-to-speech, tts, batch, maya`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "average_rtf": "float", "durations": "list[float]", "total_generation_time": "float", "audios": "list[File]", "sample_rate": "str" };
 
   @prop({ type: "float", default: 1.1, description: "Repetition penalty for all generations." })
   declare repetition_penalty: any;
@@ -540,7 +548,7 @@ speech, synthesis, text-to-speech, tts, batch, maya`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/maya/batch", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -550,6 +558,7 @@ export class MayaStream extends FalNode {
   static readonly description = `Maya Stream TTS generates high-quality speech in streaming mode for real-time applications.
 speech, synthesis, text-to-speech, tts, streaming, maya`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The text to synthesize into speech. You can embed emotion tags anywhere in the text using the format <emotion_name>. Available emotions: laugh, laugh_harder, sigh, chuckle, gasp, angry, excited, whisper, cry, scream, sing, snort, exhale, gulp, giggle, sarcastic, curious. Example: 'Hello world! <excited> This is amazing!' or 'I can't believe this <sigh> happened again.'" })
   declare text: any;
@@ -609,6 +618,7 @@ export class IndexTts2TextToSpeech extends FalNode {
   static readonly description = `Index TTS 2 generates natural-sounding speech from text with advanced neural synthesis.
 speech, synthesis, text-to-speech, tts, neural`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The speech prompt to generate" })
   declare prompt: any;
@@ -671,6 +681,7 @@ export class KlingVideoV1Tts extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the Kling TTS model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech" })
   declare text: any;
@@ -705,6 +716,7 @@ export class ChatterboxTextToSpeechMultilingual extends FalNode {
   static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech (maximum 300 characters). Supports 23 languages including English, French, German, Spanish, Italian, Portuguese, Hindi, Arabic, Chinese, Japanese, Korean, and more." })
   declare text: any;
@@ -759,6 +771,7 @@ export class Vibevoice7b extends FalNode {
   static readonly description = `Generate long, expressive multi-voice speech using Microsoft's powerful TTS
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "rtf": "float", "duration": "float", "sample_rate": "int", "generation_time": "float", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues." })
   declare script: any;
@@ -798,6 +811,7 @@ export class Vibevoice extends FalNode {
   static readonly description = `Generate long, expressive multi-voice speech using Microsoft's powerful TTS
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "rtf": "float", "duration": "float", "sample_rate": "int", "generation_time": "float", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The script to convert to speech. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues." })
   declare script: any;
@@ -837,6 +851,7 @@ export class MinimaxPreviewSpeech25Hd extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the MiniMax Speech-02 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -886,6 +901,7 @@ export class MinimaxPreviewSpeech25Turbo extends FalNode {
   static readonly description = `Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -935,6 +951,7 @@ export class MinimaxVoiceDesign extends FalNode {
   static readonly description = `Design a personalized voice from a text description, and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "custom_voice_id": "str", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Voice description prompt for generating a personalized voice" })
   declare prompt: any;
@@ -964,6 +981,7 @@ export class ResembleAiChatterboxhdTextToSpeech extends FalNode {
   static readonly description = `Generate expressive, natural speech with Resemble AI's Chatterbox. Features unique emotion control, instant voice cloning from short audio, and built-in watermarking.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "My name is Maximus Decimus Meridius, commander of the Armies of the North, General of the Felix Legions and loyal servant to the true emperor, Marcus Aurelius. Father to a murdered son, husband to a murdered wife. And I will have my vengeance, in this life or the next.", description: "Text to synthesize into speech." })
   declare text: any;
@@ -1027,6 +1045,7 @@ export class ChatterboxTextToSpeech extends FalNode {
   static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech. You can additionally add the following emotive tags: <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>" })
   declare text: any;
@@ -1080,6 +1099,7 @@ export class MinimaxVoiceClone extends FalNode {
   static readonly description = `Clone a voice from a sample audio and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "custom_voice_id": "str", "audio": "audio" };
 
   @prop({ type: "enum", default: "speech-02-hd", values: ["speech-02-hd", "speech-02-turbo", "speech-01-hd", "speech-01-turbo"], description: "TTS model to use for preview. Options: speech-02-hd, speech-02-turbo, speech-01-hd, speech-01-turbo" })
   declare model: any;
@@ -1133,6 +1153,7 @@ export class MinimaxSpeech02Turbo extends FalNode {
   static readonly description = `Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -1182,6 +1203,7 @@ export class MinimaxSpeech02Hd extends FalNode {
   static readonly description = `Generate speech from text prompts and different voices using the MiniMax Speech-02 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "duration_ms": "int", "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "Text to convert to speech (max 5000 characters, minimum 1 non-whitespace character)" })
   declare text: any;
@@ -1231,6 +1253,7 @@ export class DiaTts extends FalNode {
   static readonly description = `Dia directly generates realistic dialogue from transcripts. Audio conditioning enables emotion control. Produces natural nonverbals like laughter and throat clearing.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech." })
   declare text: any;
@@ -1255,6 +1278,7 @@ export class OrpheusTts extends FalNode {
   static readonly description = `Orpheus TTS is a state-of-the-art, Llama-based Speech-LLM designed for high-quality, empathetic text-to-speech generation. This model has been finetuned to deliver human-level speech synthesis, achieving exceptional clarity, expressiveness, and real-time performances.
 speech, synthesis, text-to-speech, tts`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "str", default: "", description: "The text to be converted to speech. You can additionally add the following emotive tags: <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>" })
   declare text: any;
@@ -1294,6 +1318,7 @@ export class ElevenlabsTtsTurboV25 extends FalNode {
   static readonly description = `Generate high-speed text-to-speech audio using ElevenLabs TTS Turbo v2.5.
 speech, synthesis, text-to-speech, tts, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio", "timestamps": "str" };
 
   @prop({ type: "float", default: 1, description: "Speech speed (0.7-1.2). Values below 1.0 slow down the speech, above 1.0 speed it up. Extreme values may affect quality." })
   declare speed: any;

@@ -18,6 +18,7 @@ export class OpenrouterRouterVideoEnterprise extends FalNode {
   static readonly description = `Run any VLM (Video Language Model) with fal, powered by OpenRouter.
 video, transcription, analysis, video-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "usage": "str", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the video processing" })
   declare prompt: any;
@@ -66,7 +67,7 @@ video, transcription, analysis, video-understanding`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router/video/enterprise", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -76,6 +77,7 @@ export class OpenrouterRouterVideo extends FalNode {
   static readonly description = `Run any VLM (Video Language Model) with fal, powered by OpenRouter.
 video, transcription, analysis, video-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "usage": "str", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the video processing" })
   declare prompt: any;
@@ -124,7 +126,7 @@ video, transcription, analysis, video-understanding`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router/video", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

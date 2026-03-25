@@ -18,6 +18,7 @@ export class HunyuanMotionFast extends FalNode {
   static readonly description = `Generate 3D human motions via text-to-generation interface of Hunyuan Motion!
 3d, generation, text-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "fbx_file": "str", "motion_json": "str", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the motion to generate." })
   declare prompt: any;
@@ -52,7 +53,7 @@ export class HunyuanMotionFast extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan-motion/fast", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -62,6 +63,7 @@ export class HunyuanMotion extends FalNode {
   static readonly description = `Generate 3D human motions via text-to-generation interface of Hunyuan Motion!
 3d, generation, text-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "fbx_file": "str", "motion_json": "str", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the motion to generate." })
   declare prompt: any;
@@ -96,7 +98,7 @@ export class HunyuanMotion extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan-motion", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -106,6 +108,7 @@ export class Hunyuan3dV3TextTo3d extends FalNode {
   static readonly description = `Turn simple sketches into detailed, fully-textured 3D models. Instantly convert your concept designs into formats ready for Unity, Unreal, and Blender.
 3d, generation, text-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "str", default: "", description: "Text description of the 3D content to generate. Supports up to 1024 UTF-8 characters." })
   declare prompt: any;
@@ -140,7 +143,8 @@ export class Hunyuan3dV3TextTo3d extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d-v3/text-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -150,6 +154,7 @@ export class MeshyV6PreviewTextTo3d extends FalNode {
   static readonly description = `Meshy-6-Preview is the latest model from Meshy. It generates realistic and production ready 3D models.
 3d, generation, text-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "str", default: "", description: "Describe what kind of object the 3D model is. Maximum 600 characters." })
   declare prompt: any;
@@ -258,7 +263,8 @@ export class MeshyV6PreviewTextTo3d extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/meshy/v6-preview/text-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 

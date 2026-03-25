@@ -18,6 +18,7 @@ export class ElevenLabsSpeechToText extends FalNode {
   static readonly description = `ElevenLabs Speech to Text transcribes audio to text with high accuracy.
 audio, transcription, stt, elevenlabs, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "text": "str", "language_probability": "float", "language_code": "str", "words": "list[TranscriptionWord]" };
 
   @prop({ type: "str", default: "", description: "Language code of the audio" })
   declare language_code: any;
@@ -51,7 +52,7 @@ audio, transcription, stt, elevenlabs, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/elevenlabs/speech-to-text", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -61,6 +62,7 @@ export class ElevenLabsScribeV2 extends FalNode {
   static readonly description = `ElevenLabs Scribe V2 provides blazingly fast speech-to-text transcription.
 audio, transcription, stt, fast, elevenlabs, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "text": "str", "language_probability": "float", "language_code": "str", "words": "list[TranscriptionWord]" };
 
   @prop({ type: "list[str]", default: [], description: "Words or sentences to bias the model towards transcribing. Up to 100 keyterms, max 50 characters each. Adds 30% premium over base transcription price." })
   declare keyterms: any;
@@ -99,7 +101,7 @@ audio, transcription, stt, fast, elevenlabs, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/elevenlabs/speech-to-text/scribe-v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -109,6 +111,7 @@ export class SmartTurn extends FalNode {
   static readonly description = `Pipecat's Smart Turn model provides native audio turn detection for conversations.
 audio, turn-detection, conversation, pipecat, speech-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prediction": "int", "probability": "float", "metrics": "dict[str, any]" };
 
   @prop({ type: "audio", default: "", description: "The URL of the audio file to be processed." })
   declare audio: any;
@@ -126,7 +129,7 @@ audio, turn-detection, conversation, pipecat, speech-analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/smart-turn", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -136,6 +139,7 @@ export class SpeechToText extends FalNode {
   static readonly description = `General-purpose speech-to-text model for accurate audio transcription.
 audio, transcription, stt, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "partial": "bool", "output": "str" };
 
   @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
   declare audio: any;
@@ -159,7 +163,7 @@ audio, transcription, stt, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/speech-to-text", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -169,6 +173,7 @@ export class SpeechToTextStream extends FalNode {
   static readonly description = `Streaming speech-to-text for real-time audio transcription.
 audio, transcription, stt, streaming, real-time, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
   declare audio: any;
@@ -202,6 +207,7 @@ export class SpeechToTextTurbo extends FalNode {
   static readonly description = `High-speed speech-to-text model optimized for fast transcription.
 audio, transcription, stt, turbo, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "partial": "bool", "output": "str" };
 
   @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
   declare audio: any;
@@ -225,7 +231,7 @@ audio, transcription, stt, turbo, fast, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/speech-to-text/turbo", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -235,6 +241,7 @@ export class SpeechToTextTurboStream extends FalNode {
   static readonly description = `High-speed streaming speech-to-text for real-time fast transcription.
 audio, transcription, stt, turbo, streaming, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "audio", default: "", description: "Local filesystem path (or remote URL) to a long audio file" })
   declare audio: any;
@@ -268,6 +275,7 @@ export class Whisper extends FalNode {
   static readonly description = `OpenAI's Whisper model for robust multilingual speech recognition.
 audio, transcription, stt, whisper, multilingual, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "text": "str", "inferred_languages": "list[str]", "chunks": "str", "diarization_segments": "list[DiarizationSegment]" };
 
   @prop({ type: "str", default: "", description: "\n        Language of the audio file. If set to null, the language will be\n        automatically detected. Defaults to null.\n\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected.\n        " })
   declare language: any;
@@ -321,7 +329,7 @@ audio, transcription, stt, whisper, multilingual, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/whisper", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -331,6 +339,7 @@ export class Wizper extends FalNode {
   static readonly description = `Wizper provides fast and accurate speech-to-text transcription.
 audio, transcription, stt, wizper, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "text": "str", "languages": "list[str]", "chunks": "list[WhisperChunk]" };
 
   @prop({ type: "str", default: "en", description: "\n        Language of the audio file.\n        If translate is selected as the task, the audio will be translated to\n        English, regardless of the language selected. If 'None' is passed,\n        the language will be automatically detected. This will also increase\n        the inference time.\n        " })
   declare language: any;
@@ -379,7 +388,7 @@ audio, transcription, stt, wizper, fast, speech-to-text`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wizper", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

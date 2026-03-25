@@ -18,6 +18,7 @@ export class NemotronAsrStream extends FalNode {
   static readonly description = `Use the fast speed and pin point accuracy of nemotron to transcribe your texts.
 speech, recognition, transcription, audio-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "enum", default: "none", values: ["none", "low", "medium", "high"], description: "Controls the speed/accuracy trade-off. 'none' = best accuracy (1.12s chunks, ~7.16% WER), 'low' = balanced (0.56s chunks, ~7.22% WER), 'medium' = faster (0.16s chunks, ~7.84% WER), 'high' = fastest (0.08s chunks, ~8.53% WER)." })
   declare acceleration: any;
@@ -51,6 +52,7 @@ export class NemotronAsr extends FalNode {
   static readonly description = `Use the fast speed and pin point accuracy of nemotron to transcribe your texts.
 speech, recognition, transcription, audio-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "partial": "bool", "output": "str" };
 
   @prop({ type: "enum", default: "none", values: ["none", "low", "medium", "high"], description: "Controls the speed/accuracy trade-off. 'none' = best accuracy (1.12s chunks, ~7.16% WER), 'low' = balanced (0.56s chunks, ~7.22% WER), 'medium' = faster (0.16s chunks, ~7.84% WER), 'high' = fastest (0.08s chunks, ~8.53% WER)." })
   declare acceleration: any;
@@ -74,7 +76,7 @@ speech, recognition, transcription, audio-analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/nemotron/asr", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -84,6 +86,7 @@ export class SileroVad extends FalNode {
   static readonly description = `Detect speech presence and timestamps with accuracy and speed using the ultra-lightweight Silero VAD model
 speech, recognition, transcription, audio-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "has_speech": "bool", "timestamps": "list[SpeechTimestamp]" };
 
   @prop({ type: "audio", default: "", description: "The URL of the audio to get speech timestamps from." })
   declare audio: any;
@@ -101,7 +104,7 @@ speech, recognition, transcription, audio-analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/silero-vad", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

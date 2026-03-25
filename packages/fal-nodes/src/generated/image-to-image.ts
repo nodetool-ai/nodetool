@@ -18,6 +18,7 @@ export class FluxSchnellRedux extends FalNode {
   static readonly description = `FLUX.1 [schnell] Redux enables rapid transformation of existing images with high-quality style transfers and modifications using the fast FLUX.1 schnell model.
 image, transformation, style-transfer, fast, flux, redux`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate (1-4)" })
   declare num_images: any;
@@ -87,6 +88,7 @@ export class FluxDevRedux extends FalNode {
   static readonly description = `FLUX.1 [dev] Redux provides advanced image transformation capabilities with superior quality and more control over the style transfer process.
 image, transformation, style-transfer, development, flux, redux`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate (1-4)" })
   declare num_images: any;
@@ -161,6 +163,7 @@ export class FluxProRedux extends FalNode {
   static readonly description = `FLUX.1 Pro Redux delivers professional-grade image transformations with the highest quality and safety controls for commercial use.
 image, transformation, style-transfer, professional, flux, redux`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -240,6 +243,7 @@ export class IdeogramV2Edit extends FalNode {
   static readonly description = `Transform existing images with Ideogram V2's editing capabilities. Modify, adjust, and refine images while maintaining high fidelity with precise prompt and mask control.
 image, editing, inpainting, mask, ideogram, transformation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image" })
   declare prompt: any;
@@ -303,6 +307,7 @@ export class IdeogramV2Remix extends FalNode {
   static readonly description = `Reimagine existing images with Ideogram V2's remix feature. Create variations and adaptations while preserving core elements through prompt guidance and strength control.
 image, remix, variation, creativity, ideogram, adaptation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -367,6 +372,7 @@ export class IdeogramV3Edit extends FalNode {
   static readonly description = `Transform images with Ideogram V3's enhanced editing capabilities. Latest generation editing with improved quality, control, and style consistency.
 image, editing, inpainting, mask, ideogram, v3`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image" })
   declare prompt: any;
@@ -462,6 +468,7 @@ export class FluxProFill extends FalNode {
   static readonly description = `FLUX.1 Pro Fill provides professional inpainting and outpainting capabilities. Generate or modify image content within masked regions with precise prompt control.
 image, inpainting, outpainting, fill, flux, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt describing what to generate in the masked area" })
   declare prompt: any;
@@ -535,6 +542,7 @@ export class FluxProCanny extends FalNode {
   static readonly description = `FLUX.1 Pro with Canny edge detection control. Generate images guided by edge maps for precise structural control while maintaining FLUX's quality.
 image, controlnet, canny, edges, flux, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired output" })
   declare prompt: any;
@@ -614,6 +622,7 @@ export class FluxProDepth extends FalNode {
   static readonly description = `FLUX.1 Pro with depth map control. Generate images guided by depth information for precise 3D structure control while maintaining FLUX's quality.
 image, controlnet, depth, 3d, flux, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired output" })
   declare prompt: any;
@@ -693,6 +702,7 @@ export class BriaEraser extends FalNode {
   static readonly description = `Bria Eraser removes unwanted objects from images using intelligent inpainting. Seamlessly fill removed areas with contextually appropriate content.
 image, eraser, removal, inpainting, bria, cleanup`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -746,6 +756,7 @@ export class BriaBackgroundReplace extends FalNode {
   static readonly description = `Bria Background Replace swaps image backgrounds with new content. Intelligently separates subjects and generates contextually appropriate backgrounds.
 image, background, replacement, segmentation, bria`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[dict[str, any]]", "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If true, returns the image directly in the response (increases latency)." })
   declare sync_mode: any;
@@ -800,6 +811,7 @@ export class ClarityUpscaler extends FalNode {
   static readonly description = `Clarity Upscaler increases image resolution using AI-powered super-resolution. Enhance image quality, sharpness, and detail up to 4x scale.
 image, upscaling, enhancement, super-resolution, clarity`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "masterpiece, best quality, highres", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -863,7 +875,7 @@ image, upscaling, enhancement, super-resolution, clarity`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/clarity-upscaler", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -873,6 +885,7 @@ export class RecraftV3ImageToImage extends FalNode {
   static readonly description = `Recraft V3 transforms images with advanced style control and quality preservation. Professional-grade image-to-image generation with fine-tuned artistic control.
 image, transformation, recraft, style, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired transformation" })
   declare prompt: any;
@@ -937,6 +950,7 @@ export class KolorsImageToImage extends FalNode {
   static readonly description = `Kolors transforms images using an advanced diffusion model. High-quality image-to-image generation with natural color preservation and detail retention.
 image, transformation, kolors, diffusion, quality`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired transformation" })
   declare prompt: any;
@@ -1026,6 +1040,7 @@ export class BiRefNet extends FalNode {
   static readonly description = `BiRefNet (Bilateral Reference Network) performs high-quality background removal with precise edge detection and detail preservation.
 image, background-removal, segmentation, birefnet, mask`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "mask_image": "str" };
 
   @prop({ type: "enum", default: "1024x1024", values: ["1024x1024", "2048x2048"], description: "The resolution to operate on. The higher the resolution, the more accurate the output will be for high res input images." })
   declare operating_resolution: any;
@@ -1074,7 +1089,7 @@ image, background-removal, segmentation, birefnet, mask`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/birefnet", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1084,6 +1099,7 @@ export class CodeFormer extends FalNode {
   static readonly description = `CodeFormer restores and enhances face quality in images. Advanced face restoration with fidelity control for natural-looking results.
 image, face-restoration, enhancement, codeformer, quality`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "bool", default: false, description: "Should faces etc should be aligned." })
   declare aligned: any;
@@ -1132,7 +1148,7 @@ image, face-restoration, enhancement, codeformer, quality`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/codeformer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1142,6 +1158,7 @@ export class HunyuanImageV3InstructEdit extends FalNode {
   static readonly description = `Hunyuan Image v3 Instruct Edit allows precise image editing through natural language instructions with advanced understanding.
 image, editing, hunyuan, instruct, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -1214,6 +1231,7 @@ export class QwenImageMaxEdit extends FalNode {
   static readonly description = `Qwen Image Max Edit provides powerful image editing capabilities with advanced AI understanding and high-quality results.
 image, editing, qwen, max, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image. Supports Chinese and English. Max 800 characters." })
   declare prompt: any;
@@ -1291,6 +1309,7 @@ export class QwenImageEdit2511 extends FalNode {
   static readonly description = `Qwen Image Edit 2511 provides state-of-the-art image editing with latest AI advancements and improved quality.
 image, editing, qwen, 2511, latest`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image with." })
   declare prompt: any;
@@ -1378,6 +1397,7 @@ export class QwenImageEdit2511Lora extends FalNode {
   static readonly description = `Qwen Image Edit 2511 with LoRA support enables custom-trained models for specialized editing tasks.
 image, editing, qwen, lora, custom`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image with." })
   declare prompt: any;
@@ -1470,6 +1490,7 @@ export class QwenImageEdit2511MultipleAngles extends FalNode {
   static readonly description = `Qwen Image Edit 2511 Multiple Angles generates images from different viewpoints based on a single input image.
 image, editing, qwen, multi-angle, viewpoint`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level for image generation." })
   declare acceleration: any;
@@ -1577,6 +1598,7 @@ export class QwenImageEdit2509 extends FalNode {
   static readonly description = `Qwen Image Edit 2509 provides powerful image editing with advanced AI capabilities and high-quality output.
 image, editing, qwen, 2509, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -1664,6 +1686,7 @@ export class QwenImageEdit2509Lora extends FalNode {
   static readonly description = `Qwen Image Edit 2509 with LoRA enables fine-tuned models for specialized image editing applications.
 image, editing, qwen, lora, fine-tuned`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -1756,6 +1779,7 @@ export class QwenImageLayered extends FalNode {
   static readonly description = `Qwen Image Layered provides layer-based image editing for complex compositions and precise control.
 image, editing, qwen, layered, composition`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "A caption for the input image." })
   declare prompt: any;
@@ -1835,6 +1859,7 @@ export class QwenImageLayeredLora extends FalNode {
   static readonly description = `Qwen Image Layered with LoRA combines layer-based editing with custom-trained models for specialized tasks.
 image, editing, qwen, layered, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "A caption for the input image." })
   declare prompt: any;
@@ -1919,6 +1944,7 @@ export class Flux2Klein4BBaseEdit extends FalNode {
   static readonly description = `FLUX-2 Klein 4B Base Edit provides fast image editing with the 4-billion parameter model.
 image, editing, flux-2, klein, 4b`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2006,6 +2032,7 @@ export class Flux2Klein4BBaseEditLora extends FalNode {
   static readonly description = `FLUX-2 Klein 4B Base Edit with LoRA enables custom-trained models for specialized editing.
 image, editing, flux-2, klein, 4b, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2098,6 +2125,7 @@ export class Flux2Klein9BBaseEdit extends FalNode {
   static readonly description = `FLUX-2 Klein 9B Base Edit provides high-quality image editing with the 9-billion parameter model.
 image, editing, flux-2, klein, 9b`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2185,6 +2213,7 @@ export class Flux2Klein9BBaseEditLora extends FalNode {
   static readonly description = `FLUX-2 Klein 9B Base Edit with LoRA combines powerful editing with custom-trained models.
 image, editing, flux-2, klein, 9b, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2277,6 +2306,7 @@ export class Flux2Klein4BEdit extends FalNode {
   static readonly description = `FLUX-2 Klein 4B Edit provides efficient image editing with the streamlined 4-billion parameter model.
 image, editing, flux-2, klein, 4b, efficient`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2349,6 +2379,7 @@ export class Flux2Klein9BEdit extends FalNode {
   static readonly description = `FLUX-2 Klein 9B Edit provides advanced image editing with the full 9-billion parameter model.
 image, editing, flux-2, klein, 9b, advanced`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2421,6 +2452,7 @@ export class Flux2FlashEdit extends FalNode {
   static readonly description = `FLUX-2 Flash Edit provides ultra-fast image editing for rapid iteration and quick modifications.
 image, editing, flux-2, flash, ultra-fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2498,6 +2530,7 @@ export class Flux2TurboEdit extends FalNode {
   static readonly description = `FLUX-2 Turbo Edit provides accelerated image editing with balanced quality and speed.
 image, editing, flux-2, turbo, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -2575,6 +2608,7 @@ export class Flux2MaxEdit extends FalNode {
   static readonly description = `FLUX-2 Max Edit provides maximum quality image editing with the most advanced FLUX-2 model.
 image, editing, flux-2, max, premium`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2642,6 +2676,7 @@ export class Flux2FlexEdit extends FalNode {
   static readonly description = `FLUX-2 Flex Edit provides flexible image editing with customizable parameters and versatile control.
 image, editing, flux-2, flex, versatile`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2719,6 +2754,7 @@ export class Flux2LoraGalleryVirtualTryon extends FalNode {
   static readonly description = `FLUX-2 LoRA Gallery Virtual Try-on enables realistic clothing and accessory visualization on people.
 image, editing, flux-2, virtual-tryon, fashion`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a virtual try-on image." })
   declare prompt: any;
@@ -2806,6 +2842,7 @@ export class Flux2LoraGalleryMultipleAngles extends FalNode {
   static readonly description = `FLUX-2 LoRA Gallery Multiple Angles generates images from different viewpoints for comprehensive visualization.
 image, editing, flux-2, multi-angle, viewpoint`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The size of the generated image. If not provided, the size of the input image will be used." })
   declare image_size: any;
@@ -2903,6 +2940,7 @@ export class Flux2LoraGalleryFaceToFullPortrait extends FalNode {
   static readonly description = `FLUX-2 LoRA Gallery Face to Full Portrait expands face crops into complete portrait images.
 image, editing, flux-2, portrait, expansion`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Face to full portrait", description: "The prompt describing the full portrait to generate from the face." })
   declare prompt: any;
@@ -2990,6 +3028,7 @@ export class Flux2LoraGalleryAddBackground extends FalNode {
   static readonly description = `FLUX-2 LoRA Gallery Add Background places subjects in new environments with realistic integration.
 image, editing, flux-2, background, compositing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Add Background forest", description: "The prompt describing the background to add. Must start with 'Add Background' followed by your description." })
   declare prompt: any;
@@ -3077,6 +3116,7 @@ export class BriaFiboEdit extends FalNode {
   static readonly description = `Bria FIBO Edit provides general-purpose image editing with AI-powered modifications and enhancements.
 image, editing, bria, fibo, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "int", default: 30, description: "Number of inference steps." })
   declare steps_num: any;
@@ -3155,6 +3195,7 @@ export class BriaFiboEditAddObjectByText extends FalNode {
   static readonly description = `Bria FIBO Edit Add Object by Text inserts new objects into images using text descriptions.
 image, editing, bria, fibo, object-insertion`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The full natural language command describing what to add and where." })
   declare instruction: any;
@@ -3189,6 +3230,7 @@ export class BriaFiboEditEraseByText extends FalNode {
   static readonly description = `Bria FIBO Edit Erase by Text removes objects from images using natural language descriptions.
 image, editing, bria, fibo, object-removal`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "image", default: "", description: "The source image." })
   declare image: any;
@@ -3223,6 +3265,7 @@ export class BriaFiboEditReplaceObjectByText extends FalNode {
   static readonly description = `Bria FIBO Edit Replace Object by Text replaces objects in images with new ones specified by text.
 image, editing, bria, fibo, object-replacement`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The full natural language command describing what to replace." })
   declare instruction: any;
@@ -3257,6 +3300,7 @@ export class BriaFiboEditBlend extends FalNode {
   static readonly description = `Bria FIBO Edit Blend seamlessly combines multiple images or elements with natural transitions.
 image, editing, bria, fibo, blending`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "Instruct what elements you would like to blend in your image." })
   declare instruction: any;
@@ -3291,6 +3335,7 @@ export class BriaFiboEditColorize extends FalNode {
   static readonly description = `Bria FIBO Edit Colorize adds realistic colors to grayscale or black-and-white images.
 image, editing, bria, fibo, colorization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "enum", default: "", values: ["contemporary color", "vivid color", "black and white colors", "sepia vintage"], description: "Select the color palette or aesthetic for the output image" })
   declare color: any;
@@ -3325,6 +3370,7 @@ export class BriaFiboEditRestore extends FalNode {
   static readonly description = `Bria FIBO Edit Restore repairs and enhances damaged or degraded images with AI reconstruction.
 image, editing, bria, fibo, restoration`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "image", default: "", description: "The source image." })
   declare image: any;
@@ -3353,6 +3399,7 @@ export class BriaFiboEditRestyle extends FalNode {
   static readonly description = `Bria FIBO Edit Restyle transforms images with artistic style transfers and visual aesthetics.
 image, editing, bria, fibo, style-transfer`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "enum", default: "", values: ["3D Render", "Cubism", "Oil Painting", "Anime", "Cartoon", "Coloring Book", "Retro Ad", "Pop Art Halftone", "Vector Art", "Story Board", "Art Nouveau", "Cross Etching", "Wood Cut"], description: "Select the desired artistic style for the output image." })
   declare style: any;
@@ -3387,6 +3434,7 @@ export class BriaFiboEditRelight extends FalNode {
   static readonly description = `Bria FIBO Edit Relight adjusts lighting conditions in images for dramatic or natural effects.
 image, editing, bria, fibo, relighting`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "enum", default: "", values: ["midday", "blue hour light", "low-angle sunlight", "sunrise light", "spotlight on subject", "overcast light", "soft overcast daylight lighting", "cloud-filtered lighting", "fog-diffused lighting", "moonlight lighting", "starlight nighttime", "soft bokeh lighting", "harsh studio lighting"], description: "The quality/style/time of day." })
   declare light_type: any;
@@ -3426,6 +3474,7 @@ export class BriaFiboEditReseason extends FalNode {
   static readonly description = `Bria FIBO Edit Reseason changes the seasonal appearance of outdoor scenes in images.
 image, editing, bria, fibo, seasonal`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "enum", default: "", values: ["spring", "summer", "autumn", "winter"], description: "The desired season." })
   declare season: any;
@@ -3460,6 +3509,7 @@ export class BriaFiboEditRewriteText extends FalNode {
   static readonly description = `Bria FIBO Edit Rewrite Text modifies or replaces text content within images naturally.
 image, editing, bria, fibo, text-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The new text string to appear in the image." })
   declare new_text: any;
@@ -3494,6 +3544,7 @@ export class BriaFiboEditSketchToColoredImage extends FalNode {
   static readonly description = `Bria FIBO Edit Sketch to Colored Image transforms sketches and line art into full-color images.
 image, editing, bria, fibo, sketch-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "image": "image", "structured_instruction": "dict[str, any]" };
 
   @prop({ type: "image", default: "", description: "The source image." })
   declare image: any;
@@ -3522,6 +3573,7 @@ export class GlmImageImageToImage extends FalNode {
   static readonly description = `GLM Image image-to-image transforms and modifies images using advanced AI understanding.
 image, transformation, glm, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation." })
   declare prompt: any;
@@ -3604,6 +3656,7 @@ export class GptImage15Edit extends FalNode {
   static readonly description = `GPT Image 1.5 Edit provides intelligent image editing with GPT-powered understanding and control.
 image, editing, gpt, intelligent, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "enum", default: "high", values: ["low", "high"], description: "Input fidelity for the generated image" })
   declare input_fidelity: any;
@@ -3685,6 +3738,7 @@ export class ZImageTurboImageToImage extends FalNode {
   static readonly description = `Z-Image Turbo image-to-image provides fast image transformations with quality output.
 image, transformation, z-image, turbo, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3769,6 +3823,7 @@ export class ZImageTurboImageToImageLora extends FalNode {
   static readonly description = `Z-Image Turbo image-to-image with LoRA enables fast custom-trained model transformations.
 image, transformation, z-image, turbo, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3858,6 +3913,7 @@ export class ZImageTurboInpaint extends FalNode {
   static readonly description = `Z-Image Turbo Inpaint fills masked regions in images quickly with contextually appropriate content.
 image, inpainting, z-image, turbo, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3966,6 +4022,7 @@ export class ZImageTurboInpaintLora extends FalNode {
   static readonly description = `Z-Image Turbo Inpaint with LoRA provides fast custom-trained inpainting for specialized tasks.
 image, inpainting, z-image, turbo, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4079,6 +4136,7 @@ export class ZImageTurboControlnet extends FalNode {
   static readonly description = `Z-Image Turbo ControlNet provides fast controlled image generation with structural guidance.
 image, controlnet, z-image, turbo, controlled`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4178,6 +4236,7 @@ export class ZImageTurboControlnetLora extends FalNode {
   static readonly description = `Z-Image Turbo ControlNet with LoRA combines fast controlled generation with custom models.
 image, controlnet, z-image, turbo, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4282,6 +4341,7 @@ export class WanV26ImageToImage extends FalNode {
   static readonly description = `Wan v2.6 image-to-image provides high-quality image transformations with advanced AI capabilities.
 image, transformation, wan, v2.6, quality`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image. Supports Chinese and English. Max 2000 characters. Example: 'Generate an image using the style of image 1 and background of image 2'." })
   declare prompt: any;
@@ -4349,6 +4409,7 @@ export class StepxEdit2 extends FalNode {
   static readonly description = `StepX Edit 2 provides multi-step image editing with progressive refinement and control.
 image, editing, stepx, progressive, refinement`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "has_nsfw_concepts": "list[bool]", "images": "list[Image]", "best_info": "str", "timings": "dict[str, any]", "reformat_prompt": "str", "think_info": "str", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4428,6 +4489,7 @@ export class LongcatImageEdit extends FalNode {
   static readonly description = `Longcat Image Edit transforms images with unique AI-powered modifications and creative control.
 image, editing, longcat, creative`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image with." })
   declare prompt: any;
@@ -4502,6 +4564,7 @@ export class BytedanceSeedreamV45Edit extends FalNode {
   static readonly description = `ByteDance SeeDream v4.5 Edit provides advanced image editing with cutting-edge AI technology.
 image, editing, bytedance, seedream, v4.5`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to edit the image" })
   declare prompt: any;
@@ -4569,6 +4632,7 @@ export class ViduQ2ReferenceToImage extends FalNode {
   static readonly description = `Vidu Q2 Reference-to-Image generates images based on reference images with style and content transfer.
 image, generation, vidu, reference, style-transfer`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -4616,6 +4680,7 @@ export class KlingImageO1 extends FalNode {
   static readonly description = `Kling Image O1 provides advanced image generation and transformation with optimized quality.
 image, generation, kling, o1, optimized`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation. Reference images using @Image1, @Image2, etc. (or @Image if only one image). Max 2500 characters." })
   declare prompt: any;
@@ -4683,6 +4748,7 @@ export class KlingImageO3ImageToImage extends FalNode {
   static readonly description = `Kling Image O3 transforms images with advanced quality controls and refined detail.
 image, transformation, kling, o3, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation. Reference images using @Image1, @Image2, etc. (or @Image if only one image). Max 2500 characters." })
   declare prompt: any;
@@ -4760,6 +4826,7 @@ export class QwenImageEdit2509LoraGalleryShirtDesign extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Put this design on their shirt", description: "Describe what design to put on the shirt. The model will apply the design from your input image onto the person's shirt." })
   declare prompt: any;
@@ -4852,6 +4919,7 @@ export class QwenImageEdit2509LoraGalleryRemoveLighting extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "int", default: 6, description: "The number of inference steps to perform." })
   declare num_inference_steps: any;
@@ -4934,6 +5002,7 @@ export class QwenImageEdit2509LoraGalleryRemoveElement extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Remove the specified element from the scene", description: "Specify what element(s) to remove from the image (objects, people, text, etc.). The model will cleanly remove the element while maintaining consistency of the rest of the image." })
   declare prompt: any;
@@ -5026,6 +5095,7 @@ export class QwenImageEdit2509LoraGalleryLightingRestoration extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "int", default: 6, description: "The number of inference steps to perform." })
   declare num_inference_steps: any;
@@ -5108,6 +5178,7 @@ export class QwenImageEdit2509LoraGalleryIntegrateProduct extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Blend and integrate the product into the background", description: "Describe how to blend and integrate the product/element into the background. The model will automatically correct perspective, lighting and shadows for natural integration." })
   declare prompt: any;
@@ -5200,6 +5271,7 @@ export class QwenImageEdit2509LoraGalleryGroupPhoto extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Two people standing next to each other outside with a landscape background", description: "Describe the group photo scene, setting, and style. The model will maintain character consistency and add vintage effects like grain, blur, and retro filters." })
   declare prompt: any;
@@ -5292,6 +5364,7 @@ export class QwenImageEdit2509LoraGalleryFaceToFullPortrait extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Photography. A portrait of the person in professional attire with natural lighting", description: "Describe the full portrait you want to generate from the face. Include clothing, setting, pose, and style details." })
   declare prompt: any;
@@ -5384,6 +5457,7 @@ export class QwenImageEdit2509LoraGalleryAddBackground extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Remove white background and add a realistic scene behind the object", description: "Describe the background/scene you want to add behind the object. The model will remove the white background and add the specified environment." })
   declare prompt: any;
@@ -5476,6 +5550,7 @@ export class QwenImageEdit2509LoraGalleryNextScene extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Next Scene: The camera moves forward revealing more of the scene", description: "Describe the camera movement, framing change, or scene transition. Start with 'Next Scene:' for best results. Examples: camera movements (dolly, push-in, pull-back), framing changes (wide to close-up), new elements entering frame." })
   declare prompt: any;
@@ -5568,6 +5643,7 @@ export class QwenImageEdit2509LoraGalleryMultipleAngles extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The size of the generated image. If not provided, the size of the final input image will be used." })
   declare image_size: any;
@@ -5675,6 +5751,7 @@ export class QwenImageEditPlusLoraGalleryLightingRestoration extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "int", default: 6, description: "The number of inference steps to perform." })
   declare num_inference_steps: any;
@@ -5757,6 +5834,7 @@ export class Moondream3PreviewSegment extends FalNode {
   static readonly description = `Moondream3 Preview [Segment]
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "finish_reason": "str", "bbox": "str", "path": "str", "usage_info": "str" };
 
   @prop({ type: "str", default: "", description: "Spatial references to guide the segmentation. By feeding in references you can help the segmentation process. Must be either list of Point object with x and y members, or list of arrays containing either 2 floats (x,y) or 4 floats (x1,y1,x2,y2). \n**NOTE**: You can also use the [**point endpoint**](https://fal.ai/models/fal-ai/moondream3-preview/point) to get points for the objects, and pass them in here." })
   declare spatial_references: any;
@@ -5795,7 +5873,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream3-preview/segment", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -5805,6 +5883,7 @@ export class Flux2LoraGalleryApartmentStaging extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a furnished room. Use 'furnish this room' for best results." })
   declare prompt: any;
@@ -5892,6 +5971,7 @@ export class ClarityaiCrystalUpscaler extends FalNode {
   static readonly description = `Crystal Upscaler
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "URL to the input image" })
   declare image: any;
@@ -5931,6 +6011,7 @@ export class ChronoEditLora extends FalNode {
   static readonly description = `Chrono Edit Lora
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -6025,6 +6106,7 @@ export class ChronoEditLoraGalleryPaintbrush extends FalNode {
   static readonly description = `Chrono Edit Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Describe how to transform the sketched regions." })
   declare prompt: any;
@@ -6118,6 +6200,7 @@ export class ChronoEditLoraGalleryUpscaler extends FalNode {
   static readonly description = `Chrono Edit Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The scale factor for the LoRA adapter." })
   declare lora_scale: any;
@@ -6192,6 +6275,7 @@ export class Sam3ImageRle extends FalNode {
   static readonly description = `Sam 3
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "rle": "str", "boundingbox_frames_zip": "str", "scores": "str", "metadata": "str", "boxes": "str" };
 
   @prop({ type: "str", default: "wheel", description: "Text prompt for segmentation" })
   declare prompt: any;
@@ -6265,7 +6349,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/image-rle", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -6275,6 +6359,7 @@ export class Sam3Image extends FalNode {
   static readonly description = `Segment Anything Model 3
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "metadata": "str", "masks": "list[Image]", "scores": "str", "boxes": "str" };
 
   @prop({ type: "str", default: "wheel", description: "Text prompt for segmentation" })
   declare prompt: any;
@@ -6348,7 +6433,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -6358,6 +6443,7 @@ export class Gemini3ProImagePreviewEdit extends FalNode {
   static readonly description = `Gemini 3 Pro Image Preview
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The prompt for image editing." })
   declare prompt: any;
@@ -6440,6 +6526,7 @@ export class NanoBananaProEdit extends FalNode {
   static readonly description = `Nano Banana Pro
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "description": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt for image editing." })
   declare prompt: any;
@@ -6522,6 +6609,7 @@ export class QwenImageEditPlusLoraGalleryMultipleAngles extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The size of the generated image. If not provided, the size of the final input image will be used." })
   declare image_size: any;
@@ -6629,6 +6717,7 @@ export class QwenImageEditPlusLoraGalleryShirtDesign extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Put this design on their shirt", description: "Describe what design to put on the shirt. The model will apply the design from your input image onto the person's shirt." })
   declare prompt: any;
@@ -6721,6 +6810,7 @@ export class QwenImageEditPlusLoraGalleryRemoveLighting extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "int", default: 6, description: "The number of inference steps to perform." })
   declare num_inference_steps: any;
@@ -6803,6 +6893,7 @@ export class QwenImageEditPlusLoraGalleryRemoveElement extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Remove the specified element from the scene", description: "Specify what element(s) to remove from the image (objects, people, text, etc.). The model will cleanly remove the element while maintaining consistency of the rest of the image." })
   declare prompt: any;
@@ -6895,6 +6986,7 @@ export class QwenImageEditPlusLoraGalleryNextScene extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Next Scene: The camera moves forward revealing more of the scene", description: "Describe the camera movement, framing change, or scene transition. Start with 'Next Scene:' for best results. Examples: camera movements (dolly, push-in, pull-back), framing changes (wide to close-up), new elements entering frame." })
   declare prompt: any;
@@ -6987,6 +7079,7 @@ export class QwenImageEditPlusLoraGalleryIntegrateProduct extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Blend and integrate the product into the background", description: "Describe how to blend and integrate the product/element into the background. The model will automatically correct perspective, lighting and shadows for natural integration." })
   declare prompt: any;
@@ -7079,6 +7172,7 @@ export class QwenImageEditPlusLoraGalleryGroupPhoto extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Two people standing next to each other outside with a landscape background", description: "Describe the group photo scene, setting, and style. The model will maintain character consistency and add vintage effects like grain, blur, and retro filters." })
   declare prompt: any;
@@ -7171,6 +7265,7 @@ export class QwenImageEditPlusLoraGalleryFaceToFullPortrait extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Photography. A portrait of the person in professional attire with natural lighting", description: "Describe the full portrait you want to generate from the face. Include clothing, setting, pose, and style details." })
   declare prompt: any;
@@ -7263,6 +7358,7 @@ export class QwenImageEditPlusLoraGalleryAddBackground extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Remove white background and add a realistic scene behind the object", description: "Describe the background/scene you want to add behind the object. The model will remove the white background and add the specified environment." })
   declare prompt: any;
@@ -7355,6 +7451,7 @@ export class ReveFastRemix extends FalNode {
   static readonly description = `Reve
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text description of the desired image. May include XML img tags like <img>0</img> to refer to specific images by their index in the image_urls list." })
   declare prompt: any;
@@ -7412,6 +7509,7 @@ export class ReveFastEdit extends FalNode {
   static readonly description = `Reve
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text description of how to edit the provided image." })
   declare prompt: any;
@@ -7461,6 +7559,7 @@ export class ImageAppsV2Outpaint extends FalNode {
   static readonly description = `Image Outpaint
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Optional prompt to guide the outpainting. If provided, it will be appended to the base outpaint instruction. Example: 'with a beautiful sunset in the background'" })
   declare prompt: any;
@@ -7540,6 +7639,7 @@ export class FluxVisionUpscaler extends FalNode {
   static readonly description = `Flux Vision Upscaler
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "caption": "str", "seed": "int", "timings": "dict[str, any]" };
 
   @prop({ type: "float", default: 1, description: "CFG/guidance scale (1-4). Controls how closely the model follows the prompt." })
   declare guidance: any;
@@ -7588,7 +7688,7 @@ flux, editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-vision-upscaler", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -7598,6 +7698,7 @@ export class Emu35ImageEditImage extends FalNode {
   static readonly description = `Emu 3.5 Image
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -7662,6 +7763,7 @@ export class ChronoEdit extends FalNode {
   static readonly description = `Chrono Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -7751,6 +7853,7 @@ export class GptImage1MiniEdit extends FalNode {
   static readonly description = `GPT Image 1 Mini
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation" })
   declare prompt: any;
@@ -7818,6 +7921,7 @@ export class ReveRemix extends FalNode {
   static readonly description = `Reve
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text description of the desired image. May include XML img tags like <img>0</img> to refer to specific images by their index in the image_urls list." })
   declare prompt: any;
@@ -7875,6 +7979,7 @@ export class ReveEdit extends FalNode {
   static readonly description = `Reve
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text description of how to edit the provided image." })
   declare prompt: any;
@@ -7924,6 +8029,7 @@ export class Image2Pixel extends FalNode {
   static readonly description = `Image2Pixel
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "palette": "list[str]", "num_colors": "int", "images": "list[ImageFile]", "pixel_scale": "int" };
 
   @prop({ type: "bool", default: false, description: "Apply morphological operations to remove noise." })
   declare cleanup_morph: any;
@@ -8033,6 +8139,7 @@ export class Dreamomni2Edit extends FalNode {
   static readonly description = `DreamOmni2
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -8070,6 +8177,7 @@ export class QwenImageEditPlusLora extends FalNode {
   static readonly description = `Qwen Image Edit Plus Lora
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -8162,6 +8270,7 @@ export class Lucidflux extends FalNode {
   static readonly description = `Lucidflux
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -8210,7 +8319,7 @@ flux, editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/lucidflux", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -8220,6 +8329,7 @@ export class QwenImageEditImageToImage extends FalNode {
   static readonly description = `Qwen Image Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -8309,6 +8419,7 @@ export class Wan25PreviewImageToImage extends FalNode {
   static readonly description = `Wan 2.5 Image to Image
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seeds": "list[int]", "images": "list[ImageFile]", "actual_prompt": "str" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing how to edit the image. Max 2000 characters." })
   declare prompt: any;
@@ -8371,6 +8482,7 @@ export class QwenImageEditPlus extends FalNode {
   static readonly description = `Qwen Image Edit Plus
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -8458,6 +8570,7 @@ export class SeedvrUpscaleImage extends FalNode {
   static readonly description = `SeedVR2
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "enum", default: "factor", values: ["target", "factor"], description: "The mode to use for the upscale. If 'target', the upscale factor will be calculated based on the target resolution. If 'factor', the upscale factor will be used directly." })
   declare upscale_mode: any;
@@ -8511,7 +8624,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/seedvr/upscale/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -8521,6 +8634,7 @@ export class ImageAppsV2ProductHolding extends FalNode {
   static readonly description = `Product Holding
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output" })
   declare aspect_ratio: any;
@@ -8564,6 +8678,7 @@ export class ImageAppsV2ProductPhotography extends FalNode {
   static readonly description = `Product Photography
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output" })
   declare aspect_ratio: any;
@@ -8598,6 +8713,7 @@ export class ImageAppsV2VirtualTryOn extends FalNode {
   static readonly description = `Virtual Try-on
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "bool", default: true })
   declare preserve_pose: any;
@@ -8646,6 +8762,7 @@ export class ImageAppsV2TextureTransform extends FalNode {
   static readonly description = `Texture Transform
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "marble", values: ["cotton", "denim", "wool", "felt", "wood", "leather", "velvet", "stone", "marble", "ceramic", "concrete", "brick", "clay", "foam", "glass", "metal", "silk", "fabric", "crystal", "rubber", "plastic", "lace"] })
   declare target_texture: any;
@@ -8685,6 +8802,7 @@ export class ImageAppsV2Relighting extends FalNode {
   static readonly description = `Relighting
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output" })
   declare aspect_ratio: any;
@@ -8724,6 +8842,7 @@ export class ImageAppsV2StyleTransfer extends FalNode {
   static readonly description = `Style Transfer
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "impressionist", values: ["anime_character", "cartoon_3d", "hand_drawn_animation", "cyberpunk_future", "anime_game_style", "comic_book_animation", "animated_series", "cartoon_animation", "lofi_aesthetic", "cottagecore", "dark_academia", "y2k", "vaporwave", "liminal_space", "weirdcore", "dreamcore", "synthwave", "outrun", "photorealistic", "hyperrealistic", "digital_art", "concept_art", "impressionist", "anime", "pixel_art", "claymation"] })
   declare target_style: any;
@@ -8772,6 +8891,7 @@ export class ImageAppsV2PhotoRestoration extends FalNode {
   static readonly description = `Photo Restoration
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "bool", default: true })
   declare enhance_resolution: any;
@@ -8821,6 +8941,7 @@ export class ImageAppsV2PortraitEnhance extends FalNode {
   static readonly description = `Portrait Enhance
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output (default: 3:4 for portraits)" })
   declare aspect_ratio: any;
@@ -8855,6 +8976,7 @@ export class ImageAppsV2PhotographyEffects extends FalNode {
   static readonly description = `Photography Effects
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "film", values: ["film", "vintage_film", "portrait_photography", "fashion_photography", "street_photography", "sepia_tone", "film_grain", "light_leaks", "vignette_effect", "instant_camera", "golden_hour", "dramatic_lighting", "soft_focus", "bokeh_effect", "high_contrast", "double_exposure"] })
   declare effect_type: any;
@@ -8894,6 +9016,7 @@ export class ImageAppsV2Perspective extends FalNode {
   static readonly description = `Perspective Change
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output" })
   declare aspect_ratio: any;
@@ -8933,6 +9056,7 @@ export class ImageAppsV2ObjectRemoval extends FalNode {
   static readonly description = `Object Removal
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output" })
   declare aspect_ratio: any;
@@ -8972,6 +9096,7 @@ export class ImageAppsV2HeadshotPhoto extends FalNode {
   static readonly description = `Headshot Generator
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output (default: 3:4 for portraits)" })
   declare aspect_ratio: any;
@@ -9011,6 +9136,7 @@ export class ImageAppsV2HairChange extends FalNode {
   static readonly description = `Hair Change
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "long_hair", values: ["short_hair", "medium_long_hair", "long_hair", "curly_hair", "wavy_hair", "high_ponytail", "bun", "bob_cut", "pixie_cut", "braids", "straight_hair", "afro", "dreadlocks", "buzz_cut", "mohawk", "bangs", "side_part", "middle_part"] })
   declare target_hairstyle: any;
@@ -9055,6 +9181,7 @@ export class ImageAppsV2ExpressionChange extends FalNode {
   static readonly description = `Expression Change
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output (default: 3:4 for portraits)" })
   declare aspect_ratio: any;
@@ -9094,6 +9221,7 @@ export class ImageAppsV2CityTeleport extends FalNode {
   static readonly description = `City Teleport
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "Optional city background image URL. When provided, the person will be blended into this custom scene." })
   declare city_image: any;
@@ -9152,6 +9280,7 @@ export class ImageAppsV2AgeModify extends FalNode {
   static readonly description = `Age Modify
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "Portrait image URL for age modification" })
   declare image: any;
@@ -9196,6 +9325,7 @@ export class ImageAppsV2MakeupApplication extends FalNode {
   static readonly description = `Makeup Changer
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Aspect ratio for 4K output (default: 3:4 for portraits)" })
   declare aspect_ratio: any;
@@ -9240,6 +9370,7 @@ export class QwenImageEditInpaint extends FalNode {
   static readonly description = `Qwen Image Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -9334,6 +9465,7 @@ export class FluxSrpoImageToImage extends FalNode {
   static readonly description = `FLUX.1 SRPO [dev]
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -9413,6 +9545,7 @@ export class Flux1SrpoImageToImage extends FalNode {
   static readonly description = `FLUX.1 SRPO [dev]
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -9492,6 +9625,7 @@ export class QwenImageEditLora extends FalNode {
   static readonly description = `Qwen Image Edit Lora
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -9581,6 +9715,7 @@ export class ViduReferenceToImage extends FalNode {
   static readonly description = `Vidu
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -9628,6 +9763,7 @@ export class BytedanceSeedreamV4Edit extends FalNode {
   static readonly description = `Bytedance Seedream v4 Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to edit the image" })
   declare prompt: any;
@@ -9700,6 +9836,7 @@ export class WanV22A14BImageToImage extends FalNode {
   static readonly description = `Wan
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide image generation." })
   declare prompt: any;
@@ -9793,7 +9930,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan/v2.2-a14b/image-to-image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -9803,6 +9940,7 @@ export class Uso extends FalNode {
   static readonly description = `Uso
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt for generation. Can be empty for pure style transfer." })
   declare prompt: any;
@@ -9890,6 +10028,7 @@ export class Gemini25FlashImageEdit extends FalNode {
   static readonly description = `Gemini 2.5 Flash Image
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The prompt for image editing." })
   declare prompt: any;
@@ -9962,6 +10101,7 @@ export class QwenImageImageToImage extends FalNode {
   static readonly description = `Qwen Image
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -10061,6 +10201,7 @@ export class BriaReimagine32 extends FalNode {
   static readonly description = `Reimagine
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Prompt for image generation." })
   declare prompt: any;
@@ -10164,6 +10305,7 @@ export class NanoBananaEdit extends FalNode {
   static readonly description = `Nano Banana
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "description": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt for image editing." })
   declare prompt: any;
@@ -10236,6 +10378,7 @@ export class Nextstep1 extends FalNode {
   static readonly description = `Nextstep 1
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -10264,7 +10407,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/nextstep-1", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -10274,6 +10417,7 @@ export class QwenImageEdit extends FalNode {
   static readonly description = `Qwen Image Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -10358,6 +10502,7 @@ export class IdeogramCharacterEdit extends FalNode {
   static readonly description = `Ideogram V3 Character Edit
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image." })
   declare prompt: any;
@@ -10465,6 +10610,7 @@ export class IdeogramCharacter extends FalNode {
   static readonly description = `Ideogram V3 Character
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image." })
   declare prompt: any;
@@ -10569,6 +10715,7 @@ export class IdeogramCharacterRemix extends FalNode {
   static readonly description = `Ideogram V3 Character Remix
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -10687,6 +10834,7 @@ export class FluxKreaLoraInpainting extends FalNode {
   static readonly description = `FLUX.1 Krea [dev] Inpainting with LoRAs
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -10781,6 +10929,7 @@ export class FluxKreaLoraImageToImage extends FalNode {
   static readonly description = `FLUX.1 Krea [dev] with LoRAs
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -10870,6 +11019,7 @@ export class FluxKreaImageToImage extends FalNode {
   static readonly description = `FLUX.1 Krea [dev]
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -10949,6 +11099,7 @@ export class FluxKreaRedux extends FalNode {
   static readonly description = `FLUX.1 Krea [dev] Redux
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate." })
   declare num_images: any;
@@ -11023,6 +11174,7 @@ export class Flux1KreaImageToImage extends FalNode {
   static readonly description = `FLUX.1 Krea [dev]
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -11102,6 +11254,7 @@ export class Flux1KreaRedux extends FalNode {
   static readonly description = `FLUX.1 Krea [dev] Redux
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate." })
   declare num_images: any;
@@ -11176,6 +11329,7 @@ export class FluxKontextLoraInpaint extends FalNode {
   static readonly description = `Flux Kontext Lora
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt for the image to image task." })
   declare prompt: any;
@@ -11278,6 +11432,7 @@ export class Hunyuan_World extends FalNode {
   static readonly description = `Hunyuan World
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for the panorama generation." })
   declare prompt: any;
@@ -11312,6 +11467,7 @@ export class ImageEditingRetouch extends FalNode {
   static readonly description = `Image Editing
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The scale factor for the LoRA model. Controls the strength of the LoRA effect." })
   declare lora_scale: any;
@@ -11371,6 +11527,7 @@ export class HidreamE11 extends FalNode {
   static readonly description = `Hidream E1 1
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -11455,6 +11612,7 @@ export class Rife extends FalNode {
   static readonly description = `RIFE
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "video": "video" };
 
   @prop({ type: "enum", default: "jpeg", values: ["png", "jpeg"], description: "The format of the output images. Only applicable if output_type is 'images'." })
   declare output_format: any;
@@ -11527,6 +11685,7 @@ export class Film extends FalNode {
   static readonly description = `FILM
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the output video. Only applicable if output_type is 'video'." })
   declare video_write_mode: any;
@@ -11609,6 +11768,7 @@ export class BriaReimagine extends FalNode {
   static readonly description = `Bria
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt you would like to use to generate images." })
   declare prompt: any;
@@ -11673,6 +11833,7 @@ export class ImageEditingRealism extends FalNode {
   static readonly description = `Image Editing
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "float", default: 0.6, description: "The scale factor for the LoRA model. Controls the strength of the LoRA effect." })
   declare lora_scale: any;
@@ -11732,6 +11893,7 @@ export class PostProcessingVignette extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 0.5, description: "Vignette strength" })
   declare vignette_strength: any;
@@ -11766,6 +11928,7 @@ export class PostProcessingSolarize extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 0.5, description: "Solarize threshold" })
   declare solarize_threshold: any;
@@ -11800,6 +11963,7 @@ export class PostProcessingSharpen extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "basic", values: ["basic", "smart", "cas"], description: "Type of sharpening to apply" })
   declare sharpen_mode: any;
@@ -11869,6 +12033,7 @@ export class PostProcessingParabolize extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 1, description: "Parabolize coefficient" })
   declare parabolize_coeff: any;
@@ -11913,6 +12078,7 @@ export class PostProcessingGrain extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "modern", values: ["modern", "analog", "kodak", "fuji", "cinematic", "newspaper"], description: "Style of film grain to apply" })
   declare grain_style: any;
@@ -11957,6 +12123,7 @@ export class PostProcessingDodgeBurn extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "dodge", values: ["dodge", "burn", "dodge_and_burn", "burn_and_dodge", "color_dodge", "color_burn", "linear_dodge", "linear_burn"], description: "Dodge and burn mode" })
   declare dodge_burn_mode: any;
@@ -11996,6 +12163,7 @@ export class PostProcessingDissolve extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 0.5, description: "Dissolve blend factor" })
   declare dissolve_factor: any;
@@ -12039,6 +12207,7 @@ export class PostProcessingDesaturate extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "URL of image to process" })
   declare image: any;
@@ -12078,6 +12247,7 @@ export class PostProcessingColorTint extends FalNode {
   static readonly description = `Post Processing
 editing, transformation, image-to-image, img2img, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 1, description: "Tint strength" })
   declare tint_strength: any;
@@ -12117,6 +12287,7 @@ export class PostProcessingColorCorrection extends FalNode {
   static readonly description = `Adjust color temperature, brightness, contrast, saturation, and gamma values for color correction.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 1, description: "Gamma adjustment" })
   declare gamma: any;
@@ -12171,6 +12342,7 @@ export class PostProcessingChromaticAberration extends FalNode {
   static readonly description = `Create chromatic aberration by shifting red, green, and blue channels horizontally or vertically with customizable shift amounts.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "horizontal", values: ["horizontal", "vertical"], description: "Blue channel shift direction" })
   declare blue_direction: any;
@@ -12230,6 +12402,7 @@ export class PostProcessingBlur extends FalNode {
   static readonly description = `Apply Gaussian or Kuwahara blur effects with adjustable radius and sigma parameters
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "float", default: 1, description: "Sigma for Gaussian blur" })
   declare blur_sigma: any;
@@ -12274,6 +12447,7 @@ export class ImageEditingYoutubeThumbnails extends FalNode {
   static readonly description = `Generate YouTube thumbnails with custom text
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Generate youtube thumbnails", description: "The text to include in the YouTube thumbnail." })
   declare prompt: any;
@@ -12338,6 +12512,7 @@ export class TopazUpscaleImage extends FalNode {
   static readonly description = `Use the powerful and accurate topaz image enhancer to enhance your images.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generative upscaling (max 1024 chars). Applies to Redefine model only." })
   declare prompt: any;
@@ -12452,6 +12627,7 @@ export class ImageEditingBroccoliHaircut extends FalNode {
   static readonly description = `Transform your character's hair into broccoli style while keeping the original characters likeness
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The scale factor for the LoRA model. Controls the strength of the LoRA effect." })
   declare lora_scale: any;
@@ -12511,6 +12687,7 @@ export class ImageEditingWojakStyle extends FalNode {
   static readonly description = `Transform your photos into wojak style while keeping the original characters likeness
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The scale factor for the LoRA model. Controls the strength of the LoRA effect." })
   declare lora_scale: any;
@@ -12570,6 +12747,7 @@ export class ImageEditingPlushieStyle extends FalNode {
   static readonly description = `Transform your photos into cool plushies while keeping the original characters likeness
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The scale factor for the LoRA model. Controls the strength of the LoRA effect." })
   declare lora_scale: any;
@@ -12629,6 +12807,7 @@ export class FluxKontextLora extends FalNode {
   static readonly description = `Fast endpoint for the FLUX.1 Kontext [dev] model with LoRA support, enabling rapid and high-quality image editing using pre-trained LoRA adaptations for specific styles, brand identities, and product-specific outputs.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -12713,6 +12892,7 @@ export class FashnTryonV16 extends FalNode {
   static readonly description = `FASHN v1.6 delivers precise virtual try-on capabilities, accurately rendering garment details like text and patterns at 864x1296 resolution from both on-model and flat-lay photo references.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "URL or base64 of the model image" })
   declare model_image: any;
@@ -12788,6 +12968,7 @@ export class ChainOfZoom extends FalNode {
   static readonly description = `Extreme Super-Resolution via Scale Autoregression and Preference Alignment
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "zoom_center": "list[float]", "scale": "float" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -12842,6 +13023,7 @@ export class Pasd extends FalNode {
   static readonly description = `Pixel-Aware Diffusion Model for Realistic Image Super-Resolution and Personalized Stylization
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]" };
 
   @prop({ type: "float", default: 0.8, description: "ControlNet conditioning scale (0.1-1.0)" })
   declare conditioning_scale: any;
@@ -12901,6 +13083,7 @@ export class ObjectRemovalBbox extends FalNode {
   static readonly description = `Removes box-selected objects and their visual effects, seamlessly reconstructing the scene with contextually appropriate content.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "best_quality", values: ["low_quality", "medium_quality", "high_quality", "best_quality"] })
   declare model: any;
@@ -12945,6 +13128,7 @@ export class ObjectRemovalMask extends FalNode {
   static readonly description = `Removes mask-selected objects and their visual effects, seamlessly reconstructing the scene with contextually appropriate content.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "enum", default: "best_quality", values: ["low_quality", "medium_quality", "high_quality", "best_quality"] })
   declare model: any;
@@ -12993,6 +13177,7 @@ export class ObjectRemoval extends FalNode {
   static readonly description = `Removes objects and their visual effects using natural language, replacing them with contextually appropriate content
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text description of the object to remove." })
   declare prompt: any;
@@ -13037,6 +13222,7 @@ export class RecraftVectorize extends FalNode {
   static readonly description = `Converts a given raster image to SVG format using Recraft model.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be vectorized. Must be in PNG, JPG or WEBP format, less than 5 MB in size, have resolution less than 16 MP and max dimension less than 4096 pixels, min dimension more than 256 pixels." })
   declare image: any;
@@ -13065,6 +13251,7 @@ export class FfmpegApiExtractFrame extends FalNode {
   static readonly description = `ffmpeg endpoint for first, middle and last frame extraction from videos
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "video", default: "", description: "URL of the video file to use as the video track" })
   declare video: any;
@@ -13099,6 +13286,7 @@ export class LumaPhotonFlashModify extends FalNode {
   static readonly description = `Edit images from your prompts using Luma Photon. Photon is the most creative, personalizable, and intelligent visual models for creatives, bringing a step-function change in the cost of high-quality image generation.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "float", default: 0, description: "The strength of the initial image. Higher strength values are corresponding to more influence of the initial image on the output." })
   declare strength: any;
@@ -13143,6 +13331,7 @@ export class LumaPhotonModify extends FalNode {
   static readonly description = `Edit images from your prompts using Luma Photon. Photon is the most creative, personalizable, and intelligent visual models for creatives, bringing a step-function change in the cost of high-quality image generation.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "float", default: 0, description: "The strength of the initial image. Higher strength values are corresponding to more influence of the initial image on the output." })
   declare strength: any;
@@ -13187,6 +13376,7 @@ export class ImageEditingReframe extends FalNode {
   static readonly description = `The reframe endpoint intelligently adjusts an image's aspect ratio while preserving the main subject's position, composition, pose, and perspective
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "enum", default: "16:9", values: ["21:9", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16", "9:21"], description: "The desired aspect ratio for the reframed image." })
   declare aspect_ratio: any;
@@ -13251,6 +13441,7 @@ export class ImageEditingBabyVersion extends FalNode {
   static readonly description = `Transform any person into their baby version, while preserving the original pose and expression with childlike features.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -13315,6 +13506,7 @@ export class LumaPhotonFlashReframe extends FalNode {
   static readonly description = `This advanced tool intelligently expands your visuals, seamlessly blending new content to enhance creativity and adaptability, offering unmatched speed and quality for creators at a fraction of the cost.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "Optional prompt for reframing" })
   declare prompt: any;
@@ -13384,6 +13576,7 @@ export class LumaPhotonReframe extends FalNode {
   static readonly description = `Extend and reframe images with Luma Photon Reframe. This advanced tool intelligently expands your visuals, seamlessly blending new content to enhance creativity and adaptability, offering unmatched personalization and quality for creators at a fraction of the cost.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "Optional prompt for reframing" })
   declare prompt: any;
@@ -13453,6 +13646,7 @@ export class Flux1SchnellRedux extends FalNode {
   static readonly description = `FLUX.1 [schnell] Redux is a high-performance endpoint for the FLUX.1 [schnell] model that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities. 
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate." })
   declare num_images: any;
@@ -13522,6 +13716,7 @@ export class Flux1DevRedux extends FalNode {
   static readonly description = `FLUX.1 [dev] Redux is a high-performance endpoint for the FLUX.1 [dev] model that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "The number of images to generate." })
   declare num_images: any;
@@ -13596,6 +13791,7 @@ export class Flux1DevImageToImage extends FalNode {
   static readonly description = `FLUX.1 [dev] is a 12 billion parameter flow transformer that generates high-quality images from text. It is suitable for personal and commercial use. 
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -13675,6 +13871,7 @@ export class ImageEditingTextRemoval extends FalNode {
   static readonly description = `Remove all text and writing from images while preserving the background and natural appearance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -13739,6 +13936,7 @@ export class ImageEditingPhotoRestoration extends FalNode {
   static readonly description = `Restore and enhance old or damaged photos by removing imperfections, adding color while preserving the original character and details of the image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -13803,6 +14001,7 @@ export class ImageEditingWeatherEffect extends FalNode {
   static readonly description = `Add realistic weather effects like snowfall, rain, or fog to your photos while maintaining the scene's mood.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "heavy snowfall", description: "The weather effect to apply." })
   declare prompt: any;
@@ -13872,6 +14071,7 @@ export class ImageEditingTimeOfDay extends FalNode {
   static readonly description = `Transform your photos to any time of day, from golden hour to midnight, with appropriate lighting and atmosphere.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "golden hour", description: "The time of day to transform the scene to." })
   declare prompt: any;
@@ -13941,6 +14141,7 @@ export class ImageEditingStyleTransfer extends FalNode {
   static readonly description = `Transform your photos into artistic masterpieces inspired by famous styles like Van Gogh's Starry Night or any artistic style you choose.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "Van Gogh's Starry Night", description: "The artistic style to apply." })
   declare prompt: any;
@@ -14010,6 +14211,7 @@ export class ImageEditingSceneComposition extends FalNode {
   static readonly description = `Place your subject in any scene you imagine, from enchanted forests to urban settings, with professional composition and lighting
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "enchanted forest", description: "Describe the scene where you want to place the subject." })
   declare prompt: any;
@@ -14079,6 +14281,7 @@ export class ImageEditingProfessionalPhoto extends FalNode {
   static readonly description = `Turn your casual photos into stunning professional studio portraits with perfect lighting and high-end photography style.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -14143,6 +14346,7 @@ export class ImageEditingObjectRemoval extends FalNode {
   static readonly description = `Remove unwanted objects or people from your photos while seamlessly blending the background.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "background people", description: "Specify which objects to remove from the image." })
   declare prompt: any;
@@ -14212,6 +14416,7 @@ export class ImageEditingHairChange extends FalNode {
   static readonly description = `Experiment with different hairstyles, from bald to any style you can imagine, while maintaining natural lighting and realistic results.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "bald", description: "The desired hair style to apply." })
   declare prompt: any;
@@ -14281,6 +14486,7 @@ export class ImageEditingFaceEnhancement extends FalNode {
   static readonly description = `Enhance facial features with professional retouching while maintaining a natural, realistic look
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -14345,6 +14551,7 @@ export class ImageEditingExpressionChange extends FalNode {
   static readonly description = `Change facial expressions in photos to any emotion you desire, from smiles to serious looks.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "sad", description: "The desired facial expression to apply." })
   declare prompt: any;
@@ -14414,6 +14621,7 @@ export class ImageEditingColorCorrection extends FalNode {
   static readonly description = `Perfect your photos with professional color grading, balanced tones, and vibrant yet natural colors
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -14478,6 +14686,7 @@ export class ImageEditingCartoonify extends FalNode {
   static readonly description = `Transform your photos into vibrant cool cartoons with bold outlines and rich colors.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The aspect ratio of the generated image." })
   declare aspect_ratio: any;
@@ -14542,6 +14751,7 @@ export class ImageEditingBackgroundChange extends FalNode {
   static readonly description = `Replace your photo's background with any scene you desire, from beach sunsets to urban landscapes, with perfect lighting and shadows
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "beach sunset with palm trees", description: "The desired background to apply." })
   declare prompt: any;
@@ -14611,6 +14821,7 @@ export class ImageEditingAgeProgression extends FalNode {
   static readonly description = `See how you or others might look at different ages, from younger to older, while preserving core facial features.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "20 years older", description: "The age change to apply." })
   declare prompt: any;
@@ -14680,6 +14891,7 @@ export class FluxProKontextMaxMulti extends FalNode {
   static readonly description = `Experimental version of FLUX.1 Kontext [max] with multi image handling capabilities
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -14757,6 +14969,7 @@ export class FluxProKontextMulti extends FalNode {
   static readonly description = `Experimental version of FLUX.1 Kontext [pro] with multi image handling capabilities
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -14834,6 +15047,7 @@ export class FluxProKontextMax extends FalNode {
   static readonly description = `FLUX.1 Kontext [max] is a model with greatly improved prompt adherence and typography generation meet premium consistency for editing without compromise on speed.   
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -14908,6 +15122,7 @@ export class FluxKontextDev extends FalNode {
   static readonly description = `Frontier image editing model.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image." })
   declare prompt: any;
@@ -14992,6 +15207,7 @@ export class BagelEdit extends FalNode {
   static readonly description = `Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both images and text.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to edit the image with." })
   declare prompt: any;
@@ -15041,6 +15257,7 @@ export class SmoretalkAiRembgEnhance extends FalNode {
   static readonly description = `Rembg-enhance is optimized for 2D vector images, 3D graphics, and photos by leveraging matting technology.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of the input image" })
   declare image: any;
@@ -15069,6 +15286,7 @@ export class RecraftUpscaleCreative extends FalNode {
   static readonly description = `Enhances a given raster image using the 'creative upscale' tool, increasing image resolution, making the image sharper and cleaner.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -15108,6 +15326,7 @@ export class RecraftUpscaleCrisp extends FalNode {
   static readonly description = `Enhances a given raster image using 'crisp upscale' tool, boosting resolution with a focus on refining small details and faces.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -15147,6 +15366,7 @@ export class MinimaxImage01SubjectReference extends FalNode {
   static readonly description = `Generate images from text and a reference image using MiniMax Image-01 for consistent character appearance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation (max 1500 characters)" })
   declare prompt: any;
@@ -15196,6 +15416,7 @@ export class HidreamI1FullImageToImage extends FalNode {
   static readonly description = `HiDream-I1 full is a new open-source image generative foundation model with 17B parameters that achieves state-of-the-art image generation quality within seconds.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -15285,6 +15506,7 @@ export class IdeogramV3Reframe extends FalNode {
   static readonly description = `Extend existing images with Ideogram V3's reframe feature. Create expanded versions and adaptations while preserving main image and adding new creative directions through prompt guidance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "int", default: 1, description: "Number of images to generate." })
   declare num_images: any;
@@ -15371,6 +15593,7 @@ export class IdeogramV3ReplaceBackground extends FalNode {
   static readonly description = `Replace backgrounds existing images with Ideogram V3's replace background feature. Create variations and adaptations while preserving core elements and adding new creative directions through prompt guidance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Cyber punk city with neon lights and skyscrappers" })
   declare prompt: any;
@@ -15462,6 +15685,7 @@ export class IdeogramV3Remix extends FalNode {
   static readonly description = `Reimagine existing images with Ideogram V3's remix feature. Create variations and adaptations while preserving core elements and adding new creative directions through prompt guidance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -15563,6 +15787,7 @@ export class Step1xEdit extends FalNode {
   static readonly description = `Step1X-Edit transforms your photos with simple instructions into stunning, professional-quality edits—rivaling top proprietary tools.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -15632,6 +15857,7 @@ export class Image2svg extends FalNode {
   static readonly description = `Image2SVG transforms raster images into clean vector graphics, preserving visual quality while enabling scalable, customizable SVG outputs with precise control over detail levels.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "int", default: 45, description: "Splice threshold for joining paths" })
   declare splice_threshold: any;
@@ -15716,6 +15942,7 @@ export class Uno extends FalNode {
   static readonly description = `An AI model that transforms input images into new ones based on text prompts, blending reference visuals with your creative directions.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -15793,6 +16020,7 @@ export class GptImage1EditImage extends FalNode {
   static readonly description = `OpenAI's latest image generation and editing model: gpt-1-image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "enum", default: "high", values: ["low", "high"], description: "Input fidelity for the generated image" })
   declare input_fidelity: any;
@@ -15865,6 +16093,7 @@ export class RundiffusionFalJuggernautFluxLoraInpainting extends FalNode {
   static readonly description = `Juggernaut Base Flux LoRA Inpainting by RunDiffusion is a drop-in replacement for Flux [Dev] inpainting that delivers sharper details, richer colors, and enhanced realism to all your LoRAs and LyCORIS with full compatibility.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -15954,6 +16183,7 @@ export class FashnTryonV15 extends FalNode {
   static readonly description = `FASHN v1.5 delivers precise virtual try-on capabilities, accurately rendering garment details like text and patterns at 576x864 resolution from both on-model and flat-lay photo references.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "URL or base64 of the model image" })
   declare model_image: any;
@@ -16029,6 +16259,7 @@ export class Plushify extends FalNode {
   static readonly description = `Turn any image into a cute plushie!
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "Prompt for the generation. Default is empty which is usually best, but sometimes it can help to add a description of the subject." })
   declare prompt: any;
@@ -16098,6 +16329,7 @@ export class InstantCharacter extends FalNode {
   static readonly description = `InstantCharacter creates high-quality, consistent characters from text prompts, supporting diverse poses, styles, and appearances with strong identity control.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -16182,6 +16414,7 @@ export class Cartoonify extends FalNode {
   static readonly description = `Transform images into 3D cartoon artwork using an AI model that applies cartoon stylization while preserving the original image's composition and details.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "bool", default: false, description: "Whether to use CFG zero" })
   declare use_cfg_zero: any;
@@ -16241,6 +16474,7 @@ export class FinegrainEraserMask extends FalNode {
   static readonly description = `Finegrain Eraser removes any object selected with a mask—along with its shadows, reflections, and lighting artifacts—seamlessly reconstructing the scene with contextually accurate content.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "used_seed": "int" };
 
   @prop({ type: "enum", default: "standard", values: ["express", "standard", "premium"], description: "Erase quality mode" })
   declare mode: any;
@@ -16278,7 +16512,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/finegrain-eraser/mask", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16288,6 +16522,7 @@ export class FinegrainEraserBbox extends FalNode {
   static readonly description = `Finegrain Eraser removes any object selected with a bounding box—along with its shadows, reflections, and lighting artifacts—seamlessly reconstructing the scene with contextually accurate content.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "used_seed": "int" };
 
   @prop({ type: "enum", default: "standard", values: ["express", "standard", "premium"], description: "Erase quality mode" })
   declare mode: any;
@@ -16321,7 +16556,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/finegrain-eraser/bbox", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16331,6 +16566,7 @@ export class FinegrainEraser extends FalNode {
   static readonly description = `Finegrain Eraser removes objects—along with their shadows, reflections, and lighting artifacts—using only natural language, seamlessly filling the scene with contextually accurate content.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "used_seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text description of what to erase" })
   declare prompt: any;
@@ -16364,7 +16600,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/finegrain-eraser", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16374,6 +16610,7 @@ export class StarVector extends FalNode {
   static readonly description = `AI vectorization model that transforms raster images into scalable SVG graphics, preserving visual details while enabling infinite scaling and easy editing capabilities.  
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "int", default: -1, description: "seed to be used for generation" })
   declare seed: any;
@@ -16402,7 +16639,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/star-vector", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16412,6 +16649,7 @@ export class Ghiblify extends FalNode {
   static readonly description = `Reimagine and transform your ordinary photos into enchanting Studio Ghibli style artwork
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
@@ -16451,6 +16689,7 @@ export class Thera extends FalNode {
   static readonly description = `Fix low resolution images with fast speed and quality of thera.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "float", default: 2, description: "The upscaling factor for the image." })
   declare upscale_factor: any;
@@ -16484,7 +16723,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/thera", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16494,6 +16733,7 @@ export class MixDehazeNet extends FalNode {
   static readonly description = `An advanced dehaze model to remove atmospheric haze, restoring clarity and detail in images through intelligent neural network processing.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "enum", default: "indoor", values: ["indoor", "outdoor"], description: "Model to be used for dehazing" })
   declare model: any;
@@ -16533,6 +16773,7 @@ export class GeminiFlashEdit extends FalNode {
   static readonly description = `Gemini Flash Edit is a model that can edit single image using a text prompt and a reference image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "image": "image" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation or editing" })
   declare prompt: any;
@@ -16556,7 +16797,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/gemini-flash-edit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16566,6 +16807,7 @@ export class GeminiFlashEditMulti extends FalNode {
   static readonly description = `Gemini Flash Edit Multi Image is a model that can edit multiple images using a text prompt and a reference image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "image": "image" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation or editing" })
   declare prompt: any;
@@ -16592,7 +16834,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/gemini-flash-edit/multi", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16602,6 +16844,7 @@ export class InvisibleWatermark extends FalNode {
   static readonly description = `Invisible Watermark is a model that can add an invisible watermark to an image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "extracted_watermark": "str", "length": "int" };
 
   @prop({ type: "bool", default: false, description: "Whether to decode a watermark from the image instead of encoding" })
   declare decode: any;
@@ -16635,7 +16878,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/invisible-watermark", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -16645,6 +16888,7 @@ export class RundiffusionFalJuggernautFluxBaseImageToImage extends FalNode {
   static readonly description = `Juggernaut Base Flux by RunDiffusion is a drop-in replacement for Flux [Dev] that delivers sharper details, richer colors, and enhanced realism, while instantly boosting LoRAs and LyCORIS with full compatibility.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -16719,6 +16963,7 @@ export class RundiffusionFalJuggernautFluxProImageToImage extends FalNode {
   static readonly description = `Juggernaut Pro Flux by RunDiffusion is the flagship Juggernaut model rivaling some of the most advanced image models available, often surpassing them in realism. It combines Juggernaut Base with RunDiffusion Photo and features enhancements like reduced background blurriness.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -16793,6 +17038,7 @@ export class DocresDewarp extends FalNode {
   static readonly description = `Enhance wraped, folded documents with the superior quality of docres for sharper, clearer results.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: -1, description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        " })
   declare seed: any;
@@ -16827,6 +17073,7 @@ export class Docres extends FalNode {
   static readonly description = `Enhance low-resolution, blur, shadowed documents with the superior quality of docres for sharper, clearer results.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "enum", default: "", values: ["deshadowing", "appearance", "deblurring", "binarization"], description: "Task to perform" })
   declare task: any;
@@ -16866,6 +17113,7 @@ export class Swin2sr extends FalNode {
   static readonly description = `Enhance low-resolution images with the superior quality of Swin2SR for sharper, clearer results.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of image to be used for image enhancement" })
   declare image: any;
@@ -16905,6 +17153,7 @@ export class IdeogramV2aRemix extends FalNode {
   static readonly description = `Create variations of existing images with Ideogram V2A Remix while maintaining creative control through prompt guidance.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -16969,6 +17218,7 @@ export class IdeogramV2aTurboRemix extends FalNode {
   static readonly description = `Rapidly create image variations with Ideogram V2A Turbo Remix. Fast and efficient reimagining of existing images while maintaining creative control through prompt guidance.
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -17033,6 +17283,7 @@ export class EvfSam extends FalNode {
   static readonly description = `EVF-SAM2 combines natural language understanding with advanced segmentation capabilities, allowing you to precisely mask image regions using intuitive positive and negative text prompts.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate segmentation from." })
   declare prompt: any;
@@ -17107,6 +17358,7 @@ export class Ddcolor extends FalNode {
   static readonly description = `Bring colors into old or new black and white photos with DDColor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: -1, description: "seed to be used for generation" })
   declare seed: any;
@@ -17141,6 +17393,7 @@ export class Sam2AutoSegment extends FalNode {
   static readonly description = `SAM 2 is a model for segmenting images automatically. It can return individual masks or a single mask for the entire image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "combined_mask": "str", "individual_masks": "list[Image]" };
 
   @prop({ type: "int", default: 32, description: "Number of points to sample along each side of the image." })
   declare points_per_side: any;
@@ -17189,7 +17442,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam2/auto-segment", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -17199,6 +17452,7 @@ export class DrctSuperResolution extends FalNode {
   static readonly description = `Upscale your images with DRCT-Super-Resolution.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: 4, description: "Upscaling factor." })
   declare upscale_factor: any;
@@ -17233,6 +17487,7 @@ export class NafnetDeblur extends FalNode {
   static readonly description = `Use NAFNet to fix issues like blurriness and noise in your images. This model specializes in image restoration and can help enhance the overall quality of your photography.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: -1, description: "seed to be used for generation" })
   declare seed: any;
@@ -17267,6 +17522,7 @@ export class NafnetDenoise extends FalNode {
   static readonly description = `Use NAFNet to fix issues like blurriness and noise in your images. This model specializes in image restoration and can help enhance the overall quality of your photography.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: -1, description: "seed to be used for generation" })
   declare seed: any;
@@ -17301,6 +17557,7 @@ export class PostProcessing extends FalNode {
   static readonly description = `Post Processing is an endpoint that can enhance images using a variety of techniques including grain, blur, sharpen, and more.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "int", default: 0, description: "Blue channel shift amount" })
   declare blue_shift: any;
@@ -17599,6 +17856,7 @@ export class Flowedit extends FalNode {
   static readonly description = `The model provides you high quality image editing capabilities.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "int", default: 1.5, description: "Guidance scale for the source." })
   declare src_guidance_scale: any;
@@ -17662,7 +17920,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flowedit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -17672,6 +17930,7 @@ export class BenV2Image extends FalNode {
   static readonly description = `A fast and high quality model for image background removal.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Random seed for reproducible generation." })
   declare seed: any;
@@ -17695,7 +17954,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ben/v2/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -17705,6 +17964,7 @@ export class FluxControlLoraCannyImageToImage extends FalNode {
   static readonly description = `FLUX Control LoRA Canny is a high-performance endpoint that uses a control image using a Canny edge map to transfer structure to the generated image and another initial image to guide color.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The strength of the control lora." })
   declare control_lora_strength: any;
@@ -17803,6 +18063,7 @@ export class FluxControlLoraDepthImageToImage extends FalNode {
   static readonly description = `FLUX Control LoRA Depth is a high-performance endpoint that uses a control image using a depth map to transfer structure to the generated image and another initial image to guide color.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -17901,6 +18162,7 @@ export class IdeogramUpscale extends FalNode {
   static readonly description = `Ideogram Upscale enhances the resolution of the reference image by up to 2X and might enhance the reference image too. Optionally refine outputs with a prompt for guided improvements.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to upscale the image with" })
   declare prompt: any;
@@ -17960,6 +18222,7 @@ export class KlingV15KolorsVirtualTryOn extends FalNode {
   static readonly description = `Kling Kolors Virtual TryOn v1.5 is a high quality image based Try-On endpoint which can be used for commercial try on.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "Url to the garment image." })
   declare garment_image: any;
@@ -18003,6 +18266,7 @@ export class FluxLoraCanny extends FalNode {
   static readonly description = `Utilize Flux.1 [dev] Controlnet to generate high-quality images with precise control over composition, style, and structure through advanced edge detection and guidance mechanisms.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -18082,6 +18346,7 @@ export class FluxProV1FillFinetuned extends FalNode {
   static readonly description = `FLUX.1 [pro] Fill Fine-tuned is a high-performance endpoint for the FLUX.1 [pro] model with a fine-tuned LoRA that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image." })
   declare prompt: any;
@@ -18165,6 +18430,7 @@ export class MoondreamNextDetection extends FalNode {
   static readonly description = `MoonDreamNext Detection is a multimodal vision-language model for gaze detection, bbox detection, point detection, and more.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "text_output": "str" };
 
   @prop({ type: "str", default: "", description: "Text description of what to detect" })
   declare detection_prompt: any;
@@ -18208,7 +18474,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream-next/detection", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -18218,6 +18484,7 @@ export class BriaEraserV2 extends FalNode {
   static readonly description = `Bria Eraser enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use. Access the model's source code and weights: https://bria.ai/contact-us
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -18271,6 +18538,7 @@ export class BriaExpand extends FalNode {
   static readonly description = `Bria Expand expands images beyond their borders in high quality. Trained exclusively on licensed data for safe and risk-free commercial use. Access the model's source code and weights: https://bria.ai/contact-us
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text on which you wish to base the image expansion. This parameter is optional. Bria currently supports prompts in English only, excluding special characters." })
   declare prompt: any;
@@ -18329,7 +18597,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/bria/expand", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -18339,6 +18607,7 @@ export class BriaGenfill extends FalNode {
   static readonly description = `Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use. Access the model's source code and weights: https://bria.ai/contact-us
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt you would like to use to generate images." })
   declare prompt: any;
@@ -18402,6 +18671,7 @@ export class BriaProductShot extends FalNode {
   static readonly description = `Place any product in any scenery with just a prompt or reference image while maintaining high integrity of the product. Trained exclusively on licensed data for safe and risk-free commercial use and optimized for eCommerce.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "The URL of the reference image to be used for generating the new scene or background for the product shot. Use \"\" to leave empty.Either ref_image_url or scene_description has to be provided but not both. If both ref_image_url and ref_image_file are provided, ref_image_url will be used. Accepted formats are jpeg, jpg, png, webp." })
   declare ref_image: any;
@@ -18490,6 +18760,7 @@ export class BriaBackgroundRemove extends FalNode {
   static readonly description = `Bria RMBG 2.0 enables seamless removal of backgrounds from images, ideal for professional editing tasks. Trained exclusively on licensed data for safe and risk-free commercial use. Model weights for commercial use are available here: https://share-eu1.hsforms.com/2GLpEVQqJTI2Lj7AMYwgfIwf4e04
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -18524,6 +18795,7 @@ export class BriaBackgroundReplaceV2 extends FalNode {
   static readonly description = `Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use 
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "image", default: "", description: "The URL of the reference image to be used for generating the new background. Use \"\" to leave empty. Either ref_image_url or bg_prompt has to be provided but not both. If both ref_image_url and ref_image_file are provided, ref_image_url will be used. Accepted formats are jpeg, jpg, png, webp." })
   declare ref_image: any;
@@ -18597,6 +18869,7 @@ export class FluxLoraFill extends FalNode {
   static readonly description = `FLUX.1 [dev] Fill is a high-performance endpoint for the FLUX.1 [pro] model that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -18701,6 +18974,7 @@ export class CatVton extends FalNode {
   static readonly description = `Image based high quality Virtual Try-On
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "Url to the garment image." })
   declare garment_image: any;
@@ -18764,6 +19038,7 @@ export class LeffaPoseTransfer extends FalNode {
   static readonly description = `Leffa Pose Transfer is an endpoint for changing pose of an image with a reference image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int", "has_nsfw_concepts": "bool" };
 
   @prop({ type: "image", default: "", description: "Url for the human image." })
   declare pose_image: any;
@@ -18821,7 +19096,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/leffa/pose-transfer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -18831,6 +19106,7 @@ export class LeffaVirtualTryon extends FalNode {
   static readonly description = `Leffa Virtual TryOn is a high quality image based Try-On endpoint which can be used for commercial try on.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int", "has_nsfw_concepts": "bool" };
 
   @prop({ type: "image", default: "", description: "Url to the garment image." })
   declare garment_image: any;
@@ -18893,7 +19169,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/leffa/virtual-tryon", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -18903,6 +19179,7 @@ export class IdeogramV2TurboEdit extends FalNode {
   static readonly description = `Edit images faster with Ideogram V2 Turbo. Quick modifications and adjustments while preserving the high-quality standards and realistic outputs of Ideogram.
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to fill the masked part of the image." })
   declare prompt: any;
@@ -18966,6 +19243,7 @@ export class IdeogramV2TurboRemix extends FalNode {
   static readonly description = `Rapidly create image variations with Ideogram V2 Turbo Remix. Fast and efficient reimagining of existing images while maintaining creative control through prompt guidance.
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to remix the image with" })
   declare prompt: any;
@@ -19030,6 +19308,7 @@ export class FluxProV11Redux extends FalNode {
   static readonly description = `FLUX1.1 [pro] Redux is a high-performance endpoint for the FLUX1.1 [pro] model that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -19109,6 +19388,7 @@ export class FluxLoraDepth extends FalNode {
   static readonly description = `Generate high-quality images from depth maps using Flux.1 [dev] depth estimation model. The model produces accurate depth representations for scene understanding and 3D visualization.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -19193,6 +19473,7 @@ export class FluxProV11UltraRedux extends FalNode {
   static readonly description = `FLUX1.1 [pro] ultra Redux is a high-performance endpoint for the FLUX1.1 [pro] model that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -19272,6 +19553,7 @@ export class IclightV2 extends FalNode {
   static readonly description = `An endpoint for re-lighting photos and changing their backgrounds per a given description
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "enum", default: "None", values: ["None", "Left", "Right", "Top", "Bottom"], description: "\n            Provide lighting conditions for the model\n        " })
   declare initial_latent: any;
@@ -19395,6 +19677,7 @@ export class FluxDifferentialDiffusion extends FalNode {
   static readonly description = `FLUX.1 Differential Diffusion is a rapid endpoint that enables swift, granular control over image transformations through change maps, delivering fast and precise region-specific modifications while maintaining FLUX.1 [dev]'s high-quality output.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -19473,6 +19756,7 @@ export class FluxPulid extends FalNode {
   static readonly description = `An endpoint for personalized image generation using Flux as per given description.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -19562,6 +19846,7 @@ export class BirefnetV2 extends FalNode {
   static readonly description = `bilateral reference framework (BiRefNet) for high-resolution dichotomous image segmentation (DIS)
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "mask_image": "str" };
 
   @prop({ type: "enum", default: "1024x1024", values: ["1024x1024", "2048x2048", "2304x2304"], description: "The resolution to operate on. The higher the resolution, the more accurate the output will be for high res input images. The '2304x2304' option is only available for the 'General Use (Dynamic)' model." })
   declare operating_resolution: any;
@@ -19610,7 +19895,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/birefnet/v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -19620,6 +19905,7 @@ export class LivePortraitImage extends FalNode {
   static readonly description = `Transfer expression from a video to a portrait.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "float", default: 0, description: "Amount to smile" })
   declare smile: any;
@@ -19759,6 +20045,7 @@ export class FluxGeneralRfInversion extends FalNode {
   static readonly description = `A general purpose endpoint for the FLUX.1 [dev] model, implementing the RF-Inversion pipeline. This can be used to edit a reference image based on a prompt.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 0.25, description: "\n            The proportion of steps to apply NAG. After the specified proportion\n            of steps has been iterated, the remaining steps will use original\n            attention processors in FLUX.\n        " })
   declare nag_end: any;
@@ -19967,6 +20254,7 @@ export class ImagePreprocessorsHed extends FalNode {
   static readonly description = `Holistically-Nested Edge Detection (HED) preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "Whether to use the safe version of the HED detector" })
   declare safe: any;
@@ -20006,6 +20294,7 @@ export class ImagePreprocessorsDepthAnythingV2 extends FalNode {
   static readonly description = `Depth Anything v2 preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of the image to process" })
   declare image: any;
@@ -20034,6 +20323,7 @@ export class ImagePreprocessorsScribble extends FalNode {
   static readonly description = `Scribble preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "enum", default: "HED", values: ["HED", "PiDi"], description: "The model to use for the Scribble detector" })
   declare model: any;
@@ -20073,6 +20363,7 @@ export class ImagePreprocessorsMlsd extends FalNode {
   static readonly description = `M-LSD line segment detection preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "float", default: 0.1, description: "Distance threshold for the MLSD detector" })
   declare distance_threshold: any;
@@ -20112,6 +20403,7 @@ export class ImagePreprocessorsSam extends FalNode {
   static readonly description = `Segment Anything Model (SAM) preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of the image to process" })
   declare image: any;
@@ -20140,6 +20432,7 @@ export class ImagePreprocessorsMidas extends FalNode {
   static readonly description = `MiDaS depth estimation preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "normal_map": "str", "depth_map": "str" };
 
   @prop({ type: "float", default: 6.283185307179586, description: "A parameter for the MiDaS detector" })
   declare a: any;
@@ -20168,7 +20461,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/image-preprocessors/midas", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -20178,6 +20471,7 @@ export class ImagePreprocessorsTeed extends FalNode {
   static readonly description = `TEED (Temporal Edge Enhancement Detection) preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of the image to process" })
   declare image: any;
@@ -20206,6 +20500,7 @@ export class ImagePreprocessorsLineart extends FalNode {
   static readonly description = `Line art preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "Whether to use the coarse model" })
   declare coarse: any;
@@ -20240,6 +20535,7 @@ export class ImagePreprocessorsZoe extends FalNode {
   static readonly description = `ZoeDepth preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "URL of the image to process" })
   declare image: any;
@@ -20268,6 +20564,7 @@ export class ImagePreprocessorsPidi extends FalNode {
   static readonly description = `PIDI (Pidinet) preprocessor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "Whether to use the safe version of the Pidi detector" })
   declare safe: any;
@@ -20312,6 +20609,7 @@ export class Sam2Image extends FalNode {
   static readonly description = `SAM 2 is a model for segmenting images and videos in real-time.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -20366,6 +20664,7 @@ export class FluxGeneralInpainting extends FalNode {
   static readonly description = `FLUX General Inpainting is a versatile endpoint that enables precise image editing and completion, supporting multiple AI extensions including LoRA, ControlNet, and IP-Adapter for enhanced control over inpainting results and sophisticated image modifications.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 0.25, description: "\n            The proportion of steps to apply NAG. After the specified proportion\n            of steps has been iterated, the remaining steps will use original\n            attention processors in FLUX.\n        " })
   declare nag_end: any;
@@ -20574,6 +20873,7 @@ export class FluxGeneralImageToImage extends FalNode {
   static readonly description = `FLUX General Image-to-Image is a versatile endpoint that transforms existing images with support for LoRA, ControlNet, and IP-Adapter extensions, enabling precise control over style transfer, modifications, and artistic variations through multiple guidance methods.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 0.25, description: "\n            The proportion of steps to apply NAG. After the specified proportion\n            of steps has been iterated, the remaining steps will use original\n            attention processors in FLUX.\n        " })
   declare nag_end: any;
@@ -20777,6 +21077,7 @@ export class FluxGeneralDifferentialDiffusion extends FalNode {
   static readonly description = `A specialized FLUX endpoint combining differential diffusion control with LoRA, ControlNet, and IP-Adapter support, enabling precise, region-specific image transformations through customizable change maps.
 flux, editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 0.25, description: "\n            The proportion of steps to apply NAG. After the specified proportion\n            of steps has been iterated, the remaining steps will use original\n            attention processors in FLUX.\n        " })
   declare nag_end: any;
@@ -20989,6 +21290,7 @@ export class FluxLoraImageToImage extends FalNode {
   static readonly description = `FLUX LoRA Image-to-Image is a high-performance endpoint that transforms existing images using FLUX models, leveraging LoRA adaptations to enable rapid and precise image style transfer, modifications, and artistic variations.
 flux, editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -21078,6 +21380,7 @@ export class SdxlControlnetUnionInpainting extends FalNode {
   static readonly description = `An efficent SDXL multi-controlnet inpainting model.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -21281,6 +21584,7 @@ export class SdxlControlnetUnionImageToImage extends FalNode {
   static readonly description = `An efficent SDXL multi-controlnet image-to-image model.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -21489,6 +21793,7 @@ export class Era3d extends FalNode {
   static readonly description = `A powerful image to novel multiview model with normals.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int", "normal_images": "list[Image]" };
 
   @prop({ type: "image", default: "", description: "URL of the image to remove background from" })
   declare image: any;
@@ -21543,6 +21848,7 @@ export class Florence2LargeDenseRegionCaption extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -21560,7 +21866,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/dense-region-caption", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21570,6 +21876,7 @@ export class Florence2LargeReferringExpressionSegmentation extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "str", default: "", description: "Text input for the task" })
   declare text_input: any;
@@ -21593,7 +21900,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/referring-expression-segmentation", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21603,6 +21910,7 @@ export class Florence2LargeObjectDetection extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -21620,7 +21928,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/object-detection", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21630,6 +21938,7 @@ export class Florence2LargeOpenVocabularyDetection extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "str", default: "", description: "Text input for the task" })
   declare text_input: any;
@@ -21653,7 +21962,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/open-vocabulary-detection", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21663,6 +21972,7 @@ export class Florence2LargeCaptionToPhraseGrounding extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "str", default: "", description: "Text input for the task" })
   declare text_input: any;
@@ -21686,7 +21996,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/caption-to-phrase-grounding", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21696,6 +22006,7 @@ export class Florence2LargeRegionProposal extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -21713,7 +22024,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/region-proposal", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21723,6 +22034,7 @@ export class Florence2LargeOcrWithRegion extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -21740,7 +22052,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/ocr-with-region", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21750,6 +22062,7 @@ export class Florence2LargeRegionToSegmentation extends FalNode {
   static readonly description = `Florence-2 is an advanced vision foundation model that uses a prompt-based approach to handle a wide range of vision and vision-language tasks
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "results": "str" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -21773,7 +22086,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/region-to-segmentation", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -21783,6 +22096,7 @@ export class StableDiffusionV3MediumImageToImage extends FalNode {
   static readonly description = `Stable Diffusion 3 Medium (Image to Image) is a Multimodal Diffusion Transformer (MMDiT) model that improves image quality, typography, prompt understanding, and efficiency.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "num_images": "int", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -21867,6 +22181,7 @@ export class Dwpose extends FalNode {
   static readonly description = `Predict poses from images.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "enum", default: "body-pose", values: ["full-pose", "body-pose", "face-pose", "hand-pose", "face-hand-mask", "face-mask", "hand-mask"], description: "Mode of drawing the pose on the image. Options are: 'full-pose', 'body-pose', 'face-pose', 'hand-pose', 'face-hand-mask', 'face-mask', 'hand-mask'." })
   declare draw_mode: any;
@@ -21901,6 +22216,7 @@ export class Sd15DepthControlnet extends FalNode {
   static readonly description = `SD 1.5 ControlNet
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -21995,6 +22311,7 @@ export class OmniZero extends FalNode {
   static readonly description = `Any pose, any style, any identity
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Prompt to guide the image generation." })
   declare prompt: any;
@@ -22106,6 +22423,7 @@ export class IpAdapterFaceId extends FalNode {
   static readonly description = `High quality zero-shot personalization
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22193,7 +22511,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ip-adapter-face-id", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -22203,6 +22521,7 @@ export class LoraInpaint extends FalNode {
   static readonly description = `Run Any Stable Diffusion model with customizable LoRA weights.
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "debug_latents": "str", "seed": "int", "has_nsfw_concepts": "list[bool]", "debug_per_pass_latents": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22438,6 +22757,7 @@ export class LoraImageToImage extends FalNode {
   static readonly description = `Run Any Stable Diffusion model with customizable LoRA weights.
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "debug_latents": "str", "seed": "int", "has_nsfw_concepts": "list[bool]", "debug_per_pass_latents": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22664,6 +22984,7 @@ export class FastSdxlImageToImage extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22783,6 +23104,7 @@ export class FastSdxlInpainting extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22897,6 +23219,7 @@ export class FaceToSticker extends FalNode {
   static readonly description = `Create stickers from faces.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "sticker_image": "str", "sticker_image_background_removed": "str", "seed": "int", "has_nsfw_concepts": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -22986,6 +23309,7 @@ export class Photomaker extends FalNode {
   static readonly description = `Customizing Realistic Human Photos via Stacked ID Embedding
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23074,6 +23398,7 @@ export class CreativeUpscaler extends FalNode {
   static readonly description = `Create creative upscaled images.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "float", default: 0.25, description: "How much to preserve the shape of the original image" })
   declare shape_preservation: any;
@@ -23182,7 +23507,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/creative-upscaler", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -23192,6 +23517,7 @@ export class PlaygroundV25ImageToImage extends FalNode {
   static readonly description = `State-of-the-art open-source model in aesthetic quality
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23306,6 +23632,7 @@ export class FastLightningSdxlImageToImage extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23410,6 +23737,7 @@ export class FastLightningSdxlInpainting extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23509,6 +23837,7 @@ export class PlaygroundV25Inpainting extends FalNode {
   static readonly description = `State-of-the-art open-source model in aesthetic quality
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23618,6 +23947,7 @@ export class FastLcmDiffusionInpainting extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23732,6 +24062,7 @@ export class FastLcmDiffusionImageToImage extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -23851,6 +24182,7 @@ export class Retoucher extends FalNode {
   static readonly description = `Automatically retouches faces to smooth skin and remove blemishes.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Seed for reproducibility. Different seeds will make slightly different results." })
   declare seed: any;
@@ -23874,7 +24206,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/retoucher", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -23884,6 +24216,7 @@ export class ImageutilsDepth extends FalNode {
   static readonly description = `Create depth maps using Midas depth estimation.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "float", default: 0.1, description: "bg_th" })
   declare bg_th: any;
@@ -23928,6 +24261,7 @@ export class ImageutilsMarigoldDepth extends FalNode {
   static readonly description = `Create depth maps using Marigold depth estimation.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "int", default: 10, description: "Number of predictions to average over. Defaults to '10'. The higher the number, the more accurate the result, but the slower the inference." })
   declare ensemble_size: any;
@@ -23972,6 +24306,7 @@ export class Pulid extends FalNode {
   static readonly description = `Tuning-free ID customization.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Prompt to generate the face from" })
   declare prompt: any;
@@ -24047,6 +24382,7 @@ export class FastSdxlControlnetCannyImageToImage extends FalNode {
   static readonly description = `Generate Images with ControlNet.
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -24150,6 +24486,7 @@ export class FastSdxlControlnetCannyInpainting extends FalNode {
   static readonly description = `Generate Images with ControlNet.
 editing, transformation, image-to-image, img2img, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -24258,6 +24595,7 @@ export class LcmSd15I2i extends FalNode {
   static readonly description = `Produce high-quality images with minimal inference steps. Optimized for 512x512 input image size.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "request_id": "str", "seed": "int", "nsfw_content_detected": "list[bool]", "timings": "dict[str, any]", "num_inference_steps": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -24342,6 +24680,7 @@ export class Inpaint extends FalNode {
   static readonly description = `Inpaint images with SD and SDXL
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -24395,7 +24734,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/inpaint", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -24405,6 +24744,7 @@ export class Esrgan extends FalNode {
   static readonly description = `Upscale images by a given factor.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "enum", default: "RealESRGAN_x4plus", values: ["RealESRGAN_x4plus", "RealESRGAN_x2plus", "RealESRGAN_x4plus_anime_6B", "RealESRGAN_x4_v3", "RealESRGAN_x4_wdn_v3", "RealESRGAN_x4_anime_v3"], description: "Model to use for upscaling" })
   declare model: any;
@@ -24459,6 +24799,7 @@ export class ImageutilsRembg extends FalNode {
   static readonly description = `Remove the background from an image.
 editing, transformation, image-to-image, img2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;

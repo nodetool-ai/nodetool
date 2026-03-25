@@ -18,6 +18,7 @@ export class Trellis2 extends FalNode {
   static readonly description = `Trellis 2
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "float", default: 1, description: "How closely the texture follows the input image colors. Higher values produce more vivid but potentially oversaturated textures." })
   declare tex_slat_guidance_strength: any;
@@ -131,7 +132,8 @@ export class Trellis2 extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/trellis-2", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -141,6 +143,7 @@ export class Hunyuan3DV3SketchTo3D extends FalNode {
   static readonly description = `Hunyuan3d V3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "bool", default: false, description: "Whether to enable PBR material generation." })
   declare enable_pbr: any;
@@ -174,7 +177,8 @@ export class Hunyuan3DV3SketchTo3D extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d-v3/sketch-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -184,6 +188,7 @@ export class Hunyuan3DV3ImageTo3D extends FalNode {
   static readonly description = `Hunyuan3d V3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "bool", default: false, description: "Whether to enable PBR material generation. Does not take effect when generate_type is Geometry." })
   declare enable_pbr: any;
@@ -249,7 +254,8 @@ export class Hunyuan3DV3ImageTo3D extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d-v3/image-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -259,6 +265,7 @@ export class Sam33DBody extends FalNode {
   static readonly description = `Sam 3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of the image containing humans" })
   declare image: any;
@@ -296,7 +303,8 @@ export class Sam33DBody extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/3d-body", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -306,6 +314,7 @@ export class Sam33DObjects extends FalNode {
   static readonly description = `Sam 3
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "str", default: "", description: "Optional URL to external pointmap/depth data (NPY or NPZ format) for improved 3D reconstruction depth estimation" })
   declare pointmap_url: any;
@@ -364,7 +373,8 @@ export class Sam33DObjects extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/3d-objects", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -374,6 +384,7 @@ export class Omnipart extends FalNode {
   static readonly description = `Omnipart
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -412,7 +423,8 @@ export class Omnipart extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/omnipart", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -422,6 +434,7 @@ export class BytedanceSeed3DImageTo3D extends FalNode {
   static readonly description = `Bytedance
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "model": "str", "usage_tokens": "int" };
 
   @prop({ type: "image", default: "", description: "URL of the image for the 3D asset generation." })
   declare image: any;
@@ -439,7 +452,7 @@ export class BytedanceSeed3DImageTo3D extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/bytedance/seed3d/image-to-3d", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -449,6 +462,7 @@ export class MeshyV5MultiImageTo3D extends FalNode {
   static readonly description = `Meshy 5 Multi
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color. Requires should_texture to be true." })
   declare enable_pbr: any;
@@ -549,7 +563,8 @@ export class MeshyV5MultiImageTo3D extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/meshy/v5/multi-image-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -559,6 +574,7 @@ export class MeshyV6PreviewImageTo3D extends FalNode {
   static readonly description = `Meshy 6 Preview
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color" })
   declare enable_pbr: any;
@@ -656,7 +672,8 @@ export class MeshyV6PreviewImageTo3D extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/meshy/v6-preview/image-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -666,6 +683,7 @@ export class Hyper3DRodinV2 extends FalNode {
   static readonly description = `Hyper3d
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "str", default: "", description: "A textual prompt to guide model generation. Optional for Image-to-3D mode - if empty, AI will generate a prompt based on your images." })
   declare prompt: any;
@@ -737,7 +755,8 @@ export class Hyper3DRodinV2 extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hyper3d/rodin/v2", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -747,6 +766,7 @@ export class Pshuman extends FalNode {
   static readonly description = `Pshuman
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "model_obj": "str", "preview_image": "str" };
 
   @prop({ type: "float", default: 4, description: "Guidance scale for the diffusion process. Controls how much the output adheres to the generated views." })
   declare guidance_scale: any;
@@ -775,7 +795,7 @@ export class Pshuman extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/pshuman", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -785,6 +805,7 @@ export class Hunyuan_WorldImageToWorld extends FalNode {
   static readonly description = `Hunyuan World
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "world_file": "str" };
 
   @prop({ type: "str", default: "", description: "Classes to use for the world generation." })
   declare classes: any;
@@ -823,7 +844,7 @@ export class Hunyuan_WorldImageToWorld extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan_world/image-to-world", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -833,6 +854,7 @@ export class Tripo3dTripoV25MultiviewTo3d extends FalNode {
   static readonly description = `State of the art Multiview to 3D Object generation. Generate 3D models from multiple images!
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "int", default: 0, description: "Limits the number of faces on the output model. If this option is not set, the face limit will be adaptively determined." })
   declare face_limit: any;
@@ -928,7 +950,8 @@ export class Tripo3dTripoV25MultiviewTo3d extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "tripo3d/tripo/v2.5/multiview-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -938,6 +961,7 @@ export class Hunyuan3dV21 extends FalNode {
   static readonly description = `Hunyuan3D-2.1 is a scalable 3D asset creation system that advances state-of-the-art 3D generation through Physically-Based Rendering (PBR).
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -981,7 +1005,8 @@ export class Hunyuan3dV21 extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d-v21", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -991,6 +1016,7 @@ export class TrellisMulti extends FalNode {
   static readonly description = `Generate 3D models from multiple images using Trellis. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "enum", default: "stochastic", values: ["stochastic", "multidiffusion"], description: "Algorithm for multi-image generation" })
   declare multiimage_algo: any;
@@ -1052,7 +1078,8 @@ export class TrellisMulti extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/trellis/multi", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1062,6 +1089,7 @@ export class Tripo3dTripoV25ImageTo3d extends FalNode {
   static readonly description = `State of the art Image to 3D Object generation. Generate 3D model from a single image!
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "int", default: 0, description: "Limits the number of faces on the output model. If this option is not set, the face limit will be adaptively determined." })
   declare face_limit: any;
@@ -1130,7 +1158,8 @@ export class Tripo3dTripoV25ImageTo3d extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "tripo3d/tripo/v2.5/image-to-3d", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1140,6 +1169,7 @@ export class Hunyuan3dV2MultiView extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare front_image: any;
@@ -1201,7 +1231,8 @@ export class Hunyuan3dV2MultiView extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2/multi-view", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1211,6 +1242,7 @@ export class Hunyuan3dV2Mini extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1254,7 +1286,8 @@ export class Hunyuan3dV2Mini extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2/mini", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1264,6 +1297,7 @@ export class Hunyuan3dV2Turbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1307,7 +1341,8 @@ export class Hunyuan3dV2Turbo extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2/turbo", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1317,6 +1352,7 @@ export class Hunyuan3dV2MiniTurbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1360,7 +1396,8 @@ export class Hunyuan3dV2MiniTurbo extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2/mini/turbo", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1370,6 +1407,7 @@ export class Hunyuan3dV2 extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare input_image: any;
@@ -1413,7 +1451,8 @@ export class Hunyuan3dV2 extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1423,6 +1462,7 @@ export class Hunyuan3dV2MultiViewTurbo extends FalNode {
   static readonly description = `Generate 3D models from your images using Hunyuan 3D. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of image to use while generating the 3D model." })
   declare front_image: any;
@@ -1484,7 +1524,8 @@ export class Hunyuan3dV2MultiViewTurbo extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan3d/v2/multi-view/turbo", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1494,6 +1535,7 @@ export class Hyper3dRodin extends FalNode {
   static readonly description = `Rodin by Hyper3D generates realistic and production ready 3D models from text or images.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "str", default: "", description: "A textual prompt to guide model generation. Required for Text-to-3D mode. Optional for Image-to-3D mode." })
   declare prompt: any;
@@ -1570,7 +1612,8 @@ export class Hyper3dRodin extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hyper3d/rodin", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1580,6 +1623,7 @@ export class Trellis extends FalNode {
   static readonly description = `Generate 3D models from your images using Trellis. A native 3D generative model enabling versatile and high-quality 3D asset creation.
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "float", default: 7.5, description: "Guidance strength for sparse structure generation" })
   declare ss_guidance_strength: any;
@@ -1633,7 +1677,8 @@ export class Trellis extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/trellis", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -1643,6 +1688,7 @@ export class Triposr extends FalNode {
   static readonly description = `State of the art Image to 3D Object generation
 3d, generation, image-to-3d, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "int", default: 256, description: "Resolution of the marching cubes. Above 512 is not recommended." })
   declare mc_resolution: any;
@@ -1681,7 +1727,8 @@ export class Triposr extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/triposr", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 

@@ -18,6 +18,7 @@ export class FluxDev extends FalNode {
   static readonly description = `FLUX.1 [dev] is a powerful open-weight text-to-image model with 12 billion parameters. Optimized for prompt following and visual quality.
 image, generation, flux, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -88,6 +89,7 @@ export class FluxSchnell extends FalNode {
   static readonly description = `FLUX.1 [schnell] is a fast distilled version of FLUX.1 optimized for speed. Can generate high-quality images in 1-4 steps.
 image, generation, flux, fast, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -158,6 +160,7 @@ export class FluxV1Pro extends FalNode {
   static readonly description = `FLUX.1 Pro is a state-of-the-art image generation model with superior prompt following and image quality.
 image, generation, flux, pro, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -218,6 +221,7 @@ export class FluxV1ProUltra extends FalNode {
   static readonly description = `FLUX.1 Pro Ultra delivers the highest quality image generation with enhanced detail and realism.
 image, generation, flux, pro, ultra, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -297,6 +301,7 @@ export class FluxLora extends FalNode {
   static readonly description = `FLUX with LoRA support enables fine-tuned image generation using custom LoRA models for specific styles or subjects.
 image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -372,6 +377,7 @@ export class IdeogramV2 extends FalNode {
   static readonly description = `Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use, featuring exceptional typography handling and realistic outputs.
 image, generation, ai, typography, realistic, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -427,6 +433,7 @@ export class IdeogramV2Turbo extends FalNode {
   static readonly description = `Ideogram V2 Turbo offers faster image generation with the same exceptional quality and typography handling as V2.
 image, generation, ai, typography, realistic, fast, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -482,6 +489,7 @@ export class RecraftV3 extends FalNode {
   static readonly description = `Recraft V3 is a powerful image generation model with exceptional control over style and colors, ideal for brand consistency and design work.
 image, generation, design, branding, style, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -532,6 +540,7 @@ export class StableDiffusionV35Large extends FalNode {
   static readonly description = `Stable Diffusion 3.5 Large is a powerful open-weight model with excellent prompt adherence and diverse output capabilities.
 image, generation, stable-diffusion, open-source, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -629,6 +638,7 @@ export class FluxProNew extends FalNode {
   static readonly description = `FLUX.1 Pro New is the latest version of the professional FLUX model with enhanced capabilities and improved output quality.
 image, generation, flux, professional, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -699,6 +709,7 @@ export class Flux2Turbo extends FalNode {
   static readonly description = `FLUX.2 Turbo is a blazing-fast image generation model optimized for speed without sacrificing quality, ideal for real-time applications.
 image, generation, flux, fast, turbo, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -764,6 +775,7 @@ export class Flux2Flash extends FalNode {
   static readonly description = `FLUX.2 Flash is an ultra-fast variant of FLUX.2 designed for instant image generation with minimal latency.
 image, generation, flux, ultra-fast, flash, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -829,6 +841,7 @@ export class IdeogramV3 extends FalNode {
   static readonly description = `Ideogram V3 is the latest generation with enhanced text rendering, superior image quality, and expanded creative controls.
 image, generation, ideogram, typography, text-rendering, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -921,6 +934,7 @@ export class OmniGenV1 extends FalNode {
   static readonly description = `OmniGen V1 is a versatile unified model for multi-modal image generation and editing with text, supporting complex compositional tasks.
 image, generation, multi-modal, editing, unified, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate or edit an image" })
   declare prompt: any;
@@ -1003,6 +1017,7 @@ export class Sana extends FalNode {
   static readonly description = `Sana is an efficient high-resolution image generation model that balances quality and speed for practical applications.
 image, generation, efficient, high-resolution, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
   declare prompt: any;
@@ -1078,6 +1093,7 @@ export class HunyuanImageV3InstructTextToImage extends FalNode {
   static readonly description = `Hunyuan Image v3 Instruct generates high-quality images from text with advanced instruction understanding.
 image, generation, hunyuan, v3, instruct, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -1138,6 +1154,7 @@ export class QwenImageMaxTextToImage extends FalNode {
   static readonly description = `Qwen Image Max generates premium quality images from text with superior detail and accuracy.
 image, generation, qwen, max, premium, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image. Supports Chinese and English. Max 800 characters." })
   declare prompt: any;
@@ -1203,6 +1220,7 @@ export class QwenImage2512 extends FalNode {
   static readonly description = `Qwen Image 2512 generates high-resolution images from text with excellent quality and detail.
 image, generation, qwen, 2512, high-resolution, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1278,6 +1296,7 @@ export class QwenImage2512Lora extends FalNode {
   static readonly description = `Qwen Image 2512 with LoRA support enables custom-trained models for specialized image generation.
 image, generation, qwen, 2512, lora, custom`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1358,6 +1377,7 @@ export class ZImageBase extends FalNode {
   static readonly description = `Z-Image Base generates quality images from text with efficient processing and good results.
 image, generation, z-image, base, efficient, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1433,6 +1453,7 @@ export class ZImageBaseLora extends FalNode {
   static readonly description = `Z-Image Base with LoRA enables efficient custom-trained models for specialized generation tasks.
 image, generation, z-image, base, lora, custom`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1513,6 +1534,7 @@ export class ZImageTurbo extends FalNode {
   static readonly description = `Z-Image Turbo generates images from text with maximum speed for rapid iteration and prototyping.
 image, generation, z-image, turbo, fast, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1583,6 +1605,7 @@ export class ZImageTurboLora extends FalNode {
   static readonly description = `Z-Image Turbo with LoRA combines maximum speed with custom models for fast specialized generation.
 image, generation, z-image, turbo, lora, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1658,6 +1681,7 @@ export class Flux2Klein4B extends FalNode {
   static readonly description = `FLUX-2 Klein 4B generates images with the efficient 4-billion parameter model for balanced quality and speed.
 image, generation, flux-2, klein, 4b, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1718,6 +1742,7 @@ export class Flux2Klein4BBase extends FalNode {
   static readonly description = `FLUX-2 Klein 4B Base provides foundation model generation with 4-billion parameters.
 image, generation, flux-2, klein, 4b, base`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1793,6 +1818,7 @@ export class Flux2Klein4BBaseLora extends FalNode {
   static readonly description = `FLUX-2 Klein 4B Base with LoRA enables custom-trained 4B models for specialized generation.
 image, generation, flux-2, klein, 4b, base, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1873,6 +1899,7 @@ export class Flux2Klein9B extends FalNode {
   static readonly description = `FLUX-2 Klein 9B generates high-quality images with the powerful 9-billion parameter model.
 image, generation, flux-2, klein, 9b, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -1933,6 +1960,7 @@ export class Flux2Klein9BBase extends FalNode {
   static readonly description = `FLUX-2 Klein 9B Base provides foundation generation with the full 9-billion parameter model.
 image, generation, flux-2, klein, 9b, base`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2008,6 +2036,7 @@ export class Flux2Klein9BBaseLora extends FalNode {
   static readonly description = `FLUX-2 Klein 9B Base with LoRA combines powerful generation with custom-trained models.
 image, generation, flux-2, klein, 9b, base, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[ImageFile]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2088,6 +2117,7 @@ export class Flux2Max extends FalNode {
   static readonly description = `FLUX-2 Max generates maximum quality images with the most advanced FLUX-2 model for premium results.
 image, generation, flux-2, max, premium, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2143,6 +2173,7 @@ export class GlmImage extends FalNode {
   static readonly description = `GLM Image generates images from text with advanced AI understanding and quality output.
 image, generation, glm, ai, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation." })
   declare prompt: any;
@@ -2213,6 +2244,7 @@ export class GptImage15 extends FalNode {
   static readonly description = `GPT Image 1.5 generates images from text with GPT-powered language understanding and visual creation.
 image, generation, gpt, language-ai, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation" })
   declare prompt: any;
@@ -2268,6 +2300,7 @@ export class WanV26TextToImage extends FalNode {
   static readonly description = `Wan v2.6 generates high-quality images from text with advanced capabilities and consistent results.
 image, generation, wan, v2.6, quality, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int", "generated_text": "str" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image. Supports Chinese and English. Max 2000 characters." })
   declare prompt: any;
@@ -2327,6 +2360,7 @@ export class LongcatImage extends FalNode {
   static readonly description = `Longcat Image generates creative and unique images from text with distinctive AI characteristics.
 image, generation, longcat, creative, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2397,6 +2431,7 @@ export class BytedanceSeedreamV45TextToImage extends FalNode {
   static readonly description = `ByteDance SeeDream v4.5 generates advanced images from text with cutting-edge AI technology.
 image, generation, bytedance, seedream, v4.5, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the image" })
   declare prompt: any;
@@ -2452,6 +2487,7 @@ export class ViduQ2TextToImage extends FalNode {
   static readonly description = `Vidu Q2 generates quality images from text with optimized performance and consistent results.
 image, generation, vidu, q2, optimized, text-to-image`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -2487,6 +2523,7 @@ export class ImagineartImagineart15ProPreviewTextToImage extends FalNode {
   static readonly description = `ImagineArt 1.5 Pro Preview
 generation, text-to-image, txt2img, ai-art, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image" })
   declare prompt: any;
@@ -2522,6 +2559,7 @@ export class BriaFiboLiteGenerate extends FalNode {
   static readonly description = `Fibo Lite
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[dict[str, any]]", "image": "image", "structured_prompt": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate." })
   declare prompt: any;
@@ -2586,6 +2624,7 @@ export class OvisImage extends FalNode {
   static readonly description = `Ovis Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -2661,6 +2700,7 @@ export class Flux2LoraGallerySepiaVintage extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a sepia vintage photography style image." })
   declare prompt: any;
@@ -2736,6 +2776,7 @@ export class Flux2LoraGallerySatelliteViewStyle extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a satellite/aerial view style image." })
   declare prompt: any;
@@ -2811,6 +2852,7 @@ export class Flux2LoraGalleryRealism extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a realistic image with natural lighting and authentic details." })
   declare prompt: any;
@@ -2886,6 +2928,7 @@ export class Flux2LoraGalleryHdrStyle extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an HDR style image. The trigger word 'Hyp3rRe4list1c' will be automatically prepended." })
   declare prompt: any;
@@ -2961,6 +3004,7 @@ export class Flux2LoraGalleryDigitalComicArt extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a digital comic art style image. Use 'd1g1t4l' trigger word for best results." })
   declare prompt: any;
@@ -3036,6 +3080,7 @@ export class Flux2LoraGalleryBallpointPenSketch extends FalNode {
   static readonly description = `Flux 2 Lora Gallery
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a ballpoint pen sketch style image. Use 'b4llp01nt' trigger word for best results." })
   declare prompt: any;
@@ -3111,6 +3156,7 @@ export class Flux2Flex extends FalNode {
   static readonly description = `Flux 2 Flex
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3176,6 +3222,7 @@ export class Gemini3ProImagePreview extends FalNode {
   static readonly description = `Gemini 3 Pro Image Preview
 generation, text-to-image, txt2img, ai-art, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -3246,6 +3293,7 @@ export class NanoBananaPro extends FalNode {
   static readonly description = `Nano Banana Pro
 generation, text-to-image, txt2img, ai-art, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "description": "str" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -3316,6 +3364,7 @@ export class ImagineartImagineart15PreviewTextToImage extends FalNode {
   static readonly description = `Imagineart 1.5 Preview
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired image" })
   declare prompt: any;
@@ -3351,6 +3400,7 @@ export class Emu35ImageTextToImage extends FalNode {
   static readonly description = `Emu 3.5 Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to create the image." })
   declare prompt: any;
@@ -3406,6 +3456,7 @@ export class BriaFiboGenerate extends FalNode {
   static readonly description = `Fibo
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[dict[str, any]]", "image": "image", "structured_prompt": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "Prompt for image generation." })
   declare prompt: any;
@@ -3475,6 +3526,7 @@ export class Piflow extends FalNode {
   static readonly description = `Piflow
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3535,6 +3587,7 @@ export class GptImage1Mini extends FalNode {
   static readonly description = `GPT Image 1 Mini
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation" })
   declare prompt: any;
@@ -3590,6 +3643,7 @@ export class ReveTextToImage extends FalNode {
   static readonly description = `Reve
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "The text description of the desired image." })
   declare prompt: any;
@@ -3635,6 +3689,7 @@ export class HunyuanImageV3TextToImage extends FalNode {
   static readonly description = `Hunyuan Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt for image-to-image." })
   declare prompt: any;
@@ -3710,6 +3765,7 @@ export class Wan25PreviewTextToImage extends FalNode {
   static readonly description = `Wan 2.5 Text to Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "seeds": "list[int]", "images": "list[ImageFile]", "actual_prompt": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt for image generation. Supports Chinese and English, max 2000 characters." })
   declare prompt: any;
@@ -3765,6 +3821,7 @@ export class FluxSrpo extends FalNode {
   static readonly description = `FLUX.1 SRPO [dev]
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3835,6 +3892,7 @@ export class Flux1Srpo extends FalNode {
   static readonly description = `FLUX.1 SRPO [dev]
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -3905,6 +3963,7 @@ export class HunyuanImageV21TextToImage extends FalNode {
   static readonly description = `Hunyuan Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -3985,6 +4044,7 @@ export class BytedanceSeedreamV4TextToImage extends FalNode {
   static readonly description = `Bytedance Seedream v4
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the image" })
   declare prompt: any;
@@ -4045,6 +4105,7 @@ export class Gemini25FlashImage extends FalNode {
   static readonly description = `Gemini 2.5 Flash Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "description": "str", "images": "list[ImageFile]" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -4105,6 +4166,7 @@ export class NanoBanana extends FalNode {
   static readonly description = `Nano Banana
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "description": "str" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -4165,6 +4227,7 @@ export class BytedanceDreaminaV31TextToImage extends FalNode {
   static readonly description = `Bytedance
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
@@ -4215,6 +4278,7 @@ export class WanV22A14BTextToImageLora extends FalNode {
   static readonly description = `Wan v2.2 A14B Text-to-Image A14B with LoRAs
 generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide image generation." })
   declare prompt: any;
@@ -4299,7 +4363,7 @@ generation, text-to-image, txt2img, ai-art, lora`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan/v2.2-a14b/text-to-image/lora", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -4309,6 +4373,7 @@ export class WanV225BTextToImage extends FalNode {
   static readonly description = `Wan
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "float", default: 2, description: "Shift value for the image. Must be between 1.0 and 10.0." })
   declare shift: any;
@@ -4373,7 +4438,7 @@ generation, text-to-image, txt2img, ai-art`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan/v2.2-5b/text-to-image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -4383,6 +4448,7 @@ export class WanV22A14BTextToImage extends FalNode {
   static readonly description = `Wan
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide image generation." })
   declare prompt: any;
@@ -4452,7 +4518,7 @@ generation, text-to-image, txt2img, ai-art`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan/v2.2-a14b/text-to-image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -4462,6 +4528,7 @@ export class QwenImage extends FalNode {
   static readonly description = `Qwen Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -4547,6 +4614,7 @@ export class FluxKreaLoraStream extends FalNode {
   static readonly description = `Flux Krea Lora
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4622,6 +4690,7 @@ export class FluxKreaLora extends FalNode {
   static readonly description = `FLUX.1 Krea [dev] with LoRAs
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4697,6 +4766,7 @@ export class FluxKrea extends FalNode {
   static readonly description = `FLUX.1 Krea [dev]
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4767,6 +4837,7 @@ export class Flux1Krea extends FalNode {
   static readonly description = `FLUX.1 Krea [dev]
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -4837,6 +4908,7 @@ export class SkyRaccoon extends FalNode {
   static readonly description = `Sky Raccoon
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4891,7 +4963,7 @@ generation, text-to-image, txt2img, ai-art`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sky-raccoon", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -4901,6 +4973,7 @@ export class FluxKontextLoraTextToImage extends FalNode {
   static readonly description = `Flux Kontext Lora
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the image with" })
   declare prompt: any;
@@ -4976,6 +5049,7 @@ export class OmnigenV2 extends FalNode {
   static readonly description = `Omnigen V2
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate or edit an image. Use specific language like 'Add the bird from image 1 to the desk in image 2' for better results." })
   declare prompt: any;
@@ -5078,6 +5152,7 @@ export class BytedanceSeedreamV3TextToImage extends FalNode {
   static readonly description = `Bytedance
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the image" })
   declare prompt: any;
@@ -5133,6 +5208,7 @@ export class Flux1Schnell extends FalNode {
   static readonly description = `Fastest inference in the world for the 12 billion parameter FLUX.1 [schnell] text-to-image model. 
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5203,6 +5279,7 @@ export class Flux1Dev extends FalNode {
   static readonly description = `FLUX.1 [dev] is a 12 billion parameter flow transformer that generates high-quality images from text. It is suitable for personal and commercial use. 
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5273,6 +5350,7 @@ export class FluxProKontextMaxTextToImage extends FalNode {
   static readonly description = `FLUX.1 Kontext [max] text-to-image is a new premium model brings maximum performance across all aspects – greatly improved prompt adherence.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5338,6 +5416,7 @@ export class FluxProKontextTextToImage extends FalNode {
   static readonly description = `The FLUX.1 Kontext [pro] text-to-image delivers state-of-the-art image generation results with unprecedented prompt following, photorealistic rendering, and flawless typography.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5403,6 +5482,7 @@ export class Bagel extends FalNode {
   static readonly description = `Bagel is a 7B parameter from Bytedance-Seed multimodal model that can generate both text and images.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5443,6 +5523,7 @@ export class Imagen4PreviewUltra extends FalNode {
   static readonly description = `Google's highest quality image generation model
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]", "description": "str" };
 
   @prop({ type: "str", default: "", description: "The text prompt to generate an image from." })
   declare prompt: any;
@@ -5503,6 +5584,7 @@ export class Dreamo extends FalNode {
   static readonly description = `DreamO is an image customization framework designed to support a wide range of tasks while facilitating seamless integration of multiple conditions.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5601,6 +5683,7 @@ export class FluxLoraStream extends FalNode {
   static readonly description = `Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations for personalization, specific styles, brand identities, and product-specific outputs.
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5676,6 +5759,7 @@ export class MinimaxImage01 extends FalNode {
   static readonly description = `Generate high quality images from text prompts using MiniMax Image-01. Longer text prompts will result in better quality images.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation (max 1500 characters)" })
   declare prompt: any;
@@ -5716,6 +5800,7 @@ export class PonyV7 extends FalNode {
   static readonly description = `Pony V7 is a finetuned text to image for superior aesthetics and prompt following.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate images from" })
   declare prompt: any;
@@ -5786,6 +5871,7 @@ export class FLiteStandard extends FalNode {
   static readonly description = `F Lite is a 10B parameter diffusion model created by Fal and Freepik, trained exclusively on copyright-safe and SFW content.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5851,6 +5937,7 @@ export class FLiteTexture extends FalNode {
   static readonly description = `F Lite is a 10B parameter diffusion model created by Fal and Freepik, trained exclusively on copyright-safe and SFW content. This is a high texture density variant of the model.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -5916,6 +6003,7 @@ export class GptImage1TextToImage extends FalNode {
   static readonly description = `OpenAI's latest image generation and editing model: gpt-1-image.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[ImageFile]" };
 
   @prop({ type: "enum", default: "auto", values: ["auto", "transparent", "opaque"], description: "Background for the generated image" })
   declare background: any;
@@ -5971,6 +6059,7 @@ export class SanaV1516b extends FalNode {
   static readonly description = `Sana v1.5 1.6B is a lightweight text-to-image model that delivers 4K image generation with impressive efficiency.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6046,6 +6135,7 @@ export class SanaV1548b extends FalNode {
   static readonly description = `Sana v1.5 4.8B is a powerful text-to-image model that generates ultra-high quality 4K images with remarkable detail.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6121,6 +6211,7 @@ export class SanaSprint extends FalNode {
   static readonly description = `Sana Sprint is a text-to-image model capable of generating 4K images with exceptional speed.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6196,6 +6287,7 @@ export class RundiffusionFalJuggernautFluxLora extends FalNode {
   static readonly description = `Juggernaut Base Flux LoRA by RunDiffusion is a drop-in replacement for Flux [Dev] that delivers sharper details, richer colors, and enhanced realism to all your LoRAs and LyCORIS with full compatibility.
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6266,6 +6358,7 @@ export class RundiffusionFalJuggernautFluxBase extends FalNode {
   static readonly description = `Juggernaut Base Flux by RunDiffusion is a drop-in replacement for Flux [Dev] that delivers sharper details, richer colors, and enhanced realism, while instantly boosting LoRAs and LyCORIS with full compatibility.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6331,6 +6424,7 @@ export class RundiffusionFalJuggernautFluxLightning extends FalNode {
   static readonly description = `Juggernaut Lightning Flux by RunDiffusion provides blazing-fast, high-quality images rendered at five times the speed of Flux. Perfect for mood boards and mass ideation, this model excels in both realism and prompt adherence.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6391,6 +6485,7 @@ export class RundiffusionFalJuggernautFluxPro extends FalNode {
   static readonly description = `Juggernaut Pro Flux by RunDiffusion is the flagship Juggernaut model rivaling some of the most advanced image models available, often surpassing them in realism. It combines Juggernaut Base with RunDiffusion Photo and features enhancements like reduced background blurriness.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6456,6 +6551,7 @@ export class RundiffusionFalRundiffusionPhotoFlux extends FalNode {
   static readonly description = `RunDiffusion Photo Flux provides insane realism. With this enhancer, textures and skin details burst to life, turning your favorite prompts into vivid, lifelike creations. Recommended to keep it at 0.65 to 0.80 weight. Supports resolutions up to 1536x1536.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6531,6 +6627,7 @@ export class Cogview4 extends FalNode {
   static readonly description = `Generate high quality images from text prompts using CogView4. Longer text prompts will result in better quality images.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6601,6 +6698,7 @@ export class IdeogramV2a extends FalNode {
   static readonly description = `Generate high-quality images, posters, and logos with Ideogram V2A. Features exceptional typography handling and realistic outputs optimized for commercial and creative use.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -6651,6 +6749,7 @@ export class IdeogramV2aTurbo extends FalNode {
   static readonly description = `Accelerated image generation with Ideogram V2A Turbo. Create high-quality visuals, posters, and logos with enhanced speed while maintaining Ideogram's signature quality.
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -6701,6 +6800,7 @@ export class FluxControlLoraCanny extends FalNode {
   static readonly description = `FLUX Control LoRA Canny is a high-performance endpoint that uses a control image to transfer structure to the generated image, using a Canny edge map.
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "float", default: 1, description: "The strength of the control lora." })
   declare control_lora_strength: any;
@@ -6799,6 +6899,7 @@ export class FluxControlLoraDepth extends FalNode {
   static readonly description = `FLUX Control LoRA Depth is a high-performance endpoint that uses a control image to transfer structure to the generated image, using a depth map.
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -6897,6 +6998,7 @@ export class Imagen3Fast extends FalNode {
   static readonly description = `Imagen3 Fast is a high-quality text-to-image model that generates realistic images from text prompts.
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing what you want to see" })
   declare prompt: any;
@@ -6942,6 +7044,7 @@ export class Imagen3 extends FalNode {
   static readonly description = `Imagen3 is a high-quality text-to-image model that generates realistic images from text prompts.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing what you want to see" })
   declare prompt: any;
@@ -6987,6 +7090,7 @@ export class LuminaImageV2 extends FalNode {
   static readonly description = `Lumina-Image-2.0 is a 2 billion parameter flow-based diffusion transforer which features improved performance in image quality, typography, complex prompt understanding, and resource-efficiency.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7072,6 +7176,7 @@ export class Janus extends FalNode {
   static readonly description = `DeepSeek Janus-Pro is a novel text-to-image model that unifies multimodal understanding and generation through an autoregressive framework
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7127,6 +7232,7 @@ export class FluxProV11UltraFinetuned extends FalNode {
   static readonly description = `FLUX1.1 [pro] ultra fine-tuned is the newest version of FLUX1.1 [pro] with a fine-tuned LoRA, maintaining professional-grade image quality while delivering up to 2K resolution with improved photo realism.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7216,6 +7322,7 @@ export class Switti extends FalNode {
   static readonly description = `Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7306,6 +7413,7 @@ export class Switti512 extends FalNode {
   static readonly description = `Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7396,6 +7504,7 @@ export class BriaTextToImageBase extends FalNode {
   static readonly description = `Bria's Text-to-Image model, trained exclusively on licensed data for safe and risk-free commercial use. Available also as source code and weights. For access to weights: https://bria.ai/contact-us
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt you would like to use to generate images." })
   declare prompt: any;
@@ -7471,6 +7580,7 @@ export class BriaTextToImageFast extends FalNode {
   static readonly description = `Bria's Text-to-Image model with perfect harmony of latency and quality. Trained exclusively on licensed data for safe and risk-free commercial use. Available also as source code and weights. For access to weights: https://bria.ai/contact-us
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt you would like to use to generate images." })
   declare prompt: any;
@@ -7546,6 +7656,7 @@ export class BriaTextToImageHd extends FalNode {
   static readonly description = `Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and risk-free commercial use. Available also as source code and weights. For access to weights: https://bria.ai/contact-us
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt you would like to use to generate images." })
   declare prompt: any;
@@ -7621,6 +7732,7 @@ export class Recraft20b extends FalNode {
   static readonly description = `Recraft 20b is a new and affordable text-to-image model.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -7671,6 +7783,7 @@ export class LumaPhotonFlash extends FalNode {
   static readonly description = `Generate images from your prompts using Luma Photon Flash. Photon Flash is the most creative, personalizable, and intelligent visual models for creatives, bringing a step-function change in the cost of high-quality image generation.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[File]" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -7701,6 +7814,7 @@ export class AuraFlow extends FalNode {
   static readonly description = `AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves state-of-the-art results on GenEval. The model is currently in beta.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate images from" })
   declare prompt: any;
@@ -7756,6 +7870,7 @@ export class StableDiffusionV35Medium extends FalNode {
   static readonly description = `Stable Diffusion 3.5 Medium is a Multimodal Diffusion Transformer (MMDiT) text-to-image model that features improved performance in image quality, typography, complex prompt understanding, and resource-efficiency.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7826,6 +7941,7 @@ export class FluxLoraInpainting extends FalNode {
   static readonly description = `Super fast endpoint for the FLUX.1 [dev] inpainting model with LoRA support, enabling rapid and high-quality image inpaingting using pre-trained LoRA adaptations for personalization, specific styles, brand identities, and product-specific outputs.
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7920,6 +8036,7 @@ export class StableDiffusionV3Medium extends FalNode {
   static readonly description = `Stable Diffusion 3 Medium (Text to Image) is a Multimodal Diffusion Transformer (MMDiT) model that improves image quality, typography, prompt understanding, and efficiency.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "num_images": "int", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -7990,6 +8107,7 @@ export class FooocusUpscaleOrVary extends FalNode {
   static readonly description = `Default parameters with automated optimizations and quality improvements.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8168,6 +8286,7 @@ export class PixartSigma extends FalNode {
   static readonly description = `Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8243,6 +8362,7 @@ export class FluxSubject extends FalNode {
   static readonly description = `Super fast endpoint for the FLUX.1 [schnell] model with subject input capabilities, enabling rapid and high-quality image generation for personalization, specific styles, brand identities, and product-specific outputs.
 flux, generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
@@ -8317,6 +8437,7 @@ export class SdxlControlnetUnion extends FalNode {
   static readonly description = `An efficent SDXL multi-controlnet text-to-image model.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8501,6 +8622,7 @@ export class Kolors extends FalNode {
   static readonly description = `Photorealistic Text-to-Image
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "\n            The prompt to use for generating the image. Be as descriptive as possible\n            for best results.\n        " })
   declare prompt: any;
@@ -8576,6 +8698,7 @@ export class StableCascade extends FalNode {
   static readonly description = `Stable Cascade: Image generation on a smaller & cheaper latent space.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8651,6 +8774,7 @@ export class FastSdxl extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8746,6 +8870,7 @@ export class StableCascadeSoteDiffusion extends FalNode {
   static readonly description = `Anime finetune of Würstchen V3.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8821,6 +8946,7 @@ export class LightningModels extends FalNode {
   static readonly description = `Collection of SDXL Lightning models.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -8921,6 +9047,7 @@ export class PlaygroundV25 extends FalNode {
   static readonly description = `State-of-the-art open-source model in aesthetic quality
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9011,6 +9138,7 @@ export class RealisticVision extends FalNode {
   static readonly description = `Generate realistic images.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9116,6 +9244,7 @@ export class Dreamshaper extends FalNode {
   static readonly description = `Dreamshaper model.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9211,6 +9340,7 @@ export class StableDiffusionV15 extends FalNode {
   static readonly description = `Stable Diffusion v1.5
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9306,6 +9436,7 @@ export class LayerDiffusion extends FalNode {
   static readonly description = `SDXL with an alpha channel.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9345,7 +9476,7 @@ generation, text-to-image, txt2img, ai-art`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/layer-diffusion", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -9355,6 +9486,7 @@ export class FastLightningSdxl extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "enum", default: "jpeg", values: ["jpeg", "png"], description: "The format of the generated image." })
   declare format: any;
@@ -9435,6 +9567,7 @@ export class FastFooocusSdxlImageToImage extends FalNode {
   static readonly description = `Fooocus extreme speed mode as a standalone app.
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9539,6 +9672,7 @@ export class FastSdxlControlnetCanny extends FalNode {
   static readonly description = `Generate Images with ControlNet.
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9633,6 +9767,7 @@ export class FastLcmDiffusion extends FalNode {
   static readonly description = `Run SDXL at the speed of light
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9728,6 +9863,7 @@ export class FastFooocusSdxl extends FalNode {
   static readonly description = `Fooocus extreme speed mode as a standalone app.
 generation, text-to-image, txt2img, ai-art, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9818,6 +9954,7 @@ export class IllusionDiffusion extends FalNode {
   static readonly description = `Create illusions conditioned on image.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -9886,7 +10023,7 @@ generation, text-to-image, txt2img, ai-art`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/illusion-diffusion", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -9896,6 +10033,7 @@ export class FooocusImagePrompt extends FalNode {
   static readonly description = `Default parameters with automated optimizations and quality improvements.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -10112,6 +10250,7 @@ export class FooocusInpaint extends FalNode {
   static readonly description = `Default parameters with automated optimizations and quality improvements.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -10344,6 +10483,7 @@ export class Lcm extends FalNode {
   static readonly description = `Produce high-quality images with minimal inference steps.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "request_id": "str", "timings": "dict[str, any]", "seed": "int", "num_inference_steps": "int", "nsfw_content_detected": "list[bool]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -10466,6 +10606,7 @@ export class DiffusionEdge extends FalNode {
   static readonly description = `Diffusion based high quality edge detection
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image" };
 
   @prop({ type: "image", default: "", description: "The text prompt you would like to convert to speech." })
   declare image: any;
@@ -10494,6 +10635,7 @@ export class KlingImageO3TextToImage extends FalNode {
   static readonly description = `Kling Image O3 generates high-quality images from text prompts with refined detail.
 image, generation, kling, o3, text-to-image, txt2img`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]" };
 
   @prop({ type: "str", default: "", description: "Text prompt for image generation. Max 2500 characters." })
   declare prompt: any;
@@ -10559,6 +10701,7 @@ export class Fooocus extends FalNode {
   static readonly description = `Default parameters with automated optimizations and quality improvements.
 generation, text-to-image, txt2img, ai-art`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
@@ -10701,6 +10844,7 @@ export class Lora extends FalNode {
   static readonly description = `Run Any Stable Diffusion model with customizable LoRA weights.
 generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "images": "list[Image]", "debug_latents": "str", "seed": "int", "has_nsfw_concepts": "list[bool]", "debug_per_pass_latents": "str" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for generating the image. Be as descriptive as possible for best results." })
   declare prompt: any;
