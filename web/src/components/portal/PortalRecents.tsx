@@ -6,44 +6,50 @@ import { useTheme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 import { Thread, Workflow } from "../../stores/ApiTypes";
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     width: "100%",
-    maxWidth: 440,
-    margin: "0 auto",
-    paddingTop: 16,
     display: "flex",
     flexDirection: "column",
-    gap: 2,
+    gap: 1,
+    ".portal-recents-label": {
+      fontSize: 10,
+      fontWeight: 500,
+      color: "rgba(255, 255, 255, 0.2)",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.08em",
+      marginBottom: 6,
+      paddingLeft: 4,
+    },
     ".portal-recent-item": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      padding: "6px 0",
+      gap: 10,
+      padding: "7px 8px",
       cursor: "pointer",
       borderRadius: 6,
-      transition: "opacity 0.15s ease",
+      transition: "background 0.15s ease",
       "&:hover": {
-        opacity: 0.8,
+        background: "rgba(255, 255, 255, 0.04)",
       },
     },
     ".portal-recent-icon": {
-      fontSize: 11,
-      color: theme.vars.palette.c_gray4,
-      width: 16,
+      fontSize: 12,
+      opacity: 0.5,
+      width: 18,
       textAlign: "center" as const,
     },
     ".portal-recent-title": {
-      fontSize: 12,
-      color: theme.vars.palette.c_gray4,
+      fontSize: 13,
+      color: "rgba(255, 255, 255, 0.5)",
       flex: 1,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap" as const,
     },
     ".portal-recent-time": {
-      fontSize: 10,
-      color: theme.vars.palette.c_gray5,
+      fontSize: 11,
+      color: "rgba(255, 255, 255, 0.18)",
     },
   });
 
@@ -116,6 +122,7 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
 
   return (
     <div css={styles(theme)}>
+      <div className="portal-recents-label">Recent</div>
       {recentItems.map((item) => (
         <div
           key={`${item.type}-${item.id}`}
