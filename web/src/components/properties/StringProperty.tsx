@@ -95,6 +95,13 @@ const StringProperty = ({
     });
   }, []);
 
+  const handleTextEditorChange = useCallback(
+    (next: string) => {
+      onChange(next);
+    },
+    [onChange]
+  );
+
   if (isConnected) {
     return (
       <div className="string-property" css={propertyStyles}>
@@ -172,7 +179,7 @@ const StringProperty = ({
         <TextEditorModal
           value={stringValue}
           language={codeLanguage}
-          onChange={(next) => onChange(next)}
+          onChange={handleTextEditorChange}
           onClose={toggleExpand}
           propertyName={property.name}
           propertyDescription={property.description || ""}
