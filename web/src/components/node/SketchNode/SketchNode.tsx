@@ -113,7 +113,8 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       flex: "1 1 auto",
       minHeight: 0,
       minWidth: 0,
-      overflow: "visible"
+      overflow: "visible",
+      "--sketch-handle-stack-gap": "18px"
     },
     ".sketch-input-handles": {
       position: "absolute",
@@ -123,7 +124,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: "36px"
+      gap: "var(--sketch-handle-stack-gap)"
     },
     ".sketch-output-handles": {
       position: "absolute",
@@ -133,7 +134,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-end",
-      gap: "14px"
+      gap: "var(--sketch-handle-stack-gap)"
     },
     ".sketch-preview-wrap": {
       position: "absolute",
@@ -209,6 +210,29 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       width: "auto",
       height: "auto",
       textAlign: "right"
+    },
+    // Global handle CSS pins every .react-flow__handle-left to top: 5px on the whole
+    // node, so multiple targets stack. Anchor each handle inside its own relative box
+    // (same idea as sketch-output-handles).
+    "& .sketch-input-handles .handle-tooltip-wrapper": {
+      position: "relative",
+      flexShrink: 0,
+      width: 18,
+      minHeight: 22,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-start"
+    },
+    "& .sketch-input-handles .react-flow__handle.react-flow__handle-left": {
+      position: "absolute",
+      left: -6,
+      top: "50%",
+      bottom: "auto",
+      transform: "translate(0, -50%)",
+      transformOrigin: "right center"
+    },
+    "& .sketch-input-handles .react-flow__handle.react-flow__handle-left:hover": {
+      transform: "translate(0, -50%) scale(1.75, 1.5)"
     }
   });
 
@@ -220,6 +244,18 @@ const imageTypeMetadata = {
 };
 
 const NODE_SYNC_DEBOUNCE_MS = 200;
+
+/** Persisted alongside sketch_data so graph edge typing invalidates when layer I/O handles change (without parsing huge JSON each frame). */
+const SKETCH_LAYER_IO_SIG_KEY = "sketch_layer_io_sig";
+
+function sketchLayerIoSignature(doc: SketchDocument): string {
+  return doc.layers
+    .map(
+      (l) =>
+        `${l.id}:${l.name}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
+    )
+    .join("|");
+}
 
 const outputImageTypeMetadata = {
   type: "image",
@@ -241,6 +277,40 @@ function getSketchOutputImageUri(
   }
   const uri = (img as { uri?: unknown }).uri;
   return typeof uri === "string" && uri.length > 0 ? uri : null;
+}
+
+/** Resolve an image ref URI for `input_image` or `layer_in_*` (upstream result, dynamic, then static). */
+function resolveSketchImageInputUri(
+  paramKey: string,
+  upstreamResult: unknown,
+  dynamicProps: Record<string, unknown> | undefined,
+  staticProps: Record<string, unknown> | undefined
+): string | null {
+  if (upstreamResult && typeof upstreamResult === "object") {
+    const resultObj = upstreamResult as Record<string, unknown>;
+    const wired = resultObj[paramKey];
+    if (wired && typeof wired === "object") {
+      const uri = (wired as { uri?: unknown }).uri;
+      if (typeof uri === "string" && uri.length > 0) {
+        return uri;
+      }
+    }
+  }
+  const fromDynamic = dynamicProps?.[paramKey];
+  if (fromDynamic && typeof fromDynamic === "object") {
+    const uri = (fromDynamic as { uri?: unknown }).uri;
+    if (typeof uri === "string" && uri.length > 0) {
+      return uri;
+    }
+  }
+  const fromStatic = staticProps?.[paramKey];
+  if (fromStatic && typeof fromStatic === "object") {
+    const uri = (fromStatic as { uri?: unknown }).uri;
+    if (typeof uri === "string" && uri.length > 0) {
+      return uri;
+    }
+  }
+  return null;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -269,10 +339,15 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(null);
   const documentRef = useRef<SketchDocument | null>(null);
   const inputImageLoadedRef = useRef<string | null>(null);
+  /** Last applied `layer_in_*` source URI per layer id (avoid reload loops). */
+  const layerInputUriLoadedRef = useRef<Record<string, string>>({});
+  /** When this changes, sketch node handles / edge ids must sync to the workflow. */
+  const layerIoSignatureRef = useRef<string>("");
   const pendingDocumentSyncRef = useRef<SketchDocument | null>(null);
   const pendingNodePropsRef = useRef<Record<string, unknown>>({});
   const nodeSyncTimeoutRef = useRef<number | null>(null);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
+  const updateNodeData = useNodes((s) => s.updateNodeData);
 
   // Watch for upstream input_image results
   const upstreamResult = useResultsStore((state) =>
@@ -291,7 +366,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     pendingNodePropsRef.current = {};
 
     if (pendingDocumentSyncRef.current) {
-      pendingProps.sketch_data = serializeDocument(pendingDocumentSyncRef.current);
+      const doc = pendingDocumentSyncRef.current;
+      pendingProps.sketch_data = serializeDocument(doc);
+      pendingProps[SKETCH_LAYER_IO_SIG_KEY] = sketchLayerIoSignature(doc);
       pendingDocumentSyncRef.current = null;
     }
 
@@ -343,6 +420,89 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [sketchDoc.layers]
   );
 
+  const layerIoSyncSignature = useMemo(
+    () => sketchLayerIoSignature(sketchDoc),
+    [sketchDoc]
+  );
+
+  // Register `layer_in_*` on dynamic_properties / dynamic_inputs so metadata.is_dynamic
+  // and findInputHandle resolve per-layer handles like other dynamic nodes.
+  useEffect(() => {
+    const desiredKeys = new Set(
+      exposedInputLayers.map((l) => `layer_in_${l.name}`)
+    );
+
+    const curDyn = {
+      ...(props.data.dynamic_properties || {})
+    } as Record<string, unknown>;
+    const curIn = { ...(props.data.dynamic_inputs || {}) };
+
+    const nextDyn = { ...curDyn };
+    const nextIn = { ...curIn };
+
+    for (const k of Object.keys(nextDyn)) {
+      if (k.startsWith("layer_in_") && !desiredKeys.has(k)) {
+        delete nextDyn[k];
+      }
+    }
+    for (const k of Object.keys(nextIn)) {
+      if (k.startsWith("layer_in_") && !desiredKeys.has(k)) {
+        delete nextIn[k];
+      }
+    }
+
+    const emptyLayerInImage = {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    };
+    for (const layer of exposedInputLayers) {
+      const k = `layer_in_${layer.name}`;
+      if (nextDyn[k] === undefined) {
+        nextDyn[k] = emptyLayerInImage;
+      }
+      if (nextIn[k] === undefined) {
+        nextIn[k] = {
+          type: "image",
+          type_args: [],
+          optional: true,
+          values: null,
+          type_name: null
+        };
+      }
+    }
+
+    if (
+      JSON.stringify(curDyn) === JSON.stringify(nextDyn) &&
+      JSON.stringify(curIn) === JSON.stringify(nextIn)
+    ) {
+      return;
+    }
+
+    updateNodeData(props.id, {
+      dynamic_properties: nextDyn,
+      dynamic_inputs: nextIn
+    });
+  }, [
+    props.id,
+    layerIoSyncSignature,
+    exposedInputLayers,
+    updateNodeData,
+    props.data.dynamic_properties,
+    props.data.dynamic_inputs
+  ]);
+
+  useEffect(() => {
+    layerIoSignatureRef.current = sketchDoc.layers
+      .map(
+        (l) =>
+          `${l.id}:${l.name}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
+      )
+      .join("|");
+  }, [sketchDoc]);
+
   const outputImageUri = useMemo(
     () => getSketchOutputImageUri(props.data.properties),
     [props.data.properties]
@@ -350,41 +510,22 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const displayPreviewUri = outputImageUri ?? previewUrl;
 
+  const dynamicProps = props.data.dynamic_properties as
+    | Record<string, unknown>
+    | undefined;
+  const staticProps = props.data.properties;
+
   // ─── Resolve input_image from upstream connections ────────────────
-  const inputImageUri = useMemo((): string | null => {
-    // Check upstream result first (from workflow execution)
-    if (upstreamResult && typeof upstreamResult === "object") {
-      const resultObj = upstreamResult as Record<string, unknown>;
-      // Result might have input_image property from edge resolution
-      const inputImg = resultObj.input_image;
-      if (inputImg && typeof inputImg === "object") {
-        const imgRef = inputImg as { uri?: string; data?: unknown };
-        if (imgRef.uri) {
-          return imgRef.uri;
-        }
-      }
-    }
-
-    // Fallback: check dynamic_properties (set by edge connections)
-    const dynInputImage = props.data.dynamic_properties?.input_image;
-    if (dynInputImage && typeof dynInputImage === "object") {
-      const imgRef = dynInputImage as { uri?: string; data?: unknown };
-      if (imgRef.uri) {
-        return imgRef.uri;
-      }
-    }
-
-    // Fallback: check static properties
-    const staticInputImage = props.data.properties?.input_image;
-    if (staticInputImage && typeof staticInputImage === "object") {
-      const imgRef = staticInputImage as { uri?: string; data?: unknown };
-      if (imgRef.uri) {
-        return imgRef.uri;
-      }
-    }
-
-    return null;
-  }, [upstreamResult, props.data.dynamic_properties, props.data.properties]);
+  const inputImageUri = useMemo(
+    (): string | null =>
+      resolveSketchImageInputUri(
+        "input_image",
+        upstreamResult,
+        dynamicProps,
+        staticProps
+      ),
+    [upstreamResult, dynamicProps, staticProps]
+  );
 
   // ─── Load input_image into sketch document when it changes ────────
   useEffect(() => {
@@ -459,12 +600,96 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
         documentRef.current = updatedDoc;
         const serialized = serializeDocument(updatedDoc);
-        updateNodeProperties(props.id, { sketch_data: serialized });
+        updateNodeProperties(props.id, {
+          sketch_data: serialized,
+          [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
+        });
       })
       .catch(() => {
         // Image loading failed - silently ignore
       });
   }, [inputImageUri, sketchDoc, props.id, updateNodeProperties]);
+
+  // ─── Load per-layer images from `layer_in_<layerName>` handles ─────
+  useEffect(() => {
+    if (exposedInputLayers.length === 0) {
+      return;
+    }
+
+    for (const layer of exposedInputLayers) {
+      const paramKey = `layer_in_${layer.name}`;
+      const uri = resolveSketchImageInputUri(
+        paramKey,
+        upstreamResult,
+        dynamicProps,
+        staticProps
+      );
+      if (!uri) {
+        continue;
+      }
+      if (layerInputUriLoadedRef.current[layer.id] === uri) {
+        continue;
+      }
+      layerInputUriLoadedRef.current[layer.id] = uri;
+
+      loadImageWithDimensions(uri)
+        .then(({ data: layerData, naturalWidth, naturalHeight }) => {
+          const base = documentRef.current ?? sketchDoc;
+          const layerIdx = base.layers.findIndex((l) => l.id === layer.id);
+          if (layerIdx < 0) {
+            return;
+          }
+          const target = base.layers[layerIdx];
+          const prevBounds = target.contentBounds ?? {
+            x: 0,
+            y: 0,
+            width: base.canvas.width,
+            height: base.canvas.height
+          };
+          const imageReference = {
+            uri,
+            naturalWidth,
+            naturalHeight,
+            objectFit: "fill" as const
+          };
+          const contentBounds = {
+            x: prevBounds.x,
+            y: prevBounds.y,
+            width: naturalWidth > 0 ? naturalWidth : prevBounds.width,
+            height: naturalHeight > 0 ? naturalHeight : prevBounds.height
+          };
+          const updatedLayers = [...base.layers];
+          updatedLayers[layerIdx] = {
+            ...target,
+            data: layerData,
+            imageReference,
+            contentBounds
+          };
+          const updatedDoc: SketchDocument = {
+            ...base,
+            layers: updatedLayers,
+            metadata: { ...base.metadata, updatedAt: new Date().toISOString() }
+          };
+          documentRef.current = updatedDoc;
+          updateNodeProperties(props.id, {
+            sketch_data: serializeDocument(updatedDoc),
+            [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
+          });
+        })
+        .catch(() => {
+          // Image loading failed - allow retry if URI changes
+          delete layerInputUriLoadedRef.current[layer.id];
+        });
+    }
+  }, [
+    exposedInputLayers,
+    sketchDoc,
+    upstreamResult,
+    dynamicProps,
+    staticProps,
+    props.id,
+    updateNodeProperties
+  ]);
 
   // ─── Generate preview and update output properties ────────────────
   useEffect(() => {
@@ -531,13 +756,23 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const handleDocumentChange = useCallback(
     (doc: SketchDocument) => {
-      // Keep in-memory ref up to date for on-close flush.
-      // No serialization here — persisting on every stroke causes main-thread
-      // stutter. flushPendingNodeSync() on modal close handles the actual save.
       documentRef.current = doc;
       pendingDocumentSyncRef.current = doc;
+      // Sync sketch_data to the node when exposure or layer identity changes so
+      // handles appear on the canvas without closing the modal — but do not
+      // schedule on every paint stroke (debounced full serialize is too heavy).
+      const ioSig = doc.layers
+        .map(
+          (l) =>
+            `${l.id}:${l.name}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
+        )
+        .join("|");
+      if (ioSig !== layerIoSignatureRef.current) {
+        layerIoSignatureRef.current = ioSig;
+        schedulePendingNodeSync();
+      }
     },
-    []
+    [schedulePendingNodeSync]
   );
 
   // ─── Export callbacks for real-time output updates during editing ──

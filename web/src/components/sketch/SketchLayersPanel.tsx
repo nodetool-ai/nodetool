@@ -100,12 +100,14 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
-    padding: "8px",
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.5),
     backgroundColor: theme.vars.palette.grey[800],
     borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-    minWidth: "180px",
-    maxWidth: "180px",
+    width: SKETCH_SIZE.panelWidth,
+    minWidth: SKETCH_SIZE.panelWidth,
+    maxWidth: SKETCH_SIZE.panelWidth,
+    flexShrink: 0,
     overflowY: "auto",
     "& .section-label": {
       fontSize: SKETCH_FONT.md,
@@ -116,8 +118,8 @@ const styles = (theme: Theme) =>
     "& .layer-item": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "4px 6px",
+      gap: theme.spacing(0.75),
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
       borderRadius: SKETCH_SIZE.borderRadius,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
@@ -130,11 +132,16 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.primary.contrastText
       },
       "&.mask-layer": {
-        borderLeft: `2px solid ${theme.vars.palette.warning.main}`
+        outline: `2px solid ${theme.vars.palette.warning.main}`,
+        outlineOffset: "-2px"
       },
       "&.isolated": {
         outline: `1px solid ${theme.vars.palette.warning.main}`,
         outlineOffset: "-1px"
+      },
+      "&.mask-layer.isolated": {
+        outline: `2px solid ${theme.vars.palette.warning.main}`,
+        outlineOffset: "-2px"
       }
     },
     "& .layer-thumbnail": {
@@ -168,9 +175,9 @@ const styles = (theme: Theme) =>
     },
     "& .layer-actions": {
       display: "flex",
-      gap: "2px",
-      flexWrap: "wrap",
-      justifyContent: "center"
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: theme.spacing(0.75)
     },
     "& .opacity-row": {
       display: "flex",
@@ -345,153 +352,174 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         Layers
       </Typography>
 
-      {/* Add layer with color presets */}
-      <Box className="layer-actions" sx={{ gap: "3px !important" }}>
-        <Tooltip title="Add Transparent Layer">
-          <IconButton
-            size="small"
-            onClick={() => onAddLayer(null)}
-            sx={{
-              width: 22,
-              height: 22,
-              padding: 0,
-              borderRadius: "3px",
-              border: `1px solid ${theme.vars.palette.grey[500]}`,
-              background: `repeating-conic-gradient(${theme.vars.palette.grey[600]} 0% 25%, ${theme.vars.palette.grey[800]} 0% 50%) 50% / 8px 8px`,
-              "&:hover": { borderColor: theme.vars.palette.grey[300] }
-            }}
-          >
-            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[400] }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Add Black Layer">
-          <IconButton
-            size="small"
-            onClick={() => onAddLayer("#000000")}
-            sx={{
-              width: 22,
-              height: 22,
-              padding: 0,
-              borderRadius: "3px",
-              border: `1px solid ${theme.vars.palette.grey[500]}`,
-              backgroundColor: "#000000",
-              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#111111" }
-            }}
-          >
-            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[500] }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Add White Layer">
-          <IconButton
-            size="small"
-            onClick={() => onAddLayer("#ffffff")}
-            sx={{
-              width: 22,
-              height: 22,
-              padding: 0,
-              borderRadius: "3px",
-              border: `1px solid ${theme.vars.palette.grey[500]}`,
-              backgroundColor: "#ffffff",
-              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#eeeeee" }
-            }}
-          >
-            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[600] }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Add Gray Layer">
-          <IconButton
-            size="small"
-            onClick={() => onAddLayer("#808080")}
-            sx={{
-              width: 22,
-              height: 22,
-              padding: 0,
-              borderRadius: "3px",
-              border: `1px solid ${theme.vars.palette.grey[500]}`,
-              backgroundColor: "#808080",
-              "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#999999" }
-            }}
-          >
-            <AddIcon sx={{ fontSize: "12px", color: theme.vars.palette.grey[300] }} />
-          </IconButton>
-        </Tooltip>
-        <Box sx={{ width: "4px" }} />
-        <Tooltip title="Delete Layer">
-          <span>
+      {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
+      <Box className="layer-actions">
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 0.5,
+            rowGap: 0.5
+          }}
+        >
+          <Tooltip title="Add Transparent Layer">
             <IconButton
               size="small"
-              onClick={() => onRemoveLayer(activeLayerId)}
-              disabled={layers.length <= 1}
+              onClick={() => onAddLayer(null)}
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                background: `repeating-conic-gradient(${theme.vars.palette.grey[600]} 0% 25%, ${theme.vars.palette.grey[800]} 0% 50%) 50% / 8px 8px`,
+                "&:hover": { borderColor: theme.vars.palette.grey[300] }
+              }}
             >
-              <DeleteIcon fontSize="small" />
+              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }} />
             </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Duplicate Layer">
-          <IconButton
-            size="small"
-            onClick={() => onDuplicateLayer(activeLayerId)}
-          >
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={
-            maskLayerId === activeLayerId
-              ? "Remove Mask Designation"
-              : "Set as Mask Layer"
-          }
-        >
-          <IconButton
-            size="small"
-            onClick={() =>
-              onSetMaskLayer(
-                maskLayerId === activeLayerId ? null : activeLayerId
-              )
+          </Tooltip>
+          <Tooltip title="Add Black Layer">
+            <IconButton
+              size="small"
+              onClick={() => onAddLayer("#000000")}
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: "#000000",
+                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#111111" }
+              }}
+            >
+              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[500] }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Add White Layer">
+            <IconButton
+              size="small"
+              onClick={() => onAddLayer("#ffffff")}
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: "#ffffff",
+                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#eeeeee" }
+              }}
+            >
+              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[600] }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Add Gray Layer">
+            <IconButton
+              size="small"
+              onClick={() => onAddLayer("#808080")}
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: "#808080",
+                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#999999" }
+              }}
+            >
+              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 0.25,
+            rowGap: 0.25,
+            "& .MuiIconButton-root": {
+              width: 30,
+              height: 30,
+              padding: theme.spacing(0.25)
             }
-            color={maskLayerId === activeLayerId ? "warning" : "default"}
-          >
-            <GradientIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={
-            layers.find((l) => l.id === activeLayerId)?.alphaLock
-              ? "Unlock Transparency"
-              : "Lock Transparency"
-          }
+          }}
         >
-          <IconButton
-            size="small"
-            onClick={() => onToggleAlphaLock(activeLayerId)}
-            color={
+          <Tooltip title="Duplicate Layer">
+            <IconButton size="small" onClick={() => onDuplicateLayer(activeLayerId)}>
+              <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Layer">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onRemoveLayer(activeLayerId)}
+                disabled={layers.length <= 1}
+              >
+                <DeleteIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              maskLayerId === activeLayerId
+                ? "Remove Mask Designation"
+                : "Set as Mask Layer"
+            }
+          >
+            <IconButton
+              size="small"
+              onClick={() =>
+                onSetMaskLayer(
+                  maskLayerId === activeLayerId ? null : activeLayerId
+                )
+              }
+              color={maskLayerId === activeLayerId ? "warning" : "default"}
+            >
+              <GradientIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={
               layers.find((l) => l.id === activeLayerId)?.alphaLock
-                ? "info"
-                : "default"
+                ? "Unlock Transparency"
+                : "Lock Transparency"
             }
           >
-            <LockIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Merge Down">
-          <IconButton size="small" onClick={onMergeDown}>
-            <CallMergeIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Trim Active Layer To Bounds">
-          <IconButton
-            size="small"
-            onClick={onTrimLayerToBounds}
-            disabled={!activeLayer || activeLayer.locked}
-          >
-            <FitScreenIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Flatten Visible">
-          <IconButton size="small" onClick={onFlattenVisible}>
-            <LayersIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+            <IconButton
+              size="small"
+              onClick={() => onToggleAlphaLock(activeLayerId)}
+              color={
+                layers.find((l) => l.id === activeLayerId)?.alphaLock
+                  ? "info"
+                  : "default"
+              }
+            >
+              <LockIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Merge Down">
+            <IconButton size="small" onClick={onMergeDown}>
+              <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Trim Active Layer To Bounds">
+            <IconButton
+              size="small"
+              onClick={onTrimLayerToBounds}
+              disabled={!activeLayer || activeLayer.locked}
+            >
+              <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Flatten Visible">
+            <IconButton size="small" onClick={onFlattenVisible}>
+              <LayersIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Divider />

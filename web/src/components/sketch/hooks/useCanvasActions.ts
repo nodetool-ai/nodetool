@@ -11,6 +11,7 @@ import {
   layerAllowsTransformWhilePixelLocked,
   type LayerContentBounds,
   type Point,
+  type PushHistoryOptions,
   type SketchDocument,
   type SketchTool
 } from "../types";
@@ -25,7 +26,8 @@ export interface UseCanvasActionsParams {
   zoom: number;
   pushHistory: (
     label: string,
-    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
+    options?: PushHistoryOptions
   ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
@@ -157,15 +159,23 @@ export function useCanvasActions({
     }
   }, [canvasRef, onExportImage, onExportMask]);
 
+  const pushTransformHistory = useCallback(
+    (label: string) => {
+      pushHistory(label, undefined, { restoreMode: "structure-only" });
+    },
+    [pushHistory]
+  );
+
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
     const activeLayerId = document.activeLayerId;
+    const isTransformOnlyGesture = activeTool === "move";
     const activeLayerSnapshot =
-      activeLayerId && canvasRef.current
+      !isTransformOnlyGesture && activeLayerId && canvasRef.current
         ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
         : null;
 
-    const actionLabel = `${activeTool} stroke`;
+    const actionLabel = activeTool === "move" ? "move layer" : `${activeTool} stroke`;
     const layerSnapshots = activeLayerId
       ? { [activeLayerId]: activeLayerSnapshot }
       : undefined;
@@ -174,7 +184,11 @@ export function useCanvasActions({
     // turn as pointerdown competes with the first dab and compositing. The pixel
     // snapshot must stay synchronous for undo; defer only the history commit.
     window.requestAnimationFrame(() => {
-      pushHistory(actionLabel, layerSnapshots);
+      pushHistory(
+        actionLabel,
+        layerSnapshots,
+        isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
+      );
     });
   }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
 
@@ -221,7 +235,7 @@ export function useCanvasActions({
     [onExportImage, onExportMask, updateLayerData, setLayerContentBounds]
   );
 
-  const reconcileLayerToDocumentSpace = useCallback(
+  const bakeLayerTransformIntoDocumentSpace = useCallback(
     (layerId: string) => {
       const layer = document.layers.find((entry) => entry.id === layerId);
       if (!layer || !canvasRef.current) {
@@ -354,7 +368,7 @@ export function useCanvasActions({
         return;
       }
       if (recordHistory) {
-        pushHistory("nudge layer");
+        pushTransformHistory("nudge layer");
       }
       translateLayer(activeLayerId, dx, dy);
       if (!canvasRef.current) {
@@ -453,7 +467,9 @@ export function useCanvasActions({
       }
       pushHistory("crop");
       for (const layer of document.layers) {
-        reconcileLayerToDocumentSpace(layer.id);
+        // Crop is an explicit destructive bake flow: transforms must be reconciled
+        // into document-space pixels before cropping the backing rasters.
+        bakeLayerTransformIntoDocumentSpace(layer.id);
       }
       canvasRef.current.cropCanvas(x, y, width, height);
       const state = useSketchStore.getState();
@@ -491,7 +507,7 @@ export function useCanvasActions({
       updateLayerData,
       canvasRef,
       document.layers,
-      reconcileLayerToDocumentSpace
+      bakeLayerTransformIntoDocumentSpace
     ]
   );
 

@@ -43,7 +43,7 @@ export const SKETCH_FONT = {
 export const SKETCH_SIZE = {
   layerItemHeight: "36px",
   layerThumbnail:  "28px",
-  panelWidth:      "180px",
+  panelWidth:      "260px",
   iconButtonPad:   "3px",
   borderRadius:    "4px",
 } as const;

@@ -625,6 +625,8 @@ export class SketchInputNode extends BaseNode {
     mask: "image",
   };
   static readonly basicFields = ["name", "sketch_data", "input_image"];
+  /** Layer image inputs (`layer_in_<layerName>`) are registered in editor state, not static @prop fields. */
+  static readonly isDynamic = true;
 
   @prop({ type: "str", default: "", title: "Name", description: "The parameter name for the workflow." })
   declare name: any;

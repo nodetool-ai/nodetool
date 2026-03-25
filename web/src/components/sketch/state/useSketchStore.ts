@@ -27,6 +27,7 @@ import {
   CloneStampSettings,
   BlendMode,
   LayerTransform,
+  PushHistoryOptions,
   createDefaultDocument,
   normalizeSketchDocument,
   createDefaultLayer,
@@ -135,7 +136,8 @@ export interface SketchStore {
   // ─── History Actions ──────────────────────────────────────────────────────
   pushHistory: (
     action: string,
-    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
+    options?: PushHistoryOptions
   ) => void;
   undo: () => HistoryEntry | null;
   redo: () => HistoryEntry | null;
@@ -743,8 +745,13 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     })),
 
   // ─── History Actions ──────────────────────────────────────────────────
-  pushHistory: (action: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>) => {
+  pushHistory: (
+    action: string,
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
+    options?: PushHistoryOptions
+  ) => {
     const state = get();
+    const restoreMode = options?.restoreMode ?? "full";
     const snapshot: Record<string, string | null> = {};
     for (const layer of state.document.layers) {
       snapshot[layer.id] = layer.data;
@@ -772,6 +779,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       layerStructure,
       activeLayerId: state.document.activeLayerId,
       maskLayerId: state.document.maskLayerId,
+      restoreMode,
       action,
       timestamp: Date.now()
     };

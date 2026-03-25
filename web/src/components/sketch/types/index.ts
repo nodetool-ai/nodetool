@@ -308,6 +308,16 @@ export interface LayerStructureSnapshot {
   imageReference?: LayerImageReference | null;
 }
 
+export type HistoryRestoreMode = "full" | "structure-only";
+
+export interface PushHistoryOptions {
+  /**
+   * `structure-only` means undo/redo should restore document/layer metadata
+   * without replaying raster data into runtime canvases.
+   */
+  restoreMode?: HistoryRestoreMode;
+}
+
 export interface HistoryEntry {
   /** Snapshot of layers data (pixel data URLs keyed by layer ID) */
   layerSnapshots: Record<string, string | null>;
@@ -319,6 +329,8 @@ export interface HistoryEntry {
   activeLayerId: string;
   /** Mask layer ID at the time of the snapshot */
   maskLayerId: string | null;
+  /** Controls whether undo/redo must replay raster data or only restore structure. */
+  restoreMode: HistoryRestoreMode;
   action: string;
   timestamp: number;
 }
@@ -502,7 +514,9 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
           y: layer.contentBounds?.y ?? 0,
           width: layer.contentBounds?.width ?? (doc.canvas?.width ?? baseDocument.canvas.width),
           height: layer.contentBounds?.height ?? (doc.canvas?.height ?? baseDocument.canvas.height)
-        }
+        },
+        exposedAsInput: layer.exposedAsInput === true,
+        exposedAsOutput: layer.exposedAsOutput === true
       }))
     : baseDocument.layers;
 

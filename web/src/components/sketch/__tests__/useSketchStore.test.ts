@@ -281,6 +281,7 @@ describe("useSketchStore", () => {
       });
       expect(useSketchStore.getState().history).toHaveLength(1);
       expect(useSketchStore.getState().historyIndex).toBe(0);
+      expect(useSketchStore.getState().history[0].restoreMode).toBe("full");
     });
 
     it("stores transform-aware layer metadata in history snapshots", () => {
@@ -293,6 +294,15 @@ describe("useSketchStore", () => {
         x: 7,
         y: 9
       });
+    });
+
+    it("supports structure-only history entries for transform-only edits", () => {
+      act(() => {
+        useSketchStore.getState().pushHistory("move", undefined, {
+          restoreMode: "structure-only"
+        });
+      });
+      expect(useSketchStore.getState().history[0].restoreMode).toBe("structure-only");
     });
 
     it("canUndo returns false when no history", () => {

@@ -185,9 +185,9 @@ describe("Expose Layer Input/Output", () => {
       const deserialized = deserializeDocument(serialized);
 
       expect(deserialized).not.toBeNull();
-      // Should still be undefined (not set)
-      expect(deserialized!.layers[0].exposedAsInput).toBeUndefined();
-      expect(deserialized!.layers[0].exposedAsOutput).toBeUndefined();
+      // normalizeSketchDocument fills missing flags as false
+      expect(deserialized!.layers[0].exposedAsInput).toBe(false);
+      expect(deserialized!.layers[0].exposedAsOutput).toBe(false);
     });
   });
 });

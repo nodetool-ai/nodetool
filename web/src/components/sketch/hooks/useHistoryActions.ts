@@ -22,6 +22,9 @@ export function useHistoryActions({
   const handleUndo = useCallback(() => {
     const entry = undo();
     if (entry && canvasRef.current) {
+      if (entry.restoreMode === "structure-only") {
+        return;
+      }
       for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
         const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
         if (canvasSnapshot) {
@@ -36,6 +39,9 @@ export function useHistoryActions({
   const handleRedo = useCallback(() => {
     const entry = redo();
     if (entry && canvasRef.current) {
+      if (entry.restoreMode === "structure-only") {
+        return;
+      }
       for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
         const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
         if (canvasSnapshot) {

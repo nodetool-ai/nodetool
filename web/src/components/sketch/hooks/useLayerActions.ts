@@ -7,13 +7,13 @@
 
 import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { BlendMode, SketchDocument } from "../types";
+import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
 import { useSketchStore } from "../state";
 
 export interface UseLayerActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
-  pushHistory: (label: string) => void;
+  pushHistory: (label: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>, options?: PushHistoryOptions) => void;
   addLayer: () => string;
   removeLayer: (layerId: string) => void;
   duplicateLayer: (layerId: string) => void;

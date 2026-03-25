@@ -5,6 +5,49 @@ import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
 
+const SKETCH_INPUT_NODE_TYPE = "nodetool.input.SketchInput";
+const SKETCH_LAYER_IO_SIG_KEY = "sketch_layer_io_sig";
+
+/**
+ * Sketch nodes expose `layer_in_*` / `layer_out_*` handles from sketch_data; that string is huge.
+ * SketchNode stores `sketch_layer_io_sig` when persisting; fall back to parsing layers only for older graphs.
+ */
+function sketchInputStructureKey(data: NodeData): string {
+  const props = data.properties as Record<string, unknown> | undefined;
+  if (!props) {
+    return "";
+  }
+  const sig = props[SKETCH_LAYER_IO_SIG_KEY];
+  if (typeof sig === "string" && sig.length > 0) {
+    return sig;
+  }
+  const raw = props.sketch_data;
+  if (typeof raw !== "string" || raw.length === 0) {
+    return "";
+  }
+  try {
+    const doc = JSON.parse(raw) as {
+      layers?: Array<{
+        id?: string;
+        name?: string;
+        exposedAsInput?: boolean;
+        exposedAsOutput?: boolean;
+      }>;
+    };
+    if (!Array.isArray(doc.layers)) {
+      return "";
+    }
+    return doc.layers
+      .map(
+        (l) =>
+          `${l.id ?? ""}:${l.name ?? ""}:${Boolean(l.exposedAsInput)}:${Boolean(l.exposedAsOutput)}`
+      )
+      .join("|");
+  } catch {
+    return `parse_err:${raw.length}`;
+  }
+}
+
 /**
  * Options for processing edges in the workflow graph.
  * Provides all data needed to compute edge types, colors, and status.
@@ -38,10 +81,6 @@ interface ProcessedEdgesResult {
   activeGradientKeys: Set<string>;
 }
 
-// Global cache for node structure strings to avoid expensive object iteration during drag
-// WeakMap ensures entries are cleaned up when NodeData objects are garbage collected
-const structureCache = new WeakMap<NodeData, string>();
-
 /**
  * Internal hook that processes structural aspects of edges (types, gradients, styles).
  * Separated from status updates to avoid expensive recalculations during execution.
@@ -63,23 +102,21 @@ function useStructurallyProcessedEdges({
     activeGradientKeys: new Set()
   });
 
-  // Structural key: only things that affect edge typing / gradients
+  // Structural key: only things that affect edge typing / gradients.
+  // Do not cache per NodeData reference — dynamic_outputs / sketch_data can change in place.
   const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
-        let cached = structureCache.get(n.data);
-        if (cached === undefined) {
-          const dynamicOutputs = n.data.dynamic_outputs
-            ? Object.keys(n.data.dynamic_outputs).join(",")
-            : "";
-          const dynamicProps = n.data.dynamic_properties
-            ? Object.keys(n.data.dynamic_properties).join(",")
-            : "";
-          cached = `${dynamicOutputs}:${dynamicProps}`;
-          structureCache.set(n.data, cached);
-        }
-        return `${n.id}:${n.type}:${cached}`;
+        const dynamicOutputs = n.data.dynamic_outputs
+          ? Object.keys(n.data.dynamic_outputs).sort().join(",")
+          : "";
+        const dynamicProps = n.data.dynamic_properties
+          ? Object.keys(n.data.dynamic_properties).sort().join(",")
+          : "";
+        const sketchIo =
+          n.type === SKETCH_INPUT_NODE_TYPE ? sketchInputStructureKey(n.data) : "";
+        return `${n.id}:${n.type}:${dynamicOutputs}:${dynamicProps}:${sketchIo}`;
       })
       .join("|");
   }, [nodes, isSelecting]);

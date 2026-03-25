@@ -74,7 +74,14 @@ const LayerItem: React.FC<LayerItemProps> = ({
       <Box
         className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}${isIsolated ? " isolated" : ""}`}
         draggable
-        onDragStart={() => onDragStart(realIdx)}
+        onDragStart={(e) => {
+          const t = e.target as HTMLElement;
+          if (t.closest("button")) {
+            e.preventDefault();
+            return;
+          }
+          onDragStart(realIdx);
+        }}
         onDragOver={(e) => onDragOver(e, realIdx)}
         onDragLeave={onDragLeave}
         onDrop={() => onDrop(realIdx)}
@@ -89,18 +96,30 @@ const LayerItem: React.FC<LayerItemProps> = ({
             : undefined
         }
       >
+        {/* Thumbnail first so the stack reads: preview → visibility → solo → name → I/O */}
+        {thumbnailSrc ? (
+          <img
+            className="layer-thumbnail"
+            src={thumbnailSrc}
+            alt={layer.name}
+            draggable={false}
+          />
+        ) : (
+          <Box className="layer-thumbnail-empty" />
+        )}
+
         <IconButton
           size="small"
           onClick={(e) => {
             e.stopPropagation();
             onToggleVisibility(layer.id);
           }}
-          sx={{ padding: "2px" }}
+          sx={{ padding: "4px", flexShrink: 0 }}
         >
           {layer.visible ? (
-            <VisibilityIcon sx={{ fontSize: "14px" }} />
+            <VisibilityIcon sx={{ fontSize: "1.125rem" }} />
           ) : (
-            <VisibilityOffIcon sx={{ fontSize: "14px" }} />
+            <VisibilityOffIcon sx={{ fontSize: "1.125rem", opacity: 0.65 }} />
           )}
         </IconButton>
 
@@ -115,27 +134,16 @@ const LayerItem: React.FC<LayerItemProps> = ({
               onToggleIsolateLayer(layer.id);
             }}
             sx={{
-              padding: "2px",
-              color: isIsolated ? "warning.main" : undefined,
-              opacity: isIsolated ? 1 : 0.4,
-              "&:hover": { opacity: 1 }
+              padding: "4px",
+              flexShrink: 0,
+              color: isIsolated ? "warning.main" : "grey.500",
+              opacity: isIsolated ? 1 : 0.75,
+              "&:hover": { opacity: 1, color: isIsolated ? "warning.main" : "grey.300" }
             }}
           >
-            <FilterNoneIcon sx={{ fontSize: "12px" }} />
+            <FilterNoneIcon sx={{ fontSize: "1rem" }} />
           </IconButton>
         </Tooltip>
-
-        {/* Layer thumbnail preview */}
-        {thumbnailSrc ? (
-          <img
-            className="layer-thumbnail"
-            src={thumbnailSrc}
-            alt={layer.name}
-            draggable={false}
-          />
-        ) : (
-          <Box className="layer-thumbnail-empty" />
-        )}
 
         {editingLayerId === layer.id ? (
           <input
@@ -192,13 +200,21 @@ const LayerItem: React.FC<LayerItemProps> = ({
               sx={{ minWidth: 0 }}
             >
               {layer.name}
-              {isMask && " 🎭"}
               {layer.alphaLock && " 🔒"}
             </Typography>
           </Box>
         )}
 
-        <Box sx={{ display: "flex", gap: 0, ml: "auto" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+            gap: 0.25,
+            ml: "auto",
+            pl: 0.5
+          }}
+        >
           <Tooltip
             title={
               layer.exposedAsInput
@@ -213,13 +229,17 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 onToggleExposedInput(layer.id);
               }}
               sx={{
-                padding: "1px",
-                color: layer.exposedAsInput ? "info.main" : "grey.600",
-                opacity: layer.exposedAsInput ? 1 : 0.5,
-                "&:hover": { opacity: 1 }
+                padding: "4px",
+                color: layer.exposedAsInput ? "info.main" : "grey.400",
+                opacity: layer.exposedAsInput ? 1 : 0.88,
+                "&:hover": {
+                  opacity: 1,
+                  color: layer.exposedAsInput ? "info.light" : "grey.200",
+                  bgcolor: "action.hover"
+                }
               }}
             >
-              <InputIcon sx={{ fontSize: "11px" }} />
+              <InputIcon sx={{ fontSize: "1.0625rem" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -236,13 +256,17 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 onToggleExposedOutput(layer.id);
               }}
               sx={{
-                padding: "1px",
-                color: layer.exposedAsOutput ? "success.main" : "grey.600",
-                opacity: layer.exposedAsOutput ? 1 : 0.5,
-                "&:hover": { opacity: 1 }
+                padding: "4px",
+                color: layer.exposedAsOutput ? "success.main" : "grey.400",
+                opacity: layer.exposedAsOutput ? 1 : 0.88,
+                "&:hover": {
+                  opacity: 1,
+                  color: layer.exposedAsOutput ? "success.light" : "grey.200",
+                  bgcolor: "action.hover"
+                }
               }}
             >
-              <OutputIcon sx={{ fontSize: "11px" }} />
+              <OutputIcon sx={{ fontSize: "1.0625rem" }} />
             </IconButton>
           </Tooltip>
         </Box>
