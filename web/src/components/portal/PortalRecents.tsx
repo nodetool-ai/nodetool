@@ -15,7 +15,7 @@ const styles = (_theme: Theme) =>
     ".portal-recents-label": {
       fontSize: 10,
       fontWeight: 500,
-      color: "rgba(255, 255, 255, 0.2)",
+      color: _theme.vars.palette.text.disabled,
       textTransform: "uppercase" as const,
       letterSpacing: "0.08em",
       marginBottom: 6,
@@ -30,7 +30,7 @@ const styles = (_theme: Theme) =>
       borderRadius: 6,
       transition: "background 0.15s ease",
       "&:hover": {
-        background: "rgba(255, 255, 255, 0.04)",
+        background: _theme.vars.palette.action.hover,
       },
     },
     ".portal-recent-icon": {
@@ -41,7 +41,7 @@ const styles = (_theme: Theme) =>
     },
     ".portal-recent-title": {
       fontSize: 13,
-      color: "rgba(255, 255, 255, 0.5)",
+      color: _theme.vars.palette.text.secondary,
       flex: 1,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -49,7 +49,7 @@ const styles = (_theme: Theme) =>
     },
     ".portal-recent-time": {
       fontSize: 11,
-      color: "rgba(255, 255, 255, 0.18)",
+      color: _theme.vars.palette.text.disabled,
     },
   });
 
