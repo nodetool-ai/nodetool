@@ -86,7 +86,7 @@ const AppHeader = React.lazy(
 );
 
 // Lazy-loaded route components for code splitting
-const Dashboard = React.lazy(
+const _Dashboard = React.lazy(
   () => import("./components/dashboard/Dashboard")
 );
 const GlobalChat = React.lazy(
@@ -122,6 +122,7 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
+const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
 
@@ -235,9 +236,7 @@ function getRoutes() {
       path: "/dashboard",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
-          <Dashboard />
-          <PanelBottom />
+          <Portal />
         </ProtectedRoute>
       )
     },
