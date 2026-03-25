@@ -50,7 +50,7 @@ describe("Phase 2 Features", () => {
       expect(useSketchStore.getState().backgroundColor).toBe("#ff0000");
     });
 
-    it("resets colors to default black/white", () => {
+    it("resets colors to black foreground and white background", () => {
       act(() => {
         useSketchStore.getState().setForegroundColor("#ff0000");
         useSketchStore.getState().setBackgroundColor("#00ff00");
@@ -58,8 +58,8 @@ describe("Phase 2 Features", () => {
       act(() => {
         useSketchStore.getState().resetColors();
       });
-      expect(useSketchStore.getState().foregroundColor).toBe("#ffffff");
-      expect(useSketchStore.getState().backgroundColor).toBe("#000000");
+      expect(useSketchStore.getState().foregroundColor).toBe("#000000");
+      expect(useSketchStore.getState().backgroundColor).toBe("#ffffff");
     });
   });
 
