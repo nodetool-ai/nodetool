@@ -5,8 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box } from "@mui/material";
-import IconButton from "@mui/material/IconButton";
-import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 import PortalInput from "./PortalInput";
 import PortalRecents from "./PortalRecents";
@@ -19,7 +17,6 @@ import useSecretsStore from "../../stores/SecretsStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
-import ChatView from "../chat/containers/ChatView";
 import AppHeader from "../panels/AppHeader";
 
 const KNOWN_PROVIDER_KEYS = [
@@ -30,7 +27,7 @@ const KNOWN_PROVIDER_KEYS = [
   "HUGGINGFACE_API_KEY",
 ];
 
-type PortalState = "idle" | "setup" | "chatting";
+type PortalState = "idle" | "setup";
 
 const fadeOut = keyframes`
   from { opacity: 1; transform: translateY(0); }
@@ -83,8 +80,8 @@ const styles = (theme: Theme) =>
     },
 
     // Transition states
-    "&.portal-state-idle .portal-heading": {
-      animation: "none",
+    "&.portal-transitioning": {
+      pointerEvents: "none",
     },
     "&.portal-transitioning .portal-heading": {
       animation: `${fadeOut} 300ms ease-out forwards`,
@@ -92,32 +89,26 @@ const styles = (theme: Theme) =>
     "&.portal-transitioning .portal-recents": {
       animation: `${fadeOut} 200ms ease-out forwards`,
     },
+    "&.portal-transitioning .portal-input-wrapper": {
+      animation: `${fadeOut} 350ms ease-out forwards`,
+    },
+    "&.portal-transitioning .portal-hint": {
+      animation: `${fadeOut} 150ms ease-out forwards`,
+    },
 
-    // Chatting state
-    ".portal-chat-container": {
+    // Setup state
+    ".portal-setup-container": {
       flex: 1,
       display: "flex",
       flexDirection: "column",
-      width: "100%",
-      paddingTop: 64,
-      animation: `${fadeIn} 300ms ease-out`,
-    },
-    ".portal-chat-header": {
-      display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
-      padding: "8px 16px",
-    },
-    ".portal-new-chat-btn": {
-      color: theme.vars.palette.c_gray4,
-      "&:hover": {
-        color: theme.vars.palette.c_white,
-      },
+      justifyContent: "center",
+      padding: "0 24px",
+      paddingTop: 64,
     },
     ".portal-setup-message": {
       maxWidth: 480,
       padding: "16px 20px",
-      margin: "20px auto",
       animation: `${fadeIn} 300ms ease-out`,
     },
   });
@@ -140,26 +131,14 @@ const Portal: React.FC = () => {
   }, []);
 
   const {
-    status,
     threads,
     currentThreadId,
-    progress,
-    statusMessage,
-    selectedModel,
-    selectedTools,
-    agentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentLogUpdate,
-    messages,
+    selectedModel: _selectedModel,
     sendMessage,
     newThread,
     selectThread,
     deleteThread: _deleteThread,
-    stopGeneration,
     setSelectedModel,
-    setAgentMode,
-    setSelectedTools,
   } = usePortalChat();
 
   const {
@@ -209,14 +188,25 @@ const Portal: React.FC = () => {
     }, 200);
   }, []);
 
-  // Transition to chatting
-  const transitionToChat = useCallback(() => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsTransitioning(false);
-      setPortalState("chatting");
-    }, 400);
-  }, []);
+  // Navigate to chat route after creating thread and sending message
+  const sendAndNavigate = useCallback(
+    async (text: string) => {
+      const threadId = await newThread();
+      if (threadId) {
+        const content: MessageContent[] = [{ type: "text", text }];
+        const message: Message = {
+          type: "message",
+          role: "user",
+          content,
+          thread_id: threadId,
+          created_at: new Date().toISOString(),
+        };
+        await sendMessage(message);
+        navigate(`/chat/${threadId}`);
+      }
+    },
+    [newThread, sendMessage, navigate]
+  );
 
   // Handle send from idle state
   const handleIdleSend = useCallback(
@@ -226,36 +216,21 @@ const Portal: React.FC = () => {
 
       if (!hasConfiguredProvider) {
         setPendingMessage(text);
-        transitionToChat();
-        // After transition completes, show setup
-        setTimeout(() => setPortalState("setup"), 450);
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setPortalState("setup");
+        }, 400);
         return;
       }
 
-      transitionToChat();
-
-      // Create a message and send it after transition
-      setTimeout(async () => {
-        const content: MessageContent[] = [{ type: "text", text }];
-        const message: Message = {
-          type: "message",
-          role: "user",
-          content,
-          thread_id: currentThreadId || "",
-          created_at: new Date().toISOString(),
-        };
-        await sendMessage(message);
-      }, 450);
+      // Start fade-out, then send + navigate
+      setIsTransitioning(true);
+      setTimeout(() => {
+        sendAndNavigate(text);
+      }, 400);
     },
-    [hasConfiguredProvider, transitionToChat, sendMessage, currentThreadId]
-  );
-
-  // Handle send from chatting state — matches ChatView's sendMessage: (message: Message) => Promise<void>
-  const handleChatSend = useCallback(
-    async (message: Message) => {
-      await sendMessage(message);
-    },
-    [sendMessage]
+    [hasConfiguredProvider, sendAndNavigate]
   );
 
   // Handle setup completion
@@ -271,35 +246,26 @@ const Portal: React.FC = () => {
         name: id,
       };
       setSelectedModel(model);
-      setPortalState("chatting");
 
-      // Send the pending message
+      // Send the pending message and navigate to chat
       if (pendingMessage) {
-        const content: MessageContent[] = [{ type: "text", text: pendingMessage }];
-        const message: Message = {
-          type: "message",
-          role: "user",
-          content,
-          thread_id: currentThreadId || "",
-          created_at: new Date().toISOString(),
-        };
         setPendingMessage(null);
-        // Small delay to let model state propagate
-        setTimeout(async () => {
-          await sendMessage(message);
-        }, 100);
+        await sendAndNavigate(pendingMessage);
       }
     },
-    [pendingMessage, setSelectedModel, sendMessage, currentThreadId]
+    [pendingMessage, setSelectedModel, sendAndNavigate]
   );
 
-  // Handle clicking a recent chat thread
+  // Handle clicking a recent chat thread — fade out then navigate
   const handleThreadClick = useCallback(
     (threadId: string) => {
-      selectThread(threadId);
-      setPortalState("chatting");
+      setIsTransitioning(true);
+      setTimeout(() => {
+        selectThread(threadId);
+        navigate(`/chat/${threadId}`);
+      }, 400);
     },
-    [selectThread]
+    [selectThread, navigate]
   );
 
   // Handle clicking a recent workflow — navigate directly
@@ -309,14 +275,6 @@ const Portal: React.FC = () => {
     },
     [navigate]
   );
-
-  // Handle new chat
-  const handleNewChat = useCallback(async () => {
-    await newThread();
-    setPortalState("idle");
-    setSearchQuery("");
-    setDebouncedQuery("");
-  }, [newThread]);
 
   // Handle template selection from search — find full Workflow object
   const handleTemplateSelect = useCallback(
@@ -329,99 +287,12 @@ const Portal: React.FC = () => {
     [handleExampleClick, startTemplates]
   );
 
-  const handleModelChange = useCallback(
-    (model: LanguageModel) => {
-      setSelectedModel(model);
-    },
-    [setSelectedModel]
-  );
-
-  const handleToolsChange = useCallback(
-    (tools: string[]) => {
-      setSelectedTools(tools);
-    },
-    [setSelectedTools]
-  );
-
-  const handleAgentModeToggle = useCallback(
-    (enabled: boolean) => {
-      setAgentMode(enabled);
-    },
-    [setAgentMode]
-  );
-
-  // IDLE state
-  if (portalState === "idle" || isTransitioning) {
-    return (
-      <Box
-        css={styles(theme)}
-        className={`portal-state-idle ${isTransitioning ? "portal-transitioning" : ""}`}
-      >
-        <AppHeader />
-        <div className="portal-center">
-          <div className="portal-heading">
-            {isReturningUser ? (
-              <>
-                Welcome back.
-                <br />
-                {"What's next?"}
-              </>
-            ) : (
-              "What shall we build?"
-            )}
-          </div>
-
-          <div className="portal-input-wrapper">
-            <PortalInput
-              onSend={handleIdleSend}
-              onSearchChange={handleSearchChange}
-            />
-            {debouncedQuery.length >= 2 && (
-              <PortalSearchResults
-                query={debouncedQuery}
-                workflows={sortedWorkflows}
-                templates={startTemplates}
-                onSelectWorkflow={handleWorkflowItemClick}
-                onSelectTemplate={handleTemplateSelect}
-              />
-            )}
-          </div>
-
-          {!isTransitioning && (
-            <div className="portal-recents">
-              <PortalRecents
-                workflows={sortedWorkflows}
-                threads={threads}
-                onWorkflowClick={handleWorkflowItemClick}
-                onThreadClick={handleThreadClick}
-              />
-            </div>
-          )}
-
-          {!isReturningUser && !isTransitioning && (
-            <div className="portal-hint">Type anything to get started</div>
-          )}
-        </div>
-      </Box>
-    );
-  }
-
   // SETUP state
   if (portalState === "setup") {
     return (
       <Box css={styles(theme)}>
         <AppHeader />
-        <div className="portal-chat-container">
-          <div className="portal-chat-header">
-            <IconButton
-              className="portal-new-chat-btn"
-              onClick={handleNewChat}
-              size="small"
-              title="New chat"
-            >
-              <AddIcon fontSize="small" />
-            </IconButton>
-          </div>
+        <div className="portal-setup-container">
           <div className="portal-setup-message">
             <PortalSetupFlow onComplete={handleSetupComplete} />
           </div>
@@ -430,40 +301,57 @@ const Portal: React.FC = () => {
     );
   }
 
-  // CHATTING state
+  // IDLE state (default)
   return (
-    <Box css={styles(theme)}>
+    <Box
+      css={styles(theme)}
+      className={isTransitioning ? "portal-transitioning" : ""}
+    >
       <AppHeader />
-      <div className="portal-chat-container">
-        <div className="portal-chat-header">
-          <IconButton
-            className="portal-new-chat-btn"
-            onClick={handleNewChat}
-            size="small"
-            title="New chat"
-          >
-            <AddIcon fontSize="small" />
-          </IconButton>
+      <div className="portal-center">
+        <div className="portal-heading">
+          {isReturningUser ? (
+            <>
+              Welcome back.
+              <br />
+              {"What's next?"}
+            </>
+          ) : (
+            "What shall we build?"
+          )}
         </div>
-        <ChatView
-          status={status as any}
-          progress={progress.current}
-          total={progress.total}
-          messages={messages}
-          model={selectedModel}
-          sendMessage={handleChatSend}
-          progressMessage={statusMessage}
-          selectedTools={selectedTools}
-          onToolsChange={handleToolsChange}
-          onModelChange={handleModelChange}
-          agentMode={agentMode}
-          onAgentModeToggle={handleAgentModeToggle}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-          currentLogUpdate={currentLogUpdate}
-          onStop={stopGeneration}
-          onNewChat={handleNewChat}
-        />
+
+        <div className="portal-input-wrapper">
+          <PortalInput
+            onSend={handleIdleSend}
+            onSearchChange={handleSearchChange}
+            disabled={isTransitioning}
+          />
+          {debouncedQuery.length >= 2 && !isTransitioning && (
+            <PortalSearchResults
+              query={debouncedQuery}
+              workflows={sortedWorkflows}
+              templates={startTemplates}
+              onSelectWorkflow={handleWorkflowItemClick}
+              onSelectTemplate={handleTemplateSelect}
+            />
+          )}
+        </div>
+
+        {!isTransitioning && (
+          <div className="portal-recents">
+            <PortalRecents
+              workflows={sortedWorkflows}
+              threads={threads}
+              onWorkflowClick={handleWorkflowItemClick}
+              onThreadClick={handleThreadClick}
+            />
+          </div>
+        )}
+
+        {!isReturningUser && !isTransitioning && (
+          <div className="portal-hint">Type anything to get started</div>
+        )}
       </div>
     </Box>
   );
