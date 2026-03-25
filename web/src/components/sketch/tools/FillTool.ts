@@ -18,9 +18,12 @@ export class FillTool implements ToolHandler {
       return false;
     }
 
-    const pt = event.point;
+    // Locked layers reject pixel edits.
+    if (activeLayer.locked) {
+      return false;
+    }
 
-    // Only fill if click is within selection (when one exists)
+    const pt = event.point;
     if (selection && selection.width > 0 && selection.height > 0) {
       if (
         pt.x < selection.x ||

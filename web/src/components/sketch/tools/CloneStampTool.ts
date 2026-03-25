@@ -86,9 +86,12 @@ export class CloneStampTool implements ToolHandler {
       return false;
     }
 
-    const pt = event.point;
+    // Locked layers reject pixel edits.
+    if (activeLayer.locked) {
+      return false;
+    }
 
-    // Build coordinate mapper for this layer
+    const pt = event.point;
     this.mapper = new CoordinateMapper({
       layerTransform: activeLayer.transform,
       rasterBounds: activeLayer.contentBounds

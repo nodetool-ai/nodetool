@@ -18,6 +18,12 @@ export class GradientTool implements ToolHandler {
   private gradientEnd: Point | null = null;
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    // Locked layers reject pixel edits.
+    if (!activeLayer || activeLayer.locked) {
+      return false;
+    }
+
     this.gradientStart = event.point;
     this.gradientEnd = event.point;
     ctx.onStrokeStart();

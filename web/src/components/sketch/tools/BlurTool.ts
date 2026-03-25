@@ -58,6 +58,11 @@ export class BlurTool implements ToolHandler {
       return false;
     }
 
+    // Locked layers reject pixel edits.
+    if (activeLayer.locked) {
+      return false;
+    }
+
     const pt = event.point;
     this.lastPoint = pt;
     this.currentPressure = event.pressure || 0.5;

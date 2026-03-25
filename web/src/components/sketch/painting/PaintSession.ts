@@ -90,6 +90,12 @@ export class PaintSession {
       return false;
     }
 
+    // Locked layers reject pixel edits (painting, erasing).
+    // Transform-only operations (move, nudge) bypass PaintSession entirely.
+    if (activeLayer.locked) {
+      return false;
+    }
+
     this.layer = activeLayer;
     ctx.onStrokeStart();
     const rasterBounds = ensureLayerRasterBounds(
