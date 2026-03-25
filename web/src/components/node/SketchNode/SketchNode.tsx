@@ -231,6 +231,18 @@ const outputImageTypeMetadata = {
 
 export const SKETCH_NODE_TYPE = "nodetool.input.SketchInput";
 
+/** Composited `image` output from the editor (flattenToDataUrl); preferred over re-flattening sketch_data alone. */
+function getSketchOutputImageUri(
+  properties: Record<string, unknown> | undefined
+): string | null {
+  const img = properties?.image;
+  if (!img || typeof img !== "object") {
+    return null;
+  }
+  const uri = (img as { uri?: unknown }).uri;
+  return typeof uri === "string" && uri.length > 0 ? uri : null;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface SketchNodeProps extends NodeProps {
@@ -330,6 +342,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
     [sketchDoc.layers]
   );
+
+  const outputImageUri = useMemo(
+    () => getSketchOutputImageUri(props.data.properties),
+    [props.data.properties]
+  );
+
+  const displayPreviewUri = outputImageUri ?? previewUrl;
 
   // ─── Resolve input_image from upstream connections ────────────────
   const inputImageUri = useMemo((): string | null => {
@@ -524,6 +543,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Export callbacks for real-time output updates during editing ──
   const handleExportImage = useCallback(
     (dataUrl: string) => {
+      setPreviewUrl(dataUrl);
       pendingNodePropsRef.current.image = {
         type: "image",
         uri: dataUrl,
@@ -575,18 +595,20 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           <div className="sketch-main">
             <div className="sketch-preview-wrap" onClick={handleOpenEditor}>
               <div className="content">
-                {previewUrl ? (
+                {displayPreviewUri ? (
                   <>
-                    <img className="preview-image" src={previewUrl} alt="Image editor preview" />
+                    <img
+                      className="preview-image"
+                      src={displayPreviewUri}
+                      alt="Image editor preview"
+                    />
                     <div className="edit-overlay">
                       <EditIcon sx={{ fontSize: 32, color: "white" }} />
                       <span className="edit-overlay-label">Edit Image</span>
                     </div>
                   </>
                 ) : (
-                  <Typography className="hint">
-                    Click to open image editor
-                  </Typography>
+                  <Typography className="hint">Click to open image editor</Typography>
                 )}
               </div>
             </div>

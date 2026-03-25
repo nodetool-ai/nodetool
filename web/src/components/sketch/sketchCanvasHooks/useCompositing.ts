@@ -209,6 +209,12 @@ export function useCompositing({
     [doc, isolatedLayerId, activeStrokeRef, backend, bootstrapPhaseActive]
   );
 
+  // rAF callbacks must not close over a stale `compositeToDisplay` — e.g. a frame
+  // queued during WebGPU bootstrap may run after `bootstrapPhaseActive` flips,
+  // and would otherwise paint only onto the hidden bootstrap canvas.
+  const compositeToDisplayRef = useRef(compositeToDisplay);
+  compositeToDisplayRef.current = compositeToDisplay;
+
   const mergePendingDirtyRect = useCallback(
     (x: number, y: number, w: number, h: number) => {
       const next: DirtyRect = { x, y, w, h };
@@ -276,10 +282,10 @@ export function useCompositing({
           activeStrokeRef.current!.pendingCommit = null;
           pending();
         }
-        redraw();
+        compositeToDisplayRef.current(null);
       });
     }
-  }, [redraw, activeStrokeRef]);
+  }, [activeStrokeRef]);
 
   /**
    * Schedule a partial redraw over a dirty region.
@@ -314,14 +320,14 @@ export function useCompositing({
           }
 
           if (isFull || !dirty) {
-            compositeToDisplay(null);
+            compositeToDisplayRef.current(null);
           } else {
-            compositeToDisplay(dirty);
+            compositeToDisplayRef.current(dirty);
           }
         });
       }
     },
-    [mergePendingDirtyRect, compositeToDisplay, activeStrokeRef]
+    [mergePendingDirtyRect, activeStrokeRef]
   );
 
   // ─── Initialize layer canvases from document data ───────────────────

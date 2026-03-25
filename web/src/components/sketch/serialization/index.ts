@@ -10,6 +10,7 @@ import {
   Layer,
   normalizeSketchDocument
 } from "../types";
+import { blendModeToComposite } from "../drawingUtils";
 
 const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
 
@@ -179,6 +180,7 @@ async function drawLayerToContext(
   );
   ctx.save();
   ctx.globalAlpha = layer.opacity;
+  ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode ?? "normal");
   ctx.drawImage(
     layerCanvas,
     (layer.transform?.x ?? 0) + bounds.x,
