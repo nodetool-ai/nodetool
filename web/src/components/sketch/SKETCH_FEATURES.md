@@ -35,10 +35,10 @@
 
 ## PHASE 2 - FIXES
 
-- [ ] remove white border around canvas, seems not to come from css?
+- [x] remove white border around canvas, seems not to come from css?
 - [ ] make alpha texture resolution independent
-- [ ] fix history redo, currently not working. undo does work.
-- [ ] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
+- [x] fix history redo, currently not working. undo does work.
+- [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
 - [ ] improve round cursor/tool preview accuracy, currently roughly 2 times too large
 - [ ] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
 
