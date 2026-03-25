@@ -17,7 +17,10 @@ const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
     return "python";
   }
-  if (nodeType === "nodetool.code.ExecuteJavaScript") {
+  if (
+    nodeType === "nodetool.code.ExecuteJavaScript" ||
+    nodeType === "nodetool.code.Code"
+  ) {
     return "javascript";
   }
   if (nodeType === "nodetool.code.ExecuteBash") {
@@ -189,6 +192,7 @@ const StringProperty = ({
         <TextEditorModal
           value={stringValue}
           language={codeLanguage}
+          nodeType={nodeType}
           onChange={handleCodeChange}
           onClose={toggleExpand}
           propertyName={property.name}

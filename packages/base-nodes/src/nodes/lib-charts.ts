@@ -2,51 +2,53 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 
 export class ChartRendererLibNode extends BaseNode {
-  static readonly nodeType = "lib.seaborn.ChartRenderer";
-            static readonly title = "Chart Renderer";
-            static readonly description = "Node responsible for rendering chart configurations into image format using seaborn.\n    chart, seaborn, plot, visualization, data";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.charts.ChartRenderer";
+  static readonly title = "Chart Renderer";
+  static readonly description = "Node responsible for rendering chart configurations into image format using seaborn.\n    chart, seaborn, plot, visualization, data";
+  static readonly metadataOutputTypes = {
     output: "image"
   };
-  
-  @prop({ type: "chart_config", default: {
-  "type": "chart_config",
-  "title": "",
-  "x_label": "",
-  "y_label": "",
-  "legend": true,
-  "data": {
-    "type": "chart_data",
-    "series": [],
-    "row": null,
-    "col": null,
-    "col_wrap": null
-  },
-  "height": null,
-  "aspect": null,
-  "x_lim": null,
-  "y_lim": null,
-  "x_scale": null,
-  "y_scale": null,
-  "legend_position": "auto",
-  "palette": null,
-  "hue_order": null,
-  "hue_norm": null,
-  "sizes": null,
-  "size_order": null,
-  "size_norm": null,
-  "marginal_kws": null,
-  "joint_kws": null,
-  "diag_kind": null,
-  "corner": false,
-  "center": null,
-  "vmin": null,
-  "vmax": null,
-  "cmap": null,
-  "annot": false,
-  "fmt": ".2g",
-  "square": false
-}, title: "Chart Config", description: "The chart configuration to render." })
+
+  @prop({
+    type: "chart_config", default: {
+      "type": "chart_config",
+      "title": "",
+      "x_label": "",
+      "y_label": "",
+      "legend": true,
+      "data": {
+        "type": "chart_data",
+        "series": [],
+        "row": null,
+        "col": null,
+        "col_wrap": null
+      },
+      "height": null,
+      "aspect": null,
+      "x_lim": null,
+      "y_lim": null,
+      "x_scale": null,
+      "y_scale": null,
+      "legend_position": "auto",
+      "palette": null,
+      "hue_order": null,
+      "hue_norm": null,
+      "sizes": null,
+      "size_order": null,
+      "size_norm": null,
+      "marginal_kws": null,
+      "joint_kws": null,
+      "diag_kind": null,
+      "corner": false,
+      "center": null,
+      "vmin": null,
+      "vmax": null,
+      "cmap": null,
+      "annot": false,
+      "fmt": ".2g",
+      "square": false
+    }, title: "Chart Config", description: "The chart configuration to render."
+  })
   declare chart_config: any;
 
   @prop({ type: "int", default: 640, title: "Width", description: "The width of the chart in pixels.", min: 0, max: 10000 })
@@ -55,14 +57,16 @@ export class ChartRendererLibNode extends BaseNode {
   @prop({ type: "int", default: 480, title: "Height", description: "The height of the chart in pixels.", min: 0, max: 10000 })
   declare height: any;
 
-  @prop({ type: "dataframe", default: {
-  "type": "dataframe",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null,
-  "columns": null
-}, title: "Data", description: "The data to visualize as a pandas DataFrame." })
+  @prop({
+    type: "dataframe", default: {
+      "type": "dataframe",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null,
+      "columns": null
+    }, title: "Data", description: "The data to visualize as a pandas DataFrame."
+  })
   declare data: any;
 
   @prop({ type: "bool", default: true, title: "Despine", description: "Whether to remove top and right spines." })
@@ -121,15 +125,15 @@ export class ChartRendererLibNode extends BaseNode {
 
     const datasets = series.length > 0
       ? series.map((s) => {
-          const sYCol = String(s.y ?? yCol);
-          const sYIdx = colNames.indexOf(sYCol);
-          const data = sYIdx >= 0 ? rows.map((r) => Number(r[sYIdx])) : values;
-          return {
-            label: sYCol,
-            data,
-            backgroundColor: s.color ? String(s.color) : undefined,
-          };
-        })
+        const sYCol = String(s.y ?? yCol);
+        const sYIdx = colNames.indexOf(sYCol);
+        const data = sYIdx >= 0 ? rows.map((r) => Number(r[sYIdx])) : values;
+        return {
+          label: sYCol,
+          data,
+          backgroundColor: s.color ? String(s.color) : undefined,
+        };
+      })
       : [{ label: yCol, data: values }];
 
     const chartConfig = {

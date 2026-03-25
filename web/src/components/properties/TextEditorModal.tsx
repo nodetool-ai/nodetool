@@ -88,6 +88,7 @@ interface TextEditorModalProps {
   propertyName: string;
   propertyDescription?: string;
   language?: string;
+  nodeType?: string;
   readOnly?: boolean;
   isLoading?: boolean;
   showToolbar?: boolean;
@@ -456,6 +457,23 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.primary.main,
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
         boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15)`
+      },
+      "&.snippet-toggle": {
+        color: theme.vars.palette.primary.light,
+        border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
+        "&:hover": {
+          color: theme.vars.palette.primary.main,
+          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
+          border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.7)`,
+          boxShadow: `0 0 10px rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`
+        },
+        "&.active": {
+          color: theme.vars.palette.primary.main,
+          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`,
+          border: `1px solid ${theme.vars.palette.primary.main}`,
+          boxShadow: `0 0 8px rgba(${theme.vars.palette.primary.mainChannel} / 0.3)`
+        }
       }
     },
     ".resize-handle": {
@@ -548,6 +566,7 @@ const TextEditorModal = ({
   propertyName,
   propertyDescription,
   language: defaultLanguage = "",
+  nodeType = "",
   readOnly = false,
   isLoading = false,
   showToolbar = true,
@@ -655,10 +674,13 @@ const TextEditorModal = ({
     createNewThread
   } = useChatIntegration({
     isCodeEditor,
+    language,
+    nodeType,
     monacoRef,
     getSelectedTextFnRef,
     replaceSelectionFnRef,
     setAllTextFnRef,
+    insertTextFnRef,
     setCurrentText,
     currentText
   });
@@ -901,7 +923,7 @@ const TextEditorModal = ({
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                     >
                       <button
-                        className={`button-ghost ${snippetSidebarVisible ? "active" : ""}`}
+                        className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
                         onClick={() => setSnippetSidebarVisible((v) => !v)}
                       >
                         <DataObjectIcon />

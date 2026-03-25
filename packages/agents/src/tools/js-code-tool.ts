@@ -58,6 +58,42 @@ Generate a random UUID v4.
 ### sleep(ms)
 Pause execution (max 5s per call).
 
+### dayjs(date?)
+Lightweight date library. Parse, format, add/subtract, compare dates.
+\`\`\`js
+dayjs().add(7, "day").format("YYYY-MM-DD");
+dayjs("2024-01-01").diff(dayjs(), "days");
+dayjs(date).isBefore(dayjs());
+dayjs().startOf("month").toISOString();
+\`\`\`
+
+### cheerio
+jQuery-like HTML parser. Parse HTML and extract data with CSS selectors.
+\`\`\`js
+const $ = cheerio.load(html);
+const links = $("a").map((i, el) => $(el).attr("href")).get();
+const text = $("p.content").text();
+const rows = $("table tr").map((i, tr) => $(tr).find("td").map((j, td) => $(td).text()).get()).get();
+\`\`\`
+
+### csvParse(text, options?)
+Robust CSV parser that handles quoted fields, custom delimiters, and headers.
+\`\`\`js
+const rows = csvParse(text, { columns: true, skip_empty_lines: true, trim: true });
+// TSV: csvParse(text, { columns: true, delimiter: "\\t" })
+\`\`\`
+
+### validator
+String validation and sanitization. Comprehensive checks for common formats.
+\`\`\`js
+validator.isEmail("user@example.com");  // true
+validator.isURL("https://example.com"); // true
+validator.isIP("192.168.1.1");          // true
+validator.isUUID("...");                // true
+validator.isJSON('{"a":1}');            // true
+validator.escape("<script>xss</script>"); // HTML entity escape
+\`\`\`
+
 ## Guidelines
 - Use \`return\` to produce the final result (returned in the "result" field)
 - Use \`console.log()\` for intermediate values (captured in "logs" field)

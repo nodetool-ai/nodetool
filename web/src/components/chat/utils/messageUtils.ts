@@ -6,11 +6,14 @@ export interface ParsedThought {
 }
 
 export const stripContextContent = (content: string): string => {
-  const contextMatch = content.match(/<context>([\s\S]*?)(<\/context>|$)(.*)/s);
-  if (!contextMatch) {
-    return content;
+  // Strip <editor_context>...</editor_context> (may appear without closing tag)
+  let result = content.replace(/<editor_context>[\s\S]*?(<\/editor_context>|(?=\n\n|$))/s, "").trimStart();
+  // Strip legacy <context>...</context>
+  const contextMatch = result.match(/<context>([\s\S]*?)(<\/context>|$)(.*)/s);
+  if (contextMatch) {
+    result = contextMatch[3];
   }
-  return contextMatch[3];
+  return result;
 };
 
 export const parseThoughtContent = (content: string): ParsedThought | null => {

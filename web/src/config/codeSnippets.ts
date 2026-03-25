@@ -10,12 +10,14 @@ export type SnippetCategory =
   | "Boolean & Logic"
   | "Math"
   | "Text"
+  | "Regex"
   | "List"
   | "Dictionary"
   | "Date & Time"
   | "UUID"
   | "HTTP"
   | "JSON"
+  | "Data Table"
   | "Streaming";
 
 export interface CodeSnippet {
@@ -31,12 +33,14 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "Boolean & Logic",
   "Math",
   "Text",
+  "Regex",
   "List",
   "Dictionary",
   "Date & Time",
   "UUID",
   "HTTP",
   "JSON",
+  "Data Table",
   "Streaming",
 ];
 
@@ -953,5 +957,683 @@ return { output: path };`,
     code: `const files = await workspace.list(path);
 return { output: files };`,
     tags: ["file", "list", "directory", "ls", "workspace"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Text (additional — replaces text-extra nodes)
+  // ---------------------------------------------------------------------------
+  {
+    id: "text-extract",
+    title: "Extract Substring",
+    description: "Extract a portion of text by start/end index",
+    category: "Text",
+    code: `return { output: text.slice(start, end) };`,
+    tags: ["extract", "substring", "slice", "range"],
+  },
+  {
+    id: "text-chunk",
+    title: "Chunk Text",
+    description: "Split text into word-based chunks with optional overlap",
+    category: "Text",
+    code: `const chunkSize = 100, overlap = 0;
+const words = text.split(" ");
+const step = chunkSize - overlap;
+const chunks = [];
+for (let i = 0; i < words.length; i += step) {
+  chunks.push(words.slice(i, i + chunkSize).join(" "));
+}
+return { output: chunks };`,
+    tags: ["chunk", "split", "overlap", "window", "words"],
+  },
+  {
+    id: "text-title-case",
+    title: "Title Case",
+    description: "Convert text to title case (capitalize each word)",
+    category: "Text",
+    code: `return { output: text.replace(/\\w\\S*/g, w =>
+  w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+) };`,
+    tags: ["title", "case", "capitalize", "words"],
+  },
+  {
+    id: "text-capitalize",
+    title: "Capitalize",
+    description: "Capitalize only the first character",
+    category: "Text",
+    code: `return { output: text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() };`,
+    tags: ["capitalize", "first", "letter", "sentence"],
+  },
+  {
+    id: "text-starts-with",
+    title: "Starts With",
+    description: "Check if text starts with a prefix",
+    category: "Text",
+    code: `return { output: text.startsWith(prefix) };`,
+    tags: ["starts", "prefix", "check", "begins"],
+  },
+  {
+    id: "text-ends-with",
+    title: "Ends With",
+    description: "Check if text ends with a suffix",
+    category: "Text",
+    code: `return { output: text.endsWith(suffix) };`,
+    tags: ["ends", "suffix", "check", "extension"],
+  },
+  {
+    id: "text-contains",
+    title: "Contains",
+    description: "Check if text contains a substring (case-insensitive option)",
+    category: "Text",
+    code: `// case insensitive: text.toLowerCase().includes(sub.toLowerCase())
+return { output: text.includes(substring) };`,
+    tags: ["contains", "includes", "search", "find"],
+  },
+  {
+    id: "text-is-empty",
+    title: "Is Empty",
+    description: "Check if text is empty or only whitespace",
+    category: "Text",
+    code: `return { output: text.trim().length === 0 };`,
+    tags: ["empty", "blank", "whitespace", "check"],
+  },
+  {
+    id: "text-collapse-whitespace",
+    title: "Collapse Whitespace",
+    description: "Replace runs of whitespace with a single space",
+    category: "Text",
+    code: `return { output: text.trim().replace(/\\s+/g, " ") };`,
+    tags: ["whitespace", "collapse", "normalize", "clean"],
+  },
+  {
+    id: "text-remove-punctuation",
+    title: "Remove Punctuation",
+    description: "Remove punctuation characters from text",
+    category: "Text",
+    code: `return { output: text.replace(/[!"#$%&'()*+,\\-./:;<=>?@[\\\\\\]^_\`{|}~]/g, "") };`,
+    tags: ["punctuation", "remove", "clean", "strip"],
+  },
+  {
+    id: "text-strip-accents",
+    title: "Strip Accents",
+    description: "Remove accent marks, keeping base characters",
+    category: "Text",
+    code: `return { output: text.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "") };`,
+    tags: ["accents", "diacritics", "normalize", "unicode"],
+  },
+  {
+    id: "text-slugify",
+    title: "Slugify",
+    description: "Convert text to a URL-safe slug",
+    category: "Text",
+    code: `return { output: text
+  .normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "")
+  .replace(/[^\\w\\s-]/g, "")
+  .replace(/[\\s_-]+/g, "-")
+  .replace(/^-+|-+$/g, "")
+  .toLowerCase()
+};`,
+    tags: ["slug", "url", "normalize", "id", "kebab"],
+  },
+  {
+    id: "text-length",
+    title: "Measure Length",
+    description: "Count characters, words, or lines in text",
+    category: "Text",
+    code: `return {
+  chars: text.length,
+  words: text.split(/\\s+/).filter(Boolean).length,
+  lines: text.split(/\\r?\\n/).length
+};`,
+    tags: ["length", "count", "words", "lines", "characters"],
+  },
+  {
+    id: "text-index-of",
+    title: "Index Of",
+    description: "Find the position of a substring",
+    category: "Text",
+    code: `return { output: text.indexOf(substring) };`,
+    tags: ["index", "find", "position", "search", "indexOf"],
+  },
+  {
+    id: "text-surround",
+    title: "Surround / Wrap",
+    description: "Wrap text with a prefix and suffix",
+    category: "Text",
+    code: `return { output: prefix + text + suffix };`,
+    tags: ["surround", "wrap", "prefix", "suffix", "bracket"],
+  },
+  {
+    id: "text-truncate",
+    title: "Truncate",
+    description: "Truncate text to a max length with optional ellipsis",
+    category: "Text",
+    code: `const maxLen = 100, ellipsis = "...";
+if (text.length <= maxLen) return { output: text };
+return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
+    tags: ["truncate", "clip", "shorten", "ellipsis"],
+  },
+  {
+    id: "text-compare",
+    title: "Compare Text",
+    description: "Compare two strings (equal, less, greater)",
+    category: "Text",
+    code: `const result = a < b ? "less" : a > b ? "greater" : "equal";
+return { output: result, equal: a === b };`,
+    tags: ["compare", "sort", "order", "equal", "lexical"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Regex (replaces text-extra regex nodes)
+  // ---------------------------------------------------------------------------
+  {
+    id: "regex-extract-groups",
+    title: "Extract Regex Groups",
+    description: "Extract capture groups from the first match",
+    category: "Regex",
+    code: `const match = new RegExp(pattern).exec(text);
+return { output: match ? match.slice(1) : [] };`,
+    tags: ["regex", "extract", "groups", "capture"],
+  },
+  {
+    id: "regex-find-all",
+    title: "Find All Matches",
+    description: "Find all occurrences of a pattern",
+    category: "Regex",
+    code: `const matches = [...text.matchAll(new RegExp(pattern, "g"))].map(m => m[0]);
+return { output: matches };`,
+    tags: ["regex", "find", "all", "matchAll", "global"],
+  },
+  {
+    id: "regex-replace",
+    title: "Regex Replace",
+    description: "Replace text matching a regex pattern",
+    category: "Regex",
+    code: `return { output: text.replace(new RegExp(pattern, "g"), replacement) };`,
+    tags: ["regex", "replace", "substitute", "gsub"],
+  },
+  {
+    id: "regex-split",
+    title: "Regex Split",
+    description: "Split text using a regex delimiter",
+    category: "Regex",
+    code: `return { output: text.split(new RegExp(pattern)) };`,
+    tags: ["regex", "split", "tokenize", "delimiter"],
+  },
+  {
+    id: "regex-validate",
+    title: "Regex Validate",
+    description: "Check if text matches a regex pattern",
+    category: "Regex",
+    code: `return { output: new RegExp(pattern).test(text) };`,
+    tags: ["regex", "validate", "test", "check", "match"],
+  },
+  {
+    id: "regex-match-groups",
+    title: "Match with Groups",
+    description: "Find all matches and extract a specific capture group",
+    category: "Regex",
+    code: `const group = 1; // 0 = full match, 1+ = capture group
+const matches = [...text.matchAll(new RegExp(pattern, "g"))]
+  .map(m => m[group])
+  .filter(v => v !== undefined);
+return { output: matches };`,
+    tags: ["regex", "match", "groups", "capture", "extract"],
+  },
+  {
+    id: "regex-replace-limited",
+    title: "Replace N Times",
+    description: "Replace only the first N occurrences of a pattern",
+    category: "Regex",
+    code: `let count = 0;
+const maxReplacements = 2;
+const result = text.replace(new RegExp(pattern, "g"), (match) => {
+  if (count >= maxReplacements) return match;
+  count++;
+  return replacement;
+});
+return { output: result };`,
+    tags: ["regex", "replace", "count", "limit", "first"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // JSON (additional — replaces ExtractJSON node)
+  // ---------------------------------------------------------------------------
+  {
+    id: "json-extract-path",
+    title: "Extract JSONPath",
+    description: "Extract values using dot-path with wildcard support",
+    category: "JSON",
+    code: `// Supports: $.store.book[0].title, $.store.*, $.items[*].name
+const tokens = path.replace(/^\\$\\.?/, "").replace(/\\[(\\d+)\\]/g, ".$1").split(".").filter(Boolean);
+let current = [data];
+for (const t of tokens) {
+  const next = [];
+  for (const v of current) {
+    if (t === "*") {
+      if (Array.isArray(v)) next.push(...v);
+      else if (v && typeof v === "object") next.push(...Object.values(v));
+    } else if (Array.isArray(v) && /^\\d+$/.test(t)) next.push(v[Number(t)]);
+    else if (v && typeof v === "object" && t in v) next.push(v[t]);
+  }
+  current = next;
+}
+return { output: current.length === 1 ? current[0] : current };`,
+    tags: ["json", "jsonpath", "extract", "nested", "wildcard"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Data Table (replaces data.ts dataframe nodes)
+  // ---------------------------------------------------------------------------
+  {
+    id: "data-filter-rows",
+    title: "Filter Rows",
+    description: "Filter rows matching a condition",
+    category: "Data Table",
+    code: `// rows = [{ name: "Alice", age: 30 }, ...]
+return { output: rows.filter(row => row.age > 25) };`,
+    tags: ["filter", "rows", "where", "condition", "dataframe"],
+  },
+  {
+    id: "data-slice-rows",
+    title: "Slice Rows",
+    description: "Get a subset of rows by index range",
+    category: "Data Table",
+    code: `return { output: rows.slice(start, end) };`,
+    tags: ["slice", "rows", "range", "offset", "limit", "paginate"],
+  },
+  {
+    id: "data-select-columns",
+    title: "Select Columns",
+    description: "Keep only specific columns from each row",
+    category: "Data Table",
+    code: `const cols = ["name", "age"];
+return { output: rows.map(row =>
+  Object.fromEntries(cols.map(c => [c, row[c]]))
+) };`,
+    tags: ["select", "columns", "project", "pick", "fields"],
+  },
+  {
+    id: "data-extract-column",
+    title: "Extract Column",
+    description: "Extract a single column as an array of values",
+    category: "Data Table",
+    code: `return { output: rows.map(row => row[column]) };`,
+    tags: ["extract", "column", "pluck", "values", "field"],
+  },
+  {
+    id: "data-add-column",
+    title: "Add Column",
+    description: "Add a computed column to each row",
+    category: "Data Table",
+    code: `return { output: rows.map(row => ({
+  ...row,
+  full_name: row.first + " " + row.last
+})) };`,
+    tags: ["add", "column", "computed", "derived", "transform"],
+  },
+  {
+    id: "data-rename-columns",
+    title: "Rename Columns",
+    description: "Rename column keys in each row",
+    category: "Data Table",
+    code: `const mapping = { old_name: "new_name", old_age: "new_age" };
+return { output: rows.map(row => {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[mapping[k] || k] = v;
+  }
+  return out;
+}) };`,
+    tags: ["rename", "columns", "alias", "mapping"],
+  },
+  {
+    id: "data-sort-by",
+    title: "Sort by Column",
+    description: "Sort rows by a column (ascending or descending)",
+    category: "Data Table",
+    code: `const ascending = true;
+return { output: [...rows].sort((a, b) => {
+  const va = a[column], vb = b[column];
+  const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+  return ascending ? cmp : -cmp;
+}) };`,
+    tags: ["sort", "order", "column", "ascending", "descending"],
+  },
+  {
+    id: "data-deduplicate",
+    title: "Drop Duplicates",
+    description: "Remove duplicate rows by key column",
+    category: "Data Table",
+    code: `const seen = new Set();
+return { output: rows.filter(row => {
+  const key = JSON.stringify(row[column]);
+  if (seen.has(key)) return false;
+  seen.add(key);
+  return true;
+}) };`,
+    tags: ["deduplicate", "unique", "distinct", "drop", "duplicates"],
+  },
+  {
+    id: "data-drop-nulls",
+    title: "Drop Nulls",
+    description: "Remove rows containing null/undefined values",
+    category: "Data Table",
+    code: `return { output: rows.filter(row =>
+  Object.values(row).every(v => v !== null && v !== undefined)
+) };`,
+    tags: ["null", "drop", "clean", "missing", "na"],
+  },
+  {
+    id: "data-fill-nulls",
+    title: "Fill Nulls",
+    description: "Replace null/undefined values with a default",
+    category: "Data Table",
+    code: `const fill = 0; // or "", or "N/A"
+return { output: rows.map(row =>
+  Object.fromEntries(Object.entries(row).map(([k, v]) =>
+    [k, v ?? fill]
+  ))
+) };`,
+    tags: ["fill", "null", "default", "missing", "replace", "na"],
+  },
+  {
+    id: "data-group-aggregate",
+    title: "Group By & Aggregate",
+    description: "Group rows by a column and compute aggregates",
+    category: "Data Table",
+    code: `const groups = {};
+for (const row of rows) {
+  const key = row[groupColumn];
+  if (!groups[key]) groups[key] = [];
+  groups[key].push(row);
+}
+return { output: Object.entries(groups).map(([key, items]) => ({
+  [groupColumn]: key,
+  count: items.length,
+  sum: items.reduce((s, r) => s + (r[valueColumn] || 0), 0),
+  avg: items.reduce((s, r) => s + (r[valueColumn] || 0), 0) / items.length,
+})) };`,
+    tags: ["group", "aggregate", "sum", "count", "average", "groupby"],
+  },
+  {
+    id: "data-pivot",
+    title: "Pivot Table",
+    description: "Pivot rows to create a cross-tabulation",
+    category: "Data Table",
+    code: `const result = {};
+for (const row of rows) {
+  const rKey = row[rowColumn];
+  const cKey = row[colColumn];
+  if (!result[rKey]) result[rKey] = { [rowColumn]: rKey };
+  result[rKey][cKey] = row[valueColumn];
+}
+return { output: Object.values(result) };`,
+    tags: ["pivot", "cross", "tabulate", "reshape", "matrix"],
+  },
+  {
+    id: "data-join",
+    title: "Join Tables",
+    description: "Join two tables on a common key (inner join)",
+    category: "Data Table",
+    code: `const index = {};
+for (const row of right) {
+  index[row[key]] = row;
+}
+return { output: left
+  .filter(row => index[row[key]])
+  .map(row => ({ ...row, ...index[row[key]] }))
+};`,
+    tags: ["join", "merge", "inner", "lookup", "tables"],
+  },
+  {
+    id: "data-merge-append",
+    title: "Merge / Append Rows",
+    description: "Combine two tables by appending rows",
+    category: "Data Table",
+    code: `return { output: [...tableA, ...tableB] };`,
+    tags: ["merge", "append", "concat", "union", "combine"],
+  },
+  {
+    id: "data-csv-parse",
+    title: "Parse CSV",
+    description: "Parse CSV text into rows with auto-detected headers",
+    category: "Data Table",
+    code: `const lines = text.trim().split("\\n");
+const headers = lines[0].split(",").map(h => h.trim());
+const rows = lines.slice(1).map(line => {
+  const vals = line.split(",");
+  return Object.fromEntries(headers.map((h, i) => [h, vals[i]?.trim()]));
+});
+return { output: rows };`,
+    tags: ["csv", "parse", "import", "headers", "table"],
+  },
+  {
+    id: "data-find-row",
+    title: "Find Row",
+    description: "Find the first row matching a condition",
+    category: "Data Table",
+    code: `return { output: rows.find(row => row[column] === value) ?? null };`,
+    tags: ["find", "search", "first", "row", "lookup"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Date & Time (dayjs-powered)
+  // ---------------------------------------------------------------------------
+  {
+    id: "dayjs-format",
+    title: "Format Date (dayjs)",
+    description: "Parse and format dates with dayjs",
+    category: "Date & Time",
+    code: `return {
+  formatted: dayjs(dateString).format("YYYY-MM-DD HH:mm"),
+  iso: dayjs(dateString).toISOString(),
+  relative: dayjs(dateString).fromNow?.() ?? "N/A"
+};`,
+    tags: ["dayjs", "format", "date", "parse"],
+  },
+  {
+    id: "dayjs-add-subtract",
+    title: "Add / Subtract Time (dayjs)",
+    description: "Add or subtract time from a date",
+    category: "Date & Time",
+    code: `const d = dayjs(dateString);
+return {
+  plus7days: d.add(7, "day").format("YYYY-MM-DD"),
+  minus1month: d.subtract(1, "month").format("YYYY-MM-DD"),
+  plus2hours: d.add(2, "hour").format("YYYY-MM-DD HH:mm")
+};`,
+    tags: ["dayjs", "add", "subtract", "offset", "shift"],
+  },
+  {
+    id: "dayjs-diff",
+    title: "Date Difference (dayjs)",
+    description: "Calculate difference between two dates",
+    category: "Date & Time",
+    code: `const a = dayjs(dateA), b = dayjs(dateB);
+return {
+  days: a.diff(b, "day"),
+  hours: a.diff(b, "hour"),
+  months: a.diff(b, "month")
+};`,
+    tags: ["dayjs", "diff", "difference", "between", "duration"],
+  },
+  {
+    id: "dayjs-compare",
+    title: "Compare Dates (dayjs)",
+    description: "Check if a date is before, after, or same as another",
+    category: "Date & Time",
+    code: `const a = dayjs(dateA), b = dayjs(dateB);
+return {
+  isBefore: a.isBefore(b),
+  isAfter: a.isAfter(b),
+  isSame: a.isSame(b, "day")
+};`,
+    tags: ["dayjs", "compare", "before", "after", "same"],
+  },
+  {
+    id: "dayjs-start-end",
+    title: "Start / End of Period (dayjs)",
+    description: "Get the start or end of a day, week, month, or year",
+    category: "Date & Time",
+    code: `const d = dayjs(dateString);
+return {
+  startOfWeek: d.startOf("week").format("YYYY-MM-DD"),
+  endOfMonth: d.endOf("month").format("YYYY-MM-DD"),
+  startOfYear: d.startOf("year").format("YYYY-MM-DD")
+};`,
+    tags: ["dayjs", "start", "end", "week", "month", "year"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // HTML Parsing (cheerio)
+  // ---------------------------------------------------------------------------
+  {
+    id: "html-extract-links",
+    title: "Extract Links from HTML",
+    description: "Parse HTML and extract all anchor hrefs",
+    category: "Text",
+    code: `const $ = cheerio.load(html);
+const links = $("a").map((i, el) => ({
+  text: $(el).text().trim(),
+  href: $(el).attr("href") || ""
+})).get();
+return { output: links };`,
+    tags: ["html", "cheerio", "links", "anchor", "href", "scrape"],
+  },
+  {
+    id: "html-extract-images",
+    title: "Extract Images from HTML",
+    description: "Parse HTML and extract all image sources",
+    category: "Text",
+    code: `const $ = cheerio.load(html);
+const images = $("img").map((i, el) => ({
+  src: $(el).attr("src") || "",
+  alt: $(el).attr("alt") || ""
+})).get();
+return { output: images };`,
+    tags: ["html", "cheerio", "images", "img", "src", "scrape"],
+  },
+  {
+    id: "html-extract-text",
+    title: "HTML to Text",
+    description: "Strip all HTML tags and get plain text",
+    category: "Text",
+    code: `const $ = cheerio.load(html);
+return { output: $.text().trim() };`,
+    tags: ["html", "cheerio", "text", "strip", "plain"],
+  },
+  {
+    id: "html-extract-table",
+    title: "Extract Table from HTML",
+    description: "Parse an HTML table into rows of objects",
+    category: "Data Table",
+    code: `const $ = cheerio.load(html);
+const headers = $("table th").map((i, el) => $(el).text().trim()).get();
+const rows = $("table tbody tr").map((i, tr) => {
+  const cells = $(tr).find("td").map((j, td) => $(td).text().trim()).get();
+  return Object.fromEntries(headers.map((h, j) => [h, cells[j] ?? ""]));
+}).get();
+return { output: rows };`,
+    tags: ["html", "cheerio", "table", "parse", "scrape", "rows"],
+  },
+  {
+    id: "html-select",
+    title: "CSS Selector Query",
+    description: "Extract content using CSS selectors",
+    category: "Text",
+    code: `const $ = cheerio.load(html);
+const results = $(selector).map((i, el) => $(el).text().trim()).get();
+return { output: results };`,
+    tags: ["html", "cheerio", "css", "selector", "query", "dom"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // CSV (csv-parse)
+  // ---------------------------------------------------------------------------
+  {
+    id: "csv-parse-robust",
+    title: "Parse CSV (robust)",
+    description: "Parse CSV with proper handling of quoted fields, escapes, and headers",
+    category: "Data Table",
+    code: `const rows = csvParse(text, {
+  columns: true,
+  skip_empty_lines: true,
+  trim: true
+});
+return { output: rows };`,
+    tags: ["csv", "parse", "csvParse", "robust", "quoted", "import"],
+  },
+  {
+    id: "csv-parse-custom-delimiter",
+    title: "Parse TSV / Custom Delimiter",
+    description: "Parse tab-separated or other delimited text",
+    category: "Data Table",
+    code: `const rows = csvParse(text, {
+  columns: true,
+  delimiter: "\\t",  // or ";", "|", etc.
+  skip_empty_lines: true,
+  trim: true
+});
+return { output: rows };`,
+    tags: ["csv", "tsv", "parse", "delimiter", "tab", "separated"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Validation (validator.js)
+  // ---------------------------------------------------------------------------
+  {
+    id: "validate-email",
+    title: "Validate Email",
+    description: "Check if a string is a valid email address",
+    category: "Boolean & Logic",
+    code: `return { output: validator.isEmail(value) };`,
+    tags: ["validate", "email", "check", "validator"],
+  },
+  {
+    id: "validate-url",
+    title: "Validate URL",
+    description: "Check if a string is a valid URL",
+    category: "Boolean & Logic",
+    code: `return { output: validator.isURL(value) };`,
+    tags: ["validate", "url", "check", "validator", "link"],
+  },
+  {
+    id: "validate-ip",
+    title: "Validate IP Address",
+    description: "Check if a string is a valid IPv4 or IPv6 address",
+    category: "Boolean & Logic",
+    code: `return {
+  isIP: validator.isIP(value),
+  isIPv4: validator.isIP(value, 4),
+  isIPv6: validator.isIP(value, 6)
+};`,
+    tags: ["validate", "ip", "address", "ipv4", "ipv6", "network"],
+  },
+  {
+    id: "validate-multiple",
+    title: "Validate String",
+    description: "Common string validations (email, URL, UUID, phone, etc.)",
+    category: "Boolean & Logic",
+    code: `return {
+  isEmail: validator.isEmail(value),
+  isURL: validator.isURL(value),
+  isUUID: validator.isUUID(value),
+  isJSON: validator.isJSON(value),
+  isNumeric: validator.isNumeric(value),
+  isAlpha: validator.isAlpha(value)
+};`,
+    tags: ["validate", "check", "email", "url", "uuid", "json", "number"],
+  },
+  {
+    id: "validate-sanitize",
+    title: "Sanitize Input",
+    description: "Escape and sanitize user input for safety",
+    category: "Text",
+    code: `return {
+  escaped: validator.escape(value),        // HTML entity escape
+  trimmed: validator.trim(value),
+  normalized: validator.normalizeEmail(value) || value
+};`,
+    tags: ["sanitize", "escape", "html", "xss", "clean", "validator"],
   },
 ];

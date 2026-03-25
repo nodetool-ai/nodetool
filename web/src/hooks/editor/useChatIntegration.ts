@@ -5,24 +5,31 @@ import type {
   LanguageModel,
   Message
 } from "../../stores/ApiTypes";
+import { setEditorAdapter } from "../../lib/tools/builtin/editorTools";
 
 export function useChatIntegration(params: {
   isCodeEditor: boolean;
+  language?: string;
+  nodeType?: string;
   monacoRef: React.MutableRefObject<any>;
   getSelectedTextFnRef: React.MutableRefObject<(() => string) | null>;
   replaceSelectionFnRef: React.MutableRefObject<
     ((text: string) => void) | null
   >;
   setAllTextFnRef: React.MutableRefObject<((text: string) => void) | null>;
+  insertTextFnRef?: React.MutableRefObject<((text: string) => void) | null>;
   setCurrentText: (text: string) => void;
   currentText: string;
 }) {
   const {
     isCodeEditor,
+    language = "",
+    nodeType = "",
     monacoRef,
     getSelectedTextFnRef,
     replaceSelectionFnRef,
     setAllTextFnRef,
+    insertTextFnRef,
     setCurrentText,
     currentText
   } = params;
@@ -46,25 +53,155 @@ export function useChatIntegration(params: {
   const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
 
+  // Register editor adapter so frontend tools can read/edit the document
+  useEffect(() => {
+    const getContent = () => {
+      if (isCodeEditor && monacoRef.current) {
+        return monacoRef.current.getValue?.() ?? currentText;
+      }
+      return currentText;
+    };
+
+    const getSelection = () => {
+      if (isCodeEditor && monacoRef.current) {
+        try {
+          const editor = monacoRef.current;
+          const sel = editor.getSelection?.();
+          return sel ? (editor.getModel?.()?.getValueInRange(sel) ?? "") : "";
+        } catch {
+          return "";
+        }
+      }
+      return getSelectedTextFnRef.current?.() ?? "";
+    };
+
+    const replaceAll = (text: string) => {
+      if (isCodeEditor && monacoRef.current) {
+        monacoRef.current.setValue(text);
+        monacoRef.current.focus?.();
+      } else {
+        setAllTextFnRef.current?.(text);
+        setCurrentText(text);
+      }
+    };
+
+    const replaceSelection = (text: string) => {
+      if (isCodeEditor && monacoRef.current) {
+        const editor = monacoRef.current;
+        const sel = editor.getSelection?.();
+        if (sel) {
+          editor.executeEdits("ui-tool", [
+            { range: sel, text, forceMoveMarkers: true }
+          ]);
+          editor.focus?.();
+        } else {
+          replaceAll(text);
+        }
+      } else {
+        replaceSelectionFnRef.current?.(text) ??
+          setAllTextFnRef.current?.(text) ??
+          setCurrentText(text);
+      }
+    };
+
+    const insert = (text: string) => {
+      if (isCodeEditor && monacoRef.current) {
+        const editor = monacoRef.current;
+        const sel = editor.getSelection?.();
+        if (sel) {
+          editor.executeEdits("ui-tool", [
+            { range: sel, text, forceMoveMarkers: true }
+          ]);
+          editor.focus?.();
+        }
+      } else {
+        insertTextFnRef?.current?.(text);
+      }
+    };
+
+    setEditorAdapter({
+      getContent,
+      getSelection,
+      replaceAll,
+      replaceSelection,
+      insert,
+      language: language || "text"
+    });
+
+    return () => setEditorAdapter(null);
+  }, [
+    isCodeEditor,
+    language,
+    monacoRef,
+    currentText,
+    getSelectedTextFnRef,
+    replaceSelectionFnRef,
+    setAllTextFnRef,
+    insertTextFnRef,
+    setCurrentText
+  ]);
+
+  const buildContext = useCallback(() => {
+    const lines = currentText.split("\n").length;
+    const langLabel = language || "text";
+    const nodeLabel = nodeType ? ` (node: ${nodeType})` : "";
+    const isCode = language === "javascript" || language === "typescript";
+    const sandboxDocs = isCode
+      ? `\n<sandbox_api>
+The Code node runs JavaScript in a sandboxed VM with these APIs:
+
+GLOBALS: console.log/warn/error/info, JSON, Math, Date, RegExp, Array, Object, String, Number, Boolean, Map, Set, Promise, Error, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, btoa, atob, structuredClone, TextEncoder, TextDecoder, URL, URLSearchParams
+
+LIBRARIES:
+- _ (lodash): full lodash-es library. Use _.get, _.groupBy, _.chunk, _.sortBy, _.pick, _.omit, _.mapValues, etc.
+- dayjs(date?) — lightweight date library. dayjs().add(7,"day").format("YYYY-MM-DD"), dayjs("2024-01-01").diff(dayjs(),"days"), .startOf("month"), .isBefore(), .isAfter()
+- cheerio — jQuery-like HTML parser. const $ = cheerio.load(html); $("a").map((i,el) => $(el).attr("href")).get(); $("table tr").each(...)
+- csvParse(text, {columns:true, skip_empty_lines:true}) — robust CSV parser that handles quoted fields, returns array of objects
+- validator — string validation: validator.isEmail(s), validator.isURL(s), validator.isIP(s), validator.isUUID(s), validator.isJSON(s), validator.isMobilePhone(s), validator.isPostalCode(s,"US"), etc.
+
+ASYNC APIS:
+- fetch(url, options?) → { ok, status, statusText, headers, body, json } — limited to 20 calls, 15s timeout each, 1MB response limit
+- sleep(ms) → Promise — capped at 5000ms
+- getSecret(name) → Promise<string|undefined> — read secrets by name
+- uuid() → string — generate a UUID v4
+
+WORKSPACE (file I/O):
+- workspace.read(path) → Promise<string>
+- workspace.write(path, content) → Promise<void>
+- workspace.list(path) → Promise<string[]>
+
+STREAMING: Use yield({ output: value }) to emit multiple results. Use state.xxx to persist data across stream invocations.
+
+RETURN FORMAT: Always return an object like { output: value } or { key1: val1, key2: val2 }. Each key becomes a named output port on the node.
+
+BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __filename
+</sandbox_api>`
+      : "";
+    return (
+      `<editor_context>\n` +
+      `language: ${langLabel}${nodeLabel}\n` +
+      `lines: ${lines}${sandboxDocs}\n` +
+      `<document>\n${currentText}\n</document>\n` +
+      `</editor_context>`
+    );
+  }, [currentText, language, nodeType]);
+
   const sendMessage = useCallback(
     async (message: Message) => {
+      const ctx = buildContext();
       if (typeof message.content === "string") {
-        message.content =
-          "<context>" + currentText + "</context>\n\n" + message.content;
+        message.content = ctx + "\n\n" + message.content;
       } else if (Array.isArray(message.content)) {
         message.content = message.content.map((content) => {
           if (content.type === "text") {
-            return {
-              ...content,
-              text: "<context>" + currentText + "</context>\n\n" + content.text
-            };
+            return { ...content, text: ctx + "\n\n" + content.text };
           }
           return content;
         });
       }
       await sendMessageFn(message);
     },
-    [sendMessageFn, currentText]
+    [sendMessageFn, buildContext]
   );
 
   // Connection is now handled automatically by GlobalWebSocketManager

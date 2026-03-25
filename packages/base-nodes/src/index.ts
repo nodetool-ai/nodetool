@@ -369,7 +369,7 @@ export {
   BinaryOperationNode,
   PlotArrayNode,
   LIB_NUMPY_NODES,
-} from "./nodes/lib-numpy.js";
+} from "./nodes/lib-array-math.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -416,8 +416,8 @@ export {
   ConvertFilePandocLibNode,
   ConvertTextPandocLibNode,
   LIB_PANDOC_NODES,
-} from "./nodes/lib-pandoc.js";
-export { YtDlpDownloadLibNode, LIB_YTDLP_NODES } from "./nodes/lib-ytdlp.js";
+} from "./nodes/lib-doc-transform.js";
+export { YtDlpDownloadLibNode, LIB_YTDLP_NODES } from "./nodes/lib-video-download.js";
 export {
   SliceImageGridLibNode,
   CombineImageGridLibNode,
@@ -474,11 +474,11 @@ export {
 export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES,
-} from "./nodes/lib-markitdown.js";
+} from "./nodes/lib-doc-convert.js";
 export {
   ChartRendererLibNode,
   LIB_SEABORN_NODES,
-} from "./nodes/lib-seaborn.js";
+} from "./nodes/lib-charts.js";
 export {
   BaseUrlLibNode,
   ExtractLinksLibNode,
@@ -489,7 +489,7 @@ export {
   HTMLToTextLibNode,
   WebsiteContentExtractorLibNode,
   LIB_BEAUTIFULSOUP_NODES,
-} from "./nodes/lib-beautifulsoup.js";
+} from "./nodes/lib-html-parse.js";
 export {
   FetchRSSFeedLibNode,
   ExtractFeedMetadataLibNode,
@@ -504,11 +504,6 @@ export {
   LIB_SYNTHESIS_NODES,
 } from "./nodes/lib-synthesis.js";
 export {
-  AmplitudeToDBNode,
-  DBToAmplitudeNode,
-  DBToPowerNode,
-  PowerToDBNode,
-  PlotSpectrogramNode,
   GainNode_,
   DelayNode_,
   HighPassFilterNode,
@@ -569,18 +564,15 @@ export {
   NoiseGateNode,
   PhaserNode,
   LIB_PEDALBOARD_EXTRA_NODES,
-} from "./nodes/lib-pedalboard-extra.js";
+} from "./nodes/lib-audio-effects.js";
 export {
-  GetPageCountPdfPlumberNode,
-  ExtractTextPdfPlumberNode,
-  ExtractPageMetadataPdfPlumberNode,
-  ExtractTablesPdfPlumberNode,
-  ExtractImagesPdfPlumberNode,
-  ExtractTextPyMuPdfNode,
-  ExtractMarkdownPyMuPdfNode,
-  ExtractTextBlocksPyMuPdfNode,
-  ExtractTextWithStylePyMuPdfNode,
-  ExtractTablesPyMuPdfNode,
+  PdfPageCountNode,
+  PdfExtractTextNode,
+  PdfExtractMarkdownNode,
+  PdfExtractTablesNode,
+  PdfExtractTextBlocksNode,
+  PdfExtractStyledTextNode,
+  PdfPageMetadataNode,
   LIB_PDF_NODES,
 } from "./nodes/lib-pdf.js";
 export {
@@ -595,8 +587,7 @@ export {
   SegmentAudioByOnsetsNode,
   SaveAudioSegmentsNode,
   LIB_LIBROSA_SPECTRAL_NODES,
-} from "./nodes/lib-librosa-spectral.js";
-export { PaddleOCRLibNode, LIB_OCR_NODES } from "./nodes/lib-ocr.js";
+} from "./nodes/lib-audio-spectral.js";
 export { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
 export { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
 export { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
@@ -661,12 +652,12 @@ import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
 import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-import { LIB_NUMPY_NODES } from "./nodes/lib-numpy.js";
+import { LIB_NUMPY_NODES } from "./nodes/lib-array-math.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
-import { LIB_PANDOC_NODES } from "./nodes/lib-pandoc.js";
-import { LIB_YTDLP_NODES } from "./nodes/lib-ytdlp.js";
+import { LIB_PANDOC_NODES } from "./nodes/lib-doc-transform.js";
+import { LIB_YTDLP_NODES } from "./nodes/lib-video-download.js";
 import { LIB_GRID_NODES } from "./nodes/lib-grid.js";
 import { LIB_SVG_NODES } from "./nodes/lib-svg.js";
 import { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
@@ -680,15 +671,14 @@ import { LIB_SQLITE_NODES } from "./nodes/lib-sqlite.js";
 import { LIB_SUPABASE_NODES } from "./nodes/lib-supabase.js";
 import { LIB_EXCEL_NODES } from "./nodes/lib-excel.js";
 import { LIB_DOCX_NODES } from "./nodes/lib-docx.js";
-import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-beautifulsoup.js";
+import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-html-parse.js";
 import { LIB_BROWSER_NODES } from "./nodes/lib-browser.js";
 import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
-import { LIB_MARKITDOWN_NODES } from "./nodes/lib-markitdown.js";
-import { LIB_SEABORN_NODES } from "./nodes/lib-seaborn.js";
-import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-pedalboard-extra.js";
+import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
+import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
+import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
-import { LIB_LIBROSA_SPECTRAL_NODES } from "./nodes/lib-librosa-spectral.js";
-import { LIB_OCR_NODES } from "./nodes/lib-ocr.js";
+import { LIB_LIBROSA_SPECTRAL_NODES } from "./nodes/lib-audio-spectral.js";
 import { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
 import { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
 import { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
@@ -753,7 +743,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
   ...LIB_LIBROSA_SPECTRAL_NODES,
-  ...LIB_OCR_NODES,
   ...KIE_IMAGE_NODES,
   ...KIE_VIDEO_NODES,
   ...KIE_AUDIO_NODES,
