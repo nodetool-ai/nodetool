@@ -140,6 +140,9 @@ export function useCanvasImperativeHandle({
       nudgeLayer: (layerId: string, dx: number, dy: number) => {
         runtime.nudgeLayer(layerId, dx, dy);
         redraw();
+      },
+      redrawDisplay: () => {
+        redraw();
       }
     }),
     [

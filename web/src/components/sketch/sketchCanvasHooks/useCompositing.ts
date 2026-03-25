@@ -148,6 +148,14 @@ export function useCompositing({
     })
     .join("|");
 
+  /** Visibility / opacity / blend / order — drives display recomposite (hydration sig omits these). */
+  const layerDisplayStackSignature = doc.layers
+    .map(
+      (l) =>
+        `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${String(l.blendMode ?? "normal")}`
+    )
+    .join("|");
+
   // ─── Layer Canvas Management ────────────────────────────────────────
 
   const getOrCreateLayerCanvas = useCallback(
@@ -407,7 +415,15 @@ export function useCompositing({
 
   useEffect(() => {
     requestRedraw();
-  }, [requestRedraw, doc.layers, bootstrapPhaseActive, backend, transformPreviewSignature]);
+  }, [
+    requestRedraw,
+    doc.layers,
+    layerDisplayStackSignature,
+    isolatedLayerId,
+    bootstrapPhaseActive,
+    backend,
+    transformPreviewSignature
+  ]);
 
   // After DOM commit, `<canvas>` refs are set; compositing effects may have run
   // in the same tick with null refs. One layout-pass redraw catches hydration

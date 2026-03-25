@@ -23,11 +23,6 @@ export interface UseLayerActionsParams {
   setLayerBlendMode: (layerId: string, blendMode: BlendMode) => void;
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
-  setLayerTransform: (layerId: string, transform: { x: number; y: number }) => void;
-  setLayerContentBounds: (
-    layerId: string,
-    contentBounds: { x: number; y: number; width: number; height: number }
-  ) => void;
   setMaskLayer: (layerId: string | null) => void;
   toggleAlphaLock: (layerId: string) => void;
   toggleLayerExposedInput: (layerId: string) => void;
@@ -99,28 +94,37 @@ export function useLayerActions({
     [pushHistory, reorderLayers]
   );
 
+  const scheduleDisplayRedraw = useCallback(() => {
+    requestAnimationFrame(() => {
+      canvasRef.current?.redrawDisplay();
+    });
+  }, [canvasRef]);
+
   const handleToggleVisibility = useCallback(
     (layerId: string) => {
       pushHistory("toggle visibility");
       toggleLayerVisibility(layerId);
+      scheduleDisplayRedraw();
     },
-    [pushHistory, toggleLayerVisibility]
+    [pushHistory, toggleLayerVisibility, scheduleDisplayRedraw]
   );
 
   const handleSetLayerOpacity = useCallback(
     (layerId: string, opacity: number) => {
       pushHistory("change opacity");
       setLayerOpacity(layerId, opacity);
+      scheduleDisplayRedraw();
     },
-    [pushHistory, setLayerOpacity]
+    [pushHistory, setLayerOpacity, scheduleDisplayRedraw]
   );
 
   const handleSetLayerBlendMode = useCallback(
     (layerId: string, blendMode: BlendMode) => {
       pushHistory("change blend mode");
       setLayerBlendMode(layerId, blendMode);
+      scheduleDisplayRedraw();
     },
-    [pushHistory, setLayerBlendMode]
+    [pushHistory, setLayerBlendMode, scheduleDisplayRedraw]
   );
 
   const handleRenameLayer = useCallback(
@@ -161,7 +165,10 @@ export function useLayerActions({
     [toggleLayerExposedOutput]
   );
 
-  const handleFlipHorizontal = useCallback(() => {
+  const handleFlipLayer = useCallback((
+    direction: "horizontal" | "vertical",
+    historyLabel: "flip horizontal" | "flip vertical"
+  ) => {
     const layerId = document.activeLayerId;
     if (!layerId || !canvasRef.current) {
       return;
@@ -170,8 +177,8 @@ export function useLayerActions({
     if (!layer || layer.locked) {
       return;
     }
-    pushHistory("flip horizontal");
-    canvasRef.current.flipLayer(layerId, "horizontal");
+    pushHistory(historyLabel);
+    canvasRef.current.flipLayer(layerId, direction);
     const data = canvasRef.current.getLayerData(layerId);
     updateLayerData(layerId, data);
   }, [
@@ -182,26 +189,15 @@ export function useLayerActions({
     canvasRef
   ]);
 
-  const handleFlipVertical = useCallback(() => {
-    const layerId = document.activeLayerId;
-    if (!layerId || !canvasRef.current) {
-      return;
-    }
-    const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer || layer.locked) {
-      return;
-    }
-    pushHistory("flip vertical");
-    canvasRef.current.flipLayer(layerId, "vertical");
-    const data = canvasRef.current.getLayerData(layerId);
-    updateLayerData(layerId, data);
-  }, [
-    document.activeLayerId,
-    document.layers,
-    pushHistory,
-    updateLayerData,
-    canvasRef
-  ]);
+  const handleFlipHorizontal = useCallback(
+    () => handleFlipLayer("horizontal", "flip horizontal"),
+    [handleFlipLayer]
+  );
+
+  const handleFlipVertical = useCallback(
+    () => handleFlipLayer("vertical", "flip vertical"),
+    [handleFlipLayer]
+  );
 
   const handleMergeDown = useCallback(() => {
     const layers = document.layers;

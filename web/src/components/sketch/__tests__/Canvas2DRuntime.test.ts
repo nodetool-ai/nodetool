@@ -559,6 +559,60 @@ describe("Canvas2DRuntime", () => {
         getContextSpy.mockRestore();
       }
     });
+
+    it("draws a transformed layer at raster-bounds plus transform offset", () => {
+      const doc = makeDoc();
+      const layer = doc.layers[0];
+      layer.transform = { x: 12, y: -5 };
+
+      const layerCanvas = runtime.getOrCreateLayerCanvas(layer.id, 32, 24);
+      setCanvasRasterBounds(layerCanvas, { x: -7, y: 9, width: 32, height: 24 });
+
+      const drawImage = jest.fn();
+      const fillRect = jest.fn();
+      const createPattern = jest.fn(() => "pattern" as unknown as CanvasPattern);
+      const save = jest.fn();
+      const restore = jest.fn();
+      const clearRect = jest.fn();
+      const beginPath = jest.fn();
+      const rect = jest.fn();
+      const clip = jest.fn();
+      const strokeRect = jest.fn();
+
+      const fakeContext = {
+        drawImage,
+        fillRect,
+        createPattern,
+        save,
+        restore,
+        clearRect,
+        beginPath,
+        rect,
+        clip,
+        strokeRect,
+        globalAlpha: 1,
+        globalCompositeOperation: "source-over",
+        fillStyle: "#000"
+      } as unknown as CanvasRenderingContext2D;
+
+      const getContextSpy = jest
+        .spyOn(HTMLCanvasElement.prototype, "getContext")
+        .mockImplementation((((contextId: string) =>
+          contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+      try {
+        const target = document.createElement("canvas");
+        target.width = 64;
+        target.height = 64;
+
+        runtime.compositeToDisplay(target, doc, null, null);
+
+        const layerDraw = drawImage.mock.calls.find(([canvas]) => canvas === layerCanvas);
+        expect(layerDraw).toEqual([layerCanvas, 5, 4]);
+      } finally {
+        getContextSpy.mockRestore();
+      }
+    });
   });
 
   // ─── setLayerData ──────────────────────────────────────────────────

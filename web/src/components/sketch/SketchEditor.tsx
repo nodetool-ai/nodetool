@@ -110,8 +110,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setLayerBlendMode: store.setLayerBlendMode,
     renameLayer: store.renameLayer,
     updateLayerData: store.updateLayerData,
-    setLayerTransform: store.setLayerTransform,
-    setLayerContentBounds: store.setLayerContentBounds,
     setMaskLayer: store.setMaskLayer,
     toggleAlphaLock: store.toggleAlphaLock,
     toggleLayerExposedInput: store.toggleLayerExposedInput,
@@ -128,8 +126,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     zoom: store.zoom,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
-    translateLayer: store.translateLayer,
-    setLayerTransform: store.setLayerTransform,
+    offsetLayerTransform: store.offsetLayerTransform,
+    commitLayerTransform: store.commitLayerTransform,
     setLayerContentBounds: store.setLayerContentBounds,
     setDocument: store.setDocument,
     setZoom: store.setZoom,
@@ -326,7 +324,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
               onStrokeStart={canvasActions.handleStrokeStart}
               onStrokeEnd={canvasActions.handleStrokeEnd}
               onCanvasLeave={canvasActions.flushLayerThumbnailsWhenIdle}
-              onLayerTransformChange={store.setLayerTransform}
+              onLayerTransformChange={canvasActions.handleCommitLayerTransform}
               onLayerContentBoundsChange={store.setLayerContentBounds}
               onBrushSizeChange={colorActions.handleBrushSizeChange}
               onContextMenu={canvasActions.handleContextMenu}

@@ -287,9 +287,9 @@ function getSketchOutputImageUri(
  *   - wrapped output       { output: { type: "image", uri: "..." } }
  */
 function extractImageUri(result: unknown): string | null {
-  if (!result || typeof result !== "object") return null;
+  if (!result || typeof result !== "object") { return null; }
   const r = result as Record<string, unknown>;
-  if (typeof r.uri === "string" && r.uri) return r.uri;
+  if (typeof r.uri === "string" && r.uri) { return r.uri; }
   if (r.output && typeof r.output === "object") {
     const out = r.output as Record<string, unknown>;
     if (typeof out.uri === "string" && out.uri) return out.uri;
@@ -334,6 +334,28 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const updateNodeData = useNodes((s) => s.updateNodeData);
 
   const { getEdges } = useReactFlow();
+
+  // Parse sketch document from node properties
+  const sketchDoc = useMemo((): SketchDocument => {
+    const sketchData = props.data.properties?.sketch_data;
+    if (typeof sketchData === "string" && sketchData) {
+      const parsed = deserializeDocument(sketchData);
+      if (parsed) {
+        return parsed;
+      }
+    }
+    return createDefaultDocument();
+  }, [props.data.properties?.sketch_data]);
+
+  // ─── Compute exposed layer handles ────────────────────────────────
+  const exposedInputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsInput),
+    [sketchDoc.layers]
+  );
+  const exposedOutputLayers = useMemo(
+    () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
+    [sketchDoc.layers]
+  );
 
   // ─── Resolve source node IDs for all image inputs ─────────────────
   // Connected values live on the SOURCE node's result, not this node's own
@@ -426,28 +448,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       }
     };
   }, []);
-
-  // Parse sketch document from node properties
-  const sketchDoc = useMemo((): SketchDocument => {
-    const sketchData = props.data.properties?.sketch_data;
-    if (typeof sketchData === "string" && sketchData) {
-      const parsed = deserializeDocument(sketchData);
-      if (parsed) {
-        return parsed;
-      }
-    }
-    return createDefaultDocument();
-  }, [props.data.properties?.sketch_data]);
-
-  // ─── Compute exposed layer handles ────────────────────────────────
-  const exposedInputLayers = useMemo(
-    () => sketchDoc.layers.filter((l) => l.exposedAsInput),
-    [sketchDoc.layers]
-  );
-  const exposedOutputLayers = useMemo(
-    () => sketchDoc.layers.filter((l) => l.exposedAsOutput),
-    [sketchDoc.layers]
-  );
 
   const layerIoSyncSignature = useMemo(
     () => sketchLayerIoSignature(sketchDoc),

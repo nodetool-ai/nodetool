@@ -304,4 +304,128 @@ describe("History — layer structure snapshots", () => {
     });
     expect(layerNames()).toEqual(originalOrder);
   });
+
+  it("structure-only move undo and redo preserve raster data and bounds", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().updateLayerData(layerId, "moved-layer-data");
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: -20,
+        y: 14,
+        width: 96,
+        height: 72
+      });
+      useSketchStore.getState().pushHistory("before move", undefined, {
+        restoreMode: "structure-only"
+      });
+      useSketchStore.getState().commitLayerTransform(layerId, { x: 18, y: -9 });
+      useSketchStore.getState().pushHistory("after move", undefined, {
+        restoreMode: "structure-only"
+      });
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toEqual({ x: 0, y: 0 });
+    expect(layer.data).toBe("moved-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: -20,
+      y: 14,
+      width: 96,
+      height: 72
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toEqual({ x: 18, y: -9 });
+    expect(layer.data).toBe("moved-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: -20,
+      y: 14,
+      width: 96,
+      height: 72
+    });
+  });
+
+  it("structure-only nudge undo and redo preserve raster data and bounds", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().updateLayerData(layerId, "nudged-layer-data");
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: 5,
+        y: -7,
+        width: 80,
+        height: 60
+      });
+      useSketchStore.getState().pushHistory("before nudge", undefined, {
+        restoreMode: "structure-only"
+      });
+      useSketchStore.getState().offsetLayerTransform(layerId, 6, 4);
+      useSketchStore.getState().pushHistory("after nudge", undefined, {
+        restoreMode: "structure-only"
+      });
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toEqual({ x: 0, y: 0 });
+    expect(layer.data).toBe("nudged-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: 5,
+      y: -7,
+      width: 80,
+      height: 60
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toEqual({ x: 6, y: 4 });
+    expect(layer.data).toBe("nudged-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: 5,
+      y: -7,
+      width: 80,
+      height: 60
+    });
+  });
+
+  it("captures paint-after-transform snapshots without dropping transform-aware placement", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().commitLayerTransform(layerId, { x: 14, y: -3 });
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: -9,
+        y: 11,
+        width: 40,
+        height: 24
+      });
+      useSketchStore.getState().updateLayerData(layerId, "paint-after-transform");
+      useSketchStore.getState().pushHistory("brush stroke");
+    });
+
+    const entry = useSketchStore.getState().history[0];
+    expect(entry.layerSnapshots[layerId]).toBe("paint-after-transform");
+    expect(entry.layerStructure[0]?.transform).toEqual({ x: 14, y: -3 });
+    expect(entry.layerStructure[0]?.contentBounds).toEqual({
+      x: -9,
+      y: 11,
+      width: 40,
+      height: 24
+    });
+  });
 });

@@ -149,6 +149,29 @@ describe("Sketch Serialization", () => {
   });
 
   describe("bounds-aware layer payloads", () => {
+    it("round-trips a moved layer with serialized raster payload and bounds", () => {
+      const doc = createDefaultDocument(128, 96);
+      doc.layers[0].data = encodeLayerData("data:image/png;base64,serialized", {
+        x: -11,
+        y: 9,
+        width: 44,
+        height: 28
+      });
+      doc.layers[0].transform = { x: 13, y: -6 };
+      doc.layers[0].contentBounds = { x: -11, y: 9, width: 44, height: 28 };
+
+      const restored = deserializeDocument(serializeDocument(doc));
+
+      expect(restored?.layers[0].data).toBe(doc.layers[0].data);
+      expect(restored?.layers[0].transform).toEqual({ x: 13, y: -6 });
+      expect(restored?.layers[0].contentBounds).toEqual({
+        x: -11,
+        y: 9,
+        width: 44,
+        height: 28
+      });
+    });
+
     it("getLayerDataImageUrl extracts embedded image data from serialized payloads", () => {
       const encoded = encodeLayerData("data:image/png;base64,preview", {
         x: 1,

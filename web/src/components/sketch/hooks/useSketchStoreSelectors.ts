@@ -45,8 +45,10 @@ export function useSketchStoreSelectors() {
   const renameLayer = useSketchStore((s) => s.renameLayer);
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setLayerTransform = useSketchStore((s) => s.setLayerTransform);
+  const commitLayerTransform = useSketchStore((s) => s.commitLayerTransform);
   const setLayerContentBounds = useSketchStore((s) => s.setLayerContentBounds);
   const translateLayer = useSketchStore((s) => s.translateLayer);
+  const offsetLayerTransform = useSketchStore((s) => s.offsetLayerTransform);
   const setMaskLayer = useSketchStore((s) => s.setMaskLayer);
   const toggleAlphaLock = useSketchStore((s) => s.toggleAlphaLock);
   const toggleLayerExposedInput = useSketchStore((s) => s.toggleLayerExposedInput);
@@ -123,8 +125,10 @@ export function useSketchStoreSelectors() {
     renameLayer,
     updateLayerData,
     setLayerTransform,
+    commitLayerTransform,
     setLayerContentBounds,
     translateLayer,
+    offsetLayerTransform,
     setMaskLayer,
     toggleAlphaLock,
     toggleLayerExposedInput,

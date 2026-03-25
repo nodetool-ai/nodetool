@@ -245,6 +245,33 @@ describe("useSketchStore", () => {
         y: 2
       });
     });
+
+    it("supports explicit committed transform actions", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().updateLayerData(layerId, "mock-layer-data");
+        useSketchStore.getState().setLayerContentBounds(layerId, {
+          x: -12,
+          y: 8,
+          width: 96,
+          height: 48
+        });
+        useSketchStore.getState().commitLayerTransform(layerId, { x: 10, y: 6 });
+        useSketchStore.getState().offsetLayerTransform(layerId, -4, 3);
+      });
+      const layer = useSketchStore.getState().document.layers[0];
+      expect(layer.transform).toEqual({
+        x: 6,
+        y: 9
+      });
+      expect(layer.data).toBe("mock-layer-data");
+      expect(layer.contentBounds).toEqual({
+        x: -12,
+        y: 8,
+        width: 96,
+        height: 48
+      });
+    });
   });
 
   describe("document actions", () => {

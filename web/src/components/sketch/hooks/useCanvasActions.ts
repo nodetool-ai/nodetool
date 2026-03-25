@@ -30,8 +30,8 @@ export interface UseCanvasActionsParams {
     options?: PushHistoryOptions
   ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
-  translateLayer: (layerId: string, dx: number, dy: number) => void;
-  setLayerTransform: (layerId: string, transform: Point) => void;
+  offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
+  commitLayerTransform: (layerId: string, transform: Point) => void;
   setLayerContentBounds: (
     layerId: string,
     contentBounds: LayerContentBounds
@@ -51,8 +51,8 @@ export function useCanvasActions({
   zoom,
   pushHistory,
   updateLayerData,
-  translateLayer,
-  setLayerTransform,
+  offsetLayerTransform,
+  commitLayerTransform,
   setLayerContentBounds,
   setDocument,
   setZoom,
@@ -166,6 +166,13 @@ export function useCanvasActions({
     [pushHistory]
   );
 
+  const handleCommitLayerTransform = useCallback(
+    (layerId: string, transform: Point) => {
+      commitLayerTransform(layerId, transform);
+    },
+    [commitLayerTransform]
+  );
+
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
     const activeLayerId = document.activeLayerId;
@@ -249,7 +256,7 @@ export function useCanvasActions({
       }
 
       const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
-      setLayerTransform(layerId, { x: 0, y: 0 });
+      commitLayerTransform(layerId, { x: 0, y: 0 });
       setLayerContentBounds(layerId, {
         x: 0,
         y: 0,
@@ -263,7 +270,7 @@ export function useCanvasActions({
       document.canvas.width,
       document.canvas.height,
       canvasRef,
-      setLayerTransform,
+      commitLayerTransform,
       setLayerContentBounds,
       updateLayerData
     ]
@@ -370,26 +377,20 @@ export function useCanvasActions({
       if (recordHistory) {
         pushTransformHistory("nudge layer");
       }
-      translateLayer(activeLayerId, dx, dy);
+      offsetLayerTransform(activeLayerId, dx, dy);
       if (!canvasRef.current) {
         return;
       }
       if (syncOutputs) {
-        if (onExportImage) {
-          onExportImage(canvasRef.current.flattenToDataUrl());
-        }
-        if (onExportMask) {
-          onExportMask(canvasRef.current.getMaskDataUrl());
-        }
+        syncSketchOutputsNow();
       }
     },
     [
       document.activeLayerId,
       document.layers,
       pushHistory,
-      translateLayer,
-      onExportImage,
-      onExportMask,
+      offsetLayerTransform,
+      syncSketchOutputsNow,
       canvasRef
     ]
   );
@@ -425,20 +426,14 @@ export function useCanvasActions({
     setLayerContentBounds(activeLayerId, trimmed.bounds);
     updateLayerData(activeLayerId, trimmed.data);
 
-    if (onExportImage) {
-      onExportImage(canvasRef.current.flattenToDataUrl());
-    }
-    if (onExportMask) {
-      onExportMask(canvasRef.current.getMaskDataUrl());
-    }
+    syncSketchOutputsNow();
   }, [
     document.activeLayerId,
     document.layers,
     pushHistory,
     setLayerContentBounds,
     updateLayerData,
-    onExportImage,
-    onExportMask,
+    syncSketchOutputsNow,
     canvasRef
   ]);
 
@@ -610,6 +605,7 @@ export function useCanvasActions({
     flushLayerThumbnailsWhenIdle,
     handleClearLayer,
     handleFillLayerWithColor,
+    handleCommitLayerTransform,
     handleNudgeLayer,
     handleTrimLayerToBounds,
     handleExportPng,

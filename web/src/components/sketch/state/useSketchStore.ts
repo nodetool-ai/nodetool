@@ -35,6 +35,51 @@ import {
   MAX_HISTORY_SIZE
 } from "../types";
 
+function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument {
+  return {
+    ...document,
+    metadata: {
+      ...document.metadata,
+      updatedAt: new Date().toISOString()
+    }
+  };
+}
+
+function setLayerTransformInDocument(
+  document: SketchDocument,
+  layerId: string,
+  transform: LayerTransform
+): SketchDocument {
+  return withUpdatedDocumentTimestamp({
+    ...document,
+    layers: document.layers.map((layer) =>
+      layer.id === layerId ? { ...layer, transform } : layer
+    )
+  });
+}
+
+function offsetLayerTransformInDocument(
+  document: SketchDocument,
+  layerId: string,
+  dx: number,
+  dy: number
+): SketchDocument {
+  return withUpdatedDocumentTimestamp({
+    ...document,
+    layers: document.layers.map((layer) =>
+      layer.id === layerId
+        ? {
+            ...layer,
+            transform: {
+              x: layer.transform.x + dx,
+              y: layer.transform.y + dy
+            }
+          }
+        : layer
+    )
+  });
+}
+
 export interface SketchStore {
   // ─── Document State ───────────────────────────────────────────────────────
   document: SketchDocument;
@@ -77,11 +122,13 @@ export interface SketchStore {
   renameLayer: (layerId: string, name: string) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   setLayerTransform: (layerId: string, transform: LayerTransform) => void;
+  commitLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerContentBounds: (
     layerId: string,
     contentBounds: Layer["contentBounds"]
   ) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
+  offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
   setMaskLayer: (layerId: string | null) => void;
   toggleAlphaLock: (layerId: string) => void;
   toggleLayerExposedInput: (layerId: string) => void;
@@ -483,16 +530,12 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
 
   setLayerTransform: (layerId: string, transform: LayerTransform) =>
     set((state) => ({
-      document: {
-        ...state.document,
-        layers: state.document.layers.map((l) =>
-          l.id === layerId ? { ...l, transform } : l
-        ),
-        metadata: {
-          ...state.document.metadata,
-          updatedAt: new Date().toISOString()
-        }
-      }
+      document: setLayerTransformInDocument(state.document, layerId, transform)
+    })),
+
+  commitLayerTransform: (layerId: string, transform: LayerTransform) =>
+    set((state) => ({
+      document: setLayerTransformInDocument(state.document, layerId, transform)
     })),
 
   setLayerContentBounds: (layerId: string, contentBounds: Layer["contentBounds"]) =>
@@ -511,24 +554,12 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
 
   translateLayer: (layerId: string, dx: number, dy: number) =>
     set((state) => ({
-      document: {
-        ...state.document,
-        layers: state.document.layers.map((l) =>
-          l.id === layerId
-            ? {
-                ...l,
-                transform: {
-                  x: l.transform.x + dx,
-                  y: l.transform.y + dy
-                }
-              }
-            : l
-        ),
-        metadata: {
-          ...state.document.metadata,
-          updatedAt: new Date().toISOString()
-        }
-      }
+      document: offsetLayerTransformInDocument(state.document, layerId, dx, dy)
+    })),
+
+  offsetLayerTransform: (layerId: string, dx: number, dy: number) =>
+    set((state) => ({
+      document: offsetLayerTransformInDocument(state.document, layerId, dx, dy)
     })),
 
   setMaskLayer: (layerId: string | null) =>

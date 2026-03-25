@@ -102,6 +102,8 @@ export interface SketchCanvasRef {
     color: string
   ) => void;
   nudgeLayer: (layerId: string, dx: number, dy: number) => void;
+  /** Full display composite (layer visibility, opacity, blend, isolation). */
+  redrawDisplay: () => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
