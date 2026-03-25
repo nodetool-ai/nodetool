@@ -577,10 +577,14 @@ export const handleUpdate = (
           }
         });
 
-        state.updateNodeData(update.node_id, {
-          properties: nextStatic,
-          dynamic_properties: nextDynamic
-        });
+        state.updateNodeData(
+          update.node_id,
+          {
+            properties: nextStatic,
+            dynamic_properties: nextDynamic
+          },
+          { skipDirty: true }
+        );
       }
     }
   }

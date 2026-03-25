@@ -145,7 +145,11 @@ export interface NodeStoreState {
   addNode: (node: Node<NodeData>) => void;
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
-  updateNodeData: (id: string, data: Partial<NodeData>) => void;
+  updateNodeData: (
+    id: string,
+    data: Partial<NodeData>,
+    options?: { skipDirty?: boolean }
+  ) => void;
   updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
   deleteNode: (id: string) => void;
   deleteNodes: (ids: string[]) => void;
@@ -732,12 +736,18 @@ export const createNodeStore = (
               get().setWorkflowDirty(true);
             }
           },
-          updateNodeData: (id: string, data: Partial<NodeData>): void => {
+          updateNodeData: (
+            id: string,
+            data: Partial<NodeData>,
+            options?: { skipDirty?: boolean }
+          ): void => {
+            let applied = false;
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
               if (index === -1) {
                 return state;
               }
+              applied = true;
               const nodes = state.nodes.slice();
               const target = nodes[index];
               nodes[index] = {
@@ -746,6 +756,9 @@ export const createNodeStore = (
               };
               return { ...state, nodes };
             });
+            if (applied && options?.skipDirty !== true) {
+              get().setWorkflowDirty(true);
+            }
           },
           updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
             const workflow_id = get().workflow.id;

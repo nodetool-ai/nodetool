@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import * as React from "react";
 import { useHistoryActions } from "../hooks/useHistoryActions";
 import type { HistoryEntry } from "../types";
 
@@ -15,6 +15,14 @@ function makeHistoryEntry(restoreMode: HistoryEntry["restoreMode"]): HistoryEntr
 }
 
 describe("useHistoryActions", () => {
+  beforeEach(() => {
+    jest.spyOn(React, "useCallback").mockImplementation((fn) => fn);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("skips canvas raster replay for structure-only undo entries", () => {
     const restoreLayerCanvas = jest.fn();
     const setLayerData = jest.fn();
@@ -27,11 +35,8 @@ describe("useHistoryActions", () => {
       }
     } as any;
 
-    const { result } = renderHook(() => useHistoryActions({ canvasRef, undo, redo }));
-
-    act(() => {
-      result.current.handleUndo();
-    });
+    const actions = useHistoryActions({ canvasRef, undo, redo });
+    actions.handleUndo();
 
     expect(undo).toHaveBeenCalled();
     expect(restoreLayerCanvas).not.toHaveBeenCalled();
@@ -50,11 +55,8 @@ describe("useHistoryActions", () => {
       }
     } as any;
 
-    const { result } = renderHook(() => useHistoryActions({ canvasRef, undo, redo }));
-
-    act(() => {
-      result.current.handleUndo();
-    });
+    const actions = useHistoryActions({ canvasRef, undo, redo });
+    actions.handleUndo();
 
     expect(setLayerData).toHaveBeenCalledWith("layer1", "data:image/png;base64,abc");
   });
@@ -71,11 +73,8 @@ describe("useHistoryActions", () => {
       }
     } as any;
 
-    const { result } = renderHook(() => useHistoryActions({ canvasRef, undo, redo }));
-
-    act(() => {
-      result.current.handleRedo();
-    });
+    const actions = useHistoryActions({ canvasRef, undo, redo });
+    actions.handleRedo();
 
     expect(redo).toHaveBeenCalled();
     expect(restoreLayerCanvas).not.toHaveBeenCalled();
