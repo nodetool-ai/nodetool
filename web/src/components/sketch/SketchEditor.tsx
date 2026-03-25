@@ -158,6 +158,18 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setGradientSettings: store.setGradientSettings
   });
 
+  // ─── Cancel adjustment preview if tool changes away from "adjust" ──
+  const prevAdjustToolRef = useRef(store.activeTool);
+  useEffect(() => {
+    if (
+      prevAdjustToolRef.current === "adjust" &&
+      store.activeTool !== "adjust"
+    ) {
+      canvasActions.handleCancelAdjustments();
+    }
+    prevAdjustToolRef.current = store.activeTool;
+  }, [store.activeTool, canvasActions]);
+
   // ─── Seed global store from prop before SketchCanvas mounts ─────────
   const { setDocument } = store;
   useLayoutEffect(() => {

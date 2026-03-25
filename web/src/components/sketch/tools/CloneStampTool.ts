@@ -220,7 +220,7 @@ export class CloneStampTool implements ToolHandler {
 
     // Dirty-rect compositing (map from layer-space back to doc-space)
     const dirty = this.strokeDirtyRect.current;
-    if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
+    if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY && this.mapper) {
       const docDirty = this.mapper.dirtyToDoc(dirty);
       ctx.redrawDirty(docDirty.x, docDirty.y, docDirty.w, docDirty.h);
     } else {

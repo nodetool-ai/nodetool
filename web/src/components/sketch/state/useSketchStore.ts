@@ -910,6 +910,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     // post-action state that isn't captured in any entry (pushHistory only
     // records BEFORE-action snapshots). Append a snapshot of the current
     // state so that redo can restore it later.
+    // NOTE: Consecutive undos don't re-trigger this because once we append
+    // the tip entry and decrement, historyIndex < history.length - 1.
     let history = state.history;
     if (state.historyIndex === state.history.length - 1) {
       const tipSnapshot: Record<string, string | null> = {};

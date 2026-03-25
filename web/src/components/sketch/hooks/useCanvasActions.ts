@@ -586,8 +586,10 @@ export function useCanvasActions({
       tmp.toBlob((blob) => {
         if (blob) {
           const item = new ClipboardItem({ "image/png": blob });
-          navigator.clipboard.write([item]).catch(() => {
-            // System clipboard write may fail (permissions); internal copy still works.
+          navigator.clipboard.write([item]).catch((err) => {
+            // May fail due to missing clipboard-write permission, HTTPS
+            // requirement, or browser security policies.
+            console.warn("Clipboard write failed (internal copy still works):", err);
           });
         }
       }, "image/png");
