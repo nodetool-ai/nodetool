@@ -6,6 +6,7 @@
  */
 
 import * as vm from "node:vm";
+import * as _ from "lodash-es";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
@@ -172,188 +173,8 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     }
   };
 
-  // URL helpers
-  const urlHelpers = {
-    encode: (s: string) => encodeURIComponent(s),
-    decode: (s: string) => decodeURIComponent(s),
-    parse: (s: string) => {
-      const u = new URL(s);
-      return {
-        href: u.href,
-        origin: u.origin,
-        protocol: u.protocol,
-        host: u.host,
-        hostname: u.hostname,
-        port: u.port,
-        pathname: u.pathname,
-        search: u.search,
-        hash: u.hash,
-        params: Object.fromEntries(u.searchParams.entries()),
-      };
-    },
-    build: (
-      base: string,
-      params?: Record<string, string | number | boolean>,
-    ) => {
-      const u = new URL(base);
-      if (params) {
-        for (const [k, v] of Object.entries(params)) {
-          u.searchParams.set(k, String(v));
-        }
-      }
-      return u.toString();
-    },
-  };
-
-  // Date/time helpers
-  const dateHelpers = {
-    now: () => Date.now(),
-    iso: () => new Date().toISOString(),
-    parse: (s: string) => new Date(s).getTime(),
-    format: (ts: number) => new Date(ts).toISOString(),
-    diff: (a: string, b: string) =>
-      new Date(a).getTime() - new Date(b).getTime(),
-  };
-
-  // Crypto/hash helpers (simple)
-  const hashHelpers = {
-    uuid: () => crypto.randomUUID(),
-    random: (min = 0, max = 1) => Math.random() * (max - min) + min,
-    randomInt: (min: number, max: number) =>
-      Math.floor(Math.random() * (max - min + 1)) + min,
-  };
-
-  // String helpers
-  const strHelpers = {
-    trim: (s: string) => s.trim(),
-    upper: (s: string) => s.toUpperCase(),
-    lower: (s: string) => s.toLowerCase(),
-    split: (s: string, sep: string) => s.split(sep),
-    join: (arr: string[], sep: string) => arr.join(sep),
-    replace: (s: string, search: string, replacement: string) =>
-      s.replace(new RegExp(search, "g"), replacement),
-    match: (s: string, pattern: string) => s.match(new RegExp(pattern, "g")),
-    includes: (s: string, sub: string) => s.includes(sub),
-    startsWith: (s: string, sub: string) => s.startsWith(sub),
-    endsWith: (s: string, sub: string) => s.endsWith(sub),
-    padStart: (s: string, len: number, fill?: string) =>
-      s.padStart(len, fill),
-    padEnd: (s: string, len: number, fill?: string) => s.padEnd(len, fill),
-    repeat: (s: string, n: number) => s.repeat(Math.min(n, 10000)),
-    slice: (s: string, start: number, end?: number) => s.slice(start, end),
-    lines: (s: string) => s.split("\n"),
-    chars: (s: string) => [...s],
-    reverse: (s: string) => [...s].reverse().join(""),
-    truncate: (s: string, max: number, suffix = "...") =>
-      s.length > max ? s.slice(0, max) + suffix : s,
-  };
-
-  // Array helpers
-  const arrHelpers = {
-    range: (start: number, end: number, step = 1) => {
-      const result: number[] = [];
-      const s = step > 0 ? step : 1;
-      for (
-        let i = start;
-        i < end && result.length < MAX_LOOP_ITERATIONS;
-        i += s
-      ) {
-        result.push(i);
-      }
-      return result;
-    },
-    unique: (arr: unknown[]) => [...new Set(arr)],
-    flatten: (arr: unknown[]) => (arr as unknown[][]).flat(Infinity),
-    chunk: (arr: unknown[], size: number) => {
-      const chunks: unknown[][] = [];
-      for (let i = 0; i < arr.length; i += size) {
-        chunks.push(arr.slice(i, i + size));
-      }
-      return chunks;
-    },
-    zip: (...arrays: unknown[][]) => {
-      const minLen = Math.min(...arrays.map((a) => a.length));
-      return Array.from({ length: minLen }, (_, i) =>
-        arrays.map((a) => a[i]),
-      );
-    },
-    groupBy: (arr: Record<string, unknown>[], key: string) => {
-      const groups: Record<string, unknown[]> = {};
-      for (const item of arr) {
-        const k = String(item[key] ?? "undefined");
-        if (!groups[k]) groups[k] = [];
-        groups[k].push(item);
-      }
-      return groups;
-    },
-    sortBy: (arr: Record<string, unknown>[], key: string, desc = false) => {
-      return [...arr].sort((a, b) => {
-        const av = a[key];
-        const bv = b[key];
-        const cmp =
-          typeof av === "number" && typeof bv === "number"
-            ? av - bv
-            : String(av ?? "").localeCompare(String(bv ?? ""));
-        return desc ? -cmp : cmp;
-      });
-    },
-    sum: (arr: number[]) => arr.reduce((a, b) => a + b, 0),
-    avg: (arr: number[]) =>
-      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0,
-    min: (arr: number[]) => Math.min(...arr),
-    max: (arr: number[]) => Math.max(...arr),
-    count: (arr: unknown[], pred?: (item: unknown) => boolean) =>
-      pred ? arr.filter(pred).length : arr.length,
-    pluck: (arr: Record<string, unknown>[], key: string) =>
-      arr.map((item) => item[key]),
-  };
-
-  // Object helpers
-  const objHelpers = {
-    keys: (obj: Record<string, unknown>) => Object.keys(obj),
-    values: (obj: Record<string, unknown>) => Object.values(obj),
-    entries: (obj: Record<string, unknown>) => Object.entries(obj),
-    fromEntries: (entries: [string, unknown][]) => Object.fromEntries(entries),
-    pick: (obj: Record<string, unknown>, keys: string[]) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (k in obj) result[k] = obj[k];
-      }
-      return result;
-    },
-    omit: (obj: Record<string, unknown>, keys: string[]) => {
-      const excluded = new Set(keys);
-      const result: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(obj)) {
-        if (!excluded.has(k)) result[k] = v;
-      }
-      return result;
-    },
-    merge: (...objs: Record<string, unknown>[]) => Object.assign({}, ...objs),
-    deepClone: (obj: unknown) => JSON.parse(JSON.stringify(obj)),
-    get: (obj: Record<string, unknown>, path: string) => {
-      const parts = path.split(".");
-      let current: unknown = obj;
-      for (const part of parts) {
-        if (current == null || typeof current !== "object") return undefined;
-        current = (current as Record<string, unknown>)[part];
-      }
-      return current;
-    },
-    set: (obj: Record<string, unknown>, path: string, value: unknown) => {
-      const parts = path.split(".");
-      let current: Record<string, unknown> = obj;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const part = parts[i];
-        if (!(part in current) || typeof current[part] !== "object") {
-          current[part] = {};
-        }
-        current = current[part] as Record<string, unknown>;
-      }
-      current[parts[parts.length - 1]] = value;
-      return obj;
-    },
-  };
+  // uuid helper — not available natively without crypto.randomUUID
+  const uuid = () => crypto.randomUUID();
 
   // Secret accessor (requires context)
   const getSecret = context
@@ -424,6 +245,8 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     Error,
     TypeError,
     RangeError,
+    URIError,
+    SyntaxError,
     parseInt,
     parseFloat,
     isNaN,
@@ -437,17 +260,15 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     structuredClone: globalThis.structuredClone,
     TextEncoder: globalThis.TextEncoder,
     TextDecoder: globalThis.TextDecoder,
+    URL: globalThis.URL,
+    URLSearchParams: globalThis.URLSearchParams,
     // Async
     setTimeout: undefined, // blocked
     setInterval: undefined, // blocked
-    // API surface
+    // Non-native APIs
+    _,
     fetch: sandboxedFetch,
-    url: urlHelpers,
-    date: dateHelpers,
-    hash: hashHelpers,
-    str: strHelpers,
-    arr: arrHelpers,
-    obj: objHelpers,
+    uuid,
     sleep,
     getSecret,
     workspace,

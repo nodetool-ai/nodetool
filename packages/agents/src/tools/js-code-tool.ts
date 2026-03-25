@@ -17,10 +17,24 @@ import {
 
 export class MiniJSAgentTool extends Tool {
   readonly name = "js";
-  readonly description = `Execute JavaScript code with built-in APIs. Use this tool to perform data processing, \
+  readonly description = `Execute JavaScript code in a sandboxed environment. Use this tool to perform data processing, \
 HTTP requests, loops, conditionals, and complex logic in a single call instead of multiple tool calls.
 
-## Available APIs
+## Sandbox environment
+
+Standard JavaScript with full syntax: variables, loops, conditionals, functions, arrow functions, \
+destructuring, spread, template literals, try/catch, async/await, Map, Set, RegExp, URL, \
+URLSearchParams, Date, Math, JSON, Array methods (map, filter, reduce, find, every, some, etc).
+
+## Extra APIs
+
+### _ (lodash)
+Full lodash library available as \`_\`. Use for data manipulation, grouping, sorting, etc.
+\`\`\`js
+const grouped = _.groupBy(data, "type");
+const sorted = _.sortBy(users, "name");
+const picked = _.pick(obj, ["a", "b"]);
+\`\`\`
 
 ### fetch(url, options?) → {ok, status, headers, body, json}
 HTTP client. Options: {method, headers, body}. Returns parsed response.
@@ -32,43 +46,17 @@ const items = res.json.results;
 ### console.log(...args) / .warn / .error / .info
 Output appears in the "logs" field of the result.
 
-### workspace.read(path) → string
-### workspace.write(path, content) → void
-### workspace.list(path) → string[]
+### workspace.read(path) / .write(path, content) / .list(path)
 Read/write files in the agent workspace.
 
 ### getSecret(name) → string | undefined
 Read a secret by name (API keys, tokens, etc).
 
-### url.encode/decode/parse/build
-URL manipulation helpers.
-- \`url.parse("https://x.com/path?a=1")\` → {hostname, pathname, params, ...}
-- \`url.build("https://x.com/api", {q: "test", page: 1})\` → full URL with query
-
-### date.now() / date.iso() / date.parse(s) / date.format(ts) / date.diff(a,b)
-Date/time helpers. Timestamps in milliseconds.
-
-### hash.uuid() / hash.random(min?,max?) / hash.randomInt(min,max)
-Random values and UUID generation.
-
-### str — String utilities
-.trim, .upper, .lower, .split, .join, .replace, .match, .includes, .startsWith, .endsWith,
-.padStart, .padEnd, .repeat, .slice, .lines, .chars, .reverse, .truncate
-
-### arr — Array utilities
-.range(start,end,step?), .unique, .flatten, .chunk, .zip, .groupBy, .sortBy,
-.sum, .avg, .min, .max, .count, .pluck
-
-### obj — Object utilities
-.keys, .values, .entries, .fromEntries, .pick, .omit, .merge, .deepClone, .get, .set
+### uuid() → string
+Generate a random UUID v4.
 
 ### sleep(ms)
 Pause execution (max 5s per call).
-
-### Core JS
-Full JS syntax: variables, loops (for, while, for...of), conditionals (if/else, ternary, switch),
-functions, arrow functions, destructuring, spread, template literals, try/catch, async/await,
-Map, Set, RegExp, Array methods (map, filter, reduce, find, every, some, etc).
 
 ## Guidelines
 - Use \`return\` to produce the final result (returned in the "result" field)

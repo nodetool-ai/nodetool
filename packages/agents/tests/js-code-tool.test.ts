@@ -231,23 +231,23 @@ describe("MiniJSAgentTool", () => {
     expect(result.result).toBe("done");
   });
 
-  // --- Built-in helpers ---
+  // --- Native JS patterns (no custom helpers) ---
 
-  it("arr.range generates number ranges", async () => {
+  it("generates number ranges with Array.from", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return arr.range(0, 5);",
+      code: "return Array.from({length: 5}, (_, i) => i);",
     })) as Record<string, unknown>;
     expect(result.result).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it("arr.unique removes duplicates", async () => {
+  it("deduplicates with Set", async () => {
     const result = (await tool.process(mockContext, {
-      code: "return arr.unique([1, 2, 2, 3, 3, 3]);",
+      code: "return [...new Set([1, 2, 2, 3, 3, 3])];",
     })) as Record<string, unknown>;
     expect(result.result).toEqual([1, 2, 3]);
   });
 
-  it("arr.groupBy groups objects", async () => {
+  it("groups objects with reduce", async () => {
     const result = (await tool.process(mockContext, {
       code: `
         const data = [
@@ -255,7 +255,7 @@ describe("MiniJSAgentTool", () => {
           { type: "b", val: 2 },
           { type: "a", val: 3 },
         ];
-        return arr.groupBy(data, "type");
+        return Object.groupBy(data, item => item.type);
       `,
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
@@ -267,70 +267,59 @@ describe("MiniJSAgentTool", () => {
     });
   });
 
-  it("arr.chunk splits arrays", async () => {
-    const result = (await tool.process(mockContext, {
-      code: "return arr.chunk([1,2,3,4,5], 2);",
-    })) as Record<string, unknown>;
-    expect(result.result).toEqual([[1, 2], [3, 4], [5]]);
-  });
-
-  it("arr.sum/avg/min/max work", async () => {
+  it("computes sum/avg/min/max with native methods", async () => {
     const result = (await tool.process(mockContext, {
       code: `
         const data = [10, 20, 30, 40, 50];
         return {
-          sum: arr.sum(data),
-          avg: arr.avg(data),
-          min: arr.min(data),
-          max: arr.max(data),
+          sum: data.reduce((a, b) => a + b, 0),
+          avg: data.reduce((a, b) => a + b, 0) / data.length,
+          min: Math.min(...data),
+          max: Math.max(...data),
         };
       `,
     })) as Record<string, unknown>;
     expect(result.result).toEqual({ sum: 150, avg: 30, min: 10, max: 50 });
   });
 
-  it("arr.pluck extracts field", async () => {
+  it("plucks fields with map", async () => {
     const result = (await tool.process(mockContext, {
       code: `
         const users = [{name: "Alice"}, {name: "Bob"}, {name: "Carol"}];
-        return arr.pluck(users, "name");
+        return users.map(u => u.name);
       `,
     })) as Record<string, unknown>;
     expect(result.result).toEqual(["Alice", "Bob", "Carol"]);
   });
 
-  it("obj.pick selects keys", async () => {
+  it("picks object keys with destructuring", async () => {
     const result = (await tool.process(mockContext, {
-      code: `return obj.pick({ a: 1, b: 2, c: 3 }, ["a", "c"]);`,
+      code: `
+        const { a, c } = { a: 1, b: 2, c: 3 };
+        return { a, c };
+      `,
     })) as Record<string, unknown>;
     expect(result.result).toEqual({ a: 1, c: 3 });
   });
 
-  it("obj.omit removes keys", async () => {
-    const result = (await tool.process(mockContext, {
-      code: `return obj.omit({ a: 1, b: 2, c: 3 }, ["b"]);`,
-    })) as Record<string, unknown>;
-    expect(result.result).toEqual({ a: 1, c: 3 });
-  });
-
-  it("obj.get does deep access", async () => {
+  it("does deep object access with optional chaining", async () => {
     const result = (await tool.process(mockContext, {
       code: `
         const data = { user: { profile: { name: "Alice" } } };
-        return obj.get(data, "user.profile.name");
+        return data?.user?.profile?.name;
       `,
     })) as Record<string, unknown>;
     expect(result.result).toBe("Alice");
   });
 
-  it("str helpers work", async () => {
+  it("string methods work natively", async () => {
     const result = (await tool.process(mockContext, {
       code: `
         return {
-          upper: str.upper("hello"),
-          lower: str.lower("WORLD"),
-          lines: str.lines("a\\nb\\nc"),
-          reversed: str.reverse("abc"),
+          upper: "hello".toUpperCase(),
+          lower: "WORLD".toLowerCase(),
+          lines: "a\\nb\\nc".split("\\n"),
+          reversed: [..."abc"].reverse().join(""),
         };
       `,
     })) as Record<string, unknown>;
@@ -342,19 +331,28 @@ describe("MiniJSAgentTool", () => {
     });
   });
 
-  it("url.build constructs URLs", async () => {
+  it("URL class constructs URLs", async () => {
     const result = (await tool.process(mockContext, {
-      code: `return url.build("https://api.example.com/search", { q: "test", page: 2 });`,
+      code: `
+        const u = new URL("https://api.example.com/search");
+        u.searchParams.set("q", "test");
+        u.searchParams.set("page", "2");
+        return u.toString();
+      `,
     })) as Record<string, unknown>;
     expect(result.result).toContain("q=test");
     expect(result.result).toContain("page=2");
   });
 
-  it("url.parse extracts components", async () => {
+  it("URL class parses components", async () => {
     const result = (await tool.process(mockContext, {
       code: `
-        const u = url.parse("https://example.com/path?foo=bar&baz=1");
-        return { hostname: u.hostname, pathname: u.pathname, params: u.params };
+        const u = new URL("https://example.com/path?foo=bar&baz=1");
+        return {
+          hostname: u.hostname,
+          pathname: u.pathname,
+          params: Object.fromEntries(u.searchParams),
+        };
       `,
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
@@ -364,21 +362,21 @@ describe("MiniJSAgentTool", () => {
     });
   });
 
-  it("hash.uuid returns a UUID", async () => {
+  it("uuid() returns a UUID", async () => {
     const result = (await tool.process(mockContext, {
       code: `
-        const id = hash.uuid();
+        const id = uuid();
         return typeof id === "string" && id.length === 36;
       `,
     })) as Record<string, unknown>;
     expect(result.result).toBe(true);
   });
 
-  it("date helpers work", async () => {
+  it("Date works natively", async () => {
     const result = (await tool.process(mockContext, {
       code: `
-        const ts = date.now();
-        const iso = date.iso();
+        const ts = Date.now();
+        const iso = new Date().toISOString();
         return typeof ts === "number" && typeof iso === "string" && iso.includes("T");
       `,
     })) as Record<string, unknown>;
@@ -431,7 +429,6 @@ describe("MiniJSAgentTool", () => {
   it("does data transformation pipeline", async () => {
     const result = (await tool.process(mockContext, {
       code: `
-        // Simulate processing API data
         const rawData = [
           { name: "Alice", score: 85, dept: "eng" },
           { name: "Bob", score: 92, dept: "eng" },
@@ -440,17 +437,17 @@ describe("MiniJSAgentTool", () => {
           { name: "Eve", score: 88, dept: "sales" },
         ];
 
-        // Group by department
-        const byDept = arr.groupBy(rawData, "dept");
+        // Group by department using Object.groupBy
+        const byDept = Object.groupBy(rawData, item => item.dept);
 
         // Calculate stats per department
         const stats = {};
         for (const [dept, members] of Object.entries(byDept)) {
-          const scores = arr.pluck(members, "score");
+          const scores = members.map(m => m.score);
           stats[dept] = {
             count: scores.length,
-            avg: arr.avg(scores),
-            top: arr.sortBy(members, "score", true)[0].name,
+            avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+            top: [...members].sort((a, b) => b.score - a.score)[0].name,
           };
         }
         return stats;

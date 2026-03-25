@@ -1,15 +1,15 @@
 /**
  * Universal Code Node — sandboxed JavaScript execution via vm module.
  *
- * Runs user code in an isolated vm context using the same sandboxed engine
- * as the MiniJSAgentTool, providing fetch, url, date, str, arr, obj helpers
- * and more. Dynamic inputs are injected as global variables in the sandbox.
+ * Runs user code in an isolated vm context with standard JavaScript plus
+ * fetch(), workspace, getSecret(), uuid(), and sleep() APIs.
+ * Dynamic inputs are injected as global variables in the sandbox.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
  *   // code:
  *   const sum = x + 10;
- *   const upper = str.upper(text);
+ *   const upper = text.toUpperCase();
  *   return { sum, upper };
  *   // outputs: { sum: 15, upper: "HELLO" }
  */
@@ -38,7 +38,7 @@ export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly title = "Code";
   static readonly description =
-    "Execute JavaScript code in a sandboxed environment with built-in APIs (fetch, str, arr, obj, url, date, hash). Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic";
+    "Execute JavaScript code in a sandboxed environment with lodash (_), fetch, workspace, and uuid APIs. Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic, lodash";
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
@@ -50,7 +50,7 @@ export class CodeNode extends BaseNode {
     description:
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
-      "Built-in APIs: fetch(), str.*, arr.*, obj.*, url.*, date.*, hash.*, console.log(). " +
+      "Extra APIs: _ (lodash), fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
       "Return an object — its keys become output handles.",
   })
   declare code: string;
