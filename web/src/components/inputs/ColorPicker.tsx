@@ -164,7 +164,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {colorPickerColors.map((cellColor) => (
+          {colorPickerColors.map((cellColor, cellIndex) => (
             <Button
               key={String(cellColor)}
               className="pick-color-button"
@@ -179,7 +179,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={colorButtonClickHandlers[index]}
+              onClick={colorButtonClickHandlers[cellIndex]}
             />
           ))}
           {showCustom && (
