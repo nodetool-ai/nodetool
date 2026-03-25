@@ -112,13 +112,13 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
           </FlexColumn>
 
           <Grid container spacing={2} className="model-grid models-grid">
-            {repos.map((repo, index) => {
+            {repos.map((repo) => {
               return (
                 <Grid
                   sx={{
                     gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
                   }}
-                  key={index}
+                  key={repo}
                   className="model-item"
                 >
                   <FlexColumn gap={4} className="model-container">
@@ -141,14 +141,14 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
                 </Grid>
               );
             })}
-            {repoPaths.map((repoPath, index) => {
+            {repoPaths.map((repoPath) => {
               const modelId = `${repoPath.repo_id}/${repoPath.path}`;
               return (
                 <Grid
                   sx={{
                     gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
                   }}
-                  key={index}
+                  key={modelId}
                   className="model-item"
                 >
                   <FlexColumn gap={4} className="model-container">
