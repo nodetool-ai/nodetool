@@ -166,6 +166,25 @@ export function useCanvasActions({
     [pushHistory]
   );
 
+  const commitPixelLayerChange = useCallback(
+    (layerId: string, data: string | null, bounds?: LayerContentBounds) => {
+      updateLayerData(layerId, data);
+      if (bounds) {
+        setLayerContentBounds(layerId, bounds);
+      }
+    },
+    [updateLayerData, setLayerContentBounds]
+  );
+
+  const syncPixelLayerFromCanvas = useCallback(
+    (layerId: string, bounds?: LayerContentBounds) => {
+      const data = canvasRef.current?.getLayerData(layerId) ?? null;
+      commitPixelLayerChange(layerId, data, bounds);
+      return data;
+    },
+    [canvasRef, commitPixelLayerChange]
+  );
+
   const handleCommitLayerTransform = useCallback(
     (layerId: string, transform: Point) => {
       commitLayerTransform(layerId, transform);
@@ -215,10 +234,7 @@ export function useCanvasActions({
 
       if (data !== null) {
         // Caller already provided serialized data (rare fast-path).
-        updateLayerData(layerId, data);
-        if (committedBounds) {
-          setLayerContentBounds(layerId, committedBounds);
-        }
+        commitPixelLayerChange(layerId, data, committedBounds);
         pendingStrokeFinalizeRef.current.set(layerId, {
           hasSnapshot: true,
           data
@@ -300,12 +316,11 @@ export function useCanvasActions({
         sel.width,
         sel.height
       );
-      const data = canvasRef.current.getLayerData(activeLayerId);
-      updateLayerData(activeLayerId, data);
+      syncPixelLayerFromCanvas(activeLayerId);
     } else {
       pushHistory("clear layer");
       canvasRef.current.clearLayer(activeLayerId);
-      updateLayerData(activeLayerId, null);
+      commitPixelLayerChange(activeLayerId, null);
     }
   }, [
     document.activeLayerId,
@@ -313,7 +328,8 @@ export function useCanvasActions({
     document.canvas.width,
     document.canvas.height,
     pushHistory,
-    updateLayerData,
+    commitPixelLayerChange,
+    syncPixelLayerFromCanvas,
     canvasRef
   ]);
 
@@ -344,8 +360,7 @@ export function useCanvasActions({
         pushHistory("fill layer");
         canvasRef.current.fillLayerWithColor(activeLayerId, color);
       }
-      const data = canvasRef.current.getLayerData(activeLayerId);
-      updateLayerData(activeLayerId, data);
+      syncPixelLayerFromCanvas(activeLayerId);
     },
     [
       document.activeLayerId,
@@ -353,7 +368,7 @@ export function useCanvasActions({
       document.canvas.width,
       document.canvas.height,
       pushHistory,
-      updateLayerData,
+      syncPixelLayerFromCanvas,
       canvasRef
     ]
   );
@@ -423,16 +438,14 @@ export function useCanvasActions({
       return;
     }
 
-    setLayerContentBounds(activeLayerId, trimmed.bounds);
-    updateLayerData(activeLayerId, trimmed.data);
+    commitPixelLayerChange(activeLayerId, trimmed.data, trimmed.bounds);
 
     syncSketchOutputsNow();
   }, [
     document.activeLayerId,
     document.layers,
     pushHistory,
-    setLayerContentBounds,
-    updateLayerData,
+    commitPixelLayerChange,
     syncSketchOutputsNow,
     canvasRef
   ]);
@@ -537,8 +550,7 @@ export function useCanvasActions({
       if (allZero) {
         if (adjustmentBaseRef.current !== null) {
           canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
-          const data = canvasRef.current.getLayerData(layerId);
-          updateLayerData(layerId, data);
+          syncPixelLayerFromCanvas(layerId);
           adjustmentBaseRef.current = null;
         }
         return;
@@ -551,13 +563,12 @@ export function useCanvasActions({
         canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
       }
       canvasRef.current.applyAdjustments(brightness, contrast, saturation);
-      const data = canvasRef.current.getLayerData(layerId);
-      updateLayerData(layerId, data);
+      syncPixelLayerFromCanvas(layerId);
     },
     [
       pushHistory,
       document.activeLayerId,
-      updateLayerData,
+      syncPixelLayerFromCanvas,
       canvasRef
     ]
   );
@@ -572,14 +583,13 @@ export function useCanvasActions({
     }
     if (adjustmentBaseRef.current !== null) {
       canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
-      const data = canvasRef.current.getLayerData(layerId);
-      updateLayerData(layerId, data);
+      syncPixelLayerFromCanvas(layerId);
       adjustmentBaseRef.current = null;
     }
     setAdjBrightness(0);
     setAdjContrast(0);
     setAdjSaturation(0);
-  }, [document.activeLayerId, updateLayerData, canvasRef]);
+  }, [document.activeLayerId, syncPixelLayerFromCanvas, canvasRef]);
 
   // Auto-apply adjustments with 100ms debounce
   useEffect(() => {

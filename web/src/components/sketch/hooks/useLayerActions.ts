@@ -100,6 +100,15 @@ export function useLayerActions({
     });
   }, [canvasRef]);
 
+  const syncLayerDataFromCanvas = useCallback(
+    (layerId: string) => {
+      const data = canvasRef.current?.getLayerData(layerId) ?? null;
+      updateLayerData(layerId, data);
+      return data;
+    },
+    [canvasRef, updateLayerData]
+  );
+
   const handleToggleVisibility = useCallback(
     (layerId: string) => {
       pushHistory("toggle visibility");
@@ -179,13 +188,12 @@ export function useLayerActions({
     }
     pushHistory(historyLabel);
     canvasRef.current.flipLayer(layerId, direction);
-    const data = canvasRef.current.getLayerData(layerId);
-    updateLayerData(layerId, data);
+    syncLayerDataFromCanvas(layerId);
   }, [
     document.activeLayerId,
     document.layers,
     pushHistory,
-    updateLayerData,
+    syncLayerDataFromCanvas,
     canvasRef
   ]);
 
@@ -210,6 +218,9 @@ export function useLayerActions({
     if (lower.locked) {
       return;
     }
+    // Merge is an explicit destructive bake flow: runtime rebases both layers
+    // into document-space pixels, then the store drops the upper layer and keeps
+    // the lower layer at identity transform/full document bounds.
     pushHistory("merge down");
     const mergedData = canvasRef.current.mergeLayerDown(upper.id, lower.id);
     mergeLayerDown(upper.id);
@@ -229,6 +240,8 @@ export function useLayerActions({
     if (!canvasRef.current) {
       return;
     }
+    // Flatten is also a destructive bake flow: runtime composites all visible
+    // layers into one document-space raster and the store replaces the layer stack.
     pushHistory("flatten visible");
     const flatData = canvasRef.current.flattenVisible();
     flattenVisible();

@@ -2,6 +2,7 @@
  * ColorPickerPopover
  *
  * Custom HSV gradient color picker in a MUI Popover.
+ * Dismiss (backdrop/Escape/OK) keeps the picked color; × cancels and restores the pre-open color.
  * - SV square: CSS gradient square, drag to pick saturation+value
  * - Hue slider: horizontal gradient bar
  * - HEX/RGB/HSL toggle + text inputs inside the popover
@@ -18,8 +19,11 @@ import {
   ToggleButton,
   TextField,
   Slider,
-  Button
+  Button,
+  IconButton,
+  Tooltip
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,
   parseColorToRgba,
@@ -72,11 +76,16 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Discard: revert to the color captured at open time, then close
-  const handleDiscard = useCallback(() => {
+  /** Revert to the color captured when the picker opened, then close. */
+  const handleCancel = useCallback(() => {
     onColorChange(initialColor);
     onClose();
   }, [initialColor, onColorChange, onClose]);
+
+  /** Backdrop / Escape: keep the live-picked color (already in parent via onColorChange) and close. */
+  const handleDismiss = useCallback(() => {
+    onClose();
+  }, [onClose]);
 
   const svBoxRef = useRef<HTMLDivElement>(null);
   const draggingSv = useRef(false);
@@ -163,7 +172,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
     <Popover
       open={open}
       anchorEl={anchorEl}
-      onClose={handleDiscard}
+      onClose={handleDismiss}
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       slotProps={{
@@ -183,6 +192,19 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }
       }}
     >
+      <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", minHeight: "22px", mt: "-6px", mr: "-6px", mb: "2px" }}>
+        <Tooltip title="Cancel — keep previous color">
+          <IconButton
+            size="small"
+            onClick={handleCancel}
+            aria-label="Cancel color change"
+            sx={{ p: "2px", color: "grey.400", "&:hover": { color: "grey.200", bgcolor: "rgba(255,255,255,0.06)" } }}
+          >
+            <CloseIcon sx={{ fontSize: "16px" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
       {/* SV gradient square */}
       <Box
         ref={svBoxRef}
@@ -368,43 +390,23 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         </Box>
       )}
 
-      {/* Confirm / Discard */}
-      <Box sx={{ display: "flex", gap: "4px" }}>
-        <Button
-          size="small"
-          variant="contained"
-          onClick={handleDiscard}
-          sx={{
-            flex: 1,
-            fontSize: "0.65rem",
-            py: "2px",
-            minHeight: "24px",
-            bgcolor: "grey.800",
-            color: "grey.400",
-            "&:hover": { bgcolor: "grey.700" },
-            boxShadow: "none"
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          onClick={onClose}
-          sx={{
-            flex: 1,
-            fontSize: "0.65rem",
-            py: "2px",
-            minHeight: "24px",
-            bgcolor: "grey.700",
-            color: "grey.100",
-            "&:hover": { bgcolor: "grey.600" },
-            boxShadow: "none"
-          }}
-        >
-          OK
-        </Button>
-      </Box>
+      <Button
+        size="small"
+        variant="contained"
+        onClick={handleDismiss}
+        fullWidth
+        sx={{
+          fontSize: "0.65rem",
+          py: "2px",
+          minHeight: "24px",
+          bgcolor: "grey.700",
+          color: "grey.100",
+          "&:hover": { bgcolor: "grey.600" },
+          boxShadow: "none"
+        }}
+      >
+        OK
+      </Button>
 
     </Popover>
   );
