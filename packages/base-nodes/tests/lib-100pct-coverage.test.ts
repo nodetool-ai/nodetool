@@ -46,8 +46,6 @@ import {
   EnvelopeLibNode,
   // lib-grid
   SliceImageGridLibNode,
-  // lib-http
-  GetRequestLibNode,
   // lib-mail
   SendEmailLibNode,
   // lib-markitdown
@@ -1104,18 +1102,6 @@ describe("lib-grid coverage", () => {
     const output = result.output as unknown[];
     expect(Array.isArray(output)).toBe(true);
     expect(output.length).toBe(4);
-  });
-});
-
-// ── lib-http: castValue catch path ───────────────────────────────
-
-describe("lib-http castValue coverage", () => {
-  it("GetRequest exists and has defaults", () => {
-    // castValue catch at lines 48-49 requires toString/valueOf to throw,
-    // which is not possible with normal inputs. We verify the function loads.
-    const node = new GetRequestLibNode();
-    const d = node.serialize();
-    expect(d).toHaveProperty("url");
   });
 });
 

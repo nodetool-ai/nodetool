@@ -43,6 +43,9 @@ export class CodeNode extends BaseNode {
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
 
+  /** Persistent state across streaming invocations; reset each workflow run. */
+  private _state: Record<string, unknown> = {};
+
   @prop({
     type: "str",
     default: "return {};",
@@ -51,6 +54,7 @@ export class CodeNode extends BaseNode {
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
       "Extra APIs: _ (lodash), fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
+      "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles.",
   })
   declare code: string;
@@ -62,6 +66,22 @@ export class CodeNode extends BaseNode {
     description: "Max seconds before execution is aborted (0 = no limit).",
   })
   declare timeout: number;
+
+  @prop({
+    type: "enum",
+    default: "zip_all",
+    title: "Sync Mode",
+    description:
+      "How to handle streaming inputs. " +
+      "'zip_all' waits for all inputs before executing. " +
+      "'on_any' fires each time any input arrives (for stream processing).",
+    values: ["zip_all", "on_any"],
+  })
+  declare sync_mode: string;
+
+  async initialize(): Promise<void> {
+    this._state = {};
+  }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
@@ -78,11 +98,14 @@ export class CodeNode extends BaseNode {
     // Build the function body with implicit return support.
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
 
+    // Inject state as a direct reference so mutations persist across calls.
+    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+
     const sandboxResult = await runInSandbox({
       code: body,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals: deepCopyInputs(dynamicInputs),
+      globals,
     });
 
     if (!sandboxResult.success) {
@@ -116,11 +139,14 @@ export class CodeNode extends BaseNode {
       return __yielded;
     `;
 
+    // Inject state as a direct reference so mutations persist across calls.
+    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+
     const sandboxResult = await runInSandbox({
       code: wrappedBody,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals: deepCopyInputs(dynamicInputs),
+      globals,
     });
 
     if (!sandboxResult.success) {
@@ -144,7 +170,7 @@ export class CodeNode extends BaseNode {
 
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
 function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout"]);
+  const reserved = new Set(["code", "timeout", "sync_mode"]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;
