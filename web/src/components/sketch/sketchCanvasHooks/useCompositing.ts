@@ -102,13 +102,19 @@ export function useCompositing({
 
       if (newBackend === "webgpu" && runtimeRef.current !== newRuntime) {
         // Switch to WebGPU. setBackend triggers a re-render which recreates
-        // compositeToDisplay with the new runtime; the [requestRedraw, doc.layers]
-        // effect will then fire and kick off the first WebGPU frame.
+        // compositeToDisplay with the new runtime; effects also request a redraw.
         const oldRuntime = runtimeRef.current;
         runtimeRef.current = newRuntime;
         setBackend(newBackend);
         // Don't dispose old runtime — it shares the same layerCanvases map.
         void oldRuntime;
+        // Defer one frame so React has committed (bootstrap off, display canvas
+        // visible) before the first WebGPU configure + present.
+        requestAnimationFrame(() => {
+          if (!cancelled) {
+            requestRedraw();
+          }
+        });
       } else {
         // Canvas2D fallback (WebGPU not available or init failed).
         // Don't dispose newRuntime for the same reason (shared map).
@@ -378,29 +384,30 @@ export function useCompositing({
 
   useEffect(() => {
     requestRedraw();
-  }, [requestRedraw, doc.layers, bootstrapPhaseActive]);
+  }, [requestRedraw, doc.layers, bootstrapPhaseActive, backend]);
 
   // After DOM commit, `<canvas>` refs are set; compositing effects may have run
   // in the same tick with null refs. One layout-pass redraw catches hydration
   // + bootstrap/WebGPU handoff so the first frame is not stuck blank.
   useLayoutEffect(() => {
     requestRedraw();
-  }, [requestRedraw, bootstrapPhaseActive]);
+  }, [requestRedraw, bootstrapPhaseActive, backend]);
 
-  // Cleanup rAF on unmount and dispose runtime
+  // Cleanup rAF and dispose runtime only on **unmount**, not when `runtime`
+  // identity changes. Upgrading Canvas2D → WebGPU swaps `runtimeRef` but keeps
+  // the same `layerCanvases` map; disposing the old Canvas2DRuntime clears that
+  // map and wipes hydrated pixels while `hydratedLayerStateRef` still says
+  // "synced" — blank canvas until something forces a repaint (e.g. a click).
   useEffect(() => {
     return () => {
       if (redrawRequestRef.current !== null) {
         cancelAnimationFrame(redrawRequestRef.current);
       }
-      // `runtime.dispose()` clears `layerCanvases`. React 18 Strict Mode runs this
-      // cleanup then re-runs the hydration effect; without clearing the map below,
-      // hydration thinks every layer is already synced and skips `setLayerData`,
-      // leaving the display permanently blank.
       hydratedLayerStateRef.current.clear();
-      runtime.dispose();
+      runtimeRef.current?.dispose();
     };
-  }, [runtime]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: mount/unmount only
+  }, []);
 
   return {
     displayCanvasRef,
