@@ -56,27 +56,40 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 64,
+      paddingTop: 40,
     },
     ".portal-heading": {
-      fontSize: 24,
-      fontWeight: 200,
-      color: theme.vars.palette.c_gray5,
-      marginBottom: 24,
-      letterSpacing: "-0.3px",
+      fontSize: 18,
+      fontWeight: 300,
+      color: "rgba(255, 255, 255, 0.4)",
+      marginBottom: 20,
+      letterSpacing: "0.01em",
       textAlign: "center" as const,
-      lineHeight: 1.4,
+      lineHeight: 1.5,
     },
     ".portal-input-wrapper": {
       width: "100%",
-      maxWidth: 560,
+      maxWidth: 600,
       position: "relative",
+      // Override ChatInputSection margin to center vertically instead of pushing to bottom
+      "& .chat-input-section": {
+        margin: "0 auto",
+        width: "100%",
+        maxWidth: "100%",
+      },
     },
     ".portal-hint": {
       fontSize: 11,
-      color: theme.vars.palette.c_gray3,
+      color: "rgba(255, 255, 255, 0.2)",
       textAlign: "center" as const,
-      marginTop: 16,
+      marginTop: 12,
+    },
+
+    // Recents wrapper
+    ".portal-recents": {
+      marginTop: 24,
+      width: "100%",
+      maxWidth: 600,
     },
 
     // Transition states
