@@ -201,7 +201,9 @@ describe("MoveTool", () => {
     const ctx = makeToolContext();
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined, {
+      syncDocumentFromCanvas: false
+    });
   });
 
   it("returns false when the active layer is locked without an image reference", () => {

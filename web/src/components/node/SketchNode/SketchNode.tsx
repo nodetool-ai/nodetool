@@ -14,7 +14,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback, useState, useRef, useEffect } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -280,36 +280,19 @@ function getSketchOutputImageUri(
   return typeof uri === "string" && uri.length > 0 ? uri : null;
 }
 
-/** Resolve an image ref URI for `input_image` or `layer_in_*` (upstream result, dynamic, then static). */
-function resolveSketchImageInputUri(
-  paramKey: string,
-  upstreamResult: unknown,
-  dynamicProps: Record<string, unknown> | undefined,
-  staticProps: Record<string, unknown> | undefined
-): string | null {
-  if (upstreamResult && typeof upstreamResult === "object") {
-    const resultObj = upstreamResult as Record<string, unknown>;
-    const wired = resultObj[paramKey];
-    if (wired && typeof wired === "object") {
-      const uri = (wired as { uri?: unknown }).uri;
-      if (typeof uri === "string" && uri.length > 0) {
-        return uri;
-      }
-    }
-  }
-  const fromDynamic = dynamicProps?.[paramKey];
-  if (fromDynamic && typeof fromDynamic === "object") {
-    const uri = (fromDynamic as { uri?: unknown }).uri;
-    if (typeof uri === "string" && uri.length > 0) {
-      return uri;
-    }
-  }
-  const fromStatic = staticProps?.[paramKey];
-  if (fromStatic && typeof fromStatic === "object") {
-    const uri = (fromStatic as { uri?: unknown }).uri;
-    if (typeof uri === "string" && uri.length > 0) {
-      return uri;
-    }
+/**
+ * Extract an image URI from a node result value.
+ * Handles the two common Nodetool result shapes:
+ *   - direct image object  { type: "image", uri: "...", ... }
+ *   - wrapped output       { output: { type: "image", uri: "..." } }
+ */
+function extractImageUri(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const r = result as Record<string, unknown>;
+  if (typeof r.uri === "string" && r.uri) return r.uri;
+  if (r.output && typeof r.output === "object") {
+    const out = r.output as Record<string, unknown>;
+    if (typeof out.uri === "string" && out.uri) return out.uri;
   }
   return null;
 }
@@ -350,10 +333,55 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
   const updateNodeData = useNodes((s) => s.updateNodeData);
 
-  // Watch for upstream input_image results
-  const upstreamResult = useResultsStore((state) =>
-    state.getResult(props.data.workflow_id, props.id)
+  const { getEdges } = useReactFlow();
+
+  // ─── Resolve source node IDs for all image inputs ─────────────────
+  // Connected values live on the SOURCE node's result, not this node's own
+  // result. Find the relevant incoming edges and subscribe to their results.
+  const inputImageSourceId = useMemo(
+    () =>
+      getEdges().find(
+        (e) => e.target === props.id && e.targetHandle === "input_image"
+      )?.source ?? null,
+    // Re-evaluate when exposedInputLayers or results change so new connections
+    // are picked up after the user wires edges and runs the workflow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getEdges, props.id, props.data.dynamic_inputs]
   );
+
+  const inputImageSourceResult = useResultsStore((state) => {
+    if (!inputImageSourceId) return undefined;
+    return (
+      state.getOutputResult(props.data.workflow_id, inputImageSourceId) ??
+      state.getResult(props.data.workflow_id, inputImageSourceId) ??
+      state.getPreview(props.data.workflow_id, inputImageSourceId)
+    );
+  });
+
+  const layerInputSourceIds = useMemo(() => {
+    const ids: Record<string, string> = {}; // layerId → sourceNodeId
+    for (const layer of exposedInputLayers) {
+      const sourceId = getEdges().find(
+        (e) =>
+          e.target === props.id &&
+          e.targetHandle === `layer_in_${layer.name}`
+      )?.source;
+      if (sourceId) ids[layer.id] = sourceId;
+    }
+    return ids;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getEdges, props.id, exposedInputLayers, props.data.dynamic_inputs]);
+
+  const layerInputResults = useResultsStore((state) => {
+    const out: Record<string, unknown> = {};
+    for (const [layerId, sourceId] of Object.entries(layerInputSourceIds)) {
+      out[layerId] =
+        state.getOutputResult(props.data.workflow_id, sourceId) ??
+        state.getResult(props.data.workflow_id, sourceId) ??
+        state.getPreview(props.data.workflow_id, sourceId);
+    }
+    return out;
+  });
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
@@ -511,22 +539,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const displayPreviewUri = outputImageUri ?? previewUrl;
 
-  const dynamicProps = props.data.dynamic_properties as
-    | Record<string, unknown>
-    | undefined;
   const staticProps = props.data.properties;
 
-  // ─── Resolve input_image from upstream connections ────────────────
-  const inputImageUri = useMemo(
-    (): string | null =>
-      resolveSketchImageInputUri(
-        "input_image",
-        upstreamResult,
-        dynamicProps,
-        staticProps
-      ),
-    [upstreamResult, dynamicProps, staticProps]
-  );
+  // ─── Resolve input_image URI ───────────────────────────────────────
+  const inputImageUri = useMemo((): string | null => {
+    // Priority 1: connected upstream node result (the correct source)
+    const fromResult = extractImageUri(inputImageSourceResult);
+    if (fromResult) { return fromResult; }
+    // Priority 2: static property set without a live connection
+    return extractImageUri(
+      (staticProps as Record<string, unknown> | undefined)?.input_image
+    );
+  }, [inputImageSourceResult, staticProps]);
 
   // ─── Load input_image into sketch document when it changes ────────
   useEffect(() => {
@@ -605,11 +629,64 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           sketch_data: serialized,
           [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
         });
+
+        // Push the loaded layer into the editor.
+        // If the modal is open, update the live Zustand store so the canvas
+        // hydrates immediately without wiping any user edits on other layers.
+        // If the modal is closed, update editorDocument state so the correct
+        // document is ready the next time the user opens the editor.
+        if (isModalOpen) {
+          const storeState = useSketchStore.getState();
+          const currentDoc = storeState.document;
+          const existingStoreIdx = currentDoc.layers.findIndex(
+            (l) => l.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
+          );
+          const mergedLayers =
+            existingStoreIdx >= 0
+              ? currentDoc.layers.map((l, i) =>
+                  i === existingStoreIdx
+                    ? {
+                        ...l,
+                        data: layerData,
+                        locked: true,
+                        imageReference,
+                        contentBounds,
+                        transform: { x: 0, y: 0 }
+                      }
+                    : l
+                )
+              : [
+                  (() => {
+                    const il = createDefaultLayer(
+                      SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
+                      "raster",
+                      canvasWidth,
+                      canvasHeight
+                    );
+                    il.data = layerData;
+                    il.locked = true;
+                    il.imageReference = imageReference;
+                    il.contentBounds = contentBounds;
+                    return il;
+                  })(),
+                  ...currentDoc.layers
+                ];
+          storeState.setDocument({
+            ...currentDoc,
+            canvas: { ...currentDoc.canvas, width: canvasWidth, height: canvasHeight },
+            layers: mergedLayers,
+            metadata: { ...currentDoc.metadata, updatedAt: new Date().toISOString() }
+          });
+        } else {
+          setEditorDocument(updatedDoc);
+        }
       })
-      .catch(() => {
-        // Image loading failed - silently ignore
+      .catch((err) => {
+        console.warn("[SketchNode] Failed to load input_image:", inputImageUri, err);
+        // Allow retry if the URI changes again
+        inputImageLoadedRef.current = null;
       });
-  }, [inputImageUri, sketchDoc, props.id, updateNodeProperties]);
+  }, [inputImageUri, sketchDoc, props.id, updateNodeProperties, isModalOpen]);
 
   // ─── Load per-layer images from `layer_in_<layerName>` handles ─────
   useEffect(() => {
@@ -618,13 +695,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     }
 
     for (const layer of exposedInputLayers) {
-      const paramKey = `layer_in_${layer.name}`;
-      const uri = resolveSketchImageInputUri(
-        paramKey,
-        upstreamResult,
-        dynamicProps,
-        staticProps
-      );
+      const uri = extractImageUri(layerInputResults[layer.id]);
       if (!uri) {
         continue;
       }
@@ -676,20 +747,45 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             sketch_data: serializeDocument(updatedDoc),
             [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
           });
+
+          // Mirror the fix from the input_image effect: push the updated layer
+          // into the live editor store when open, or prepare editorDocument for
+          // the next open when the modal is closed.
+          if (isModalOpen) {
+            const storeState = useSketchStore.getState();
+            const currentDoc = storeState.document;
+            const storeLayerIdx = currentDoc.layers.findIndex((l) => l.id === layer.id);
+            if (storeLayerIdx >= 0) {
+              const storeLayers = [...currentDoc.layers];
+              storeLayers[storeLayerIdx] = {
+                ...storeLayers[storeLayerIdx],
+                data: layerData,
+                imageReference,
+                contentBounds
+              };
+              storeState.setDocument({
+                ...currentDoc,
+                layers: storeLayers,
+                metadata: { ...currentDoc.metadata, updatedAt: new Date().toISOString() }
+              });
+            }
+          } else {
+            setEditorDocument(updatedDoc);
+          }
         })
-        .catch(() => {
-          // Image loading failed - allow retry if URI changes
+        .catch((err) => {
+          console.warn("[SketchNode] Failed to load layer input:", uri, err);
+          // Allow retry if the URI changes
           delete layerInputUriLoadedRef.current[layer.id];
         });
     }
   }, [
     exposedInputLayers,
+    layerInputResults,
     sketchDoc,
-    upstreamResult,
-    dynamicProps,
-    staticProps,
     props.id,
-    updateNodeProperties
+    updateNodeProperties,
+    isModalOpen
   ]);
 
   // ─── Generate preview and update output properties ────────────────

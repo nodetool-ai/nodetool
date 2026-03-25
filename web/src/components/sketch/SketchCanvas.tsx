@@ -11,7 +11,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, forwardRef } from "react";
+import React, { useCallback, useRef, useState, forwardRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -182,6 +182,36 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     } = props;
 
     const theme = useTheme();
+    const [transformPreviewByLayerId, setTransformPreviewByLayerId] = useState<
+      Record<string, LayerTransform>
+    >({});
+
+    const setLayerTransformPreview = useCallback((layerId: string, transform: LayerTransform) => {
+      setTransformPreviewByLayerId((current) => {
+        const existing = current[layerId];
+        if (existing && existing.x === transform.x && existing.y === transform.y) {
+          return current;
+        }
+        return { ...current, [layerId]: transform };
+      });
+    }, []);
+
+    const clearLayerTransformPreview = useCallback((layerId?: string) => {
+      setTransformPreviewByLayerId((current) => {
+        if (layerId == null) {
+          if (Object.keys(current).length === 0) {
+            return current;
+          }
+          return {};
+        }
+        if (!(layerId in current)) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[layerId];
+        return next;
+      });
+    }, []);
 
     // ─── Shared refs (created here to avoid circular deps between hooks) ─
     const containerRef = useRef<HTMLDivElement>(null);
@@ -205,7 +235,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       redrawDirty,
       requestRedraw,
       requestDirtyRedraw
-    } = useCompositing({ doc, isolatedLayerId, activeStrokeRef });
+    } = useCompositing({
+      doc,
+      isolatedLayerId,
+      activeStrokeRef,
+      transformPreviewByLayerId
+    });
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
     // These refs are needed by the overlay renderer, so we extract them first
@@ -285,7 +320,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onSelectionChange,
       onAutoPickLayer,
       foregroundColor,
-      onCanvasLeave
+      onCanvasLeave,
+      setLayerTransformPreview,
+      clearLayerTransformPreview
     });
 
     // ─── Imperative handle ──────────────────────────────────────────────

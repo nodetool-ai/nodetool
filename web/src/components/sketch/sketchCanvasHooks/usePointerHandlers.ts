@@ -94,6 +94,8 @@ export interface UsePointerHandlersParams {
   foregroundColor?: string;
   /** Fires when the pointer leaves the canvas container (thumbnails, etc.). */
   onCanvasLeave?: () => void;
+  setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
+  clearLayerTransformPreview?: (layerId?: string) => void;
 }
 
 export interface UsePointerHandlersResult {
@@ -152,7 +154,9 @@ export function usePointerHandlers({
   onSelectionChange,
   onAutoPickLayer,
   foregroundColor = "#000000",
-  onCanvasLeave
+  onCanvasLeave,
+  setLayerTransformPreview,
+  clearLayerTransformPreview
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -170,6 +174,8 @@ export function usePointerHandlers({
   // Tool-specific state
   const moveStartRef = useRef<Point | null>(null);
   const moveLayerStartTransformRef = useRef<LayerTransform>({ x: 0, y: 0 });
+  const movePreviewTransformRef = useRef<LayerTransform | null>(null);
+  const movePreviewLayerIdRef = useRef<string | null>(null);
   const gradientStartRef = useRef<Point | null>(null);
   const gradientEndRef = useRef<Point | null>(null);
   const cropStartRef = useRef<Point | null>(null);
@@ -479,6 +485,12 @@ export function usePointerHandlers({
           x: activeLayer.transform?.x ?? 0,
           y: activeLayer.transform?.y ?? 0
         };
+        movePreviewTransformRef.current = {
+          x: activeLayer.transform?.x ?? 0,
+          y: activeLayer.transform?.y ?? 0
+        };
+        movePreviewLayerIdRef.current = activeLayer.id;
+        clearLayerTransformPreview?.(activeLayer.id);
         isDrawingRef.current = true;
         onStrokeStart();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -805,7 +817,8 @@ export function usePointerHandlers({
       sKeyHeldRef,
       shiftHeldRef,
       altHeldRef,
-      foregroundColor
+      foregroundColor,
+      clearLayerTransformPreview
     ]
   );
 
@@ -843,11 +856,14 @@ export function usePointerHandlers({
         const dx = pt.x - moveStartRef.current.x;
         const dy = pt.y - moveStartRef.current.y;
         const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-        if (activeLayer && onLayerTransformChange) {
-          onLayerTransformChange(activeLayer.id, {
+        if (activeLayer) {
+          const previewTransform = {
             x: Math.round(moveLayerStartTransformRef.current.x + dx),
             y: Math.round(moveLayerStartTransformRef.current.y + dy)
-          });
+          };
+          movePreviewTransformRef.current = previewTransform;
+          movePreviewLayerIdRef.current = activeLayer.id;
+          setLayerTransformPreview?.(activeLayer.id, previewTransform);
         }
         return;
       }
@@ -1025,7 +1041,7 @@ export function usePointerHandlers({
       clipSelectionForOffset,
       drawOverlaySelection,
       onSelectionChange,
-      onLayerTransformChange,
+      setLayerTransformPreview,
       activeStrokeRef,
       invalidateLayer,
       drawActiveStrokePreview,
@@ -1055,8 +1071,16 @@ export function usePointerHandlers({
       const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
 
       if (activeTool === "move") {
+        const previewLayerId = movePreviewLayerIdRef.current;
+        const previewTransform = movePreviewTransformRef.current;
+        if (previewLayerId && previewTransform && onLayerTransformChange) {
+          onLayerTransformChange(previewLayerId, previewTransform);
+        }
+        clearLayerTransformPreview?.(previewLayerId ?? undefined);
         moveStartRef.current = null;
         moveLayerStartTransformRef.current = { x: 0, y: 0 };
+        movePreviewTransformRef.current = null;
+        movePreviewLayerIdRef.current = null;
         // Move only changes transform; pixels are unchanged. Do not enqueue the
         // deferred getLayerData sync used by paint tools — it can overwrite
         // document `layer.data` with empty/not-yet-hydrated CPU canvases.
@@ -1281,6 +1305,8 @@ export function usePointerHandlers({
       activeTool,
       selection,
       onStrokeEnd,
+      onLayerTransformChange,
+      clearLayerTransformPreview,
       onCropComplete,
       getOrCreateLayerCanvas,
       clearOverlay,

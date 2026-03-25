@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { SketchDocument } from "../types";
+import type { LayerTransform, SketchDocument } from "../types";
 import type { SketchRuntime, DirtyRect } from "../rendering";
 import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
 
@@ -27,6 +27,7 @@ export interface UseCompositingParams {
   doc: SketchDocument;
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  transformPreviewByLayerId?: Record<string, LayerTransform>;
 }
 
 export interface UseCompositingResult {
@@ -53,7 +54,8 @@ export interface UseCompositingResult {
 export function useCompositing({
   doc,
   isolatedLayerId,
-  activeStrokeRef
+  activeStrokeRef,
+  transformPreviewByLayerId = {}
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const bootstrapDisplayRef = useRef<HTMLCanvasElement>(null);
@@ -74,6 +76,10 @@ export function useCompositing({
   );
   const bootstrapPhaseActive =
     webgpuBootstrapPending && isWebGPUAvailable();
+  const transformPreviewSignature = Object.entries(transformPreviewByLayerId)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([layerId, transform]) => `${layerId}:${transform.x},${transform.y}`)
+    .join("|");
 
   // ─── Shared layer canvas map (injected into the runtime) ──────────
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
@@ -192,6 +198,16 @@ export function useCompositing({
       if (!rt) {
         return;
       }
+      const hasTransformPreview = Object.keys(transformPreviewByLayerId).length > 0;
+      const compositeDoc = hasTransformPreview
+        ? {
+            ...doc,
+            layers: doc.layers.map((layer) => {
+              const previewTransform = transformPreviewByLayerId[layer.id];
+              return previewTransform ? { ...layer, transform: previewTransform } : layer;
+            })
+          }
+        : doc;
       // WebGPU owns committed content only. Live paint preview is drawn on the
       // separate 2D overlay, so the base composite hides the active layer while
       // a stroke is in progress to avoid double-drawing it underneath.
@@ -201,7 +217,7 @@ export function useCompositing({
         backend === "webgpu" ? activeStrokeRef.current?.layerId ?? null : null;
       rt.compositeToDisplay(
         targetCanvas,
-        doc,
+        compositeDoc,
         isolatedLayerId ?? null,
         activeStroke,
         dirtyRect,
@@ -212,7 +228,14 @@ export function useCompositing({
     // functions derived from it) is recreated when the backend switches to
     // WebGPU, which causes the [requestRedraw, doc.layers] effect to fire and
     // trigger the first WebGPU frame.
-    [doc, isolatedLayerId, activeStrokeRef, backend, bootstrapPhaseActive]
+    [
+      doc,
+      isolatedLayerId,
+      activeStrokeRef,
+      backend,
+      bootstrapPhaseActive,
+      transformPreviewByLayerId
+    ]
   );
 
   // rAF callbacks must not close over a stale `compositeToDisplay` — e.g. a frame
@@ -384,7 +407,7 @@ export function useCompositing({
 
   useEffect(() => {
     requestRedraw();
-  }, [requestRedraw, doc.layers, bootstrapPhaseActive, backend]);
+  }, [requestRedraw, doc.layers, bootstrapPhaseActive, backend, transformPreviewSignature]);
 
   // After DOM commit, `<canvas>` refs are set; compositing effects may have run
   // in the same tick with null refs. One layout-pass redraw catches hydration
