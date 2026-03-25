@@ -11,8 +11,8 @@ const styles = (theme: Theme) =>
     width: "100%",
     maxWidth: 440,
     margin: "0 auto",
-    background: theme.vars.palette.c_gray1,
-    border: `1px solid ${theme.vars.palette.c_gray2}`,
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
     borderRadius: 12,
     padding: "14px 16px",
     display: "flex",
@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
     gap: 10,
     transition: "border-color 0.2s ease",
     "&:focus-within": {
-      borderColor: theme.vars.palette.c_gray3,
+      borderColor: "rgba(255, 255, 255, 0.25)",
     },
     ".portal-input-textarea": {
       flex: 1,
