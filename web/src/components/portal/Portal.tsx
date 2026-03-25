@@ -6,7 +6,6 @@ import { useTheme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import PortalInput from "./PortalInput";
 import PortalRecents from "./PortalRecents";
 import PortalSearchResults from "./PortalSearchResults";
 import PortalSetupFlow from "./PortalSetupFlow";
@@ -18,6 +17,7 @@ import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
+import ChatInputSection from "../chat/containers/ChatInputSection";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
     },
     ".portal-input-wrapper": {
       width: "100%",
-      maxWidth: 440,
+      maxWidth: 560,
       position: "relative",
     },
     ".portal-hint": {
@@ -117,7 +117,6 @@ const Portal: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [portalState, setPortalState] = useState<PortalState>("idle");
-  const [_searchQuery, setSearchQuery] = useState("");
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -131,13 +130,18 @@ const Portal: React.FC = () => {
   }, []);
 
   const {
+    status,
     threads,
     selectedModel,
+    selectedTools,
+    agentMode,
     sendMessage,
     newThread,
     selectThread,
     deleteThread: _deleteThread,
     setSelectedModel,
+    setAgentMode,
+    setSelectedTools,
   } = usePortalChat();
 
   const {
@@ -176,23 +180,11 @@ const Portal: React.FC = () => {
     return sortedWorkflows.length > 0 || Object.keys(threads).length > 0;
   }, [sortedWorkflows, threads]);
 
-  // Search debounce
-  const handleSearchChange = useCallback((text: string) => {
-    setSearchQuery(text);
-    if (searchDebounceRef.current) {
-      clearTimeout(searchDebounceRef.current);
-    }
-    searchDebounceRef.current = setTimeout(() => {
-      setDebouncedQuery(text);
-    }, 200);
-  }, []);
-
   // Navigate to chat route after creating thread and sending message
   const sendAndNavigate = useCallback(
-    async (text: string) => {
+    async (content: MessageContent[], prompt: string) => {
       const threadId = await newThread();
       if (threadId) {
-        const content: MessageContent[] = [{ type: "text", text }];
         const message: Message = {
           type: "message",
           role: "user",
@@ -202,7 +194,6 @@ const Portal: React.FC = () => {
           model: selectedModel?.id,
         };
         await sendMessage(message);
-        // Short delay to let message processing complete before navigating
         setTimeout(() => {
           navigate(`/chat/${threadId}`);
         }, 100);
@@ -211,14 +202,13 @@ const Portal: React.FC = () => {
     [newThread, sendMessage, navigate, selectedModel]
   );
 
-  // Handle send from idle state
-  const handleIdleSend = useCallback(
-    async (text: string) => {
-      setSearchQuery("");
+  // Handle send from ChatInputSection
+  const handleSendMessage = useCallback(
+    async (content: MessageContent[], prompt: string, _agentMode: boolean) => {
       setDebouncedQuery("");
 
       if (!hasConfiguredProvider) {
-        setPendingMessage(text);
+        setPendingMessage(prompt);
         setIsTransitioning(true);
         setTimeout(() => {
           setIsTransitioning(false);
@@ -230,7 +220,7 @@ const Portal: React.FC = () => {
       // Start fade-out, then send + navigate
       setIsTransitioning(true);
       setTimeout(() => {
-        sendAndNavigate(text);
+        sendAndNavigate(content, prompt);
       }, 400);
     },
     [hasConfiguredProvider, sendAndNavigate]
@@ -239,7 +229,6 @@ const Portal: React.FC = () => {
   // Handle setup completion
   const handleSetupComplete = useCallback(
     async (defaultModel: string) => {
-      // Parse "provider:id" format into a proper LanguageModel object
       const [provider, ...idParts] = defaultModel.split(":");
       const id = idParts.join(":");
       const model: LanguageModel = {
@@ -250,16 +239,17 @@ const Portal: React.FC = () => {
       };
       setSelectedModel(model);
 
-      // Send the pending message and navigate to chat
       if (pendingMessage) {
+        const text = pendingMessage;
         setPendingMessage(null);
-        await sendAndNavigate(pendingMessage);
+        const content: MessageContent[] = [{ type: "text", text }];
+        await sendAndNavigate(content, text);
       }
     },
     [pendingMessage, setSelectedModel, sendAndNavigate]
   );
 
-  // Handle clicking a recent chat thread — fade out then navigate
+  // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
     (threadId: string) => {
       setIsTransitioning(true);
@@ -271,7 +261,7 @@ const Portal: React.FC = () => {
     [selectThread, navigate]
   );
 
-  // Handle clicking a recent workflow — navigate directly
+  // Handle clicking a recent workflow
   const handleWorkflowItemClick = useCallback(
     (workflowId: string) => {
       navigate(`/editor/${workflowId}`);
@@ -279,7 +269,7 @@ const Portal: React.FC = () => {
     [navigate]
   );
 
-  // Handle template selection from search — find full Workflow object
+  // Handle template selection from search
   const handleTemplateSelect = useCallback(
     (templateId: string) => {
       const template = startTemplates.find((t) => t.id === templateId);
@@ -288,6 +278,27 @@ const Portal: React.FC = () => {
       }
     },
     [handleExampleClick, startTemplates]
+  );
+
+  const handleModelChange = useCallback(
+    (model: LanguageModel) => {
+      setSelectedModel(model);
+    },
+    [setSelectedModel]
+  );
+
+  const handleToolsChange = useCallback(
+    (tools: string[]) => {
+      setSelectedTools(tools);
+    },
+    [setSelectedTools]
+  );
+
+  const handleAgentModeToggle = useCallback(
+    (enabled: boolean) => {
+      setAgentMode(enabled);
+    },
+    [setAgentMode]
   );
 
   // SETUP state
@@ -325,10 +336,15 @@ const Portal: React.FC = () => {
         </div>
 
         <div className="portal-input-wrapper">
-          <PortalInput
-            onSend={handleIdleSend}
-            onSearchChange={handleSearchChange}
-            disabled={isTransitioning}
+          <ChatInputSection
+            status={status as any}
+            onSendMessage={handleSendMessage}
+            selectedTools={selectedTools}
+            onToolsChange={handleToolsChange}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            agentMode={agentMode}
+            onAgentModeToggle={handleAgentModeToggle}
           />
           {debouncedQuery.length >= 2 && !isTransitioning && (
             <PortalSearchResults
