@@ -132,8 +132,7 @@ const Portal: React.FC = () => {
 
   const {
     threads,
-    currentThreadId,
-    selectedModel: _selectedModel,
+    selectedModel,
     sendMessage,
     newThread,
     selectThread,
@@ -200,12 +199,16 @@ const Portal: React.FC = () => {
           content,
           thread_id: threadId,
           created_at: new Date().toISOString(),
+          model: selectedModel?.id,
         };
         await sendMessage(message);
-        navigate(`/chat/${threadId}`);
+        // Short delay to let message processing complete before navigating
+        setTimeout(() => {
+          navigate(`/chat/${threadId}`);
+        }, 100);
       }
     },
-    [newThread, sendMessage, navigate]
+    [newThread, sendMessage, navigate, selectedModel]
   );
 
   // Handle send from idle state
