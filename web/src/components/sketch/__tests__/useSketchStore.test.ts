@@ -272,6 +272,75 @@ describe("useSketchStore", () => {
         height: 48
       });
     });
+
+    it("mergeLayerDown resets the surviving layer to document-space bounds", () => {
+      const lowerId = useSketchStore.getState().document.layers[0].id;
+      let upperId = "";
+
+      act(() => {
+        upperId = useSketchStore.getState().addLayer("Upper");
+        useSketchStore.getState().setLayerTransform(lowerId, { x: 5, y: 6 });
+        useSketchStore.getState().setLayerContentBounds(lowerId, {
+          x: 2,
+          y: 3,
+          width: 40,
+          height: 30
+        });
+        useSketchStore.getState().setLayerTransform(upperId, { x: -8, y: 4 });
+        useSketchStore.getState().setLayerContentBounds(upperId, {
+          x: -10,
+          y: 12,
+          width: 20,
+          height: 16
+        });
+      });
+
+      act(() => {
+        useSketchStore.getState().mergeLayerDown(upperId);
+      });
+
+      const state = useSketchStore.getState();
+      expect(state.document.layers).toHaveLength(1);
+      expect(state.document.layers[0].id).toBe(lowerId);
+      expect(state.document.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(state.document.layers[0].contentBounds).toEqual({
+        x: 0,
+        y: 0,
+        width: state.document.canvas.width,
+        height: state.document.canvas.height
+      });
+    });
+
+    it("flattenVisible creates one identity layer covering the document", () => {
+      let upperId = "";
+
+      act(() => {
+        upperId = useSketchStore.getState().addLayer("Upper");
+        useSketchStore.getState().setLayerTransform(upperId, { x: 9, y: -7 });
+        useSketchStore.getState().setLayerContentBounds(upperId, {
+          x: -4,
+          y: 11,
+          width: 24,
+          height: 18
+        });
+      });
+
+      act(() => {
+        useSketchStore.getState().flattenVisible();
+      });
+
+      const state = useSketchStore.getState();
+      expect(state.document.layers).toHaveLength(1);
+      expect(state.document.activeLayerId).toBe(state.document.layers[0].id);
+      expect(state.document.maskLayerId).toBeNull();
+      expect(state.document.layers[0].transform).toEqual({ x: 0, y: 0 });
+      expect(state.document.layers[0].contentBounds).toEqual({
+        x: 0,
+        y: 0,
+        width: state.document.canvas.width,
+        height: state.document.canvas.height
+      });
+    });
   });
 
   describe("document actions", () => {

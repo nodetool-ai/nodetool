@@ -22,14 +22,14 @@
 - [x] widen and clean up the right panel: spacing, icon order, icon position, and expose-button visibility
 - [x] add focused regression coverage for transformed layers: move, nudge, paint-after-transform, undo/redo, serialize, reload, and repaint
 - [ ] define and enforce transform-only edit semantics explicitly across store, canvas actions, and history
-- [ ] transform-only actions: move, nudge, and future live transform preview/commit update `layer.transform` only, never rewrite `layer.data`, never change `contentBounds`, only invalidate compositing/overlay, and create one history transaction on commit/end
+- [x] transform-only actions: move, nudge, and future live transform preview/commit update `layer.transform` only, never rewrite `layer.data`, never change `contentBounds`, only invalidate compositing/overlay, and create one history transaction on commit/end
 - [ ] pixel-edit actions: brush, eraser, fill, gradient, blur, clone, clear, paste, trim, and adjustments may change `layer.data` and raster bounds, and must use pixel/history sync paths rather than transform-only paths
 - [x] raster-bounds rule: `contentBounds` tracks stored raster extent, not visual placement after transform; translate/nudge/preview must not mutate it
-- [ ] reconciliation rule: ordinary paint-after-move must stay transform-aware and must not reconcile to document space; reconciliation is allowed only for explicit destructive bake operations such as merge/flatten/rasterize/export-bake or an explicit "reconcile layer" command
+- [x] reconciliation rule: ordinary paint-after-move must stay transform-aware and must not reconcile to document space; reconciliation is allowed only for explicit destructive bake operations such as merge/flatten/rasterize/export-bake or an explicit "reconcile layer" command
 - [ ] history/invalidation rule: hover, drag preview, and transient transform updates only invalidate; pointer-up, apply, confirm, or destructive bake creates exactly one undo step
 - [ ] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
 - [ ] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
-- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior
+- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs.
 - [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
 
 ## PHASE 2 - FIXES
@@ -95,3 +95,22 @@ These are not current priorities, but they should stay visible so they can be re
 - [ ] PSD/ORA compatibility, SVG IO, and other external format work
 - [ ] multi-document or multi-canvas workflows
 - [ ] 3D layer support to allow compositing model3D type layers with basic translate, rotate, scale
+
+## Agent orientation (where things live)
+
+All paths below are under `web/src/components/sketch/` unless noted.
+
+| Area | Location |
+|------|----------|
+| Editor shell, toolbar, panels | `SketchEditor.tsx`, `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`, `useEditorKeyboardShortcuts.ts` |
+| Canvas mount & wiring | `SketchCanvas.tsx`; canvas behavior hooks in `sketchCanvasHooks/` (`usePointerHandlers.ts`, `usePointerHandlerUtils.ts`, `useCompositing.ts`, `useOverlayRenderer.ts`, `useCanvasImperativeHandle.ts`, `useKeyboardModifiers.ts`) |
+| Document / layer state (Zustand) | `state/useSketchStore.ts`; derived actions in `hooks/` (`useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`) |
+| Raster draw & hit-testing | `rendering/Canvas2DRuntime.ts` (primary 2D path); optional `rendering/WebGPURuntime.ts`, `rendering/initWebGPU.ts`, `rendering/shaders.ts` |
+| Painting pipeline | `painting/` — `PaintSession.ts`, `CoordinateMapper.ts`, `*Engine.ts` (brush/pencil/eraser), `layerBounds.ts` |
+| Tools (pointer semantics per tool) | `tools/*.ts`, `tools/types.ts`, registry in `toolDefinitions.ts` |
+| Shared types & serialization | `types/index.ts`, `serialization/` |
+| Flow node (workflow UI) | `web/src/components/node/SketchNode/SketchNode.tsx` — embeds the editor in the graph |
+| Tests | `__tests__/*.test.ts` next to the code under test |
+| Shortcut reference | `SHORTCUTS.md`; completed work notes in `SKETCH_FEATURES_DONE.md` |
+
+**Rough data flow:** `SketchNode` → `SketchEditor` → `SketchCanvas` → `sketchCanvasHooks` (pointer/modifiers) → `useSketchStore` + `hooks/*Actions` for mutations; `rendering/*Runtime` and `painting/*` commit pixels; `serialization` persists document JSON and layer blobs.

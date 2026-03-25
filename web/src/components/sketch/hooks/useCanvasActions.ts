@@ -255,7 +255,7 @@ export function useCanvasActions({
         committedBounds: committedBounds ?? null
       });
     },
-    [onExportImage, onExportMask, updateLayerData, setLayerContentBounds]
+    [onExportImage, onExportMask, commitPixelLayerChange]
   );
 
   const bakeLayerTransformIntoDocumentSpace = useCallback(
@@ -403,7 +403,7 @@ export function useCanvasActions({
     [
       document.activeLayerId,
       document.layers,
-      pushHistory,
+      pushTransformHistory,
       offsetLayerTransform,
       syncSketchOutputsNow,
       canvasRef
