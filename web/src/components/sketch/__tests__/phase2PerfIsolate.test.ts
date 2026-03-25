@@ -129,15 +129,15 @@ describe("Phase 2 Performance + Isolate Layer", () => {
       expect(state.backgroundColor).toBe("#ff0000");
     });
 
-    it("resetColors sets to black/white defaults", () => {
+    it("resetColors sets to black foreground and white background (D shortcut)", () => {
       act(() => {
         useSketchStore.getState().setForegroundColor("#ff0000");
         useSketchStore.getState().setBackgroundColor("#00ff00");
         useSketchStore.getState().resetColors();
       });
       const state = useSketchStore.getState();
-      expect(state.foregroundColor).toBe("#ffffff");
-      expect(state.backgroundColor).toBe("#000000");
+      expect(state.foregroundColor).toBe("#000000");
+      expect(state.backgroundColor).toBe("#ffffff");
     });
   });
 });

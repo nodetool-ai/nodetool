@@ -82,6 +82,35 @@ describe("useSketchStore", () => {
     });
   });
 
+  describe("swapColors", () => {
+    it("keeps brush and pencil colors aligned with the foreground swatch", () => {
+      act(() => {
+        useSketchStore.getState().setForegroundColor("#ff0000");
+        useSketchStore.getState().setBackgroundColor("#00ff00");
+        useSketchStore.getState().setBrushSettings({ color: "#ff0000" });
+        useSketchStore.getState().setPencilSettings({ color: "#ff0000" });
+        useSketchStore.getState().swapColors();
+      });
+      const s = useSketchStore.getState();
+      expect(s.foregroundColor).toBe("#00ff00");
+      expect(s.backgroundColor).toBe("#ff0000");
+      expect(s.document.toolSettings.brush.color).toBe("#00ff00");
+      expect(s.document.toolSettings.pencil.color).toBe("#00ff00");
+    });
+
+    it("leaves a custom brush color unchanged when it did not match the old foreground", () => {
+      act(() => {
+        useSketchStore.getState().setForegroundColor("#ff0000");
+        useSketchStore.getState().setBackgroundColor("#00ff00");
+        useSketchStore.getState().setBrushSettings({ color: "#336699" });
+        useSketchStore.getState().swapColors();
+      });
+      expect(useSketchStore.getState().document.toolSettings.brush.color).toBe(
+        "#336699"
+      );
+    });
+  });
+
   describe("layer actions", () => {
     it("adds a layer", () => {
       let layerId: string;

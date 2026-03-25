@@ -45,6 +45,30 @@ function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument 
   };
 }
 
+/** Tool colors tied to the foreground swatch follow the new FG after swap. */
+function mapForegroundLinkedToolColor(
+  color: string,
+  oldFg: string,
+  oldBg: string
+): string {
+  return color === oldFg ? oldBg : color;
+}
+
+/** Colors that may match either swatch (fill side, gradient end) swap both ways. */
+function mapDualWellToolColor(
+  color: string,
+  oldFg: string,
+  oldBg: string
+): string {
+  if (color === oldFg) {
+    return oldBg;
+  }
+  if (color === oldBg) {
+    return oldFg;
+  }
+  return color;
+}
+
 function setLayerTransformInDocument(
   document: SketchDocument,
   layerId: string,
@@ -694,10 +718,56 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setForegroundColor: (color: string) => set({ foregroundColor: color }),
   setBackgroundColor: (color: string) => set({ backgroundColor: color }),
   swapColors: () =>
-    set((state) => ({
-      foregroundColor: state.backgroundColor,
-      backgroundColor: state.foregroundColor
-    })),
+    set((state) => {
+      const oldFg = state.foregroundColor;
+      const oldBg = state.backgroundColor;
+      const ts = state.document.toolSettings;
+      const document = withUpdatedDocumentTimestamp({
+        ...state.document,
+        toolSettings: {
+          ...ts,
+          brush: {
+            ...ts.brush,
+            color: mapForegroundLinkedToolColor(ts.brush.color, oldFg, oldBg)
+          },
+          pencil: {
+            ...ts.pencil,
+            color: mapForegroundLinkedToolColor(ts.pencil.color, oldFg, oldBg)
+          },
+          fill: {
+            ...ts.fill,
+            color: mapForegroundLinkedToolColor(ts.fill.color, oldFg, oldBg)
+          },
+          shape: {
+            ...ts.shape,
+            strokeColor: mapForegroundLinkedToolColor(
+              ts.shape.strokeColor,
+              oldFg,
+              oldBg
+            ),
+            fillColor: mapDualWellToolColor(ts.shape.fillColor, oldFg, oldBg)
+          },
+          gradient: {
+            ...ts.gradient,
+            startColor: mapForegroundLinkedToolColor(
+              ts.gradient.startColor,
+              oldFg,
+              oldBg
+            ),
+            endColor: mapDualWellToolColor(
+              ts.gradient.endColor,
+              oldFg,
+              oldBg
+            )
+          }
+        }
+      });
+      return {
+        foregroundColor: oldBg,
+        backgroundColor: oldFg,
+        document
+      };
+    }),
   resetColors: () =>
     set({ foregroundColor: "#000000", backgroundColor: "#ffffff" }),
 

@@ -98,19 +98,39 @@ These are not current priorities, but they should stay visible so they can be re
 
 ## Agent orientation (where things live)
 
-All paths below are under `web/src/components/sketch/` unless noted.
+**Base path:** `web/src/components/sketch/` (everything below is relative to that folder).
 
-| Area | Location |
-|------|----------|
-| Editor shell, toolbar, panels | `SketchEditor.tsx`, `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`, `useEditorKeyboardShortcuts.ts` |
-| Canvas mount & wiring | `SketchCanvas.tsx`; canvas behavior hooks in `sketchCanvasHooks/` (`usePointerHandlers.ts`, `usePointerHandlerUtils.ts`, `useCompositing.ts`, `useOverlayRenderer.ts`, `useCanvasImperativeHandle.ts`, `useKeyboardModifiers.ts`) |
-| Document / layer state (Zustand) | `state/useSketchStore.ts`; derived actions in `hooks/` (`useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`) |
-| Raster draw & hit-testing | `rendering/Canvas2DRuntime.ts` (primary 2D path); optional `rendering/WebGPURuntime.ts`, `rendering/initWebGPU.ts`, `rendering/shaders.ts` |
-| Painting pipeline | `painting/` — `PaintSession.ts`, `CoordinateMapper.ts`, `*Engine.ts` (brush/pencil/eraser), `layerBounds.ts` |
-| Tools (pointer semantics per tool) | `tools/*.ts`, `tools/types.ts`, registry in `toolDefinitions.ts` |
-| Shared types & serialization | `types/index.ts`, `serialization/` |
-| Flow node (workflow UI) | `web/src/components/node/SketchNode/SketchNode.tsx` — embeds the editor in the graph |
-| Tests | `__tests__/*.test.ts` next to the code under test |
-| Shortcut reference | `SHORTCUTS.md`; completed work notes in `SKETCH_FEATURES_DONE.md` |
+### Architecture
 
-**Rough data flow:** `SketchNode` → `SketchEditor` → `SketchCanvas` → `sketchCanvasHooks` (pointer/modifiers) → `useSketchStore` + `hooks/*Actions` for mutations; `rendering/*Runtime` and `painting/*` commit pixels; `serialization` persists document JSON and layer blobs.
+1. **Workflow node** — `../node/SketchNode/SketchNode.tsx` hosts the editor inside the graph (props, I/O, layout).
+2. **Editor UI** — `SketchEditor.tsx` composes toolbar, layers panel, settings, shortcuts.
+3. **Canvas** — `SketchCanvas.tsx` mounts the `<canvas>` and pulls in the hook bundle under `sketchCanvasHooks/`.
+4. **State** — `state/useSketchStore.ts` is the Zustand document; `hooks/*` wraps store updates (canvas, layers, history, selectors).
+5. **Input → pixels** — pointer flow lives in `sketchCanvasHooks/`; tools in `tools/`; actual drawing in `painting/`; raster compositing in `rendering/` (main path: `Canvas2DRuntime.ts`).
+
+### Folders
+
+- **`sketchCanvasHooks/`** — Pointer events, compositing, overlay, keyboard modifiers, imperative canvas API. Heaviest files: `usePointerHandlers.ts`, `usePointerHandlerUtils.ts`.
+- **`state/`** — `useSketchStore.ts` (layers, transforms, tool state, history pointers).
+- **`hooks/`** — `useCanvasActions.ts`, `useLayerActions.ts`, `useHistoryActions.ts`, `useSketchStoreSelectors.ts`.
+- **`rendering/`** — `Canvas2DRuntime.ts` (2D); `WebGPURuntime.ts` / `initWebGPU.ts` / `shaders.ts` for the GPU path.
+- **`painting/`** — `PaintSession.ts`, `CoordinateMapper.ts`, brush/pencil/eraser engines, `layerBounds.ts`.
+- **`tools/`** — One module per tool; `toolDefinitions.ts` registers them; `tools/types.ts` for shared tool types.
+- **`types/`** — Shared TypeScript types (`index.ts`).
+- **`serialization/`** — Save/load document and layer payloads.
+
+### UI pieces (same folder, top-level files)
+
+Toolbar, layers list, color popover, tool settings: `SketchToolbar.tsx`, `SketchLayersPanel.tsx`, `LayerItem.tsx`, `ToolSettingsPanels.tsx`, `ColorPickerPopover.tsx`, `useEditorKeyboardShortcuts.ts`.
+
+### Planning files to checkoff
+
+- **Shortcuts:** `SHORTCUTS.md`
+- **Shipped features log:** `SKETCH_FEATURES_DONE.md`
+
+### Data flow
+
+1. User acts on the canvas → `sketchCanvasHooks` routes by tool.
+2. Tools / painting call into `rendering` or mutate layer buffers via the store hooks.
+3. `useSketchStore` updates document state; compositing redraws.
+4. Persist / restore goes through `serialization/`.
