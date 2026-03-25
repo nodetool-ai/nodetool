@@ -717,7 +717,8 @@ interface AdjustmentsSettingsPanelProps {
   onBrightnessChange: (value: number) => void;
   onContrastChange: (value: number) => void;
   onSaturationChange: (value: number) => void;
-  onReset: () => void;
+  onApply: () => void;
+  onCancel: () => void;
 }
 
 export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
@@ -727,8 +728,10 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   onBrightnessChange,
   onContrastChange,
   onSaturationChange,
-  onReset
+  onApply,
+  onCancel
 }: AdjustmentsSettingsPanelProps) {
+  const hasChanges = brightness !== 0 || contrast !== 0 || saturation !== 0;
   return (
     <>
       <Box className="setting-row">
@@ -767,14 +770,27 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         />
         <Typography className="setting-value">{saturation}</Typography>
       </Box>
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={onReset}
-        sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px" }}
-      >
-        Reset
-      </Button>
+      <Box sx={{ display: "flex", gap: 0.5 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="primary"
+          disabled={!hasChanges}
+          onClick={onApply}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px", flex: 1 }}
+        >
+          Apply
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!hasChanges}
+          onClick={onCancel}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px", flex: 1 }}
+        >
+          Cancel
+        </Button>
+      </Box>
     </>
   );
 });
@@ -831,7 +847,8 @@ export interface ToolSettingsPanelProps {
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
-  onAdjustReset?: () => void;
+  onAdjustApply?: () => void;
+  onAdjustCancel?: () => void;
 }
 
 export const ToolSettingsPanel = memo(function ToolSettingsPanel({
@@ -858,7 +875,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
-  onAdjustReset
+  onAdjustApply,
+  onAdjustCancel
 }: ToolSettingsPanelProps) {
   if (activeTool === "brush") {
     return (
@@ -939,7 +957,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         onBrightnessChange={onAdjustBrightnessChange ?? noop}
         onContrastChange={onAdjustContrastChange ?? noop}
         onSaturationChange={onAdjustSaturationChange ?? noop}
-        onReset={onAdjustReset ?? noop}
+        onApply={onAdjustApply ?? noop}
+        onCancel={onAdjustCancel ?? noop}
       />
     );
   }

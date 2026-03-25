@@ -176,6 +176,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     handleExportPng: canvasActions.handleExportPng,
     handleClearLayer: canvasActions.handleClearLayer,
     handleFillLayerWithColor: canvasActions.handleFillLayerWithColor,
+    handleCopy: canvasActions.handleCopy,
+    handleCut: canvasActions.handleCut,
+    handlePaste: canvasActions.handlePaste,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
     setActiveTool: store.setActiveTool,
@@ -298,7 +301,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onAdjustBrightnessChange={canvasActions.setAdjBrightness}
             onAdjustContrastChange={canvasActions.setAdjContrast}
             onAdjustSaturationChange={canvasActions.setAdjSaturation}
-            onAdjustReset={canvasActions.handleResetAdjustments}
+            onAdjustApply={canvasActions.handleApplyAdjustments}
+            onAdjustCancel={canvasActions.handleCancelAdjustments}
           />
         )}
 

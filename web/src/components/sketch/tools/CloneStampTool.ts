@@ -14,6 +14,7 @@ import {
   blendModeToComposite
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
@@ -29,6 +30,9 @@ export class CloneStampTool implements ToolHandler {
   private currentPressure = 0.5;
   private paintStrokeHasMoved = false;
   private lastStrokeEnd: Point | null = null;
+
+  // Transform-aware coordinate mapper
+  private mapper: CoordinateMapper | null = null;
 
   // Alpha lock
   private alphaSnapshot: ImageData | null = null;
@@ -83,6 +87,12 @@ export class CloneStampTool implements ToolHandler {
     }
 
     const pt = event.point;
+
+    // Build coordinate mapper for this layer
+    this.mapper = new CoordinateMapper({
+      layerTransform: activeLayer.transform,
+      rasterBounds: activeLayer.contentBounds
+    });
 
     // Calculate offset from source to destination on first stroke
     if (!this.cloneOffset) {
@@ -157,11 +167,12 @@ export class CloneStampTool implements ToolHandler {
       this.alphaSnapshot = null;
     }
 
-    // Initial dab
+    // Initial dab (map document-space point to layer-local)
+    const localPt = this.mapper.docToLayer(pt);
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
-      this.drawCloneStampStroke(pt, pt, doc.toolSettings.cloneStamp, layerCtx);
+      this.drawCloneStampStroke(localPt, localPt, doc.toolSettings.cloneStamp, layerCtx);
       ctx.redraw();
     }
 
@@ -173,7 +184,7 @@ export class CloneStampTool implements ToolHandler {
     _event: ToolPointerEvent,
     coalescedPoints: ToolPointerEvent[]
   ): void {
-    if (!this.lastPoint) {
+    if (!this.lastPoint || !this.mapper) {
       return;
     }
     const { doc } = ctx;
@@ -198,14 +209,17 @@ export class CloneStampTool implements ToolHandler {
         this.paintStrokeHasMoved = true;
       }
       this.currentPressure = eventPoint.pressure;
-      this.drawCloneStampStroke(this.lastPoint, pt, doc.toolSettings.cloneStamp, paintCtx);
+      const localFrom = this.mapper.docToLayer(this.lastPoint);
+      const localTo = this.mapper.docToLayer(pt);
+      this.drawCloneStampStroke(localFrom, localTo, doc.toolSettings.cloneStamp, paintCtx);
       this.lastPoint = pt;
     }
 
-    // Dirty-rect compositing
+    // Dirty-rect compositing (map from layer-space back to doc-space)
     const dirty = this.strokeDirtyRect.current;
     if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
-      ctx.redrawDirty(dirty.minX, dirty.minY, dirty.maxX - dirty.minX, dirty.maxY - dirty.minY);
+      const docDirty = this.mapper.dirtyToDoc(dirty);
+      ctx.redrawDirty(docDirty.x, docDirty.y, docDirty.w, docDirty.h);
     } else {
       ctx.requestRedraw();
     }
@@ -224,6 +238,7 @@ export class CloneStampTool implements ToolHandler {
     this.lastPoint = null;
     this.lastSmoothedPoint = null;
     this.paintStrokeHasMoved = false;
+    this.mapper = null;
 
     // Alpha lock: restore original alpha channel
     if (activeLayer?.alphaLock && this.alphaSnapshot) {

@@ -91,7 +91,8 @@ export interface SketchToolTopBarProps {
   onAdjustBrightnessChange: (value: number) => void;
   onAdjustContrastChange: (value: number) => void;
   onAdjustSaturationChange: (value: number) => void;
-  onAdjustReset: () => void;
+  onAdjustApply: () => void;
+  onAdjustCancel: () => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -118,7 +119,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
-  onAdjustReset
+  onAdjustApply,
+  onAdjustCancel
 }) => {
   const theme = useTheme();
 
@@ -148,7 +150,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onAdjustBrightnessChange={onAdjustBrightnessChange}
         onAdjustContrastChange={onAdjustContrastChange}
         onAdjustSaturationChange={onAdjustSaturationChange}
-        onAdjustReset={onAdjustReset}
+        onAdjustApply={onAdjustApply}
+        onAdjustCancel={onAdjustCancel}
       />
     </Box>
   );
