@@ -29,6 +29,7 @@ import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection"
 import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
 import { SketchModal } from "../../sketch";
+import { useSketchStore } from "../../sketch";
 import {
   SketchDocument,
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
