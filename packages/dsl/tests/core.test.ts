@@ -83,7 +83,7 @@ describe("createNode", () => {
   });
 
   test("literal values pass through in inputs", () => {
-    const node = createNode<SingleOutput<string>>("nodetool.text.Concat", {
+    const node = createNode<SingleOutput<string>>("nodetool.constant.String", {
       a: "hello",
       b: 42,
       c: true,
@@ -103,16 +103,16 @@ describe("createNode", () => {
 
 describe("workflow", () => {
   test("single node — 1 node, 0 edges", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     const wf = workflow(a);
     expect(wf.nodes).toHaveLength(1);
     expect(wf.edges).toHaveLength(0);
     expect(wf.nodes[0].type).toBe("nodetool.constant.Integer");
-    expect(wf.nodes[0].data).toEqual({ value: 5 });
+    expect(wf.nodes[0].data).toEqual({ input_item: 5 });
   });
 
   test("linear chain — 2 nodes, 1 edge", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
       rhs: 1,
@@ -132,7 +132,7 @@ describe("workflow", () => {
   });
 
   test("diamond dependency — no duplicate nodes", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
       rhs: 1,
@@ -158,8 +158,8 @@ describe("workflow", () => {
 
   test("streaming flag preserved", () => {
     const a = createNode<SingleOutput<number>>(
-      "nodetool.numbers.FilterNumber",
-      { value: 5 },
+      "nodetool.control.Collect",
+      { input_item: 5 },
       { streaming: true }
     );
     const wf = workflow(a);
@@ -177,7 +177,7 @@ describe("workflow", () => {
   });
 
   test("registry is cleared after workflow()", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     workflow(a);
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: a.output(),
@@ -187,13 +187,13 @@ describe("workflow", () => {
   });
 
   test("result is frozen", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     const wf = workflow(a);
     expect(Object.isFrozen(wf)).toBe(true);
   });
 
   test("topological order — sources before consumers", () => {
-    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { value: 5 });
+    const a = createNode<SingleOutput<number>>("nodetool.constant.Integer", { input_item: 5 });
     const b = createNode<SingleOutput<number>>("nodetool.math.Add", { lhs: a.output(), rhs: 1 });
     const c = createNode<SingleOutput<number>>("nodetool.math.Multiply", { lhs: b.output(), rhs: 2 });
     const wf = workflow(c);

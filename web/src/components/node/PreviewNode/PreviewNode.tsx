@@ -487,6 +487,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             iconBaseColor={theme.vars.palette.primary.main}
             showIcon={false}
             workflowId={props.data.workflow_id}
+            hideLogs={true}
           />
           {!displayResult && (
             <Typography className="hint">

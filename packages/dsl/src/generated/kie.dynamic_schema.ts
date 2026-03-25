@@ -4,8 +4,7 @@ import { createNode, Connectable, DslNode } from "../core.js";
 
 // Kie AI — kie.dynamic_schema.KieAI
 export interface KieAIInputs {
-  timeout_seconds?: Connectable<number>;
-  model_info?: Connectable<string>;
+  model_info?: Connectable<number>;
 }
 
 export interface KieAIOutputs {

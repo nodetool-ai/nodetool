@@ -105,22 +105,3 @@ export interface SpiderCrawlOutputs {
 export function spiderCrawl(inputs: SpiderCrawlInputs): DslNode<SpiderCrawlOutputs> {
   return createNode("lib.browser.SpiderCrawl", inputs as Record<string, unknown>, { outputNames: ["url", "depth", "html", "title", "status_code"], streaming: true });
 }
-
-// Browser Use — lib.browser.BrowserUse
-export interface BrowserUseInputs {
-  model?: Connectable<unknown>;
-  task?: Connectable<string>;
-  timeout?: Connectable<number>;
-  use_remote_browser?: Connectable<boolean>;
-}
-
-export interface BrowserUseOutputs {
-  success: boolean;
-  task: string;
-  result: unknown;
-  error: string;
-}
-
-export function browserUse(inputs: BrowserUseInputs): DslNode<BrowserUseOutputs> {
-  return createNode("lib.browser.BrowserUse", inputs as Record<string, unknown>, { outputNames: ["success", "task", "result", "error"] });
-}

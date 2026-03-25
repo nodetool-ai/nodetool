@@ -5,7 +5,6 @@ import type { AudioRef, TextRef } from "../types.js";
 
 // Generate Music — kie.audio.GenerateMusic
 export interface GenerateMusicInputs {
-  timeout_seconds?: Connectable<number>;
   custom_mode?: Connectable<boolean>;
   prompt?: Connectable<string>;
   style?: Connectable<string>;
@@ -30,7 +29,6 @@ export function generateMusic(inputs: GenerateMusicInputs): DslNode<GenerateMusi
 
 // Extend Music — kie.audio.ExtendMusic
 export interface ExtendMusicInputs {
-  timeout_seconds?: Connectable<number>;
   default_param_flag?: Connectable<boolean>;
   audio_id?: Connectable<string>;
   prompt?: Connectable<string>;
@@ -56,7 +54,6 @@ export function extendMusic(inputs: ExtendMusicInputs): DslNode<ExtendMusicOutpu
 
 // Cover Audio — kie.audio.CoverAudio
 export interface CoverAudioInputs {
-  timeout_seconds?: Connectable<number>;
   custom_mode?: Connectable<boolean>;
   audio?: Connectable<AudioRef>;
   prompt?: Connectable<string>;
@@ -82,7 +79,6 @@ export function coverAudio(inputs: CoverAudioInputs): DslNode<CoverAudioOutputs,
 
 // Add Instrumental — kie.audio.AddInstrumental
 export interface AddInstrumentalInputs {
-  timeout_seconds?: Connectable<number>;
   audio?: Connectable<AudioRef>;
   title?: Connectable<string>;
   tags?: Connectable<string>;
@@ -104,7 +100,6 @@ export function addInstrumental(inputs: AddInstrumentalInputs): DslNode<AddInstr
 
 // Add Vocals — kie.audio.AddVocals
 export interface AddVocalsInputs {
-  timeout_seconds?: Connectable<number>;
   audio?: Connectable<AudioRef>;
   prompt?: Connectable<string>;
   title?: Connectable<string>;
@@ -128,7 +123,6 @@ export function addVocals(inputs: AddVocalsInputs): DslNode<AddVocalsOutputs, "o
 
 // Replace Music Section — kie.audio.ReplaceMusicSection
 export interface ReplaceMusicSectionInputs {
-  timeout_seconds?: Connectable<number>;
   task_id?: Connectable<string>;
   audio_id?: Connectable<string>;
   prompt?: Connectable<string>;
@@ -150,7 +144,6 @@ export function replaceMusicSection(inputs: ReplaceMusicSectionInputs): DslNode<
 
 // ElevenLabs Text To Speech — kie.audio.ElevenLabsTextToSpeech
 export interface ElevenLabsTextToSpeechInputs {
-  timeout_seconds?: Connectable<number>;
   text?: Connectable<string>;
   voice?: Connectable<string>;
   stability?: Connectable<number>;
@@ -171,7 +164,6 @@ export function elevenLabsTextToSpeech(inputs: ElevenLabsTextToSpeechInputs): Ds
 
 // ElevenLabs Audio Isolation — kie.audio.ElevenLabsAudioIsolation
 export interface ElevenLabsAudioIsolationInputs {
-  timeout_seconds?: Connectable<number>;
   audio?: Connectable<AudioRef>;
 }
 
@@ -185,7 +177,6 @@ export function elevenLabsAudioIsolation(inputs: ElevenLabsAudioIsolationInputs)
 
 // ElevenLabs Sound Effect — kie.audio.ElevenLabsSoundEffect
 export interface ElevenLabsSoundEffectInputs {
-  timeout_seconds?: Connectable<number>;
   text?: Connectable<string>;
   duration_seconds?: Connectable<number>;
   prompt_influence?: Connectable<number>;
@@ -201,7 +192,6 @@ export function elevenLabsSoundEffect(inputs: ElevenLabsSoundEffectInputs): DslN
 
 // ElevenLabs Speech To Text — kie.audio.ElevenLabsSpeechToText
 export interface ElevenLabsSpeechToTextInputs {
-  timeout_seconds?: Connectable<number>;
   audio?: Connectable<AudioRef>;
   language_code?: Connectable<string>;
   diarization?: Connectable<boolean>;
@@ -217,7 +207,6 @@ export function elevenLabsSpeechToText(inputs: ElevenLabsSpeechToTextInputs): Ds
 
 // ElevenLabs V3 Dialogue — kie.audio.ElevenLabsV3Dialogue
 export interface ElevenLabsV3DialogueInputs {
-  timeout_seconds?: Connectable<number>;
   text?: Connectable<string>;
   voice?: Connectable<string>;
   stability?: Connectable<number>;

@@ -286,6 +286,7 @@ export function runShellCommandDocker(inputs: RunShellCommandDockerInputs): DslN
 export interface CodeInputs {
   code?: Connectable<string>;
   timeout?: Connectable<number>;
+  sync_mode?: Connectable<unknown>;
 }
 
 export interface CodeOutputs {
