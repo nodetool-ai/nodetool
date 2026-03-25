@@ -117,6 +117,10 @@ export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
 
+// Shared JS sandbox engine
+export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
+export type { RunSandboxOptions, RunSandboxResult } from "./js-sandbox.js";
+
 // Utilities
 export { extractJSON } from "./utils/json-parser.js";
 export { removeBase64Images } from "./utils/remove-base64-images.js";
