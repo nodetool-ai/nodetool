@@ -659,7 +659,11 @@ export function useCanvasActions({
     const sel = useSketchStore.getState().selection;
     if (sel && sel.width > 0 && sel.height > 0) {
       // Paste into selection region
-      ctx.drawImage(imageToPaste, 0, 0, imageToPaste.width, imageToPaste.height, sel.x, sel.y, sel.width, sel.height);
+      ctx.drawImage(
+        imageToPaste,
+        0, 0, imageToPaste.width, imageToPaste.height,
+        sel.x, sel.y, sel.width, sel.height
+      );
     } else {
       // Paste at origin
       ctx.drawImage(imageToPaste, 0, 0);
