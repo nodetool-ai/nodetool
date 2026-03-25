@@ -38,6 +38,8 @@ import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
+import SnippetMenu from "./SnippetMenu";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -610,6 +612,10 @@ const TextEditorModal = ({
   const [currentText, setCurrentText] = useState(value || "");
   const [language, setLanguage] = useState(defaultLanguage || "");
 
+  // Snippet menu state
+  const [snippetOpen, setSnippetOpen] = useState(false);
+  const snippetButtonRef = useRef<HTMLButtonElement>(null);
+
   // Editor command function refs – using refs avoids re-renders when the
   // underlying functions are recreated in the child component on every mount.
   const undoFnRef = useRef<(() => void) | null>(null);
@@ -887,6 +893,17 @@ const TextEditorModal = ({
                         onClick={handleMonacoFormat}
                       >
                         <FormatAlignLeftIcon />
+                      </button>
+                    </Tooltip>
+                  )}
+                  {!readOnly && (language === "javascript" || language === "typescript") && (
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Insert Snippet">
+                      <button
+                        ref={snippetButtonRef}
+                        className="button-ghost"
+                        onClick={() => setSnippetOpen((v) => !v)}
+                      >
+                        <DataObjectIcon />
                       </button>
                     </Tooltip>
                   )}
@@ -1168,6 +1185,12 @@ const TextEditorModal = ({
           </div>
         </div>
       </div>
+      <SnippetMenu
+        anchorEl={snippetButtonRef.current}
+        open={snippetOpen}
+        onClose={() => setSnippetOpen(false)}
+        monacoRef={monacoRef}
+      />
     </div>
   );
 
