@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
     ".portal-heading": {
       fontSize: 18,
       fontWeight: 300,
-      color: "rgba(255, 255, 255, 0.4)",
+      color: theme.vars.palette.text.secondary,
       marginBottom: 20,
       letterSpacing: "0.01em",
       textAlign: "center" as const,
@@ -69,13 +69,33 @@ const styles = (theme: Theme) =>
     },
     ".portal-input-wrapper": {
       width: "100%",
-      maxWidth: 600,
+      maxWidth: 640,
       position: "relative",
-      // Override ChatInputSection margin to center vertically instead of pushing to bottom
+      // Override ChatInputSection margin
       "& .chat-input-section": {
         margin: "0 auto",
         width: "100%",
         maxWidth: "100%",
+      },
+      // Composer box: slightly more padding for a roomier feel
+      "& .compose-message": {
+        padding: "10px 16px 8px",
+        borderRadius: 16,
+      },
+      "& .compose-message textarea": {
+        padding: "4px 8px 8px 4px",
+        fontSize: "15px",
+      },
+      // Footer: keep toolbar left, send button right — but tighten gap
+      "& .composer-footer": {
+        paddingTop: "4px",
+        gap: "4px",
+        "& .chat-action-buttons": {
+          marginLeft: "auto",
+          opacity: 0.6,
+          transition: "opacity 0.2s ease",
+          "&:hover": { opacity: 1 },
+        },
       },
       // Flatten the toolbar — no background, no border, no shadow
       "& .chat-toolbar": {
@@ -83,47 +103,36 @@ const styles = (theme: Theme) =>
         border: "none",
         boxShadow: "none",
         backdropFilter: "none",
-        padding: "4px 8px",
+        padding: "0",
         minHeight: "unset",
-        "&::before": {
-          display: "none",
-        },
-        "&:hover": {
-          border: "none",
-          boxShadow: "none",
-        },
+        gap: "2px",
+        "&::before": { display: "none" },
+        "&:hover": { border: "none", boxShadow: "none" },
       },
       // Remove model select border/bg
       "& .toolbar-group-primary": {
-        background: "none",
-        border: "none",
-        padding: "4px",
+        background: "none !important",
+        border: "none !important",
+        boxShadow: "none !important",
+        padding: "2px 4px",
         "&:hover": {
-          background: "rgba(255, 255, 255, 0.05)",
-          borderColor: "transparent",
+          background: `${theme.vars.palette.action.hover} !important`,
+          borderColor: "transparent !important",
         },
       },
-      // Dim toolbar icons
+      // Dim toolbar icon groups
       "& .toolbar-group": {
-        opacity: 0.4,
+        opacity: 0.45,
         transition: "opacity 0.2s ease",
         "&:hover": {
-          opacity: 0.8,
-          background: "rgba(255, 255, 255, 0.05)",
-        },
-      },
-      // Dim action buttons (send, stop, new chat)
-      "& .chat-action-buttons": {
-        opacity: 0.5,
-        transition: "opacity 0.2s ease",
-        "&:hover": {
-          opacity: 1,
+          opacity: 0.9,
+          background: theme.vars.palette.action.hover,
         },
       },
     },
     ".portal-hint": {
       fontSize: 11,
-      color: "rgba(255, 255, 255, 0.2)",
+      color: theme.vars.palette.text.disabled,
       textAlign: "center" as const,
       marginTop: 12,
     },
