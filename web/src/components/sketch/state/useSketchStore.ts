@@ -905,13 +905,52 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     if (state.historyIndex <= 0) {
       return null;
     }
+
+    // When undoing from the tip of history, the live canvas holds the
+    // post-action state that isn't captured in any entry (pushHistory only
+    // records BEFORE-action snapshots). Append a snapshot of the current
+    // state so that redo can restore it later.
+    let history = state.history;
+    if (state.historyIndex === state.history.length - 1) {
+      const tipSnapshot: Record<string, string | null> = {};
+      for (const layer of state.document.layers) {
+        tipSnapshot[layer.id] = layer.data;
+      }
+      const tipStructure: LayerStructureSnapshot[] = state.document.layers.map(
+        (l) => ({
+          id: l.id,
+          name: l.name,
+          type: l.type,
+          visible: l.visible,
+          opacity: l.opacity,
+          locked: l.locked,
+          alphaLock: l.alphaLock,
+          blendMode: l.blendMode,
+          transform: l.transform,
+          contentBounds: l.contentBounds,
+          exposedAsInput: l.exposedAsInput,
+          exposedAsOutput: l.exposedAsOutput,
+          imageReference: l.imageReference
+        })
+      );
+      const tipEntry: HistoryEntry = {
+        layerSnapshots: tipSnapshot,
+        layerStructure: tipStructure,
+        activeLayerId: state.document.activeLayerId,
+        maskLayerId: state.document.maskLayerId,
+        restoreMode: "full",
+        action: "current state",
+        timestamp: Date.now()
+      };
+      history = [...state.history, tipEntry];
+    }
+
     const newIndex = state.historyIndex - 1;
-    const entry = state.history[newIndex];
+    const entry = history[newIndex];
     if (!entry) {
       return null;
     }
 
-    // Restore full layer structure if available, otherwise fall back to data-only restore
     let layers: Layer[];
     if (entry.layerStructure && entry.layerStructure.length > 0) {
       layers = entry.layerStructure.map((ls) => ({
@@ -935,6 +974,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ? entry.maskLayerId
             : state.document.maskLayerId
       },
+      history,
       historyIndex: newIndex
     });
     return entry;

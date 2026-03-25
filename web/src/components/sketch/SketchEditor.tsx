@@ -89,11 +89,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── Store selectors ────────────────────────────────────────────────
   const store = useSketchStoreSelectors();
 
+  // ─── Flush ref (filled in after canvasActions is created) ──────────
+  const flushBeforeUndoRef = useRef<() => void>(() => {});
+
   // ─── History actions ────────────────────────────────────────────────
   const { handleUndo, handleRedo } = useHistoryActions({
     canvasRef,
     undo: store.undo,
-    redo: store.redo
+    redo: store.redo,
+    flushBeforeUndo: useCallback(() => flushBeforeUndoRef.current(), [])
   });
 
   // ─── Layer actions ──────────────────────────────────────────────────
@@ -137,6 +141,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     onExportMask
   });
 
+  // Wire up the flush-before-undo ref now that canvasActions is available.
+  flushBeforeUndoRef.current = canvasActions.flushPendingCanvasSync;
+
   // ─── Color actions ──────────────────────────────────────────────────
   const colorActions = useColorActions({
     activeTool: store.activeTool,
@@ -146,7 +153,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setEraserSettings: store.setEraserSettings,
     setFillSettings: store.setFillSettings,
     setBlurSettings: store.setBlurSettings,
-    setCloneStampSettings: store.setCloneStampSettings
+    setCloneStampSettings: store.setCloneStampSettings,
+    setShapeSettings: store.setShapeSettings,
+    setGradientSettings: store.setGradientSettings
   });
 
   // ─── Seed global store from prop before SketchCanvas mounts ─────────
