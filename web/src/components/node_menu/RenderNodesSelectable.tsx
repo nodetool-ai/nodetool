@@ -354,6 +354,45 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     [nodesByNamespaceAll, onSetSelection, selectedNodeTypes]
   );
 
+  // Memoize stop propagation handler to prevent recreation on each render
+  const handleStopPropagation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  // Memoize namespace handlers to prevent recreation on each render
+  const namespaceHandlers = useMemo(() => {
+    const handlers: {
+      checkboxChange: Record<string, (e: React.ChangeEvent<HTMLInputElement>) => void>;
+      expansionToggle: Record<string, () => void>;
+    } = {
+      checkboxChange: {},
+      expansionToggle: {}
+    };
+
+    // Get all unique namespaces from both search results and regular nodes
+    const allNamespaces = new Set<string>();
+    if (searchTerm) {
+      groupedSearchResults.forEach((group) => {
+        Object.keys(groupNodes(group.nodes)).forEach((ns) => allNamespaces.add(ns));
+      });
+    } else {
+      Object.keys(nodesByNamespaceAll).forEach((ns) => allNamespaces.add(ns));
+    }
+
+    // Create stable handlers for each namespace
+    for (const namespace of allNamespaces) {
+      handlers.checkboxChange[namespace] = (e) => {
+        e.stopPropagation();
+        toggleNamespace(namespace, e.target.checked);
+      };
+      handlers.expansionToggle[namespace] = () => {
+        toggleNamespaceExpansion(namespace);
+      };
+    }
+
+    return handlers;
+  }, [searchTerm, groupedSearchResults, nodesByNamespaceAll, toggleNamespace, toggleNamespaceExpansion]);
+
   const renderGroup = useCallback(
     (group: SearchResultGroup) => {
       // Keep all nodes visible, including selected ones
@@ -387,11 +426,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                               className="namespace-checkbox"
                               checked={nsState.checked}
                               indeterminate={nsState.indeterminate}
-                              onChange={(e) => {
+                              onChange={namespaceHandlers.checkboxChange[namespace] || ((e) => {
                                 e.stopPropagation();
                                 toggleNamespace(namespace, e.target.checked);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
+                              })}
+                              onClick={handleStopPropagation}
                               sx={{
                                 color: "var(--palette-grey-500)",
                                 "&.Mui-checked, &.MuiCheckbox-indeterminate": {
@@ -448,7 +487,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       onToggleSelection,
       handleNodeClick,
       computeNamespaceSelectionState,
-      toggleNamespace
+      toggleNamespace,
+      namespaceHandlers,
+      handleStopPropagation
     ]
   );
 
@@ -511,11 +552,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         className="namespace-checkbox"
                         checked={nsState.checked}
                         indeterminate={nsState.indeterminate}
-                        onChange={(e) => {
+                        onChange={namespaceHandlers.checkboxChange[namespace] || ((e) => {
                           e.stopPropagation();
                           toggleNamespace(namespace, e.target.checked);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
+                        })}
+                        onClick={handleStopPropagation}
                         sx={{
                           color: "var(--palette-grey-500)",
                           "&.Mui-checked, &.MuiCheckbox-indeterminate": {
@@ -530,7 +571,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                   variant="h5"
                   component="div"
                   className="namespace-text"
-                  onClick={() => toggleNamespaceExpansion(namespace)}
+                  onClick={namespaceHandlers.expansionToggle[namespace] || (() => toggleNamespaceExpansion(namespace))}
                   sx={{
                     cursor: "pointer",
                     userSelect: "none",
@@ -587,7 +628,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     computeNamespaceSelectionState,
     toggleNamespace,
     expandedNamespaces,
-    toggleNamespaceExpansion
+    toggleNamespaceExpansion,
+    namespaceHandlers,
+    handleStopPropagation
   ]);
 
   return (
