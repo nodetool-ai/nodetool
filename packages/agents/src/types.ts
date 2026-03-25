@@ -2,6 +2,33 @@
  * Core type definitions for the agent system.
  */
 
+/**
+ * Agent execution mode:
+ * - "loop": Simple iterative LLM + tool calling loop (like SimpleAgent)
+ * - "plan": LLM creates a task plan, then executes steps (like Agent)
+ * - "multi-agent": Multiple sub-agents running in parallel (like TeamExecutor)
+ */
+export type AgentMode = "loop" | "plan" | "multi-agent";
+
+/**
+ * Configuration for a sub-agent in multi-agent mode.
+ * Used when auto-specializing agents from an objective.
+ */
+export interface SubAgentConfig {
+  /** Human-readable name for the sub-agent. */
+  name: string;
+  /** Role description for the sub-agent. */
+  role: string;
+  /** Skill tags for task matching. */
+  skills: string[];
+  /** Tool names this sub-agent can use (beyond team tools). */
+  tools?: string[];
+  /** Override model for this sub-agent. If not set, uses the parent agent's model. */
+  model?: string;
+  /** Override provider for this sub-agent. If not set, uses the parent agent's provider. */
+  provider?: string;
+}
+
 export interface Step {
   id: string;
   instructions: string;

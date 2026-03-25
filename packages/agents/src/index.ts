@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task } from "./types.js";
+export type { Step, Task, AgentMode, SubAgentConfig } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -141,6 +141,10 @@ export { BaseAgent } from "./base-agent.js";
 export { SimpleAgent } from "./simple-agent.js";
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
+export { MultiModeAgent } from "./multi-mode-agent.js";
+export type { MultiModeAgentOptions } from "./multi-mode-agent.js";
+export { SubAgentPlanner } from "./sub-agent-planner.js";
+export type { SubAgentPlannerOptions } from "./sub-agent-planner.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";

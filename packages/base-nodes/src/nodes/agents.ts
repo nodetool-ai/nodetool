@@ -10,7 +10,9 @@ import type {
   ProviderStreamItem,
   ToolCall,
 } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
+import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
+import type { AgentMode } from "@nodetool/agents";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -601,6 +603,29 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
   }
 
   return tools;
+}
+
+/**
+ * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool/agents).
+ * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
+ */
+class ToolLikeAdapter extends AgentTool {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: Record<string, unknown>;
+  private readonly _process: (context: ProcessingContext, params: Record<string, unknown>) => Promise<unknown>;
+
+  constructor(toolLike: ToolLike) {
+    super();
+    this.name = toolLike.name;
+    this.description = toolLike.description ?? "";
+    this.inputSchema = toolLike.inputSchema ?? { type: "object", properties: {} };
+    this._process = toolLike.process ?? (async () => ({ error: "Tool has no process implementation" }));
+  }
+
+  async process(context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+    return this._process(context, params);
+  }
 }
 
 export interface AgentLoopOptions {
@@ -1929,6 +1954,9 @@ export class AgentNode extends BaseNode {
 }, title: "Model", description: "Model to use for execution" })
   declare model: any;
 
+  @prop({ type: "str", default: "loop", title: "Mode", description: "Agent execution mode: 'loop' for simple tool calling, 'plan' for automatic task planning, 'multi-agent' for parallel sub-agents" })
+  declare mode: any;
+
   @prop({ type: "str", default: "You are a friendly assistant", title: "System", description: "The system prompt for the LLM" })
   declare system: any;
 
@@ -1965,7 +1993,11 @@ export class AgentNode extends BaseNode {
   @prop({ type: "int", default: 8192, title: "Max Tokens", min: 1, max: 100000 })
   declare max_tokens: any;
 
+  @prop({ type: "int", default: 3, title: "Num Agents", description: "Number of sub-agents to auto-specialize in multi-agent mode", min: 2, max: 10 })
+  declare num_agents: any;
 
+  @prop({ type: "str", default: "coordinator", title: "Team Strategy", description: "Team strategy for multi-agent mode: 'coordinator', 'autonomous', or 'hybrid'" })
+  declare team_strategy: any;
 
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
@@ -1996,6 +2028,13 @@ export class AgentNode extends BaseNode {
         modelId,
       });
       throw new Error("Processing context is required");
+    }
+
+    // --- Multi-mode dispatch for "plan" and "multi-agent" modes ---
+    const agentMode = String(this.mode ?? "loop").trim();
+    if (agentMode === "plan" || agentMode === "multi-agent") {
+      yield* this.genProcessMultiMode(context, providerId, modelId, agentMode as "plan" | "multi-agent");
+      return;
     }
 
     const prompt = asText(this.prompt ?? this.prompt ?? "");
@@ -2411,6 +2450,89 @@ export class AgentNode extends BaseNode {
       chunk: null,
       thinking: null,
       audio: lastAudio,
+    };
+  }
+
+  /**
+   * Dispatch to MultiModeAgent for "plan" and "multi-agent" modes.
+   * Converts ToolLike[] to AgentTool[] and bridges ProcessingMessage to node outputs.
+   */
+  private async *genProcessMultiMode(
+    context: ProcessingContext,
+    providerId: string,
+    modelId: string,
+    mode: "plan" | "multi-agent"
+  ): AsyncGenerator<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? "");
+    const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const rawTools: ToolLike[] = normalizeTools(this.tools ?? []);
+
+    // Build control tools
+    const controlContext = (this as any)._control_context;
+    const controlTools = buildControlTools(controlContext);
+    if (controlTools.length > 0) {
+      rawTools.push(...controlTools);
+    }
+
+    // Convert ToolLike[] to AgentTool[] for MultiModeAgent
+    const agentTools = rawTools.map((t) => new ToolLikeAdapter(t));
+
+    const provider = await context.getProvider(providerId);
+
+    const agent = new MultiModeAgent({
+      name: `AgentNode_${this.__node_id ?? "default"}`,
+      objective: prompt,
+      provider,
+      model: modelId,
+      mode,
+      tools: agentTools,
+      systemPrompt: system,
+      maxTokenLimit: Number(this.max_tokens ?? 8192),
+      outputSchema: getStructuredOutputSchema(this) ?? undefined,
+      // Plan mode options
+      planningModel: modelId,
+      maxSteps: 10,
+      maxStepIterations: 5,
+      // Multi-agent options
+      numSubAgents: Number(this.num_agents ?? 3),
+      teamStrategy: (this.team_strategy ?? "coordinator") as "coordinator" | "autonomous" | "hybrid",
+      maxConcurrency: 5,
+    });
+
+    let lastText = "";
+
+    for await (const msg of agent.execute(context)) {
+      const pmsg = msg as ProcessingMessage;
+      if (pmsg.type === "chunk") {
+        const chunk = pmsg as Chunk;
+        const content = chunk.content ?? "";
+        lastText += content;
+        yield { chunk: { type: "chunk", content, done: false }, thinking: null, text: null, audio: null };
+      } else if (pmsg.type === "step_result") {
+        const result = (pmsg as any).result;
+        if (result != null) {
+          const resultText = typeof result === "string" ? result : JSON.stringify(result);
+          lastText = resultText;
+        }
+      } else if (pmsg.type === "log_update") {
+        log.info("MultiModeAgent log", {
+          nodeId: this.__node_id ?? null,
+          content: (pmsg as any).content,
+        });
+      }
+    }
+
+    const resultText = lastText || (agent.getResults() != null
+      ? (typeof agent.getResults() === "string" ? agent.getResults() as string : JSON.stringify(agent.getResults()))
+      : "");
+
+    yield { chunk: null, thinking: null, text: resultText, audio: null };
+    return {
+      text: resultText,
+      output: resultText,
+      chunk: null,
+      thinking: null,
+      audio: null,
     };
   }
 }
