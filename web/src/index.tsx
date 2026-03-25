@@ -125,6 +125,7 @@ const TemplateGrid = React.lazy(
 const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
+const CodeEditorDebug = React.lazy(() => import("./components/CodeEditorDebug"));
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -404,6 +405,10 @@ function getRoutes() {
     routes.push({
       path: "/chatmarkdowntest",
       element: <ChatMarkdownTest />
+    });
+    routes.push({
+      path: "/code-editor-debug",
+      element: <CodeEditorDebug />
     });
   }
 

@@ -5,7 +5,6 @@ import type { ImageRef } from "../types.js";
 
 // Flux 2 Pro Text To Image — kie.image.Flux2ProTextToImage
 export interface Flux2ProTextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -21,7 +20,6 @@ export function flux2ProTextToImage(inputs: Flux2ProTextToImageInputs): DslNode<
 
 // Flux 2 Pro Image To Image — kie.image.Flux2ProImageToImage
 export interface Flux2ProImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   images?: Connectable<ImageRef[]>;
   aspect_ratio?: Connectable<unknown>;
@@ -38,7 +36,6 @@ export function flux2ProImageToImage(inputs: Flux2ProImageToImageInputs): DslNod
 
 // Flux 2 Flex Text To Image — kie.image.Flux2FlexTextToImage
 export interface Flux2FlexTextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -54,7 +51,6 @@ export function flux2FlexTextToImage(inputs: Flux2FlexTextToImageInputs): DslNod
 
 // Flux 2 Flex Image To Image — kie.image.Flux2FlexImageToImage
 export interface Flux2FlexImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   images?: Connectable<ImageRef[]>;
   aspect_ratio?: Connectable<unknown>;
@@ -71,7 +67,6 @@ export function flux2FlexImageToImage(inputs: Flux2FlexImageToImageInputs): DslN
 
 // Seedream 4.5 Text To Image — kie.image.Seedream45TextToImage
 export interface Seedream45TextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   quality?: Connectable<unknown>;
@@ -87,7 +82,6 @@ export function seedream45TextToImage(inputs: Seedream45TextToImageInputs): DslN
 
 // Seedream 4.5 Edit — kie.image.Seedream45Edit
 export interface Seedream45EditInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image_input?: Connectable<ImageRef[]>;
   aspect_ratio?: Connectable<unknown>;
@@ -104,7 +98,6 @@ export function seedream45Edit(inputs: Seedream45EditInputs): DslNode<Seedream45
 
 // Z-Image Turbo — kie.image.ZImage
 export interface ZImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
 }
@@ -119,7 +112,6 @@ export function zImage(inputs: ZImageInputs): DslNode<ZImageOutputs, "output"> {
 
 // Nano Banana — kie.image.NanoBanana
 export interface NanoBananaInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image_size?: Connectable<unknown>;
 }
@@ -134,7 +126,6 @@ export function nanoBanana(inputs: NanoBananaInputs): DslNode<NanoBananaOutputs,
 
 // Nano Banana Pro — kie.image.NanoBananaPro
 export interface NanoBananaProInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image_input?: Connectable<ImageRef[]>;
   aspect_ratio?: Connectable<unknown>;
@@ -151,7 +142,6 @@ export function nanoBananaPro(inputs: NanoBananaProInputs): DslNode<NanoBananaPr
 
 // Flux Kontext — kie.image.FluxKontext
 export interface FluxKontextInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   mode?: Connectable<unknown>;
@@ -167,7 +157,6 @@ export function fluxKontext(inputs: FluxKontextInputs): DslNode<FluxKontextOutpu
 
 // Grok Imagine Text To Image — kie.image.GrokImagineTextToImage
 export interface GrokImagineTextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
 }
@@ -182,7 +171,6 @@ export function grokImagineTextToImage(inputs: GrokImagineTextToImageInputs): Ds
 
 // Grok Imagine Upscale — kie.image.GrokImagineUpscale
 export interface GrokImagineUpscaleInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
 }
 
@@ -196,7 +184,6 @@ export function grokImagineUpscale(inputs: GrokImagineUpscaleInputs): DslNode<Gr
 
 // Qwen Text To Image — kie.image.QwenTextToImage
 export interface QwenTextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
 }
@@ -211,7 +198,6 @@ export function qwenTextToImage(inputs: QwenTextToImageInputs): DslNode<QwenText
 
 // Qwen Image To Image — kie.image.QwenImageToImage
 export interface QwenImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   aspect_ratio?: Connectable<unknown>;
@@ -227,7 +213,6 @@ export function qwenImageToImage(inputs: QwenImageToImageInputs): DslNode<QwenIm
 
 // Topaz Image Upscale — kie.image.TopazImageUpscale
 export interface TopazImageUpscaleInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   upscale_factor?: Connectable<unknown>;
 }
@@ -242,7 +227,6 @@ export function topazImageUpscale(inputs: TopazImageUpscaleInputs): DslNode<Topa
 
 // Recraft Remove Background — kie.image.RecraftRemoveBackground
 export interface RecraftRemoveBackgroundInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
 }
 
@@ -256,7 +240,6 @@ export function recraftRemoveBackground(inputs: RecraftRemoveBackgroundInputs): 
 
 // Ideogram Character — kie.image.IdeogramCharacter
 export interface IdeogramCharacterInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   reference_images?: Connectable<ImageRef[]>;
   rendering_speed?: Connectable<unknown>;
@@ -277,7 +260,6 @@ export function ideogramCharacter(inputs: IdeogramCharacterInputs): DslNode<Ideo
 
 // Ideogram Character Edit — kie.image.IdeogramCharacterEdit
 export interface IdeogramCharacterEditInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   mask?: Connectable<ImageRef>;
@@ -298,7 +280,6 @@ export function ideogramCharacterEdit(inputs: IdeogramCharacterEditInputs): DslN
 
 // Ideogram Character Remix — kie.image.IdeogramCharacterRemix
 export interface IdeogramCharacterRemixInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   reference_images?: Connectable<ImageRef[]>;
@@ -322,7 +303,6 @@ export function ideogramCharacterRemix(inputs: IdeogramCharacterRemixInputs): Ds
 
 // Ideogram V3 Reframe — kie.image.IdeogramV3Reframe
 export interface IdeogramV3ReframeInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   image_size?: Connectable<unknown>;
   rendering_speed?: Connectable<unknown>;
@@ -340,7 +320,6 @@ export function ideogramV3Reframe(inputs: IdeogramV3ReframeInputs): DslNode<Ideo
 
 // Recraft Crisp Upscale — kie.image.RecraftCrispUpscale
 export interface RecraftCrispUpscaleInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
 }
 
@@ -354,7 +333,6 @@ export function recraftCrispUpscale(inputs: RecraftCrispUpscaleInputs): DslNode<
 
 // Imagen 4 Fast — kie.image.Imagen4Fast
 export interface Imagen4FastInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
@@ -370,7 +348,6 @@ export function imagen4Fast(inputs: Imagen4FastInputs): DslNode<Imagen4FastOutpu
 
 // Imagen 4 Ultra — kie.image.Imagen4Ultra
 export interface Imagen4UltraInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
@@ -387,7 +364,6 @@ export function imagen4Ultra(inputs: Imagen4UltraInputs): DslNode<Imagen4UltraOu
 
 // Imagen 4 — kie.image.Imagen4
 export interface Imagen4Inputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
@@ -404,7 +380,6 @@ export function imagen4(inputs: Imagen4Inputs): DslNode<Imagen4Outputs, "output"
 
 // Nano Banana Edit — kie.image.NanoBananaEdit
 export interface NanoBananaEditInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image_input?: Connectable<ImageRef[]>;
   image_size?: Connectable<unknown>;
@@ -420,7 +395,6 @@ export function nanoBananaEdit(inputs: NanoBananaEditInputs): DslNode<NanoBanana
 
 // GPT 4o Image Text To Image — kie.image.GPTImage4oTextToImage
 export interface GPTImage4oTextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   size?: Connectable<unknown>;
   n_variants?: Connectable<number>;
@@ -437,7 +411,6 @@ export function gptImage4oTextToImage(inputs: GPTImage4oTextToImageInputs): DslN
 
 // GPT 4o Image Edit — kie.image.GPTImage4oImageToImage
 export interface GPTImage4oImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   images?: Connectable<ImageRef[]>;
   size?: Connectable<unknown>;
@@ -454,7 +427,6 @@ export function gptImage4oImageToImage(inputs: GPTImage4oImageToImageInputs): Ds
 
 // GPT Image 1.5 Text To Image — kie.image.GPTImage15TextToImage
 export interface GPTImage15TextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   quality?: Connectable<unknown>;
@@ -470,7 +442,6 @@ export function gptImage15TextToImage(inputs: GPTImage15TextToImageInputs): DslN
 
 // GPT Image 1.5 Edit — kie.image.GPTImage15ImageToImage
 export interface GPTImage15ImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   images?: Connectable<ImageRef[]>;
   aspect_ratio?: Connectable<unknown>;
@@ -487,7 +458,6 @@ export function gptImage15ImageToImage(inputs: GPTImage15ImageToImageInputs): Ds
 
 // Ideogram V3 Text To Image — kie.image.IdeogramV3TextToImage
 export interface IdeogramV3TextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   rendering_speed?: Connectable<unknown>;
@@ -507,7 +477,6 @@ export function ideogramV3TextToImage(inputs: IdeogramV3TextToImageInputs): DslN
 
 // Ideogram V3 Image To Image — kie.image.IdeogramV3ImageToImage
 export interface IdeogramV3ImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   negative_prompt?: Connectable<string>;
@@ -529,7 +498,6 @@ export function ideogramV3ImageToImage(inputs: IdeogramV3ImageToImageInputs): Ds
 
 // Seedream 4.0 Text To Image — kie.image.Seedream40TextToImage
 export interface Seedream40TextToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   quality?: Connectable<unknown>;
@@ -545,7 +513,6 @@ export function seedream40TextToImage(inputs: Seedream40TextToImageInputs): DslN
 
 // Seedream 4.0 Edit — kie.image.Seedream40ImageToImage
 export interface Seedream40ImageToImageInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   aspect_ratio?: Connectable<unknown>;

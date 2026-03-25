@@ -179,7 +179,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
   // Secret accessor (requires context)
   const getSecret = context
     ? async (name: string): Promise<string | undefined> => {
-        return context.getSecret(name);
+        return (await context.getSecret(name)) ?? undefined;
       }
     : async (_name: string): Promise<string | undefined> => {
         return undefined;

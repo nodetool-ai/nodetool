@@ -38,7 +38,7 @@ import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
-import SnippetMenu from "./SnippetMenu";
+import SnippetSidebar from "./SnippetSidebar";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
@@ -612,9 +612,8 @@ const TextEditorModal = ({
   const [currentText, setCurrentText] = useState(value || "");
   const [language, setLanguage] = useState(defaultLanguage || "");
 
-  // Snippet menu state
-  const [snippetOpen, setSnippetOpen] = useState(false);
-  const snippetButtonRef = useRef<HTMLButtonElement>(null);
+  // Snippet sidebar state
+  const [snippetSidebarVisible, setSnippetSidebarVisible] = useState(false);
 
   // Editor command function refs – using refs avoids re-renders when the
   // underlying functions are recreated in the child component on every mount.
@@ -897,11 +896,13 @@ const TextEditorModal = ({
                     </Tooltip>
                   )}
                   {!readOnly && (language === "javascript" || language === "typescript") && (
-                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Insert Snippet">
+                    <Tooltip
+                      enterDelay={TOOLTIP_ENTER_DELAY}
+                      title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
+                    >
                       <button
-                        ref={snippetButtonRef}
-                        className="button-ghost"
-                        onClick={() => setSnippetOpen((v) => !v)}
+                        className={`button-ghost ${snippetSidebarVisible ? "active" : ""}`}
+                        onClick={() => setSnippetSidebarVisible((v) => !v)}
                       >
                         <DataObjectIcon />
                       </button>
@@ -1142,6 +1143,10 @@ const TextEditorModal = ({
                     </LexicalComposer>
                   )}
                 </div>
+                <SnippetSidebar
+                  monacoRef={monacoRef}
+                  visible={isCodeEditor && snippetSidebarVisible}
+                />
                 {assistantVisible && (
                   <div className="assistant-pane">
                     <NewChatButton onNewThread={() => void createNewThread()} />
@@ -1185,12 +1190,6 @@ const TextEditorModal = ({
           </div>
         </div>
       </div>
-      <SnippetMenu
-        anchorEl={snippetButtonRef.current}
-        open={snippetOpen}
-        onClose={() => setSnippetOpen(false)}
-        monacoRef={monacoRef}
-      />
     </div>
   );
 
