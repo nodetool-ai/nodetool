@@ -3,24 +3,23 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markitdown.ConvertToMarkdown";
-            static readonly title = "Convert To Markdown";
-            static readonly description = "Converts various document formats to markdown using MarkItDown.\n    markdown, convert, document\n\n    Use cases:\n    - Convert Word documents to markdown\n    - Convert Excel files to markdown tables\n    - Convert PowerPoint to markdown content";
-        static readonly metadataOutputTypes = {
+  static readonly title = "Convert To Markdown";
+  static readonly description = "Converts various document formats to markdown using MarkItDown.\n    markdown, convert, document\n\n    Use cases:\n    - Convert Word documents to markdown\n    - Convert Excel files to markdown tables\n    - Convert PowerPoint to markdown content";
+  static readonly metadataOutputTypes = {
     output: "document"
   };
-          static readonly exposeAsTool = true;
-  
-  @prop({ type: "document", default: {
-  "type": "document",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Document", description: "The document to convert to markdown" })
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "document", default: {
+      "type": "document",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Document", description: "The document to convert to markdown"
+  })
   declare document: any;
-
-
-
 
   async process(): Promise<Record<string, unknown>> {
     const doc = (this.document ?? {}) as Record<string, unknown>;

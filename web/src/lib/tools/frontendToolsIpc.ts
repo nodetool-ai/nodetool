@@ -28,6 +28,7 @@ import "./builtin/searchNodes";
 import "./builtin/deleteNode";
 import "./builtin/deleteEdge";
 import "./builtin/uiActions";
+import "./builtin/editorTools";
 import log from "loglevel";
 
 /**

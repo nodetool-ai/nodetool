@@ -7,6 +7,10 @@
 
 import * as vm from "node:vm";
 import * as _ from "lodash-es";
+import dayjs from "dayjs";
+import * as cheerio from "cheerio";
+import { parse as csvParse } from "csv-parse/sync";
+import validator from "validator";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
@@ -267,6 +271,10 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     setInterval: undefined, // blocked
     // Non-native APIs
     _,
+    dayjs,
+    cheerio,
+    csvParse,
+    validator,
     fetch: sandboxedFetch,
     uuid,
     sleep,

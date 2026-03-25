@@ -117,20 +117,22 @@ function processPerChannel(
 // ── Bitcrush ──────────────────────────────────────────────────────
 
 export class BitcrushNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Bitcrush";
-            static readonly title = "Bitcrush";
-            static readonly description = "Applies a bitcrushing effect to an audio file, reducing bit depth and/or sample rate.\n    audio, effect, distortion\n\n    Use cases:\n    - Create lo-fi or retro-style audio effects\n    - Simulate vintage digital audio equipment\n    - Add digital distortion and artifacts to sounds";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Bitcrush";
+  static readonly title = "Bitcrush";
+  static readonly description = "Applies a bitcrushing effect to an audio file, reducing bit depth and/or sample rate.\n    audio, effect, distortion\n\n    Use cases:\n    - Create lo-fi or retro-style audio effects\n    - Simulate vintage digital audio equipment\n    - Add digital distortion and artifacts to sounds";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "int", default: 8, title: "Bit Depth", description: "The bit depth to reduce the audio to. Lower values create more distortion.", min: 1, max: 16 })
@@ -168,20 +170,22 @@ export class BitcrushNode extends BaseNode {
 // ── Compress ──────────────────────────────────────────────────────
 
 export class CompressNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Compress";
-            static readonly title = "Compress";
-            static readonly description = "Applies dynamic range compression to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Even out volume levels in a recording\n    - Increase perceived loudness of audio\n    - Control peaks in audio signals";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Compress";
+  static readonly title = "Compress";
+  static readonly description = "Applies dynamic range compression to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Even out volume levels in a recording\n    - Increase perceived loudness of audio\n    - Control peaks in audio signals";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: -20, title: "Threshold", description: "Threshold in dB above which compression is applied.", min: -60, max: 0 })
@@ -243,20 +247,22 @@ export class CompressNode extends BaseNode {
 // ── Distortion ────────────────────────────────────────────────────
 
 export class DistortionNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Distortion";
-            static readonly title = "Distortion";
-            static readonly description = "Applies a distortion effect to an audio file.\n    audio, effect, distortion\n\n    Use cases:\n    - Add grit and character to instruments\n    - Create aggressive sound effects\n    - Simulate overdriven amplifiers";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Distortion";
+  static readonly title = "Distortion";
+  static readonly description = "Applies a distortion effect to an audio file.\n    audio, effect, distortion\n\n    Use cases:\n    - Add grit and character to instruments\n    - Create aggressive sound effects\n    - Simulate overdriven amplifiers";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: 25, title: "Drive Db", description: "Amount of distortion to apply in decibels.", min: 0, max: 100 })
@@ -289,20 +295,22 @@ export class DistortionNode extends BaseNode {
 // ── Limiter ───────────────────────────────────────────────────────
 
 export class LimiterNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Limiter";
-            static readonly title = "Limiter";
-            static readonly description = "Applies a limiter effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Prevent audio clipping\n    - Increase perceived loudness without distortion\n    - Control dynamic range of audio";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Limiter";
+  static readonly title = "Limiter";
+  static readonly description = "Applies a limiter effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Prevent audio clipping\n    - Increase perceived loudness without distortion\n    - Control dynamic range of audio";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: -2, title: "Threshold Db", description: "Threshold in dB above which the limiter is applied.", min: -60, max: 0 })
@@ -350,20 +358,22 @@ export class LimiterNode extends BaseNode {
 // ── Reverb (Schroeder) ───────────────────────────────────────────
 
 export class ReverbNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Reverb";
-            static readonly title = "Reverb";
-            static readonly description = "Applies a reverb effect to an audio file.\n    audio, effect, reverb\n\n    Use cases:\n    - Add spatial depth to dry recordings\n    - Simulate different room acoustics\n    - Create atmospheric sound effects";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Reverb";
+  static readonly title = "Reverb";
+  static readonly description = "Applies a reverb effect to an audio file.\n    audio, effect, reverb\n\n    Use cases:\n    - Add spatial depth to dry recordings\n    - Simulate different room acoustics\n    - Create atmospheric sound effects";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: 0.5, title: "Room Scale", description: "Size of the simulated room. Higher values create larger spaces.", min: 0, max: 1 })
@@ -463,20 +473,22 @@ export class ReverbNode extends BaseNode {
 // ── PitchShift (soundtouchjs) ────────────────────────────────────
 
 export class PitchShiftNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.PitchShift";
-            static readonly title = "Pitch Shift";
-            static readonly description = "Shifts the pitch of an audio file without changing its duration.\n    audio, effect, pitch\n\n    Use cases:\n    - Transpose audio to a different key\n    - Create harmonies or vocal effects\n    - Adjust instrument tuning";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.PitchShift";
+  static readonly title = "Pitch Shift";
+  static readonly description = "Shifts the pitch of an audio file without changing its duration.\n    audio, effect, pitch\n\n    Use cases:\n    - Transpose audio to a different key\n    - Create harmonies or vocal effects\n    - Adjust instrument tuning";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: 0, title: "Semitones", description: "Number of semitones to shift the pitch. Positive values shift up, negative values shift down.", min: -12, max: 12 })
@@ -565,20 +577,22 @@ export class PitchShiftNode extends BaseNode {
 // ── TimeStretch (soundtouchjs) ───────────────────────────────────
 
 export class TimeStretchNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.TimeStretch";
-            static readonly title = "Time Stretch";
-            static readonly description = "Changes the speed of an audio file without altering its pitch.\n    audio, transform, time\n\n    Use cases:\n    - Adjust audio duration to fit video length\n    - Create slow-motion or fast-motion audio effects\n    - Synchronize audio tracks of different lengths";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.TimeStretch";
+  static readonly title = "Time Stretch";
+  static readonly description = "Changes the speed of an audio file without altering its pitch.\n    audio, transform, time\n\n    Use cases:\n    - Adjust audio duration to fit video length\n    - Create slow-motion or fast-motion audio effects\n    - Synchronize audio tracks of different lengths";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: 1, title: "Rate", description: "Time stretch factor. Values > 1 speed up, < 1 slow down.", min: 0.5, max: 2 })
@@ -661,20 +675,22 @@ export class TimeStretchNode extends BaseNode {
 // ── NoiseGate ─────────────────────────────────────────────────────
 
 export class NoiseGateNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.NoiseGate";
-            static readonly title = "Noise Gate";
-            static readonly description = "Applies a noise gate effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Reduce background noise in recordings\n    - Clean up audio tracks with unwanted low-level sounds\n    - Create rhythmic effects by gating sustained sounds";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.NoiseGate";
+  static readonly title = "Noise Gate";
+  static readonly description = "Applies a noise gate effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Reduce background noise in recordings\n    - Clean up audio tracks with unwanted low-level sounds\n    - Create rhythmic effects by gating sustained sounds";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: -50, title: "Threshold Db", description: "Threshold in dB below which the gate is active.", min: -90, max: 0 })
@@ -730,20 +746,22 @@ export class NoiseGateNode extends BaseNode {
 // ── Phaser ────────────────────────────────────────────────────────
 
 export class PhaserNode extends BaseNode {
-  static readonly nodeType = "lib.pedalboard.Phaser";
-            static readonly title = "Phaser";
-            static readonly description = "Applies a phaser effect to an audio file.\n    audio, effect, modulation\n\n    Use cases:\n    - Create sweeping, swooshing sounds\n    - Add movement to static sounds\n    - Produce psychedelic or space-like effects";
-        static readonly metadataOutputTypes = {
+  static readonly nodeType = "lib.audio.Phaser";
+  static readonly title = "Phaser";
+  static readonly description = "Applies a phaser effect to an audio file.\n    audio, effect, modulation\n\n    Use cases:\n    - Create sweeping, swooshing sounds\n    - Add movement to static sounds\n    - Produce psychedelic or space-like effects";
+  static readonly metadataOutputTypes = {
     output: "audio"
   };
-  
-  @prop({ type: "audio", default: {
-  "type": "audio",
-  "uri": "",
-  "asset_id": null,
-  "data": null,
-  "metadata": null
-}, title: "Audio", description: "The audio file to process." })
+
+  @prop({
+    type: "audio", default: {
+      "type": "audio",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+    }, title: "Audio", description: "The audio file to process."
+  })
   declare audio: any;
 
   @prop({ type: "float", default: 1, title: "Rate Hz", description: "Rate of the phaser effect in Hz.", min: 0.1, max: 10 })
