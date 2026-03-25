@@ -30,6 +30,7 @@ export {
   HttpRequestTool,
 } from "./tools/http-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
+export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export {
   GoogleSearchTool,
   GoogleNewsTool,
