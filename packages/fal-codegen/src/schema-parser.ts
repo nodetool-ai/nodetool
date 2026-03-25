@@ -545,7 +545,14 @@ export class SchemaParser {
       if (propName.includes("video")) return "video";
       if (propName.includes("image")) return "image";
       if (propName.includes("audio")) return "audio";
+      const propSchema = properties[keys[0]] as AnyRecord | undefined;
+      if (propSchema?.["type"] === "string") return "str";
+      // Single array field (e.g. { values: array }) → dict with one field
+      if (propSchema?.["type"] === "array") return "dict";
     }
+
+    // Check for 3D model output fields
+    if ("model_glb" in properties || "model_mesh" in properties) return "model_3d";
 
     // Check if video is present (even with other properties)
     if ("video" in properties) return "video";

@@ -18,6 +18,7 @@ export class ZImageBaseTrainer extends FalNode {
   static readonly description = `Z-Image Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 2000, description: "Number of steps to train for" })
   declare steps: any;
@@ -51,7 +52,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/z-image-base-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -61,6 +62,7 @@ export class ZImageTurboTrainerV2 extends FalNode {
   static readonly description = `Z Image Turbo Trainer V2
 training, fine-tuning, lora, model-training, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 2000, description: "Number of steps to train for" })
   declare steps: any;
@@ -94,7 +96,7 @@ training, fine-tuning, lora, model-training, fast`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/z-image-turbo-trainer-v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -104,6 +106,7 @@ export class Flux2Klein9BBaseTrainerEdit extends FalNode {
   static readonly description = `Flux 2 Klein 9B Base Trainer
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -142,7 +145,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-klein-9b-base-trainer/edit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -152,6 +155,7 @@ export class Flux2Klein9BBaseTrainer extends FalNode {
   static readonly description = `Flux 2 Klein 9B Base Trainer
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -190,7 +194,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-klein-9b-base-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -200,6 +204,7 @@ export class Flux2Klein4BBaseTrainer extends FalNode {
   static readonly description = `Flux 2 Klein 4B Base Trainer
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -238,7 +243,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-klein-4b-base-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -248,6 +253,7 @@ export class Flux2Klein4BBaseTrainerEdit extends FalNode {
   static readonly description = `Flux 2 Klein 4B Base Trainer
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -286,7 +292,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-klein-4b-base-trainer/edit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -296,6 +302,7 @@ export class QwenImage2512TrainerV2 extends FalNode {
   static readonly description = `Qwen Image 2512 Trainer V2
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 2000, description: "Number of steps to train for" })
   declare steps: any;
@@ -329,7 +336,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-2512-trainer-v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -339,6 +346,7 @@ export class Flux2TrainerV2Edit extends FalNode {
   static readonly description = `Flux 2 Trainer V2
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -377,7 +385,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-trainer-v2/edit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -387,6 +395,7 @@ export class Flux2TrainerV2 extends FalNode {
   static readonly description = `Flux 2 Trainer V2
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -425,7 +434,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-trainer-v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -435,6 +444,7 @@ export class Ltx2VideoTrainer extends FalNode {
   static readonly description = `LTX-2 Video Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str", "debug_dataset": "str", "video": "video" };
 
   @prop({ type: "int", default: 2000, description: "The number of training steps." })
   declare number_of_steps: any;
@@ -583,6 +593,7 @@ export class QwenImage2512Trainer extends FalNode {
   static readonly description = `Qwen Image 2512 Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -616,7 +627,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-2512-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -626,6 +637,7 @@ export class QwenImageEdit2511Trainer extends FalNode {
   static readonly description = `Qwen Image Edit 2511 Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -659,7 +671,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-edit-2511-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -669,6 +681,7 @@ export class QwenImageLayeredTrainer extends FalNode {
   static readonly description = `Qwen Image Layered Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -702,7 +715,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-layered-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -712,6 +725,7 @@ export class QwenImageEdit2509Trainer extends FalNode {
   static readonly description = `Qwen Image Edit 2509 Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -745,7 +759,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-edit-2509-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -755,6 +769,7 @@ export class ZImageTrainer extends FalNode {
   static readonly description = `Train LoRAs on Z-Image Turbo, a super fast text-to-image model of 6B parameters developed by Tongyi-MAI.
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -793,7 +808,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/z-image-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -803,6 +818,7 @@ export class Flux2TrainerEdit extends FalNode {
   static readonly description = `Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific editing tasks.
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -841,7 +857,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-trainer/edit", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -851,6 +867,7 @@ export class Flux2Trainer extends FalNode {
   static readonly description = `Fine-tune FLUX.2 [dev] from Black Forest Labs with custom datasets. Create specialized LoRA adaptations for specific styles and domains.
 flux, training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps." })
   declare steps: any;
@@ -889,7 +906,7 @@ flux, training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/flux-2-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -899,6 +916,7 @@ export class QwenImageEditPlusTrainer extends FalNode {
   static readonly description = `LoRA trainer for Qwen Image Edit Plus
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -932,7 +950,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-edit-plus-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -942,6 +960,7 @@ export class QwenImageEditTrainer extends FalNode {
   static readonly description = `LoRA trainer for Qwen Image Edit
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Number of steps to train for" })
   declare steps: any;
@@ -975,7 +994,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-edit-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -985,6 +1004,7 @@ export class QwenImageTrainer extends FalNode {
   static readonly description = `Qwen Image LoRA training
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 1000, description: "Total number of training steps to perform. Default is 4000." })
   declare steps: any;
@@ -1018,7 +1038,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-image-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1028,6 +1048,7 @@ export class Wan22ImageTrainer extends FalNode {
   static readonly description = `Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles with unprecedented detail.
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "high_noise_lora": "str", "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "str", default: "", description: "Trigger phrase for the model." })
   declare trigger_phrase: any;
@@ -1082,7 +1103,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-22-image-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1092,6 +1113,7 @@ export class WanTrainerT2v extends FalNode {
   static readonly description = `Train custom LoRAs for Wan-2.1 T2V 1.3B
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 400, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1130,7 +1152,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-trainer/t2v", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1140,6 +1162,7 @@ export class WanTrainerT2v14b extends FalNode {
   static readonly description = `Train custom LoRAs for Wan-2.1 T2V 14B
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 400, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1178,7 +1201,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-trainer/t2v-14b", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1188,6 +1211,7 @@ export class WanTrainerI2v720p extends FalNode {
   static readonly description = `Train custom LoRAs for Wan-2.1 I2V 720P
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 400, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1226,7 +1250,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-trainer/i2v-720p", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1236,6 +1260,7 @@ export class WanTrainerFlf2v720p extends FalNode {
   static readonly description = `Train custom LoRAs for Wan-2.1 FLF2V 720P
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 400, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1274,7 +1299,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-trainer/flf2v-720p", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1284,6 +1309,7 @@ export class LtxVideoTrainer extends FalNode {
   static readonly description = `Train LTX Video 0.9.7 for custom styles and effects.
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str", "video": "video" };
 
   @prop({ type: "int", default: 1000, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1397,6 +1423,7 @@ export class RecraftV3CreateStyle extends FalNode {
   static readonly description = `Recraft V3 Create Style is capable of creating unique styles for Recraft V3 based on your images.
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "URL to zip archive with images, use PNG format. Maximum 5 images are allowed." })
   declare images_data: any;
@@ -1420,7 +1447,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/recraft/v3/create-style", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -1430,6 +1457,7 @@ export class TurboFluxTrainer extends FalNode {
   static readonly description = `A blazing fast FLUX dev LoRA trainer for subjects and styles.
 flux, training, fine-tuning, lora, model-training, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "image", default: "", description: "\n        URL to zip archive with images of a consistent style. Try to use at least 10 images, although more is better.\n        " })
   declare images_data: any;
@@ -1473,7 +1501,7 @@ flux, training, fine-tuning, lora, model-training, fast`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/turbo-flux-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1483,6 +1511,7 @@ export class WanTrainer extends FalNode {
   static readonly description = `Train custom LoRAs for Wan-2.1 I2V 480P
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lora_file": "str", "config_file": "str" };
 
   @prop({ type: "int", default: 400, description: "The number of steps to train for." })
   declare number_of_steps: any;
@@ -1521,7 +1550,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-trainer", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1531,6 +1560,7 @@ export class HunyuanVideoLoraTraining extends FalNode {
   static readonly description = `Train Hunyuan Video lora on people, objects, characters and more!
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
 
   @prop({ type: "str", default: "", description: "The trigger word to use." })
   declare trigger_word: any;
@@ -1574,7 +1604,7 @@ training, fine-tuning, lora, model-training`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan-video-lora-training", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

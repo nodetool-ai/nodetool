@@ -18,6 +18,7 @@ export class Ultrashape extends FalNode {
   static readonly description = `Ultrashape
 3d_to_3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "int", default: 1024, description: "Marching cubes resolution." })
   declare octree_resolution: any;
@@ -61,7 +62,8 @@ export class Ultrashape extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ultrashape", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -71,6 +73,7 @@ export class Sam33DAlign extends FalNode {
   static readonly description = `Sam 3
 3d_to_3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "image", default: "", description: "URL of the human mask image. If not provided, uses full image." })
   declare body_mask_url: any;
@@ -113,7 +116,8 @@ export class Sam33DAlign extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/3d-align", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -123,6 +127,7 @@ export class MeshyV5Retexture extends FalNode {
   static readonly description = `Meshy-5 retexture applies new, high-quality textures to existing 3D models using either text prompts or reference images. It supports PBR material generation for realistic, production-ready results.
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "bool", default: false, description: "Generate PBR Maps (metallic, roughness, normal) in addition to base color." })
   declare enable_pbr: any;
@@ -166,7 +171,8 @@ export class MeshyV5Retexture extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/meshy/v5/retexture", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -176,6 +182,7 @@ export class MeshyV5Remesh extends FalNode {
   static readonly description = `Meshy-5 remesh allows you to remesh and export existing 3D models into various formats
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "model_3d" };
 
   @prop({ type: "float", default: 0, description: "Resize the model to a certain height measured in meters. Set to 0 for no resizing." })
   declare resize_height: any;
@@ -215,7 +222,8 @@ export class MeshyV5Remesh extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/meshy/v5/remesh", args);
-    return { output: res };
+    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;
+    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };
   }
 }
 
@@ -225,6 +233,7 @@ export class HunyuanPart extends FalNode {
   static readonly description = `Use the capabilities of hunyuan part to generate point clouds from your 3D files.
 3d, editing, transformation, modeling`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "iou_scores": "list[float]", "best_mask_index": "int", "mask_2_mesh": "str", "mask_1_mesh": "str", "segmented_mesh": "str", "seed": "int", "mask_3_mesh": "str" };
 
   @prop({ type: "float", default: 0, description: "X coordinate of the point prompt for segmentation (normalized space -1 to 1)." })
   declare point_prompt_x: any;
@@ -274,7 +283,7 @@ export class HunyuanPart extends FalNode {
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/hunyuan-part", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

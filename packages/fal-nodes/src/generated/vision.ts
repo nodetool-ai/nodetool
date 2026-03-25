@@ -18,6 +18,7 @@ export class ArbiterImageText extends FalNode {
   static readonly description = `Arbiter measures semantic alignment between images and text descriptions.
 vision, alignment, similarity, text-image, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "values": "list[dict[str, any]]" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -37,7 +38,7 @@ vision, alignment, similarity, text-image, analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/arbiter/image/text", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -47,6 +48,7 @@ export class ArbiterImageImage extends FalNode {
   static readonly description = `Arbiter measures similarity and alignment between reference images.
 vision, similarity, comparison, image-matching, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "values": "list[dict[str, any]]" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -66,7 +68,7 @@ vision, similarity, comparison, image-matching, analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/arbiter/image/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -76,6 +78,7 @@ export class ArbiterImage extends FalNode {
   static readonly description = `Arbiter provides comprehensive image analysis and quality metrics.
 vision, analysis, quality, metrics, image-evaluation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "values": "list[dict[str, any]]" };
 
   @prop({ type: "list[str]", default: [], description: "The measurements to use for the measurement." })
   declare measurements: any;
@@ -95,7 +98,7 @@ vision, analysis, quality, metrics, image-evaluation`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/arbiter/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -105,6 +108,7 @@ export class Florence2RegionToDescription extends FalNode {
   static readonly description = `Florence-2 Large generates detailed descriptions of specific image regions.
 vision, captioning, region-description, florence, ocr`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -128,7 +132,7 @@ vision, captioning, region-description, florence, ocr`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/region-to-description", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -138,6 +142,7 @@ export class Florence2OCR extends FalNode {
   static readonly description = `Florence-2 Large performs optical character recognition to extract text from images.
 vision, ocr, text-extraction, florence, reading`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -155,7 +160,7 @@ vision, ocr, text-extraction, florence, reading`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/ocr", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -165,6 +170,7 @@ export class Florence2MoreDetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates highly detailed, comprehensive image captions.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -182,7 +188,7 @@ vision, captioning, detailed-description, florence, analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/more-detailed-caption", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -192,6 +198,7 @@ export class Florence2RegionToCategory extends FalNode {
   static readonly description = `Florence-2 Large classifies image regions into semantic categories.
 vision, classification, region-analysis, florence, categorization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "The user input coordinates" })
   declare region: any;
@@ -215,7 +222,7 @@ vision, classification, region-analysis, florence, categorization`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/region-to-category", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -225,6 +232,7 @@ export class Florence2Caption extends FalNode {
   static readonly description = `Florence-2 Large generates concise, accurate captions for images.
 vision, captioning, description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -242,7 +250,7 @@ vision, captioning, description, florence, analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/caption", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -252,6 +260,7 @@ export class Florence2DetailedCaption extends FalNode {
   static readonly description = `Florence-2 Large generates detailed captions with rich contextual information.
 vision, captioning, detailed-description, florence, analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "The URL of the image to be processed." })
   declare image: any;
@@ -269,7 +278,7 @@ vision, captioning, detailed-description, florence, analysis`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/florence-2-large/detailed-caption", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -279,6 +288,7 @@ export class Sam3ImageEmbed extends FalNode {
   static readonly description = `Sam 3
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "URL of the image to embed." })
   declare image: any;
@@ -296,7 +306,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/image/embed", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -306,6 +316,7 @@ export class OpenrouterRouterVision extends FalNode {
   static readonly description = `OpenRouter [Vision]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "usage": "str", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -357,7 +368,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router/vision", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -367,6 +378,7 @@ export class Moondream3PreviewDetect extends FalNode {
   static readonly description = `Moondream3 Preview [Detect]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "finish_reason": "str", "objects": "list[Object]", "usage_info": "str" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare prompt: any;
@@ -395,7 +407,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream3-preview/detect", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -405,6 +417,7 @@ export class Moondream3PreviewPoint extends FalNode {
   static readonly description = `Moondream3 Preview [Point]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "points": "list[Point]", "image": "image", "finish_reason": "str", "usage_info": "str" };
 
   @prop({ type: "str", default: "", description: "Object to be located in the image" })
   declare prompt: any;
@@ -433,7 +446,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream3-preview/point", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -443,6 +456,7 @@ export class Moondream3PreviewQuery extends FalNode {
   static readonly description = `Moondream 3 Preview [Query]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "finish_reason": "str", "output": "str", "reasoning": "str", "usage_info": "str" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -481,7 +495,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream3-preview/query", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -491,6 +505,7 @@ export class Moondream3PreviewCaption extends FalNode {
   static readonly description = `Moondream3 Preview [Caption]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "finish_reason": "str", "output": "str", "usage_info": "str" };
 
   @prop({ type: "str", default: "", description: "Nucleus sampling probability mass to use, between 0 and 1." })
   declare top_p: any;
@@ -524,7 +539,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream3-preview/caption", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -534,6 +549,7 @@ export class PerceptronIsaac01OpenaiV1ChatCompletions extends FalNode {
   static readonly description = `Isaac 0.1 [OpenAI Compatible Endpoint]
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
@@ -552,6 +568,7 @@ export class PerceptronIsaac01 extends FalNode {
   static readonly description = `Isaac-01 is a multimodal vision-language model from Perceptron for various vision language tasks.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "usage": "str", "error": "str", "partial": "bool", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -580,7 +597,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "perceptron/isaac-01", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -590,6 +607,7 @@ export class XAilabNsfw extends FalNode {
   static readonly description = `Predict whether an image is NSFW or SFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "has_nsfw_concepts": "list[bool]" };
 
   @prop({ type: "list[image]", default: [], description: "List of image URLs to check. If more than 10 images are provided, only the first 10 will be checked." })
   declare images: any;
@@ -610,7 +628,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/x-ailab/nsfw", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -620,6 +638,7 @@ export class VideoUnderstanding extends FalNode {
   static readonly description = `A video understanding model to analyze video content and answer questions about what's happening in the video based on user prompts.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "The question or prompt about the video content." })
   declare prompt: any;
@@ -648,7 +667,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/video-understanding", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -658,6 +677,7 @@ export class Moondream2VisualQuery extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "Query to be asked in the image" })
   declare prompt: any;
@@ -681,7 +701,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream2/visual-query", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -691,6 +711,7 @@ export class Moondream2 extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "image", default: "", description: "URL of the image to be processed" })
   declare image: any;
@@ -708,7 +729,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream2", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -718,6 +739,7 @@ export class Moondream2PointObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "objects": "list[dict[str, any]]" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -741,7 +763,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream2/point-object-detection", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -751,6 +773,7 @@ export class Moondream2ObjectDetection extends FalNode {
   static readonly description = `Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "image": "image", "objects": "list[dict[str, any]]" };
 
   @prop({ type: "str", default: "", description: "Object to be detected in the image" })
   declare object: any;
@@ -774,7 +797,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream2/object-detection", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -784,6 +807,7 @@ export class GotOcrV2 extends FalNode {
   static readonly description = `GOT-OCR2 works on a wide range of tasks, including plain document OCR, scene text OCR, formatted document OCR, and even OCR for tables, charts, mathematical formulas, geometric shapes, molecular formulas and sheet music.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "outputs": "list[str]" };
 
   @prop({ type: "bool", default: false, description: "Generate the output in formatted mode." })
   declare do_format: any;
@@ -815,7 +839,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/got-ocr/v2", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -825,6 +849,7 @@ export class MoondreamNextBatch extends FalNode {
   static readonly description = `MoonDreamNext Batch is a multimodal vision-language model for batch captioning.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "outputs": "list[str]", "captions_file": "str" };
 
   @prop({ type: "str", default: "", description: "Single prompt to apply to all images" })
   declare prompt: any;
@@ -853,7 +878,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream-next/batch", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -863,6 +888,7 @@ export class Sa2va4bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "masks": "list[File]", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -891,7 +917,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sa2va/4b/video", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -901,6 +927,7 @@ export class Sa2va8bVideo extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "masks": "list[File]", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -929,7 +956,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sa2va/8b/video", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -939,6 +966,7 @@ export class Sa2va4bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "masks": "list[Image]", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -962,7 +990,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sa2va/4b/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -972,6 +1000,7 @@ export class Sa2va8bImage extends FalNode {
   static readonly description = `Sa2VA is an MLLM capable of question answering, visual prompt understanding, and dense object segmentation at both image and video levels
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "masks": "list[Image]", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -995,7 +1024,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sa2va/8b/image", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1005,6 +1034,7 @@ export class MoondreamNext extends FalNode {
   static readonly description = `MoonDreamNext is a multimodal vision-language model for captioning, gaze detection, bbox detection, point detection, and more.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "Prompt for query task" })
   declare prompt: any;
@@ -1038,7 +1068,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream-next", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 
@@ -1048,6 +1078,7 @@ export class ImageutilsNsfw extends FalNode {
   static readonly description = `Predict the probability of an image being NSFW.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "nsfw_probability": "float" };
 
   @prop({ type: "image", default: "", description: "Input image url." })
   declare image: any;
@@ -1065,7 +1096,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/imageutils/nsfw", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1075,6 +1106,7 @@ export class MoondreamBatched extends FalNode {
   static readonly description = `Answer questions from the images.
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "filenames": "list[str]", "outputs": "list[str]", "partial": "bool", "timings": "dict[str, any]" };
 
   @prop({ type: "enum", default: "vikhyatk/moondream2", values: ["vikhyatk/moondream2", "fal-ai/moondream2-docci"], description: "Model ID to use for inference" })
   declare model_id: any;
@@ -1114,7 +1146,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/moondream/batched", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -1124,6 +1156,7 @@ export class LlavaNext extends FalNode {
   static readonly description = `Vision
 vision, analysis, image-understanding, detection`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "partial": "bool", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the image" })
   declare prompt: any;
@@ -1162,7 +1195,7 @@ vision, analysis, image-understanding, detection`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/llava-next", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

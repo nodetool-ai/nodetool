@@ -280,6 +280,23 @@ export class NodeGenerator {
       `  static readonly description = \`${description.replace(/`/g, "'")}\`;`,
     );
     lines.push(`  static readonly requiredSettings = ["FAL_API_KEY"];`);
+
+    // Output type declaration
+    if (spec.outputType === "model_3d") {
+      lines.push(`  static readonly outputTypes = { output: "model_3d" };`);
+    } else if (spec.outputType === "str") {
+      lines.push(`  static readonly outputTypes = { output: "str" };`);
+    } else if (spec.outputFields.length > 0) {
+      // Emit outputTypes for all nodes that have known output fields (dict, any with fields)
+      const entries = spec.outputFields
+        .map((f) => `${JSON.stringify(f.name)}: ${JSON.stringify(f.propType)}`)
+        .join(", ");
+      lines.push(`  static readonly outputTypes = { ${entries} };`);
+    } else {
+      // No known output fields (empty schema or unresolved refs) - emit a generic dict output
+      lines.push(`  static readonly outputTypes = { output: "dict" };`);
+    }
+
     lines.push(``);
 
     // Field declarations
@@ -436,6 +453,35 @@ export class NodeGenerator {
         lines.push(
           `    return { output: { type: "audio", uri: (res.audio as any).url } };`,
         );
+        break;
+      case "model_3d": {
+        // model_glb takes priority over model_mesh; extract the URL from the File ref
+        lines.push(
+          `    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;`,
+          `    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };`,
+        );
+        break;
+      }
+      case "str":
+        lines.push(`    return { output: (res as any).output ?? "" };`);
+        break;
+      case "dict":
+        if (spec.outputFields.length > 0) {
+          // Known output fields - pass response through so keys match declared outputTypes
+          lines.push(`    return res as Record<string, unknown>;`);
+        } else {
+          // No known fields - wrap entire response as "output" dict
+          lines.push(`    return { output: res };`);
+        }
+        break;
+      case "any":
+        if (spec.outputFields.length > 0) {
+          // Known output fields - pass response through directly
+          lines.push(`    return res as Record<string, unknown>;`);
+        } else {
+          // Unknown output schema - wrap as dict
+          lines.push(`    return { output: res };`);
+        }
         break;
       default:
         lines.push(`    return { output: res };`);

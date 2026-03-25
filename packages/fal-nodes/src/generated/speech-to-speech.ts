@@ -18,6 +18,7 @@ export class ResembleAiChatterboxhdSpeechToSpeech extends FalNode {
   static readonly description = `Transform voices using Resemble AI's Chatterbox. Convert audio to new voices or your own samples, with expressive results and built-in perceptual watermarking.
 speech, voice, transformation, cloning`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "bool", default: false, description: "If True, the generated audio will be upscaled to 48kHz. The generation of the audio will take longer, but the quality will be higher. If False, the generated audio will be 24kHz. " })
   declare high_quality_audio: any;
@@ -65,6 +66,7 @@ export class ChatterboxSpeechToSpeech extends FalNode {
   static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
 speech, voice, transformation, cloning`;
   static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
 
   @prop({ type: "audio", default: "" })
   declare source_audio: any;
