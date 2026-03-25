@@ -77,6 +77,49 @@ const styles = (theme: Theme) =>
         width: "100%",
         maxWidth: "100%",
       },
+      // Flatten the toolbar — no background, no border, no shadow
+      "& .chat-toolbar": {
+        background: "none",
+        border: "none",
+        boxShadow: "none",
+        backdropFilter: "none",
+        padding: "4px 8px",
+        minHeight: "unset",
+        "&::before": {
+          display: "none",
+        },
+        "&:hover": {
+          border: "none",
+          boxShadow: "none",
+        },
+      },
+      // Remove model select border/bg
+      "& .toolbar-group-primary": {
+        background: "none",
+        border: "none",
+        padding: "4px",
+        "&:hover": {
+          background: "rgba(255, 255, 255, 0.05)",
+          borderColor: "transparent",
+        },
+      },
+      // Dim toolbar icons
+      "& .toolbar-group": {
+        opacity: 0.4,
+        transition: "opacity 0.2s ease",
+        "&:hover": {
+          opacity: 0.8,
+          background: "rgba(255, 255, 255, 0.05)",
+        },
+      },
+      // Dim action buttons (send, stop, new chat)
+      "& .chat-action-buttons": {
+        opacity: 0.5,
+        transition: "opacity 0.2s ease",
+        "&:hover": {
+          opacity: 1,
+        },
+      },
     },
     ".portal-hint": {
       fontSize: 11,
